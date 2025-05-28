@@ -112,23 +112,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const hardware = data.hardware || data.system_info || {};
       const network = data.network || data.network_info || {};
       
+      // Extract IP address from various possible locations
+      let ip_address = network.ip_address || network.ip || null;
+      
+      // Try to extract IP from network interfaces if not found directly
+      if (!ip_address && data.network && typeof data.network === 'object') {
+        // Look for IP addresses in network interface objects
+        for (const [key, iface] of Object.entries(data.network)) {
+          if (typeof iface === 'object' && iface !== null) {
+            if ((iface as any).ip_address) {
+              ip_address = (iface as any).ip_address;
+              break;
+            }
+            if ((iface as any).ip) {
+              ip_address = (iface as any).ip;
+              break;
+            }
+          }
+        }
+      }
+      
+      // Also try from system info or hardware
+      if (!ip_address) {
+        ip_address = data.ip_address || hardware.ip_address || osInfo.ip_address || null;
+      }
+
       if (!device) {
         device = await storage.createDevice({
           hostname: hostname,
           assigned_user: data.assigned_user || data.user || null,
           os_name: osInfo.name || osInfo.platform || osInfo.system || null,
           os_version: osInfo.version || osInfo.release || osInfo.version_info || null,
-          ip_address: network.ip_address || network.ip || null,
+          ip_address: ip_address,
           status: "online",
           last_seen: new Date()
         });
         console.log("Created new device:", device.id);
       } else {
-        // Update existing device
+        // Update existing device including IP address
         await storage.updateDevice(device.id, {
           assigned_user: data.assigned_user || data.user || device.assigned_user,
           os_name: osInfo.name || osInfo.platform || osInfo.system || device.os_name,
           os_version: osInfo.version || osInfo.release || osInfo.version_info || device.os_version,
+          ip_address: ip_address || device.ip_address,
           status: "online",
           last_seen: new Date()
         });
@@ -189,12 +215,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   extractNumericValue(data.metrics?.disk_usage) ||
                   null;
                   
-      // If no direct disk usage found, try to extract from storage array
-      if (disk_usage === null && data.storage && Array.isArray(data.storage) && data.storage.length > 0) {
-        // Get the highest usage percentage from all storage devices
-        const storageUsages = data.storage
-          .map(disk => extractNumericValue(disk.usage_percent))
-          .filter(usage => usage !== null);
+      // If no direct disk usage found, try to extract from storage array or object
+      if (disk_usage === null && data.storage) {
+        let storageUsages = [];
+        
+        if (Array.isArray(data.storage)) {
+          // Handle array format
+          storageUsages = data.storage
+            .map(disk => extractNumericValue(disk.usage_percent) || extractNumericValue(disk.percent))
+            .filter(usage => usage !== null);
+        } else if (typeof data.storage === 'object') {
+          // Handle object format like { "C:": { percent: 45.2, ... } }
+          storageUsages = Object.values(data.storage)
+            .map((disk: any) => extractNumericValue(disk.usage_percent) || extractNumericValue(disk.percent))
+            .filter(usage => usage !== null);
+        }
+        
         if (storageUsages.length > 0) {
           disk_usage = Math.max(...storageUsages);
         }
@@ -236,102 +272,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
         raw_data: JSON.stringify(req.body)
       });
 
-      // Check for alerts based on comprehensive threshold matrix
-      
-      // CPU usage alerts
+      // Smart alert system - update existing alerts instead of creating duplicates
+      const checkAndManageAlert = async (
+        metric: string, 
+        value: number, 
+        thresholds: { critical: number; high: number; warning: number },
+        category: string
+      ) => {
+        // Determine current severity
+        let currentSeverity = null;
+        let currentThreshold = null;
+        let message = "";
+
+        if (value >= thresholds.critical) {
+          currentSeverity = "critical";
+          currentThreshold = thresholds.critical;
+          if (metric === "cpu") {
+            message = `Critical CPU usage detected (${value.toFixed(1)}%) - Bottleneck detected`;
+          } else if (metric === "memory") {
+            message = `Critical memory usage detected (${value.toFixed(1)}%) - Risk of crash`;
+          } else if (metric === "disk") {
+            message = `Critical disk usage detected (${value.toFixed(1)}%) - Immediate attention required`;
+          }
+        } else if (value >= thresholds.high) {
+          currentSeverity = "high";
+          currentThreshold = thresholds.high;
+          if (metric === "cpu") {
+            message = `High CPU usage detected (${value.toFixed(1)}%) - System stressed`;
+          } else if (metric === "memory") {
+            message = `High memory usage detected (${value.toFixed(1)}%) - App slowness likely`;
+          } else if (metric === "disk") {
+            message = `High disk usage detected (${value.toFixed(1)}%) - Needs cleanup soon`;
+          }
+        } else if (value >= thresholds.warning) {
+          currentSeverity = "warning";
+          currentThreshold = thresholds.warning;
+          if (metric === "cpu") {
+            message = `CPU usage spike detected (${value.toFixed(1)}%) - Spikes are fine`;
+          } else if (metric === "memory") {
+            message = `Memory usage spike detected (${value.toFixed(1)}%) - Temporary spike`;
+          } else if (metric === "disk") {
+            message = `Disk usage warning (${value.toFixed(1)}%) - Normal usage spike`;
+          }
+        }
+
+        // Check for existing active alert for this metric
+        const existingAlert = await storage.getActiveAlertByDeviceAndMetric(device.id, metric);
+
+        if (currentSeverity) {
+          // Should have an alert
+          if (existingAlert) {
+            // Update existing alert
+            await storage.updateAlert(existingAlert.id, {
+              severity: currentSeverity,
+              message: message,
+              metadata: { 
+                [metric + "_usage"]: value, 
+                threshold: currentThreshold, 
+                metric: metric,
+                last_updated: new Date().toISOString()
+              }
+            });
+          } else {
+            // Create new alert
+            await storage.createAlert({
+              device_id: device.id,
+              category: category,
+              severity: currentSeverity,
+              message: message,
+              metadata: { 
+                [metric + "_usage"]: value, 
+                threshold: currentThreshold, 
+                metric: metric,
+                last_updated: new Date().toISOString()
+              },
+              is_active: true
+            });
+          }
+        } else {
+          // Value is below warning threshold
+          if (existingAlert) {
+            // Resolve existing alert
+            await storage.resolveAlert(existingAlert.id);
+          }
+        }
+      };
+
+      // Process alerts for each metric
       if (cpu_usage !== null && cpu_usage !== undefined) {
-        if (cpu_usage >= 98) {
-          await storage.createAlert({
-            device_id: device.id,
-            category: "performance",
-            severity: "critical",
-            message: `Critical CPU usage detected (${cpu_usage.toFixed(1)}%) - Bottleneck detected`,
-            metadata: { cpu_usage: cpu_usage, threshold: 98, metric: "cpu" },
-            is_active: true
-          });
-        } else if (cpu_usage >= 95) {
-          await storage.createAlert({
-            device_id: device.id,
-            category: "performance",
-            severity: "high",
-            message: `High CPU usage detected (${cpu_usage.toFixed(1)}%) - System stressed`,
-            metadata: { cpu_usage: cpu_usage, threshold: 95, metric: "cpu" },
-            is_active: true
-          });
-        } else if (cpu_usage >= 90) {
-          await storage.createAlert({
-            device_id: device.id,
-            category: "performance",
-            severity: "warning",
-            message: `CPU usage spike detected (${cpu_usage.toFixed(1)}%) - Spikes are fine`,
-            metadata: { cpu_usage: cpu_usage, threshold: 90, metric: "cpu" },
-            is_active: true
-          });
-        }
+        await checkAndManageAlert("cpu", cpu_usage, { critical: 98, high: 95, warning: 90 }, "performance");
       }
 
-      // Memory usage alerts
       if (memory_usage !== null && memory_usage !== undefined) {
-        if (memory_usage >= 95) {
-          await storage.createAlert({
-            device_id: device.id,
-            category: "performance",
-            severity: "critical",
-            message: `Critical memory usage detected (${memory_usage.toFixed(1)}%) - Risk of crash`,
-            metadata: { memory_usage: memory_usage, threshold: 95, metric: "memory" },
-            is_active: true
-          });
-        } else if (memory_usage >= 90) {
-          await storage.createAlert({
-            device_id: device.id,
-            category: "performance",
-            severity: "high",
-            message: `High memory usage detected (${memory_usage.toFixed(1)}%) - App slowness likely`,
-            metadata: { memory_usage: memory_usage, threshold: 90, metric: "memory" },
-            is_active: true
-          });
-        } else if (memory_usage >= 85) {
-          await storage.createAlert({
-            device_id: device.id,
-            category: "performance",
-            severity: "warning",
-            message: `Memory usage spike detected (${memory_usage.toFixed(1)}%) - Temporary spike`,
-            metadata: { memory_usage: memory_usage, threshold: 85, metric: "memory" },
-            is_active: true
-          });
-        }
+        await checkAndManageAlert("memory", memory_usage, { critical: 95, high: 90, warning: 85 }, "performance");
       }
 
-      // Disk usage alerts
       if (disk_usage !== null && disk_usage !== undefined) {
-        if (disk_usage >= 98) {
-          await storage.createAlert({
-            device_id: device.id,
-            category: "storage",
-            severity: "critical",
-            message: `Critical disk usage detected (${disk_usage.toFixed(1)}%) - Immediate attention required`,
-            metadata: { disk_usage: disk_usage, threshold: 98, metric: "disk" },
-            is_active: true
-          });
-        } else if (disk_usage >= 95) {
-          await storage.createAlert({
-            device_id: device.id,
-            category: "storage",
-            severity: "high",
-            message: `High disk usage detected (${disk_usage.toFixed(1)}%) - Needs cleanup soon`,
-            metadata: { disk_usage: disk_usage, threshold: 95, metric: "disk" },
-            is_active: true
-          });
-        } else if (disk_usage >= 90) {
-          await storage.createAlert({
-            device_id: device.id,
-            category: "storage",
-            severity: "warning",
-            message: `Disk usage warning (${disk_usage.toFixed(1)}%) - Normal usage spike`,
-            metadata: { disk_usage: disk_usage, threshold: 90, metric: "disk" },
-            is_active: true
-          });
-        }
+        await checkAndManageAlert("disk", disk_usage, { critical: 98, high: 95, warning: 90 }, "storage");
       }
 
       // USB device detection (from raw data)

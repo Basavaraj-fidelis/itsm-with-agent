@@ -1,6 +1,6 @@
 import { devices, device_reports, alerts, type Device, type InsertDevice, type DeviceReport, type InsertDeviceReport, type Alert, type InsertAlert } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 
 export interface IStorage {
   // Device operations
@@ -9,16 +9,16 @@ export interface IStorage {
   getDeviceByHostname(hostname: string): Promise<Device | undefined>;
   createDevice(device: InsertDevice): Promise<Device>;
   updateDevice(id: string, device: Partial<InsertDevice>): Promise<Device | undefined>;
-  
+
   // Device report operations
   createDeviceReport(report: InsertDeviceReport): Promise<DeviceReport>;
   getDeviceReports(deviceId: string): Promise<DeviceReport[]>;
   getLatestDeviceReport(deviceId: string): Promise<DeviceReport | undefined>;
-  
+
   // Alert operations
   getActiveAlerts(): Promise<Alert[]>;
   createAlert(alert: InsertAlert): Promise<Alert>;
-  
+
   // Dashboard operations
   getDashboardSummary(): Promise<{
     total_devices: number;
@@ -39,7 +39,7 @@ export class MemStorage implements IStorage {
     this.deviceReports = new Map();
     this.alerts = new Map();
     this.currentId = 1;
-    
+
     // Add some sample data for development
     this.initializeSampleData();
   }
@@ -91,7 +91,7 @@ export class MemStorage implements IStorage {
 
     sampleDevices.forEach(device => {
       this.devices.set(device.id, device);
-      
+
       // Add sample reports for online devices
       if (device.status === "online") {
         const report: DeviceReport = {
@@ -320,6 +320,42 @@ export class DatabaseStorage implements IStorage {
       .where(eq(alerts.is_active, true))
       .orderBy(desc(alerts.triggered_at));
     return activeAlerts;
+  }
+
+  async getActiveAlertByDeviceAndMetric(deviceId: string, metric: string): Promise<Alert | null> {
+    const result = await db
+      .select()
+      .from(alerts)
+      .where(
+        and(
+          eq(alerts.device_id, deviceId),
+          eq(alerts.is_active, true),
+          sql`${alerts.metadata}->>'metric' = ${metric}`
+        )
+      )
+      .limit(1);
+
+    return result[0] || null;
+  }
+
+  async updateAlert(alertId: string, updates: Partial<Alert>): Promise<void> {
+    await db
+      .update(alerts)
+      .set({
+        ...updates,
+        triggered_at: new Date() // Update timestamp when alert is updated
+      })
+      .where(eq(alerts.id, alertId));
+  }
+
+  async resolveAlert(alertId: string): Promise<void> {
+    await db
+      .update(alerts)
+      .set({
+        is_active: false,
+        resolved_at: new Date()
+      })
+      .where(eq(alerts.id, alertId));
   }
 
   async createAlert(alert: InsertAlert): Promise<Alert> {
