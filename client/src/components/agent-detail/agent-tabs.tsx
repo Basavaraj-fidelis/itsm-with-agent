@@ -238,168 +238,239 @@ export function AgentTabs({ agent }: AgentTabsProps) {
           </TabsContent>
 
           <TabsContent value="storage" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
               <div>
                 <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Storage Devices</h3>
                 <div className="space-y-4">
                   {agent.latest_report?.raw_data?.storage ? (
                     // Check if storage has disks array (new format)
                     agent.latest_report.raw_data.storage.disks && Array.isArray(agent.latest_report.raw_data.storage.disks) ? (
-                      agent.latest_report.raw_data.storage.disks.map((disk: any, index: number) => (
-                        <div key={index} className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                              {disk.device || disk.mountpoint || `Disk ${index + 1}`}
-                            </h4>
-                            <Badge variant={
-                              (disk.percent || disk.usage?.percentage || 0) > 90 ? "destructive" : 
-                              (disk.percent || disk.usage?.percentage || 0) > 75 ? "secondary" : "default"
-                            }>
-                              {Math.round(disk.percent || disk.usage?.percentage || 0)}%
-                            </Badge>
+                      agent.latest_report.raw_data.storage.disks.map((disk: any, index: number) => {
+                        const totalGB = disk.total ? (disk.total / 1024 / 1024 / 1024) : (disk.usage?.total ? (disk.usage.total / 1024 / 1024 / 1024) : 0);
+                        const usedGB = disk.used ? (disk.used / 1024 / 1024 / 1024) : (disk.usage?.used ? (disk.usage.used / 1024 / 1024 / 1024) : 0);
+                        const freeGB = disk.free ? (disk.free / 1024 / 1024 / 1024) : (disk.usage?.free ? (disk.usage.free / 1024 / 1024 / 1024) : 0);
+                        const usagePercent = disk.percent || disk.usage?.percentage || 0;
+                        
+                        return (
+                          <div key={index} className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-6">
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-center">
+                                <HardDrive className="w-6 h-6 text-blue-600 mr-3" />
+                                <div>
+                                  <h4 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">
+                                    {disk.device || disk.mountpoint || `Disk ${index + 1}`}
+                                  </h4>
+                                  <p className="text-sm text-neutral-600">
+                                    {disk.filesystem || "Unknown"} • {disk.mountpoint || disk.device}
+                                  </p>
+                                </div>
+                              </div>
+                              <Badge variant={
+                                usagePercent > 90 ? "destructive" : 
+                                usagePercent > 75 ? "secondary" : "default"
+                              } className="text-sm px-3 py-1">
+                                {Math.round(usagePercent)}% Used
+                              </Badge>
+                            </div>
+                            
+                            {/* Storage Summary Cards */}
+                            <div className="grid grid-cols-3 gap-4 mb-4">
+                              <div className="bg-white dark:bg-neutral-700 rounded-lg p-4 text-center">
+                                <div className="text-2xl font-bold text-blue-600">{totalGB.toFixed(1)}</div>
+                                <div className="text-xs text-neutral-600 uppercase tracking-wide">Total GB</div>
+                              </div>
+                              <div className="bg-white dark:bg-neutral-700 rounded-lg p-4 text-center">
+                                <div className="text-2xl font-bold text-orange-600">{usedGB.toFixed(1)}</div>
+                                <div className="text-xs text-neutral-600 uppercase tracking-wide">Used GB</div>
+                              </div>
+                              <div className="bg-white dark:bg-neutral-700 rounded-lg p-4 text-center">
+                                <div className="text-2xl font-bold text-green-600">{freeGB.toFixed(1)}</div>
+                                <div className="text-xs text-neutral-600 uppercase tracking-wide">Free GB</div>
+                              </div>
+                            </div>
+                            
+                            {/* Usage Progress Bar */}
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-neutral-600">Storage Usage</span>
+                                <span className="font-medium">{usagePercent.toFixed(1)}%</span>
+                              </div>
+                              <div className="w-full bg-neutral-200 dark:bg-neutral-600 rounded-full h-3">
+                                <div 
+                                  className={`h-3 rounded-full transition-all duration-300 ${
+                                    usagePercent > 90 ? 'bg-red-500' : 
+                                    usagePercent > 75 ? 'bg-yellow-500' : 'bg-green-500'
+                                  }`}
+                                  style={{ width: `${Math.min(usagePercent, 100)}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                            
+                            {/* I/O Stats if available */}
+                            {disk.io_counters && (
+                              <div className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-600">
+                                <h5 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-2">I/O Statistics</h5>
+                                <div className="grid grid-cols-2 gap-3 text-xs">
+                                  <div>
+                                    <span className="text-neutral-600">Read:</span>
+                                    <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                                      {disk.io_counters.read_bytes ? `${(disk.io_counters.read_bytes / 1024 / 1024 / 1024).toFixed(2)} GB` : "0 GB"}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="text-neutral-600">Write:</span>
+                                    <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                                      {disk.io_counters.write_bytes ? `${(disk.io_counters.write_bytes / 1024 / 1024 / 1024).toFixed(2)} GB` : "0 GB"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
-                          <div className="grid grid-cols-4 gap-3 text-xs">
-                            <div>
-                              <span className="text-neutral-600">Type:</span>
-                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
-                                {disk.filesystem || "N/A"}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-neutral-600">Total:</span>
-                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
-                                {(disk.total || disk.usage?.total) ? `${((disk.total || disk.usage?.total) / 1024 / 1024 / 1024).toFixed(1)} GB` : "N/A"}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-neutral-600">Used:</span>
-                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
-                                {(disk.used || disk.usage?.used) ? `${((disk.used || disk.usage?.used) / 1024 / 1024 / 1024).toFixed(1)} GB` : "N/A"}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-neutral-600">Free:</span>
-                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
-                                {(disk.free || disk.usage?.free) ? `${((disk.free || disk.usage?.free) / 1024 / 1024 / 1024).toFixed(1)} GB` : "N/A"}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      ))
+                        );
+                      })
                     ) : Array.isArray(agent.latest_report.raw_data.storage) ? (
                       // Handle legacy array format
-                      agent.latest_report.raw_data.storage.map((disk: any, index: number) => (
-                        <div key={index} className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                              {disk.device || disk.mountpoint || `Disk ${index + 1}`}
-                            </h4>
-                            <Badge variant={
-                              (disk.percent || disk.usage_percent || 0) > 90 ? "destructive" : 
-                              (disk.percent || disk.usage_percent || 0) > 75 ? "secondary" : "default"
-                            }>
-                              {Math.round(disk.percent || disk.usage_percent || 0)}%
-                            </Badge>
+                      agent.latest_report.raw_data.storage.map((disk: any, index: number) => {
+                        const totalGB = disk.total ? (disk.total / 1024 / 1024 / 1024) : 0;
+                        const usedGB = disk.used ? (disk.used / 1024 / 1024 / 1024) : 0;
+                        const freeGB = disk.free ? (disk.free / 1024 / 1024 / 1024) : 0;
+                        const usagePercent = disk.percent || disk.usage_percent || 0;
+                        
+                        return (
+                          <div key={index} className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-6">
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-center">
+                                <HardDrive className="w-6 h-6 text-blue-600 mr-3" />
+                                <div>
+                                  <h4 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">
+                                    {disk.device || disk.mountpoint || `Disk ${index + 1}`}
+                                  </h4>
+                                  <p className="text-sm text-neutral-600">
+                                    {disk.filesystem || "Unknown"} • {disk.mountpoint || disk.device}
+                                  </p>
+                                </div>
+                              </div>
+                              <Badge variant={
+                                usagePercent > 90 ? "destructive" : 
+                                usagePercent > 75 ? "secondary" : "default"
+                              } className="text-sm px-3 py-1">
+                                {Math.round(usagePercent)}% Used
+                              </Badge>
+                            </div>
+                            
+                            {/* Storage Summary Cards */}
+                            <div className="grid grid-cols-3 gap-4 mb-4">
+                              <div className="bg-white dark:bg-neutral-700 rounded-lg p-4 text-center">
+                                <div className="text-2xl font-bold text-blue-600">{totalGB.toFixed(1)}</div>
+                                <div className="text-xs text-neutral-600 uppercase tracking-wide">Total GB</div>
+                              </div>
+                              <div className="bg-white dark:bg-neutral-700 rounded-lg p-4 text-center">
+                                <div className="text-2xl font-bold text-orange-600">{usedGB.toFixed(1)}</div>
+                                <div className="text-xs text-neutral-600 uppercase tracking-wide">Used GB</div>
+                              </div>
+                              <div className="bg-white dark:bg-neutral-700 rounded-lg p-4 text-center">
+                                <div className="text-2xl font-bold text-green-600">{freeGB.toFixed(1)}</div>
+                                <div className="text-xs text-neutral-600 uppercase tracking-wide">Free GB</div>
+                              </div>
+                            </div>
+                            
+                            {/* Usage Progress Bar */}
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-neutral-600">Storage Usage</span>
+                                <span className="font-medium">{usagePercent.toFixed(1)}%</span>
+                              </div>
+                              <div className="w-full bg-neutral-200 dark:bg-neutral-600 rounded-full h-3">
+                                <div 
+                                  className={`h-3 rounded-full transition-all duration-300 ${
+                                    usagePercent > 90 ? 'bg-red-500' : 
+                                    usagePercent > 75 ? 'bg-yellow-500' : 'bg-green-500'
+                                  }`}
+                                  style={{ width: `${Math.min(usagePercent, 100)}%` }}
+                                ></div>
+                              </div>
+                            </div>
                           </div>
-                          <div className="grid grid-cols-4 gap-3 text-xs">
-                            <div>
-                              <span className="text-neutral-600">Type:</span>
-                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
-                                {disk.filesystem || "N/A"}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-neutral-600">Total:</span>
-                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
-                                {disk.total ? `${(disk.total / 1024 / 1024 / 1024).toFixed(1)} GB` : "N/A"}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-neutral-600">Used:</span>
-                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
-                                {disk.used ? `${(disk.used / 1024 / 1024 / 1024).toFixed(1)} GB` : "N/A"}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-neutral-600">Free:</span>
-                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
-                                {disk.free ? `${(disk.free / 1024 / 1024 / 1024).toFixed(1)} GB` : "N/A"}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      ))
+                        );
+                      })
                     ) : typeof agent.latest_report.raw_data.storage === 'object' ? (
                       // Handle object format like { "C:": {...}, "D:": {...} }
-                      Object.entries(agent.latest_report.raw_data.storage).map(([diskName, disk]: [string, any]) => (
-                        <div key={diskName} className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                              {disk.device || disk.mountpoint || diskName}
-                            </h4>
-                            <Badge variant={
-                              (disk.percent || disk.usage_percent || 0) > 90 ? "destructive" : 
-                              (disk.percent || disk.usage_percent || 0) > 75 ? "secondary" : "default"
-                            }>
-                              {Math.round(disk.percent || disk.usage_percent || 0)}%
-                            </Badge>
+                      Object.entries(agent.latest_report.raw_data.storage).map(([diskName, disk]: [string, any]) => {
+                        const totalGB = disk.total ? (disk.total / 1024 / 1024 / 1024) : 0;
+                        const usedGB = disk.used ? (disk.used / 1024 / 1024 / 1024) : 0;
+                        const freeGB = disk.free ? (disk.free / 1024 / 1024 / 1024) : 0;
+                        const usagePercent = disk.percent || disk.usage_percent || 0;
+                        
+                        return (
+                          <div key={diskName} className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-6">
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-center">
+                                <HardDrive className="w-6 h-6 text-blue-600 mr-3" />
+                                <div>
+                                  <h4 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">
+                                    {disk.device || disk.mountpoint || diskName}
+                                  </h4>
+                                  <p className="text-sm text-neutral-600">
+                                    {disk.filesystem || "Unknown"} • {disk.mountpoint || diskName}
+                                  </p>
+                                </div>
+                              </div>
+                              <Badge variant={
+                                usagePercent > 90 ? "destructive" : 
+                                usagePercent > 75 ? "secondary" : "default"
+                              } className="text-sm px-3 py-1">
+                                {Math.round(usagePercent)}% Used
+                              </Badge>
+                            </div>
+                            
+                            {/* Storage Summary Cards */}
+                            <div className="grid grid-cols-3 gap-4 mb-4">
+                              <div className="bg-white dark:bg-neutral-700 rounded-lg p-4 text-center">
+                                <div className="text-2xl font-bold text-blue-600">{totalGB.toFixed(1)}</div>
+                                <div className="text-xs text-neutral-600 uppercase tracking-wide">Total GB</div>
+                              </div>
+                              <div className="bg-white dark:bg-neutral-700 rounded-lg p-4 text-center">
+                                <div className="text-2xl font-bold text-orange-600">{usedGB.toFixed(1)}</div>
+                                <div className="text-xs text-neutral-600 uppercase tracking-wide">Used GB</div>
+                              </div>
+                              <div className="bg-white dark:bg-neutral-700 rounded-lg p-4 text-center">
+                                <div className="text-2xl font-bold text-green-600">{freeGB.toFixed(1)}</div>
+                                <div className="text-xs text-neutral-600 uppercase tracking-wide">Free GB</div>
+                              </div>
+                            </div>
+                            
+                            {/* Usage Progress Bar */}
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-neutral-600">Storage Usage</span>
+                                <span className="font-medium">{usagePercent.toFixed(1)}%</span>
+                              </div>
+                              <div className="w-full bg-neutral-200 dark:bg-neutral-600 rounded-full h-3">
+                                <div 
+                                  className={`h-3 rounded-full transition-all duration-300 ${
+                                    usagePercent > 90 ? 'bg-red-500' : 
+                                    usagePercent > 75 ? 'bg-yellow-500' : 'bg-green-500'
+                                  }`}
+                                  style={{ width: `${Math.min(usagePercent, 100)}%` }}
+                                ></div>
+                              </div>
+                            </div>
                           </div>
-                          <div className="grid grid-cols-4 gap-3 text-xs">
-                            <div>
-                              <span className="text-neutral-600">Type:</span>
-                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
-                                {disk.filesystem || "N/A"}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-neutral-600">Total:</span>
-                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
-                                {disk.total ? `${(disk.total / 1024 / 1024 / 1024).toFixed(1)} GB` : "N/A"}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-neutral-600">Used:</span>
-                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
-                                {disk.used ? `${(disk.used / 1024 / 1024 / 1024).toFixed(1)} GB` : "N/A"}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-neutral-600">Free:</span>
-                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
-                                {disk.free ? `${(disk.free / 1024 / 1024 / 1024).toFixed(1)} GB` : "N/A"}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      ))
+                        );
+                      })
                     ) : null
                   ) : (
-                    <div className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center">
-                          <HardDrive className="w-5 h-5 text-blue-600 mr-3" />
-                          <div>
-                            <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">System Drive</div>
-                            <div className="text-xs text-neutral-600">Primary Storage</div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                            {agent.latest_report?.disk_usage || "0"}%
-                          </div>
+                    <div className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-6">
+                      <div className="flex items-center justify-center">
+                        <div className="text-center">
+                          <HardDrive className="w-16 h-16 text-neutral-400 mx-auto mb-4" />
+                          <h4 className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-2">No Storage Data</h4>
+                          <p className="text-sm text-neutral-500">Storage information is not available for this agent</p>
                         </div>
                       </div>
                     </div>
                   )}
-                </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Disk Performance</h3>
-                <div className="h-48 bg-neutral-50 dark:bg-neutral-800 rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <BarChart3 className="w-16 h-16 text-neutral-400 mx-auto mb-2" />
-                    <p className="text-neutral-500">Disk I/O Performance</p>
-                  </div>
                 </div>
               </div>
             </div>
@@ -408,65 +479,167 @@ export function AgentTabs({ agent }: AgentTabsProps) {
           <TabsContent value="network" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
-                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Network Activity</h3>
-                <div className="h-48 bg-neutral-50 dark:bg-neutral-800 rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <Network className="w-16 h-16 text-neutral-400 mx-auto mb-2" />
-                    <p className="text-neutral-500">Network Traffic Chart</p>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Network Stats</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-neutral-600">Network I/O:</span>
-                    <span className="text-sm text-neutral-900 dark:text-neutral-100">
-                      {agent.latest_report?.network_io ? `${agent.latest_report.network_io} bytes` : "Unknown"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-neutral-600">IP Address:</span>
-                    <span className="text-sm text-neutral-900 dark:text-neutral-100">
-                      {agent.ip_address || 
-                       agent.latest_report?.raw_data?.network?.ip_address ||
-                       agent.latest_report?.raw_data?.network_info?.ip_address ||
-                       "Unknown"}
-                    </span>
-                  </div>
-
-                  {/* Network Interfaces */}
-                  {agent.latest_report?.raw_data?.network && typeof agent.latest_report.raw_data.network === 'object' && (
-                    <div className="mt-4 space-y-2">
-                      <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Network Interfaces</h4>
-                      {Object.entries(agent.latest_report.raw_data.network).map(([key, value]: [string, any]) => {
-                        if (typeof value === 'object' && value !== null && (value.bytes_sent !== undefined || value.bytes_recv !== undefined)) {
-                          return (
-                            <div key={key} className="bg-neutral-100 dark:bg-neutral-700 rounded p-3">
-                              <div className="flex justify-between mb-2">
-                                <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">{key}</span>
-                              </div>
-                              <div className="grid grid-cols-2 gap-2 text-xs">
-                                <div>
-                                  <span className="text-neutral-600">Sent:</span>
-                                  <span className="ml-1 text-neutral-900 dark:text-neutral-100">
-                                    {value.bytes_sent && typeof value.bytes_sent === 'number' ? `${(value.bytes_sent / 1024 / 1024).toFixed(2)} MB` : "0 MB"}
+                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Network Interfaces</h3>
+                <div className="space-y-4">
+                  {agent.latest_report?.raw_data?.network?.interfaces && Array.isArray(agent.latest_report.raw_data.network.interfaces) ? (
+                    agent.latest_report.raw_data.network.interfaces.map((interface: any, index: number) => (
+                      <div key={index} className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                            {interface.name || `Interface ${index + 1}`}
+                          </h4>
+                          <Badge variant={
+                            interface.stats?.is_up ? "default" : "secondary"
+                          }>
+                            {interface.stats?.is_up ? "Up" : "Down"}
+                          </Badge>
+                        </div>
+                        
+                        {/* Show all IP addresses, highlighting AF_INET */}
+                        <div className="space-y-2">
+                          <h5 className="text-xs font-medium text-neutral-700 dark:text-neutral-300">IP Addresses:</h5>
+                          {interface.addresses && Array.isArray(interface.addresses) ? (
+                            interface.addresses.map((addr: any, addrIndex: number) => (
+                              <div key={addrIndex} className={`text-xs p-2 rounded ${
+                                addr.family === 'AF_INET' ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800' : 'bg-neutral-100 dark:bg-neutral-700'
+                              }`}>
+                                <div className="flex justify-between items-center mb-1">
+                                  <span className="font-medium text-neutral-900 dark:text-neutral-100">
+                                    {addr.address}
+                                  </span>
+                                  <span className={`text-xs px-2 py-1 rounded ${
+                                    addr.family === 'AF_INET' ? 'bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200' : 'bg-neutral-200 dark:bg-neutral-600 text-neutral-600 dark:text-neutral-300'
+                                  }`}>
+                                    {addr.family === 'AF_INET' ? 'IPv4' : addr.family === 'AF_INET6' ? 'IPv6' : addr.family}
                                   </span>
                                 </div>
-                                <div>
-                                  <span className="text-neutral-600">Received:</span>
-                                  <span className="ml-1 text-neutral-900 dark:text-neutral-100">
-                                    {value.bytes_recv && typeof value.bytes_recv === 'number' ? `${(value.bytes_recv / 1024 / 1024).toFixed(2)} MB` : "0 MB"}
-                                  </span>
-                                </div>
+                                {addr.netmask && (
+                                  <div className="text-neutral-600">Netmask: {addr.netmask}</div>
+                                )}
+                                {addr.broadcast && (
+                                  <div className="text-neutral-600">Broadcast: {addr.broadcast}</div>
+                                )}
                               </div>
+                            ))
+                          ) : (
+                            <div className="text-xs text-neutral-500">No addresses available</div>
+                          )}
+                        </div>
+                        
+                        {/* Interface Stats */}
+                        {interface.stats && (
+                          <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+                            <div>
+                              <span className="text-neutral-600">Connection:</span>
+                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                                {interface.name?.toLowerCase().includes('wifi') || interface.name?.toLowerCase().includes('wlan') ? 'WiFi' : 
+                                 interface.name?.toLowerCase().includes('ethernet') || interface.name?.toLowerCase().includes('eth') ? 'Ethernet' : 
+                                 interface.name?.toLowerCase().includes('lo') ? 'Loopback' : 'Unknown'}
+                              </span>
                             </div>
-                          );
-                        }
-                        return null;
-                      })}
+                            <div>
+                              <span className="text-neutral-600">Speed:</span>
+                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                                {interface.stats.speed ? `${interface.stats.speed} Mbps` : "Unknown"}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-neutral-600">MTU:</span>
+                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                                {interface.stats.mtu || "Unknown"}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-neutral-600">Duplex:</span>
+                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                                {interface.stats.duplex || "Unknown"}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
+                      <div className="text-center">
+                        <Network className="w-12 h-12 text-neutral-400 mx-auto mb-2" />
+                        <p className="text-sm text-neutral-500">No network interface data available</p>
+                      </div>
                     </div>
                   )}
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Network Activity</h3>
+                <div className="space-y-4">
+                  {/* Network I/O Stats */}
+                  {agent.latest_report?.raw_data?.network?.io_counters && (
+                    <div className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-3">Total I/O Statistics</h4>
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <span className="text-neutral-600">Bytes Sent:</span>
+                          <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                            {agent.latest_report.raw_data.network.io_counters.bytes_sent ? 
+                              `${(agent.latest_report.raw_data.network.io_counters.bytes_sent / 1024 / 1024 / 1024).toFixed(2)} GB` : "0 GB"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-neutral-600">Bytes Received:</span>
+                          <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                            {agent.latest_report.raw_data.network.io_counters.bytes_recv ? 
+                              `${(agent.latest_report.raw_data.network.io_counters.bytes_recv / 1024 / 1024 / 1024).toFixed(2)} GB` : "0 GB"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-neutral-600">Packets Sent:</span>
+                          <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                            {agent.latest_report.raw_data.network.io_counters.packets_sent?.toLocaleString() || "0"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-neutral-600">Packets Received:</span>
+                          <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                            {agent.latest_report.raw_data.network.io_counters.packets_recv?.toLocaleString() || "0"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-neutral-600">Errors In:</span>
+                          <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                            {agent.latest_report.raw_data.network.io_counters.errin || "0"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-neutral-600">Errors Out:</span>
+                          <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                            {agent.latest_report.raw_data.network.io_counters.errout || "0"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Public IP */}
+                  {agent.latest_report?.raw_data?.network?.public_ip && (
+                    <div className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-2">Public Information</h4>
+                      <div className="text-xs">
+                        <span className="text-neutral-600">Public IP:</span>
+                        <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                          {agent.latest_report.raw_data.network.public_ip}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Network Chart Placeholder */}
+                  <div className="h-32 bg-neutral-50 dark:bg-neutral-800 rounded-lg flex items-center justify-center">
+                    <div className="text-center">
+                      <BarChart3 className="w-12 h-12 text-neutral-400 mx-auto mb-2" />
+                      <p className="text-xs text-neutral-500">Network Traffic Chart</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
