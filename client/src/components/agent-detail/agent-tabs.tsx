@@ -240,22 +240,63 @@ export function AgentTabs({ agent }: AgentTabsProps) {
               <div>
                 <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Storage Devices</h3>
                 <div className="space-y-4">
-                  <div className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center">
-                        <HardDrive className="w-5 h-5 text-blue-600 mr-3" />
-                        <div>
-                          <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">System Drive</div>
-                          <div className="text-xs text-neutral-600">Primary Storage</div>
+                  {agent.latest_report?.raw_data?.storage ? (
+                    agent.latest_report.raw_data.storage.map((disk: any, index: number) => (
+                      <div key={index} className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center">
+                            <HardDrive className="w-5 h-5 text-blue-600 mr-3" />
+                            <div>
+                              <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                                {disk.device || `Drive ${index + 1}`}
+                              </div>
+                              <div className="text-xs text-neutral-600">
+                                {disk.mountpoint || disk.fstype || "Storage Device"}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                              {disk.usage_percent ? `${disk.usage_percent.toFixed(1)}%` : "Unknown"}
+                            </div>
+                            <div className="text-xs text-neutral-600">
+                              {disk.total && disk.used ? 
+                                `${(disk.used / 1024 / 1024 / 1024).toFixed(1)}GB / ${(disk.total / 1024 / 1024 / 1024).toFixed(1)}GB` 
+                                : "Size Unknown"}
+                            </div>
+                          </div>
                         </div>
+                        {disk.usage_percent && (
+                          <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
+                            <div 
+                              className={`h-2 rounded-full ${
+                                disk.usage_percent >= 90 ? "bg-red-500" : 
+                                disk.usage_percent >= 70 ? "bg-yellow-500" : "bg-green-500"
+                              }`}
+                              style={{ width: `${disk.usage_percent}%` }}
+                            />
+                          </div>
+                        )}
                       </div>
-                      <div className="text-right">
-                        <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                          {agent.latest_report?.disk_usage || "0"}%
+                    ))
+                  ) : (
+                    <div className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center">
+                          <HardDrive className="w-5 h-5 text-blue-600 mr-3" />
+                          <div>
+                            <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">System Drive</div>
+                            <div className="text-xs text-neutral-600">Primary Storage</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                            {agent.latest_report?.disk_usage || "0"}%
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
               <div>
@@ -293,9 +334,45 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                   <div className="flex justify-between">
                     <span className="text-sm text-neutral-600">IP Address:</span>
                     <span className="text-sm text-neutral-900 dark:text-neutral-100">
-                      {agent.ip_address || "Unknown"}
+                      {agent.ip_address || 
+                       agent.latest_report?.raw_data?.network?.ip_address ||
+                       agent.latest_report?.raw_data?.network_info?.ip_address ||
+                       "Unknown"}
                     </span>
                   </div>
+                  
+                  {/* Network Interfaces */}
+                  {agent.latest_report?.raw_data?.network && (
+                    <div className="mt-4 space-y-2">
+                      <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Network Interfaces</h4>
+                      {Object.entries(agent.latest_report.raw_data.network).map(([key, value]: [string, any]) => {
+                        if (typeof value === 'object' && value.bytes_sent !== undefined) {
+                          return (
+                            <div key={key} className="bg-neutral-100 dark:bg-neutral-700 rounded p-3">
+                              <div className="flex justify-between mb-2">
+                                <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">{key}</span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div>
+                                  <span className="text-neutral-600">Sent:</span>
+                                  <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                                    {value.bytes_sent ? `${(value.bytes_sent / 1024 / 1024).toFixed(2)} MB` : "0 MB"}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-neutral-600">Received:</span>
+                                  <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                                    {value.bytes_recv ? `${(value.bytes_recv / 1024 / 1024).toFixed(2)} MB` : "0 MB"}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

@@ -178,7 +178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     extractNumericValue(data.metrics?.memory_usage) ||
                     null;
                     
-      // Disk usage extraction
+      // Disk usage extraction - check storage array for disk usage
       disk_usage = extractNumericValue(systemHealth.disk_percent) || 
                   extractNumericValue(systemHealth.disk_usage) ||
                   extractNumericValue(hardware.disk_percent) || 
@@ -188,6 +188,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   extractNumericValue(data.disk_info?.usage_percent) ||
                   extractNumericValue(data.metrics?.disk_usage) ||
                   null;
+                  
+      // If no direct disk usage found, try to extract from storage array
+      if (disk_usage === null && data.storage && Array.isArray(data.storage) && data.storage.length > 0) {
+        // Get the highest usage percentage from all storage devices
+        const storageUsages = data.storage
+          .map(disk => extractNumericValue(disk.usage_percent))
+          .filter(usage => usage !== null);
+        if (storageUsages.length > 0) {
+          disk_usage = Math.max(...storageUsages);
+        }
+      }
                   
       // Network I/O extraction
       network_io = extractNumericValue(systemHealth.network_bytes) || 
@@ -199,6 +210,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   extractNumericValue(data.network_info?.bytes_sent) ||
                   extractNumericValue(data.metrics?.network_io) ||
                   null;
+                  
+      // If no direct network I/O found, try to calculate from network interfaces
+      if (network_io === null && data.network && typeof data.network === 'object') {
+        let totalBytes = 0;
+        Object.values(data.network).forEach((iface: any) => {
+          if (typeof iface === 'object' && iface.bytes_sent !== undefined) {
+            totalBytes += (iface.bytes_sent || 0) + (iface.bytes_recv || 0);
+          }
+        });
+        if (totalBytes > 0) {
+          network_io = totalBytes;
+        }
+      }
 
       console.log("Extracted metrics:", { cpu_usage, memory_usage, disk_usage, network_io });
 
