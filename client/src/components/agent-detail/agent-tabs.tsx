@@ -243,44 +243,58 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                 <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Storage Devices</h3>
                 <div className="space-y-4">
                   {agent.latest_report?.raw_data?.storage ? (
-                    agent.latest_report.raw_data.storage.map((disk: any, index: number) => (
-                      <div key={index} className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center">
-                            <HardDrive className="w-5 h-5 text-blue-600 mr-3" />
-                            <div>
+                    (() => {
+                      const storageData = agent.latest_report.raw_data.storage;
+                      // Handle both array and object formats
+                      const storageArray = Array.isArray(storageData) 
+                        ? storageData 
+                        : Object.entries(storageData).map(([key, value]) => ({
+                            device: key,
+                            ...(typeof value === 'object' && value !== null ? value : {})
+                          }));
+                      
+                      return storageArray.map((disk: any, index: number) => (
+                        <div key={index} className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center">
+                              <HardDrive className="w-5 h-5 text-blue-600 mr-3" />
+                              <div>
+                                <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                                  {disk.device || disk.name || `Drive ${index + 1}`}
+                                </div>
+                                <div className="text-xs text-neutral-600">
+                                  {disk.mountpoint || disk.fstype || disk.mount || "Storage Device"}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
                               <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                                {disk.device || `Drive ${index + 1}`}
+                                {disk.usage_percent ? `${Number(disk.usage_percent).toFixed(1)}%` : 
+                                 disk.percent ? `${Number(disk.percent).toFixed(1)}%` : "Unknown"}
                               </div>
                               <div className="text-xs text-neutral-600">
-                                {disk.mountpoint || disk.fstype || "Storage Device"}
+                                {disk.total && disk.used ? 
+                                  `${(disk.used / 1024 / 1024 / 1024).toFixed(1)}GB / ${(disk.total / 1024 / 1024 / 1024).toFixed(1)}GB` 
+                                  : disk.free && disk.total ?
+                                  `${((disk.total - disk.free) / 1024 / 1024 / 1024).toFixed(1)}GB / ${(disk.total / 1024 / 1024 / 1024).toFixed(1)}GB`
+                                  : "Size Unknown"}
                               </div>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                              {disk.usage_percent ? `${disk.usage_percent.toFixed(1)}%` : "Unknown"}
+                          {(disk.usage_percent || disk.percent) && (
+                            <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
+                              <div 
+                                className={`h-2 rounded-full ${
+                                  Number(disk.usage_percent || disk.percent) >= 90 ? "bg-red-500" : 
+                                  Number(disk.usage_percent || disk.percent) >= 70 ? "bg-yellow-500" : "bg-green-500"
+                                }`}
+                                style={{ width: `${Number(disk.usage_percent || disk.percent)}%` }}
+                              />
                             </div>
-                            <div className="text-xs text-neutral-600">
-                              {disk.total && disk.used ? 
-                                `${(disk.used / 1024 / 1024 / 1024).toFixed(1)}GB / ${(disk.total / 1024 / 1024 / 1024).toFixed(1)}GB` 
-                                : "Size Unknown"}
-                            </div>
-                          </div>
+                          )}
                         </div>
-                        {disk.usage_percent && (
-                          <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
-                            <div 
-                              className={`h-2 rounded-full ${
-                                disk.usage_percent >= 90 ? "bg-red-500" : 
-                                disk.usage_percent >= 70 ? "bg-yellow-500" : "bg-green-500"
-                              }`}
-                              style={{ width: `${disk.usage_percent}%` }}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    ))
+                      ));
+                    })()
                   ) : (
                     <div className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-3">
@@ -344,11 +358,11 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                   </div>
 
                   {/* Network Interfaces */}
-                  {agent.latest_report?.raw_data?.network && (
+                  {agent.latest_report?.raw_data?.network && typeof agent.latest_report.raw_data.network === 'object' && (
                     <div className="mt-4 space-y-2">
                       <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Network Interfaces</h4>
                       {Object.entries(agent.latest_report.raw_data.network).map(([key, value]: [string, any]) => {
-                        if (typeof value === 'object' && value.bytes_sent !== undefined) {
+                        if (typeof value === 'object' && value !== null && (value.bytes_sent !== undefined || value.bytes_recv !== undefined)) {
                           return (
                             <div key={key} className="bg-neutral-100 dark:bg-neutral-700 rounded p-3">
                               <div className="flex justify-between mb-2">
@@ -358,13 +372,13 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                                 <div>
                                   <span className="text-neutral-600">Sent:</span>
                                   <span className="ml-1 text-neutral-900 dark:text-neutral-100">
-                                    {value.bytes_sent ? `${(value.bytes_sent / 1024 / 1024).toFixed(2)} MB` : "0 MB"}
+                                    {value.bytes_sent && typeof value.bytes_sent === 'number' ? `${(value.bytes_sent / 1024 / 1024).toFixed(2)} MB` : "0 MB"}
                                   </span>
                                 </div>
                                 <div>
                                   <span className="text-neutral-600">Received:</span>
                                   <span className="ml-1 text-neutral-900 dark:text-neutral-100">
-                                    {value.bytes_recv ? `${(value.bytes_recv / 1024 / 1024).toFixed(2)} MB` : "0 MB"}
+                                    {value.bytes_recv && typeof value.bytes_recv === 'number' ? `${(value.bytes_recv / 1024 / 1024).toFixed(2)} MB` : "0 MB"}
                                   </span>
                                 </div>
                               </div>
@@ -385,7 +399,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
               <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Running Processes</h3>
             </div>
 
-            {agent.latest_report?.raw_data?.processes ? (
+            {agent.latest_report?.raw_data?.processes && Array.isArray(agent.latest_report.raw_data.processes) ? (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-neutral-50 dark:bg-neutral-700">
@@ -408,16 +422,17 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                     {agent.latest_report.raw_data.processes.slice(0, 10).map((process: any, index: number) => (
                       <tr key={index}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
-                          {process.name || "Unknown"}
+                          {process.name || process.command || "Unknown"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
                           {process.pid || "--"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
-                          {process.cpu_percent || "--"}%
+                          {process.cpu_percent !== undefined ? `${Number(process.cpu_percent).toFixed(1)}%` : "--"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
-                          {process.memory_info?.rss ? `${Math.round(process.memory_info.rss / 1024 / 1024)} MB` : "--"}
+                          {process.memory_info?.rss ? `${Math.round(process.memory_info.rss / 1024 / 1024)} MB` :
+                           process.memory_percent ? `${Number(process.memory_percent).toFixed(1)}%` : "--"}
                         </td>
                       </tr>
                     ))}
