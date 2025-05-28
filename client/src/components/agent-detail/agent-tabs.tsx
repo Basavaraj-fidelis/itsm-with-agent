@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { Device } from "@/lib/api";
-import { Monitor, Cpu, HardDrive, Network, Activity, BarChart3, MemoryStick, Clock } from "lucide-react";
+import { Monitor, Cpu, HardDrive, Network, Activity, BarChart3, MemoryStick, Clock, List } from "lucide-react";
 
 interface AgentTabsProps {
   agent: Device;
@@ -34,7 +34,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
               value="memory"
               className="flex items-center space-x-2 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none py-4"
             >
-              <HardDrive className="w-4 h-4" />
+              <MemoryStick className="w-4 h-4" />
               <span>Memory</span>
             </TabsTrigger>
             <TabsTrigger 
@@ -192,7 +192,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                 <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Memory Usage</h3>
                 <div className="h-48 bg-neutral-50 dark:bg-neutral-800 rounded-lg flex items-center justify-center">
                   <div className="text-center">
-                    <HardDrive className="w-16 h-16 text-neutral-400 mx-auto mb-2" />
+                    <MemoryStick className="w-16 h-16 text-neutral-400 mx-auto mb-2" />
                     <p className="text-neutral-500">Memory Usage Chart</p>
                   </div>
                 </div>
