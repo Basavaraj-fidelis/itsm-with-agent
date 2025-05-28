@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Cpu, HardDrive, Network, List, FileText } from "lucide-react";
-import type { Device } from "@/lib/api";
+import { Badge } from "@/components/ui/badge";
+import { formatDistanceToNow } from "date-fns";
+import { Device } from "@/lib/api";
+import { Monitor, Cpu, HardDrive, Network, Activity, BarChart3, MemoryStick, Clock } from "lucide-react";
 
 interface AgentTabsProps {
   agent: Device;
@@ -340,7 +342,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                        "Unknown"}
                     </span>
                   </div>
-                  
+
                   {/* Network Interfaces */}
                   {agent.latest_report?.raw_data?.network && (
                     <div className="mt-4 space-y-2">
@@ -382,7 +384,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
             <div className="mb-4 flex justify-between items-center">
               <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Running Processes</h3>
             </div>
-            
+
             {agent.latest_report?.raw_data?.processes ? (
               <div className="overflow-x-auto">
                 <table className="w-full">
