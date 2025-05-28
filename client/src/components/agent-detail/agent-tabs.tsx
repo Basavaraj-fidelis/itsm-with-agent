@@ -243,58 +243,136 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                 <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Storage Devices</h3>
                 <div className="space-y-4">
                   {agent.latest_report?.raw_data?.storage ? (
-                    (() => {
-                      const storageData = agent.latest_report.raw_data.storage;
-                      // Handle both array and object formats
-                      const storageArray = Array.isArray(storageData) 
-                        ? storageData 
-                        : Object.entries(storageData).map(([key, value]) => ({
-                            device: key,
-                            ...(typeof value === 'object' && value !== null ? value : {})
-                          }));
-                      
-                      return storageArray.map((disk: any, index: number) => (
+                    // Check if storage has disks array (new format)
+                    agent.latest_report.raw_data.storage.disks && Array.isArray(agent.latest_report.raw_data.storage.disks) ? (
+                      agent.latest_report.raw_data.storage.disks.map((disk: any, index: number) => (
                         <div key={index} className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
                           <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center">
-                              <HardDrive className="w-5 h-5 text-blue-600 mr-3" />
-                              <div>
-                                <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                                  {disk.device || disk.name || `Drive ${index + 1}`}
-                                </div>
-                                <div className="text-xs text-neutral-600">
-                                  {disk.mountpoint || disk.fstype || disk.mount || "Storage Device"}
-                                </div>
-                              </div>
+                            <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                              {disk.device || disk.mountpoint || `Disk ${index + 1}`}
+                            </h4>
+                            <Badge variant={
+                              (disk.percent || disk.usage?.percentage || 0) > 90 ? "destructive" : 
+                              (disk.percent || disk.usage?.percentage || 0) > 75 ? "secondary" : "default"
+                            }>
+                              {Math.round(disk.percent || disk.usage?.percentage || 0)}%
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-4 gap-3 text-xs">
+                            <div>
+                              <span className="text-neutral-600">Type:</span>
+                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                                {disk.filesystem || "N/A"}
+                              </span>
                             </div>
-                            <div className="text-right">
-                              <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                                {disk.usage_percent ? `${Number(disk.usage_percent).toFixed(1)}%` : 
-                                 disk.percent ? `${Number(disk.percent).toFixed(1)}%` : "Unknown"}
-                              </div>
-                              <div className="text-xs text-neutral-600">
-                                {disk.total && disk.used ? 
-                                  `${(disk.used / 1024 / 1024 / 1024).toFixed(1)}GB / ${(disk.total / 1024 / 1024 / 1024).toFixed(1)}GB` 
-                                  : disk.free && disk.total ?
-                                  `${((disk.total - disk.free) / 1024 / 1024 / 1024).toFixed(1)}GB / ${(disk.total / 1024 / 1024 / 1024).toFixed(1)}GB`
-                                  : "Size Unknown"}
-                              </div>
+                            <div>
+                              <span className="text-neutral-600">Total:</span>
+                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                                {(disk.total || disk.usage?.total) ? `${((disk.total || disk.usage?.total) / 1024 / 1024 / 1024).toFixed(1)} GB` : "N/A"}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-neutral-600">Used:</span>
+                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                                {(disk.used || disk.usage?.used) ? `${((disk.used || disk.usage?.used) / 1024 / 1024 / 1024).toFixed(1)} GB` : "N/A"}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-neutral-600">Free:</span>
+                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                                {(disk.free || disk.usage?.free) ? `${((disk.free || disk.usage?.free) / 1024 / 1024 / 1024).toFixed(1)} GB` : "N/A"}
+                              </span>
                             </div>
                           </div>
-                          {(disk.usage_percent || disk.percent) && (
-                            <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
-                              <div 
-                                className={`h-2 rounded-full ${
-                                  Number(disk.usage_percent || disk.percent) >= 90 ? "bg-red-500" : 
-                                  Number(disk.usage_percent || disk.percent) >= 70 ? "bg-yellow-500" : "bg-green-500"
-                                }`}
-                                style={{ width: `${Number(disk.usage_percent || disk.percent)}%` }}
-                              />
-                            </div>
-                          )}
                         </div>
-                      ));
-                    })()
+                      ))
+                    ) : Array.isArray(agent.latest_report.raw_data.storage) ? (
+                      // Handle legacy array format
+                      agent.latest_report.raw_data.storage.map((disk: any, index: number) => (
+                        <div key={index} className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                              {disk.device || disk.mountpoint || `Disk ${index + 1}`}
+                            </h4>
+                            <Badge variant={
+                              (disk.percent || disk.usage_percent || 0) > 90 ? "destructive" : 
+                              (disk.percent || disk.usage_percent || 0) > 75 ? "secondary" : "default"
+                            }>
+                              {Math.round(disk.percent || disk.usage_percent || 0)}%
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-4 gap-3 text-xs">
+                            <div>
+                              <span className="text-neutral-600">Type:</span>
+                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                                {disk.filesystem || "N/A"}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-neutral-600">Total:</span>
+                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                                {disk.total ? `${(disk.total / 1024 / 1024 / 1024).toFixed(1)} GB` : "N/A"}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-neutral-600">Used:</span>
+                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                                {disk.used ? `${(disk.used / 1024 / 1024 / 1024).toFixed(1)} GB` : "N/A"}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-neutral-600">Free:</span>
+                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                                {disk.free ? `${(disk.free / 1024 / 1024 / 1024).toFixed(1)} GB` : "N/A"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : typeof agent.latest_report.raw_data.storage === 'object' ? (
+                      // Handle object format like { "C:": {...}, "D:": {...} }
+                      Object.entries(agent.latest_report.raw_data.storage).map(([diskName, disk]: [string, any]) => (
+                        <div key={diskName} className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                              {disk.device || disk.mountpoint || diskName}
+                            </h4>
+                            <Badge variant={
+                              (disk.percent || disk.usage_percent || 0) > 90 ? "destructive" : 
+                              (disk.percent || disk.usage_percent || 0) > 75 ? "secondary" : "default"
+                            }>
+                              {Math.round(disk.percent || disk.usage_percent || 0)}%
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-4 gap-3 text-xs">
+                            <div>
+                              <span className="text-neutral-600">Type:</span>
+                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                                {disk.filesystem || "N/A"}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-neutral-600">Total:</span>
+                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                                {disk.total ? `${(disk.total / 1024 / 1024 / 1024).toFixed(1)} GB` : "N/A"}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-neutral-600">Used:</span>
+                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                                {disk.used ? `${(disk.used / 1024 / 1024 / 1024).toFixed(1)} GB` : "N/A"}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-neutral-600">Free:</span>
+                              <span className="ml-1 text-neutral-900 dark:text-neutral-100">
+                                {disk.free ? `${(disk.free / 1024 / 1024 / 1024).toFixed(1)} GB` : "N/A"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : null
                   ) : (
                     <div className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-3">
