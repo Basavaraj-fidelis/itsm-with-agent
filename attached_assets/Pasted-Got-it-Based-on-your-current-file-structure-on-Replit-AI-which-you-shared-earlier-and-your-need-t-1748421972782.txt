@@ -1,0 +1,91 @@
+Got it! Based on your current file structure on Replit AI (which you shared earlier) and your need to organize many APIs cleanly, here’s a tailored suggestion to fit your existing setup:
+
+---
+
+## Recommended Folder Structure for Your Replit Project
+
+```
+/                # root of your Replit project
+|-- backend/              # Your FastAPI backend code
+|    |-- main.py          # FastAPI app entry point
+|    |-- database.py      # DB connection and setup
+|    |-- models.py        # SQLAlchemy models matching your DB
+|    |-- api/             # All API route files
+|         |-- __init__.py
+|         |-- report.py
+|         |-- devices.py
+|         |-- alerts.py
+|         |-- dashboard.py
+|
+|-- frontend/             # Your React + Tailwind frontend
+|    |-- src/
+|    |-- public/
+|    |-- package.json
+|    |-- tailwind.config.js
+|
+|-- .replit               # Replit run config
+|-- README.md
+```
+
+---
+
+## Why this structure?
+
+* `backend/api/` groups your APIs logically and makes your backend scalable and clean.
+* `backend/main.py` is your FastAPI server startup file and includes all routes.
+* `frontend/` keeps React code separate and organized.
+* `.replit` controls how your Replit runs the backend.
+
+---
+
+## How to set it up with your existing files?
+
+1. **Move your API route functions into separate files** inside `backend/api/`, e.g.:
+
+   * `report.py` for `/api/report`
+   * `devices.py` for `/api/devices` and `/api/devices/{id}`
+   * `alerts.py` for `/api/alerts`
+   * `dashboard.py` for `/api/dashboard/summary`
+
+2. **In `backend/api/__init__.py`**, import the routers:
+
+   ```python
+   from .report import router as report_router
+   from .devices import router as devices_router
+   from .alerts import router as alerts_router
+   from .dashboard import router as dashboard_router
+   ```
+
+3. **In `backend/main.py`**, include the routers:
+
+   ```python
+   from fastapi import FastAPI
+   from backend.api import report_router, devices_router, alerts_router, dashboard_router
+
+   app = FastAPI()
+
+   app.include_router(report_router)
+   app.include_router(devices_router)
+   app.include_router(alerts_router)
+   app.include_router(dashboard_router)
+   ```
+
+4. **Run your app on Replit:**
+
+   In `.replit` file:
+
+   ```ini
+   run = "uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload"
+   ```
+
+---
+
+## Let me know if you want me to generate:
+
+* Sample starter files for `report.py`, `devices.py`, `alerts.py`, `dashboard.py` with API code based on your DB schema and previous API specs.
+* A sample `main.py`
+* Instructions for frontend API calls (Axios setup)
+
+---
+
+Happy to help you scaffold it!

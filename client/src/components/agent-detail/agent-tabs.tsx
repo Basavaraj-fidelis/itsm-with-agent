@@ -1,0 +1,359 @@
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BarChart3, Cpu, HardDrive, Network, List, FileText } from "lucide-react";
+import type { Device } from "@/lib/api";
+
+interface AgentTabsProps {
+  agent: Device;
+}
+
+export function AgentTabs({ agent }: AgentTabsProps) {
+  return (
+    <Card>
+      <Tabs defaultValue="overview" className="w-full">
+        <div className="border-b border-neutral-200 dark:border-neutral-700">
+          <TabsList className="grid w-full grid-cols-6 bg-transparent h-auto p-0">
+            <TabsTrigger 
+              value="overview" 
+              className="flex items-center space-x-2 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none py-4"
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span>Overview</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="cpu"
+              className="flex items-center space-x-2 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none py-4"
+            >
+              <Cpu className="w-4 h-4" />
+              <span>CPU</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="memory"
+              className="flex items-center space-x-2 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none py-4"
+            >
+              <HardDrive className="w-4 h-4" />
+              <span>Memory</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="storage"
+              className="flex items-center space-x-2 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none py-4"
+            >
+              <HardDrive className="w-4 h-4" />
+              <span>Storage</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="network"
+              className="flex items-center space-x-2 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none py-4"
+            >
+              <Network className="w-4 h-4" />
+              <span>Network</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="processes"
+              className="flex items-center space-x-2 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none py-4"
+            >
+              <List className="w-4 h-4" />
+              <span>Processes</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        <CardContent className="p-6">
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* System Information */}
+              <div>
+                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">System Information</h3>
+                <div className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4 space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-neutral-600">Operating System:</span>
+                    <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                      {agent.os_name || "Unknown"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-neutral-600">Version:</span>
+                    <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                      {agent.os_version || "Unknown"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-neutral-600">IP Address:</span>
+                    <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                      {agent.ip_address || "Unknown"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-neutral-600">Assigned User:</span>
+                    <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                      {agent.assigned_user || "Unassigned"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-neutral-600">Last Seen:</span>
+                    <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                      {agent.last_seen ? new Date(agent.last_seen).toLocaleString() : "Never"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Performance Metrics */}
+              <div>
+                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Performance Metrics</h3>
+                <div className="h-64 bg-neutral-50 dark:bg-neutral-800 rounded-lg flex items-center justify-center">
+                  <div className="text-center">
+                    <BarChart3 className="w-16 h-16 text-neutral-400 mx-auto mb-4" />
+                    <p className="text-neutral-500">Real-time performance chart</p>
+                    <p className="text-sm text-neutral-400">CPU, Memory, Disk over last 24h</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Raw Data Preview */}
+            {agent.latest_report?.raw_data && (
+              <div>
+                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Latest Report Data</h3>
+                <div className="bg-neutral-900 rounded-lg p-4 text-sm font-mono text-green-400 max-h-64 overflow-y-auto">
+                  <pre>{JSON.stringify(agent.latest_report.raw_data, null, 2)}</pre>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="cpu" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">CPU Usage</h3>
+                <div className="h-48 bg-neutral-50 dark:bg-neutral-800 rounded-lg flex items-center justify-center">
+                  <div className="text-center">
+                    <Cpu className="w-16 h-16 text-neutral-400 mx-auto mb-2" />
+                    <p className="text-neutral-500">CPU Usage Chart</p>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">CPU Details</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-neutral-600">Current Usage:</span>
+                    <span className="text-sm text-neutral-900 dark:text-neutral-100">
+                      {agent.latest_report?.cpu_usage || "0"}%
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-neutral-600">CPU Model:</span>
+                      <span className="text-sm text-neutral-900 dark:text-neutral-100">
+                        {agent.latest_report?.raw_data?.hardware?.cpu?.model || "Unknown"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-neutral-600">Physical Cores:</span>
+                      <span className="text-sm text-neutral-900 dark:text-neutral-100">
+                        {agent.latest_report?.raw_data?.hardware?.cpu?.physical_cores || "Unknown"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-neutral-600">Logical Cores:</span>
+                      <span className="text-sm text-neutral-900 dark:text-neutral-100">
+                        {agent.latest_report?.raw_data?.hardware?.cpu?.logical_cores || "Unknown"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-neutral-600">Max Frequency:</span>
+                      <span className="text-sm text-neutral-900 dark:text-neutral-100">
+                        {agent.latest_report?.raw_data?.hardware?.cpu?.max_freq 
+                          ? `${(agent.latest_report.raw_data.hardware.cpu.max_freq / 1000).toFixed(2)} GHz`
+                          : "Unknown"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-neutral-600">Current Frequency:</span>
+                      <span className="text-sm text-neutral-900 dark:text-neutral-100">
+                        {agent.latest_report?.raw_data?.hardware?.cpu?.current_freq 
+                          ? `${(agent.latest_report.raw_data.hardware.cpu.current_freq / 1000).toFixed(2)} GHz`
+                          : "Unknown"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="memory" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Memory Usage</h3>
+                <div className="h-48 bg-neutral-50 dark:bg-neutral-800 rounded-lg flex items-center justify-center">
+                  <div className="text-center">
+                    <HardDrive className="w-16 h-16 text-neutral-400 mx-auto mb-2" />
+                    <p className="text-neutral-500">Memory Usage Chart</p>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Memory Details</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-neutral-600">Current Usage:</span>
+                    <span className="text-sm text-neutral-900 dark:text-neutral-100">
+                      {agent.latest_report?.memory_usage || "0"}%
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-neutral-600">Total Memory:</span>
+                      <span className="text-sm text-neutral-900 dark:text-neutral-100">
+                        {agent.latest_report?.raw_data?.hardware?.memory?.total 
+                          ? `${(agent.latest_report.raw_data.hardware.memory.total / 1024 / 1024 / 1024).toFixed(2)} GB`
+                          : "Unknown"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-neutral-600">Available Memory:</span>
+                      <span className="text-sm text-neutral-900 dark:text-neutral-100">
+                        {agent.latest_report?.raw_data?.hardware?.memory?.available 
+                          ? `${(agent.latest_report.raw_data.hardware.memory.available / 1024 / 1024 / 1024).toFixed(2)} GB`
+                          : "Unknown"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-neutral-600">Used Memory:</span>
+                      <span className="text-sm text-neutral-900 dark:text-neutral-100">
+                        {agent.latest_report?.raw_data?.hardware?.memory?.used 
+                          ? `${(agent.latest_report.raw_data.hardware.memory.used / 1024 / 1024 / 1024).toFixed(2)} GB`
+                          : "Unknown"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="storage" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Storage Devices</h3>
+                <div className="space-y-4">
+                  <div className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center">
+                        <HardDrive className="w-5 h-5 text-blue-600 mr-3" />
+                        <div>
+                          <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">System Drive</div>
+                          <div className="text-xs text-neutral-600">Primary Storage</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                          {agent.latest_report?.disk_usage || "0"}%
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Disk Performance</h3>
+                <div className="h-48 bg-neutral-50 dark:bg-neutral-800 rounded-lg flex items-center justify-center">
+                  <div className="text-center">
+                    <BarChart3 className="w-16 h-16 text-neutral-400 mx-auto mb-2" />
+                    <p className="text-neutral-500">Disk I/O Performance</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="network" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Network Activity</h3>
+                <div className="h-48 bg-neutral-50 dark:bg-neutral-800 rounded-lg flex items-center justify-center">
+                  <div className="text-center">
+                    <Network className="w-16 h-16 text-neutral-400 mx-auto mb-2" />
+                    <p className="text-neutral-500">Network Traffic Chart</p>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Network Stats</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-neutral-600">Network I/O:</span>
+                    <span className="text-sm text-neutral-900 dark:text-neutral-100">
+                      {agent.latest_report?.network_io ? `${agent.latest_report.network_io} bytes` : "Unknown"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-neutral-600">IP Address:</span>
+                    <span className="text-sm text-neutral-900 dark:text-neutral-100">
+                      {agent.ip_address || "Unknown"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="processes" className="space-y-6">
+            <div className="mb-4 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Running Processes</h3>
+            </div>
+            
+            {agent.latest_report?.raw_data?.processes ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-neutral-50 dark:bg-neutral-700">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                        Process
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                        PID
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                        CPU %
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                        Memory
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-neutral-800 divide-y divide-neutral-200 dark:divide-neutral-700">
+                    {agent.latest_report.raw_data.processes.slice(0, 10).map((process: any, index: number) => (
+                      <tr key={index}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                          {process.name || "Unknown"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
+                          {process.pid || "--"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
+                          {process.cpu_percent || "--"}%
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
+                          {process.memory_info?.rss ? `${Math.round(process.memory_info.rss / 1024 / 1024)} MB` : "--"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <List className="w-16 h-16 text-neutral-400 mx-auto mb-4" />
+                <p className="text-neutral-500">No process data available</p>
+              </div>
+            )}
+          </TabsContent>
+        </CardContent>
+      </Tabs>
+    </Card>
+  );
+}
