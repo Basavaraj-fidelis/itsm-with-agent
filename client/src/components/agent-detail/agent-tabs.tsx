@@ -41,6 +41,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
   const processInfo = rawData.processes || rawData.running_processes || [];
   const softwareInfo = rawData.installed_software || rawData.software || [];
   const hardwareInfo = rawData.hardware || {};
+  const usbDevices = rawData.usb_devices || hardwareInfo.usb_devices || [];
 
   // Helper function to convert bytes to GB
   const bytesToGB = (bytes: number) => {
@@ -145,7 +146,17 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                 <div className="flex justify-between">
                   <span className="text-neutral-600">Assigned User:</span>
                   <span className="font-medium">
-                    {rawData.assigned_user || agent.assigned_user?.split("@")[0] || agent.assigned_user || 'Unknown'}
+                    {(() => {
+                      const user = rawData.assigned_user || agent.assigned_user || rawData.current_user || rawData.user || rawData.username;
+                      if (!user || user === 'Unknown') return 'Unknown';
+                      // Handle domain users like "DESKTOP-CMM8H3C\basav" or "DOMAIN\user"
+                      if (user.includes('\\')) return user.split('\\').pop() || user;
+                      // Handle email format
+                      if (user.includes('@')) return user.split('@')[0];
+                      // Handle computer accounts like "DESKTOP-CMM8H3C$"
+                      if (user.endsWith('$')) return 'System Account';
+                      return user;
+                    })()}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -355,6 +366,45 @@ export function AgentTabs({ agent }: AgentTabsProps) {
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Server className="w-5 h-5" />
+                <span>USB Devices</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 text-sm">
+                {Array.isArray(usbDevices) && usbDevices.length > 0 ? (
+                  <div className="space-y-2">
+                    {usbDevices.map((device, index) => (
+                      <div key={index} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-2">
+                        <div className="font-medium text-neutral-900 dark:text-neutral-100">
+                          {device.description || device.name || device.device_name || `USB Device ${index + 1}`}
+                        </div>
+                        {device.vendor_id && (
+                          <div className="text-neutral-600 text-xs">
+                            Vendor ID: {device.vendor_id}
+                          </div>
+                        )}
+                        {device.product_id && (
+                          <div className="text-neutral-600 text-xs">
+                            Product ID: {device.product_id}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-neutral-500">
+                    <Server className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
+                    <p>No USB devices detected</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </TabsContent>
 
@@ -368,8 +418,20 @@ export function AgentTabs({ agent }: AgentTabsProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {Object.entries(networkInfo).length > 0 ? (
-                Object.entries(networkInfo).map(([interfaceName, details]) => (
+              {(() => {
+                // Try different network data structures
+                const networkData = networkInfo || rawData.network_interfaces || rawData.network || {};
+                
+                if (Object.keys(networkData).length === 0) {
+                  return (
+                    <div className="text-center py-8 text-neutral-500">
+                      <Network className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
+                      <p>No network interface data available</p>
+                    </div>
+                  );
+                }
+
+                return Object.entries(networkData).map(([interfaceName, details]) => (
                   <div key={interfaceName} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-4">
                     <div className="flex items-center space-x-2 mb-3">
                       <Wifi className="w-4 h-4 text-blue-600" />
@@ -378,12 +440,12 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                       {typeof details === 'object' && details !== null ? (
                         <>
-                          {/* Show all IP addresses, highlighting private ones */}
+                          {/* Handle array of addresses (psutil format) */}
                           {Array.isArray((details as any).addresses) ? (
                             (details as any).addresses.map((addr: any, index: number) => (
-                              <div key={index} className="space-y-1">
-                                <div className="flex justify-between">
-                                  <span className="text-neutral-600">IP Address ({addr.family || 'AF_INET'}):</span>
+                              <div key={index} className="col-span-2 border-b border-neutral-100 dark:border-neutral-800 pb-2 mb-2">
+                                <div className="flex justify-between mb-1">
+                                  <span className="text-neutral-600">IP Address ({addr.family || 'IPv4'}):</span>
                                   <span className={`font-medium ${
                                     addr.family === 'AF_INET' && (
                                       addr.address?.startsWith('192.168.') || 
@@ -409,14 +471,29 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                             ))
                           ) : (
                             <>
-                              <div className="flex justify-between">
-                                <span className="text-neutral-600">IP Address:</span>
-                                <span className="font-medium">{(details as any).ip_address || (details as any).ip || 'N/A'}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-neutral-600">Netmask:</span>
-                                <span className="font-medium">{(details as any).netmask || 'N/A'}</span>
-                              </div>
+                              {/* Handle single IP address formats */}
+                              {(details as any).ip_address || (details as any).ip || (details as any).address ? (
+                                <div className="flex justify-between">
+                                  <span className="text-neutral-600">IP Address:</span>
+                                  <span className={`font-medium ${
+                                    ((details as any).ip_address || (details as any).ip || (details as any).address)?.startsWith('192.168.') ||
+                                    ((details as any).ip_address || (details as any).ip || (details as any).address)?.startsWith('10.') ||
+                                    ((details as any).ip_address || (details as any).ip || (details as any).address)?.startsWith('172.') 
+                                    ? 'text-blue-600' : ''
+                                  }`}>
+                                    {(details as any).ip_address || (details as any).ip || (details as any).address}
+                                    {(((details as any).ip_address || (details as any).ip || (details as any).address)?.startsWith('192.168.') ||
+                                      ((details as any).ip_address || (details as any).ip || (details as any).address)?.startsWith('10.') ||
+                                      ((details as any).ip_address || (details as any).ip || (details as any).address)?.startsWith('172.')) && ' (Private)'}
+                                  </span>
+                                </div>
+                              ) : null}
+                              {(details as any).netmask && (
+                                <div className="flex justify-between">
+                                  <span className="text-neutral-600">Netmask:</span>
+                                  <span className="font-medium">{(details as any).netmask}</span>
+                                </div>
+                              )}
                             </>
                           )}
                           <div className="flex justify-between">
@@ -425,32 +502,45 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                           </div>
                           <div className="flex justify-between">
                             <span className="text-neutral-600">Status:</span>
-                            <span className="font-medium">{(details as any).status || (details as any).state || 'Up'}</span>
+                            <Badge variant={(details as any).status === 'up' || (details as any).state === 'up' ? 'default' : 'secondary'}>
+                              {(details as any).status || (details as any).state || 'Unknown'}
+                            </Badge>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-neutral-600">Bytes Sent:</span>
-                            <span className="font-medium">{(details as any).bytes_sent || (details as any).tx_bytes || 'N/A'}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-neutral-600">Bytes Received:</span>
-                            <span className="font-medium">{(details as any).bytes_recv || (details as any).rx_bytes || 'N/A'}</span>
-                          </div>
+                          {(details as any).bytes_sent !== undefined && (
+                            <div className="flex justify-between">
+                              <span className="text-neutral-600">Bytes Sent:</span>
+                              <span className="font-medium">{((details as any).bytes_sent || 0).toLocaleString()}</span>
+                            </div>
+                          )}
+                          {(details as any).bytes_recv !== undefined && (
+                            <div className="flex justify-between">
+                              <span className="text-neutral-600">Bytes Received:</span>
+                              <span className="font-medium">{((details as any).bytes_recv || 0).toLocaleString()}</span>
+                            </div>
+                          )}
+                          {(details as any).tx_bytes !== undefined && (
+                            <div className="flex justify-between">
+                              <span className="text-neutral-600">TX Bytes:</span>
+                              <span className="font-medium">{((details as any).tx_bytes || 0).toLocaleString()}</span>
+                            </div>
+                          )}
+                          {(details as any).rx_bytes !== undefined && (
+                            <div className="flex justify-between">
+                              <span className="text-neutral-600">RX Bytes:</span>
+                              <span className="font-medium">{((details as any).rx_bytes || 0).toLocaleString()}</span>
+                            </div>
+                          )}
                         </>
                       ) : (
-                        <div className="flex justify-between">
+                        <div className="flex justify-between col-span-2">
                           <span className="text-neutral-600">Details:</span>
                           <span className="font-medium">{String(details)}</span>
                         </div>
                       )}
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-neutral-500">
-                  <Network className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
-                  <p>No network interface data available</p>
-                </div>
-              )}
+                ));
+              })()}
             </div>
           </CardContent>
         </Card>
@@ -491,10 +581,10 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Usage:</span>
                         <span className={`font-medium ${
-                          (drive.percent || 0) >= 85 ? "text-red-600" : 
-                          (drive.percent || 0) >= 75 ? "text-yellow-600" : "text-green-600"
+                          Math.round(drive.percent || drive.usage?.percentage || 0) >= 85 ? "text-red-600" : 
+                          Math.round(drive.percent || drive.usage?.percentage || 0) >= 75 ? "text-yellow-600" : "text-green-600"
                         }`}>
-                          {drive.percent || drive.usage?.percentage || 'Unknown'}%
+                          {drive.percent || drive.usage?.percentage ? Math.round(drive.percent || drive.usage?.percentage) : 'Unknown'}%
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -533,10 +623,10 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Usage:</span>
                         <span className={`font-medium ${
-                          (drive.usage_percent || 0) >= 85 ? "text-red-600" : 
-                          (drive.usage_percent || 0) >= 75 ? "text-yellow-600" : "text-green-600"
+                          Math.round(drive.usage_percent || drive.percent || drive.usage || 0) >= 85 ? "text-red-600" : 
+                          Math.round(drive.usage_percent || drive.percent || drive.usage || 0) >= 75 ? "text-yellow-600" : "text-green-600"
                         }`}>
-                          {drive.usage_percent || drive.percent || drive.usage || 'Unknown'}%
+                          {drive.usage_percent || drive.percent || drive.usage ? Math.round(drive.usage_percent || drive.percent || drive.usage) : 'Unknown'}%
                         </span>
                       </div>
                       <div className="flex justify-between">
