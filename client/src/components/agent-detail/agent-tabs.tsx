@@ -29,7 +29,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
   // Parse metrics
   const cpuUsage = latestReport?.cpu_usage ? parseFloat(latestReport.cpu_usage) : 0;
   const memoryUsage = latestReport?.memory_usage ? parseFloat(latestReport.memory_usage) : 0;
-  const diskUsage = latestReport?.disk_usage ? Math.round(parseFloat(latestReport.disk_usage) * 100) / 100 : 0;
+  const diskUsage = latestReport?.disk_usage ? Math.round(parseFloat(latestReport.disk_usage)) : 0;
 
   // Parse raw data for detailed information
   const rawData = latestReport?.raw_data ? (typeof latestReport.raw_data === 'string' ? JSON.parse(latestReport.raw_data) : latestReport.raw_data) : {};
@@ -243,7 +243,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                       diskUsage >= 85 ? "text-red-600" : 
                       diskUsage >= 75 ? "text-yellow-600" : "text-green-600"
                     }`}>
-                      {diskUsage}%
+                      {Math.round(diskUsage)}%
                     </span>
                   </div>
                   <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
@@ -437,38 +437,50 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                       <Wifi className="w-4 h-4 text-blue-600" />
                       <h4 className="font-medium text-neutral-900 dark:text-neutral-100">{interfaceName}</h4>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    <div className="grid grid-cols-1 gap-3 text-sm">
                       {typeof details === 'object' && details !== null ? (
                         <>
                           {/* Handle array of addresses (psutil format) */}
                           {Array.isArray((details as any).addresses) ? (
-                            (details as any).addresses.map((addr: any, index: number) => (
-                              <div key={index} className="col-span-2 border-b border-neutral-100 dark:border-neutral-800 pb-2 mb-2">
-                                <div className="flex justify-between mb-1">
-                                  <span className="text-neutral-600">IP Address ({addr.family || 'IPv4'}):</span>
-                                  <span className={`font-medium ${
-                                    addr.family === 'AF_INET' && (
-                                      addr.address?.startsWith('192.168.') || 
-                                      addr.address?.startsWith('10.') || 
-                                      addr.address?.startsWith('172.')
-                                    ) ? 'text-blue-600' : ''
-                                  }`}>
-                                    {addr.address || 'N/A'}
-                                    {addr.family === 'AF_INET' && (
-                                      addr.address?.startsWith('192.168.') || 
-                                      addr.address?.startsWith('10.') || 
-                                      addr.address?.startsWith('172.')
-                                    ) && ' (Private)'}
-                                  </span>
-                                </div>
-                                {addr.netmask && (
-                                  <div className="flex justify-between">
-                                    <span className="text-neutral-600">Netmask:</span>
-                                    <span className="font-medium">{addr.netmask}</span>
+                            <div className="space-y-3">
+                              {(details as any).addresses.map((addr: any, index: number) => (
+                                <div key={index} className="border border-neutral-100 dark:border-neutral-800 rounded p-2">
+                                  <div className="flex justify-between mb-1">
+                                    <span className="text-neutral-600">
+                                      {addr.family === 'AF_INET' ? 'IPv4 Address' : 
+                                       addr.family === 'AF_INET6' ? 'IPv6 Address' : 
+                                       `${addr.family || 'IP'} Address`}:
+                                    </span>
+                                    <span className={`font-medium ${
+                                      addr.family === 'AF_INET' && (
+                                        addr.address?.startsWith('192.168.') || 
+                                        addr.address?.startsWith('10.') || 
+                                        addr.address?.startsWith('172.')
+                                      ) ? 'text-blue-600' : ''
+                                    }`}>
+                                      {addr.address || 'N/A'}
+                                      {addr.family === 'AF_INET' && (
+                                        addr.address?.startsWith('192.168.') || 
+                                        addr.address?.startsWith('10.') || 
+                                        addr.address?.startsWith('172.')
+                                      ) && ' (Private)'}
+                                    </span>
                                   </div>
-                                )}
-                              </div>
-                            ))
+                                  {addr.netmask && (
+                                    <div className="flex justify-between">
+                                      <span className="text-neutral-600">Netmask:</span>
+                                      <span className="font-medium">{addr.netmask}</span>
+                                    </div>
+                                  )}
+                                  {addr.broadcast && (
+                                    <div className="flex justify-between">
+                                      <span className="text-neutral-600">Broadcast:</span>
+                                      <span className="font-medium">{addr.broadcast}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
                           ) : (
                             <>
                               {/* Handle single IP address formats */}
@@ -584,7 +596,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                           Math.round(drive.percent || drive.usage?.percentage || 0) >= 85 ? "text-red-600" : 
                           Math.round(drive.percent || drive.usage?.percentage || 0) >= 75 ? "text-yellow-600" : "text-green-600"
                         }`}>
-                          {drive.percent || drive.usage?.percentage ? Math.round(drive.percent || drive.usage?.percentage) : 'Unknown'}%
+                          {drive.percent || drive.usage?.percentage ? Math.round(drive.percent || drive.usage?.percentage) : 'Unknown'}%</span>
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -626,7 +638,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                           Math.round(drive.usage_percent || drive.percent || drive.usage || 0) >= 85 ? "text-red-600" : 
                           Math.round(drive.usage_percent || drive.percent || drive.usage || 0) >= 75 ? "text-yellow-600" : "text-green-600"
                         }`}>
-                          {drive.usage_percent || drive.percent || drive.usage ? Math.round(drive.usage_percent || drive.percent || drive.usage) : 'Unknown'}%
+                          {drive.usage_percent || drive.percent || drive.usage ? Math.round(drive.usage_percent || drive.percent || drive.usage) : 'Unknown'}%</span>
                         </span>
                       </div>
                       <div className="flex justify-between">
