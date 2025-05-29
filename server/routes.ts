@@ -44,10 +44,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get device by ID
+  // Get device by ID or hostname
   app.get("/api/devices/:id", async (req, res) => {
     try {
-      const device = await storage.getDevice(req.params.id);
+      let device = await storage.getDevice(req.params.id);
+      
+      // If not found by ID, try by hostname
+      if (!device) {
+        device = await storage.getDeviceByHostname(req.params.id);
+      }
+      
       if (!device) {
         return res.status(404).json({ message: "Device not found" });
       }

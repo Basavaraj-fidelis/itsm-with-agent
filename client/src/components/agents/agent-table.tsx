@@ -1,4 +1,3 @@
-import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -6,6 +5,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Monitor, Server, Laptop, Eye, MoreHorizontal } from "lucide-react";
 import type { Device } from "@/lib/api";
 import { formatDistanceToNow } from "date-fns";
+import { Link } from "wouter";
 
 interface AgentTableProps {
   agents: Device[];

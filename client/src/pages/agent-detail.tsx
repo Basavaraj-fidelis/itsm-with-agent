@@ -10,8 +10,8 @@ import { ArrowLeft, RefreshCw, Download, Monitor, Cpu, HardDrive, Network, Memor
 import { formatDistanceToNow } from "date-fns";
 
 export default function AgentDetail() {
-  const { hostname } = useParams();
-  const { data: agent, isLoading, error } = useAgent(hostname || "");
+  const { id } = useParams();
+  const { data: agent, isLoading, error } = useAgent(id || "");
 
   if (isLoading) {
     return (
@@ -86,8 +86,10 @@ export default function AgentDetail() {
               <div className="flex items-center space-x-4 text-sm text-neutral-600">
                 <StatusBadge status={agent.status} />
                 <span>
-                  Last seen {agent.latest_report?.reported_at 
-                    ? formatDistanceToNow(new Date(agent.latest_report.reported_at), { addSuffix: true })
+                  Last seen {agent.latest_report?.collected_at 
+                    ? formatDistanceToNow(new Date(agent.latest_report.collected_at), { addSuffix: true })
+                    : agent.last_seen
+                    ? formatDistanceToNow(new Date(agent.last_seen), { addSuffix: true })
                     : 'never'
                   }
                 </span>
