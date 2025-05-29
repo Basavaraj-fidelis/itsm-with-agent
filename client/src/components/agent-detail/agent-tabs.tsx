@@ -34,12 +34,34 @@ export function AgentTabs({ agent }: AgentTabsProps) {
   // Parse raw data for detailed information
   const rawData = latestReport?.raw_data ? (typeof latestReport.raw_data === 'string' ? JSON.parse(latestReport.raw_data) : latestReport.raw_data) : {};
   
-  // Extract system information
+  // Extract system information with proper fallbacks
   const systemInfo = rawData.system_info || rawData.hardware || rawData.os_info || {};
-  const networkInfo = rawData.network || rawData.network_info || {};
-  const storageInfo = rawData.storage || rawData.disk_info || {};
+  const networkInfo = rawData.network_interfaces || rawData.network || rawData.network_info || {};
+  const storageInfo = rawData.storage || rawData.disk_info || rawData.disks || {};
   const processInfo = rawData.processes || rawData.running_processes || [];
-  const softwareInfo = rawData.software || rawData.installed_software || [];
+  const softwareInfo = rawData.installed_software || rawData.software || [];
+
+  // Helper function to safely get nested values
+  const getSystemValue = (keys: string[], fallback = 'Unknown') => {
+    for (const key of keys) {
+      if (rawData[key] !== undefined && rawData[key] !== null && rawData[key] !== '') {
+        return rawData[key];
+      }
+      if (systemInfo[key] !== undefined && systemInfo[key] !== null && systemInfo[key] !== '') {
+        return systemInfo[key];
+      }
+    }
+    return fallback;
+  };
+
+  // Extract specific system details
+  const hostname = agent.hostname || rawData.hostname || rawData.computer_name || 'Unknown';
+  const osName = agent.os_name || rawData.os || rawData.operating_system || systemInfo.os || systemInfo.operating_system || 'Unknown';
+  const osVersion = agent.os_version || rawData.os_version || systemInfo.os_version || rawData.version || 'Unknown';
+  const architecture = rawData.architecture || systemInfo.architecture || rawData.arch || systemInfo.arch || 'Unknown';
+  const processor = rawData.processor || systemInfo.processor || rawData.cpu_model || systemInfo.cpu_model || rawData.cpu || 'Unknown';
+  const totalMemory = rawData.total_memory || systemInfo.total_memory || rawData.memory_total || 'Unknown';
+  const cpuCores = rawData.cpu_cores || systemInfo.cpu_cores || rawData.cores || systemInfo.cores || 'Unknown';
 
   return (
     <Tabs defaultValue="overview" className="w-full">
@@ -66,7 +88,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
               <div className="grid grid-cols-1 gap-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-neutral-600">Hostname:</span>
-                  <span className="font-medium">{agent.hostname}</span>
+                  <span className="font-medium">{hostname}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-neutral-600">Status:</span>
@@ -76,24 +98,24 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-neutral-600">Operating System:</span>
-                  <span className="font-medium">{agent.os_name || systemInfo.name || systemInfo.platform || 'Unknown'}</span>
+                  <span className="font-medium">{osName}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-neutral-600">OS Version:</span>
-                  <span className="font-medium">{agent.os_version || systemInfo.version || systemInfo.release || 'Unknown'}</span>
+                  <span className="font-medium">{osVersion}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-neutral-600">Architecture:</span>
-                  <span className="font-medium">{systemInfo.architecture || systemInfo.arch || 'Unknown'}</span>
+                  <span className="font-medium">{architecture}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-neutral-600">IP Address:</span>
-                  <span className="font-medium">{agent.ip_address || 'Unknown'}</span>
+                  <span className="font-medium">{agent.ip_address || rawData.ip_address || 'Unknown'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-neutral-600">Assigned User:</span>
                   <span className="font-medium">
-                    {agent.assigned_user?.split("@")[0] || agent.assigned_user || 'Unknown'}
+                    {rawData.assigned_user || agent.assigned_user?.split("@")[0] || agent.assigned_user || 'Unknown'}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -214,15 +236,15 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-neutral-600">Model:</span>
-                    <span className="font-medium">{systemInfo.processor || systemInfo.cpu_model || 'Unknown'}</span>
+                    <span className="font-medium">{processor}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-neutral-600">Cores:</span>
-                    <span className="font-medium">{systemInfo.cpu_cores || systemInfo.cores || 'Unknown'}</span>
+                    <span className="font-medium">{cpuCores}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-neutral-600">Architecture:</span>
-                    <span className="font-medium">{systemInfo.architecture || systemInfo.arch || 'Unknown'}</span>
+                    <span className="font-medium">{architecture}</span>
                   </div>
                 </div>
               </div>
@@ -231,11 +253,11 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-neutral-600">Total RAM:</span>
-                    <span className="font-medium">{systemInfo.total_memory || systemInfo.memory_total || 'Unknown'}</span>
+                    <span className="font-medium">{totalMemory}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-neutral-600">Available:</span>
-                    <span className="font-medium">{systemInfo.available_memory || systemInfo.memory_available || 'Unknown'}</span>
+                    <span className="font-medium">{rawData.available_memory || rawData.memory_available || 'Unknown'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-neutral-600">Usage:</span>
@@ -278,11 +300,11 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                           </div>
                           <div className="flex justify-between">
                             <span className="text-neutral-600">Status:</span>
-                            <span className="font-medium">{(details as any).status || 'Unknown'}</span>
+                            <span className="font-medium">{(details as any).status || (details as any).state || 'Up'}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-neutral-600">Bytes Sent:</span>
-                            <span className="font-medium">{(details as any).bytes_sent || 'N/A'}</span>
+                            <span className="font-medium">{(details as any).bytes_sent || (details as any).tx_bytes || 'N/A'}</span>
                           </div>
                         </>
                       ) : (
@@ -315,19 +337,19 @@ export function AgentTabs({ agent }: AgentTabsProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {Array.isArray(storageInfo) ? (
+              {Array.isArray(storageInfo) && storageInfo.length > 0 ? (
                 storageInfo.map((drive, index) => (
                   <div key={index} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-4">
                     <div className="flex items-center space-x-2 mb-3">
                       <HardDrive className="w-4 h-4 text-orange-600" />
                       <h4 className="font-medium text-neutral-900 dark:text-neutral-100">
-                        {drive.drive || drive.device || `Drive ${index + 1}`}
+                        {drive.drive || drive.device || drive.mountpoint || `Drive ${index + 1}`}
                       </h4>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Total Size:</span>
-                        <span className="font-medium">{drive.total_size || drive.size || 'Unknown'}</span>
+                        <span className="font-medium">{drive.total_size || drive.size || drive.total || 'Unknown'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Used:</span>
@@ -343,12 +365,12 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                           (drive.usage_percent || 0) >= 85 ? "text-red-600" : 
                           (drive.usage_percent || 0) >= 75 ? "text-yellow-600" : "text-green-600"
                         }`}>
-                          {drive.usage_percent || drive.percent || 'Unknown'}%
+                          {drive.usage_percent || drive.percent || drive.usage || 'Unknown'}%
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Type:</span>
-                        <span className="font-medium">{drive.filesystem || drive.type || 'Unknown'}</span>
+                        <span className="font-medium">{drive.filesystem || drive.type || drive.fstype || 'Unknown'}</span>
                       </div>
                     </div>
                   </div>
@@ -463,11 +485,16 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                     <div key={index} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-3">
                       <div className="text-sm">
                         <div className="font-medium text-neutral-900 dark:text-neutral-100 mb-1">
-                          {software.name || software.software_name || 'Unknown'}
+                          {software.name || software.software_name || software.display_name || 'Unknown'}
                         </div>
                         <div className="text-neutral-600">
-                          Version: {software.version || 'Unknown'}
+                          Version: {software.version || software.display_version || 'Unknown'}
                         </div>
+                        {software.vendor && (
+                          <div className="text-neutral-500 text-xs">
+                            Vendor: {software.vendor}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
