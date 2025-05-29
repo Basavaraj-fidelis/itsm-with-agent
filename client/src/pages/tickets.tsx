@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -112,7 +111,7 @@ export default function Tickets() {
                          ticket.ticket_number.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesPriority = filterPriority === "all" || ticket.priority === filterPriority;
     const matchesStatus = filterStatus === "all" || ticket.status === filterStatus;
-    
+
     return matchesTab && matchesSearch && matchesPriority && matchesStatus;
   });
 

@@ -11,10 +11,7 @@ import {
   Activity,
   BarChart3,
   Download,
-  RefreshCw,
-  AlertTriangle,
-  CheckCircle,
-  Info
+  RefreshCw
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { Device } from "@shared/schema";
@@ -31,7 +28,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
   const memoryUsage = latestReport?.memory_usage ? parseFloat(latestReport.memory_usage) : 0;
   const diskUsage = latestReport?.disk_usage ? parseFloat(latestReport.disk_usage) : 0;
 
-  // Performance chart data (simulated historical data for demo)
+  // Generate historical data for charts (simulated for demo)
   const generateChartData = (currentValue: number) => {
     const data = [];
     const now = Date.now();
@@ -353,99 +350,25 @@ export function AgentTabs({ agent }: AgentTabsProps) {
       </TabsContent>
 
       <TabsContent value="network" className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Network Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Network className="w-5 h-5" />
-                <span>Network Information</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Network interfaces */}
-              {latestReport?.raw_data?.network?.interfaces && (
-                <div>
-                  <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-2">
-                    Network Interfaces
-                  </h4>
-                  <div className="space-y-2">
-                    {Object.entries(latestReport.raw_data.network.interfaces).map(([name, data]: [string, any]) => (
-                      <div key={name} className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-3">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-medium">{name}</span>
-                          <Badge variant={data.status === 'up' ? 'default' : 'destructive'}>
-                            {data.status || 'unknown'}
-                          </Badge>
-                        </div>
-                        {data.ipv4 && (
-                          <div className="text-xs text-neutral-600">
-                            IPv4: {data.ipv4}
-                          </div>
-                        )}
-                        {data.mac && (
-                          <div className="text-xs text-neutral-600">
-                            MAC: {data.mac}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Public IP */}
-              {latestReport?.raw_data?.network?.public_ip && (
-                <div className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
-                  <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-2">
-                    Public Information
-                  </h4>
-                  <div className="text-xs">
-                    <span className="text-neutral-600">Public IP:</span>
-                    <span className="ml-1 text-neutral-900 dark:text-neutral-100">
-                      {latestReport.raw_data.network.public_ip}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Network Chart Placeholder */}
-              <div className="h-32 bg-neutral-50 dark:bg-neutral-800 rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <BarChart3 className="w-12 h-12 text-neutral-400 mx-auto mb-2" />
-                  <p className="text-xs text-neutral-500">
-                    Network Traffic Chart
-                  </p>
-                </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Network className="w-5 h-5" />
+              <span>Network Information</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-sm text-neutral-600">
+              Network monitoring and statistics
+            </div>
+            <div className="h-48 bg-neutral-50 dark:bg-neutral-800 rounded-lg flex items-center justify-center">
+              <div className="text-center">
+                <Network className="w-12 h-12 text-neutral-400 mx-auto mb-2" />
+                <p className="text-neutral-500">Network Chart</p>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Network Statistics */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Network Statistics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
-                    <div className="text-lg font-semibold text-green-600">
-                      {latestReport?.network_io ? `${Math.round(parseInt(latestReport.network_io) / 1024 / 1024)} MB` : '0 MB'}
-                    </div>
-                    <div className="text-xs text-neutral-600">Total I/O</div>
-                  </div>
-                  <div className="text-center p-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
-                    <div className="text-lg font-semibold text-blue-600">
-                      {agent.status === 'online' ? 'Active' : 'Inactive'}
-                    </div>
-                    <div className="text-xs text-neutral-600">Connection</div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
       </TabsContent>
 
       <TabsContent value="reports" className="space-y-6">
@@ -463,35 +386,33 @@ export function AgentTabs({ agent }: AgentTabsProps) {
           </div>
 
           {/* Performance Metrics */}
-          <div>
-            <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
-              Performance Metrics
-            </h3>
-            <div className="h-64 bg-neutral-50 dark:bg-neutral-800 rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <BarChart3 className="w-16 h-16 text-neutral-400 mx-auto mb-4" />
-                <p className="text-neutral-500">
-                  Real-time performance chart
-                </p>
-                <p className="text-sm text-neutral-400">
-                  CPU, Memory, Disk over last 24h
-                </p>
+          <Card>
+            <CardHeader>
+              <CardTitle>Performance Metrics</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64 bg-neutral-50 dark:bg-neutral-800 rounded-lg flex items-center justify-center">
+                <div className="text-center">
+                  <BarChart3 className="w-16 h-16 text-neutral-400 mx-auto mb-4" />
+                  <p className="text-neutral-500">Real-time performance chart</p>
+                  <p className="text-sm text-neutral-400">CPU, Memory, Disk over last 24h</p>
+                </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Raw Data Preview */}
           {latestReport?.raw_data && (
-            <div>
-              <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
-                Latest Report Data
-              </h3>
-              <div className="bg-neutral-900 rounded-lg p-4 text-sm font-mono text-green-400 max-h-64 overflow-y-auto">
-                <pre>
-                  {JSON.stringify(latestReport.raw_data, null, 2)}
-                </pre>
-              </div>
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Latest Report Data</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-neutral-900 rounded-lg p-4 text-sm font-mono text-green-400 max-h-64 overflow-y-auto">
+                  <pre>{JSON.stringify(latestReport.raw_data, null, 2)}</pre>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
       </TabsContent>
