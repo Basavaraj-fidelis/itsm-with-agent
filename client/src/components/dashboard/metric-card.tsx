@@ -49,7 +49,7 @@ export function MetricCard({
             <Icon className="w-6 h-6" />
           </div>
         </div>
-        
+
         {change && (
           <div className="mt-4 flex items-center text-sm">
             <span className={`font-medium ${changeClasses[change.type]}`}>
@@ -58,7 +58,7 @@ export function MetricCard({
             <span className="text-neutral-600 ml-1">{change.label}</span>
           </div>
         )}
-        
+
         {trend && (
           <div className="mt-4 text-sm text-neutral-600">
             <span>{trend.label}: </span>

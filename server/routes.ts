@@ -217,22 +217,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   
       // If no direct disk usage found, try to extract from storage array or object
       if (disk_usage === null && data.storage) {
+        let totalSpace = 0;
+        let usedSpace = 0;
         let storageUsages = [];
         
         if (Array.isArray(data.storage)) {
-          // Handle array format
-          storageUsages = data.storage
-            .map(disk => extractNumericValue(disk.usage_percent) || extractNumericValue(disk.percent))
-            .filter(usage => usage !== null);
+          // Handle array format - calculate combined usage
+          data.storage.forEach(disk => {
+            if (disk.usage && disk.usage.total && disk.usage.used) {
+              totalSpace += disk.usage.total;
+              usedSpace += disk.usage.used;
+            } else {
+              // Fallback to percentage if detailed usage not available
+              const usage = extractNumericValue(disk.usage_percent) || extractNumericValue(disk.percent);
+              if (usage !== null) {
+                storageUsages.push(usage);
+              }
+            }
+          });
         } else if (typeof data.storage === 'object') {
           // Handle object format like { "C:": { percent: 45.2, ... } }
-          storageUsages = Object.values(data.storage)
-            .map((disk: any) => extractNumericValue(disk.usage_percent) || extractNumericValue(disk.percent))
-            .filter(usage => usage !== null);
+          if (data.storage.disks && Array.isArray(data.storage.disks)) {
+            // Handle nested disks array
+            data.storage.disks.forEach(disk => {
+              if (disk.usage && disk.usage.total && disk.usage.used) {
+                totalSpace += disk.usage.total;
+                usedSpace += disk.usage.used;
+              } else {
+                const usage = extractNumericValue(disk.usage_percent) || extractNumericValue(disk.percent);
+                if (usage !== null) {
+                  storageUsages.push(usage);
+                }
+              }
+            });
+          } else {
+            // Handle direct object format
+            Object.values(data.storage).forEach((disk: any) => {
+              if (disk.usage && disk.usage.total && disk.usage.used) {
+                totalSpace += disk.usage.total;
+                usedSpace += disk.usage.used;
+              } else {
+                const usage = extractNumericValue(disk.usage_percent) || extractNumericValue(disk.percent);
+                if (usage !== null) {
+                  storageUsages.push(usage);
+                }
+              }
+            });
+          }
         }
         
-        if (storageUsages.length > 0) {
-          disk_usage = Math.max(...storageUsages);
+        // Calculate combined usage percentage
+        if (totalSpace > 0 && usedSpace > 0) {
+          disk_usage = (usedSpace / totalSpace) * 100;
+        } else if (storageUsages.length > 0) {
+          // Fallback to average of all disk usage percentages
+          disk_usage = storageUsages.reduce((sum, usage) => sum + usage, 0) / storageUsages.length;
         }
       }
                   

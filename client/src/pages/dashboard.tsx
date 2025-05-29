@@ -51,7 +51,7 @@ export default function Dashboard() {
           }}
           color="blue"
         />
-        
+
         <MetricCard
           title="Online Agents"
           value={summary?.online_devices || 0}
@@ -62,7 +62,7 @@ export default function Dashboard() {
           }}
           color="green"
         />
-        
+
         <MetricCard
           title="Critical Alerts"
           value={summary?.active_alerts || 0}
@@ -74,7 +74,7 @@ export default function Dashboard() {
           }}
           color="red"
         />
-        
+
         <MetricCard
           title="Avg CPU Usage"
           value="68%"
@@ -90,7 +90,7 @@ export default function Dashboard() {
       {/* Charts and Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <PerformanceChart />
-        
+
         {/* Recent Alerts */}
         <Card>
           <CardHeader>
@@ -188,7 +188,7 @@ export default function Dashboard() {
                     const memoryUsage = agent.latest_report?.memory_usage 
                       ? parseFloat(agent.latest_report.memory_usage) 
                       : 0;
-                    
+
                     return (
                       <tr key={agent.id}>
                         <td className="px-6 py-4 whitespace-nowrap">
