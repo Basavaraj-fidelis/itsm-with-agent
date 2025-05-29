@@ -40,6 +40,13 @@ export function AgentTabs({ agent }: AgentTabsProps) {
   const storageInfo = rawData.storage || rawData.disk_info || rawData.disks || {};
   const processInfo = rawData.processes || rawData.running_processes || [];
   const softwareInfo = rawData.installed_software || rawData.software || [];
+  const hardwareInfo = rawData.hardware || {};
+
+  // Helper function to convert bytes to GB
+  const bytesToGB = (bytes: number) => {
+    if (!bytes || bytes === 0) return '0 GB';
+    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+  };
 
   // Helper function to safely get nested values
   const getSystemValue = (keys: string[], fallback = 'Unknown') => {
@@ -59,9 +66,32 @@ export function AgentTabs({ agent }: AgentTabsProps) {
   const osName = agent.os_name || rawData.os || rawData.operating_system || systemInfo.os || systemInfo.operating_system || 'Unknown';
   const osVersion = agent.os_version || rawData.os_version || systemInfo.os_version || rawData.version || 'Unknown';
   const architecture = rawData.architecture || systemInfo.architecture || rawData.arch || systemInfo.arch || 'Unknown';
-  const processor = rawData.processor || systemInfo.processor || rawData.cpu_model || systemInfo.cpu_model || rawData.cpu || 'Unknown';
-  const totalMemory = rawData.total_memory || systemInfo.total_memory || rawData.memory_total || 'Unknown';
-  const cpuCores = rawData.cpu_cores || systemInfo.cpu_cores || rawData.cores || systemInfo.cores || 'Unknown';
+  
+  // Hardware details
+  const cpuInfo = hardwareInfo.cpu || {};
+  const memoryInfo = hardwareInfo.memory || {};
+  const systemHardware = hardwareInfo.system || {};
+  
+  const processor = cpuInfo.model || rawData.processor || systemInfo.processor || rawData.cpu_model || systemInfo.cpu_model || rawData.cpu || 'Unknown';
+  const physicalCores = cpuInfo.physical_cores || 'Unknown';
+  const logicalCores = cpuInfo.logical_cores || 'Unknown';
+  const cpuFreq = cpuInfo.current_freq ? `${cpuInfo.current_freq} MHz` : 'Unknown';
+  const maxFreq = cpuInfo.max_freq ? `${cpuInfo.max_freq} MHz` : 'Unknown';
+  
+  const totalMemory = memoryInfo.total ? bytesToGB(memoryInfo.total) : rawData.total_memory || systemInfo.total_memory || rawData.memory_total || 'Unknown';
+  const availableMemory = memoryInfo.available ? bytesToGB(memoryInfo.available) : rawData.available_memory || rawData.memory_available || 'Unknown';
+  const usedMemory = memoryInfo.used ? bytesToGB(memoryInfo.used) : 'Unknown';
+  
+  const manufacturer = systemHardware.manufacturer || 'Unknown';
+  const model = systemHardware.model || 'Unknown';
+  const serialNumber = systemHardware.serial_number || 'Unknown';
+
+  // Sort processes by memory usage and get top 10
+  const topProcesses = Array.isArray(processInfo) 
+    ? processInfo
+        .sort((a, b) => (b.memory_percent || 0) - (a.memory_percent || 0))
+        .slice(0, 10)
+    : [];
 
   return (
     <Tabs defaultValue="overview" className="w-full">
@@ -222,52 +252,110 @@ export function AgentTabs({ agent }: AgentTabsProps) {
       </TabsContent>
 
       <TabsContent value="hardware" className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Cpu className="w-5 h-5" />
-              <span>Hardware Details</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <h4 className="font-medium text-neutral-900 dark:text-neutral-100">Processor</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-neutral-600">Model:</span>
-                    <span className="font-medium">{processor}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-neutral-600">Cores:</span>
-                    <span className="font-medium">{cpuCores}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-neutral-600">Architecture:</span>
-                    <span className="font-medium">{architecture}</span>
-                  </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Cpu className="w-5 h-5" />
+                <span>Processor Details</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-neutral-600">Model:</span>
+                  <span className="font-medium">{processor}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-neutral-600">Physical Cores:</span>
+                  <span className="font-medium">{physicalCores}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-neutral-600">Logical Cores:</span>
+                  <span className="font-medium">{logicalCores}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-neutral-600">Current Frequency:</span>
+                  <span className="font-medium">{cpuFreq}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-neutral-600">Max Frequency:</span>
+                  <span className="font-medium">{maxFreq}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-neutral-600">Architecture:</span>
+                  <span className="font-medium">{architecture}</span>
                 </div>
               </div>
-              <div className="space-y-3">
-                <h4 className="font-medium text-neutral-900 dark:text-neutral-100">Memory</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-neutral-600">Total RAM:</span>
-                    <span className="font-medium">{totalMemory}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-neutral-600">Available:</span>
-                    <span className="font-medium">{rawData.available_memory || rawData.memory_available || 'Unknown'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-neutral-600">Usage:</span>
-                    <span className="font-medium">{Math.round(memoryUsage)}%</span>
-                  </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <MemoryStick className="w-5 h-5" />
+                <span>Memory Details</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-neutral-600">Total RAM:</span>
+                  <span className="font-medium">{totalMemory}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-neutral-600">Used:</span>
+                  <span className="font-medium">{usedMemory}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-neutral-600">Available:</span>
+                  <span className="font-medium">{availableMemory}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-neutral-600">Usage:</span>
+                  <span className="font-medium">{Math.round(memoryUsage)}%</span>
+                </div>
+                {memoryInfo.swap_total && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-neutral-600">Swap Total:</span>
+                      <span className="font-medium">{bytesToGB(memoryInfo.swap_total)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-neutral-600">Swap Used:</span>
+                      <span className="font-medium">{bytesToGB(memoryInfo.swap_used || 0)}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Monitor className="w-5 h-5" />
+                <span>System Hardware</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-neutral-600">Manufacturer:</span>
+                  <span className="font-medium">{manufacturer}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-neutral-600">Model:</span>
+                  <span className="font-medium">{model}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-neutral-600">Serial Number:</span>
+                  <span className="font-medium">{serialNumber}</span>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </TabsContent>
 
       <TabsContent value="network" className="space-y-6">
@@ -290,10 +378,47 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                       {typeof details === 'object' && details !== null ? (
                         <>
-                          <div className="flex justify-between">
-                            <span className="text-neutral-600">IP Address:</span>
-                            <span className="font-medium">{(details as any).ip_address || (details as any).ip || 'N/A'}</span>
-                          </div>
+                          {/* Show all IP addresses, highlighting private ones */}
+                          {Array.isArray((details as any).addresses) ? (
+                            (details as any).addresses.map((addr: any, index: number) => (
+                              <div key={index} className="space-y-1">
+                                <div className="flex justify-between">
+                                  <span className="text-neutral-600">IP Address ({addr.family || 'AF_INET'}):</span>
+                                  <span className={`font-medium ${
+                                    addr.family === 'AF_INET' && (
+                                      addr.address?.startsWith('192.168.') || 
+                                      addr.address?.startsWith('10.') || 
+                                      addr.address?.startsWith('172.')
+                                    ) ? 'text-blue-600' : ''
+                                  }`}>
+                                    {addr.address || 'N/A'}
+                                    {addr.family === 'AF_INET' && (
+                                      addr.address?.startsWith('192.168.') || 
+                                      addr.address?.startsWith('10.') || 
+                                      addr.address?.startsWith('172.')
+                                    ) && ' (Private)'}
+                                  </span>
+                                </div>
+                                {addr.netmask && (
+                                  <div className="flex justify-between">
+                                    <span className="text-neutral-600">Netmask:</span>
+                                    <span className="font-medium">{addr.netmask}</span>
+                                  </div>
+                                )}
+                              </div>
+                            ))
+                          ) : (
+                            <>
+                              <div className="flex justify-between">
+                                <span className="text-neutral-600">IP Address:</span>
+                                <span className="font-medium">{(details as any).ip_address || (details as any).ip || 'N/A'}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-neutral-600">Netmask:</span>
+                                <span className="font-medium">{(details as any).netmask || 'N/A'}</span>
+                              </div>
+                            </>
+                          )}
                           <div className="flex justify-between">
                             <span className="text-neutral-600">MAC Address:</span>
                             <span className="font-medium">{(details as any).mac_address || (details as any).mac || 'N/A'}</span>
@@ -305,6 +430,10 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                           <div className="flex justify-between">
                             <span className="text-neutral-600">Bytes Sent:</span>
                             <span className="font-medium">{(details as any).bytes_sent || (details as any).tx_bytes || 'N/A'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-neutral-600">Bytes Received:</span>
+                            <span className="font-medium">{(details as any).bytes_recv || (details as any).rx_bytes || 'N/A'}</span>
                           </div>
                         </>
                       ) : (
@@ -337,7 +466,49 @@ export function AgentTabs({ agent }: AgentTabsProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {Array.isArray(storageInfo) && storageInfo.length > 0 ? (
+              {(storageInfo.disks && Array.isArray(storageInfo.disks)) ? (
+                storageInfo.disks.map((drive: any, index: number) => (
+                  <div key={index} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-4">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <HardDrive className="w-4 h-4 text-orange-600" />
+                      <h4 className="font-medium text-neutral-900 dark:text-neutral-100">
+                        {drive.device || drive.mountpoint || `Drive ${index + 1}`}
+                      </h4>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Total Size:</span>
+                        <span className="font-medium">{drive.total ? bytesToGB(drive.total) : 'Unknown'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Used:</span>
+                        <span className="font-medium">{drive.used ? bytesToGB(drive.used) : 'Unknown'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Free:</span>
+                        <span className="font-medium">{drive.free ? bytesToGB(drive.free) : 'Unknown'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Usage:</span>
+                        <span className={`font-medium ${
+                          (drive.percent || 0) >= 85 ? "text-red-600" : 
+                          (drive.percent || 0) >= 75 ? "text-yellow-600" : "text-green-600"
+                        }`}>
+                          {drive.percent || drive.usage?.percentage || 'Unknown'}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Filesystem:</span>
+                        <span className="font-medium">{drive.filesystem || 'Unknown'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Mount Point:</span>
+                        <span className="font-medium">{drive.mountpoint || 'Unknown'}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : Array.isArray(storageInfo) && storageInfo.length > 0 ? (
                 storageInfo.map((drive, index) => (
                   <div key={index} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-4">
                     <div className="flex items-center space-x-2 mb-3">
@@ -349,15 +520,15 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Total Size:</span>
-                        <span className="font-medium">{drive.total_size || drive.size || drive.total || 'Unknown'}</span>
+                        <span className="font-medium">{drive.total_size ? bytesToGB(drive.total_size) : drive.size ? bytesToGB(drive.size) : drive.total ? bytesToGB(drive.total) : 'Unknown'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Used:</span>
-                        <span className="font-medium">{drive.used || 'Unknown'}</span>
+                        <span className="font-medium">{drive.used ? bytesToGB(drive.used) : 'Unknown'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Free:</span>
-                        <span className="font-medium">{drive.free || 'Unknown'}</span>
+                        <span className="font-medium">{drive.free ? bytesToGB(drive.free) : 'Unknown'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Usage:</span>
@@ -387,15 +558,15 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                         <>
                           <div className="flex justify-between">
                             <span className="text-neutral-600">Total Size:</span>
-                            <span className="font-medium">{(details as any).total || (details as any).size || 'Unknown'}</span>
+                            <span className="font-medium">{(details as any).total ? bytesToGB((details as any).total) : (details as any).size ? bytesToGB((details as any).size) : 'Unknown'}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-neutral-600">Used:</span>
-                            <span className="font-medium">{(details as any).used || 'Unknown'}</span>
+                            <span className="font-medium">{(details as any).used ? bytesToGB((details as any).used) : 'Unknown'}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-neutral-600">Free:</span>
-                            <span className="font-medium">{(details as any).free || 'Unknown'}</span>
+                            <span className="font-medium">{(details as any).free ? bytesToGB((details as any).free) : 'Unknown'}</span>
                           </div>
                         </>
                       ) : (
@@ -423,16 +594,16 @@ export function AgentTabs({ agent }: AgentTabsProps) {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Server className="w-5 h-5" />
-              <span>Running Processes</span>
+              <span>Top 10 Processes (by Memory Usage)</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {Array.isArray(processInfo) && processInfo.length > 0 ? (
+              {topProcesses.length > 0 ? (
                 <div className="space-y-3">
-                  {processInfo.slice(0, 20).map((process, index) => (
+                  {topProcesses.map((process, index) => (
                     <div key={index} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-3">
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+                      <div className="grid grid-cols-1 md:grid-cols-5 gap-3 text-sm">
                         <div>
                           <span className="text-neutral-600">Process: </span>
                           <span className="font-medium">{process.name || process.process_name || 'Unknown'}</span>
@@ -443,20 +614,24 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                         </div>
                         <div>
                           <span className="text-neutral-600">CPU: </span>
-                          <span className="font-medium">{process.cpu_percent || process.cpu_usage || 'N/A'}%</span>
+                          <span className="font-medium">{(process.cpu_percent || process.cpu_usage || 0).toFixed(1)}%</span>
                         </div>
                         <div>
                           <span className="text-neutral-600">Memory: </span>
-                          <span className="font-medium">{process.memory_percent || process.memory_usage || 'N/A'}%</span>
+                          <span className={`font-medium ${
+                            (process.memory_percent || 0) >= 10 ? "text-red-600" : 
+                            (process.memory_percent || 0) >= 5 ? "text-yellow-600" : "text-green-600"
+                          }`}>
+                            {(process.memory_percent || process.memory_usage || 0).toFixed(1)}%
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-neutral-600">User: </span>
+                          <span className="font-medium text-xs">{process.username || process.user || 'N/A'}</span>
                         </div>
                       </div>
                     </div>
                   ))}
-                  {processInfo.length > 20 && (
-                    <p className="text-sm text-neutral-600 text-center">
-                      Showing top 20 of {processInfo.length} processes
-                    </p>
-                  )}
                 </div>
               ) : (
                 <div className="text-center py-8 text-neutral-500">
