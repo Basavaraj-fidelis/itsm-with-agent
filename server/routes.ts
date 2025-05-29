@@ -19,7 +19,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/devices", async (req, res) => {
     try {
       const devices = await storage.getDevices();
-      
+
       // Enhance devices with latest report data
       const devicesWithReports = await Promise.all(
         devices.map(async (device) => {
@@ -36,7 +36,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         })
       );
-      
+
       res.json(devicesWithReports);
     } catch (error) {
       console.error("Error fetching devices:", error);
@@ -87,34 +87,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/report", async (req, res) => {
     try {
       console.log("Received report data:", JSON.stringify(req.body, null, 2));
-      
+
       // Skip validation and work with raw data - be completely flexible
       const data = req.body;
-      
+
       // Extract hostname from various possible locations
       const hostname = data.hostname || data.system_info?.hostname || 
                       data.os_info?.hostname || data.hardware?.hostname || 
                       data.network?.hostname;
-      
+
       if (!hostname) {
         console.log("No hostname found in data:", Object.keys(data));
         return res.status(400).json({ message: "Hostname is required" });
       }
-      
+
       console.log("Found hostname:", hostname);
-      
+
       // Check if device exists, create if not
       let device = await storage.getDeviceByHostname(hostname);
-      
+
       // Extract data from various possible locations - be very flexible
       const osInfo = data.os_info || data.system_info || data.hardware?.os || {};
       const systemHealth = data.system_health || data.health || data.metrics || {};
       const hardware = data.hardware || data.system_info || {};
       const network = data.network || data.network_info || {};
-      
+
       // Extract IP address from various possible locations
       let ip_address = network.ip_address || network.ip || null;
-      
+
       // Try to extract IP from network interfaces if not found directly
       if (!ip_address && data.network && typeof data.network === 'object') {
         // Look for IP addresses in network interface objects
@@ -131,7 +131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       }
-      
+
       // Also try from system info or hardware
       if (!ip_address) {
         ip_address = data.ip_address || hardware.ip_address || osInfo.ip_address || null;
@@ -192,7 +192,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                  extractNumericValue(data.cpu_info?.usage_percent) ||
                  extractNumericValue(data.metrics?.cpu_usage) ||
                  null;
-                 
+
       // Memory usage extraction  
       memory_usage = extractNumericValue(systemHealth.memory_percent) || 
                     extractNumericValue(systemHealth.memory_usage) ||
@@ -203,7 +203,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     extractNumericValue(data.memory_info?.percentage) ||
                     extractNumericValue(data.metrics?.memory_usage) ||
                     null;
-                    
+
       // Disk usage extraction - check storage array for disk usage
       disk_usage = extractNumericValue(systemHealth.disk_percent) || 
                   extractNumericValue(systemHealth.disk_usage) ||
@@ -214,13 +214,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   extractNumericValue(data.disk_info?.usage_percent) ||
                   extractNumericValue(data.metrics?.disk_usage) ||
                   null;
-                  
+
       // If no direct disk usage found, try to extract from storage array or object
       if (disk_usage === null && data.storage) {
         let totalSpace = 0;
         let usedSpace = 0;
         let storageUsages = [];
-        
+
         if (Array.isArray(data.storage)) {
           // Handle array format - calculate combined usage
           data.storage.forEach(disk => {
@@ -265,7 +265,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           }
         }
-        
+
         // Calculate combined usage percentage
         if (totalSpace > 0 && usedSpace > 0) {
           disk_usage = (usedSpace / totalSpace) * 100;
@@ -274,7 +274,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           disk_usage = storageUsages.reduce((sum, usage) => sum + usage, 0) / storageUsages.length;
         }
       }
-                  
+
       // Network I/O extraction
       network_io = extractNumericValue(systemHealth.network_bytes) || 
                   extractNumericValue(systemHealth.network_io) ||
@@ -285,7 +285,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   extractNumericValue(data.network_info?.bytes_sent) ||
                   extractNumericValue(data.metrics?.network_io) ||
                   null;
-                  
+
       // If no direct network I/O found, try to calculate from network interfaces
       if (network_io === null && data.network && typeof data.network === 'object') {
         let totalBytes = 0;
@@ -441,7 +441,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/alerts", async (req, res) => {
     try {
       const alerts = await storage.getActiveAlerts();
-      
+
       // Enhance alerts with device information
       const alertsWithDevices = await Promise.all(
         alerts.map(async (alert) => {
@@ -452,7 +452,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         })
       );
-      
+
       res.json(alertsWithDevices);
     } catch (error) {
       console.error("Error fetching alerts:", error);

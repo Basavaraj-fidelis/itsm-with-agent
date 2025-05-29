@@ -13,16 +13,22 @@ interface AgentTableProps {
 }
 
 const getDeviceIcon = (hostname: string) => {
-  if (hostname.includes("SRV")) return Server;
-  if (hostname.includes("LAP")) return Laptop;
-  return Monitor;
-};
+    const lowerHostname = hostname.toLowerCase();
+    if (lowerHostname.includes('server') || lowerHostname.includes('srv')) {
+      return Server;
+    } else if (lowerHostname.includes('laptop') || lowerHostname.includes('note')) {
+      return Laptop;
+    } else if (lowerHostname.includes('desktop') || lowerHostname.includes('pc')) {
+      return Monitor;
+    }
+    return Monitor; // Default
+  };
 
-const getProgressBarColor = (value: number) => {
-  if (value >= 90) return "bg-red-500";
-  if (value >= 70) return "bg-yellow-500"; 
-  return "bg-green-500";
-};
+  const getProgressBarColor = (value: number) => {
+    if (value >= 90) return "bg-red-500";
+    if (value >= 70) return "bg-yellow-500";
+    return "bg-green-500";
+  };
 
 export function AgentTable({ agents, isLoading }: AgentTableProps) {
   if (isLoading) {
@@ -150,7 +156,15 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                             </span>
                           </div>
                           <div className="flex items-center">
-                            <span className="text-xs text-neutral-500 mr-1">RAM:</span>
+                            <div className="w-16 bg-neutral-200 dark:bg-neutral-700 rounded-full h-2 mr-3">
+                              <div
+                                className={`h-2 rounded-full ${
+                                  memoryUsage >= 90 ? "bg-red-500" : 
+                                  memoryUsage >= 70 ? "bg-yellow-500" : "bg-green-500"
+                                }`}
+                                style={{ width: `${Math.min(100, Math.max(0, memoryUsage))}%` }}
+                              ></div>
+                            </div>
                             <span className={`text-xs font-medium ${
                               memoryUsage >= 90 ? "text-red-600" : 
                               memoryUsage >= 70 ? "text-yellow-600" : "text-green-600"

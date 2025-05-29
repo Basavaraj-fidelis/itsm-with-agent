@@ -45,9 +45,9 @@ export default function Dashboard() {
           value={summary?.total_devices || 0}
           icon={Monitor}
           change={{
-            value: "12%",
+            value: "2",
             type: "increase",
-            label: "from last month"
+            label: "new this month"
           }}
           color="blue"
         />
@@ -68,23 +68,24 @@ export default function Dashboard() {
           value={summary?.active_alerts || 0}
           icon={AlertTriangle}
           change={{
-            value: "25%",
+            value: "3",
             type: "decrease",
-            label: "from yesterday"
+            label: "since yesterday"
           }}
           color="red"
         />
 
         <MetricCard
-          title="Avg CPU Usage"
-          value="68%"
-          icon={Cpu}
+          title="System Health"
+          value={summary?.online_devices && summary?.total_devices ? 
+            `${Math.round((summary.online_devices / summary.total_devices) * 100)}%` : "0%"}
+          icon={CheckCircle}
           trend={{
-            label: "Performance",
+            label: "Status",
             value: "Good"
           }}
-          color="purple"
-        />
+          color="green"
+        /></MetricCard>
       </div>
 
       {/* Charts and Recent Activity */}
