@@ -46,8 +46,7 @@ export function MetricCard({
             <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
               {title === "Total Agents" || title === "Online Agents" || title === "Critical Alerts" ? 
                 value : 
-                title === "Disk Usage" ? `${Math.round(value)}%` : 
-                typeof value === 'string' ? value : `${Math.round(value)}%`}
+                typeof value === 'string' ? value : `${Math.round(parseFloat(value.toString()))}%`}
             </p>
           </div>
           <div className={`w-12 h-12 ${colorClasses[color]} rounded-lg flex items-center justify-center`}>

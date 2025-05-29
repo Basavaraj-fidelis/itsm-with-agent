@@ -460,6 +460,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all agents
+  app.get("/api/agents", async (req, res) => {
+    try {
+      const agents = await storage.getDevices();
+      console.log(`Found ${agents.length} agents in database`);
+
+      // Get latest reports for each device
+      const agentsWithReports = await Promise.all(
+        agents.map(async (agent) => {
+          const latestReport = await storage.getLatestDeviceReport(agent.id);
+
+          return {
+            ...agent,
+            latest_report: latestReport || null,
+          };
+        })
+      );
+
+      console.log(`Returning ${agentsWithReports.length} agents with reports`);
+      res.json(agentsWithReports);
+    } catch (error) {
+      console.error('Error fetching agents:', error);
+      res.status(500).json({ error: "Failed to fetch agents" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

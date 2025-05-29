@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useDashboardSummary, useAlerts } from "@/hooks/use-dashboard";
 import { useAgents } from "@/hooks/use-agents";
-import { Monitor, CheckCircle, AlertTriangle, Cpu } from "lucide-react";
+import { Monitor, CheckCircle, AlertTriangle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export default function Dashboard() {
@@ -12,11 +12,7 @@ export default function Dashboard() {
   const { data: alerts, isLoading: alertsLoading } = useAlerts();
   const { data: agents, isLoading: agentsLoading } = useAgents();
 
-  // Get top CPU consuming agents
-  const topCpuAgents = agents
-    ?.filter(agent => agent.latest_report?.cpu_usage)
-    .sort((a, b) => parseFloat(b.latest_report!.cpu_usage!) - parseFloat(a.latest_report!.cpu_usage!))
-    .slice(0, 5) || [];
+  
 
   if (summaryLoading) {
     return (
@@ -85,7 +81,7 @@ export default function Dashboard() {
             value: "Good"
           }}
           color="green"
-        /></MetricCard>
+        />
       </div>
 
       {/* Charts and Recent Activity */}
@@ -235,99 +231,7 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Top CPU Usage */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Top CPU Usage by Agent</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {agentsLoading ? (
-            <div className="animate-pulse space-y-4">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-16 bg-neutral-200 dark:bg-neutral-700 rounded"></div>
-              ))}
-            </div>
-          ) : topCpuAgents.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-neutral-50 dark:bg-neutral-700">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Hostname
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      User
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      CPU Usage
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Memory
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-neutral-800 divide-y divide-neutral-200 dark:divide-neutral-700">
-                  {topCpuAgents.map((agent) => {
-                    const cpuUsage = parseFloat(agent.latest_report!.cpu_usage!);
-                    const memoryUsage = agent.latest_report?.memory_usage 
-                      ? parseFloat(agent.latest_report.memory_usage) 
-                      : 0;
-
-                    return (
-                      <tr key={agent.id}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <Monitor className="w-5 h-5 text-neutral-400 mr-3" />
-                            <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                              {agent.hostname}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
-                          {agent.assigned_user?.split("@")[0] || "Unknown"}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="w-16 bg-neutral-200 dark:bg-neutral-700 rounded-full h-2 mr-3">
-                              <div
-                                className={`h-2 rounded-full ${
-                                  cpuUsage >= 90 ? "bg-red-500" : 
-                                  cpuUsage >= 70 ? "bg-yellow-500" : "bg-green-500"
-                                }`}
-                                style={{ width: `${cpuUsage}%` }}
-                              />
-                            </div>
-                            <span className={`text-sm font-medium ${
-                              cpuUsage >= 90 ? "text-red-600" : 
-                              cpuUsage >= 70 ? "text-yellow-600" : "text-green-600"
-                            }`}>
-                              {cpuUsage}%
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
-                          {memoryUsage}%
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <StatusBadge status={agent.status} />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Monitor className="w-16 h-16 text-neutral-400 mx-auto mb-4" />
-              <p className="text-neutral-500">No agent data available</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      
     </div>
   );
 }
