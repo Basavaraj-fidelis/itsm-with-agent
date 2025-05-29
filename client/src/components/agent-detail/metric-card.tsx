@@ -30,13 +30,15 @@ const colorClasses = {
 };
 
 export function MetricCard({ title, value, icon: Icon, progress, color = "blue" }: MetricCardProps) {
+  const formattedValue = typeof value === 'number' ? value.toFixed(2) : value;
+
   return (
     <Card>
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-medium text-neutral-600 uppercase tracking-wide">{title}</p>
-            <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">{value}</p>
+            <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">{formattedValue}</p>
           </div>
           <Icon className={`w-5 h-5 ${colorClasses[color].icon}`} />
         </div>

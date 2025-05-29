@@ -26,7 +26,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
   // Parse metrics
   const cpuUsage = latestReport?.cpu_usage ? parseFloat(latestReport.cpu_usage) : 0;
   const memoryUsage = latestReport?.memory_usage ? parseFloat(latestReport.memory_usage) : 0;
-  const diskUsage = latestReport?.disk_usage ? parseFloat(latestReport.disk_usage) : 0;
+  const diskUsage = latestReport?.disk_usage ? Math.round(parseFloat(latestReport.disk_usage) * 100) / 100 : 0;
 
   // Generate historical data for charts (simulated for demo)
   const generateChartData = (currentValue: number) => {
@@ -185,7 +185,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                       diskUsage >= 90 ? "text-red-600" : 
                       diskUsage >= 70 ? "text-yellow-600" : "text-green-600"
                     }`}>
-                      {Math.round(diskUsage)}%
+                      {diskUsage}%
                     </span>
                   </div>
                   <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
