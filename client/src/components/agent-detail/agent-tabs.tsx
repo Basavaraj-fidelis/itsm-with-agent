@@ -1,3 +1,4 @@
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,9 +10,11 @@ import {
   HardDrive, 
   Network, 
   Activity,
-  BarChart3,
   Download,
-  RefreshCw
+  RefreshCw,
+  Wifi,
+  Server,
+  Info
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { Device } from "@shared/schema";
@@ -28,34 +31,25 @@ export function AgentTabs({ agent }: AgentTabsProps) {
   const memoryUsage = latestReport?.memory_usage ? parseFloat(latestReport.memory_usage) : 0;
   const diskUsage = latestReport?.disk_usage ? Math.round(parseFloat(latestReport.disk_usage) * 100) / 100 : 0;
 
-  // Generate historical data for charts (simulated for demo)
-  const generateChartData = (currentValue: number) => {
-    const data = [];
-    const now = Date.now();
-    for (let i = 23; i >= 0; i--) {
-      const variation = (Math.random() - 0.5) * 20; // ±10% variation
-      const value = Math.max(0, Math.min(100, currentValue + variation));
-      data.push({
-        time: new Date(now - i * 60 * 60 * 1000).toLocaleTimeString('en-US', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        }),
-        value: Math.round(value)
-      });
-    }
-    return data;
-  };
-
-  const cpuChartData = generateChartData(cpuUsage);
-  const memoryChartData = generateChartData(memoryUsage);
+  // Parse raw data for detailed information
+  const rawData = latestReport?.raw_data ? (typeof latestReport.raw_data === 'string' ? JSON.parse(latestReport.raw_data) : latestReport.raw_data) : {};
+  
+  // Extract system information
+  const systemInfo = rawData.system_info || rawData.hardware || rawData.os_info || {};
+  const networkInfo = rawData.network || rawData.network_info || {};
+  const storageInfo = rawData.storage || rawData.disk_info || {};
+  const processInfo = rawData.processes || rawData.running_processes || [];
+  const softwareInfo = rawData.software || rawData.installed_software || [];
 
   return (
     <Tabs defaultValue="overview" className="w-full">
-      <TabsList className="grid w-full grid-cols-4">
+      <TabsList className="grid w-full grid-cols-6">
         <TabsTrigger value="overview">Overview</TabsTrigger>
-        <TabsTrigger value="performance">Performance</TabsTrigger>
+        <TabsTrigger value="hardware">Hardware</TabsTrigger>
         <TabsTrigger value="network">Network</TabsTrigger>
-        <TabsTrigger value="reports">Reports</TabsTrigger>
+        <TabsTrigger value="storage">Storage</TabsTrigger>
+        <TabsTrigger value="processes">Processes</TabsTrigger>
+        <TabsTrigger value="software">Software</TabsTrigger>
       </TabsList>
 
       <TabsContent value="overview" className="space-y-6">
@@ -69,43 +63,44 @@ export function AgentTabs({ agent }: AgentTabsProps) {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
+              <div className="grid grid-cols-1 gap-3 text-sm">
+                <div className="flex justify-between">
                   <span className="text-neutral-600">Hostname:</span>
-                  <span className="ml-2 font-medium">{agent.hostname}</span>
+                  <span className="font-medium">{agent.hostname}</span>
                 </div>
-                <div>
+                <div className="flex justify-between">
                   <span className="text-neutral-600">Status:</span>
-                  <Badge 
-                    variant={agent.status === 'online' ? 'default' : 'destructive'}
-                    className="ml-2"
-                  >
+                  <Badge variant={agent.status === 'online' ? 'default' : 'destructive'}>
                     {agent.status}
                   </Badge>
                 </div>
-                <div>
-                  <span className="text-neutral-600">OS:</span>
-                  <span className="ml-2 font-medium">
-                    {latestReport?.raw_data?.system?.os || 'Unknown'}
-                  </span>
+                <div className="flex justify-between">
+                  <span className="text-neutral-600">Operating System:</span>
+                  <span className="font-medium">{agent.os_name || systemInfo.name || systemInfo.platform || 'Unknown'}</span>
                 </div>
-                <div>
+                <div className="flex justify-between">
+                  <span className="text-neutral-600">OS Version:</span>
+                  <span className="font-medium">{agent.os_version || systemInfo.version || systemInfo.release || 'Unknown'}</span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-neutral-600">Architecture:</span>
-                  <span className="ml-2 font-medium">
-                    {latestReport?.raw_data?.system?.architecture || 'Unknown'}
-                  </span>
+                  <span className="font-medium">{systemInfo.architecture || systemInfo.arch || 'Unknown'}</span>
                 </div>
-                <div>
-                  <span className="text-neutral-600">User:</span>
-                  <span className="ml-2 font-medium">
+                <div className="flex justify-between">
+                  <span className="text-neutral-600">IP Address:</span>
+                  <span className="font-medium">{agent.ip_address || 'Unknown'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-neutral-600">Assigned User:</span>
+                  <span className="font-medium">
                     {agent.assigned_user?.split("@")[0] || agent.assigned_user || 'Unknown'}
                   </span>
                 </div>
-                <div>
+                <div className="flex justify-between">
                   <span className="text-neutral-600">Last Report:</span>
-                  <span className="ml-2 font-medium">
-                    {latestReport?.reported_at 
-                      ? formatDistanceToNow(new Date(latestReport.reported_at), { addSuffix: true })
+                  <span className="font-medium">
+                    {latestReport?.collected_at 
+                      ? formatDistanceToNow(new Date(latestReport.collected_at), { addSuffix: true })
                       : 'Never'
                     }
                   </span>
@@ -119,7 +114,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Activity className="w-5 h-5" />
-                <span>Current Metrics</span>
+                <span>Current Performance</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -132,8 +127,8 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                       <span className="text-sm font-medium">CPU Usage</span>
                     </div>
                     <span className={`text-sm font-medium ${
-                      cpuUsage >= 90 ? "text-red-600" : 
-                      cpuUsage >= 70 ? "text-yellow-600" : "text-green-600"
+                      cpuUsage >= 85 ? "text-red-600" : 
+                      cpuUsage >= 75 ? "text-yellow-600" : "text-green-600"
                     }`}>
                       {Math.round(cpuUsage)}%
                     </span>
@@ -141,8 +136,8 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                   <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
                     <div
                       className={`h-2 rounded-full ${
-                        cpuUsage >= 90 ? "bg-red-500" : 
-                        cpuUsage >= 70 ? "bg-yellow-500" : "bg-green-500"
+                        cpuUsage >= 85 ? "bg-red-500" : 
+                        cpuUsage >= 75 ? "bg-yellow-500" : "bg-green-500"
                       }`}
                       style={{ width: `${Math.min(cpuUsage, 100)}%` }}
                     />
@@ -157,8 +152,8 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                       <span className="text-sm font-medium">Memory Usage</span>
                     </div>
                     <span className={`text-sm font-medium ${
-                      memoryUsage >= 90 ? "text-red-600" : 
-                      memoryUsage >= 70 ? "text-yellow-600" : "text-green-600"
+                      memoryUsage >= 85 ? "text-red-600" : 
+                      memoryUsage >= 75 ? "text-yellow-600" : "text-green-600"
                     }`}>
                       {Math.round(memoryUsage)}%
                     </span>
@@ -166,8 +161,8 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                   <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
                     <div
                       className={`h-2 rounded-full ${
-                        memoryUsage >= 90 ? "bg-red-500" : 
-                        memoryUsage >= 70 ? "bg-yellow-500" : "bg-green-500"
+                        memoryUsage >= 85 ? "bg-red-500" : 
+                        memoryUsage >= 75 ? "bg-yellow-500" : "bg-green-500"
                       }`}
                       style={{ width: `${Math.min(memoryUsage, 100)}%` }}
                     />
@@ -182,8 +177,8 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                       <span className="text-sm font-medium">Disk Usage</span>
                     </div>
                     <span className={`text-sm font-medium ${
-                      diskUsage >= 90 ? "text-red-600" : 
-                      diskUsage >= 70 ? "text-yellow-600" : "text-green-600"
+                      diskUsage >= 85 ? "text-red-600" : 
+                      diskUsage >= 75 ? "text-yellow-600" : "text-green-600"
                     }`}>
                       {diskUsage}%
                     </span>
@@ -191,8 +186,8 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                   <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
                     <div
                       className={`h-2 rounded-full ${
-                        diskUsage >= 90 ? "bg-red-500" : 
-                        diskUsage >= 70 ? "bg-yellow-500" : "bg-green-500"
+                        diskUsage >= 85 ? "bg-red-500" : 
+                        diskUsage >= 75 ? "bg-yellow-500" : "bg-green-500"
                       }`}
                       style={{ width: `${Math.min(diskUsage, 100)}%` }}
                     />
@@ -204,145 +199,49 @@ export function AgentTabs({ agent }: AgentTabsProps) {
         </div>
       </TabsContent>
 
-      <TabsContent value="performance" className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* CPU Performance Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Cpu className="w-5 h-5 text-blue-600" />
-                <span>CPU Usage (24h)</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64 flex flex-col">
-                <div className="flex-1 relative">
-                  <svg className="w-full h-full" viewBox="0 0 400 200">
-                    <defs>
-                      <linearGradient id="cpuGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3"/>
-                        <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.1"/>
-                      </linearGradient>
-                    </defs>
-
-                    {/* Grid lines */}
-                    {[0, 25, 50, 75, 100].map((y) => (
-                      <line
-                        key={y}
-                        x1="0"
-                        y1={200 - (y * 2)}
-                        x2="400"
-                        y2={200 - (y * 2)}
-                        stroke="#e5e7eb"
-                        strokeWidth="1"
-                        opacity="0.5"
-                      />
-                    ))}
-
-                    {/* Chart line */}
-                    <polyline
-                      fill="url(#cpuGradient)"
-                      stroke="#3b82f6"
-                      strokeWidth="2"
-                      points={cpuChartData.map((point, index) => 
-                        `${(index / (cpuChartData.length - 1)) * 400},${200 - (point.value * 2)}`
-                      ).join(' ')}
-                    />
-                  </svg>
-                </div>
-
-                {/* Current value */}
-                <div className="mt-4 text-center">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {Math.round(cpuUsage)}%
-                  </div>
-                  <div className="text-sm text-neutral-600">Current CPU Usage</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Memory Performance Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <MemoryStick className="w-5 h-5 text-purple-600" />
-                <span>Memory Usage (24h)</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64 flex flex-col">
-                <div className="flex-1 relative">
-                  <svg className="w-full h-full" viewBox="0 0 400 200">
-                    <defs>
-                      <linearGradient id="memoryGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.3"/>
-                        <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.1"/>
-                      </linearGradient>
-                    </defs>
-
-                    {/* Grid lines */}
-                    {[0, 25, 50, 75, 100].map((y) => (
-                      <line
-                        key={y}
-                        x1="0"
-                        y1={200 - (y * 2)}
-                        x2="400"
-                        y2={200 - (y * 2)}
-                        stroke="#e5e7eb"
-                        strokeWidth="1"
-                        opacity="0.5"
-                      />
-                    ))}
-
-                    {/* Chart line */}
-                    <polyline
-                      fill="url(#memoryGradient)"
-                      stroke="#8b5cf6"
-                      strokeWidth="2"
-                      points={memoryChartData.map((point, index) => 
-                        `${(index / (memoryChartData.length - 1)) * 400},${200 - (point.value * 2)}`
-                      ).join(' ')}
-                    />
-                  </svg>
-                </div>
-
-                {/* Current value */}
-                <div className="mt-4 text-center">
-                  <div className="text-2xl font-bold text-purple-600">
-                    {Math.round(memoryUsage)}%
-                  </div>
-                  <div className="text-sm text-neutral-600">Current Memory Usage</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Performance Summary */}
+      <TabsContent value="hardware" className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Performance Summary</CardTitle>
+            <CardTitle className="flex items-center space-x-2">
+              <Cpu className="w-5 h-5" />
+              <span>Hardware Details</span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
-                <div className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                  {Math.round(cpuUsage)}%
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <h4 className="font-medium text-neutral-900 dark:text-neutral-100">Processor</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Model:</span>
+                    <span className="font-medium">{systemInfo.processor || systemInfo.cpu_model || 'Unknown'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Cores:</span>
+                    <span className="font-medium">{systemInfo.cpu_cores || systemInfo.cores || 'Unknown'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Architecture:</span>
+                    <span className="font-medium">{systemInfo.architecture || systemInfo.arch || 'Unknown'}</span>
+                  </div>
                 </div>
-                <div className="text-sm text-neutral-600">Avg CPU (24h)</div>
               </div>
-              <div className="text-center p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
-                <div className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                  {Math.round(memoryUsage)}%
+              <div className="space-y-3">
+                <h4 className="font-medium text-neutral-900 dark:text-neutral-100">Memory</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Total RAM:</span>
+                    <span className="font-medium">{systemInfo.total_memory || systemInfo.memory_total || 'Unknown'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Available:</span>
+                    <span className="font-medium">{systemInfo.available_memory || systemInfo.memory_available || 'Unknown'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Usage:</span>
+                    <span className="font-medium">{Math.round(memoryUsage)}%</span>
+                  </div>
                 </div>
-                <div className="text-sm text-neutral-600">Avg Memory (24h)</div>
-              </div>
-              <div className="text-center p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
-                <div className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                  {agent.status === 'online' ? '99.9%' : '95.2%'}
-                </div>
-                <div className="text-sm text-neutral-600">Uptime (24h)</div>
               </div>
             </div>
           </CardContent>
@@ -354,67 +253,234 @@ export function AgentTabs({ agent }: AgentTabsProps) {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Network className="w-5 h-5" />
-              <span>Network Information</span>
+              <span>Network Interfaces</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-sm text-neutral-600">
-              Network monitoring and statistics
-            </div>
-            <div className="h-48 bg-neutral-50 dark:bg-neutral-800 rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <Network className="w-12 h-12 text-neutral-400 mx-auto mb-2" />
-                <p className="text-neutral-500">Network Chart</p>
-              </div>
+          <CardContent>
+            <div className="space-y-4">
+              {Object.entries(networkInfo).length > 0 ? (
+                Object.entries(networkInfo).map(([interfaceName, details]) => (
+                  <div key={interfaceName} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-4">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <Wifi className="w-4 h-4 text-blue-600" />
+                      <h4 className="font-medium text-neutral-900 dark:text-neutral-100">{interfaceName}</h4>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                      {typeof details === 'object' && details !== null ? (
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-neutral-600">IP Address:</span>
+                            <span className="font-medium">{(details as any).ip_address || (details as any).ip || 'N/A'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-neutral-600">MAC Address:</span>
+                            <span className="font-medium">{(details as any).mac_address || (details as any).mac || 'N/A'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-neutral-600">Status:</span>
+                            <span className="font-medium">{(details as any).status || 'Unknown'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-neutral-600">Bytes Sent:</span>
+                            <span className="font-medium">{(details as any).bytes_sent || 'N/A'}</span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex justify-between">
+                          <span className="text-neutral-600">Details:</span>
+                          <span className="font-medium">{String(details)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-neutral-500">
+                  <Network className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
+                  <p>No network interface data available</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
       </TabsContent>
 
-      <TabsContent value="reports" className="space-y-6">
-        <div className="space-y-6">
-          {/* Actions */}
-          <div className="flex items-center space-x-4">
-            <Button className="flex items-center space-x-2">
-              <Download className="w-4 h-4" />
-              <span>Export Report</span>
-            </Button>
-            <Button variant="outline" className="flex items-center space-x-2">
-              <RefreshCw className="w-4 h-4" />
-              <span>Refresh Data</span>
-            </Button>
-          </div>
-
-          {/* Performance Metrics */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Performance Metrics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64 bg-neutral-50 dark:bg-neutral-800 rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <BarChart3 className="w-16 h-16 text-neutral-400 mx-auto mb-4" />
-                  <p className="text-neutral-500">Real-time performance chart</p>
-                  <p className="text-sm text-neutral-400">CPU, Memory, Disk over last 24h</p>
+      <TabsContent value="storage" className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <HardDrive className="w-5 h-5" />
+              <span>Storage Information</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {Array.isArray(storageInfo) ? (
+                storageInfo.map((drive, index) => (
+                  <div key={index} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-4">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <HardDrive className="w-4 h-4 text-orange-600" />
+                      <h4 className="font-medium text-neutral-900 dark:text-neutral-100">
+                        {drive.drive || drive.device || `Drive ${index + 1}`}
+                      </h4>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Total Size:</span>
+                        <span className="font-medium">{drive.total_size || drive.size || 'Unknown'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Used:</span>
+                        <span className="font-medium">{drive.used || 'Unknown'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Free:</span>
+                        <span className="font-medium">{drive.free || 'Unknown'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Usage:</span>
+                        <span className={`font-medium ${
+                          (drive.usage_percent || 0) >= 85 ? "text-red-600" : 
+                          (drive.usage_percent || 0) >= 75 ? "text-yellow-600" : "text-green-600"
+                        }`}>
+                          {drive.usage_percent || drive.percent || 'Unknown'}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Type:</span>
+                        <span className="font-medium">{drive.filesystem || drive.type || 'Unknown'}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : Object.entries(storageInfo).length > 0 ? (
+                Object.entries(storageInfo).map(([driveName, details]) => (
+                  <div key={driveName} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-4">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <HardDrive className="w-4 h-4 text-orange-600" />
+                      <h4 className="font-medium text-neutral-900 dark:text-neutral-100">{driveName}</h4>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                      {typeof details === 'object' && details !== null ? (
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-neutral-600">Total Size:</span>
+                            <span className="font-medium">{(details as any).total || (details as any).size || 'Unknown'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-neutral-600">Used:</span>
+                            <span className="font-medium">{(details as any).used || 'Unknown'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-neutral-600">Free:</span>
+                            <span className="font-medium">{(details as any).free || 'Unknown'}</span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex justify-between">
+                          <span className="text-neutral-600">Details:</span>
+                          <span className="font-medium">{String(details)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-neutral-500">
+                  <HardDrive className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
+                  <p>No storage data available</p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
 
-          {/* Raw Data Preview */}
-          {latestReport?.raw_data && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Latest Report Data</CardTitle>
-            </CardHeader>
-              <CardContent>
-                <div className="bg-neutral-900 rounded-lg p-4 text-sm font-mono text-green-400 max-h-64 overflow-y-auto">
-                  <pre>{JSON.stringify(latestReport.raw_data, null, 2)}</pre>
+      <TabsContent value="processes" className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Server className="w-5 h-5" />
+              <span>Running Processes</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {Array.isArray(processInfo) && processInfo.length > 0 ? (
+                <div className="space-y-3">
+                  {processInfo.slice(0, 20).map((process, index) => (
+                    <div key={index} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-3">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+                        <div>
+                          <span className="text-neutral-600">Process: </span>
+                          <span className="font-medium">{process.name || process.process_name || 'Unknown'}</span>
+                        </div>
+                        <div>
+                          <span className="text-neutral-600">PID: </span>
+                          <span className="font-medium">{process.pid || process.process_id || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-neutral-600">CPU: </span>
+                          <span className="font-medium">{process.cpu_percent || process.cpu_usage || 'N/A'}%</span>
+                        </div>
+                        <div>
+                          <span className="text-neutral-600">Memory: </span>
+                          <span className="font-medium">{process.memory_percent || process.memory_usage || 'N/A'}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {processInfo.length > 20 && (
+                    <p className="text-sm text-neutral-600 text-center">
+                      Showing top 20 of {processInfo.length} processes
+                    </p>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+              ) : (
+                <div className="text-center py-8 text-neutral-500">
+                  <Server className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
+                  <p>No process data available</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="software" className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Info className="w-5 h-5" />
+              <span>Installed Software</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {Array.isArray(softwareInfo) && softwareInfo.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {softwareInfo.map((software, index) => (
+                    <div key={index} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-3">
+                      <div className="text-sm">
+                        <div className="font-medium text-neutral-900 dark:text-neutral-100 mb-1">
+                          {software.name || software.software_name || 'Unknown'}
+                        </div>
+                        <div className="text-neutral-600">
+                          Version: {software.version || 'Unknown'}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-neutral-500">
+                  <Info className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
+                  <p>No software data available</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </TabsContent>
     </Tabs>
   );
