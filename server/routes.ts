@@ -405,15 +405,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Process alerts for each metric
       if (cpu_usage !== null && cpu_usage !== undefined) {
-        await checkAndManageAlert("cpu", cpu_usage, { critical: 98, high: 95, warning: 90 }, "performance");
+        await checkAndManageAlert("cpu", cpu_usage, { critical: 95, high: 85, warning: 75 }, "performance");
       }
 
       if (memory_usage !== null && memory_usage !== undefined) {
-        await checkAndManageAlert("memory", memory_usage, { critical: 95, high: 90, warning: 85 }, "performance");
+        await checkAndManageAlert("memory", memory_usage, { critical: 95, high: 85, warning: 75 }, "performance");
       }
 
       if (disk_usage !== null && disk_usage !== undefined) {
-        await checkAndManageAlert("disk", disk_usage, { critical: 98, high: 95, warning: 90 }, "storage");
+        await checkAndManageAlert("disk", disk_usage, { critical: 95, high: 85, warning: 75 }, "storage");
       }
 
       // USB device detection (from raw data)

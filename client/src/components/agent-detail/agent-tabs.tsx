@@ -406,7 +406,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
             <Card>
               <CardHeader>
                 <CardTitle>Latest Report Data</CardTitle>
-              </CardHeader>
+            </CardHeader>
               <CardContent>
                 <div className="bg-neutral-900 rounded-lg p-4 text-sm font-mono text-green-400 max-h-64 overflow-y-auto">
                   <pre>{JSON.stringify(latestReport.raw_data, null, 2)}</pre>
