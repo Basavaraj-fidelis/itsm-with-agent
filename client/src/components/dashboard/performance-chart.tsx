@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAgents } from "@/hooks/use-agents";
 import { Cpu, HardDrive, MemoryStick } from "lucide-react";
@@ -21,17 +20,17 @@ export function PerformanceChart() {
 
   // Calculate average metrics across all online agents
   const onlineAgents = agents?.filter(agent => agent.status === 'online') || [];
-  
+
   const avgCpuUsage = onlineAgents.length > 0 
     ? onlineAgents.reduce((sum, agent) => 
         sum + (parseFloat(agent.latest_report?.cpu_usage || '0')), 0) / onlineAgents.length
     : 0;
-    
+
   const avgMemoryUsage = onlineAgents.length > 0 
     ? onlineAgents.reduce((sum, agent) => 
         sum + (parseFloat(agent.latest_report?.memory_usage || '0')), 0) / onlineAgents.length
     : 0;
-    
+
   const avgDiskUsage = onlineAgents.length > 0 
     ? onlineAgents.reduce((sum, agent) => 
         sum + (parseFloat(agent.latest_report?.disk_usage || '0')), 0) / onlineAgents.length
@@ -82,7 +81,7 @@ export function PerformanceChart() {
                       </span>
                     </div>
                     <span className={`text-sm font-medium ${metric.textColor}`}>
-                      {metric.value.toFixed(1)}%
+                      {Math.round(metric.value)}%
                     </span>
                   </div>
                   <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-3">
