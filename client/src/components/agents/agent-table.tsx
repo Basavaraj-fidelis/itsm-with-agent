@@ -84,7 +84,7 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                 const DeviceIcon = getDeviceIcon(agent.hostname);
                 const cpuUsage = agent.latest_report?.cpu_usage ? parseFloat(agent.latest_report.cpu_usage) : 0;
                 const memoryUsage = agent.latest_report?.memory_usage ? parseFloat(agent.latest_report.memory_usage) : 0;
-                
+
                 return (
                   <tr key={agent.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-700">
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -133,15 +133,20 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {agent.status === "online" && agent.latest_report ? (
-                        <div className="flex space-x-2">
+                      {agent.latest_report ? (
+                        <div className="space-y-1">
                           <div className="flex items-center">
-                            <span className="text-xs text-neutral-500 mr-1">CPU:</span>
+                            <div className="w-16 bg-neutral-200 dark:bg-neutral-700 rounded-full h-2 mr-3">
+                              <div
+                                className={`h-2 rounded-full ${getProgressBarColor(cpuUsage)}`}
+                                style={{ width: `${Math.min(100, Math.max(0, cpuUsage))}%` }}
+                              ></div>
+                            </div>
                             <span className={`text-xs font-medium ${
                               cpuUsage >= 90 ? "text-red-600" : 
                               cpuUsage >= 70 ? "text-yellow-600" : "text-green-600"
                             }`}>
-                              {cpuUsage}%
+                              {cpuUsage.toFixed(1)}%
                             </span>
                           </div>
                           <div className="flex items-center">
@@ -150,7 +155,7 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                               memoryUsage >= 90 ? "text-red-600" : 
                               memoryUsage >= 70 ? "text-yellow-600" : "text-green-600"
                             }`}>
-                              {memoryUsage}%
+                              {memoryUsage.toFixed(1)}%
                             </span>
                           </div>
                         </div>
@@ -176,7 +181,7 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
             </tbody>
           </table>
         </div>
-        
+
         {/* Pagination */}
         <div className="bg-white dark:bg-neutral-800 px-4 py-3 flex items-center justify-between border-t border-neutral-200 dark:border-neutral-700 mt-4">
           <div className="text-sm text-neutral-700 dark:text-neutral-300">

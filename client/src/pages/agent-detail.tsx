@@ -53,7 +53,7 @@ export default function AgentDetail() {
 
   const cpuUsage = agent.latest_report?.cpu_usage ? parseFloat(agent.latest_report.cpu_usage) : 0;
   const memoryUsage = agent.latest_report?.memory_usage ? parseFloat(agent.latest_report.memory_usage) : 0;
-  const diskUsage = agent.latest_report?.disk_usage ? Math.round(parseFloat(agent.latest_report.disk_usage) * 100) / 100 : 0;
+  const diskUsage = agent.latest_report?.disk_usage ? parseFloat(agent.latest_report.disk_usage) : 0;
   const networkIO = agent.latest_report?.network_io ? parseInt(agent.latest_report.network_io) : 0;
 
   return (
