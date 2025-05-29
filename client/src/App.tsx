@@ -21,6 +21,7 @@ function Router() {
       <Route path="/agents" component={Agents} />
       <Route path="/agents/:id" component={AgentDetail} />
       <Route path="/alerts" component={Alerts} />
+      <Route path="/tickets" component={Tickets} />
       <Route path="/reports" component={Reports} />
       <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
