@@ -9,6 +9,7 @@ import Dashboard from "@/pages/dashboard";
 import Agents from "@/pages/agents";
 import AgentDetail from "@/pages/agent-detail";
 import Alerts from "@/pages/alerts";
+import Tickets from "@/pages/tickets";
 import Reports from "@/pages/reports";
 import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";

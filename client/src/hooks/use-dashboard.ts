@@ -99,7 +99,7 @@ export function useDashboardSummary() {
     };
   }, { totalUsagePercent: 0, totalSpace: 0, usedSpace: 0, agentCount: 0 }) || {totalUsagePercent: 0, totalSpace: 0, usedSpace: 0, agentCount: 0};
 
-  const totalDiskUsage = Math.round(diskStats.totalUsagePercent / Math.max(diskStats.agentCount, 1));
+  const totalDiskUsage = Math.round((diskStats.totalUsagePercent / Math.max(diskStats.agentCount, 1)) * 100) / 100;
 
   // Format disk space for display
   const formatBytes = (bytes: number) => {
