@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings as SettingsIcon, Database, Bell, Shield, Monitor, Download, Copy, CheckCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Settings() {
   const [settings, setSettings] = useState({
@@ -32,6 +33,7 @@ export default function Settings() {
 
   const [activeTab, setActiveTab] = useState("general");
   const [copiedStep, setCopiedStep] = useState<number | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     // Check for tab parameter in URL
@@ -45,7 +47,10 @@ export default function Settings() {
   const handleSaveSettings = () => {
     // In a real app, this would save to the backend
     localStorage.setItem('itsm-settings', JSON.stringify(settings));
-    alert('Settings saved successfully!');
+    toast({
+      title: "Settings saved",
+      description: "Your settings have been saved successfully!",
+    });
   };
 
   const updateSetting = (key: string, value: any) => {
