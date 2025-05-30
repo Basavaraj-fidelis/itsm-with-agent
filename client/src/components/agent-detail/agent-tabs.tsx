@@ -61,14 +61,18 @@ const getEthernetIP = (agent: any) => {
     if (
       (name.includes("eth") ||
         name.includes("ethernet") ||
-        name.includes("enet")) &&
-      !name.includes("veth")
+        name.includes("enet") ||
+        name.includes("local area connection")) &&
+      !name.includes("veth") &&
+      !name.includes("virtual") &&
+      iface.stats?.is_up !== false // Only get active interfaces
     ) {
       for (const addr of iface.addresses || []) {
         if (
           addr.family === "AF_INET" &&
           !addr.address.startsWith("127.") &&
-          !addr.address.startsWith("169.254.")
+          !addr.address.startsWith("169.254.") &&
+          addr.address !== "0.0.0.0"
         ) {
           return addr.address;
         }
@@ -92,16 +96,19 @@ const getWiFiIP = (agent: any) => {
   for (const iface of interfaces) {
     const name = iface.name?.toLowerCase() || "";
     if (
-      name.includes("wifi") ||
-      name.includes("wlan") ||
-      name.includes("wireless") ||
-      name.includes("wi-fi")
+      (name.includes("wifi") ||
+        name.includes("wlan") ||
+        name.includes("wireless") ||
+        name.includes("wi-fi") ||
+        name.includes("802.11")) &&
+      iface.stats?.is_up !== false // Only get active interfaces
     ) {
       for (const addr of iface.addresses || []) {
         if (
           addr.family === "AF_INET" &&
           !addr.address.startsWith("127.") &&
-          !addr.address.startsWith("169.254.")
+          !addr.address.startsWith("169.254.") &&
+          addr.address !== "0.0.0.0"
         ) {
           return addr.address;
         }
@@ -125,13 +132,22 @@ const getAllIPs = (agent: any) => {
     rawData.network?.interfaces || agent.network?.interfaces || [];
 
   for (const iface of interfaces) {
-    for (const addr of iface.addresses || []) {
-      if (
-        addr.family === "AF_INET" &&
-        addr.address &&
-        !addr.address.startsWith("127.")
-      ) {
-        allIPs.push(addr.address);
+    // Skip virtual and loopback interfaces for main IP detection
+    const name = iface.name?.toLowerCase() || "";
+    const isVirtual = name.includes("virtual") || name.includes("veth") || name.includes("docker") || name.includes("vmware");
+    
+    if (!isVirtual && iface.stats?.is_up !== false) {
+      for (const addr of iface.addresses || []) {
+        if (
+          addr.family === "AF_INET" &&
+          addr.address &&
+          !addr.address.startsWith("127.") &&
+          !addr.address.startsWith("169.254.") &&
+          addr.address !== "0.0.0.0" &&
+          !allIPs.includes(addr.address)
+        ) {
+          allIPs.push(addr.address);
+        }
       }
     }
   }
@@ -356,10 +372,26 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                   <span className="text-neutral-600">IP Address:</span>
                   <span className="font-medium">
                     {(() => {
+                      // First try to get Ethernet IP
                       const ethernetIP = getEthernetIP(agent);
-                      return ethernetIP !== "Not Available"
-                        ? ethernetIP
-                        : agent.ip_address || rawData.ip_address || "N/A";
+                      if (ethernetIP !== "Not Available") {
+                        return ethernetIP;
+                      }
+                      
+                      // Then try Wi-Fi IP
+                      const wifiIP = getWiFiIP(agent);
+                      if (wifiIP !== "Not Available") {
+                        return wifiIP;
+                      }
+                      
+                      // Get any active IP from all interfaces
+                      const allIPs = getAllIPs(agent);
+                      if (allIPs.length > 0) {
+                        return allIPs[0]; // Return the first active IP
+                      }
+                      
+                      // Fallback to agent data
+                      return agent.ip_address || rawData.ip_address || "Not Available";
                     })()}
                   </span>
                 </div>
