@@ -50,7 +50,7 @@ const getEthernetIP = (agent: any) => {
       ? JSON.parse(agent.latest_report.raw_data)
       : agent.latest_report.raw_data
     : {};
-  
+
   const interfaces = rawData.network?.interfaces || agent.network?.interfaces || [];
   for (const iface of interfaces) {
     const name = iface.name?.toLowerCase() || '';
@@ -74,7 +74,7 @@ const getWiFiIP = (agent: any) => {
       ? JSON.parse(agent.latest_report.raw_data)
       : agent.latest_report.raw_data
     : {};
-  
+
   const interfaces = rawData.network?.interfaces || agent.network?.interfaces || [];
   for (const iface of interfaces) {
     const name = iface.name?.toLowerCase() || '';
@@ -97,10 +97,10 @@ const getAllIPs = (agent: any) => {
       ? JSON.parse(agent.latest_report.raw_data)
       : agent.latest_report.raw_data
     : {};
-  
+
   const allIPs: string[] = [];
   const interfaces = rawData.network?.interfaces || agent.network?.interfaces || [];
-  
+
   for (const iface of interfaces) {
     for (const addr of iface.addresses || []) {
       if (addr.family === 'AF_INET' && addr.address && !addr.address.startsWith('127.')) {
@@ -108,7 +108,7 @@ const getAllIPs = (agent: any) => {
       }
     }
   }
-  
+
   return allIPs;
 };
 
@@ -333,7 +333,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                         rawData.user ||
                         rawData.username;
                       if (!user || user === "Unknown") return "N/A";
-                      
+
                       // Handle computer accounts like "DESKTOP-CMM8H3C$" - extract actual user from processes or other sources
                       if (user.endsWith("$")) {
                         // Look for actual user in processes data
@@ -349,7 +349,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                         }
                         return "N/A";
                       }
-                      
+
                       // Handle domain users like "DESKTOP-CMM8H3C\basav" or "DOMAIN\user"
                       if (user.includes("\\"))
                         return user.split("\\").pop() || user;
