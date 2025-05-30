@@ -53,10 +53,9 @@ const getEthernetIP = (agent: any) => {
         }
       }
     }
-    return "Not Connected";
   };
 
-  return "Not Available"; // Added a return statement to cover the case where no Ethernet IP is found
+  return "Not Available";
 };
 
 const getWiFiIP = (agent: any) => {
@@ -70,10 +69,9 @@ const getWiFiIP = (agent: any) => {
         }
       }
     }
-    return "Not Connected";
   };
 
-  return "Not Available"; // Added a return statement to cover the case where no WiFi IP is found
+  return "Not Available";
 };
 
 export function AgentTabs({ agent }: AgentTabsProps) {
@@ -248,12 +246,12 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-neutral-600">Architecture:</span>
-                  <span className="font-medium">{architecture}</span>
+                  <span className="font-medium">{architecture !== "Unknown" ? architecture : "N/A"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-neutral-600">IP Address:</span>
                   <span className="font-medium">
-                    {agent.ip_address || rawData.ip_address || "Unknown"}
+                    {agent.ip_address || rawData.ip_address || "N/A"}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -266,7 +264,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                         rawData.current_user ||
                         rawData.user ||
                         rawData.username;
-                      if (!user || user === "Unknown") return "Unknown";
+                      if (!user || user === "Unknown") return "N/A";
                       // Handle domain users like "DESKTOP-CMM8H3C\basav" or "DOMAIN\user"
                       if (user.includes("\\"))
                         return user.split("\\").pop() || user;
@@ -440,7 +438,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-neutral-600">Architecture:</span>
-                  <span className="font-medium">{architecture}</span>
+                  <span className="font-medium">{architecture !== "Unknown" ? architecture : "N/A"}</span>
                 </div>
               </div>
             </CardContent>
@@ -582,7 +580,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                     <Globe className="h-4 w-4 text-blue-600" />
                     <h4 className="font-medium text-blue-900">Public IP</h4>
                   </div>
-                  <p className="text-lg font-mono text-blue-800">{agent.network?.public_ip || "Not Available"}</p>
+                  <p className="text-lg font-mono text-blue-800">{agent.network?.public_ip || "N/A"}</p>
                 </div>
 
                 <div className="p-4 border rounded-lg bg-green-50 border-green-200">
@@ -590,7 +588,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                     <Network className="h-4 w-4 text-green-600" />
                     <h4 className="font-medium text-green-900">Ethernet IP</h4>
                   </div>
-                  <p className="text-lg font-mono text-green-800">{getEthernetIP(agent)}</p>
+                  <p className="text-lg font-mono text-green-800">{getEthernetIP(agent) !== "Not Available" ? getEthernetIP(agent) : "N/A"}</p>
                 </div>
 
                 <div className="p-4 border rounded-lg bg-purple-50 border-purple-200">
@@ -598,7 +596,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                     <Wifi className="h-4 w-4 text-purple-600" />
                     <h4 className="font-medium text-purple-900">Wi-Fi IP</h4>
                   </div>
-                  <p className="text-lg font-mono text-purple-800">{getWiFiIP(agent)}</p>
+                  <p className="text-lg font-mono text-purple-800">{getWiFiIP(agent) !== "Not Available" ? getWiFiIP(agent) : "N/A"}</p>
                 </div>
               </div>
 
@@ -670,15 +668,15 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3 text-sm">
                             <div>
                               <span className="text-muted-foreground">Speed: </span>
-                              <span>{iface.stats.speed > 0 ? `${iface.stats.speed} Mbps` : 'Unknown'}</span>
+                              <span>{iface.stats.speed > 0 ? `${iface.stats.speed} Mbps` : 'N/A'}</span>
                             </div>
                             <div>
                               <span className="text-muted-foreground">MTU: </span>
-                              <span>{iface.stats.mtu || 'Unknown'}</span>
+                              <span>{iface.stats.mtu || 'N/A'}</span>
                             </div>
                             <div>
                               <span className="text-muted-foreground">Duplex: </span>
-                              <span>{iface.stats.duplex || 'Unknown'}</span>
+                              <span>{iface.stats.duplex || 'N/A'}</span>
                             </div>
                             <div>
                               <span className="text-muted-foreground">Status: </span>
@@ -704,6 +702,13 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                               )}
                             </div>
                           ))}
+                            {/* MAC Address */}
+                            {iface.mac && (
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="text-muted-foreground">MAC Address:</span>
+                                    <span className="font-mono">{iface.mac !== "00:00:00:00:00:00" ? iface.mac : "N/A"}</span>
+                                </div>
+                            )}
                         </div>
                       </div>
                     );
@@ -743,19 +748,19 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Total Size:</span>
                         <span className="font-medium">
-                          {drive.total ? bytesToGB(drive.total) : "Unknown"}
+                          {drive.total ? bytesToGB(drive.total) : "N/A"}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Used:</span>
                         <span className="font-medium">
-                          {drive.used ? bytesToGB(drive.used) : "Unknown"}
+                          {drive.used ? bytesToGB(drive.used) : "N/A"}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Free:</span>
                         <span className="font-medium">
-                          {drive.free ? bytesToGB(drive.free) : "Unknown"}
+                          {drive.free ? bytesToGB(drive.free) : "N/A"}
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -779,20 +784,20 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                             ? Math.round(
                                 drive.percent || drive.usage?.percentage,
                               )
-                            : "Unknown"}
+                            : "N/A"}
                           %
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Filesystem:</span>
                         <span className="font-medium">
-                          {drive.filesystem || "Unknown"}
+                          {drive.filesystem || "N/A"}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Mount Point:</span>
                         <span className="font-medium">
-                          {drive.mountpoint || "Unknown"}
+                          {drive.mountpoint || "N/A"}
                         </span>
                       </div>
                     </div>
@@ -823,19 +828,19 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                               ? bytesToGB(drive.size)
                               : drive.total
                                 ? bytesToGB(drive.total)
-                                : "Unknown"}
+                                : "N/A"}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Used:</span>
                         <span className="font-medium">
-                          {drive.used ? bytesToGB(drive.used) : "Unknown"}
+                          {drive.used ? bytesToGB(drive.used) : "N/A"}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Free:</span>
                         <span className="font-medium">
-                          {drive.free ? bytesToGB(drive.free) : "Unknown"}
+                          {drive.free ? bytesToGB(drive.free) : "N/A"}
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -865,7 +870,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                                   drive.percent ||
                                   drive.usage,
                               )
-                            : "Unknown"}
+                            : "N/A"}
                           %
                         </span>
                       </div>
@@ -875,7 +880,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                           {drive.filesystem ||
                             drive.type ||
                             drive.fstype ||
-                            "Unknown"}
+                            "N/A"}
                         </span>
                       </div>
                     </div>
@@ -905,7 +910,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                                 ? bytesToGB((details as any).total)
                                 : (details as any).size
                                   ? bytesToGB((details as any).size)
-                                  : "Unknown"}
+                                  : "N/A"}
                             </span>
                           </div>
                           <div className="flex justify-between">
@@ -913,7 +918,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                             <span className="font-medium">
                               {(details as any).used
                                 ? bytesToGB((details as any).used)
-                                : "Unknown"}
+                                : "N/A"}
                             </span>
                           </div>
                           <div className="flex justify-between">
@@ -921,7 +926,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                             <span className="font-medium">
                               {(details as any).free
                                 ? bytesToGB((details as any).free)
-                                : "Unknown"}
+                                : "N/A"}
                             </span>
                           </div>
                         </>
@@ -966,7 +971,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                         <div>
                           <span className="text-neutral-600">Process: </span>
                           <span className="font-medium">
-                            {process.name || process.process_name || "Unknown"}
+                            {process.name || process.process_name || "N/A"}
                           </span>
                         </div>
                         <div>
@@ -1048,13 +1053,13 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                           {software.name ||
                             software.software_name ||
                             software.display_name ||
-                            "Unknown"}
+                            "N/A"}
                         </div>
                         <div className="text-neutral-600">
                           Version:{" "}
                           {software.version ||
                             software.display_version ||
-                            "Unknown"}
+                            "N/A"}
                         </div>
                         {software.vendor && (
                           <div className="text-neutral-500 text-xs">
