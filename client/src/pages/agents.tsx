@@ -3,6 +3,8 @@ import { AgentFilters } from "@/components/agents/agent-filters";
 import { AgentTable } from "@/components/agents/agent-table";
 import { useAgents } from "@/hooks/use-agents";
 import { queryClient } from "@/lib/queryClient";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 export default function Agents() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -35,10 +37,24 @@ export default function Agents() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-neutral-800 dark:text-neutral-200 mb-2">
-          Agent Management
-        </h1>
-        <p className="text-neutral-600">Monitor and manage all registered agents</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-neutral-800 dark:text-neutral-200 mb-2">
+              Agent Management
+            </h1>
+            <p className="text-neutral-600">Monitor and manage all registered agents</p>
+          </div>
+          <Button 
+            className="bg-blue-600 hover:bg-blue-700"
+            onClick={() => {
+              // Redirect to settings agent tab
+              window.location.href = '/settings?tab=agent';
+            }}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create New Agent
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
