@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,8 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { api } from "@/lib/api";
 import { 
   Plus, 
   Search, 
@@ -21,7 +21,8 @@ import {
   User,
   Calendar,
   MoreVertical,
-  X
+  X,
+  Download
 } from "lucide-react";
 
 // Mock ticket data
@@ -130,6 +131,25 @@ export default function Tickets() {
     category: ""
   });
 
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTickets = async () => {
+      setLoading(true);
+      try {
+        const response = await api.get("/tickets");
+        setTickets(response.data);
+      } catch (error) {
+        console.error("Failed to fetch tickets:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTickets();
+  }, []);
+
   const handleNewTicket = () => {
     const ticketType = activeTab === "all" ? "request" : activeTab;
     setNewTicketData({ ...newTicketData, type: ticketType });
@@ -141,7 +161,17 @@ export default function Tickets() {
     setShowTicketDetailsDialog(true);
   };
 
-  const handleCreateTicket = () => {
+  const handleCreateTicket = async () => {
+    try {
+      await api.post("/tickets", newTicketData);
+      // Refresh tickets after creating a new one
+      const response = await api.get("/tickets");
+      setTickets(response.data);
+      setShowNewTicketDialog(false);
+    } catch (error) {
+      console.error("Failed to create ticket:", error);
+      // Handle error appropriately
+    }
     // Here you would normally send the data to your API
     console.log("Creating ticket:", newTicketData);
     setShowNewTicketDialog(false);
@@ -156,7 +186,7 @@ export default function Tickets() {
     });
   };
 
-  const filteredTickets = mockTickets.filter(ticket => {
+  const filteredTickets = tickets.filter(ticket => {
     const matchesTab = activeTab === "all" || ticket.type === activeTab;
     const matchesSearch = ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          ticket.ticket_number.toLowerCase().includes(searchTerm.toLowerCase());
@@ -167,11 +197,16 @@ export default function Tickets() {
   });
 
   const ticketCounts = {
-    all: mockTickets.length,
-    request: mockTickets.filter(t => t.type === "request").length,
-    incident: mockTickets.filter(t => t.type === "incident").length,
-    problem: mockTickets.filter(t => t.type === "problem").length,
-    change: mockTickets.filter(t => t.type === "change").length
+    all: tickets.length,
+    request: tickets.filter(t => t.type === "request").length,
+    incident: tickets.filter(t => t.type === "incident").length,
+    problem: tickets.filter(t => t.type === "problem").length,
+    change: tickets.filter(t => t.type === "change").length
+  };
+
+  const handleExportCSV = () => {
+    // Implement CSV export logic here
+    console.log("Exporting CSV...");
   };
 
   return (
@@ -184,13 +219,20 @@ export default function Tickets() {
           </h1>
           <p className="text-neutral-600">Manage requests, incidents, problems, and changes</p>
         </div>
-        <Button 
-          className="flex items-center space-x-2"
-          onClick={handleNewTicket}
-        >
-          <Plus className="w-4 h-4" />
-          <span>New {activeTab === "all" ? "Ticket" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</span>
-        </Button>
+        <div className="flex space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={handleExportCSV}
+                className="flex items-center space-x-2"
+              >
+                <Download className="w-4 h-4" />
+                <span>Export CSV</span>
+              </Button>
+              <Button onClick={handleNewTicket} className="flex items-center space-x-2">
+                <Plus className="w-4 h-4" />
+                <span>New Ticket</span>
+              </Button>
+            </div>
       </div>
 
       {/* Filters */}
@@ -259,11 +301,12 @@ export default function Tickets() {
         </TabsList>
 
         <TabsContent value={activeTab} className="space-y-4">
-          {filteredTickets.length > 0 ? (
-            <div className="space-y-4">
-              {filteredTickets.map((ticket) => {
-                const TypeIcon = typeIcons[ticket.type as keyof typeof typeIcons];
-                return (
+          {loading ? (
+                    <div className="text-center py-8">Loading tickets...</div>
+                  ) : tickets.length === 0 ? (
+                    <div className="text-center py-8">No tickets found</div>
+                  ) : (
+                    tickets.map((ticket) => (
                   <Card 
                     key={ticket.id} 
                     className="hover:bg-neutral-50 dark:hover:bg-neutral-800 cursor-pointer transition-colors"
@@ -315,28 +358,9 @@ export default function Tickets() {
                       </div>
                     </CardContent>
                   </Card>
-                );
-              })}
-            </div>
-          ) : (
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center py-8">
-                  <Ticket className="w-16 h-16 text-neutral-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-2">
-                    No tickets found
-                  </h3>
-                  <p className="text-neutral-600 mb-4">
-                    No tickets match your current filters.
-                  </p>
-                  <Button onClick={handleNewTicket}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create New Ticket
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                    ))
+                  )}
+                  </div>
         </TabsContent>
       </Tabs>
 
@@ -377,7 +401,7 @@ export default function Tickets() {
                 </Select>
               </div>
             </div>
-            
+
             <div>
               <Label htmlFor="title">Title</Label>
               <Input
@@ -387,7 +411,7 @@ export default function Tickets() {
                 placeholder="Enter ticket title"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="requester_email">Requester Email</Label>
               <Input
@@ -398,7 +422,7 @@ export default function Tickets() {
                 placeholder="requester@company.com"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="category">Category</Label>
               <Input
@@ -408,7 +432,7 @@ export default function Tickets() {
                 placeholder="e.g., Software, Hardware, Network"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="description">Description</Label>
               <Textarea
@@ -419,7 +443,7 @@ export default function Tickets() {
                 rows={4}
               />
             </div>
-            
+
             <div className="flex justify-end space-x-2">
               <Button variant="outline" onClick={() => setShowNewTicketDialog(false)}>
                 Cancel
@@ -450,13 +474,13 @@ export default function Tickets() {
                   </DialogTitle>
                 </div>
               </DialogHeader>
-              
+
               <div className="space-y-6">
                 <div>
                   <h3 className="text-xl font-semibold mb-2">{selectedTicket.title}</h3>
                   <p className="text-neutral-600">{selectedTicket.description}</p>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
@@ -472,7 +496,7 @@ export default function Tickets() {
                       <p className="text-sm capitalize">{selectedTicket.type}</p>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-4">
                     <div>
                       <Label className="text-sm font-medium text-neutral-500">Created</Label>
@@ -492,7 +516,7 @@ export default function Tickets() {
                     )}
                   </div>
                 </div>
-                
+
                 <div className="flex justify-end space-x-2">
                   <Button variant="outline" onClick={() => setShowTicketDetailsDialog(false)}>
                     Close

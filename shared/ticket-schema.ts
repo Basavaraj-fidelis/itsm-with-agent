@@ -1,5 +1,5 @@
 
-import { pgTable, text, timestamp, integer, json, uuid, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, integer, json, uuid, varchar, boolean } from "drizzle-orm/pg-core";
 
 // Ticket types and statuses
 export const ticketTypes = ["request", "incident", "problem", "change"] as const;
