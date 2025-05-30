@@ -54,7 +54,8 @@ const getEthernetIP = (agent: any) => {
   const interfaces = rawData.network?.interfaces || agent.network?.interfaces || [];
   for (const iface of interfaces) {
     const name = iface.name?.toLowerCase() || '';
-    if (name.includes('eth') || name.includes('ethernet') || name.includes('enet')) {
+    // Look for actual Ethernet interfaces, exclude vEthernet (virtual)
+    if ((name.includes('eth') || name.includes('ethernet') || name.includes('enet')) && !name.includes('veth')) {
       for (const addr of iface.addresses || []) {
         if (addr.family === 'AF_INET' && !addr.address.startsWith('127.') && !addr.address.startsWith('169.254.')) {
           return addr.address;
@@ -315,7 +316,10 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                 <div className="flex justify-between">
                   <span className="text-neutral-600">IP Address:</span>
                   <span className="font-medium">
-                    {agent.ip_address || rawData.ip_address || "N/A"}
+                    {(() => {
+                      const ethernetIP = getEthernetIP(agent);
+                      return ethernetIP !== "Not Available" ? ethernetIP : (agent.ip_address || rawData.ip_address || "N/A");
+                    })()}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -329,13 +333,28 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                         rawData.user ||
                         rawData.username;
                       if (!user || user === "Unknown") return "N/A";
+                      
+                      // Handle computer accounts like "DESKTOP-CMM8H3C$" - extract actual user from processes or other sources
+                      if (user.endsWith("$")) {
+                        // Look for actual user in processes data
+                        const processes = rawData.processes || [];
+                        for (const process of processes) {
+                          const processUser = process.username;
+                          if (processUser && processUser.includes("\\") && !processUser.includes("NT AUTHORITY") && !processUser.includes("Window Manager")) {
+                            const actualUser = processUser.split("\\").pop();
+                            if (actualUser && !actualUser.endsWith("$") && actualUser !== "SYSTEM") {
+                              return actualUser;
+                            }
+                          }
+                        }
+                        return "N/A";
+                      }
+                      
                       // Handle domain users like "DESKTOP-CMM8H3C\basav" or "DOMAIN\user"
                       if (user.includes("\\"))
                         return user.split("\\").pop() || user;
                       // Handle email format
                       if (user.includes("@")) return user.split("@")[0];
-                      // Handle computer accounts like "DESKTOP-CMM8H3C$"
-                      if (user.endsWith("$")) return "System Account";
                       return user;
                     })()}
                   </span>
