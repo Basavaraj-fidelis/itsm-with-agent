@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
   Plus, 
   Search, 
@@ -16,7 +20,8 @@ import {
   Clock,
   User,
   Calendar,
-  MoreVertical
+  MoreVertical,
+  X
 } from "lucide-react";
 
 // Mock ticket data
@@ -99,21 +104,56 @@ const typeIcons = {
   change: RefreshCw
 };
 
+interface NewTicketFormData {
+  type: string;
+  title: string;
+  description: string;
+  priority: string;
+  requester_email: string;
+  category: string;
+}
+
 export default function Tickets() {
   const [activeTab, setActiveTab] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterPriority, setFilterPriority] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [showNewTicketDialog, setShowNewTicketDialog] = useState(false);
+  const [showTicketDetailsDialog, setShowTicketDetailsDialog] = useState(false);
+  const [newTicketData, setNewTicketData] = useState<NewTicketFormData>({
+    type: "request",
+    title: "",
+    description: "",
+    priority: "medium",
+    requester_email: "",
+    category: ""
+  });
 
   const handleNewTicket = () => {
     const ticketType = activeTab === "all" ? "request" : activeTab;
-    alert(`Creating new ${ticketType} ticket. This would open a form to create a new ${ticketType}.`);
+    setNewTicketData({ ...newTicketData, type: ticketType });
+    setShowNewTicketDialog(true);
   };
 
   const handleViewTicket = (ticket: any) => {
     setSelectedTicket(ticket);
-    alert(`Viewing ticket: ${ticket.ticket_number}\n\nTitle: ${ticket.title}\nDescription: ${ticket.description}\nStatus: ${ticket.status}\nPriority: ${ticket.priority}`);
+    setShowTicketDetailsDialog(true);
+  };
+
+  const handleCreateTicket = () => {
+    // Here you would normally send the data to your API
+    console.log("Creating ticket:", newTicketData);
+    setShowNewTicketDialog(false);
+    // Reset form
+    setNewTicketData({
+      type: "request",
+      title: "",
+      description: "",
+      priority: "medium",
+      requester_email: "",
+      category: ""
+    });
   };
 
   const filteredTickets = mockTickets.filter(ticket => {
@@ -269,7 +309,7 @@ export default function Tickets() {
                             </div>
                           </div>
                         </div>
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
                           <MoreVertical className="w-4 h-4" />
                         </Button>
                       </div>
@@ -299,6 +339,173 @@ export default function Tickets() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* New Ticket Dialog */}
+      <Dialog open={showNewTicketDialog} onOpenChange={setShowNewTicketDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Create New {newTicketData.type.charAt(0).toUpperCase() + newTicketData.type.slice(1)}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="type">Type</Label>
+                <Select value={newTicketData.type} onValueChange={(value) => setNewTicketData({...newTicketData, type: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="request">Request</SelectItem>
+                    <SelectItem value="incident">Incident</SelectItem>
+                    <SelectItem value="problem">Problem</SelectItem>
+                    <SelectItem value="change">Change</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="priority">Priority</Label>
+                <Select value={newTicketData.priority} onValueChange={(value) => setNewTicketData({...newTicketData, priority: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="critical">Critical</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="title">Title</Label>
+              <Input
+                id="title"
+                value={newTicketData.title}
+                onChange={(e) => setNewTicketData({...newTicketData, title: e.target.value})}
+                placeholder="Enter ticket title"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="requester_email">Requester Email</Label>
+              <Input
+                id="requester_email"
+                type="email"
+                value={newTicketData.requester_email}
+                onChange={(e) => setNewTicketData({...newTicketData, requester_email: e.target.value})}
+                placeholder="requester@company.com"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="category">Category</Label>
+              <Input
+                id="category"
+                value={newTicketData.category}
+                onChange={(e) => setNewTicketData({...newTicketData, category: e.target.value})}
+                placeholder="e.g., Software, Hardware, Network"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={newTicketData.description}
+                onChange={(e) => setNewTicketData({...newTicketData, description: e.target.value})}
+                placeholder="Provide detailed description of the issue or request"
+                rows={4}
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setShowNewTicketDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateTicket}>
+                Create Ticket
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Ticket Details Dialog */}
+      <Dialog open={showTicketDetailsDialog} onOpenChange={setShowTicketDetailsDialog}>
+        <DialogContent className="max-w-3xl">
+          {selectedTicket && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center justify-between">
+                  <DialogTitle className="flex items-center space-x-2">
+                    <span>{selectedTicket.ticket_number}</span>
+                    <Badge className={priorityColors[selectedTicket.priority as keyof typeof priorityColors]}>
+                      {selectedTicket.priority}
+                    </Badge>
+                    <Badge className={statusColors[selectedTicket.status as keyof typeof statusColors]}>
+                      {selectedTicket.status.replace('_', ' ')}
+                    </Badge>
+                  </DialogTitle>
+                </div>
+              </DialogHeader>
+              
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">{selectedTicket.title}</h3>
+                  <p className="text-neutral-600">{selectedTicket.description}</p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-medium text-neutral-500">Requester</Label>
+                      <p className="text-sm">{selectedTicket.requester_email}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-neutral-500">Assigned To</Label>
+                      <p className="text-sm">{selectedTicket.assigned_to}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-neutral-500">Type</Label>
+                      <p className="text-sm capitalize">{selectedTicket.type}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-medium text-neutral-500">Created</Label>
+                      <p className="text-sm">{new Date(selectedTicket.created_at).toLocaleString()}</p>
+                    </div>
+                    {selectedTicket.due_date && (
+                      <div>
+                        <Label className="text-sm font-medium text-neutral-500">Due Date</Label>
+                        <p className="text-sm">{new Date(selectedTicket.due_date).toLocaleString()}</p>
+                      </div>
+                    )}
+                    {selectedTicket.scheduled_start && (
+                      <div>
+                        <Label className="text-sm font-medium text-neutral-500">Scheduled Start</Label>
+                        <p className="text-sm">{new Date(selectedTicket.scheduled_start).toLocaleString()}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex justify-end space-x-2">
+                  <Button variant="outline" onClick={() => setShowTicketDetailsDialog(false)}>
+                    Close
+                  </Button>
+                  <Button>
+                    Update Ticket
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
