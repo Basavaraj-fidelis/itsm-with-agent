@@ -14,6 +14,13 @@ import {
   Wifi,
   Server,
   Info,
+  Globe,
+  Users,
+  Shield,
+  Zap,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { Device } from "@shared/schema";
@@ -21,6 +28,53 @@ import type { Device } from "@shared/schema";
 interface AgentTabsProps {
   agent: Device;
 }
+
+// Helper function to format bytes to human-readable format
+const formatBytes = (bytes: number, decimals: number = 2) => {
+  if (bytes === 0) return '0 Bytes';
+
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+const getEthernetIP = (agent: any) => {
+  const interfaces = agent.network?.interfaces || [];
+  for (const iface of interfaces) {
+    const name = iface.name?.toLowerCase() || '';
+    if (name.includes('eth') || name.includes('ethernet') || name.includes('enet')) {
+      for (const addr of iface.addresses || []) {
+        if (addr.family === 'AF_INET' && !addr.address.startsWith('127.') && !addr.address.startsWith('169.254.')) {
+          return addr.address;
+        }
+      }
+    }
+    return "Not Connected";
+  };
+
+  return "Not Available"; // Added a return statement to cover the case where no Ethernet IP is found
+};
+
+const getWiFiIP = (agent: any) => {
+  const interfaces = agent.network?.interfaces || [];
+  for (const iface of interfaces) {
+    const name = iface.name?.toLowerCase() || '';
+    if (name.includes('wifi') || name.includes('wlan') || name.includes('wireless') || name.includes('wi-fi')) {
+      for (const addr of iface.addresses || []) {
+        if (addr.family === 'AF_INET' && !addr.address.startsWith('127.') && !addr.address.startsWith('169.254.')) {
+          return addr.address;
+        }
+      }
+    }
+    return "Not Connected";
+  };
+
+  return "Not Available"; // Added a return statement to cover the case where no WiFi IP is found
+};
 
 export function AgentTabs({ agent }: AgentTabsProps) {
   const latestReport = agent.latest_report;
@@ -511,266 +565,151 @@ export function AgentTabs({ agent }: AgentTabsProps) {
         </div>
       </TabsContent>
 
-      <TabsContent value="network" className="space-y-6">
+      <TabsContent value="network" className="space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Network className="w-5 h-5" />
-              <span>Network Interfaces</span>
+            <CardTitle className="flex items-center gap-2">
+              <Network className="h-5 w-5" />
+              Network Information
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {(() => {
-                // Try different network data structures
-                const networkData =
-                  networkInfo ||
-                  rawData.network_interfaces ||
-                  rawData.network ||
-                  {};
+            <div className="space-y-6">
+              {/* Key Network Information */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Globe className="h-4 w-4 text-blue-600" />
+                    <h4 className="font-medium text-blue-900">Public IP</h4>
+                  </div>
+                  <p className="text-lg font-mono text-blue-800">{agent.network?.public_ip || "Not Available"}</p>
+                </div>
 
-                if (Object.keys(networkData).length === 0) {
-                  return (
-                    <div className="text-center py-8 text-neutral-500">
-                      <Network className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
-                      <p>No network interface data available</p>
+                <div className="p-4 border rounded-lg bg-green-50 border-green-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Network className="h-4 w-4 text-green-600" />
+                    <h4 className="font-medium text-green-900">Ethernet IP</h4>
+                  </div>
+                  <p className="text-lg font-mono text-green-800">{getEthernetIP(agent)}</p>
+                </div>
+
+                <div className="p-4 border rounded-lg bg-purple-50 border-purple-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Wifi className="h-4 w-4 text-purple-600" />
+                    <h4 className="font-medium text-purple-900">Wi-Fi IP</h4>
+                  </div>
+                  <p className="text-lg font-mono text-purple-800">{getWiFiIP(agent)}</p>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Network I/O Statistics */}
+              {agent.network?.io_counters && (
+                <div>
+                  <h4 className="font-medium mb-3">Network Statistics</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center p-3 border rounded">
+                      <p className="text-sm text-muted-foreground">Bytes Sent</p>
+                      <p className="text-lg font-mono">{formatBytes(agent.network.io_counters.bytes_sent)}</p>
                     </div>
-                  );
-                }
+                    <div className="text-center p-3 border rounded">
+                      <p className="text-sm text-muted-foreground">Bytes Received</p>
+                      <p className="text-lg font-mono">{formatBytes(agent.network.io_counters.bytes_recv)}</p>
+                    </div>
+                    <div className="text-center p-3 border rounded">
+                      <p className="text-sm text-muted-foreground">Packets Sent</p>
+                      <p className="text-lg font-mono">{agent.network.io_counters.packets_sent?.toLocaleString() || 'N/A'}</p>
+                    </div>
+                    <div className="text-center p-3 border rounded">
+                      <p className="text-sm text-muted-foreground">Packets Received</p>
+                      <p className="text-lg font-mono">{agent.network.io_counters.packets_recv?.toLocaleString() || 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-                return Object.entries(networkData).map(
-                  ([interfaceName, details]) => (
-                    <div
-                      key={interfaceName}
-                      className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-4"
-                    >
-                      <div className="flex items-center space-x-2 mb-3">
-                        <Wifi className="w-4 h-4 text-blue-600" />
-                        <h4 className="font-medium text-neutral-900 dark:text-neutral-100">
-                          {interfaceName}
-                        </h4>
-                      </div>
-                      <div className="grid grid-cols-1 gap-3 text-sm">
-                        {typeof details === "object" && details !== null ? (
-                          <>
-                            {/* Handle array of addresses (psutil format) */}
-                            {Array.isArray((details as any).addresses) ? (
-                              <div className="space-y-3">
-                                {(details as any).addresses.map(
-                                  (addr: any, index: number) => (
-                                    <div
-                                      key={index}
-                                      className="border border-neutral-100 dark:border-neutral-800 rounded p-2"
-                                    >
-                                      <div className="flex justify-between mb-1">
-                                        <span className="text-neutral-600">
-                                          {addr.family === "AF_INET"
-                                            ? "IPv4 Address"
-                                            : addr.family === "AF_INET6"
-                                              ? "IPv6 Address"
-                                              : `${addr.family || "IP"} Address`}
-                                          :
-                                        </span>
-                                        <span
-                                          className={`font-medium ${
-                                            addr.family === "AF_INET" &&
-                                            (addr.address?.startsWith(
-                                              "192.168.",
-                                            ) ||
-                                              addr.address?.startsWith("10.") ||
-                                              addr.address?.startsWith("172."))
-                                              ? "text-blue-600"
-                                              : ""
-                                          }`}
-                                        >
-                                          {addr.address || "N/A"}
-                                          {addr.family === "AF_INET" &&
-                                            (addr.address?.startsWith(
-                                              "192.168.",
-                                            ) ||
-                                              addr.address?.startsWith("10.") ||
-                                              addr.address?.startsWith(
-                                                "172.",
-                                              )) &&
-                                            " (Private)"}
-                                        </span>
-                                      </div>
-                                      {addr.netmask && (
-                                        <div className="flex justify-between">
-                                          <span className="text-neutral-600">
-                                            Netmask:
-                                          </span>
-                                          <span className="font-medium">
-                                            {addr.netmask}
-                                          </span>
-                                        </div>
-                                      )}
-                                      {addr.broadcast && (
-                                        <div className="flex justify-between">
-                                          <span className="text-neutral-600">
-                                            Broadcast:
-                                          </span>
-                                          <span className="font-medium">
-                                            {addr.broadcast}
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  ),
-                                )}
-                              </div>
+              <Separator />
+
+              {/* All Network Interfaces */}
+              <div>
+                <h4 className="font-medium mb-3">All Network Interfaces</h4>
+                <div className="space-y-3">
+                  {agent.network?.interfaces?.map((iface: any, index: number) => {
+                    const isEthernet = iface.name?.toLowerCase().includes('eth') || iface.name?.toLowerCase().includes('ethernet') || iface.name?.toLowerCase().includes('enet');
+                    const isWiFi = iface.name?.toLowerCase().includes('wifi') || iface.name?.toLowerCase().includes('wlan') || iface.name?.toLowerCase().includes('wireless');
+                    const isLoopback = iface.name?.toLowerCase().includes('lo') || iface.name?.toLowerCase().includes('loopback');
+
+                    return (
+                      <div key={index} className={`border rounded-lg p-4 ${
+                        isEthernet ? 'bg-green-50 border-green-200' : 
+                        isWiFi ? 'bg-purple-50 border-purple-200' : 
+                        isLoopback ? 'bg-gray-50 border-gray-200' : 
+                        'bg-white'
+                      }`}>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            {isEthernet && <Network className="h-4 w-4 text-green-600" />}
+                            {isWiFi && <Wifi className="h-4 w-4 text-purple-600" />}
+                            {isLoopback && <Activity className="h-4 w-4 text-gray-600" />}
+                            <span className="font-medium">{iface.name}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            {iface.stats?.is_up ? (
+                              <Badge variant="default" className="bg-green-100 text-green-800">Active</Badge>
                             ) : (
-                              <>
-                                {/* Handle single IP address formats */}
-                                {(details as any).ip_address ||
-                                (details as any).ip ||
-                                (details as any).address ? (
-                                  <div className="flex justify-between">
-                                    <span className="text-neutral-600">
-                                      IP Address:
-                                    </span>
-                                    <span
-                                      className={`font-medium ${
-                                        (
-                                          (details as any).ip_address ||
-                                          (details as any).ip ||
-                                          (details as any).address
-                                        )?.startsWith("192.168.") ||
-                                        (
-                                          (details as any).ip_address ||
-                                          (details as any).ip ||
-                                          (details as any).address
-                                        )?.startsWith("10.") ||
-                                        (
-                                          (details as any).ip_address ||
-                                          (details as any).ip ||
-                                          (details as any).address
-                                        )?.startsWith("172.")
-                                          ? "text-blue-600"
-                                          : ""
-                                      }`}
-                                    >
-                                      {(details as any).ip_address ||
-                                        (details as any).ip ||
-                                        (details as any).address}
-                                      {((
-                                        (details as any).ip_address ||
-                                        (details as any).ip ||
-                                        (details as any).address
-                                      )?.startsWith("192.168.") ||
-                                        (
-                                          (details as any).ip_address ||
-                                          (details as any).ip ||
-                                          (details as any).address
-                                        )?.startsWith("10.") ||
-                                        (
-                                          (details as any).ip_address ||
-                                          (details as any).ip ||
-                                          (details as any).address
-                                        )?.startsWith("172.")) &&
-                                        " (Private)"}
-                                    </span>
-                                  </div>
-                                ) : null}
-                                {(details as any).netmask && (
-                                  <div className="flex justify-between">
-                                    <span className="text-neutral-600">
-                                      Netmask:
-                                    </span>
-                                    <span className="font-medium">
-                                      {(details as any).netmask}
-                                    </span>
-                                  </div>
-                                )}
-                              </>
+                              <Badge variant="secondary" className="bg-red-100 text-red-800">Inactive</Badge>
                             )}
-                            <div className="flex justify-between">
-                              <span className="text-neutral-600">
-                                MAC Address:
-                              </span>
-                              <span className="font-medium">
-                                {(details as any).mac_address ||
-                                  (details as any).mac ||
-                                  "N/A"}
-                              </span>
+                            {isEthernet && <Badge variant="outline" className="border-green-300 text-green-700">Ethernet</Badge>}
+                            {isWiFi && <Badge variant="outline" className="border-purple-300 text-purple-700">Wi-Fi</Badge>}
+                          </div>
+                        </div>
+
+                        {/* Interface Statistics */}
+                        {iface.stats && (
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Speed: </span>
+                              <span>{iface.stats.speed > 0 ? `${iface.stats.speed} Mbps` : 'Unknown'}</span>
                             </div>
-                            <div className="flex justify-between">
-                              <span className="text-neutral-600">Status:</span>
-                              <Badge
-                                variant={
-                                  (details as any).status === "up" ||
-                                  (details as any).state === "up"
-                                    ? "default"
-                                    : "secondary"
-                                }
-                              >
-                                {(details as any).status ||
-                                  (details as any).state ||
-                                  "Unknown"}
-                              </Badge>
+                            <div>
+                              <span className="text-muted-foreground">MTU: </span>
+                              <span>{iface.stats.mtu || 'Unknown'}</span>
                             </div>
-                            {(details as any).bytes_sent !== undefined && (
-                              <div className="flex justify-between">
-                                <span className="text-neutral-600">
-                                  Bytes Sent:
-                                </span>
-                                <span className="font-medium">
-                                  {(
-                                    (details as any).bytes_sent || 0
-                                  ).toLocaleString()}
-                                </span>
-                              </div>
-                            )}
-                            {(details as any).bytes_recv !== undefined && (
-                              <div className="flex justify-between">
-                                <span className="text-neutral-600">
-                                  Bytes Received:
-                                </span>
-                                <span className="font-medium">
-                                  {(
-                                    (details as any).bytes_recv || 0
-                                  ).toLocaleString()}
-                                </span>
-                              </div>
-                            )}
-                            {(details as any).tx_bytes !== undefined && (
-                              <div className="flex justify-between">
-                                <span className="text-neutral-600">
-                                  TX Bytes:
-                                </span>
-                                <span className="font-medium">
-                                  {(
-                                    (details as any).tx_bytes || 0
-                                  ).toLocaleString()}
-                                </span>
-                              </div>
-                            )}
-                            {(details as any).rx_bytes !== undefined && (
-                              <div className="flex justify-between">
-                                <span className="text-neutral-600">
-                                  RX Bytes:
-                                </span>
-                                <span className="font-medium">
-                                  {(
-                                    (details as any).rx_bytes || 0
-                                  ).toLocaleString()}
-                                </span>
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <div className="flex justify-between col-span-2">
-                            <span className="text-neutral-600">Details:</span>
-                            <span className="font-medium">
-                              {String(details)}
-                            </span>
+                            <div>
+                              <span className="text-muted-foreground">Duplex: </span>
+                              <span>{iface.stats.duplex || 'Unknown'}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Status: </span>
+                              <span>{iface.stats.is_up ? 'Up' : 'Down'}</span>
+                            </div>
                           </div>
                         )}
+
+                        {/* IP Addresses */}
+                        <div className="space-y-2">
+                          {iface.addresses?.map((addr: any, addrIndex: number) => (
+                            <div key={addrIndex} className="flex items-center justify-between text-sm">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-xs">
+                                  {addr.family === 'AF_INET' ? 'IPv4' : addr.family === 'AF_INET6' ? 'IPv6' : addr.family}
+                                </Badge>
+                                <span className="font-mono">{addr.address}</span>
+                              </div>
+                              {addr.netmask && (
+                                <span className="text-muted-foreground font-mono">
+                                  Mask: {addr.netmask}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ),
-                );
-              })()}
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
