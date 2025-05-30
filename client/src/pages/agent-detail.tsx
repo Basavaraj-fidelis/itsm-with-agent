@@ -51,10 +51,22 @@ export default function AgentDetail() {
     );
   }
 
-  const cpuUsage = agent.latest_report?.cpu_usage ? parseFloat(agent.latest_report.cpu_usage) : 0;
-  const memoryUsage = agent.latest_report?.memory_usage ? parseFloat(agent.latest_report.memory_usage) : 0;
-  const diskUsage = agent.latest_report?.disk_usage ? parseFloat(agent.latest_report.disk_usage) : 0;
-  const networkIO = agent.latest_report?.network_io ? parseInt(agent.latest_report.network_io) : 0;
+  const cpuUsage = agent.latest_report?.cpu_usage 
+    ? parseFloat(parseFloat(agent.latest_report.cpu_usage).toFixed(2)) 
+    : 0;
+
+  const memoryUsage = agent.latest_report?.memory_usage 
+    ? parseFloat(parseFloat(agent.latest_report.memory_usage).toFixed(2)) 
+    : 0;
+
+  const diskUsage = agent.latest_report?.disk_usage 
+    ? parseFloat(parseFloat(agent.latest_report.disk_usage).toFixed(2)) 
+    : 0;
+
+  const networkIO = agent.latest_report?.network_io 
+    ? parseInt(agent.latest_report.network_io) 
+    : 0;
+
 
   return (
     <div className="p-6 space-y-6">

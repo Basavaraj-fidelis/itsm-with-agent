@@ -31,16 +31,16 @@ interface AgentTabsProps {
 
 // Helper function to format bytes to human-readable format
 const formatBytes = (bytes: number, decimals: number = 2) => {
-  if (bytes === 0) return '0 Bytes';
+  if (bytes === 0) return "0 Bytes";
 
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+  const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
 
   const i = Math.floor(Math.log(bytes) / Math.log(k));
 
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-}
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
+};
 
 const getEthernetIP = (agent: any) => {
   // Check raw_data first for network interfaces
@@ -50,13 +50,23 @@ const getEthernetIP = (agent: any) => {
       : agent.latest_report.raw_data
     : {};
 
-  const interfaces = rawData.network?.interfaces || agent.network?.interfaces || [];
+  const interfaces =
+    rawData.network?.interfaces || agent.network?.interfaces || [];
   for (const iface of interfaces) {
-    const name = iface.name?.toLowerCase() || '';
+    const name = iface.name?.toLowerCase() || "";
     // Look for actual Ethernet interfaces, exclude vEthernet (virtual)
-    if ((name.includes('eth') || name.includes('ethernet') || name.includes('enet')) && !name.includes('veth')) {
+    if (
+      (name.includes("eth") ||
+        name.includes("ethernet") ||
+        name.includes("enet")) &&
+      !name.includes("veth")
+    ) {
       for (const addr of iface.addresses || []) {
-        if (addr.family === 'AF_INET' && !addr.address.startsWith('127.') && !addr.address.startsWith('169.254.')) {
+        if (
+          addr.family === "AF_INET" &&
+          !addr.address.startsWith("127.") &&
+          !addr.address.startsWith("169.254.")
+        ) {
           return addr.address;
         }
       }
@@ -74,12 +84,22 @@ const getWiFiIP = (agent: any) => {
       : agent.latest_report.raw_data
     : {};
 
-  const interfaces = rawData.network?.interfaces || agent.network?.interfaces || [];
+  const interfaces =
+    rawData.network?.interfaces || agent.network?.interfaces || [];
   for (const iface of interfaces) {
-    const name = iface.name?.toLowerCase() || '';
-    if (name.includes('wifi') || name.includes('wlan') || name.includes('wireless') || name.includes('wi-fi')) {
+    const name = iface.name?.toLowerCase() || "";
+    if (
+      name.includes("wifi") ||
+      name.includes("wlan") ||
+      name.includes("wireless") ||
+      name.includes("wi-fi")
+    ) {
       for (const addr of iface.addresses || []) {
-        if (addr.family === 'AF_INET' && !addr.address.startsWith('127.') && !addr.address.startsWith('169.254.')) {
+        if (
+          addr.family === "AF_INET" &&
+          !addr.address.startsWith("127.") &&
+          !addr.address.startsWith("169.254.")
+        ) {
           return addr.address;
         }
       }
@@ -98,11 +118,16 @@ const getAllIPs = (agent: any) => {
     : {};
 
   const allIPs: string[] = [];
-  const interfaces = rawData.network?.interfaces || agent.network?.interfaces || [];
+  const interfaces =
+    rawData.network?.interfaces || agent.network?.interfaces || [];
 
   for (const iface of interfaces) {
     for (const addr of iface.addresses || []) {
-      if (addr.family === 'AF_INET' && addr.address && !addr.address.startsWith('127.')) {
+      if (
+        addr.family === "AF_INET" &&
+        addr.address &&
+        !addr.address.startsWith("127.")
+      ) {
         allIPs.push(addr.address);
       }
     }
@@ -213,18 +238,20 @@ export function AgentTabs({ agent }: AgentTabsProps) {
     rawData.cpu ||
     rawData.os_info?.processor ||
     "Intel(R) Core(TM) i5-10400F CPU @ 2.90GHz";
-  const physicalCores = cpuInfo.physical_cores || rawData.hardware?.cpu?.physical_cores || "N/A";
-  const logicalCores = cpuInfo.logical_cores || rawData.hardware?.cpu?.logical_cores || "N/A";
+  const physicalCores =
+    cpuInfo.physical_cores || rawData.hardware?.cpu?.physical_cores || "N/A";
+  const logicalCores =
+    cpuInfo.logical_cores || rawData.hardware?.cpu?.logical_cores || "N/A";
   const cpuFreq = cpuInfo.current_freq
     ? `${cpuInfo.current_freq} MHz`
-    : rawData.hardware?.cpu?.current_freq 
-    ? `${rawData.hardware?.cpu?.current_freq} MHz`
-    : "N/A";
-  const maxFreq = cpuInfo.max_freq 
-    ? `${cpuInfo.max_freq} MHz` 
-    : rawData.hardware?.cpu?.max_freq 
-    ? `${rawData.hardware?.cpu?.max_freq} MHz`
-    : "N/A";
+    : rawData.hardware?.cpu?.current_freq
+      ? `${rawData.hardware?.cpu?.current_freq} MHz`
+      : "N/A";
+  const maxFreq = cpuInfo.max_freq
+    ? `${cpuInfo.max_freq} MHz`
+    : rawData.hardware?.cpu?.max_freq
+      ? `${rawData.hardware?.cpu?.max_freq} MHz`
+      : "N/A";
 
   const totalMemory = memoryInfo.total
     ? bytesToGB(memoryInfo.total)
@@ -237,21 +264,21 @@ export function AgentTabs({ agent }: AgentTabsProps) {
     : rawData.available_memory || rawData.memory_available || "Unknown";
   const usedMemory = memoryInfo.used ? bytesToGB(memoryInfo.used) : "Unknown";
 
-  const manufacturer = 
+  const manufacturer =
     rawData.hardware?.system?.manufacturer ||
-    systemHardware.manufacturer || 
+    systemHardware.manufacturer ||
     rawData.manufacturer ||
     rawData.system_info?.manufacturer ||
     "MSI";
-  const model = 
+  const model =
     rawData.hardware?.system?.model ||
-    systemHardware.model || 
+    systemHardware.model ||
     rawData.model ||
     rawData.system_info?.model ||
     "MS-7C75";
-  const serialNumber = 
+  const serialNumber =
     rawData.hardware?.system?.serial_number ||
-    systemHardware.serial_number || 
+    systemHardware.serial_number ||
     rawData.serial_number ||
     rawData.system_info?.serial_number ||
     "To be filled by O.E.M.";
@@ -262,6 +289,14 @@ export function AgentTabs({ agent }: AgentTabsProps) {
         .sort((a, b) => (b.memory_percent || 0) - (a.memory_percent || 0))
         .slice(0, 10)
     : [];
+
+  // Reusable Stat display component
+  const Stat = ({ label, value }: { label: string; value: string }) => (
+    <div className="flex justify-between">
+      <span className="text-neutral-600">{label}:</span>
+      <span className="font-medium">{value || "N/A"}</span>
+    </div>
+  );
 
   return (
     <Tabs defaultValue="overview" className="w-full">
@@ -310,14 +345,18 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-neutral-600">Architecture:</span>
-                  <span className="font-medium">{architecture !== "Unknown" ? architecture : "N/A"}</span>
+                  <span className="font-medium">
+                    {architecture !== "Unknown" ? architecture : "N/A"}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-neutral-600">IP Address:</span>
                   <span className="font-medium">
                     {(() => {
                       const ethernetIP = getEthernetIP(agent);
-                      return ethernetIP !== "Not Available" ? ethernetIP : (agent.ip_address || rawData.ip_address || "N/A");
+                      return ethernetIP !== "Not Available"
+                        ? ethernetIP
+                        : agent.ip_address || rawData.ip_address || "N/A";
                     })()}
                   </span>
                 </div>
@@ -339,9 +378,18 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                         const processes = rawData.processes || [];
                         for (const process of processes) {
                           const processUser = process.username;
-                          if (processUser && processUser.includes("\\") && !processUser.includes("NT AUTHORITY") && !processUser.includes("Window Manager")) {
+                          if (
+                            processUser &&
+                            processUser.includes("\\") &&
+                            !processUser.includes("NT AUTHORITY") &&
+                            !processUser.includes("Window Manager")
+                          ) {
                             const actualUser = processUser.split("\\").pop();
-                            if (actualUser && !actualUser.endsWith("$") && actualUser !== "SYSTEM") {
+                            if (
+                              actualUser &&
+                              !actualUser.endsWith("$") &&
+                              actualUser !== "SYSTEM"
+                            ) {
                               return actualUser;
                             }
                           }
@@ -520,7 +568,9 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-neutral-600">Architecture:</span>
-                  <span className="font-medium">{architecture !== "Unknown" ? architecture : "N/A"}</span>
+                  <span className="font-medium">
+                    {architecture !== "Unknown" ? architecture : "N/A"}
+                  </span>
                 </div>
               </div>
             </CardContent>
@@ -669,7 +719,12 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                           ? JSON.parse(latestReport.raw_data)
                           : latestReport.raw_data
                         : {};
-                      return rawData.network?.public_ip || agent.network?.public_ip || rawData.public_ip || "49.205.38.147";
+                      return (
+                        rawData.network?.public_ip ||
+                        agent.network?.public_ip ||
+                        rawData.public_ip ||
+                        "49.205.38.147"
+                      );
                     })()}
                   </p>
                 </div>
@@ -679,7 +734,11 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                     <Network className="h-4 w-4 text-green-600" />
                     <h4 className="font-medium text-green-900">Ethernet IP</h4>
                   </div>
-                  <p className="text-lg font-mono text-green-800">{getEthernetIP(agent) !== "Not Available" ? getEthernetIP(agent) : "192.168.1.17"}</p>
+                  <p className="text-lg font-mono text-green-800">
+                    {getEthernetIP(agent) !== "Not Available"
+                      ? getEthernetIP(agent)
+                      : "192.168.1.17"}
+                  </p>
                 </div>
 
                 <div className="p-4 border rounded-lg bg-purple-50 border-purple-200">
@@ -687,7 +746,11 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                     <Wifi className="h-4 w-4 text-purple-600" />
                     <h4 className="font-medium text-purple-900">Wi-Fi IP</h4>
                   </div>
-                  <p className="text-lg font-mono text-purple-800">{getWiFiIP(agent) !== "Not Available" ? getWiFiIP(agent) : "Not Connected"}</p>
+                  <p className="text-lg font-mono text-purple-800">
+                    {getWiFiIP(agent) !== "Not Available"
+                      ? getWiFiIP(agent)
+                      : "Not Connected"}
+                  </p>
                 </div>
               </div>
 
@@ -695,17 +758,24 @@ export function AgentTabs({ agent }: AgentTabsProps) {
               <div className="p-4 border rounded-lg bg-yellow-50 border-yellow-200">
                 <div className="flex items-center gap-2 mb-2">
                   <Network className="h-4 w-4 text-yellow-600" />
-                  <h4 className="font-medium text-yellow-900">All IP Addresses from Agent Data</h4>
+                  <h4 className="font-medium text-yellow-900">
+                    All IP Addresses from Agent Data
+                  </h4>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {getAllIPs(agent).length > 0 ? (
                     getAllIPs(agent).map((ip, index) => (
-                      <span key={index} className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm font-mono">
+                      <span
+                        key={index}
+                        className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm font-mono"
+                      >
                         {ip}
                       </span>
                     ))
                   ) : (
-                    <span className="text-yellow-800">No IP addresses found</span>
+                    <span className="text-yellow-800">
+                      No IP addresses found
+                    </span>
                   )}
                 </div>
               </div>
@@ -718,20 +788,38 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                   <h4 className="font-medium mb-3">Network Statistics</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="text-center p-3 border rounded">
-                      <p className="text-sm text-muted-foreground">Bytes Sent</p>
-                      <p className="text-lg font-mono">{formatBytes(agent.network.io_counters.bytes_sent)}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Bytes Sent
+                      </p>
+                      <p className="text-lg font-mono">
+                        {formatBytes(agent.network.io_counters.bytes_sent)}
+                      </p>
                     </div>
                     <div className="text-center p-3 border rounded">
-                      <p className="text-sm text-muted-foreground">Bytes Received</p>
-                      <p className="text-lg font-mono">{formatBytes(agent.network.io_counters.bytes_recv)}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Bytes Received
+                      </p>
+                      <p className="text-lg font-mono">
+                        {formatBytes(agent.network.io_counters.bytes_recv)}
+                      </p>
                     </div>
                     <div className="text-center p-3 border rounded">
-                      <p className="text-sm text-muted-foreground">Packets Sent</p>
-                      <p className="text-lg font-mono">{agent.network.io_counters.packets_sent?.toLocaleString() || 'N/A'}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Packets Sent
+                      </p>
+                      <p className="text-lg font-mono">
+                        {agent.network.io_counters.packets_sent?.toLocaleString() ||
+                          "N/A"}
+                      </p>
                     </div>
                     <div className="text-center p-3 border rounded">
-                      <p className="text-sm text-muted-foreground">Packets Received</p>
-                      <p className="text-lg font-mono">{agent.network.io_counters.packets_recv?.toLocaleString() || 'N/A'}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Packets Received
+                      </p>
+                      <p className="text-lg font-mono">
+                        {agent.network.io_counters.packets_recv?.toLocaleString() ||
+                          "N/A"}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -749,35 +837,82 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                         ? JSON.parse(latestReport.raw_data)
                         : latestReport.raw_data
                       : {};
-                    const interfaces = rawData.network?.interfaces || agent.network?.interfaces || [];
+                    const interfaces =
+                      rawData.network?.interfaces ||
+                      agent.network?.interfaces ||
+                      [];
                     return interfaces;
                   })().map((iface: any, index: number) => {
-                    const isEthernet = iface.name?.toLowerCase().includes('eth') || iface.name?.toLowerCase().includes('ethernet') || iface.name?.toLowerCase().includes('enet');
-                    const isWiFi = iface.name?.toLowerCase().includes('wifi') || iface.name?.toLowerCase().includes('wlan') || iface.name?.toLowerCase().includes('wireless');
-                    const isLoopback = iface.name?.toLowerCase().includes('lo') || iface.name?.toLowerCase().includes('loopback');
+                    const isEthernet =
+                      iface.name?.toLowerCase().includes("eth") ||
+                      iface.name?.toLowerCase().includes("ethernet") ||
+                      iface.name?.toLowerCase().includes("enet");
+                    const isWiFi =
+                      iface.name?.toLowerCase().includes("wifi") ||
+                      iface.name?.toLowerCase().includes("wlan") ||
+                      iface.name?.toLowerCase().includes("wireless");
+                    const isLoopback =
+                      iface.name?.toLowerCase().includes("lo") ||
+                      iface.name?.toLowerCase().includes("loopback");
 
                     return (
-                      <div key={index} className={`border rounded-lg p-4 ${
-                        isEthernet ? 'bg-green-50 border-green-200' : 
-                        isWiFi ? 'bg-purple-50 border-purple-200' : 
-                        isLoopback ? 'bg-gray-50 border-gray-200' : 
-                        'bg-white'
-                      }`}>
+                      <div
+                        key={index}
+                        className={`border rounded-lg p-4 ${
+                          isEthernet
+                            ? "bg-green-50 border-green-200"
+                            : isWiFi
+                              ? "bg-purple-50 border-purple-200"
+                              : isLoopback
+                                ? "bg-gray-50 border-gray-200"
+                                : "bg-white"
+                        }`}
+                      >
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
-                            {isEthernet && <Network className="h-4 w-4 text-green-600" />}
-                            {isWiFi && <Wifi className="h-4 w-4 text-purple-600" />}
-                            {isLoopback && <Activity className="h-4 w-4 text-gray-600" />}
+                            {isEthernet && (
+                              <Network className="h-4 w-4 text-green-600" />
+                            )}
+                            {isWiFi && (
+                              <Wifi className="h-4 w-4 text-purple-600" />
+                            )}
+                            {isLoopback && (
+                              <Activity className="h-4 w-4 text-gray-600" />
+                            )}
                             <span className="font-medium">{iface.name}</span>
                           </div>
                           <div className="flex gap-2">
                             {iface.stats?.is_up ? (
-                              <Badge variant="default" className="bg-green-100 text-green-800">Active</Badge>
+                              <Badge
+                                variant="default"
+                                className="bg-green-100 text-green-800"
+                              >
+                                Active
+                              </Badge>
                             ) : (
-                              <Badge variant="secondary" className="bg-red-100 text-red-800">Inactive</Badge>
+                              <Badge
+                                variant="secondary"
+                                className="bg-red-100 text-red-800"
+                              >
+                                Inactive
+                              </Badge>
                             )}
-                            {isEthernet && <Badge variant="outline" className="border-green-300 text-green-700">Ethernet</Badge>}
-                            {isWiFi && <Badge variant="outline" className="border-purple-300 text-purple-700">Wi-Fi</Badge>}
+                            {isEthernet && (
+                              <Badge
+                                variant="outline"
+                                className="border-green-300 text-green-700"
+                              >
+                                Ethernet
+                              </Badge>
+                            )}
+                            {isWiFi && (
+                              <Badge
+                                variant="outline"
+                                className="border-purple-300 text-purple-700"
+                              >
+                                Wi-Fi
+                              </Badge>
+                            )}
                           </div>
                         </div>
 
@@ -785,48 +920,77 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                         {iface.stats && (
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3 text-sm">
                             <div>
-                              <span className="text-muted-foreground">Speed: </span>
-                              <span>{iface.stats.speed > 0 ? `${iface.stats.speed} Mbps` : 'N/A'}</span>
+                              <span className="text-muted-foreground">
+                                Speed:{" "}
+                              </span>
+                              <span>
+                                {iface.stats.speed > 0
+                                  ? `${iface.stats.speed} Mbps`
+                                  : "N/A"}
+                              </span>
                             </div>
                             <div>
-                              <span className="text-muted-foreground">MTU: </span>
-                              <span>{iface.stats.mtu || 'N/A'}</span>
+                              <span className="text-muted-foreground">
+                                MTU:{" "}
+                              </span>
+                              <span>{iface.stats.mtu || "N/A"}</span>
                             </div>
                             <div>
-                              <span className="text-muted-foreground">Duplex: </span>
-                              <span>{iface.stats.duplex || 'N/A'}</span>
+                              <span className="text-muted-foreground">
+                                Duplex:{" "}
+                              </span>
+                              <span>{iface.stats.duplex || "N/A"}</span>
                             </div>
                             <div>
-                              <span className="text-muted-foreground">Status: </span>
-                              <span>{iface.stats.is_up ? 'Up' : 'Down'}</span>
+                              <span className="text-muted-foreground">
+                                Status:{" "}
+                              </span>
+                              <span>{iface.stats.is_up ? "Up" : "Down"}</span>
                             </div>
                           </div>
                         )}
 
                         {/* IP Addresses */}
                         <div className="space-y-2">
-                          {iface.addresses?.map((addr: any, addrIndex: number) => (
-                            <div key={addrIndex} className="flex items-center justify-between text-sm">
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-xs">
-                                  {addr.family === 'AF_INET' ? 'IPv4' : addr.family === 'AF_INET6' ? 'IPv6' : addr.family}
-                                </Badge>
-                                <span className="font-mono">{addr.address}</span>
-                              </div>
-                              {addr.netmask && (
-                                <span className="text-muted-foreground font-mono">
-                                  Mask: {addr.netmask}
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                            {/* MAC Address */}
-                            {iface.mac && (
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">MAC Address:</span>
-                                    <span className="font-mono">{iface.mac !== "00:00:00:00:00:00" ? iface.mac : "N/A"}</span>
+                          {iface.addresses?.map(
+                            (addr: any, addrIndex: number) => (
+                              <div
+                                key={addrIndex}
+                                className="flex items-center justify-between text-sm"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className="text-xs">
+                                    {addr.family === "AF_INET"
+                                      ? "IPv4"
+                                      : addr.family === "AF_INET6"
+                                        ? "IPv6"
+                                        : addr.family}
+                                  </Badge>
+                                  <span className="font-mono">
+                                    {addr.address}
+                                  </span>
                                 </div>
-                            )}
+                                {addr.netmask && (
+                                  <span className="text-muted-foreground font-mono">
+                                    Mask: {addr.netmask}
+                                  </span>
+                                )}
+                              </div>
+                            ),
+                          )}
+                          {/* MAC Address */}
+                          {iface.mac && (
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">
+                                MAC Address:
+                              </span>
+                              <span className="font-mono">
+                                {iface.mac !== "00:00:00:00:00:00"
+                                  ? iface.mac
+                                  : "N/A"}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -838,7 +1002,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
         </Card>
       </TabsContent>
 
-      <TabsContent value="storage" className="space-y-6">
+      {/* <TabsContent value="storage" className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
@@ -1060,6 +1224,95 @@ export function AgentTabs({ agent }: AgentTabsProps) {
               ) : (
                 <div className="text-center py-8 text-neutral-500">
                   <HardDrive className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
+                  <p>No storage data available</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent> */}
+
+      <TabsContent value="storage" className="space-y-6">
+        <Card className="shadow-lg rounded-2xl border border-gray-200 dark:border-gray-700">
+          <CardHeader className="bg-muted/40 rounded-t-2xl p-4">
+            <CardTitle className="flex items-center space-x-2 text-lg font-semibold text-neutral-800 dark:text-neutral-200">
+              <HardDrive className="w-5 h-5 text-primary" />
+              <span>Storage Information</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {storageInfo.disks?.length ? (
+                storageInfo.disks.map((drive: any, index: number) => {
+                  const usage =
+                    Math.round(drive.percent || drive.usage?.percentage || 0) ||
+                    0;
+
+                  return (
+                    <div
+                      key={index}
+                      className="bg-muted/10 dark:bg-muted/20 p-5 rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-200 dark:border-gray-700"
+                    >
+                      <div className="flex items-center space-x-2 mb-4">
+                        <HardDrive className="w-5 h-5 text-orange-500" />
+                        <h4 className="text-base font-semibold">
+                          {drive.device ||
+                            drive.mountpoint ||
+                            `Drive ${index + 1}`}
+                        </h4>
+                      </div>
+
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                        <Stat
+                          label="Total Size"
+                          value={bytesToGB(drive.total)}
+                        />
+                        <Stat label="Used" value={bytesToGB(drive.used)} />
+                        <Stat label="Free" value={bytesToGB(drive.free)} />
+                        <Stat
+                          label="Filesystem"
+                          value={drive.filesystem || "N/A"}
+                        />
+                        <Stat
+                          label="Mount Point"
+                          value={drive.mountpoint || "N/A"}
+                        />
+                      </div>
+
+                      <div className="mt-4">
+                        <div className="flex justify-between text-xs font-medium mb-1">
+                          <span className="text-neutral-600">Usage</span>
+                          <span
+                            className={`${
+                              usage >= 85
+                                ? "text-red-600"
+                                : usage >= 75
+                                  ? "text-yellow-600"
+                                  : "text-green-600"
+                            }`}
+                          >
+                            {usage}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-800 h-2 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${
+                              usage >= 85
+                                ? "bg-red-600"
+                                : usage >= 75
+                                  ? "bg-yellow-500"
+                                  : "bg-green-500"
+                            }`}
+                            style={{ width: `${usage}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-8 text-neutral-500">
+                  <HardDrive className="w-12 h-12 mx-auto mb-3 text-neutral-400" />
                   <p>No storage data available</p>
                 </div>
               )}
