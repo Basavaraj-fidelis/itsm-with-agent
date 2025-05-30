@@ -562,9 +562,29 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                 <div className="mt-4">
                   <div className="text-blue-400">SYSTEM STATUS:</div>
                   <div>Status: <span className={agent.status === 'online' ? 'text-green-400' : 'text-red-400'}>{agent.status.toUpperCase()}</span></div>
-                  <div>OS: {latestReport?.os_info?.name || 'Unknown'} {latestReport?.os_info?.version || ''}</div>
-                  <div>Architecture: {latestReport?.os_info?.architecture || 'Unknown'}</div>
-                  <div>Assigned User: {agent.assigned_user || 'Unknown'}</div>
+                  <div>OS: {rawData.os_info?.name || rawData.os_info?.platform || agent.os_name || 'Windows 10'} {rawData.os_info?.version || rawData.os_info?.release || agent.os_version || ''}</div>
+                  <div>Architecture: {rawData.os_info?.architecture || rawData.architecture || rawData.hardware?.system?.architecture || '64bit'}</div>
+                  <div>Assigned User: {(() => {
+                    const user = rawData.assigned_user || agent.assigned_user || rawData.current_user || rawData.user || rawData.username;
+                    if (!user || user === "Unknown") return "N/A";
+                    if (user.endsWith("$")) {
+                      // Look for actual user in processes data
+                      const processes = rawData.processes || [];
+                      for (const process of processes) {
+                        const processUser = process.username;
+                        if (processUser && processUser.includes("\\") && !processUser.includes("NT AUTHORITY") && !processUser.includes("Window Manager")) {
+                          const actualUser = processUser.split("\\").pop();
+                          if (actualUser && !actualUser.endsWith("$") && actualUser !== "SYSTEM") {
+                            return actualUser;
+                          }
+                        }
+                      }
+                      return "Computer Account";
+                    }
+                    if (user.includes("\\")) return user.split("\\").pop() || user;
+                    if (user.includes("@")) return user.split("@")[0];
+                    return user;
+                  })()}</div>
                 </div>
 
                 <div className="mt-4">
@@ -577,11 +597,11 @@ export function AgentTabs({ agent }: AgentTabsProps) {
 
                 <div className="mt-4">
                   <div className="text-blue-400">SYSTEM HEALTH:</div>
-                  {latestReport?.system_health ? (
+                  {rawData.system_health ? (
                     <>
-                      <div>Disk Health: <span className="text-green-400">{latestReport.system_health.disk_health?.status || 'Unknown'}</span></div>
-                      <div>Memory Pressure: <span className="text-yellow-400">{latestReport.system_health.memory_pressure?.pressure_level || 'Unknown'}</span></div>
-                      <div>Memory Usage: <span className="text-yellow-400">{latestReport.system_health.memory_pressure?.usage_percent || 0}%</span></div>
+                      <div>Disk Health: <span className="text-green-400">{rawData.system_health.disk_health?.status || 'Unknown'}</span></div>
+                      <div>Memory Pressure: <span className="text-yellow-400">{rawData.system_health.memory_pressure?.pressure_level || 'Unknown'}</span></div>
+                      <div>Memory Usage: <span className="text-yellow-400">{rawData.system_health.memory_pressure?.usage_percent || 0}%</span></div>
                     </>
                   ) : (
                     <div>No health data available</div>
@@ -590,11 +610,11 @@ export function AgentTabs({ agent }: AgentTabsProps) {
 
                 <div className="mt-4">
                   <div className="text-blue-400">SECURITY STATUS:</div>
-                  {latestReport?.security ? (
+                  {rawData.security ? (
                     <>
-                      <div>Firewall: <span className="text-green-400">{latestReport.security.firewall_status || 'Unknown'}</span></div>
-                      <div>Antivirus: <span className="text-green-400">{latestReport.security.antivirus_status || 'Unknown'}</span></div>
-                      <div>Last Scan: <span className="text-yellow-400">{latestReport.security.last_scan || 'Unknown'}</span></div>
+                      <div>Firewall: <span className="text-green-400">{rawData.security.firewall_status || 'Unknown'}</span></div>
+                      <div>Antivirus: <span className="text-green-400">{rawData.security.antivirus_status || 'Unknown'}</span></div>
+                      <div>Last Scan: <span className="text-yellow-400">{rawData.security.last_scan || 'Unknown'}</span></div>
                     </>
                   ) : (
                     <div>No security data available</div>
@@ -603,8 +623,8 @@ export function AgentTabs({ agent }: AgentTabsProps) {
 
                 <div className="mt-4">
                   <div className="text-blue-400">TOP PROCESSES (by CPU):</div>
-                  {latestReport?.processes && latestReport.processes.length > 0 ? (
-                    latestReport.processes
+                  {rawData.processes && rawData.processes.length > 0 ? (
+                    rawData.processes
                       .filter(process => process.cpu_percent > 1)
                       .sort((a, b) => b.cpu_percent - a.cpu_percent)
                       .slice(0, 10)
@@ -620,8 +640,8 @@ export function AgentTabs({ agent }: AgentTabsProps) {
 
                 <div className="mt-4">
                   <div className="text-blue-400">INSTALLED SOFTWARE (Sample):</div>
-                  {latestReport?.software && latestReport.software.length > 0 ? (
-                    latestReport.software.slice(0, 5).map((software, index) => (
+                  {rawData.software && rawData.software.length > 0 ? (
+                    rawData.software.slice(0, 5).map((software, index) => (
                       <div key={index}>
                         <span className="text-cyan-400">{software.name}</span> v{software.version} - <span className="text-gray-400">{software.vendor}</span>
                       </div>
@@ -633,15 +653,34 @@ export function AgentTabs({ agent }: AgentTabsProps) {
 
                 <div className="mt-4">
                   <div className="text-blue-400">NETWORK INFO:</div>
-                  {latestReport?.network_interfaces && latestReport.network_interfaces.length > 0 ? (
-                    latestReport.network_interfaces.slice(0, 3).map((iface, index) => (
-                      <div key={index}>
-                        {iface.name}: <span className="text-green-400">{iface.status}</span> - IP: <span className="text-yellow-400">{iface.ip_address || 'N/A'}</span>
-                      </div>
-                    ))
-                  ) : (
-                    <div>No network interface data available</div>
-                  )}
+                  {(() => {
+                    const interfaces = rawData.network?.interfaces || agent.network?.interfaces || [];
+                    const activeInterfaces = interfaces.filter(iface => 
+                      iface.stats?.is_up && 
+                      iface.addresses && 
+                      iface.addresses.some(addr => 
+                        addr.family === "AF_INET" && 
+                        !addr.address.startsWith("127.") && 
+                        !addr.address.startsWith("169.254.")
+                      )
+                    );
+                    return activeInterfaces.length > 0 ? (
+                      activeInterfaces.slice(0, 3).map((iface, index) => {
+                        const ipAddr = iface.addresses.find(addr => 
+                          addr.family === "AF_INET" && 
+                          !addr.address.startsWith("127.") && 
+                          !addr.address.startsWith("169.254.")
+                        );
+                        return (
+                          <div key={index}>
+                            {iface.name}: <span className="text-green-400">Active</span> - IP: <span className="text-yellow-400">{ipAddr?.address || 'N/A'}</span>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div>No active network interfaces found</div>
+                    );
+                  })()}
                 </div>
 
                 <div className="mt-4 text-gray-500">
@@ -980,9 +1019,9 @@ export function AgentTabs({ agent }: AgentTabsProps) {
 
               <Separator />
 
-              {/* All Network Interfaces */}
+              {/* Active Network Interfaces */}
               <div>
-                <h4 className="font-medium mb-3">All Network Interfaces</h4>
+                <h4 className="font-medium mb-3">Active Network Interfaces</h4>
                 <div className="space-y-3">
                   {(() => {
                     const rawData = latestReport?.raw_data
@@ -994,7 +1033,19 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                       rawData.network?.interfaces ||
                       agent.network?.interfaces ||
                       [];
-                    return interfaces;
+                    
+                    // Filter to show only active interfaces with IP addresses
+                    const activeInterfaces = interfaces.filter(iface => 
+                      iface.stats?.is_up && 
+                      iface.addresses && 
+                      iface.addresses.some(addr => 
+                        addr.family === "AF_INET" && 
+                        !addr.address.startsWith("127.") && 
+                        !addr.address.startsWith("169.254.")
+                      )
+                    );
+                    
+                    return activeInterfaces;
                   })().map((iface: any, index: number) => {
                     const isEthernet =
                       iface.name?.toLowerCase().includes("eth") ||
