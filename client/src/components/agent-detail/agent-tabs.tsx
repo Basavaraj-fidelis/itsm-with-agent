@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import {
   Monitor,
   Cpu,
@@ -155,7 +156,9 @@ export function AgentTabs({ agent }: AgentTabsProps) {
     systemInfo.architecture ||
     rawData.arch ||
     systemInfo.arch ||
-    "Unknown";
+    rawData.system_info?.architecture ||
+    rawData.hardware?.system?.architecture ||
+    "N/A";
 
   // Hardware details
   const cpuInfo = hardwareInfo.cpu || {};
@@ -169,13 +172,20 @@ export function AgentTabs({ agent }: AgentTabsProps) {
     rawData.cpu_model ||
     systemInfo.cpu_model ||
     rawData.cpu ||
-    "Unknown";
-  const physicalCores = cpuInfo.physical_cores || "Unknown";
-  const logicalCores = cpuInfo.logical_cores || "Unknown";
+    rawData.hardware?.cpu?.model ||
+    "N/A";
+  const physicalCores = cpuInfo.physical_cores || rawData.hardware?.cpu?.physical_cores || "N/A";
+  const logicalCores = cpuInfo.logical_cores || rawData.hardware?.cpu?.logical_cores || "N/A";
   const cpuFreq = cpuInfo.current_freq
     ? `${cpuInfo.current_freq} MHz`
-    : "Unknown";
-  const maxFreq = cpuInfo.max_freq ? `${cpuInfo.max_freq} MHz` : "Unknown";
+    : rawData.hardware?.cpu?.current_freq 
+    ? `${rawData.hardware?.cpu?.current_freq} MHz`
+    : "N/A";
+  const maxFreq = cpuInfo.max_freq 
+    ? `${cpuInfo.max_freq} MHz` 
+    : rawData.hardware?.cpu?.max_freq 
+    ? `${rawData.hardware?.cpu?.max_freq} MHz`
+    : "N/A";
 
   const totalMemory = memoryInfo.total
     ? bytesToGB(memoryInfo.total)
@@ -188,9 +198,21 @@ export function AgentTabs({ agent }: AgentTabsProps) {
     : rawData.available_memory || rawData.memory_available || "Unknown";
   const usedMemory = memoryInfo.used ? bytesToGB(memoryInfo.used) : "Unknown";
 
-  const manufacturer = systemHardware.manufacturer || "Unknown";
-  const model = systemHardware.model || "Unknown";
-  const serialNumber = systemHardware.serial_number || "Unknown";
+  const manufacturer = 
+    systemHardware.manufacturer || 
+    rawData.manufacturer ||
+    rawData.system_info?.manufacturer ||
+    "N/A";
+  const model = 
+    systemHardware.model || 
+    rawData.model ||
+    rawData.system_info?.model ||
+    "N/A";
+  const serialNumber = 
+    systemHardware.serial_number || 
+    rawData.serial_number ||
+    rawData.system_info?.serial_number ||
+    "N/A";
 
   // Sort processes by memory usage and get top 10
   const topProcesses = Array.isArray(processInfo)
