@@ -227,6 +227,18 @@ export class MemStorage implements IStorage {
     const allDevices = Array.from(this.devices.values());
     const activeAlerts = Array.from(this.alerts.values()).filter(alert => alert.is_active);
 
+    // Update offline status for devices that haven't been seen for 5+ minutes
+    const now = new Date();
+    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+    
+    allDevices.forEach(device => {
+      const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
+      if (lastSeen && lastSeen < fiveMinutesAgo && device.status === "online") {
+        device.status = "offline";
+        this.devices.set(device.id, device);
+      }
+    });
+
     return {
       total_devices: allDevices.length,
       online_devices: allDevices.filter(device => device.status === "online").length,

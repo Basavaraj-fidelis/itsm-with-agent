@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useDashboardSummary, useAlerts } from "@/hooks/use-dashboard";
 import { useAgents } from "@/hooks/use-agents";
-import { Monitor, CheckCircle, AlertTriangle } from "lucide-react";
+import { Monitor, CheckCircle, AlertTriangle, XCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export default function Dashboard() {
@@ -72,15 +72,15 @@ export default function Dashboard() {
         />
 
         <MetricCard
-          title="System Health"
-          value={summary?.online_devices && summary?.total_devices ? 
-            `${Math.round((summary.online_devices / summary.total_devices) * 100)}%` : "0%"}
-          icon={CheckCircle}
-          trend={{
-            label: "Status",
-            value: "Good"
+          title="Offline Agents"
+          value={summary?.offline_devices || 0}
+          icon={XCircle}
+          change={{
+            value: summary?.offline_devices ? "1" : "0",
+            type: "decrease",
+            label: "disconnected"
           }}
-          color="green"
+          color="orange"
         />
       </div>
 

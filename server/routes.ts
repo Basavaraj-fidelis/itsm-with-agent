@@ -21,12 +21,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const devices = await storage.getDevices();
 
-      // Enhance devices with latest report data
+      // Enhance devices with latest report data and update offline status
       const devicesWithReports = await Promise.all(
         devices.map(async (device) => {
           const latestReport = await storage.getLatestDeviceReport(device.id);
+          
+          // Check if device should be marked offline (no activity for 5 minutes)
+          const now = new Date();
+          const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
+          const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+          
+          let currentStatus = device.status;
+          if (lastSeen && lastSeen < fiveMinutesAgo && device.status === "online") {
+            // Mark device as offline but don't delete data
+            await storage.updateDevice(device.id, { status: "offline" });
+            currentStatus = "offline";
+          }
+          
           return {
             ...device,
+            status: currentStatus,
             latest_report: latestReport ? {
               cpu_usage: latestReport.cpu_usage,
               memory_usage: latestReport.memory_usage,
