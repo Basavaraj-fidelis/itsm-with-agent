@@ -1,8 +1,9 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { formatDistanceToNow } from "date-fns";
+import type { Device } from "@shared/schema";
 import {
   Monitor,
   Cpu,
@@ -23,8 +24,6 @@ import {
   CheckCircle,
   XCircle,
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import type { Device } from "@shared/schema";
 
 interface AgentTabsProps {
   agent: Device;

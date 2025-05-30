@@ -104,6 +104,17 @@ export default function Tickets() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterPriority, setFilterPriority] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [selectedTicket, setSelectedTicket] = useState<any>(null);
+
+  const handleNewTicket = () => {
+    const ticketType = activeTab === "all" ? "request" : activeTab;
+    alert(`Creating new ${ticketType} ticket. This would open a form to create a new ${ticketType}.`);
+  };
+
+  const handleViewTicket = (ticket: any) => {
+    setSelectedTicket(ticket);
+    alert(`Viewing ticket: ${ticket.ticket_number}\n\nTitle: ${ticket.title}\nDescription: ${ticket.description}\nStatus: ${ticket.status}\nPriority: ${ticket.priority}`);
+  };
 
   const filteredTickets = mockTickets.filter(ticket => {
     const matchesTab = activeTab === "all" || ticket.type === activeTab;
@@ -133,9 +144,12 @@ export default function Tickets() {
           </h1>
           <p className="text-neutral-600">Manage requests, incidents, problems, and changes</p>
         </div>
-        <Button className="flex items-center space-x-2">
+        <Button 
+          className="flex items-center space-x-2"
+          onClick={handleNewTicket}
+        >
           <Plus className="w-4 h-4" />
-          <span>New Ticket</span>
+          <span>New {activeTab === "all" ? "Ticket" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</span>
         </Button>
       </div>
 
@@ -210,7 +224,11 @@ export default function Tickets() {
               {filteredTickets.map((ticket) => {
                 const TypeIcon = typeIcons[ticket.type as keyof typeof typeIcons];
                 return (
-                  <Card key={ticket.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800 cursor-pointer transition-colors">
+                  <Card 
+                    key={ticket.id} 
+                    className="hover:bg-neutral-50 dark:hover:bg-neutral-800 cursor-pointer transition-colors"
+                    onClick={() => handleViewTicket(ticket)}
+                  >
                     <CardContent className="pt-6">
                       <div className="flex items-start justify-between">
                         <div className="flex items-start space-x-4 flex-1">
@@ -271,7 +289,7 @@ export default function Tickets() {
                   <p className="text-neutral-600 mb-4">
                     No tickets match your current filters.
                   </p>
-                  <Button>
+                  <Button onClick={handleNewTicket}>
                     <Plus className="w-4 h-4 mr-2" />
                     Create New Ticket
                   </Button>

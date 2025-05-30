@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,36 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings as SettingsIcon, Database, Bell, Shield, Monitor } from "lucide-react";
 
 export default function Settings() {
+  const [settings, setSettings] = useState({
+    orgName: "ITSM Portal",
+    timezone: "utc",
+    darkMode: false,
+    autoRefresh: true,
+    cpuThreshold: 90,
+    memoryThreshold: 85,
+    diskThreshold: 80,
+    collectionInterval: "300",
+    performanceMonitoring: true,
+    networkMonitoring: true,
+    emailNotifications: true,
+    criticalAlerts: true,
+    weeklyReports: false,
+    adminEmail: "admin@company.com",
+    twoFactor: false,
+    sessionTimeout: true,
+    sessionDuration: "8",
+    passwordPolicy: "strong",
+  });
+
+  const handleSaveSettings = () => {
+    // In a real app, this would save to the backend
+    localStorage.setItem('itsm-settings', JSON.stringify(settings));
+    alert('Settings saved successfully!');
+  };
+
+  const updateSetting = (key: string, value: any) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+  };
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -38,11 +69,15 @@ export default function Settings() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="org-name">Organization Name</Label>
-                  <Input id="org-name" defaultValue="ITSM Portal" />
+                  <Input 
+                    id="org-name" 
+                    value={settings.orgName}
+                    onChange={(e) => updateSetting('orgName', e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="timezone">Timezone</Label>
-                  <Select defaultValue="utc">
+                  <Select value={settings.timezone} onValueChange={(value) => updateSetting('timezone', value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -62,7 +97,10 @@ export default function Settings() {
                     <Label>Dark Mode</Label>
                     <p className="text-sm text-neutral-600">Enable dark theme for the interface</p>
                   </div>
-                  <Switch />
+                  <Switch 
+                    checked={settings.darkMode}
+                    onCheckedChange={(checked) => updateSetting('darkMode', checked)}
+                  />
                 </div>
                 
                 <div className="flex items-center justify-between">
@@ -70,7 +108,10 @@ export default function Settings() {
                     <Label>Auto-refresh Dashboard</Label>
                     <p className="text-sm text-neutral-600">Automatically refresh data every 30 seconds</p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch 
+                    checked={settings.autoRefresh}
+                    onCheckedChange={(checked) => updateSetting('autoRefresh', checked)}
+                  />
                 </div>
               </div>
             </CardContent>
@@ -243,7 +284,7 @@ export default function Settings() {
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button size="lg">Save Settings</Button>
+        <Button size="lg" onClick={handleSaveSettings}>Save Settings</Button>
       </div>
     </div>
   );

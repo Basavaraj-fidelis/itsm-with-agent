@@ -20,6 +20,78 @@ export function AgentFilters({
   onSearchChange,
   onStatusChange,
   onTypeChange,
+  onRefresh,
+}: AgentFiltersProps) {
+  return (
+    <div className="bg-white dark:bg-neutral-800 rounded-lg shadow-sm border border-neutral-200 dark:border-neutral-700 p-4">
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-4 h-4" />
+            <Input
+              placeholder="Search agents..."
+              value={searchTerm}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+        
+        <Select value={statusFilter} onValueChange={onStatusChange}>
+          <SelectTrigger className="w-full md:w-40">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="online">Online</SelectItem>
+            <SelectItem value="offline">Offline</SelectItem>
+            <SelectItem value="error">Error</SelectItem>
+          </SelectContent>
+        </Select>
+        
+        <Select value={typeFilter} onValueChange={onTypeChange}>
+          <SelectTrigger className="w-full md:w-40">
+            <SelectValue placeholder="Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="server">Server</SelectItem>
+            <SelectItem value="workstation">Workstation</SelectItem>
+            <SelectItem value="laptop">Laptop</SelectItem>
+          </SelectContent>
+        </Select>
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={onRefresh}
+          className="flex items-center space-x-2"
+        >
+          <RefreshCw className="w-4 h-4" />
+          <span>Refresh</span>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+interface AgentFiltersProps {
+  searchTerm: string;
+  statusFilter: string;
+  typeFilter: string;
+  onSearchChange: (value: string) => void;
+  onStatusChange: (value: string) => void;
+  onTypeChange: (value: string) => void;
+  onRefresh: () => void;
+}
+
+export function AgentFilters({
+  searchTerm,
+  statusFilter,
+  typeFilter,
+  onSearchChange,
+  onStatusChange,
+  onTypeChange,
   onRefresh
 }: AgentFiltersProps) {
   return (

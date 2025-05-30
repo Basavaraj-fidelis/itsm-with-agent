@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -7,6 +8,51 @@ import { formatDistanceToNow } from "date-fns";
 
 export default function Reports() {
   const { data: agents, isLoading } = useAgents();
+  const [reportType, setReportType] = useState("performance");
+  const [timePeriod, setTimePeriod] = useState("7d");
+  const [format, setFormat] = useState("pdf");
+
+  const handleGenerateReport = () => {
+    const reportData = {
+      type: reportType,
+      period: timePeriod,
+      format: format,
+      generatedAt: new Date().toISOString(),
+      agents: agents || [],
+    };
+
+    const filename = `${reportType}-report-${timePeriod}-${new Date().toISOString().split('T')[0]}.json`;
+    
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    alert(`Generated ${reportType} report for ${timePeriod} in ${format} format!`);
+  };
+
+  const handleDownloadReport = (reportName: string) => {
+    const mockReportData = {
+      reportName,
+      downloadedAt: new Date().toISOString(),
+      data: "Mock report data would be here in a real implementation",
+    };
+    
+    const blob = new Blob([JSON.stringify(mockReportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${reportName.toLowerCase().replace(/\s+/g, '-')}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -29,7 +75,7 @@ export default function Reports() {
               <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                 Report Type
               </label>
-              <Select defaultValue="performance">
+              <Select value={reportType} onValueChange={setReportType}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -46,7 +92,7 @@ export default function Reports() {
               <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                 Time Period
               </label>
-              <Select defaultValue="7d">
+              <Select value={timePeriod} onValueChange={setTimePeriod}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -63,7 +109,7 @@ export default function Reports() {
               <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                 Format
               </label>
-              <Select defaultValue="pdf">
+              <Select value={format} onValueChange={setFormat}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -76,7 +122,10 @@ export default function Reports() {
             </div>
           </div>
           
-          <Button className="w-full md:w-auto">
+          <Button 
+            className="w-full md:w-auto"
+            onClick={handleGenerateReport}
+          >
             <FileText className="w-4 h-4 mr-2" />
             Generate Report
           </Button>
@@ -89,7 +138,11 @@ export default function Reports() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <TrendingUp className="w-8 h-8 text-blue-600" />
-              <Button variant="ghost" size="sm">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => handleDownloadReport("Performance Summary")}
+              >
                 <Download className="w-4 h-4" />
               </Button>
             </div>
@@ -110,7 +163,11 @@ export default function Reports() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <BarChart3 className="w-8 h-8 text-green-600" />
-              <Button variant="ghost" size="sm">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => handleDownloadReport("Availability Report")}
+              >
                 <Download className="w-4 h-4" />
               </Button>
             </div>
@@ -131,7 +188,11 @@ export default function Reports() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <FileText className="w-8 h-8 text-purple-600" />
-              <Button variant="ghost" size="sm">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => handleDownloadReport("System Inventory")}
+              >
                 <Download className="w-4 h-4" />
               </Button>
             </div>
@@ -166,7 +227,11 @@ export default function Reports() {
                   <p className="text-sm text-neutral-600">Generated 2 hours ago</p>
                 </div>
               </div>
-              <Button variant="ghost" size="sm">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => handleDownloadReport("Performance Summary - March 2024")}
+              >
                 <Download className="w-4 h-4" />
               </Button>
             </div>
@@ -181,7 +246,11 @@ export default function Reports() {
                   <p className="text-sm text-neutral-600">Generated yesterday</p>
                 </div>
               </div>
-              <Button variant="ghost" size="sm">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => handleDownloadReport("Availability Report - Weekly")}
+              >
                 <Download className="w-4 h-4" />
               </Button>
             </div>
@@ -196,7 +265,11 @@ export default function Reports() {
                   <p className="text-sm text-neutral-600">Generated 3 days ago</p>
                 </div>
               </div>
-              <Button variant="ghost" size="sm">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => handleDownloadReport("System Inventory - Full Export")}
+              >
                 <Download className="w-4 h-4" />
               </Button>
             </div>

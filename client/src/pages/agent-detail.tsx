@@ -99,11 +99,37 @@ export default function AgentDetail() {
         </div>
 
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm" className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex items-center space-x-2"
+            onClick={() => {
+              window.location.reload();
+            }}
+          >
             <RefreshCw className="w-4 h-4" />
             <span>Refresh</span>
           </Button>
-          <Button variant="outline" size="sm" className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex items-center space-x-2"
+            onClick={() => {
+              const data = {
+                agent: agent,
+                exportedAt: new Date().toISOString(),
+              };
+              const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `agent-${agent.hostname}-${new Date().toISOString().split('T')[0]}.json`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            }}
+          >
             <Download className="w-4 h-4" />
             <span>Export Data</span>
           </Button>

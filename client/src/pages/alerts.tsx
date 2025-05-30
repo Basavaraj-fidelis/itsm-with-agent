@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,28 @@ import { formatDistanceToNow } from "date-fns";
 
 export default function Alerts() {
   const { data: alerts, isLoading } = useAlerts();
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [resolvedAlerts, setResolvedAlerts] = useState<string[]>([]);
+
+  const filteredAlerts = alerts?.filter(alert => {
+    if (resolvedAlerts.includes(alert.id)) return false;
+    if (activeFilter === "all") return true;
+    return alert.severity === activeFilter;
+  }) || [];
+
+  const handleResolveAlert = (alertId: string) => {
+    setResolvedAlerts(prev => [...prev, alertId]);
+  };
+
+  const handleMarkAllAsRead = () => {
+    if (alerts) {
+      setResolvedAlerts(alerts.map(alert => alert.id));
+    }
+  };
+
+  const handleViewDetails = (alert: any) => {
+    alert(JSON.stringify(alert, null, 2));
+  };
 
   if (isLoading) {
     return (
@@ -34,17 +57,44 @@ export default function Alerts() {
       <div className="bg-white dark:bg-neutral-800 rounded-lg shadow-sm border border-neutral-200 dark:border-neutral-700 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Button variant="outline" size="sm">
+            <Button 
+              variant={activeFilter === "all" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setActiveFilter("all")}
+            >
               <Filter className="w-4 h-4 mr-2" />
               All Alerts
             </Button>
-            <Button variant="ghost" size="sm">Critical</Button>
-            <Button variant="ghost" size="sm">High</Button>
-            <Button variant="ghost" size="sm">Warning</Button>
-            <Button variant="ghost" size="sm">Info</Button>
-            <Button variant="ghost" size="sm">Resolved</Button>
+            <Button 
+              variant={activeFilter === "critical" ? "default" : "ghost"} 
+              size="sm"
+              onClick={() => setActiveFilter("critical")}
+            >
+              Critical
+            </Button>
+            <Button 
+              variant={activeFilter === "high" ? "default" : "ghost"} 
+              size="sm"
+              onClick={() => setActiveFilter("high")}
+            >
+              High
+            </Button>
+            <Button 
+              variant={activeFilter === "warning" ? "default" : "ghost"} 
+              size="sm"
+              onClick={() => setActiveFilter("warning")}
+            >
+              Warning
+            </Button>
+            <Button 
+              variant={activeFilter === "info" ? "default" : "ghost"} 
+              size="sm"
+              onClick={() => setActiveFilter("info")}
+            >
+              Info
+            </Button>
           </div>
-          <Button>Mark All as Read</Button>
+          <Button onClick={handleMarkAllAsRead}>Mark All as Read</Button>
         </div>
       </div>
 
@@ -59,9 +109,9 @@ export default function Alerts() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {alerts && alerts.length > 0 ? (
+          {filteredAlerts && filteredAlerts.length > 0 ? (
             <div className="space-y-4">
-              {alerts.map((alert) => (
+              {filteredAlerts.map((alert) => (
                 <div
                   key={alert.id}
                   className={`p-4 rounded-lg border-l-4 ${
@@ -99,11 +149,21 @@ export default function Alerts() {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleResolveAlert(alert.id)}
+                      >
                         <CheckCircle className="w-4 h-4 mr-2" />
                         Resolve
                       </Button>
-                      <Button variant="ghost" size="sm">View Details</Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleViewDetails(alert)}
+                      >
+                        View Details
+                      </Button>
                     </div>
                   </div>
                 </div>
