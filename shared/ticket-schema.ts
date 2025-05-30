@@ -49,6 +49,15 @@ export const tickets = pgTable("tickets", {
   tags: json("tags").$type<string[]>().default([]),
   custom_fields: json("custom_fields").$type<Record<string, any>>().default({}),
   
+  // SLA fields
+  sla_policy: varchar("sla_policy", { length: 100 }),
+  sla_response_time: integer("sla_response_time"), // in minutes
+  sla_resolution_time: integer("sla_resolution_time"), // in minutes
+  sla_response_due: timestamp("sla_response_due"),
+  sla_resolution_due: timestamp("sla_resolution_due"),
+  first_response_at: timestamp("first_response_at"),
+  sla_breached: boolean("sla_breached").default(false),
+  
   // Timestamps
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
