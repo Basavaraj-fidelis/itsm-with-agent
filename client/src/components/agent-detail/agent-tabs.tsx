@@ -1,20 +1,19 @@
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { 
-  Monitor, 
-  Cpu, 
-  MemoryStick, 
-  HardDrive, 
-  Network, 
+import {
+  Monitor,
+  Cpu,
+  MemoryStick,
+  HardDrive,
+  Network,
   Activity,
   Download,
   RefreshCw,
   Wifi,
   Server,
-  Info
+  Info,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { Device } from "@shared/schema";
@@ -27,17 +26,30 @@ export function AgentTabs({ agent }: AgentTabsProps) {
   const latestReport = agent.latest_report;
 
   // Parse metrics
-  const cpuUsage = latestReport?.cpu_usage ? parseFloat(latestReport.cpu_usage) : 0;
-  const memoryUsage = latestReport?.memory_usage ? parseFloat(latestReport.memory_usage) : 0;
-  const diskUsage = latestReport?.disk_usage ? Math.round(parseFloat(latestReport.disk_usage)) : 0;
+  const cpuUsage = latestReport?.cpu_usage
+    ? parseFloat(latestReport.cpu_usage)
+    : 0;
+  const memoryUsage = latestReport?.memory_usage
+    ? parseFloat(latestReport.memory_usage)
+    : 0;
+  const diskUsage = latestReport?.disk_usage
+    ? Math.round(parseFloat(latestReport.disk_usage))
+    : 0;
 
   // Parse raw data for detailed information
-  const rawData = latestReport?.raw_data ? (typeof latestReport.raw_data === 'string' ? JSON.parse(latestReport.raw_data) : latestReport.raw_data) : {};
-  
+  const rawData = latestReport?.raw_data
+    ? typeof latestReport.raw_data === "string"
+      ? JSON.parse(latestReport.raw_data)
+      : latestReport.raw_data
+    : {};
+
   // Extract system information with proper fallbacks
-  const systemInfo = rawData.system_info || rawData.hardware || rawData.os_info || {};
-  const networkInfo = rawData.network_interfaces || rawData.network || rawData.network_info || {};
-  const storageInfo = rawData.storage || rawData.disk_info || rawData.disks || {};
+  const systemInfo =
+    rawData.system_info || rawData.hardware || rawData.os_info || {};
+  const networkInfo =
+    rawData.network_interfaces || rawData.network || rawData.network_info || {};
+  const storageInfo =
+    rawData.storage || rawData.disk_info || rawData.disks || {};
   const processInfo = rawData.processes || rawData.running_processes || [];
   const softwareInfo = rawData.installed_software || rawData.software || [];
   const hardwareInfo = rawData.hardware || {};
@@ -45,17 +57,25 @@ export function AgentTabs({ agent }: AgentTabsProps) {
 
   // Helper function to convert bytes to GB
   const bytesToGB = (bytes: number) => {
-    if (!bytes || bytes === 0) return '0 GB';
-    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+    if (!bytes || bytes === 0) return "0 GB";
+    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + " GB";
   };
 
   // Helper function to safely get nested values
-  const getSystemValue = (keys: string[], fallback = 'Unknown') => {
+  const getSystemValue = (keys: string[], fallback = "Unknown") => {
     for (const key of keys) {
-      if (rawData[key] !== undefined && rawData[key] !== null && rawData[key] !== '') {
+      if (
+        rawData[key] !== undefined &&
+        rawData[key] !== null &&
+        rawData[key] !== ""
+      ) {
         return rawData[key];
       }
-      if (systemInfo[key] !== undefined && systemInfo[key] !== null && systemInfo[key] !== '') {
+      if (
+        systemInfo[key] !== undefined &&
+        systemInfo[key] !== null &&
+        systemInfo[key] !== ""
+      ) {
         return systemInfo[key];
       }
     }
@@ -63,32 +83,65 @@ export function AgentTabs({ agent }: AgentTabsProps) {
   };
 
   // Extract specific system details
-  const hostname = agent.hostname || rawData.hostname || rawData.computer_name || 'Unknown';
-  const osName = agent.os_name || rawData.os || rawData.operating_system || systemInfo.os || systemInfo.operating_system || 'Unknown';
-  const osVersion = agent.os_version || rawData.os_version || systemInfo.os_version || rawData.version || 'Unknown';
-  const architecture = rawData.architecture || systemInfo.architecture || rawData.arch || systemInfo.arch || 'Unknown';
-  
+  const hostname =
+    agent.hostname || rawData.hostname || rawData.computer_name || "Unknown";
+  const osName =
+    agent.os_name ||
+    rawData.os ||
+    rawData.operating_system ||
+    systemInfo.os ||
+    systemInfo.operating_system ||
+    "Unknown";
+  const osVersion =
+    agent.os_version ||
+    rawData.os_version ||
+    systemInfo.os_version ||
+    rawData.version ||
+    "Unknown";
+  const architecture =
+    rawData.architecture ||
+    systemInfo.architecture ||
+    rawData.arch ||
+    systemInfo.arch ||
+    "Unknown";
+
   // Hardware details
   const cpuInfo = hardwareInfo.cpu || {};
   const memoryInfo = hardwareInfo.memory || {};
   const systemHardware = hardwareInfo.system || {};
-  
-  const processor = cpuInfo.model || rawData.processor || systemInfo.processor || rawData.cpu_model || systemInfo.cpu_model || rawData.cpu || 'Unknown';
-  const physicalCores = cpuInfo.physical_cores || 'Unknown';
-  const logicalCores = cpuInfo.logical_cores || 'Unknown';
-  const cpuFreq = cpuInfo.current_freq ? `${cpuInfo.current_freq} MHz` : 'Unknown';
-  const maxFreq = cpuInfo.max_freq ? `${cpuInfo.max_freq} MHz` : 'Unknown';
-  
-  const totalMemory = memoryInfo.total ? bytesToGB(memoryInfo.total) : rawData.total_memory || systemInfo.total_memory || rawData.memory_total || 'Unknown';
-  const availableMemory = memoryInfo.available ? bytesToGB(memoryInfo.available) : rawData.available_memory || rawData.memory_available || 'Unknown';
-  const usedMemory = memoryInfo.used ? bytesToGB(memoryInfo.used) : 'Unknown';
-  
-  const manufacturer = systemHardware.manufacturer || 'Unknown';
-  const model = systemHardware.model || 'Unknown';
-  const serialNumber = systemHardware.serial_number || 'Unknown';
+
+  const processor =
+    cpuInfo.model ||
+    rawData.processor ||
+    systemInfo.processor ||
+    rawData.cpu_model ||
+    systemInfo.cpu_model ||
+    rawData.cpu ||
+    "Unknown";
+  const physicalCores = cpuInfo.physical_cores || "Unknown";
+  const logicalCores = cpuInfo.logical_cores || "Unknown";
+  const cpuFreq = cpuInfo.current_freq
+    ? `${cpuInfo.current_freq} MHz`
+    : "Unknown";
+  const maxFreq = cpuInfo.max_freq ? `${cpuInfo.max_freq} MHz` : "Unknown";
+
+  const totalMemory = memoryInfo.total
+    ? bytesToGB(memoryInfo.total)
+    : rawData.total_memory ||
+      systemInfo.total_memory ||
+      rawData.memory_total ||
+      "Unknown";
+  const availableMemory = memoryInfo.available
+    ? bytesToGB(memoryInfo.available)
+    : rawData.available_memory || rawData.memory_available || "Unknown";
+  const usedMemory = memoryInfo.used ? bytesToGB(memoryInfo.used) : "Unknown";
+
+  const manufacturer = systemHardware.manufacturer || "Unknown";
+  const model = systemHardware.model || "Unknown";
+  const serialNumber = systemHardware.serial_number || "Unknown";
 
   // Sort processes by memory usage and get top 10
-  const topProcesses = Array.isArray(processInfo) 
+  const topProcesses = Array.isArray(processInfo)
     ? processInfo
         .sort((a, b) => (b.memory_percent || 0) - (a.memory_percent || 0))
         .slice(0, 10)
@@ -123,7 +176,11 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-neutral-600">Status:</span>
-                  <Badge variant={agent.status === 'online' ? 'default' : 'destructive'}>
+                  <Badge
+                    variant={
+                      agent.status === "online" ? "default" : "destructive"
+                    }
+                  >
                     {agent.status}
                   </Badge>
                 </div>
@@ -141,20 +198,28 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-neutral-600">IP Address:</span>
-                  <span className="font-medium">{agent.ip_address || rawData.ip_address || 'Unknown'}</span>
+                  <span className="font-medium">
+                    {agent.ip_address || rawData.ip_address || "Unknown"}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-neutral-600">Assigned User:</span>
                   <span className="font-medium">
                     {(() => {
-                      const user = rawData.assigned_user || agent.assigned_user || rawData.current_user || rawData.user || rawData.username;
-                      if (!user || user === 'Unknown') return 'Unknown';
+                      const user =
+                        rawData.assigned_user ||
+                        agent.assigned_user ||
+                        rawData.current_user ||
+                        rawData.user ||
+                        rawData.username;
+                      if (!user || user === "Unknown") return "Unknown";
                       // Handle domain users like "DESKTOP-CMM8H3C\basav" or "DOMAIN\user"
-                      if (user.includes('\\')) return user.split('\\').pop() || user;
+                      if (user.includes("\\"))
+                        return user.split("\\").pop() || user;
                       // Handle email format
-                      if (user.includes('@')) return user.split('@')[0];
+                      if (user.includes("@")) return user.split("@")[0];
                       // Handle computer accounts like "DESKTOP-CMM8H3C$"
-                      if (user.endsWith('$')) return 'System Account';
+                      if (user.endsWith("$")) return "System Account";
                       return user;
                     })()}
                   </span>
@@ -162,10 +227,12 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                 <div className="flex justify-between">
                   <span className="text-neutral-600">Last Report:</span>
                   <span className="font-medium">
-                    {latestReport?.collected_at 
-                      ? formatDistanceToNow(new Date(latestReport.collected_at), { addSuffix: true })
-                      : 'Never'
-                    }
+                    {latestReport?.collected_at
+                      ? formatDistanceToNow(
+                          new Date(latestReport.collected_at),
+                          { addSuffix: true },
+                        )
+                      : "Never"}
                   </span>
                 </div>
               </div>
@@ -189,18 +256,26 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                       <Cpu className="w-4 h-4 text-blue-600" />
                       <span className="text-sm font-medium">CPU Usage</span>
                     </div>
-                    <span className={`text-sm font-medium ${
-                      cpuUsage >= 85 ? "text-red-600" : 
-                      cpuUsage >= 75 ? "text-yellow-600" : "text-green-600"
-                    }`}>
+                    <span
+                      className={`text-sm font-medium ${
+                        cpuUsage >= 85
+                          ? "text-red-600"
+                          : cpuUsage >= 75
+                            ? "text-yellow-600"
+                            : "text-green-600"
+                      }`}
+                    >
                       {Math.round(cpuUsage)}%
                     </span>
                   </div>
                   <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
                     <div
                       className={`h-2 rounded-full ${
-                        cpuUsage >= 85 ? "bg-red-500" : 
-                        cpuUsage >= 75 ? "bg-yellow-500" : "bg-green-500"
+                        cpuUsage >= 85
+                          ? "bg-red-500"
+                          : cpuUsage >= 75
+                            ? "bg-yellow-500"
+                            : "bg-green-500"
                       }`}
                       style={{ width: `${Math.min(cpuUsage, 100)}%` }}
                     />
@@ -214,18 +289,26 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                       <MemoryStick className="w-4 h-4 text-purple-600" />
                       <span className="text-sm font-medium">Memory Usage</span>
                     </div>
-                    <span className={`text-sm font-medium ${
-                      memoryUsage >= 85 ? "text-red-600" : 
-                      memoryUsage >= 75 ? "text-yellow-600" : "text-green-600"
-                    }`}>
+                    <span
+                      className={`text-sm font-medium ${
+                        memoryUsage >= 85
+                          ? "text-red-600"
+                          : memoryUsage >= 75
+                            ? "text-yellow-600"
+                            : "text-green-600"
+                      }`}
+                    >
                       {Math.round(memoryUsage)}%
                     </span>
                   </div>
                   <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
                     <div
                       className={`h-2 rounded-full ${
-                        memoryUsage >= 85 ? "bg-red-500" : 
-                        memoryUsage >= 75 ? "bg-yellow-500" : "bg-green-500"
+                        memoryUsage >= 85
+                          ? "bg-red-500"
+                          : memoryUsage >= 75
+                            ? "bg-yellow-500"
+                            : "bg-green-500"
                       }`}
                       style={{ width: `${Math.min(memoryUsage, 100)}%` }}
                     />
@@ -239,18 +322,26 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                       <HardDrive className="w-4 h-4 text-orange-600" />
                       <span className="text-sm font-medium">Disk Usage</span>
                     </div>
-                    <span className={`text-sm font-medium ${
-                      diskUsage >= 85 ? "text-red-600" : 
-                      diskUsage >= 75 ? "text-yellow-600" : "text-green-600"
-                    }`}>
+                    <span
+                      className={`text-sm font-medium ${
+                        diskUsage >= 85
+                          ? "text-red-600"
+                          : diskUsage >= 75
+                            ? "text-yellow-600"
+                            : "text-green-600"
+                      }`}
+                    >
                       {Math.round(diskUsage)}%
                     </span>
                   </div>
                   <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
                     <div
                       className={`h-2 rounded-full ${
-                        diskUsage >= 85 ? "bg-red-500" : 
-                        diskUsage >= 75 ? "bg-yellow-500" : "bg-green-500"
+                        diskUsage >= 85
+                          ? "bg-red-500"
+                          : diskUsage >= 75
+                            ? "bg-yellow-500"
+                            : "bg-green-500"
                       }`}
                       style={{ width: `${Math.min(diskUsage, 100)}%` }}
                     />
@@ -324,17 +415,23 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-neutral-600">Usage:</span>
-                  <span className="font-medium">{Math.round(memoryUsage)}%</span>
+                  <span className="font-medium">
+                    {Math.round(memoryUsage)}%
+                  </span>
                 </div>
                 {memoryInfo.swap_total && (
                   <>
                     <div className="flex justify-between">
                       <span className="text-neutral-600">Swap Total:</span>
-                      <span className="font-medium">{bytesToGB(memoryInfo.swap_total)}</span>
+                      <span className="font-medium">
+                        {bytesToGB(memoryInfo.swap_total)}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-neutral-600">Swap Used:</span>
-                      <span className="font-medium">{bytesToGB(memoryInfo.swap_used || 0)}</span>
+                      <span className="font-medium">
+                        {bytesToGB(memoryInfo.swap_used || 0)}
+                      </span>
                     </div>
                   </>
                 )}
@@ -379,9 +476,15 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                 {Array.isArray(usbDevices) && usbDevices.length > 0 ? (
                   <div className="space-y-2">
                     {usbDevices.map((device, index) => (
-                      <div key={index} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-2">
+                      <div
+                        key={index}
+                        className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-2"
+                      >
                         <div className="font-medium text-neutral-900 dark:text-neutral-100">
-                          {device.description || device.name || device.device_name || `USB Device ${index + 1}`}
+                          {device.description ||
+                            device.name ||
+                            device.device_name ||
+                            `USB Device ${index + 1}`}
                         </div>
                         {device.vendor_id && (
                           <div className="text-neutral-600 text-xs">
@@ -420,8 +523,12 @@ export function AgentTabs({ agent }: AgentTabsProps) {
             <div className="space-y-4">
               {(() => {
                 // Try different network data structures
-                const networkData = networkInfo || rawData.network_interfaces || rawData.network || {};
-                
+                const networkData =
+                  networkInfo ||
+                  rawData.network_interfaces ||
+                  rawData.network ||
+                  {};
+
                 if (Object.keys(networkData).length === 0) {
                   return (
                     <div className="text-center py-8 text-neutral-500">
@@ -431,127 +538,238 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                   );
                 }
 
-                return Object.entries(networkData).map(([interfaceName, details]) => (
-                  <div key={interfaceName} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-4">
-                    <div className="flex items-center space-x-2 mb-3">
-                      <Wifi className="w-4 h-4 text-blue-600" />
-                      <h4 className="font-medium text-neutral-900 dark:text-neutral-100">{interfaceName}</h4>
-                    </div>
-                    <div className="grid grid-cols-1 gap-3 text-sm">
-                      {typeof details === 'object' && details !== null ? (
-                        <>
-                          {/* Handle array of addresses (psutil format) */}
-                          {Array.isArray((details as any).addresses) ? (
-                            <div className="space-y-3">
-                              {(details as any).addresses.map((addr: any, index: number) => (
-                                <div key={index} className="border border-neutral-100 dark:border-neutral-800 rounded p-2">
-                                  <div className="flex justify-between mb-1">
+                return Object.entries(networkData).map(
+                  ([interfaceName, details]) => (
+                    <div
+                      key={interfaceName}
+                      className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-4"
+                    >
+                      <div className="flex items-center space-x-2 mb-3">
+                        <Wifi className="w-4 h-4 text-blue-600" />
+                        <h4 className="font-medium text-neutral-900 dark:text-neutral-100">
+                          {interfaceName}
+                        </h4>
+                      </div>
+                      <div className="grid grid-cols-1 gap-3 text-sm">
+                        {typeof details === "object" && details !== null ? (
+                          <>
+                            {/* Handle array of addresses (psutil format) */}
+                            {Array.isArray((details as any).addresses) ? (
+                              <div className="space-y-3">
+                                {(details as any).addresses.map(
+                                  (addr: any, index: number) => (
+                                    <div
+                                      key={index}
+                                      className="border border-neutral-100 dark:border-neutral-800 rounded p-2"
+                                    >
+                                      <div className="flex justify-between mb-1">
+                                        <span className="text-neutral-600">
+                                          {addr.family === "AF_INET"
+                                            ? "IPv4 Address"
+                                            : addr.family === "AF_INET6"
+                                              ? "IPv6 Address"
+                                              : `${addr.family || "IP"} Address`}
+                                          :
+                                        </span>
+                                        <span
+                                          className={`font-medium ${
+                                            addr.family === "AF_INET" &&
+                                            (addr.address?.startsWith(
+                                              "192.168.",
+                                            ) ||
+                                              addr.address?.startsWith("10.") ||
+                                              addr.address?.startsWith("172."))
+                                              ? "text-blue-600"
+                                              : ""
+                                          }`}
+                                        >
+                                          {addr.address || "N/A"}
+                                          {addr.family === "AF_INET" &&
+                                            (addr.address?.startsWith(
+                                              "192.168.",
+                                            ) ||
+                                              addr.address?.startsWith("10.") ||
+                                              addr.address?.startsWith(
+                                                "172.",
+                                              )) &&
+                                            " (Private)"}
+                                        </span>
+                                      </div>
+                                      {addr.netmask && (
+                                        <div className="flex justify-between">
+                                          <span className="text-neutral-600">
+                                            Netmask:
+                                          </span>
+                                          <span className="font-medium">
+                                            {addr.netmask}
+                                          </span>
+                                        </div>
+                                      )}
+                                      {addr.broadcast && (
+                                        <div className="flex justify-between">
+                                          <span className="text-neutral-600">
+                                            Broadcast:
+                                          </span>
+                                          <span className="font-medium">
+                                            {addr.broadcast}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ),
+                                )}
+                              </div>
+                            ) : (
+                              <>
+                                {/* Handle single IP address formats */}
+                                {(details as any).ip_address ||
+                                (details as any).ip ||
+                                (details as any).address ? (
+                                  <div className="flex justify-between">
                                     <span className="text-neutral-600">
-                                      {addr.family === 'AF_INET' ? 'IPv4 Address' : 
-                                       addr.family === 'AF_INET6' ? 'IPv6 Address' : 
-                                       `${addr.family || 'IP'} Address`}:
+                                      IP Address:
                                     </span>
-                                    <span className={`font-medium ${
-                                      addr.family === 'AF_INET' && (
-                                        addr.address?.startsWith('192.168.') || 
-                                        addr.address?.startsWith('10.') || 
-                                        addr.address?.startsWith('172.')
-                                      ) ? 'text-blue-600' : ''
-                                    }`}>
-                                      {addr.address || 'N/A'}
-                                      {addr.family === 'AF_INET' && (
-                                        addr.address?.startsWith('192.168.') || 
-                                        addr.address?.startsWith('10.') || 
-                                        addr.address?.startsWith('172.')
-                                      ) && ' (Private)'}
+                                    <span
+                                      className={`font-medium ${
+                                        (
+                                          (details as any).ip_address ||
+                                          (details as any).ip ||
+                                          (details as any).address
+                                        )?.startsWith("192.168.") ||
+                                        (
+                                          (details as any).ip_address ||
+                                          (details as any).ip ||
+                                          (details as any).address
+                                        )?.startsWith("10.") ||
+                                        (
+                                          (details as any).ip_address ||
+                                          (details as any).ip ||
+                                          (details as any).address
+                                        )?.startsWith("172.")
+                                          ? "text-blue-600"
+                                          : ""
+                                      }`}
+                                    >
+                                      {(details as any).ip_address ||
+                                        (details as any).ip ||
+                                        (details as any).address}
+                                      {((
+                                        (details as any).ip_address ||
+                                        (details as any).ip ||
+                                        (details as any).address
+                                      )?.startsWith("192.168.") ||
+                                        (
+                                          (details as any).ip_address ||
+                                          (details as any).ip ||
+                                          (details as any).address
+                                        )?.startsWith("10.") ||
+                                        (
+                                          (details as any).ip_address ||
+                                          (details as any).ip ||
+                                          (details as any).address
+                                        )?.startsWith("172.")) &&
+                                        " (Private)"}
                                     </span>
                                   </div>
-                                  {addr.netmask && (
-                                    <div className="flex justify-between">
-                                      <span className="text-neutral-600">Netmask:</span>
-                                      <span className="font-medium">{addr.netmask}</span>
-                                    </div>
-                                  )}
-                                  {addr.broadcast && (
-                                    <div className="flex justify-between">
-                                      <span className="text-neutral-600">Broadcast:</span>
-                                      <span className="font-medium">{addr.broadcast}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
+                                ) : null}
+                                {(details as any).netmask && (
+                                  <div className="flex justify-between">
+                                    <span className="text-neutral-600">
+                                      Netmask:
+                                    </span>
+                                    <span className="font-medium">
+                                      {(details as any).netmask}
+                                    </span>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                            <div className="flex justify-between">
+                              <span className="text-neutral-600">
+                                MAC Address:
+                              </span>
+                              <span className="font-medium">
+                                {(details as any).mac_address ||
+                                  (details as any).mac ||
+                                  "N/A"}
+                              </span>
                             </div>
-                          ) : (
-                            <>
-                              {/* Handle single IP address formats */}
-                              {(details as any).ip_address || (details as any).ip || (details as any).address ? (
-                                <div className="flex justify-between">
-                                  <span className="text-neutral-600">IP Address:</span>
-                                  <span className={`font-medium ${
-                                    ((details as any).ip_address || (details as any).ip || (details as any).address)?.startsWith('192.168.') ||
-                                    ((details as any).ip_address || (details as any).ip || (details as any).address)?.startsWith('10.') ||
-                                    ((details as any).ip_address || (details as any).ip || (details as any).address)?.startsWith('172.') 
-                                    ? 'text-blue-600' : ''
-                                  }`}>
-                                    {(details as any).ip_address || (details as any).ip || (details as any).address}
-                                    {(((details as any).ip_address || (details as any).ip || (details as any).address)?.startsWith('192.168.') ||
-                                      ((details as any).ip_address || (details as any).ip || (details as any).address)?.startsWith('10.') ||
-                                      ((details as any).ip_address || (details as any).ip || (details as any).address)?.startsWith('172.')) && ' (Private)'}
-                                  </span>
-                                </div>
-                              ) : null}
-                              {(details as any).netmask && (
-                                <div className="flex justify-between">
-                                  <span className="text-neutral-600">Netmask:</span>
-                                  <span className="font-medium">{(details as any).netmask}</span>
-                                </div>
-                              )}
-                            </>
-                          )}
-                          <div className="flex justify-between">
-                            <span className="text-neutral-600">MAC Address:</span>
-                            <span className="font-medium">{(details as any).mac_address || (details as any).mac || 'N/A'}</span>
+                            <div className="flex justify-between">
+                              <span className="text-neutral-600">Status:</span>
+                              <Badge
+                                variant={
+                                  (details as any).status === "up" ||
+                                  (details as any).state === "up"
+                                    ? "default"
+                                    : "secondary"
+                                }
+                              >
+                                {(details as any).status ||
+                                  (details as any).state ||
+                                  "Unknown"}
+                              </Badge>
+                            </div>
+                            {(details as any).bytes_sent !== undefined && (
+                              <div className="flex justify-between">
+                                <span className="text-neutral-600">
+                                  Bytes Sent:
+                                </span>
+                                <span className="font-medium">
+                                  {(
+                                    (details as any).bytes_sent || 0
+                                  ).toLocaleString()}
+                                </span>
+                              </div>
+                            )}
+                            {(details as any).bytes_recv !== undefined && (
+                              <div className="flex justify-between">
+                                <span className="text-neutral-600">
+                                  Bytes Received:
+                                </span>
+                                <span className="font-medium">
+                                  {(
+                                    (details as any).bytes_recv || 0
+                                  ).toLocaleString()}
+                                </span>
+                              </div>
+                            )}
+                            {(details as any).tx_bytes !== undefined && (
+                              <div className="flex justify-between">
+                                <span className="text-neutral-600">
+                                  TX Bytes:
+                                </span>
+                                <span className="font-medium">
+                                  {(
+                                    (details as any).tx_bytes || 0
+                                  ).toLocaleString()}
+                                </span>
+                              </div>
+                            )}
+                            {(details as any).rx_bytes !== undefined && (
+                              <div className="flex justify-between">
+                                <span className="text-neutral-600">
+                                  RX Bytes:
+                                </span>
+                                <span className="font-medium">
+                                  {(
+                                    (details as any).rx_bytes || 0
+                                  ).toLocaleString()}
+                                </span>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="flex justify-between col-span-2">
+                            <span className="text-neutral-600">Details:</span>
+                            <span className="font-medium">
+                              {String(details)}
+                            </span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-neutral-600">Status:</span>
-                            <Badge variant={(details as any).status === 'up' || (details as any).state === 'up' ? 'default' : 'secondary'}>
-                              {(details as any).status || (details as any).state || 'Unknown'}
-                            </Badge>
-                          </div>
-                          {(details as any).bytes_sent !== undefined && (
-                            <div className="flex justify-between">
-                              <span className="text-neutral-600">Bytes Sent:</span>
-                              <span className="font-medium">{((details as any).bytes_sent || 0).toLocaleString()}</span>
-                            </div>
-                          )}
-                          {(details as any).bytes_recv !== undefined && (
-                            <div className="flex justify-between">
-                              <span className="text-neutral-600">Bytes Received:</span>
-                              <span className="font-medium">{((details as any).bytes_recv || 0).toLocaleString()}</span>
-                            </div>
-                          )}
-                          {(details as any).tx_bytes !== undefined && (
-                            <div className="flex justify-between">
-                              <span className="text-neutral-600">TX Bytes:</span>
-                              <span className="font-medium">{((details as any).tx_bytes || 0).toLocaleString()}</span>
-                            </div>
-                          )}
-                          {(details as any).rx_bytes !== undefined && (
-                            <div className="flex justify-between">
-                              <span className="text-neutral-600">RX Bytes:</span>
-                              <span className="font-medium">{((details as any).rx_bytes || 0).toLocaleString()}</span>
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <div className="flex justify-between col-span-2">
-                          <span className="text-neutral-600">Details:</span>
-                          <span className="font-medium">{String(details)}</span>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ));
+                  ),
+                );
               })()}
             </div>
           </CardContent>
@@ -568,107 +786,204 @@ export function AgentTabs({ agent }: AgentTabsProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {(storageInfo.disks && Array.isArray(storageInfo.disks)) ? (
+              {storageInfo.disks && Array.isArray(storageInfo.disks) ? (
                 storageInfo.disks.map((drive: any, index: number) => (
-                  <div key={index} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-4">
+                  <div
+                    key={index}
+                    className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-4"
+                  >
                     <div className="flex items-center space-x-2 mb-3">
                       <HardDrive className="w-4 h-4 text-orange-600" />
                       <h4 className="font-medium text-neutral-900 dark:text-neutral-100">
-                        {drive.device || drive.mountpoint || `Drive ${index + 1}`}
+                        {drive.device ||
+                          drive.mountpoint ||
+                          `Drive ${index + 1}`}
                       </h4>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Total Size:</span>
-                        <span className="font-medium">{drive.total ? bytesToGB(drive.total) : 'Unknown'}</span>
+                        <span className="font-medium">
+                          {drive.total ? bytesToGB(drive.total) : "Unknown"}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Used:</span>
-                        <span className="font-medium">{drive.used ? bytesToGB(drive.used) : 'Unknown'}</span>
+                        <span className="font-medium">
+                          {drive.used ? bytesToGB(drive.used) : "Unknown"}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Free:</span>
-                        <span className="font-medium">{drive.free ? bytesToGB(drive.free) : 'Unknown'}</span>
+                        <span className="font-medium">
+                          {drive.free ? bytesToGB(drive.free) : "Unknown"}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Usage:</span>
-                        <span className={`font-medium ${
-                          Math.round(drive.percent || drive.usage?.percentage || 0) >= 85 ? "text-red-600" : 
-                          Math.round(drive.percent || drive.usage?.percentage || 0) >= 75 ? "text-yellow-600" : "text-green-600"
-                        }`}>
-                          {drive.percent || drive.usage?.percentage ? Math.round(drive.percent || drive.usage?.percentage) : 'Unknown'}%</span>
+                        <span
+                          className={`font-medium ${
+                            Math.round(
+                              drive.percent || drive.usage?.percentage || 0,
+                            ) >= 85
+                              ? "text-red-600"
+                              : Math.round(
+                                    drive.percent ||
+                                      drive.usage?.percentage ||
+                                      0,
+                                  ) >= 75
+                                ? "text-yellow-600"
+                                : "text-green-600"
+                          }`}
+                        >
+                          {drive.percent || drive.usage?.percentage
+                            ? Math.round(
+                                drive.percent || drive.usage?.percentage,
+                              )
+                            : "Unknown"}
+                          %
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Filesystem:</span>
-                        <span className="font-medium">{drive.filesystem || 'Unknown'}</span>
+                        <span className="font-medium">
+                          {drive.filesystem || "Unknown"}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Mount Point:</span>
-                        <span className="font-medium">{drive.mountpoint || 'Unknown'}</span>
+                        <span className="font-medium">
+                          {drive.mountpoint || "Unknown"}
+                        </span>
                       </div>
                     </div>
                   </div>
                 ))
               ) : Array.isArray(storageInfo) && storageInfo.length > 0 ? (
                 storageInfo.map((drive, index) => (
-                  <div key={index} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-4">
+                  <div
+                    key={index}
+                    className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-4"
+                  >
                     <div className="flex items-center space-x-2 mb-3">
                       <HardDrive className="w-4 h-4 text-orange-600" />
                       <h4 className="font-medium text-neutral-900 dark:text-neutral-100">
-                        {drive.drive || drive.device || drive.mountpoint || `Drive ${index + 1}`}
+                        {drive.drive ||
+                          drive.device ||
+                          drive.mountpoint ||
+                          `Drive ${index + 1}`}
                       </h4>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Total Size:</span>
-                        <span className="font-medium">{drive.total_size ? bytesToGB(drive.total_size) : drive.size ? bytesToGB(drive.size) : drive.total ? bytesToGB(drive.total) : 'Unknown'}</span>
+                        <span className="font-medium">
+                          {drive.total_size
+                            ? bytesToGB(drive.total_size)
+                            : drive.size
+                              ? bytesToGB(drive.size)
+                              : drive.total
+                                ? bytesToGB(drive.total)
+                                : "Unknown"}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Used:</span>
-                        <span className="font-medium">{drive.used ? bytesToGB(drive.used) : 'Unknown'}</span>
+                        <span className="font-medium">
+                          {drive.used ? bytesToGB(drive.used) : "Unknown"}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Free:</span>
-                        <span className="font-medium">{drive.free ? bytesToGB(drive.free) : 'Unknown'}</span>
+                        <span className="font-medium">
+                          {drive.free ? bytesToGB(drive.free) : "Unknown"}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Usage:</span>
-                        <span className={`font-medium ${
-                          Math.round(drive.usage_percent || drive.percent || drive.usage || 0) >= 85 ? "text-red-600" : 
-                          Math.round(drive.usage_percent || drive.percent || drive.usage || 0) >= 75 ? "text-yellow-600" : "text-green-600"
-                        }`}>
-                          {drive.usage_percent || drive.percent || drive.usage ? Math.round(drive.usage_percent || drive.percent || drive.usage) : 'Unknown'}%</span>
+                        <span
+                          className={`font-medium ${
+                            Math.round(
+                              drive.usage_percent ||
+                                drive.percent ||
+                                drive.usage ||
+                                0,
+                            ) >= 85
+                              ? "text-red-600"
+                              : Math.round(
+                                    drive.usage_percent ||
+                                      drive.percent ||
+                                      drive.usage ||
+                                      0,
+                                  ) >= 75
+                                ? "text-yellow-600"
+                                : "text-green-600"
+                          }`}
+                        >
+                          {drive.usage_percent || drive.percent || drive.usage
+                            ? Math.round(
+                                drive.usage_percent ||
+                                  drive.percent ||
+                                  drive.usage,
+                              )
+                            : "Unknown"}
+                          %
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-neutral-600">Type:</span>
-                        <span className="font-medium">{drive.filesystem || drive.type || drive.fstype || 'Unknown'}</span>
+                        <span className="font-medium">
+                          {drive.filesystem ||
+                            drive.type ||
+                            drive.fstype ||
+                            "Unknown"}
+                        </span>
                       </div>
                     </div>
                   </div>
                 ))
               ) : Object.entries(storageInfo).length > 0 ? (
                 Object.entries(storageInfo).map(([driveName, details]) => (
-                  <div key={driveName} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-4">
+                  <div
+                    key={driveName}
+                    className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-4"
+                  >
                     <div className="flex items-center space-x-2 mb-3">
                       <HardDrive className="w-4 h-4 text-orange-600" />
-                      <h4 className="font-medium text-neutral-900 dark:text-neutral-100">{driveName}</h4>
+                      <h4 className="font-medium text-neutral-900 dark:text-neutral-100">
+                        {driveName}
+                      </h4>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                      {typeof details === 'object' && details !== null ? (
+                      {typeof details === "object" && details !== null ? (
                         <>
                           <div className="flex justify-between">
-                            <span className="text-neutral-600">Total Size:</span>
-                            <span className="font-medium">{(details as any).total ? bytesToGB((details as any).total) : (details as any).size ? bytesToGB((details as any).size) : 'Unknown'}</span>
+                            <span className="text-neutral-600">
+                              Total Size:
+                            </span>
+                            <span className="font-medium">
+                              {(details as any).total
+                                ? bytesToGB((details as any).total)
+                                : (details as any).size
+                                  ? bytesToGB((details as any).size)
+                                  : "Unknown"}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-neutral-600">Used:</span>
-                            <span className="font-medium">{(details as any).used ? bytesToGB((details as any).used) : 'Unknown'}</span>
+                            <span className="font-medium">
+                              {(details as any).used
+                                ? bytesToGB((details as any).used)
+                                : "Unknown"}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-neutral-600">Free:</span>
-                            <span className="font-medium">{(details as any).free ? bytesToGB((details as any).free) : 'Unknown'}</span>
+                            <span className="font-medium">
+                              {(details as any).free
+                                ? bytesToGB((details as any).free)
+                                : "Unknown"}
+                            </span>
                           </div>
                         </>
                       ) : (
@@ -704,32 +1019,58 @@ export function AgentTabs({ agent }: AgentTabsProps) {
               {topProcesses.length > 0 ? (
                 <div className="space-y-3">
                   {topProcesses.map((process, index) => (
-                    <div key={index} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-3">
+                    <div
+                      key={index}
+                      className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-3"
+                    >
                       <div className="grid grid-cols-1 md:grid-cols-5 gap-3 text-sm">
                         <div>
                           <span className="text-neutral-600">Process: </span>
-                          <span className="font-medium">{process.name || process.process_name || 'Unknown'}</span>
+                          <span className="font-medium">
+                            {process.name || process.process_name || "Unknown"}
+                          </span>
                         </div>
                         <div>
                           <span className="text-neutral-600">PID: </span>
-                          <span className="font-medium">{process.pid || process.process_id || 'N/A'}</span>
+                          <span className="font-medium">
+                            {process.pid || process.process_id || "N/A"}
+                          </span>
                         </div>
                         <div>
                           <span className="text-neutral-600">CPU: </span>
-                          <span className="font-medium">{(process.cpu_percent || process.cpu_usage || 0).toFixed(1)}%</span>
+                          <span className="font-medium">
+                            {(
+                              process.cpu_percent ||
+                              process.cpu_usage ||
+                              0
+                            ).toFixed(1)}
+                            %
+                          </span>
                         </div>
                         <div>
                           <span className="text-neutral-600">Memory: </span>
-                          <span className={`font-medium ${
-                            (process.memory_percent || 0) >= 10 ? "text-red-600" : 
-                            (process.memory_percent || 0) >= 5 ? "text-yellow-600" : "text-green-600"
-                          }`}>
-                            {(process.memory_percent || process.memory_usage || 0).toFixed(1)}%
+                          <span
+                            className={`font-medium ${
+                              (process.memory_percent || 0) >= 10
+                                ? "text-red-600"
+                                : (process.memory_percent || 0) >= 5
+                                  ? "text-yellow-600"
+                                  : "text-green-600"
+                            }`}
+                          >
+                            {(
+                              process.memory_percent ||
+                              process.memory_usage ||
+                              0
+                            ).toFixed(1)}
+                            %
                           </span>
                         </div>
                         <div>
                           <span className="text-neutral-600">User: </span>
-                          <span className="font-medium text-xs">{process.username || process.user || 'N/A'}</span>
+                          <span className="font-medium text-xs">
+                            {process.username || process.user || "N/A"}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -759,13 +1100,22 @@ export function AgentTabs({ agent }: AgentTabsProps) {
               {Array.isArray(softwareInfo) && softwareInfo.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {softwareInfo.map((software, index) => (
-                    <div key={index} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-3">
+                    <div
+                      key={index}
+                      className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-3"
+                    >
                       <div className="text-sm">
                         <div className="font-medium text-neutral-900 dark:text-neutral-100 mb-1">
-                          {software.name || software.software_name || software.display_name || 'Unknown'}
+                          {software.name ||
+                            software.software_name ||
+                            software.display_name ||
+                            "Unknown"}
                         </div>
                         <div className="text-neutral-600">
-                          Version: {software.version || software.display_version || 'Unknown'}
+                          Version:{" "}
+                          {software.version ||
+                            software.display_version ||
+                            "Unknown"}
                         </div>
                         {software.vendor && (
                           <div className="text-neutral-500 text-xs">
