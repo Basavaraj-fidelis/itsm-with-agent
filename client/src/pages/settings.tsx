@@ -31,6 +31,19 @@ export default function Settings() {
     passwordPolicy: "strong",
   });
 
+  // Load settings from localStorage on component mount
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('itsm-settings');
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings);
+        setSettings(prev => ({ ...prev, ...parsed }));
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      }
+    }
+  }, []);
+
   const [activeTab, setActiveTab] = useState("general");
   const [copiedStep, setCopiedStep] = useState<number | null>(null);
   const { toast } = useToast();
@@ -234,21 +247,36 @@ The agent should appear in your ITSM dashboard within a few minutes.
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="cpu-threshold">CPU Alert Threshold (%)</Label>
-                  <Input id="cpu-threshold" type="number" defaultValue="90" />
+                  <Input 
+                    id="cpu-threshold" 
+                    type="number" 
+                    value={settings.cpuThreshold}
+                    onChange={(e) => updateSetting('cpuThreshold', parseInt(e.target.value))}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="memory-threshold">Memory Alert Threshold (%)</Label>
-                  <Input id="memory-threshold" type="number" defaultValue="85" />
+                  <Input 
+                    id="memory-threshold" 
+                    type="number" 
+                    value={settings.memoryThreshold}
+                    onChange={(e) => updateSetting('memoryThreshold', parseInt(e.target.value))}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="disk-threshold">Disk Alert Threshold (%)</Label>
-                  <Input id="disk-threshold" type="number" defaultValue="80" />
+                  <Input 
+                    id="disk-threshold" 
+                    type="number" 
+                    value={settings.diskThreshold}
+                    onChange={(e) => updateSetting('diskThreshold', parseInt(e.target.value))}
+                  />
                 </div>
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="collection-interval">Data Collection Interval (seconds)</Label>
-                <Select defaultValue="300">
+                <Select value={settings.collectionInterval} onValueChange={(value) => updateSetting('collectionInterval', value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -267,7 +295,10 @@ The agent should appear in your ITSM dashboard within a few minutes.
                     <Label>Enable Performance Monitoring</Label>
                     <p className="text-sm text-neutral-600">Monitor CPU, memory, and disk usage</p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch 
+                    checked={settings.performanceMonitoring}
+                    onCheckedChange={(checked) => updateSetting('performanceMonitoring', checked)}
+                  />
                 </div>
                 
                 <div className="flex items-center justify-between">
@@ -275,7 +306,10 @@ The agent should appear in your ITSM dashboard within a few minutes.
                     <Label>Network Monitoring</Label>
                     <p className="text-sm text-neutral-600">Monitor network traffic and connectivity</p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch 
+                    checked={settings.networkMonitoring}
+                    onCheckedChange={(checked) => updateSetting('networkMonitoring', checked)}
+                  />
                 </div>
               </div>
             </CardContent>
@@ -297,7 +331,10 @@ The agent should appear in your ITSM dashboard within a few minutes.
                     <Label>Email Notifications</Label>
                     <p className="text-sm text-neutral-600">Receive alerts via email</p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch 
+                    checked={settings.emailNotifications}
+                    onCheckedChange={(checked) => updateSetting('emailNotifications', checked)}
+                  />
                 </div>
                 
                 <div className="flex items-center justify-between">
@@ -305,7 +342,10 @@ The agent should appear in your ITSM dashboard within a few minutes.
                     <Label>Critical Alert Notifications</Label>
                     <p className="text-sm text-neutral-600">Immediate notifications for critical issues</p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch 
+                    checked={settings.criticalAlerts}
+                    onCheckedChange={(checked) => updateSetting('criticalAlerts', checked)}
+                  />
                 </div>
                 
                 <div className="flex items-center justify-between">
@@ -313,13 +353,21 @@ The agent should appear in your ITSM dashboard within a few minutes.
                     <Label>Weekly Summary Reports</Label>
                     <p className="text-sm text-neutral-600">Receive weekly performance summaries</p>
                   </div>
-                  <Switch />
+                  <Switch 
+                    checked={settings.weeklyReports}
+                    onCheckedChange={(checked) => updateSetting('weeklyReports', checked)}
+                  />
                 </div>
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="admin-email">Administrator Email</Label>
-                <Input id="admin-email" type="email" defaultValue="admin@company.com" />
+                <Input 
+                  id="admin-email" 
+                  type="email" 
+                  value={settings.adminEmail}
+                  onChange={(e) => updateSetting('adminEmail', e.target.value)}
+                />
               </div>
             </CardContent>
           </Card>
@@ -340,7 +388,10 @@ The agent should appear in your ITSM dashboard within a few minutes.
                     <Label>Two-Factor Authentication</Label>
                     <p className="text-sm text-neutral-600">Enable 2FA for enhanced security</p>
                   </div>
-                  <Switch />
+                  <Switch 
+                    checked={settings.twoFactor}
+                    onCheckedChange={(checked) => updateSetting('twoFactor', checked)}
+                  />
                 </div>
                 
                 <div className="flex items-center justify-between">
@@ -348,14 +399,17 @@ The agent should appear in your ITSM dashboard within a few minutes.
                     <Label>Session Timeout</Label>
                     <p className="text-sm text-neutral-600">Automatically log out inactive users</p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch 
+                    checked={settings.sessionTimeout}
+                    onCheckedChange={(checked) => updateSetting('sessionTimeout', checked)}
+                  />
                 </div>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="session-duration">Session Duration (hours)</Label>
-                  <Select defaultValue="8">
+                  <Select value={settings.sessionDuration} onValueChange={(value) => updateSetting('sessionDuration', value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -369,14 +423,14 @@ The agent should appear in your ITSM dashboard within a few minutes.
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password-policy">Password Policy</Label>
-                  <Select defaultValue="strong">
+                  <Select value={settings.passwordPolicy} onValueChange={(value) => updateSetting('passwordPolicy', value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="basic">Basic</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="strong">Strong</SelectItem>
+                      <SelectItem value="basic">Basic (8+ characters)</SelectItem>
+                      <SelectItem value="medium">Medium (8+ chars, mixed case)</SelectItem>
+                      <SelectItem value="strong">Strong (12+ chars, mixed case, numbers, symbols)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

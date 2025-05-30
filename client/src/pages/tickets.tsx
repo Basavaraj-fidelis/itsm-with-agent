@@ -131,17 +131,24 @@ export default function Tickets() {
     category: ""
   });
 
-  const [tickets, setTickets] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [tickets, setTickets] = useState(mockTickets);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchTickets = async () => {
       setLoading(true);
       try {
         const response = await api.get("/tickets");
-        setTickets(response.data);
+        if (response.data && response.data.length > 0) {
+          setTickets(response.data);
+        } else {
+          // Use mock data if no real tickets exist
+          setTickets(mockTickets);
+        }
       } catch (error) {
         console.error("Failed to fetch tickets:", error);
+        // Use mock data on error
+        setTickets(mockTickets);
       } finally {
         setLoading(false);
       }

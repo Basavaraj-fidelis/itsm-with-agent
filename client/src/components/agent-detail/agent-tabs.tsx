@@ -1,6 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { formatDistanceToNow } from "date-fns";
 import type { Device } from "@shared/schema";
@@ -23,6 +24,8 @@ import {
   AlertTriangle,
   CheckCircle,
   XCircle,
+  Settings,
+  Terminal,
 } from "lucide-react";
 
 interface AgentTabsProps {
@@ -533,6 +536,156 @@ export function AgentTabs({ agent }: AgentTabsProps) {
             </CardContent>
           </Card>
         </div>
+        {/* Realtime Data Terminal */}
+        <Card className="col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Terminal className="w-5 h-5" />
+              <span>Realtime System Data</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.location.reload()}
+                className="ml-auto"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm h-96 overflow-y-auto">
+              <div className="space-y-1">
+                <div className="text-green-300"># ITSM Agent - {agent.hostname} - Live System Data</div>
+                <div className="text-yellow-400">Last Updated: {latestReport?.collected_at ? new Date(latestReport.collected_at).toLocaleString() : 'N/A'}</div>
+                <div>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
+
+                <div className="mt-4">
+                  <div className="text-blue-400">SYSTEM STATUS:</div>
+                  <div>Status: <span className={agent.status === 'online' ? 'text-green-400' : 'text-red-400'}>{agent.status.toUpperCase()}</span></div>
+                  <div>OS: {latestReport?.os_info?.name || 'Unknown'} {latestReport?.os_info?.version || ''}</div>
+                  <div>Architecture: {latestReport?.os_info?.architecture || 'Unknown'}</div>
+                  <div>Assigned User: {agent.assigned_user || 'Unknown'}</div>
+                </div>
+
+                <div className="mt-4">
+                  <div className="text-blue-400">PERFORMANCE METRICS:</div>
+                  <div>CPU Usage: <span className="text-yellow-400">{latestReport?.cpu_usage ? parseFloat(latestReport.cpu_usage).toFixed(2) : '0.00'}%</span></div>
+                  <div>Memory Usage: <span className="text-yellow-400">{latestReport?.memory_usage ? parseFloat(latestReport.memory_usage).toFixed(2) : '0.00'}%</span></div>
+                  <div>Disk Usage: <span className="text-yellow-400">{latestReport?.disk_usage ? parseFloat(latestReport.disk_usage).toFixed(2) : '0.00'}%</span></div>
+                  <div>Network I/O: <span className="text-yellow-400">{latestReport?.network_io ? (parseInt(latestReport.network_io) / 1024 / 1024).toFixed(2) : '0.00'} MB</span></div>
+                </div>
+
+                <div className="mt-4">
+                  <div className="text-blue-400">SYSTEM HEALTH:</div>
+                  {latestReport?.system_health ? (
+                    <>
+                      <div>Disk Health: <span className="text-green-400">{latestReport.system_health.disk_health?.status || 'Unknown'}</span></div>
+                      <div>Memory Pressure: <span className="text-yellow-400">{latestReport.system_health.memory_pressure?.pressure_level || 'Unknown'}</span></div>
+                      <div>Memory Usage: <span className="text-yellow-400">{latestReport.system_health.memory_pressure?.usage_percent || 0}%</span></div>
+                    </>
+                  ) : (
+                    <div>No health data available</div>
+                  )}
+                </div>
+
+                <div className="mt-4">
+                  <div className="text-blue-400">SECURITY STATUS:</div>
+                  {latestReport?.security ? (
+                    <>
+                      <div>Firewall: <span className="text-green-400">{latestReport.security.firewall_status || 'Unknown'}</span></div>
+                      <div>Antivirus: <span className="text-green-400">{latestReport.security.antivirus_status || 'Unknown'}</span></div>
+                      <div>Last Scan: <span className="text-yellow-400">{latestReport.security.last_scan || 'Unknown'}</span></div>
+                    </>
+                  ) : (
+                    <div>No security data available</div>
+                  )}
+                </div>
+
+                <div className="mt-4">
+                  <div className="text-blue-400">TOP PROCESSES (by CPU):</div>
+                  {latestReport?.processes && latestReport.processes.length > 0 ? (
+                    latestReport.processes
+                      .filter(process => process.cpu_percent > 1)
+                      .sort((a, b) => b.cpu_percent - a.cpu_percent)
+                      .slice(0, 10)
+                      .map((process, index) => (
+                        <div key={index}>
+                          PID {process.pid}: <span className="text-cyan-400">{process.name}</span> - CPU: <span className="text-yellow-400">{process.cpu_percent.toFixed(1)}%</span> RAM: <span className="text-yellow-400">{process.memory_percent.toFixed(1)}%</span>
+                        </div>
+                      ))
+                  ) : (
+                    <div>No process data available</div>
+                  )}
+                </div>
+
+                <div className="mt-4">
+                  <div className="text-blue-400">INSTALLED SOFTWARE (Sample):</div>
+                  {latestReport?.software && latestReport.software.length > 0 ? (
+                    latestReport.software.slice(0, 5).map((software, index) => (
+                      <div key={index}>
+                        <span className="text-cyan-400">{software.name}</span> v{software.version} - <span className="text-gray-400">{software.vendor}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div>No software data available</div>
+                  )}
+                </div>
+
+                <div className="mt-4">
+                  <div className="text-blue-400">NETWORK INFO:</div>
+                  {latestReport?.network_interfaces && latestReport.network_interfaces.length > 0 ? (
+                    latestReport.network_interfaces.slice(0, 3).map((iface, index) => (
+                      <div key={index}>
+                        {iface.name}: <span className="text-green-400">{iface.status}</span> - IP: <span className="text-yellow-400">{iface.ip_address || 'N/A'}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div>No network interface data available</div>
+                  )}
+                </div>
+
+                <div className="mt-4 text-gray-500">
+                  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                </div>
+                <div className="text-green-300">$ Agent monitoring active...</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Agent Processes */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Settings className="w-5 h-5" />
+              <span>Top Processes</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {latestReport?.processes && latestReport.processes.length > 0 ? (
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {latestReport.processes
+                  .filter(process => process.cpu_percent > 1)
+                  .sort((a, b) => b.cpu_percent - a.cpu_percent)
+                  .slice(0, 15)
+                  .map((process, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 bg-neutral-50 dark:bg-neutral-800 rounded">
+                      <div className="flex-1">
+                        <span className="text-sm font-medium">{process.name}</span>
+                        <p className="text-xs text-neutral-600">{process.username}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium">{process.cpu_percent.toFixed(1)}% CPU</p>
+                        <p className="text-xs text-neutral-600">{process.memory_percent.toFixed(1)}% RAM</p>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            ) : (
+              <p className="text-neutral-500">No process data available</p>
+            )}
+          </CardContent>
+        </Card>
       </TabsContent>
 
       <TabsContent value="hardware" className="space-y-6">
@@ -666,7 +819,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                       >
                         <div className="font-medium text-neutral-900 dark:text-neutral-100">
                           {device.description ||
-                            device.name ||
+                            device.name||
                             device.device_name ||
                             `USB Device ${index + 1}`}
                         </div>

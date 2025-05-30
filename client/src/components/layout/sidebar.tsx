@@ -39,7 +39,7 @@ export function Sidebar() {
                 <Link
                   href={item.href}
                   className={cn(
-                    "w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                    "w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-base font-medium transition-colors",
                     isActive
                       ? "bg-blue-600 text-white"
                       : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700"
