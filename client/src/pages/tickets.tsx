@@ -302,65 +302,67 @@ export default function Tickets() {
 
         <TabsContent value={activeTab} className="space-y-4">
           {loading ? (
-                    <div className="text-center py-8">Loading tickets...</div>
-                  ) : tickets.length === 0 ? (
-                    <div className="text-center py-8">No tickets found</div>
-                  ) : (
-                    tickets.map((ticket) => (
-                  <Card 
-                    key={ticket.id} 
-                    className="hover:bg-neutral-50 dark:hover:bg-neutral-800 cursor-pointer transition-colors"
-                    onClick={() => handleViewTicket(ticket)}
-                  >
-                    <CardContent className="pt-6">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start space-x-4 flex-1">
-                          <TypeIcon className="w-5 h-5 text-neutral-600 mt-1" />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <span className="font-mono text-sm text-neutral-600">
-                                {ticket.ticket_number}
-                              </span>
-                              <Badge className={priorityColors[ticket.priority as keyof typeof priorityColors]}>
-                                {ticket.priority}
-                              </Badge>
-                              <Badge className={statusColors[ticket.status as keyof typeof statusColors]}>
-                                {ticket.status.replace('_', ' ')}
-                              </Badge>
+            <div className="text-center py-8">Loading tickets...</div>
+          ) : filteredTickets.length === 0 ? (
+            <div className="text-center py-8">No tickets found</div>
+          ) : (
+            filteredTickets.map((ticket) => {
+              const TypeIcon = typeIcons[ticket.type as keyof typeof typeIcons];
+              return (
+                <Card 
+                  key={ticket.id} 
+                  className="hover:bg-neutral-50 dark:hover:bg-neutral-800 cursor-pointer transition-colors"
+                  onClick={() => handleViewTicket(ticket)}
+                >
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start space-x-4 flex-1">
+                        <TypeIcon className="w-5 h-5 text-neutral-600 mt-1" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <span className="font-mono text-sm text-neutral-600">
+                              {ticket.ticket_number}
+                            </span>
+                            <Badge className={priorityColors[ticket.priority as keyof typeof priorityColors]}>
+                              {ticket.priority}
+                            </Badge>
+                            <Badge className={statusColors[ticket.status as keyof typeof statusColors]}>
+                              {ticket.status.replace('_', ' ')}
+                            </Badge>
+                          </div>
+                          <h3 className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-1">
+                            {ticket.title}
+                          </h3>
+                          <p className="text-sm text-neutral-600 mb-3 line-clamp-2">
+                            {ticket.description}
+                          </p>
+                          <div className="flex items-center space-x-4 text-xs text-neutral-500">
+                            <div className="flex items-center space-x-1">
+                              <User className="w-3 h-3" />
+                              <span>{ticket.requester_email}</span>
                             </div>
-                            <h3 className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-1">
-                              {ticket.title}
-                            </h3>
-                            <p className="text-sm text-neutral-600 mb-3 line-clamp-2">
-                              {ticket.description}
-                            </p>
-                            <div className="flex items-center space-x-4 text-xs text-neutral-500">
-                              <div className="flex items-center space-x-1">
-                                <User className="w-3 h-3" />
-                                <span>{ticket.requester_email}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Clock className="w-3 h-3" />
-                                <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
-                              </div>
-                              {ticket.due_date && (
-                                <div className="flex items-center space-x-1">
-                                  <Calendar className="w-3 h-3" />
-                                  <span>Due: {new Date(ticket.due_date).toLocaleDateString()}</span>
-                                </div>
-                              )}
+                            <div className="flex items-center space-x-1">
+                              <Clock className="w-3 h-3" />
+                              <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
                             </div>
+                            {ticket.due_date && (
+                              <div className="flex items-center space-x-1">
+                                <Calendar className="w-3 h-3" />
+                                <span>Due: {new Date(ticket.due_date).toLocaleDateString()}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
-                        <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
                       </div>
-                    </CardContent>
-                  </Card>
-                    ))
-                  )}
-                  </div>
+                      <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
         </TabsContent>
       </Tabs>
 
