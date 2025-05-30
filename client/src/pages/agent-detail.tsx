@@ -145,6 +145,19 @@ export default function AgentDetail() {
             <Download className="w-4 h-4" />
             <span>Export Data</span>
           </Button>
+          <Button 
+            variant="default" 
+            size="sm" 
+            className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
+            onClick={() => {
+              // Handle remote connection logic here
+              console.log(`Connecting remotely to ${agent.hostname}`);
+              // You can implement RDP, SSH, or other remote connection methods here
+            }}
+          >
+            <Monitor className="w-4 h-4" />
+            <span>Connect Remotely</span>
+          </Button>
         </div>
       </div>
 
