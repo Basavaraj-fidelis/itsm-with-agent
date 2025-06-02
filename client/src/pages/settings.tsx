@@ -67,7 +67,8 @@ export default function Settings() {
   }, [darkMode]);
 
   const handleSaveChanges = () => {
-    // Save settings to localStorage or API
+    // Save all settings to localStorage
+    localStorage.setItem("itsm-settings", JSON.stringify(settings));
     localStorage.setItem(
       "settings",
       JSON.stringify({
