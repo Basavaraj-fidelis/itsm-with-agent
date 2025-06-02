@@ -314,7 +314,7 @@ export default function Login() {
                 <p className="text-sm text-slate-600">
                   Need an account?{" "}
                   <Link 
-                    to="/signup" 
+                    href="/signup" 
                     className="text-blue-600 hover:text-blue-500 font-medium"
                   >
                     Contact Administrator

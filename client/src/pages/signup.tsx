@@ -433,7 +433,7 @@ export default function Signup() {
               <p className="text-sm text-neutral-600 dark:text-neutral-400">
                 Already have an account?{" "}
                 <Link 
-                  to="/login" 
+                  href="/login" 
                   className="text-blue-600 hover:text-blue-500 font-medium"
                 >
                   Sign in
