@@ -1,4 +1,3 @@
-
 import { Link, useParams } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +5,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { MetricCard } from "@/components/agent-detail/metric-card";
 import { AgentTabs } from "@/components/agent-detail/agent-tabs";
 import { useAgent } from "@/hooks/use-agents";
-import { ArrowLeft, RefreshCw, Download, Monitor, Cpu, HardDrive, Network, MemoryStick } from "lucide-react";
+import { ArrowLeft, RefreshCw, Download, Monitor, ChevronDown, Terminal, Eye, Globe } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export default function AgentDetail() {
@@ -86,7 +85,7 @@ export default function AgentDetail() {
               <span>Back to Agents</span>
             </Button>
           </Link>
-          
+
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
               <Monitor className="w-6 h-6 text-blue-600" />
@@ -170,7 +169,7 @@ export default function AgentDetail() {
           progress={cpuUsage}
           color={cpuUsage >= 90 ? "red" : cpuUsage >= 70 ? "yellow" : "green"}
         />
-        
+
         <MetricCard
           title="Memory"
           value={`${Math.round(memoryUsage)}%`}
@@ -178,7 +177,7 @@ export default function AgentDetail() {
           progress={memoryUsage}
           color={memoryUsage >= 90 ? "red" : memoryUsage >= 70 ? "yellow" : "green"}
         />
-        
+
         <MetricCard
           title="Disk Usage"
           value={`${diskUsage}%`}
@@ -186,7 +185,7 @@ export default function AgentDetail() {
           progress={diskUsage}
           color={diskUsage >= 90 ? "red" : diskUsage >= 70 ? "yellow" : "green"}
         />
-        
+
         <MetricCard
           title="Network I/O"
           value={networkIO > 0 ? `${Math.round(networkIO / 1024 / 1024)} MB/s` : "0 MB/s"}
