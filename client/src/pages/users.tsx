@@ -45,7 +45,7 @@ export default function Users() {
   const statuses = ["All Status", "Active", "Inactive"];
 
   const filteredUsers = users.filter((user) => {
-    const matchesSearch = user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = selectedRole === "all" || 
                        user.role.toLowerCase() === selectedRole.toLowerCase();
@@ -187,11 +187,11 @@ export default function Users() {
               <TableCell>
                 <div className="flex items-center space-x-3">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${user.full_name}`} />
-                    <AvatarFallback>{user.full_name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                    <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${user.name}`} />
+                    <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <div className="font-medium">{user.full_name}</div>
+                    <div className="font-medium">{user.name}</div>
                     <div className="text-sm text-muted-foreground">{user.email}</div>
                   </div>
                 </div>

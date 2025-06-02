@@ -69,5 +69,24 @@ export const api = {
   async getAlerts(): Promise<Alert[]> {
     const response = await apiRequest("GET", "/api/alerts");
     return response.json();
-  }
+  },
+  // Auth
+  login: (credentials: { email: string; password: string }) => post("/api/auth/login", credentials),
+  register: (userData: any) => post("/api/auth/register", userData),
+  logout: () => post("/api/auth/logout", {}),
+  getProfile: () => get("/api/auth/profile"),
+
+  // Dashboard
+  getDashboard: () => get("/api/dashboard"),
+
+  // Devices/Agents
+  getDevices2: () => get("/api/devices"),
+  getAgents: () => get("/api/agents"),
+  getAgent: (id: string) => get(`/api/agents/${id}`),
+
+  // Users
+  getUsers: () => get("/api/users"),
+
+  // Alerts
+  getAlerts2: () => get("/api/alerts"),
 };

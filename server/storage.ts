@@ -884,6 +884,24 @@ Contact your manager for approval before submitting requests.`,
     return result.rowCount > 0;
   }
 
+  // Alert Management methods
+  async createAlert(data: any) {
+    const { alerts } = await import("@shared/schema");
+
+    const [alert] = await db
+      .insert(alerts)
+      .values(data)
+      .returning();
+
+    return alert;
+  }
+
+  async getAlerts() {
+    const { alerts } = await import("@shared/schema");
+    
+    return await db.select().from(alerts).orderBy(alerts.created_at);
+  }
+
   // User Management methods
   async getUsers(filters: { search?: string; role?: string } = {}) {
     const { users } = await import("@shared/user-schema");
