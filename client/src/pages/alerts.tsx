@@ -17,8 +17,25 @@ export default function Alerts() {
     return alert.severity === activeFilter;
   }) || [];
 
-  const handleResolveAlert = (alertId: string) => {
-    setResolvedAlerts(prev => [...prev, alertId]);
+  const handleResolveAlert = async (alertId: string) => {
+    try {
+      // Call API to resolve the alert on the server
+      const response = await fetch(`/api/alerts/${alertId}/resolve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        // Only update local state if API call succeeds
+        setResolvedAlerts(prev => [...prev, alertId]);
+      } else {
+        console.error('Failed to resolve alert');
+      }
+    } catch (error) {
+      console.error('Error resolving alert:', error);
+    }
   };
 
   const handleMarkAllAsRead = () => {
@@ -27,8 +44,8 @@ export default function Alerts() {
     }
   };
 
-  const handleViewDetails = (alert: any) => {
-    alert(JSON.stringify(alert, null, 2));
+  const handleViewDetails = (alertData: any) => {
+    window.alert(JSON.stringify(alertData, null, 2));
   };
 
   if (isLoading) {

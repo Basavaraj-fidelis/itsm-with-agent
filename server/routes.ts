@@ -25,19 +25,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const devicesWithReports = await Promise.all(
         devices.map(async (device) => {
           const latestReport = await storage.getLatestDeviceReport(device.id);
-          
+
           // Check if device should be marked offline (no activity for 5 minutes)
           const now = new Date();
           const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
           const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
-          
+
           let currentStatus = device.status;
           if (lastSeen && lastSeen < fiveMinutesAgo && device.status === "online") {
             // Mark device as offline but don't delete data
             await storage.updateDevice(device.id, { status: "offline" });
             currentStatus = "offline";
           }
-          
+
           return {
             ...device,
             status: currentStatus,
@@ -63,12 +63,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/devices/:id", async (req, res) => {
     try {
       let device = await storage.getDevice(req.params.id);
-      
+
       // If not found by ID, try by hostname
       if (!device) {
         device = await storage.getDeviceByHostname(req.params.id);
       }
-      
+
       if (!device) {
         return res.status(404).json({ message: "Device not found" });
       }
@@ -458,25 +458,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get active alerts
   app.get("/api/alerts", async (req, res) => {
     try {
       const alerts = await storage.getActiveAlerts();
 
-      // Enhance alerts with device information
-      const alertsWithDevices = await Promise.all(
+      // Join with devices to get hostnames
+      const alertsWithHostnames = await Promise.all(
         alerts.map(async (alert) => {
-          const device = await storage.getDevice(alert.device_id);
+          const device = await storage.getDeviceById(alert.device_id);
           return {
             ...alert,
-            device_hostname: device?.hostname || "Unknown"
+            device_hostname: device?.hostname || "Unknown Device"
           };
         })
       );
 
-      res.json(alertsWithDevices);
+      res.json(alertsWithHostnames);
     } catch (error) {
       console.error("Error fetching alerts:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/alerts/:id/resolve", async (req, res) => {
+    try {
+      const alertId = req.params.id;
+      await storage.resolveAlert(alertId);
+      res.json({ message: "Alert resolved successfully" });
+    } catch (error) {
+      console.error("Error resolving alert:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
