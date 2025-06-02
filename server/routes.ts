@@ -431,21 +431,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await checkAndManageAlert("disk", disk_usage, { critical: 95, high: 85, warning: 75 }, "storage");
       }
 
-      // USB device detection (from raw data)
+      // USB device detection (from raw data) - manage alerts to prevent duplicates
       const usbDevices = data.usb_devices || data.hardware?.usb_devices || [];
+      
+      // Check for existing USB alert
+      const existingUsbAlert = await storage.getActiveAlertByDeviceAndMetric(device.id, "usb");
+      
       if (usbDevices && Array.isArray(usbDevices) && usbDevices.length > 0) {
-        await storage.createAlert({
-          device_id: device.id,
-          category: "security",
-          severity: "info",
-          message: `USB device(s) detected - ${usbDevices.length} device(s) connected`,
-          metadata: { 
-            usb_count: usbDevices.length, 
-            devices: usbDevices.slice(0, 3), // First 3 devices for reference
-            metric: "usb"
-          },
-          is_active: true
-        });
+        const message = `USB device(s) detected - ${usbDevices.length} device(s) connected`;
+        
+        if (existingUsbAlert) {
+          // Update existing USB alert
+          await storage.updateAlert(existingUsbAlert.id, {
+            severity: "info",
+            message: message,
+            metadata: { 
+              usb_count: usbDevices.length, 
+              devices: usbDevices.slice(0, 3), // First 3 devices for reference
+              metric: "usb",
+              last_updated: new Date().toISOString()
+            }
+          });
+        } else {
+          // Create new USB alert
+          await storage.createAlert({
+            device_id: device.id,
+            category: "security",
+            severity: "info",
+            message: message,
+            metadata: { 
+              usb_count: usbDevices.length, 
+              devices: usbDevices.slice(0, 3), // First 3 devices for reference
+              metric: "usb"
+            },
+            is_active: true
+          });
+        }
+      } else {
+        // No USB devices detected, resolve existing alert if any
+        if (existingUsbAlert) {
+          await storage.resolveAlert(existingUsbAlert.id);
+        }
       }
 
       res.json({ message: "Report saved successfully" });
