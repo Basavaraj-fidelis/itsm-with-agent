@@ -48,7 +48,7 @@ export function MetricCard({
                 "Total Agents",
                 "Online Agents",
                 "Offline Agents",
-                "Critical Alerts",
+                "Alerts",
               ].includes(title)
                 ? value
                 : typeof value === "string"
