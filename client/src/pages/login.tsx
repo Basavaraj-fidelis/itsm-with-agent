@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,12 +47,12 @@ export default function Login() {
         const data = await response.json();
         localStorage.setItem("auth_token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
-        
+
         toast({
           title: "Login successful",
           description: `Welcome back, ${data.user.name}`
         });
-        
+
         // Redirect based on role
         if (data.user.role === "admin") {
           window.location.href = "/dashboard";
@@ -118,7 +117,7 @@ export default function Login() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background Effects */}
       <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%2523ffffff%22%20fill-opacity%3D%220.05%22%3E%3Ccircle%20cx%3D%227%22%20cy%3D%227%22%20r%3D%227%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20"></div>
-      
+
       <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center relative z-10">
         {/* Left Side - Branding */}
         <div className="hidden lg:block text-white space-y-8">
@@ -132,7 +131,7 @@ export default function Login() {
                 <p className="text-blue-200">Enterprise IT Service Management</p>
               </div>
             </div>
-            
+
             <div className="space-y-4">
               <h2 className="text-2xl font-semibold text-blue-100">
                 Streamline Your IT Operations

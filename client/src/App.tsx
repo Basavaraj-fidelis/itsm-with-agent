@@ -1,8 +1,8 @@
-
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { ProtectedRoute } from "@/components/auth/protected-route";
+import { useEffect, useState } from "react";
 
 // Import pages
 import Login from "@/pages/login";
@@ -47,6 +47,29 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // Check for authentication token on app load
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+
+    if (token && user) {
+      setIsAuthenticated(true);
+    } else {
+      setIsAuthenticated(false);
+    }
+  }, []);
+
+  // Show loading while checking authentication
+  if (isAuthenticated === null) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
@@ -54,7 +77,7 @@ export default function App() {
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          
+
           {/* Protected routes */}
           <Route
             path="/dashboard"
@@ -146,9 +169,9 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          
+
           {/* Default redirects */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
