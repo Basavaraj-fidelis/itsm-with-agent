@@ -47,6 +47,14 @@ const requireRole = (roles: string | string[]) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize demo users on startup
+  try {
+    await storage.initializeDemoUsers();
+    console.log("Demo users initialized successfully");
+  } catch (error) {
+    console.log("Error initializing demo users:", error);
+  }
+
   // Authentication routes
   app.post("/api/auth/login", async (req, res) => {
     try {
@@ -60,7 +68,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const users = await storage.getUsers({ search: email });
       const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
 
+      console.log(`Login attempt for: ${email}`);
+      console.log(`Found ${users.length} users in search`);
+      console.log(`User found:`, user ? `Yes (${user.email})` : 'No');
+
       if (!user) {
+        console.log(`User not found for email: ${email}`);
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
@@ -69,28 +82,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Account is suspended" });
       }
 
-      // For demo purposes, check simple passwords first
+      // Check password - try bcrypt comparison first
       let isValidPassword = false;
       
-      // Demo account credentials
-      if (email === "admin@company.com" && password === "admin123") {
-        isValidPassword = true;
-      } else if (email === "tech@company.com" && password === "tech123") {
-        isValidPassword = true;
-      } else if (email === "manager@company.com" && password === "demo123") {
-        isValidPassword = true;
-      } else if (email === "user@company.com" && password === "demo123") {
-        isValidPassword = true;
-      } else {
-        // For production users with bcrypt hashed passwords
-        try {
-          if (user.password_hash) {
-            isValidPassword = await bcrypt.compare(password, user.password_hash);
+      try {
+        if (user.password_hash) {
+          // First try bcrypt comparison (for properly hashed passwords)
+          isValidPassword = await bcrypt.compare(password, user.password_hash);
+          
+          // If bcrypt fails, check if it's a demo account with simple password
+          if (!isValidPassword) {
+            const demoCredentials = {
+              "admin@company.com": "admin123",
+              "tech@company.com": "tech123", 
+              "manager@company.com": "demo123",
+              "user@company.com": "demo123"
+            };
+            
+            if (demoCredentials[email] === password) {
+              isValidPassword = true;
+              // Update user with properly hashed password for next time
+              const hashedPassword = await bcrypt.hash(password, 10);
+              await storage.updateUser(user.id, { password_hash: hashedPassword });
+              console.log(`Updated demo user ${email} with hashed password`);
+            }
           }
-        } catch (error) {
-          console.error("Password comparison error:", error);
-          isValidPassword = false;
         }
+      } catch (error) {
+        console.error("Password verification error:", error);
+        isValidPassword = false;
       }
 
       if (!isValidPassword) {

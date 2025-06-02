@@ -230,7 +230,7 @@ export class MemStorage implements IStorage {
   async getUserById(id: string): Promise<any | null> {
     const user = this.users.get(id);
     if (!user) return null;
-    
+
     const { password_hash, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
@@ -244,7 +244,7 @@ export class MemStorage implements IStorage {
       updated_at: new Date()
     };
     this.users.set(id, newUser);
-    
+
     const { password_hash, ...userWithoutPassword } = newUser;
     return userWithoutPassword;
   }
@@ -259,7 +259,7 @@ export class MemStorage implements IStorage {
       updated_at: new Date()
     };
     this.users.set(id, updated);
-    
+
     const { password_hash, ...userWithoutPassword } = updated;
     return userWithoutPassword;
   }
@@ -443,6 +443,68 @@ export class MemStorage implements IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // Initialize demo users if they don't exist
+  async initializeDemoUsers() {
+    const { users } = await import("@shared/user-schema");
+    const demoUsers = [
+      {
+        email: "admin@company.com",
+        name: "System Administrator",
+        password_hash: "admin123", // Will be hashed properly
+        role: "admin",
+        department: "IT",
+        phone: "+1-555-0100",
+        is_active: true
+      },
+      {
+        email: "tech@company.com", 
+        name: "Technical Support",
+        password_hash: "tech123",
+        role: "technician",
+        department: "IT Support",
+        phone: "+1-555-0101",
+        is_active: true
+      },
+      {
+        email: "manager@company.com",
+        name: "IT Manager", 
+        password_hash: "demo123",
+        role: "manager",
+        department: "IT Management",
+        phone: "+1-555-0102",
+        is_active: true
+      },
+      {
+        email: "user@company.com",
+        name: "End User",
+        password_hash: "demo123", 
+        role: "user",
+        department: "General",
+        phone: "+1-555-0103",
+        is_active: true
+      }
+    ];
+
+    for (const user of demoUsers) {
+      try {
+        // Check if user already exists
+        const existingUsers = await this.getUsers({ search: user.email });
+        if (existingUsers.length === 0) {
+          // Hash password properly for production users
+          const bcrypt = await import('bcrypt');
+          const hashedPassword = await bcrypt.hash(user.password_hash, 10);
+
+          await db.insert(users).values({
+            ...user,
+            password_hash: hashedPassword
+          });
+          console.log(`Created demo user: ${user.email}`);
+        }
+      } catch (error) {
+        console.log(`Demo user ${user.email} might already exist or error occurred:`, error.message);
+      }
+    }
+  }
   async getDevices(): Promise<Device[]> {
     const allDevices = await db.select().from(devices);
     return allDevices;
@@ -790,6 +852,19 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id));
 
     return result.rowCount > 0;
+  }
+  // Dashboard summary
+  async getDashboardSummary() {
+    const { devices, alerts } = await import("@shared/schema");
+    const { eq } = await import("drizzle-orm");
+
+    const allDevices = await db.select().from(devices);
+    const activeAlerts = await db.select().from(alerts).where(eq(alerts.is_active, true));
+
+    return {
+      total_devices: allDevices.length,
+      active_alerts: activeAlerts.length
+    };
   }
 }
 
