@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { AlertTriangle, CheckCircle, Clock, RefreshCw, Eye, Monitor, Cpu, MemoryStick, HardDrive, Usb, Shield } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useAlerts } from "@/hooks/use-dashboard";
