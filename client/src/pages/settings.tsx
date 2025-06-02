@@ -5,24 +5,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Settings as SettingsIcon, 
-  Shield, 
-  Bell, 
-  FileText, 
-  Clock, 
-  Users, 
+import {
+  Settings as SettingsIcon,
+  Shield,
+  Bell,
+  FileText,
+  Clock,
+  Users,
   Monitor,
   Plus,
   Trash2,
   Save,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
 } from "lucide-react";
 import {
   Download,
@@ -111,7 +117,7 @@ export default function Settings() {
     preventReuse: 5,
     accountLockout: true,
     maxLoginAttempts: 5,
-    lockoutDuration: 30
+    lockoutDuration: 30,
   });
 
   const [hasChanges, setHasChanges] = useState(false);
@@ -152,7 +158,7 @@ export default function Settings() {
   }, []);
 
   const updateSetting = (key: string, value: any) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+    setSettings((prev) => ({ ...prev, [key]: value }));
     setHasChanges(true);
   };
 
@@ -176,19 +182,39 @@ export default function Settings() {
   };
 
   const getPasswordStrengthIndicator = () => {
-    const { passwordPolicy, minPasswordLength, requireUppercase, requireLowercase, requireNumbers, requireSpecialChars } = settings;
+    const {
+      passwordPolicy,
+      minPasswordLength,
+      requireUppercase,
+      requireLowercase,
+      requireNumbers,
+      requireSpecialChars,
+    } = settings;
 
     let strength = 0;
     let requirements = [];
 
     if (minPasswordLength >= 8) strength++;
-    if (requireUppercase) { strength++; requirements.push("uppercase"); }
-    if (requireLowercase) { strength++; requirements.push("lowercase"); }
-    if (requireNumbers) { strength++; requirements.push("numbers"); }
-    if (requireSpecialChars) { strength++; requirements.push("special characters"); }
+    if (requireUppercase) {
+      strength++;
+      requirements.push("uppercase");
+    }
+    if (requireLowercase) {
+      strength++;
+      requirements.push("lowercase");
+    }
+    if (requireNumbers) {
+      strength++;
+      requirements.push("numbers");
+    }
+    if (requireSpecialChars) {
+      strength++;
+      requirements.push("special characters");
+    }
 
     if (strength >= 4) return { level: "Strong", color: "green", requirements };
-    if (strength >= 2) return { level: "Medium", color: "orange", requirements };
+    if (strength >= 2)
+      return { level: "Medium", color: "orange", requirements };
     return { level: "Weak", color: "red", requirements };
   };
 
@@ -264,7 +290,7 @@ if __name__ == '__main__':
 1. pip install psutil requests configparser pywin32
 2. Edit config.ini with your settings
 3. python install_windows.py install
-4. python install_windows.py start`
+4. python install_windows.py start`,
       },
       linux: {
         "config.ini": baseConfig,
@@ -343,7 +369,7 @@ pip3 install psutil requests configparser
 # Configure and start
 sudo systemctl enable itsm-agent
 sudo systemctl start itsm-agent
-\`\`\``
+\`\`\``,
       },
       macos: {
         "config.ini": baseConfig,
@@ -425,8 +451,8 @@ pip3 install psutil requests configparser
 
 # Load service
 sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
-\`\`\``
-      }
+\`\`\``,
+      },
     };
 
     const selectedFiles = agentFiles[platform];
@@ -512,7 +538,9 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                       <SelectItem value="est">Eastern Time</SelectItem>
                       <SelectItem value="pst">Pacific Time</SelectItem>
                       <SelectItem value="cet">Central European Time</SelectItem>
-                      <SelectItem value="ist">Indian Standard Time (IST)</SelectItem>
+                      <SelectItem value="ist">
+                        Indian Standard Time (IST)
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -762,10 +790,14 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                 <h4 className="text-lg font-medium">Notification Types</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-3">
-                    <h5 className="text-sm font-medium text-neutral-700">System Alerts</h5>
+                    <h5 className="text-sm font-medium text-neutral-700">
+                      System Alerts
+                    </h5>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <Label className="text-sm">Critical System Alerts</Label>
+                        <Label className="text-sm">
+                          Critical System Alerts
+                        </Label>
                         <Switch defaultChecked />
                       </div>
                       <div className="flex items-center justify-between">
@@ -784,14 +816,18 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                   </div>
 
                   <div className="space-y-3">
-                    <h5 className="text-sm font-medium text-neutral-700">Agent & System</h5>
+                    <h5 className="text-sm font-medium text-neutral-700">
+                      Agent & System
+                    </h5>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <Label className="text-sm">Agent Status Changes</Label>
                         <Switch defaultChecked />
                       </div>
                       <div className="flex items-center justify-between">
-                        <Label className="text-sm">New Agent Registrations</Label>
+                        <Label className="text-sm">
+                          New Agent Registrations
+                        </Label>
                         <Switch defaultChecked />
                       </div>
                       <div className="flex items-center justify-between">
@@ -806,7 +842,9 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                   </div>
 
                   <div className="space-y-3">
-                    <h5 className="text-sm font-medium text-neutral-700">Tickets & SLA</h5>
+                    <h5 className="text-sm font-medium text-neutral-700">
+                      Tickets & SLA
+                    </h5>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <Label className="text-sm">New Ticket Created</Label>
@@ -828,14 +866,18 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                   </div>
 
                   <div className="space-y-3">
-                    <h5 className="text-sm font-medium text-neutral-700">Reports & Summaries</h5>
+                    <h5 className="text-sm font-medium text-neutral-700">
+                      Reports & Summaries
+                    </h5>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <Label className="text-sm">Daily Summary Reports</Label>
                         <Switch />
                       </div>
                       <div className="flex items-center justify-between">
-                        <Label className="text-sm">Weekly Performance Reports</Label>
+                        <Label className="text-sm">
+                          Weekly Performance Reports
+                        </Label>
                         <Switch />
                       </div>
                       <div className="flex items-center justify-between">
@@ -843,7 +885,9 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                         <Switch />
                       </div>
                       <div className="flex items-center justify-between">
-                        <Label className="text-sm">Maintenance Notifications</Label>
+                        <Label className="text-sm">
+                          Maintenance Notifications
+                        </Label>
                         <Switch defaultChecked />
                       </div>
                     </div>
@@ -885,15 +929,21 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                         <SelectItem value="utc">UTC</SelectItem>
                         <SelectItem value="est">Eastern Time</SelectItem>
                         <SelectItem value="pst">Pacific Time</SelectItem>
-                        <SelectItem value="cet">Central European Time</SelectItem>
-                        <SelectItem value="ist">Indian Standard Time (IST)</SelectItem>
+                        <SelectItem value="cet">
+                          Central European Time
+                        </SelectItem>
+                        <SelectItem value="ist">
+                          Indian Standard Time (IST)
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Switch />
-                  <Label>Respect quiet hours for non-critical notifications</Label>
+                  <Label>
+                    Respect quiet hours for non-critical notifications
+                  </Label>
                 </div>
               </div>
 
@@ -980,7 +1030,9 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
 
               {/* Integration Settings */}
               <div className="space-y-4">
-                <h4 className="text-lg font-medium">Third-Party Integrations</h4>
+                <h4 className="text-lg font-medium">
+                  Third-Party Integrations
+                </h4>
                 <div className="space-y-4">
                   <div className="border rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
@@ -1008,8 +1060,7 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                       </div>
                       <Switch />
                     </div>
-                    <div className```text
-="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <Input placeholder="Webhook URL" />
                       <Input placeholder="Team Name" />
                     </div>
@@ -1127,12 +1178,17 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                         max="10"
                         value={settings.maxLoginAttempts}
                         onChange={(e) =>
-                          updateSetting("maxLoginAttempts", parseInt(e.target.value))
+                          updateSetting(
+                            "maxLoginAttempts",
+                            parseInt(e.target.value),
+                          )
                         }
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="lockout-duration">Lockout Duration (minutes)</Label>
+                      <Label htmlFor="lockout-duration">
+                        Lockout Duration (minutes)
+                      </Label>
                       <Input
                         id="lockout-duration"
                         type="number"
@@ -1140,7 +1196,10 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                         max="60"
                         value={settings.lockoutDuration}
                         onChange={(e) =>
-                          updateSetting("lockoutDuration", parseInt(e.target.value))
+                          updateSetting(
+                            "lockoutDuration",
+                            parseInt(e.target.value),
+                          )
                         }
                       />
                     </div>
@@ -1162,12 +1221,12 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                   {(() => {
                     const strength = getPasswordStrengthIndicator();
                     return (
-                      <Badge 
+                      <Badge
                         variant="outline"
                         className={`
-                          ${strength.color === 'green' ? 'border-green-500 text-green-700' : ''}
-                          ${strength.color === 'orange' ? 'border-orange-500 text-orange-700' : ''}
-                          ${strength.color === 'red' ? 'border-red-500 text-red-700' : ''}
+                          ${strength.color === "green" ? "border-green-500 text-green-700" : ""}
+                          ${strength.color === "orange" ? "border-orange-500 text-orange-700" : ""}
+                          ${strength.color === "red" ? "border-red-500 text-red-700" : ""}
                         `}
                       >
                         {strength.level}
@@ -1188,13 +1247,18 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                     max="32"
                     value={settings.minPasswordLength}
                     onChange={(e) =>
-                      updateSetting("minPasswordLength", parseInt(e.target.value))
+                      updateSetting(
+                        "minPasswordLength",
+                        parseInt(e.target.value),
+                      )
                     }
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password-expiry">Password Expiry (days)</Label>
+                  <Label htmlFor="password-expiry">
+                    Password Expiry (days)
+                  </Label>
                   <Input
                     id="password-expiry"
                     type="number"
@@ -1212,7 +1276,9 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                 <Label>Password Requirements</Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="require-uppercase">Require Uppercase Letters</Label>
+                    <Label htmlFor="require-uppercase">
+                      Require Uppercase Letters
+                    </Label>
                     <Switch
                       id="require-uppercase"
                       checked={settings.requireUppercase}
@@ -1223,7 +1289,9 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="require-lowercase">Require Lowercase Letters</Label>
+                    <Label htmlFor="require-lowercase">
+                      Require Lowercase Letters
+                    </Label>
                     <Switch
                       id="require-lowercase"
                       checked={settings.requireLowercase}
@@ -1245,7 +1313,9 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="require-special">Require Special Characters</Label>
+                    <Label htmlFor="require-special">
+                      Require Special Characters
+                    </Label>
                     <Switch
                       id="require-special"
                       checked={settings.requireSpecialChars}
@@ -1258,7 +1328,9 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="prevent-reuse">Prevent Password Reuse (last N passwords)</Label>
+                <Label htmlFor="prevent-reuse">
+                  Prevent Password Reuse (last N passwords)
+                </Label>
                 <Input
                   id="prevent-reuse"
                   type="number"
@@ -1275,15 +1347,21 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                 const strength = getPasswordStrengthIndicator();
                 return (
                   <div className="p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
-                    <h4 className="font-medium mb-2">Current Policy Requirements:</h4>
+                    <h4 className="font-medium mb-2">
+                      Current Policy Requirements:
+                    </h4>
                     <ul className="text-sm space-y-1 text-neutral-600">
                       <li>• Minimum {settings.minPasswordLength} characters</li>
                       {strength.requirements.map((req, index) => (
                         <li key={index}>• Contains {req}</li>
                       ))}
-                      <li>• Password expires after {settings.passwordExpiry} days</li>
+                      <li>
+                        • Password expires after {settings.passwordExpiry} days
+                      </li>
                       {settings.preventReuse > 0 && (
-                        <li>• Cannot reuse last {settings.preventReuse} passwords</li>
+                        <li>
+                          • Cannot reuse last {settings.preventReuse} passwords
+                        </li>
                       )}
                     </ul>
                   </div>
@@ -1508,12 +1586,17 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                   <div className="space-y-4">
                     <div className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium">Step 1: Install Python Dependencies</h5>
+                        <h5 className="font-medium">
+                          Step 1: Install Python Dependencies
+                        </h5>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() =>
-                            copyToClipboard("pip install psutil requests configparser pywin32", 1)
+                            copyToClipboard(
+                              "pip install psutil requests configparser pywin32",
+                              1,
+                            )
                           }
                         >
                           {copiedStep === 1 ? (
@@ -1532,12 +1615,14 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                     </div>
 
                     <div className="border rounded-lg p-4">
-                      <h5 className="font-medium mb-2">Step 2: Configure Agent</h5>
+                      <h5 className="font-medium mb-2">
+                        Step 2: Configure Agent
+                      </h5>
                       <p className="text-sm text-neutral-600 mb-2">
                         Edit config.ini with your settings:
                       </p>
                       <code className="block bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-sm whitespace-pre">
-{`[agent]
+                        {`[agent]
 collection_interval = 120
 log_level = INFO
 
@@ -1552,11 +1637,15 @@ verify_ssl = true`}
 
                     <div className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium">Step 3: Install Windows Service</h5>
+                        <h5 className="font-medium">
+                          Step 3: Install Windows Service
+                        </h5>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => copyToClipboard("python install_windows.py", 3)}
+                          onClick={() =>
+                            copyToClipboard("python install_windows.py", 3)
+                          }
                         >
                           {copiedStep === 3 ? (
                             <CheckCircle className="w-4 h-4 text-green-600" />
@@ -1572,11 +1661,15 @@ verify_ssl = true`}
 
                     <div className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium">Step 4: Verify Installation</h5>
+                        <h5 className="font-medium">
+                          Step 4: Verify Installation
+                        </h5>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => copyToClipboard("sc query \"ITSM Endpoint Agent\"", 4)}
+                          onClick={() =>
+                            copyToClipboard('sc query "ITSM Endpoint Agent"', 4)
+                          }
                         >
                           {copiedStep === 4 ? (
                             <CheckCircle className="w-4 h-4 text-green-600" />
@@ -1607,12 +1700,17 @@ verify_ssl = true`}
                   <div className="space-y-4">
                     <div className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium">Step 1: Install Dependencies</h5>
+                        <h5 className="font-medium">
+                          Step 1: Install Dependencies
+                        </h5>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() =>
-                            copyToClipboard("sudo apt update && sudo apt install python3 python3-pip", 11)
+                            copyToClipboard(
+                              "sudo apt update && sudo apt install python3 python3-pip",
+                              11,
+                            )
                           }
                         >
                           {copiedStep === 11 ? (
@@ -1622,11 +1720,15 @@ verify_ssl = true`}
                           )}
                         </Button>
                       </div>
-                      <p className="text-sm text-neutral-600 mb-2">For Ubuntu/Debian:</p>
+                      <p className="text-sm text-neutral-600 mb-2">
+                        For Ubuntu/Debian:
+                      </p>
                       <code className="block bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-sm">
                         sudo apt update && sudo apt install python3 python3-pip
                       </code>
-                      <p className="text-sm text-neutral-600 mt-2 mb-2">For CentOS/RHEL:</p>
+                      <p className="text-sm text-neutral-600 mt-2 mb-2">
+                        For CentOS/RHEL:
+                      </p>
                       <code className="block bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-sm">
                         sudo yum install python3 python3-pip
                       </code>
@@ -1634,11 +1736,18 @@ verify_ssl = true`}
 
                     <div className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium">Step 2: Install Python Packages</h5>
+                        <h5 className="font-medium">
+                          Step 2: Install Python Packages
+                        </h5>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => copyToClipboard("pip3 install psutil requests configparser", 12)}
+                          onClick={() =>
+                            copyToClipboard(
+                              "pip3 install psutil requests configparser",
+                              12,
+                            )
+                          }
                         >
                           {copiedStep === 12 ? (
                             <CheckCircle className="w-4 h-4 text-green-600" />
@@ -1653,12 +1762,14 @@ verify_ssl = true`}
                     </div>
 
                     <div className="border rounded-lg p-4">
-                      <h5 className="font-medium mb-2">Step 3: Configure Agent</h5>
+                      <h5 className="font-medium mb-2">
+                        Step 3: Configure Agent
+                      </h5>
                       <p className="text-sm text-neutral-600 mb-2">
                         Edit /opt/itsm-agent/config.ini:
                       </p>
                       <code className="block bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-sm whitespace-pre">
-{`[agent]
+                        {`[agent]
 collection_interval = 120
 log_level = INFO
 
@@ -1670,11 +1781,15 @@ auth_token = your-api-token`}
 
                     <div className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium">Step 4: Install Systemd Service</h5>
+                        <h5 className="font-medium">
+                          Step 4: Install Systemd Service
+                        </h5>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => copyToClipboard("sudo ./install_linux.sh", 13)}
+                          onClick={() =>
+                            copyToClipboard("sudo ./install_linux.sh", 13)
+                          }
                         >
                           {copiedStep === 13 ? (
                             <CheckCircle className="w-4 h-4 text-green-600" />
@@ -1690,12 +1805,17 @@ auth_token = your-api-token`}
 
                     <div className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium">Step 5: Start and Enable Service</h5>
+                        <h5 className="font-medium">
+                          Step 5: Start and Enable Service
+                        </h5>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() =>
-                            copyToClipboard("sudo systemctl enable itsm-agent && sudo systemctl start itsm-agent", 14)
+                            copyToClipboard(
+                              "sudo systemctl enable itsm-agent && sudo systemctl start itsm-agent",
+                              14,
+                            )
                           }
                         >
                           {copiedStep === 14 ? (
@@ -1706,7 +1826,8 @@ auth_token = your-api-token`}
                         </Button>
                       </div>
                       <code className="block bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-sm">
-                        sudo systemctl enable itsm-agent && sudo systemctl start itsm-agent
+                        sudo systemctl enable itsm-agent && sudo systemctl start
+                        itsm-agent
                       </code>
                     </div>
                   </div>
@@ -1727,12 +1848,17 @@ auth_token = your-api-token`}
                   <div className="space-y-4">
                     <div className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium">Step 1: Install Homebrew (if needed)</h5>
+                        <h5 className="font-medium">
+                          Step 1: Install Homebrew (if needed)
+                        </h5>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() =>
-                            copyToClipboard('/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"', 21)
+                            copyToClipboard(
+                              '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"',
+                              21,
+                            )
                           }
                         >
                           {copiedStep === 21 ? (
@@ -1743,7 +1869,8 @@ auth_token = your-api-token`}
                         </Button>
                       </div>
                       <code className="block bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-sm">
-                        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+                        /bin/bash -c "$(curl -fsSL
+                        https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
                       </code>
                     </div>
 
@@ -1753,7 +1880,9 @@ auth_token = your-api-token`}
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => copyToClipboard("brew install python", 22)}
+                          onClick={() =>
+                            copyToClipboard("brew install python", 22)
+                          }
                         >
                           {copiedStep === 22 ? (
                             <CheckCircle className="w-4 h-4 text-green-600" />
@@ -1769,11 +1898,18 @@ auth_token = your-api-token`}
 
                     <div className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium">Step 3: Install Dependencies</h5>
+                        <h5 className="font-medium">
+                          Step 3: Install Dependencies
+                        </h5>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => copyToClipboard("pip3 install psutil requests configparser", 23)}
+                          onClick={() =>
+                            copyToClipboard(
+                              "pip3 install psutil requests configparser",
+                              23,
+                            )
+                          }
                         >
                           {copiedStep === 23 ? (
                             <CheckCircle className="w-4 h-4 text-green-600" />
@@ -1788,12 +1924,14 @@ auth_token = your-api-token`}
                     </div>
 
                     <div className="border rounded-lg p-4">
-                      <h5 className="font-medium mb-2">Step 4: Configure Agent</h5>
+                      <h5 className="font-medium mb-2">
+                        Step 4: Configure Agent
+                      </h5>
                       <p className="text-sm text-neutral-600 mb-2">
                         Edit ~/itsm-agent/config.ini:
                       </p>
                       <code className="block bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-sm whitespace-pre">
-{`[agent]
+                        {`[agent]
 collection_interval = 120
 log_level = INFO
 
@@ -1805,11 +1943,15 @@ auth_token = your-api-token`}
 
                     <div className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium">Step 5: Install Launch Daemon</h5>
+                        <h5 className="font-medium">
+                          Step 5: Install Launch Daemon
+                        </h5>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => copyToClipboard("sudo ./install_macos.sh", 24)}
+                          onClick={() =>
+                            copyToClipboard("sudo ./install_macos.sh", 24)
+                          }
                         >
                           {copiedStep === 24 ? (
                             <CheckCircle className="w-4 h-4 text-green-600" />
@@ -1825,12 +1967,17 @@ auth_token = your-api-token`}
 
                     <div className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium">Step 6: Load and Start Service</h5>
+                        <h5 className="font-medium">
+                          Step 6: Load and Start Service
+                        </h5>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() =>
-                            copyToClipboard("sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist", 25)
+                            copyToClipboard(
+                              "sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist",
+                              25,
+                            )
                           }
                         >
                           {copiedStep === 25 ? (
@@ -1841,7 +1988,8 @@ auth_token = your-api-token`}
                         </Button>
                       </div>
                       <code className="block bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-sm">
-                        sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
+                        sudo launchctl load
+                        /Library/LaunchDaemons/com.itsm.agent.plist
                       </code>
                     </div>
                   </div>
@@ -1864,16 +2012,26 @@ auth_token = your-api-token`}
                   <h4 className="text-lg font-medium">Collection Settings</h4>
                   <div className="space-y-3">
                     <div>
-                      <Label htmlFor="collection-interval">Collection Interval (seconds)</Label>
+                      <Label htmlFor="collection-interval">
+                        Collection Interval (seconds)
+                      </Label>
                       <Select defaultValue="120">
                         <SelectTrigger className="mt-2">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="60">60 seconds (1 minute)</SelectItem>
-                          <SelectItem value="120">120 seconds (2 minutes)</SelectItem>
-                          <SelectItem value="300">300 seconds (5 minutes)</SelectItem>
-                          <SelectItem value="600">600 seconds (10 minutes)</SelectItem>
+                          <SelectItem value="60">
+                            60 seconds (1 minute)
+                          </SelectItem>
+                          <SelectItem value="120">
+                            120 seconds (2 minutes)
+                          </SelectItem>
+                          <SelectItem value="300">
+                            300 seconds (5 minutes)
+                          </SelectItem>
+                          <SelectItem value="600">
+                            600 seconds (10 minutes)
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -1914,7 +2072,9 @@ auth_token = your-api-token`}
                       <Switch defaultChecked />
                     </div>
                     <div>
-                      <Label htmlFor="api-token">API Authentication Token</Label>
+                      <Label htmlFor="api-token">
+                        API Authentication Token
+                      </Label>
                       <Input
                         id="api-token"
                         type="password"
@@ -2039,15 +2199,15 @@ auth_token = your-api-token`}
 
       {/* Save Button */}
       <div className="flex justify-end">
-      {hasChanges && (
-        <Button
-          onClick={saveSettings}
-          className="flex items-center space-x-2"
-        >
-          <Save className="w-4 h-4" />
-          <span>Save Changes</span>
-        </Button>
-      )}
+        {hasChanges && (
+          <Button
+            onClick={saveSettings}
+            className="flex items-center space-x-2"
+          >
+            <Save className="w-4 h-4" />
+            <span>Save Changes</span>
+          </Button>
+        )}
       </div>
     </div>
   );
