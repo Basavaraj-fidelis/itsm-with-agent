@@ -9,14 +9,17 @@ export function useAgents() {
   });
 }
 
-export function useAgent(id: string) {
+export const useAgent = (id: string) => {
   return useQuery({
-    queryKey: ["/api/devices", id],
-    queryFn: () => api.getDevice(id),
+    queryKey: ["agent", id],
+    queryFn: async () => {
+      if (!id) throw new Error("Agent ID is required");
+      return api.getDevice(id);
+    },
     enabled: !!id,
-    refetchInterval: 30000,
+    retry: 1,
   });
-}
+};
 
 export function useAgentReports(id: string) {
   return useQuery({

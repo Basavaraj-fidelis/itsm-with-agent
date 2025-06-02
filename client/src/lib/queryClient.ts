@@ -7,22 +7,37 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-export async function apiRequest(method: string, url: string, data?: any) {
-  const token = localStorage.getItem("auth_token");
+export async function apiRequest(
+  method: "GET" | "POST" | "PUT" | "DELETE",
+  url: string,
+  body?: any
+): Promise<Response> {
+  const token = localStorage.getItem('auth_token');
 
   const config: RequestInit = {
     method,
     headers: {
       "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` }),
+      ...(token ? { "Authorization": `Bearer ${token}` } : {})
     },
   };
 
-  if (data && (method === "POST" || method === "PUT")) {
-    config.body = JSON.stringify(data);
+  if (body) {
+    config.body = JSON.stringify(body);
   }
 
   const response = await fetch(url, config);
+
+  if (!response.ok) {
+    // Handle 401 errors by redirecting to login
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
   return response;
 }
 

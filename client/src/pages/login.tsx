@@ -53,12 +53,8 @@ export default function Login() {
           description: `Welcome back, ${data.user.name}`
         });
 
-        // Redirect based on role
-        if (data.user.role === "admin") {
-          window.location.href = "/dashboard";
-        } else {
-          window.location.href = "/tickets";
-        }
+        // Redirect to dashboard for all users
+        window.location.href = "/dashboard";
       } else {
         const error = await response.json();
         toast({

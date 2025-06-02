@@ -52,7 +52,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await storage.initializeDemoUsers();
     console.log("Demo users initialized successfully");
   } catch (error) {
-    console.log("Error initializing demo users:", error);
+    console.log("Demo users may already exist, continuing...", error);
   }
 
   // Authentication routes
