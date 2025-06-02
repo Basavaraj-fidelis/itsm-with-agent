@@ -135,7 +135,7 @@ const getAllIPs = (agent: any) => {
     // Skip virtual and loopback interfaces for main IP detection
     const name = iface.name?.toLowerCase() || "";
     const isVirtual = name.includes("virtual") || name.includes("veth") || name.includes("docker") || name.includes("vmware");
-    
+
     if (!isVirtual && iface.stats?.is_up !== false) {
       for (const addr of iface.addresses || []) {
         if (
@@ -377,19 +377,19 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                       if (ethernetIP !== "Not Available") {
                         return ethernetIP;
                       }
-                      
+
                       // Then try Wi-Fi IP
                       const wifiIP = getWiFiIP(agent);
                       if (wifiIP !== "Not Available") {
                         return wifiIP;
                       }
-                      
+
                       // Get any active IP from all interfaces
                       const allIPs = getAllIPs(agent);
                       if (allIPs.length > 0) {
                         return allIPs[0]; // Return the first active IP
                       }
-                      
+
                       // Fallback to agent data
                       return agent.ip_address || rawData.ip_address || "Not Available";
                     })()}
@@ -724,7 +724,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
           </CardContent>
         </Card>
 
-        
+
       </TabsContent>
 
       <TabsContent value="hardware" className="space-y-6">
@@ -852,26 +852,41 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                 {Array.isArray(usbDevices) && usbDevices.length > 0 ? (
                   <div className="space-y-2">
                     {usbDevices.map((device, index) => (
-                      <div
-                        key={index}
-                        className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-2"
-                      >
-                        <div className="font-medium text-neutral-900 dark:text-neutral-100">
+                      <div className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-3 bg-neutral-50 dark:bg-neutral-800">
+                        <div className="font-medium text-neutral-900 dark:text-neutral-100 mb-2">
                           {device.description ||
-                            device.name||
+                            device.name ||
                             device.device_name ||
+                            device.friendly_name ||
                             `USB Device ${index + 1}`}
                         </div>
-                        {device.vendor_id && (
-                          <div className="text-neutral-600 text-xs">
-                            Vendor ID: {device.vendor_id}
-                          </div>
-                        )}
-                        {device.product_id && (
-                          <div className="text-neutral-600 text-xs">
-                            Product ID: {device.product_id}
-                          </div>
-                        )}
+                        <div className="space-y-1 text-xs">
+                          {device.vendor_id && (
+                            <div className="text-neutral-600">
+                              <span className="font-medium">Vendor ID:</span> {device.vendor_id}
+                            </div>
+                          )}
+                          {device.product_id && (
+                            <div className="text-neutral-600">
+                              <span className="font-medium">Product ID:</span> {device.product_id}
+                            </div>
+                          )}
+                          {device.manufacturer && (
+                            <div className="text-neutral-600">
+                              <span className="font-medium">Manufacturer:</span> {device.manufacturer}
+                            </div>
+                          )}
+                          {device.serial_number && (
+                            <div className="text-neutral-600">
+                              <span className="font-medium">Serial:</span> {device.serial_number}
+                            </div>
+                          )}
+                          {device.device_class && (
+                            <div className="text-neutral-600">
+                              <span className="font-medium">Class:</span> {device.device_class}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1033,7 +1048,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                       rawData.network?.interfaces ||
                       agent.network?.interfaces ||
                       [];
-                    
+
                     // Filter to show only active interfaces with IP addresses
                     const activeInterfaces = interfaces.filter(iface => 
                       iface.stats?.is_up && 
@@ -1044,7 +1059,7 @@ export function AgentTabs({ agent }: AgentTabsProps) {
                         !addr.address.startsWith("169.254.")
                       )
                     );
-                    
+
                     return activeInterfaces;
                   })().map((iface: any, index: number) => {
                     const isEthernet =

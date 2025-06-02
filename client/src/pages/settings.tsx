@@ -463,6 +463,7 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                       <SelectItem value="est">Eastern Time</SelectItem>
                       <SelectItem value="pst">Pacific Time</SelectItem>
                       <SelectItem value="cet">Central European Time</SelectItem>
+                      <SelectItem value="ist">Indian Standard Time (IST)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -836,7 +837,7 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                         <SelectItem value="est">Eastern Time</SelectItem>
                         <SelectItem value="pst">Pacific Time</SelectItem>
                         <SelectItem value="cet">Central European Time</SelectItem>
-                        <SelectItem value="ist">Indian Standard Time</SelectItem>
+                        <SelectItem value="ist">Indian Standard Time (IST)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
