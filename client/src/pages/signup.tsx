@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -70,7 +69,29 @@ export default function Signup() {
 
   const handlePasswordChange = (password: string) => {
     setFormData({ ...formData, password });
-    checkPasswordStrength(password);
+
+    // Enhanced password validation based on policy
+    let score = 0;
+    const checks = {
+      length: password.length >= 8,
+      lowercase: /[a-z]/.test(password),
+      uppercase: /[A-Z]/.test(password),
+      numbers: /\d/.test(password),
+      special: /[^A-Za-z0-9]/.test(password)
+    };
+
+    // Additional security checks
+    const advancedChecks = {
+      noSequential: !/(.)\1{2,}/.test(password), // No 3+ repeated chars
+      noCommonPatterns: !/(123|abc|qwe|password|admin)/i.test(password),
+      minEntropy: password.length >= 12 || (password.length >= 8 && Object.values(checks).filter(Boolean).length >= 3)
+    };
+
+    score = Object.values(checks).filter(Boolean).length;
+    if (Object.values(advancedChecks).every(Boolean)) score += 1;
+
+    setPasswordStrength(Math.min(score, 5));
+    setPasswordStrength({ score, checks });
   };
 
   const getStrengthColor = () => {
@@ -139,7 +160,7 @@ export default function Signup() {
           title: "Account created successfully",
           description: "Please check your email for verification"
         });
-        
+
         // Redirect to login
         window.location.href = "/login";
       } else {
@@ -312,7 +333,7 @@ export default function Signup() {
                     )}
                   </Button>
                 </div>
-                
+
                 {formData.password && (
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2">

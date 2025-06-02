@@ -82,31 +82,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Account is suspended" });
       }
 
-      // Check password - try bcrypt comparison first
+      // Check password - handle both hashed and demo passwords
       let isValidPassword = false;
       
+      console.log(`Checking password for user: ${user.email}`);
+      console.log(`User has password_hash: ${!!user.password_hash}`);
+      
       try {
-        if (user.password_hash) {
-          // First try bcrypt comparison (for properly hashed passwords)
-          isValidPassword = await bcrypt.compare(password, user.password_hash);
+        // Demo credentials for testing
+        const demoCredentials = {
+          "admin@company.com": "admin123",
+          "tech@company.com": "tech123", 
+          "manager@company.com": "demo123",
+          "user@company.com": "demo123"
+        };
+        
+        // First check if it's a demo account with plain text password
+        if (demoCredentials[email.toLowerCase()] === password) {
+          console.log(`Demo credentials match for ${email}`);
+          isValidPassword = true;
           
-          // If bcrypt fails, check if it's a demo account with simple password
-          if (!isValidPassword) {
-            const demoCredentials = {
-              "admin@company.com": "admin123",
-              "tech@company.com": "tech123", 
-              "manager@company.com": "demo123",
-              "user@company.com": "demo123"
-            };
-            
-            if (demoCredentials[email] === password) {
-              isValidPassword = true;
-              // Update user with properly hashed password for next time
-              const hashedPassword = await bcrypt.hash(password, 10);
-              await storage.updateUser(user.id, { password_hash: hashedPassword });
-              console.log(`Updated demo user ${email} with hashed password`);
-            }
-          }
+          // Update user with properly hashed password for security
+          const hashedPassword = await bcrypt.hash(password, 10);
+          await storage.updateUser(user.id, { password_hash: hashedPassword });
+          console.log(`Updated demo user ${email} with hashed password`);
+        } 
+        // Then try bcrypt comparison for properly hashed passwords
+        else if (user.password_hash) {
+          console.log(`Trying bcrypt comparison for ${email}`);
+          isValidPassword = await bcrypt.compare(password, user.password_hash);
+          console.log(`Bcrypt result: ${isValidPassword}`);
         }
       } catch (error) {
         console.error("Password verification error:", error);

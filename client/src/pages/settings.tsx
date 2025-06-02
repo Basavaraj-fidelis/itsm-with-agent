@@ -4,37 +4,36 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { 
+  Settings as SettingsIcon, 
+  Shield, 
+  Bell, 
+  FileText, 
+  Clock, 
+  Users, 
+  Monitor,
+  Plus,
+  Trash2,
+  Save,
+  AlertCircle,
+  CheckCircle
+} from "lucide-react";
 import {
   Download,
   Upload,
-  Shield,
-  Bell,
   Database,
-  Users,
   Key,
   Globe,
   Palette,
-  Monitor,
-  Save,
   Mail,
-  Clock,
-  Plus,
-  Settings as SettingsIcon,
   Copy,
-  CheckCircle,
 } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export default function Settings() {
   const { toast } = useToast();
@@ -102,8 +101,20 @@ export default function Settings() {
     twoFactor: false,
     sessionTimeout: true,
     sessionDuration: "8",
-    passwordPolicy: "strong",
+    passwordPolicy: "medium",
+    minPasswordLength: 8,
+    requireUppercase: true,
+    requireLowercase: true,
+    requireNumbers: true,
+    requireSpecialChars: false,
+    passwordExpiry: 90,
+    preventReuse: 5,
+    accountLockout: true,
+    maxLoginAttempts: 5,
+    lockoutDuration: 30
   });
+
+  const [hasChanges, setHasChanges] = useState(false);
 
   // Load settings from localStorage on component mount
   useEffect(() => {
@@ -141,7 +152,44 @@ export default function Settings() {
   }, []);
 
   const updateSetting = (key: string, value: any) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
+    setSettings(prev => ({ ...prev, [key]: value }));
+    setHasChanges(true);
+  };
+
+  const saveSettings = async () => {
+    try {
+      // In a real app, you would save to backend
+      // await api.saveSettings(settings);
+
+      toast({
+        title: "Settings saved",
+        description: "Your settings have been updated successfully.",
+      });
+      setHasChanges(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save settings. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getPasswordStrengthIndicator = () => {
+    const { passwordPolicy, minPasswordLength, requireUppercase, requireLowercase, requireNumbers, requireSpecialChars } = settings;
+
+    let strength = 0;
+    let requirements = [];
+
+    if (minPasswordLength >= 8) strength++;
+    if (requireUppercase) { strength++; requirements.push("uppercase"); }
+    if (requireLowercase) { strength++; requirements.push("lowercase"); }
+    if (requireNumbers) { strength++; requirements.push("numbers"); }
+    if (requireSpecialChars) { strength++; requirements.push("special characters"); }
+
+    if (strength >= 4) return { level: "Strong", color: "green", requirements };
+    if (strength >= 2) return { level: "Medium", color: "orange", requirements };
+    return { level: "Weak", color: "red", requirements };
   };
 
   const handleDownloadAgent = (platform = "windows") => {
@@ -382,7 +430,7 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
     };
 
     const selectedFiles = agentFiles[platform];
-    
+
     // Create and download a text file with platform-specific instructions
     const content = Object.entries(selectedFiles)
       .map(([filename, content]) => `=== ${filename} ===\n${content}\n\n`)
@@ -960,7 +1008,8 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                       </div>
                       <Switch />
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className```text
+="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <Input placeholder="Webhook URL" />
                       <Input placeholder="Team Name" />
                     </div>
@@ -1027,6 +1076,21 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                     }
                   />
                 </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Account Lockout</Label>
+                    <p className="text-sm text-neutral-600">
+                      Lock accounts after failed login attempts
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.accountLockout}
+                    onCheckedChange={(checked) =>
+                      updateSetting("accountLockout", checked)
+                    }
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1051,31 +1115,180 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                     </SelectContent>
                   </Select>
                 </div>
+
+                {settings.accountLockout && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="max-attempts">Max Login Attempts</Label>
+                      <Input
+                        id="max-attempts"
+                        type="number"
+                        min="3"
+                        max="10"
+                        value={settings.maxLoginAttempts}
+                        onChange={(e) =>
+                          updateSetting("maxLoginAttempts", parseInt(e.target.value))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lockout-duration">Lockout Duration (minutes)</Label>
+                      <Input
+                        id="lockout-duration"
+                        type="number"
+                        min="5"
+                        max="60"
+                        value={settings.lockoutDuration}
+                        onChange={(e) =>
+                          updateSetting("lockoutDuration", parseInt(e.target.value))
+                        }
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Password Policy Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <Shield className="w-5 h-5 mr-2" />
+                  Password Policy
+                </div>
+                <div className="flex items-center space-x-2">
+                  {(() => {
+                    const strength = getPasswordStrengthIndicator();
+                    return (
+                      <Badge 
+                        variant="outline"
+                        className={`
+                          ${strength.color === 'green' ? 'border-green-500 text-green-700' : ''}
+                          ${strength.color === 'orange' ? 'border-orange-500 text-orange-700' : ''}
+                          ${strength.color === 'red' ? 'border-red-500 text-red-700' : ''}
+                        `}
+                      >
+                        {strength.level}
+                      </Badge>
+                    );
+                  })()}
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="password-policy">Password Policy</Label>
-                  <Select
-                    value={settings.passwordPolicy}
-                    onValueChange={(value) =>
-                      updateSetting("passwordPolicy", value)
+                  <Label htmlFor="min-length">Minimum Password Length</Label>
+                  <Input
+                    id="min-length"
+                    type="number"
+                    min="6"
+                    max="32"
+                    value={settings.minPasswordLength}
+                    onChange={(e) =>
+                      updateSetting("minPasswordLength", parseInt(e.target.value))
                     }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="basic">
-                        Basic (8+ characters)
-                      </SelectItem>
-                      <SelectItem value="medium">
-                        Medium (8+ chars, mixed case)
-                      </SelectItem>
-                      <SelectItem value="strong">
-                        Strong (12+ chars, mixed case, numbers, symbols)
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password-expiry">Password Expiry (days)</Label>
+                  <Input
+                    id="password-expiry"
+                    type="number"
+                    min="30"
+                    max="365"
+                    value={settings.passwordExpiry}
+                    onChange={(e) =>
+                      updateSetting("passwordExpiry", parseInt(e.target.value))
+                    }
+                  />
                 </div>
               </div>
+
+              <div className="space-y-4">
+                <Label>Password Requirements</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="require-uppercase">Require Uppercase Letters</Label>
+                    <Switch
+                      id="require-uppercase"
+                      checked={settings.requireUppercase}
+                      onCheckedChange={(checked) =>
+                        updateSetting("requireUppercase", checked)
+                      }
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="require-lowercase">Require Lowercase Letters</Label>
+                    <Switch
+                      id="require-lowercase"
+                      checked={settings.requireLowercase}
+                      onCheckedChange={(checked) =>
+                        updateSetting("requireLowercase", checked)
+                      }
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="require-numbers">Require Numbers</Label>
+                    <Switch
+                      id="require-numbers"
+                      checked={settings.requireNumbers}
+                      onCheckedChange={(checked) =>
+                        updateSetting("requireNumbers", checked)
+                      }
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="require-special">Require Special Characters</Label>
+                    <Switch
+                      id="require-special"
+                      checked={settings.requireSpecialChars}
+                      onCheckedChange={(checked) =>
+                        updateSetting("requireSpecialChars", checked)
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="prevent-reuse">Prevent Password Reuse (last N passwords)</Label>
+                <Input
+                  id="prevent-reuse"
+                  type="number"
+                  min="0"
+                  max="20"
+                  value={settings.preventReuse}
+                  onChange={(e) =>
+                    updateSetting("preventReuse", parseInt(e.target.value))
+                  }
+                />
+              </div>
+
+              {(() => {
+                const strength = getPasswordStrengthIndicator();
+                return (
+                  <div className="p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
+                    <h4 className="font-medium mb-2">Current Policy Requirements:</h4>
+                    <ul className="text-sm space-y-1 text-neutral-600">
+                      <li>• Minimum {settings.minPasswordLength} characters</li>
+                      {strength.requirements.map((req, index) => (
+                        <li key={index}>• Contains {req}</li>
+                      ))}
+                      <li>• Password expires after {settings.passwordExpiry} days</li>
+                      {settings.preventReuse > 0 && (
+                        <li>• Cannot reuse last {settings.preventReuse} passwords</li>
+                      )}
+                    </ul>
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         </TabsContent>
@@ -1826,13 +2039,15 @@ auth_token = your-api-token`}
 
       {/* Save Button */}
       <div className="flex justify-end">
+      {hasChanges && (
         <Button
-          onClick={handleSaveChanges}
+          onClick={saveSettings}
           className="flex items-center space-x-2"
         >
           <Save className="w-4 h-4" />
           <span>Save Changes</span>
         </Button>
+      )}
       </div>
     </div>
   );

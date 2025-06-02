@@ -1,6 +1,6 @@
 import { devices, device_reports, alerts, type Device, type InsertDevice, type DeviceReport, type InsertDeviceReport, type Alert, type InsertAlert } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, or, like, count } from "drizzle-orm";
 
 export interface IStorage {
   // Device operations
@@ -446,11 +446,13 @@ export class DatabaseStorage implements IStorage {
   // Initialize demo users if they don't exist
   async initializeDemoUsers() {
     const { users } = await import("@shared/user-schema");
+    const bcrypt = await import('bcrypt');
+    
     const demoUsers = [
       {
         email: "admin@company.com",
         name: "System Administrator",
-        password_hash: "admin123", // Will be hashed properly
+        password: "admin123", // Plain password to be hashed
         role: "admin",
         department: "IT",
         phone: "+1-555-0100",
@@ -459,7 +461,7 @@ export class DatabaseStorage implements IStorage {
       {
         email: "tech@company.com", 
         name: "Technical Support",
-        password_hash: "tech123",
+        password: "tech123",
         role: "technician",
         department: "IT Support",
         phone: "+1-555-0101",
@@ -468,7 +470,7 @@ export class DatabaseStorage implements IStorage {
       {
         email: "manager@company.com",
         name: "IT Manager", 
-        password_hash: "demo123",
+        password: "demo123",
         role: "manager",
         department: "IT Management",
         phone: "+1-555-0102",
@@ -477,7 +479,7 @@ export class DatabaseStorage implements IStorage {
       {
         email: "user@company.com",
         name: "End User",
-        password_hash: "demo123", 
+        password: "demo123", 
         role: "user",
         department: "General",
         phone: "+1-555-0103",
@@ -485,23 +487,30 @@ export class DatabaseStorage implements IStorage {
       }
     ];
 
-    for (const user of demoUsers) {
+    for (const userData of demoUsers) {
       try {
-        // Check if user already exists
-        const existingUsers = await this.getUsers({ search: user.email });
-        if (existingUsers.length === 0) {
-          // Hash password properly for production users
-          const bcrypt = await import('bcrypt');
-          const hashedPassword = await bcrypt.hash(user.password_hash, 10);
+        // Check if user already exists by querying database directly
+        const existingUser = await db.select().from(users).where(eq(users.email, userData.email));
+        
+        if (existingUser.length === 0) {
+          // Hash password properly
+          const hashedPassword = await bcrypt.hash(userData.password, 10);
 
           await db.insert(users).values({
-            ...user,
-            password_hash: hashedPassword
+            email: userData.email,
+            name: userData.name,
+            password_hash: hashedPassword,
+            role: userData.role,
+            department: userData.department,
+            phone: userData.phone,
+            is_active: userData.is_active
           });
-          console.log(`Created demo user: ${user.email}`);
+          console.log(`✓ Created demo user: ${userData.email} with role: ${userData.role}`);
+        } else {
+          console.log(`✓ Demo user already exists: ${userData.email}`);
         }
       } catch (error) {
-        console.log(`Demo user ${user.email} might already exist or error occurred:`, error.message);
+        console.error(`✗ Error with demo user ${userData.email}:`, error.message);
       }
     }
   }
