@@ -839,4 +839,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/users", authenticateToken, requireRole(['admin']), async (req, res) => {
     try {
-      const user = await storage.createUser(req.body);
+      const { password_hash, ...userWithoutPassword } = await storage.createUser(req.body) as any;
+      res.status(201).json(userWithoutPassword);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.put("/api/users/:id", authenticateToken, requireRole(['admin']), async (req, res) => {
+    try {
+      const { password_hash, ...userWithoutPassword } = await storage.updateUser(req.params.id, req.body) as any;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/users/:id", authenticateToken, requireRole(['admin']), async (req, res) => {
+    try {
+      await storage.deleteUser(req.params.id);
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Register ticket routes
+  registerTicketRoutes(app);
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
