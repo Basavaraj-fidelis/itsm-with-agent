@@ -13,7 +13,13 @@ import {
   Mail, 
   Lock, 
   Building,
-  ArrowRight
+  ArrowRight,
+  Monitor,
+  Server,
+  AlertTriangle,
+  CheckCircle,
+  Users,
+  Settings
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -45,7 +51,7 @@ export default function Login() {
         
         toast({
           title: "Login successful",
-          description: "Welcome back to ITSM Portal"
+          description: `Welcome back, ${data.user.name}`
         });
         
         // Redirect based on role
@@ -64,8 +70,8 @@ export default function Login() {
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Unable to connect to server",
+        title: "Connection Error",
+        description: "Unable to connect to ITSM server",
         variant: "destructive"
       });
     } finally {
@@ -73,178 +79,261 @@ export default function Login() {
     }
   };
 
+  const demoAccounts = [
+    {
+      email: "admin@company.com",
+      password: "admin123",
+      role: "Administrator",
+      icon: Settings,
+      description: "Full system access",
+      color: "bg-red-600"
+    },
+    {
+      email: "tech@company.com", 
+      password: "tech123",
+      role: "Technician",
+      icon: Monitor,
+      description: "Ticket management",
+      color: "bg-blue-600"
+    },
+    {
+      email: "manager@company.com",
+      password: "demo123", 
+      role: "Manager",
+      icon: Users,
+      description: "Team oversight",
+      color: "bg-green-600"
+    },
+    {
+      email: "user@company.com",
+      password: "demo123",
+      role: "End User", 
+      icon: Building,
+      description: "Submit tickets",
+      color: "bg-purple-600"
+    }
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-neutral-950 dark:via-neutral-900 dark:to-blue-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="p-3 bg-blue-600 rounded-xl">
-              <Shield className="w-8 h-8 text-white" />
-            </div>
-          </div>
-          <h1 className="text-3xl font-bold text-neutral-900 dark:text-white mb-2">
-            ITSM Portal
-          </h1>
-          <p className="text-neutral-600 dark:text-neutral-400">
-            Sign in to manage your IT services
-          </p>
-        </div>
-
-        {/* Login Form */}
-        <Card className="shadow-xl border-0 bg-white/80 dark:bg-neutral-800/80 backdrop-blur-sm">
-          <CardHeader className="space-y-1 pb-6">
-            <CardTitle className="text-2xl font-semibold text-center">
-              Welcome back
-            </CardTitle>
-            <p className="text-sm text-neutral-600 dark:text-neutral-400 text-center">
-              Enter your credentials to access your account
-            </p>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="flex items-center space-x-2">
-                  <Mail className="w-4 h-4" />
-                  <span>Email address</span>
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="john.doe@company.com"
-                  value={credentials.email}
-                  onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
-                  required
-                  className="h-11"
-                />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background Effects */}
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Ccircle cx="7" cy="7" r="7"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20"></div>
+      
+      <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center relative z-10">
+        {/* Left Side - Branding */}
+        <div className="hidden lg:block text-white space-y-8">
+          <div className="space-y-6">
+            <div className="flex items-center space-x-4">
+              <div className="p-4 bg-blue-600 rounded-2xl shadow-2xl">
+                <Shield className="w-12 h-12 text-white" />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password" className="flex items-center space-x-2">
-                  <Lock className="w-4 h-4" />
-                  <span>Password</span>
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
-                    value={credentials.password}
-                    onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
-                    required
-                    className="h-11 pr-10"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-11 px-3"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <label className="flex items-center space-x-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={credentials.remember}
-                    onChange={(e) => setCredentials({ ...credentials, remember: e.target.checked })}
-                    className="rounded border-neutral-300"
-                  />
-                  <span>Remember me</span>
-                </label>
-                <Link 
-                  to="/forgot-password" 
-                  className="text-sm text-blue-600 hover:text-blue-500"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-
-              <Button 
-                type="submit" 
-                className="w-full h-11 bg-blue-600 hover:bg-blue-700"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  "Signing in..."
-                ) : (
-                  <>
-                    Sign in
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </>
-                )}
-              </Button>
-            </form>
-
-            <div className="mt-6">
-              <Separator />
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white dark:bg-neutral-800 px-2 text-neutral-500">
-                    Quick Access
-                  </span>
-                </div>
+              <div>
+                <h1 className="text-4xl font-bold">ITSM Portal</h1>
+                <p className="text-blue-200">Enterprise IT Service Management</p>
               </div>
             </div>
-
-            {/* Demo Accounts */}
-            <div className="mt-4 space-y-2">
-              <div className="text-xs text-neutral-600 dark:text-neutral-400 text-center mb-3">
-                Demo Accounts (for testing)
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCredentials({ email: "admin@company.com", password: "admin123", remember: false })}
-                  className="text-xs"
-                >
-                  <Shield className="w-3 h-3 mr-1" />
-                  Admin
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCredentials({ email: "tech@company.com", password: "tech123", remember: false })}
-                  className="text-xs"
-                >
-                  <Building className="w-3 h-3 mr-1" />
-                  Tech
-                </Button>
-              </div>
-            </div>
-
-            <div className="mt-6 text-center">
-              <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                Don't have an account?{" "}
-                <Link 
-                  to="/signup" 
-                  className="text-blue-600 hover:text-blue-500 font-medium"
-                >
-                  Sign up
-                </Link>
+            
+            <div className="space-y-4">
+              <h2 className="text-2xl font-semibold text-blue-100">
+                Streamline Your IT Operations
+              </h2>
+              <p className="text-lg text-blue-200 leading-relaxed">
+                Comprehensive incident management, asset tracking, and performance monitoring 
+                in one unified platform.
               </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Footer */}
-        <div className="mt-8 text-center text-xs text-neutral-500">
-          <p>© 2024 ITSM Portal. All rights reserved.</p>
-          <p className="mt-1">
-            Secure enterprise IT service management
-          </p>
+          {/* Feature Highlights */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+              <Monitor className="w-8 h-8 text-blue-300 mb-2" />
+              <h3 className="font-semibold text-white">Real-time Monitoring</h3>
+              <p className="text-sm text-blue-200">24/7 system oversight</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+              <Server className="w-8 h-8 text-green-300 mb-2" />
+              <h3 className="font-semibold text-white">Asset Management</h3>
+              <p className="text-sm text-blue-200">Complete inventory control</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+              <AlertTriangle className="w-8 h-8 text-yellow-300 mb-2" />
+              <h3 className="font-semibold text-white">Smart Alerts</h3>
+              <p className="text-sm text-blue-200">Proactive issue detection</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+              <CheckCircle className="w-8 h-8 text-emerald-300 mb-2" />
+              <h3 className="font-semibold text-white">SLA Compliance</h3>
+              <p className="text-sm text-blue-200">Automated tracking</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side - Login Form */}
+        <div className="w-full max-w-md mx-auto lg:mx-0">
+          {/* Mobile Header */}
+          <div className="lg:hidden text-center mb-8">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 bg-blue-600 rounded-xl">
+                <Shield className="w-8 h-8 text-white" />
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold text-white mb-2">ITSM Portal</h1>
+            <p className="text-blue-200">Enterprise IT Service Management</p>
+          </div>
+
+          {/* Login Card */}
+          <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
+            <CardHeader className="space-y-1 pb-6">
+              <CardTitle className="text-2xl font-bold text-center text-slate-800">
+                Sign In
+              </CardTitle>
+              <p className="text-sm text-slate-600 text-center">
+                Access your ITSM dashboard
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="flex items-center space-x-2">
+                    <Mail className="w-4 h-4 text-slate-600" />
+                    <span>Email address</span>
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="your.email@company.com"
+                    value={credentials.email}
+                    onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
+                    required
+                    className="h-11 border-slate-300 focus:border-blue-500"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="flex items-center space-x-2">
+                    <Lock className="w-4 h-4 text-slate-600" />
+                    <span>Password</span>
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter your password"
+                      value={credentials.password}
+                      onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
+                      required
+                      className="h-11 pr-10 border-slate-300 focus:border-blue-500"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-11 px-3 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4 text-slate-500" />
+                      ) : (
+                        <Eye className="w-4 h-4 text-slate-500" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center space-x-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={credentials.remember}
+                      onChange={(e) => setCredentials({ ...credentials, remember: e.target.checked })}
+                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-slate-600">Remember me</span>
+                  </label>
+                  <Link 
+                    to="/forgot-password" 
+                    className="text-sm text-blue-600 hover:text-blue-500 font-medium"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <span>Signing in...</span>
+                    </div>
+                  ) : (
+                    <>
+                      Sign in
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </>
+                  )}
+                </Button>
+              </form>
+
+              <Separator />
+
+              {/* Demo Accounts */}
+              <div className="space-y-4">
+                <div className="text-center">
+                  <p className="text-xs text-slate-500 uppercase tracking-wide font-medium">
+                    Demo Accounts
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {demoAccounts.map((account, index) => (
+                    <Button
+                      key={index}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCredentials({ 
+                        email: account.email, 
+                        password: account.password, 
+                        remember: false 
+                      })}
+                      className="h-auto p-3 flex flex-col items-center space-y-1 border-slate-200 hover:border-blue-300 hover:bg-blue-50"
+                    >
+                      <div className={`p-1.5 rounded ${account.color}`}>
+                        <account.icon className="w-3 h-3 text-white" />
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xs font-medium text-slate-700">{account.role}</div>
+                        <div className="text-xs text-slate-500">{account.description}</div>
+                      </div>
+                    </Button>
+                  ))}
+                </div>
+                <p className="text-xs text-center text-slate-500">
+                  Click any role above to auto-fill credentials
+                </p>
+              </div>
+
+              <div className="text-center">
+                <p className="text-sm text-slate-600">
+                  Need an account?{" "}
+                  <Link 
+                    to="/signup" 
+                    className="text-blue-600 hover:text-blue-500 font-medium"
+                  >
+                    Contact Administrator
+                  </Link>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Footer */}
+          <div className="mt-8 text-center text-xs text-white/70">
+            <p>© 2024 ITSM Portal. Enterprise IT Service Management.</p>
+            <p className="mt-1">Secure • Reliable • Efficient</p>
+          </div>
         </div>
       </div>
     </div>

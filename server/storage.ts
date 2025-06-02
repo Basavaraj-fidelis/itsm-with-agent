@@ -149,7 +149,7 @@ export class MemStorage implements IStorage {
         id: this.generateId(),
         email: "admin@company.com",
         name: "System Administrator",
-        password_hash: "$2b$10$dummy.hash.for.demo", // In real app, this would be bcrypt hash
+        password_hash: "$2b$10$dummy.hash.for.demo", // Demo: admin123
         role: "admin",
         department: "IT",
         phone: "+1 (555) 123-4567",
@@ -162,7 +162,7 @@ export class MemStorage implements IStorage {
         id: this.generateId(),
         email: "tech@company.com",
         name: "John Technician",
-        password_hash: "$2b$10$dummy.hash.for.demo",
+        password_hash: "$2b$10$dummy.hash.for.demo", // Demo: tech123
         role: "technician",
         department: "IT",
         phone: "+1 (555) 123-4568",
@@ -175,7 +175,7 @@ export class MemStorage implements IStorage {
         id: this.generateId(),
         email: "manager@company.com",
         name: "Jane Manager",
-        password_hash: "$2b$10$dummy.hash.for.demo",
+        password_hash: "$2b$10$dummy.hash.for.demo", // Demo: demo123
         role: "manager",
         department: "IT",
         phone: "+1 (555) 123-4569",
@@ -188,7 +188,7 @@ export class MemStorage implements IStorage {
         id: this.generateId(),
         email: "user@company.com",
         name: "Bob User",
-        password_hash: "$2b$10$dummy.hash.for.demo",
+        password_hash: "$2b$10$dummy.hash.for.demo", // Demo: demo123
         role: "user",
         department: "Finance",
         phone: "+1 (555) 123-4570",

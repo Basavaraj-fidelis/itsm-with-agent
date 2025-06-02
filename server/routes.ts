@@ -69,20 +69,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Account is suspended" });
       }
 
-      // For demo purposes, check simple passwords
+      // For demo purposes, check simple passwords first
       let isValidPassword = false;
+      
+      // Demo account credentials
       if (email === "admin@company.com" && password === "admin123") {
         isValidPassword = true;
       } else if (email === "tech@company.com" && password === "tech123") {
         isValidPassword = true;
+      } else if (email === "manager@company.com" && password === "demo123") {
+        isValidPassword = true;
+      } else if (email === "user@company.com" && password === "demo123") {
+        isValidPassword = true;
       } else {
-        // In production, use bcrypt to compare hashed passwords
+        // For production users with bcrypt hashed passwords
         try {
-          // Assuming password is hashed in database
-          isValidPassword = await bcrypt.compare(password, user.password_hash || '');
+          if (user.password_hash) {
+            isValidPassword = await bcrypt.compare(password, user.password_hash);
+          }
         } catch (error) {
-          // Fallback for demo users
-          isValidPassword = password === "demo123";
+          console.error("Password comparison error:", error);
+          isValidPassword = false;
         }
       }
 
