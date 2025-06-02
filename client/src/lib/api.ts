@@ -49,38 +49,6 @@ const getAuthHeaders = () => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-const apiRequest = async (
-  method: "GET" | "POST" | "PUT" | "DELETE",
-  endpoint: string,
-  data?: any
-): Promise<Response> => {
-  const token = localStorage.getItem('auth_token');
-  console.log('Making API request to:', endpoint, 'with token:', token ? 'present' : 'missing');
-
-  const config: RequestInit = {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  };
-
-  if (data) {
-    config.body = JSON.stringify(data);
-  }
-
-  const response = await fetch(endpoint, config);
-
-  if (response.status === 401) {
-    console.log('API request failed with 401, removing token and redirecting');
-    localStorage.removeItem('auth_token');
-    window.location.href = '/login';
-    throw new Error('Authentication failed');
-  }
-
-  return response;
-};
-
 export const api = {
   async getDashboardSummary(): Promise<DashboardSummary> {
     const response = await apiRequest("GET", "/api/dashboard/summary");

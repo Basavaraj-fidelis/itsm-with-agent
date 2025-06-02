@@ -20,11 +20,11 @@ const authenticateToken = async (req: any, res: any, next: any) => {
   try {
     const decoded: any = jwt.verify(token, JWT_SECRET);
     const user = await storage.getUserById(decoded.userId);
-    
+
     if (!user || !user.is_active) {
       return res.status(403).json({ message: 'User not found or inactive' });
     }
-    
+
     req.user = user;
     next();
   } catch (error) {
@@ -37,7 +37,7 @@ const requireRole = (roles: string | string[]) => {
   return (req: any, res: any, next: any) => {
     const userRole = req.user?.role;
     const allowedRoles = Array.isArray(roles) ? roles : [roles];
-    
+
     if (userRole === 'admin' || allowedRoles.includes(userRole)) {
       next();
     } else {
@@ -84,10 +84,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check password - handle both hashed and demo passwords
       let isValidPassword = false;
-      
+
       console.log(`Checking password for user: ${user.email}`);
       console.log(`User has password_hash: ${!!user.password_hash}`);
-      
+
       try {
         // Demo credentials for testing
         const demoCredentials = {
@@ -96,12 +96,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "manager@company.com": "demo123",
           "user@company.com": "demo123"
         };
-        
+
         // First check if it's a demo account with plain text password
         if (demoCredentials[email.toLowerCase()] === password) {
           console.log(`Demo credentials match for ${email}`);
           isValidPassword = true;
-          
+
           // Update user with properly hashed password for security
           const hashedPassword = await bcrypt.hash(password, 10);
           await storage.updateUser(user.id, { password_hash: hashedPassword });
@@ -134,7 +134,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Return user data without password
       const { password_hash, ...userWithoutPassword } = user as any;
-      
+
       res.json({
         token,
         user: userWithoutPassword
@@ -175,7 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Return user data without password
       const { password_hash: _, ...userWithoutPassword } = newUser as any;
-      
+
       res.status(201).json({
         message: "Account created successfully",
         user: userWithoutPassword
@@ -632,13 +632,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // USB device detection (from raw data) - manage alerts to prevent duplicates
       const usbDevices = data.usb_devices || data.hardware?.usb_devices || [];
-      
+
       // Check for existing USB alert
       const existingUsbAlert = await storage.getActiveAlertByDeviceAndMetric(device.id, "usb");
-      
+
       if (usbDevices && Array.isArray(usbDevices) && usbDevices.length > 0) {
         const message = `USB device(s) detected - ${usbDevices.length} device(s) connected`;
-        
+
         if (existingUsbAlert) {
           // Update existing USB alert
           await storage.updateAlert(existingUsbAlert.id, {
@@ -815,7 +815,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const search = req.query.search as string;
       const role = req.query.role as string;
-      
+
       const users = await storage.getUsers({ search, role });
       res.json(users);
     } catch (error) {
@@ -840,60 +840,3 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/users", authenticateToken, requireRole(['admin']), async (req, res) => {
     try {
       const user = await storage.createUser(req.body);
-      res.status(201).json(user);
-    } catch (error) {
-      console.error("Error creating user:", error);
-      if (error.message?.includes("duplicate")) {
-        res.status(400).json({ message: "Email already exists" });
-      } else {
-        res.status(500).json({ message: "Internal server error" });
-      }
-    }
-  });
-
-  app.put("/api/users/:id", async (req, res) => {
-    try {
-      const user = await storage.updateUser(req.params.id, req.body);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      res.json(user);
-    } catch (error) {
-      console.error("Error updating user:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.put("/api/users/:id/toggle-status", async (req, res) => {
-    try {
-      const { is_active } = req.body;
-      const user = await storage.updateUser(req.params.id, { is_active });
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      res.json(user);
-    } catch (error) {
-      console.error("Error updating user status:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.delete("/api/users/:id", async (req, res) => {
-    try {
-      const success = await storage.deleteUser(req.params.id);
-      if (!success) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      res.json({ message: "User deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting user:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  // Register ticket management routes
-  registerTicketRoutes(app);
-
-  const httpServer = createServer(app);
-  return httpServer;
-}

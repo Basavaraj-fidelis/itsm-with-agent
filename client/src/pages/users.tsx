@@ -1,211 +1,108 @@
-
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Search, Plus, Users as UsersIcon, Filter, MoreHorizontal, Edit, Trash2, Shield, ShieldCheck, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/hooks/use-toast";
-import { 
-  Search, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Users,
-  Mail,
-  Phone,
-  Calendar,
-  Shield,
-  UserCheck,
-  UserX
-} from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { api } from "@/lib/api";
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  department: string;
-  phone: string;
-  is_active: boolean;
-  last_login: string;
-  created_at: string;
-}
-
-export default function UserManagement() {
-  const { toast } = useToast();
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export default function Users() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRole, setSelectedRole] = useState("all");
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [newUser, setNewUser] = useState({
-    name: "",
-    email: "",
-    password: "",
-    role: "user",
-    department: "",
-    phone: ""
+  const [selectedStatus, setSelectedStatus] = useState("all");
+
+  const { data: users = [], isLoading, error } = useQuery({
+    queryKey: ["users"],
+    queryFn: api.getUsers,
   });
 
-  const roles = ["admin", "manager", "technician", "user"];
-  const departments = ["IT", "HR", "Finance", "Operations", "Support"];
+  const roles = ["All Roles", "Admin", "Manager", "Technician", "User"];
+  const statuses = ["All Status", "Active", "Inactive"];
 
-  useEffect(() => {
-    fetchUsers();
-  }, [searchTerm, selectedRole]);
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch = user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = selectedRole === "all" || 
+                       user.role.toLowerCase() === selectedRole.toLowerCase();
+    const matchesStatus = selectedStatus === "all" || 
+                         (selectedStatus.toLowerCase() === "active" ? user.is_active : !user.is_active);
 
-  const fetchUsers = async () => {
-    try {
-      const params = new URLSearchParams();
-      if (searchTerm) params.append("search", searchTerm);
-      if (selectedRole !== "all") params.append("role", selectedRole);
+    return matchesSearch && matchesRole && matchesStatus;
+  });
 
-      const response = await fetch(`/api/users?${params}`);
-      const data = await response.json();
-      setUsers(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      setUsers([]);
-      toast({
-        title: "Error",
-        description: "Failed to fetch users",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
+  const getRoleIcon = (role: string) => {
+    switch (role.toLowerCase()) {
+      case "admin":
+        return <ShieldCheck className="w-4 h-4" />;
+      case "manager":
+        return <Shield className="w-4 h-4" />;
+      default:
+        return <UsersIcon className="w-4 h-4" />;
     }
   };
 
-  const handleCreateUser = async () => {
-    try {
-      const response = await fetch("/api/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newUser)
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "User created successfully"
-        });
-        setIsCreateOpen(false);
-        setNewUser({ name: "", email: "", password: "", role: "user", department: "", phone: "" });
-        fetchUsers();
-      } else {
-        const error = await response.json();
-        toast({
-          title: "Error",
-          description: error.message || "Failed to create user",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create user",
-        variant: "destructive"
-      });
+  const getRoleBadgeColor = (role: string) => {
+    switch (role.toLowerCase()) {
+      case "admin":
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+      case "manager":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+      case "technician":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
     }
   };
 
-  const handleUpdateUser = async () => {
-    if (!editingUser) return;
-
-    try {
-      const response = await fetch(`/api/users/${editingUser.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editingUser)
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "User updated successfully"
-        });
-        setEditingUser(null);
-        fetchUsers();
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update user",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleToggleUserStatus = async (userId: string, isActive: boolean) => {
-    try {
-      const response = await fetch(`/api/users/${userId}/toggle-status`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ is_active: !isActive })
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: `User ${!isActive ? "activated" : "deactivated"} successfully`
-        });
-        fetchUsers();
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update user status",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleDeleteUser = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this user?")) return;
-
-    try {
-      const response = await fetch(`/api/users/${id}`, {
-        method: "DELETE"
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "User deleted successfully"
-        });
-        fetchUsers();
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete user",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const getRoleBadgeVariant = (role: string) => {
-    switch (role) {
-      case "admin": return "destructive";
-      case "manager": return "default";
-      case "technician": return "secondary";
-      default: return "outline";
-    }
+  const getStatusBadgeColor = (isActive: boolean) => {
+    return isActive
+      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+      : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
   };
 
   if (isLoading) {
     return (
       <div className="p-6 space-y-6">
         <div className="animate-pulse space-y-4">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-24 bg-neutral-200 dark:bg-neutral-700 rounded-lg"></div>
-          ))}
+          <div className="h-8 bg-neutral-200 dark:bg-neutral-700 rounded w-1/4"></div>
+          <div className="h-96 bg-neutral-200 dark:bg-neutral-700 rounded-lg"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-96 p-6">
+        <div className="text-center">
+          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-2" />
+          <h3 className="text-lg font-semibold text-red-600 mb-2">Error Loading Users</h3>
+          <p className="text-neutral-600">Please refresh the page or try again later.</p>
         </div>
       </div>
     );
@@ -221,92 +118,10 @@ export default function UserManagement() {
           </h1>
           <p className="text-neutral-600">Manage system users and permissions</p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              New User
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New User</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  value={newUser.name}
-                  onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={newUser.password}
-                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="role">Role</Label>
-                <Select 
-                  value={newUser.role} 
-                  onValueChange={(value) => setNewUser({ ...newUser, role: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roles.map((role) => (
-                      <SelectItem key={role} value={role}>
-                        {role.charAt(0).toUpperCase() + role.slice(1)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="department">Department</Label>
-                <Select 
-                  value={newUser.department} 
-                  onValueChange={(value) => setNewUser({ ...newUser, department: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  value={newUser.phone}
-                  onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
-                />
-              </div>
-              <Button onClick={handleCreateUser} className="w-full">
-                Create User
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <Button>
+          <Plus className="w-4 h-4 mr-2" />
+          New User
+        </Button>
       </div>
 
       {/* Filters */}
@@ -331,8 +146,21 @@ export default function UserManagement() {
               <SelectContent>
                 <SelectItem value="all">All Roles</SelectItem>
                 {roles.map((role) => (
-                  <SelectItem key={role} value={role}>
-                    {role.charAt(0).toUpperCase() + role.slice(1)}
+                  <SelectItem key={role} value={role.toLowerCase()}>
+                    {role}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                {statuses.map((status) => (
+                  <SelectItem key={status} value={status.toLowerCase()}>
+                    {status}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -341,167 +169,87 @@ export default function UserManagement() {
         </CardContent>
       </Card>
 
-      {/* Users List */}
-      <div className="grid gap-4">
-        {Array.isArray(users) && users.map((user) => (
-          <Card key={user.id}>
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <h3 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">
-                      {user.name}
-                    </h3>
-                    <Badge variant={getRoleBadgeVariant(user.role)}>
-                      {user.role}
-                    </Badge>
-                    <Badge variant={user.is_active ? "default" : "outline"}>
-                      {user.is_active ? "Active" : "Inactive"}
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-neutral-600">
-                    <span className="flex items-center">
-                      <Mail className="w-4 h-4 mr-2" />
-                      {user.email}
-                    </span>
-                    {user.department && (
-                      <span className="flex items-center">
-                        <Users className="w-4 h-4 mr-2" />
-                        {user.department}
-                      </span>
-                    )}
-                    {user.phone && (
-                      <span className="flex items-center">
-                        <Phone className="w-4 h-4 mr-2" />
-                        {user.phone}
-                      </span>
-                    )}
-                    <span className="flex items-center">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      Joined {formatDistanceToNow(new Date(user.created_at), { addSuffix: true })}
-                    </span>
-                    {user.last_login && (
-                      <span className="flex items-center">
-                        <Shield className="w-4 h-4 mr-2" />
-                        Last login {formatDistanceToNow(new Date(user.last_login), { addSuffix: true })}
-                      </span>
-                    )}
+      {/* Users Table */}
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>User</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Last Login</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredUsers.map((user) => (
+            <TableRow key={user.id}>
+              <TableCell>
+                <div className="flex items-center space-x-3">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${user.full_name}`} />
+                    <AvatarFallback>{user.full_name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="font-medium">{user.full_name}</div>
+                    <div className="text-sm text-muted-foreground">{user.email}</div>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleToggleUserStatus(user.id, user.is_active)}
-                  >
-                    {user.is_active ? (
-                      <UserX className="w-4 h-4" />
-                    ) : (
-                      <UserCheck className="w-4 h-4" />
-                    )}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setEditingUser(user)}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => handleDeleteUser(user.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Edit User Dialog */}
-      {editingUser && (
-        <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit User</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="edit-name">Full Name</Label>
-                <Input
-                  id="edit-name"
-                  value={editingUser.name}
-                  onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-email">Email</Label>
-                <Input
-                  id="edit-email"
-                  type="email"
-                  value={editingUser.email}
-                  onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-role">Role</Label>
-                <Select 
-                  value={editingUser.role} 
-                  onValueChange={(value) => setEditingUser({ ...editingUser, role: value })}
+              </TableCell>
+              <TableCell>
+                <Badge
+                  variant="secondary"
+                  className={getRoleBadgeColor(user.role)}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roles.map((role) => (
-                      <SelectItem key={role} value={role}>
-                        {role.charAt(0).toUpperCase() + role.slice(1)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="edit-department">Department</Label>
-                <Select 
-                  value={editingUser.department || ""} 
-                  onValueChange={(value) => setEditingUser({ ...editingUser, department: value })}
+                  <div className="flex items-center space-x-1">
+                    {getRoleIcon(user.role)}
+                    <span className="capitalize">{user.role}</span>
+                  </div>
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <Badge
+                  variant="secondary"
+                  className={getStatusBadgeColor(user.is_active)}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="edit-phone">Phone</Label>
-                <Input
-                  id="edit-phone"
-                  value={editingUser.phone || ""}
-                  onChange={(e) => setEditingUser({ ...editingUser, phone: e.target.value })}
-                />
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  checked={editingUser.is_active}
-                  onCheckedChange={(checked) => setEditingUser({ ...editingUser, is_active: checked })}
-                />
-                <Label>Active User</Label>
-              </div>
-              <Button onClick={handleUpdateUser} className="w-full">
-                Update User
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+                  <span className="capitalize">{user.is_active ? 'Active' : 'Inactive'}</span>
+                </Badge>
+              </TableCell>
+              <TableCell className="text-sm text-muted-foreground">
+                {user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}
+              </TableCell>
+              <TableCell className="text-sm text-muted-foreground">
+                {new Date(user.created_at).toLocaleDateString()}
+              </TableCell>
+              <TableCell className="text-right">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                      <span className="sr-only">Open menu</span>
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuItem>
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>
+                      Make admin
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }
