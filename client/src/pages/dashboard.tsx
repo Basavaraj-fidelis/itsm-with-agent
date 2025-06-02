@@ -1,3 +1,4 @@
+import React from "react";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { PerformanceChart } from "@/components/dashboard/performance-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
