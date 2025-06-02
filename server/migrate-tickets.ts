@@ -111,7 +111,41 @@ export async function createTicketTables() {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_knowledge_base_category ON knowledge_base(category)`);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_knowledge_base_status ON knowledge_base(status)`);
 
-    console.log("Ticket tables created successfully!");
+    // Create users table
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS users (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        email TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL,
+        password_hash TEXT NOT NULL,
+        role TEXT DEFAULT 'user',
+        department TEXT,
+        phone TEXT,
+        is_active BOOLEAN DEFAULT true,
+        last_login TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+        updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+      )
+    `);
+
+    // Create user_sessions table
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS user_sessions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL,
+        token TEXT NOT NULL UNIQUE,
+        expires_at TIMESTAMP NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL
+      )
+    `);
+
+    // Create indexes for users
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_user_sessions_token ON user_sessions(token)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id)`);
+
+    console.log("All tables created successfully!");
   } catch (error) {
     console.error("Error creating ticket tables:", error);
     throw error;

@@ -543,6 +543,155 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Knowledge Base routes
+  app.get("/api/knowledge-base", async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const filters = {
+        category: req.query.category as string,
+        search: req.query.search as string,
+        status: req.query.status as string || "published"
+      };
+
+      const articles = await storage.getKBArticles(page, limit, filters);
+      res.json(articles);
+    } catch (error) {
+      console.error("Error fetching KB articles:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/knowledge-base/:id", async (req, res) => {
+    try {
+      const article = await storage.getKBArticleById(req.params.id);
+      if (!article) {
+        return res.status(404).json({ message: "Article not found" });
+      }
+      res.json(article);
+    } catch (error) {
+      console.error("Error fetching KB article:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/knowledge-base", async (req, res) => {
+    try {
+      const article = await storage.createKBArticle(req.body);
+      res.status(201).json(article);
+    } catch (error) {
+      console.error("Error creating KB article:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.put("/api/knowledge-base/:id", async (req, res) => {
+    try {
+      const article = await storage.updateKBArticle(req.params.id, req.body);
+      if (!article) {
+        return res.status(404).json({ message: "Article not found" });
+      }
+      res.json(article);
+    } catch (error) {
+      console.error("Error updating KB article:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/knowledge-base/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteKBArticle(req.params.id);
+      if (!success) {
+        return res.status(404).json({ message: "Article not found" });
+      }
+      res.json({ message: "Article deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting KB article:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // User Management routes
+  app.get("/api/users", async (req, res) => {
+    try {
+      const search = req.query.search as string;
+      const role = req.query.role as string;
+      
+      const users = await storage.getUsers({ search, role });
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/users/:id", async (req, res) => {
+    try {
+      const user = await storage.getUserById(req.params.id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/users", async (req, res) => {
+    try {
+      const user = await storage.createUser(req.body);
+      res.status(201).json(user);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      if (error.message?.includes("duplicate")) {
+        res.status(400).json({ message: "Email already exists" });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+
+  app.put("/api/users/:id", async (req, res) => {
+    try {
+      const user = await storage.updateUser(req.params.id, req.body);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.put("/api/users/:id/toggle-status", async (req, res) => {
+    try {
+      const { is_active } = req.body;
+      const user = await storage.updateUser(req.params.id, { is_active });
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating user status:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/users/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteUser(req.params.id);
+      if (!success) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Register ticket management routes
   registerTicketRoutes(app);
 

@@ -9,9 +9,11 @@ import Dashboard from "@/pages/dashboard";
 import Agents from "@/pages/agents";
 import AgentDetail from "@/pages/agent-detail";
 import Alerts from "@/pages/alerts";
-import Tickets from "@/pages/tickets";
-import Reports from "@/pages/reports";
-import Settings from "@/pages/settings";
+import TicketsPage from "./pages/tickets";
+import KnowledgeBasePage from "./pages/knowledge-base";
+import UsersPage from "./pages/users";
+import ReportsPage from "./pages/reports";
+import SettingsPage from "./pages/settings";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -22,9 +24,11 @@ function Router() {
       <Route path="/agents" component={Agents} />
       <Route path="/agents/:id" component={AgentDetail} />
       <Route path="/alerts" component={Alerts} />
-      <Route path="/tickets" component={Tickets} />
-      <Route path="/reports" component={Reports} />
-      <Route path="/settings" component={Settings} />
+      <Route path="/tickets" component={TicketsPage} />
+      <Route path="/knowledge-base" component={KnowledgeBasePage} />
+      <Route path="/users" component={UsersPage} />
+      <Route path="/reports" component={ReportsPage} />
+      <Route path="/settings" component={SettingsPage} />
       <Route component={NotFound} />
     </Switch>
   );

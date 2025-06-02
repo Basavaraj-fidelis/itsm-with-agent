@@ -1,12 +1,14 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { Server, BarChart3, Monitor, AlertTriangle, FileText, Settings, Ticket } from "lucide-react";
+import { Server, BarChart3, Monitor, AlertTriangle, FileText, Settings, Ticket, BookOpen, Users } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
   { name: "Agents", href: "/agents", icon: Monitor },
   { name: "Alerts", href: "/alerts", icon: AlertTriangle },
   { name: "Service Desk", href: "/tickets", icon: Ticket },
+  { name: "Knowledge Base", href: "/knowledge-base", icon: BookOpen },
+  { name: "Users", href: "/users", icon: Users },
   { name: "Reports", href: "/reports", icon: FileText },
   { name: "Settings", href: "/settings", icon: Settings },
 ];

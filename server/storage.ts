@@ -264,7 +264,7 @@ export class MemStorage implements IStorage {
     // Update offline status for devices that haven't been seen for 5+ minutes
     const now = new Date();
     const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
-    
+
     allDevices.forEach(device => {
       const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
       if (lastSeen && lastSeen < fiveMinutesAgo && device.status === "online") {
@@ -404,34 +404,232 @@ export class DatabaseStorage implements IStorage {
       .where(eq(alerts.id, alertId));
   }
 
-  async createAlert(alert: InsertAlert): Promise<Alert> {
-    const [newAlert] = await db
-      .insert(alerts)
-      .values({
-        ...alert,
-        metadata: alert.metadata || {},
-        resolved_at: alert.resolved_at || null,
-        is_active: alert.is_active ?? true
-      })
-      .returning();
-    return newAlert;
-  }
+  // Knowledge Base methods
+  async getKBArticles(page: number = 1, limit: number = 20, filters: any = {}) {
+    const offset = (page - 1) * limit;
+    const { knowledgeBase } = await import("@shared/ticket-schema");
+    const { and, or, like, count, desc } = await import("drizzle-orm");
 
-  async getDashboardSummary(): Promise<{
-    total_devices: number;
-    online_devices: number;
-    offline_devices: number;
-    active_alerts: number;
-  }> {
-    const allDevices = await db.select().from(devices);
-    const activeAlerts = await db.select().from(alerts).where(eq(alerts.is_active, true));
+    const conditions = [];
+
+    if (filters.category) {
+      conditions.push(eq(knowledgeBase.category, filters.category));
+    }
+
+    if (filters.status) {
+      conditions.push(eq(knowledgeBase.status, filters.status));
+    }
+
+    if (filters.search) {
+      conditions.push(
+        or(
+          like(knowledgeBase.title, `%${filters.search}%`),
+          like(knowledgeBase.content, `%${filters.search}%`)
+        )
+      );
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [{ total }] = await db
+      .select({ total: count() })
+      .from(knowledgeBase)
+      .where(whereClause);
+
+    const data = await db
+      .select()
+      .from(knowledgeBase)
+      .where(whereClause)
+      .orderBy(desc(knowledgeBase.created_at))
+      .limit(limit)
+      .offset(offset);
 
     return {
-      total_devices: allDevices.length,
-      online_devices: allDevices.filter(device => device.status === "online").length,
-      offline_devices: allDevices.filter(device => device.status === "offline").length,
-      active_alerts: activeAlerts.length
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
     };
+  }
+
+  async getKBArticleById(id: string) {
+    const { knowledgeBase } = await import("@shared/ticket-schema");
+
+    const [article] = await db
+      .select()
+      .from(knowledgeBase)
+      .where(eq(knowledgeBase.id, id));
+
+    return article || null;
+  }
+
+  async createKBArticle(data: any) {
+    const { knowledgeBase } = await import("@shared/ticket-schema");
+
+    const [article] = await db
+      .insert(knowledgeBase)
+      .values(data)
+      .returning();
+
+    return article;
+  }
+
+  async updateKBArticle(id: string, updates: any) {
+    const { knowledgeBase } = await import("@shared/ticket-schema");
+
+    const [updatedArticle] = await db
+      .update(knowledgeBase)
+      .set({
+        ...updates,
+        updated_at: new Date()
+      })
+      .where(eq(knowledgeBase.id, id))
+      .returning();
+
+    return updatedArticle || null;
+  }
+
+  async deleteKBArticle(id: string) {
+    const { knowledgeBase } = await import("@shared/ticket-schema");
+
+    const result = await db
+      .delete(knowledgeBase)
+      .where(eq(knowledgeBase.id, id));
+
+    return result.rowCount > 0;
+  }
+
+  // User Management methods
+  async getUsers(filters: { search?: string; role?: string } = {}) {
+    const { users } = await import("@shared/user-schema");
+    const { and, or, like } = await import("drizzle-orm");
+
+    const conditions = [];
+
+    if (filters.search) {
+      conditions.push(
+        or(
+          like(users.name, `%${filters.search}%`),
+          like(users.email, `%${filters.search}%`)
+        )
+      );
+    }
+
+    if (filters.role && filters.role !== "all") {
+      conditions.push(eq(users.role, filters.role));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const result = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        role: users.role,
+        department: users.department,
+        phone: users.phone,
+        is_active: users.is_active,
+        last_login: users.last_login,
+        created_at: users.created_at
+      })
+      .from(users)
+      .where(whereClause)
+      .orderBy(users.created_at);
+
+    return result;
+  }
+
+  async getUserById(id: string) {
+    const { users } = await import("@shared/user-schema");
+
+    const [user] = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        role: users.role,
+        department: users.department,
+        phone: users.phone,
+        is_active: users.is_active,
+        last_login: users.last_login,
+        created_at: users.created_at
+      })
+      .from(users)
+      .where(eq(users.id, id));
+
+    return user || null;
+  }
+
+  async createUser(data: any) {
+    const { users } = await import("@shared/user-schema");
+    const bcrypt = await import("bcrypt");
+
+    // Hash password
+    const password_hash = await bcrypt.hash(data.password, 10);
+
+    const [user] = await db
+      .insert(users)
+      .values({
+        ...data,
+        password_hash,
+        password: undefined // Remove plain password
+      })
+      .returning({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        role: users.role,
+        department: users.department,
+        phone: users.phone,
+        is_active: users.is_active,
+        created_at: users.created_at
+      });
+
+    return user;
+  }
+
+  async updateUser(id: string, updates: any) {
+    const { users } = await import("@shared/user-schema");
+
+    // Remove password from updates if not provided
+    const updateData = { ...updates };
+    if (updateData.password) {
+      const bcrypt = await import("bcrypt");
+      updateData.password_hash = await bcrypt.hash(updateData.password, 10);
+      delete updateData.password;
+    }
+
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        ...updateData,
+        updated_at: new Date()
+      })
+      .where(eq(users.id, id))
+      .returning({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        role: users.role,
+        department: users.department,
+        phone: users.phone,
+        is_active: users.is_active,
+        created_at: users.created_at
+      });
+
+    return updatedUser || null;
+  }
+
+  async deleteUser(id: string) {
+    const { users } = await import("@shared/user-schema");
+
+    const result = await db
+      .delete(users)
+      .where(eq(users.id, id));
+
+    return result.rowCount > 0;
   }
 }
 
