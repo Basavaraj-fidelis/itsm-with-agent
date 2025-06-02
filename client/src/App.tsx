@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { Router, Route, Switch, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { ProtectedRoute, AuthProvider } from "@/components/auth/protected-route";
@@ -74,107 +74,98 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Router>
-          <Routes>
-          {/* Public routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
+          <Switch>
+            {/* Public routes */}
+            <Route path="/login">
+              <Login />
+            </Route>
+            <Route path="/signup">
+              <Signup />
+            </Route>
 
-          {/* Protected routes */}
-          <Route
-            path="/dashboard"
-            element={
+            {/* Protected routes */}
+            <Route path="/dashboard">
               <ProtectedRoute>
                 <AuthenticatedLayout>
                   <Dashboard />
                 </AuthenticatedLayout>
               </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/agents"
-            element={
-              <ProtectedRoute requiredRole={["admin", "manager", "technician"]}>
-                <AuthenticatedLayout>
-                  <Agents />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/agents/:id"
-            element={
+            </Route>
+            
+            <Route path="/agents/:id">
               <ProtectedRoute requiredRole={["admin", "manager", "technician"]}>
                 <AuthenticatedLayout>
                   <AgentDetail />
                 </AuthenticatedLayout>
               </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/alerts"
-            element={
+            </Route>
+            
+            <Route path="/agents">
+              <ProtectedRoute requiredRole={["admin", "manager", "technician"]}>
+                <AuthenticatedLayout>
+                  <Agents />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            </Route>
+            
+            <Route path="/alerts">
               <ProtectedRoute requiredRole={["admin", "manager", "technician"]}>
                 <AuthenticatedLayout>
                   <Alerts />
                 </AuthenticatedLayout>
               </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/tickets"
-            element={
+            </Route>
+            
+            <Route path="/tickets">
               <ProtectedRoute>
                 <AuthenticatedLayout>
                   <Tickets />
                 </AuthenticatedLayout>
               </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/knowledge-base"
-            element={
+            </Route>
+            
+            <Route path="/knowledge-base">
               <ProtectedRoute>
                 <AuthenticatedLayout>
                   <KnowledgeBase />
                 </AuthenticatedLayout>
               </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/users"
-            element={
+            </Route>
+            
+            <Route path="/users">
               <ProtectedRoute requiredRole={["admin", "manager"]}>
                 <AuthenticatedLayout>
                   <Users />
                 </AuthenticatedLayout>
               </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
+            </Route>
+            
+            <Route path="/settings">
               <ProtectedRoute requiredRole={["admin"]}>
                 <AuthenticatedLayout>
                   <Settings />
                 </AuthenticatedLayout>
               </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/reports"
-            element={
+            </Route>
+            
+            <Route path="/reports">
               <ProtectedRoute requiredRole={["admin", "manager"]}>
                 <AuthenticatedLayout>
                   <Reports />
                 </AuthenticatedLayout>
               </ProtectedRoute>
-            }
-          />
+            </Route>
 
-          {/* Default redirects */}
-          <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            {/* Default redirect */}
+            <Route path="/">
+              {isAuthenticated ? <Redirect to="/dashboard" /> : <Redirect to="/login" />}
+            </Route>
+            
+            {/* 404 route */}
+            <Route>
+              <NotFound />
+            </Route>
+          </Switch>
         </Router>
         <Toaster />
       </AuthProvider>

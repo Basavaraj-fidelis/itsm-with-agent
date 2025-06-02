@@ -1,4 +1,4 @@
-import { Navigate } from "react-router-dom";
+import { Redirect } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { createContext, useContext, useEffect, useState } from "react";
@@ -80,7 +80,7 @@ export function ProtectedRoute({
   }
 
   if (!user) {
-    return <Navigate to={fallbackPath} replace />;
+    return <Redirect to={fallbackPath} />;
   }
 
   // Check if user is active
