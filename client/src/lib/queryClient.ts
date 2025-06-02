@@ -7,43 +7,22 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-export async function apiRequest(
-  method: string,
-  url: string,
-  data?: any
-): Promise<Response> {
-  // Get token from localStorage
-  const token = localStorage.getItem('token');
+export async function apiRequest(method: string, url: string, data?: any) {
+  const token = localStorage.getItem("auth_token");
 
   const config: RequestInit = {
     method,
     headers: {
       "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
     },
   };
 
-  // Add Authorization header if token exists
-  if (token) {
-    (config.headers as Record<string, string>).Authorization = `Bearer ${token}`;
-  }
-
-  if (data) {
+  if (data && (method === "POST" || method === "PUT")) {
     config.body = JSON.stringify(data);
   }
 
   const response = await fetch(url, config);
-
-  if (!response.ok) {
-    if (response.status === 401) {
-      // Clear token and redirect to login on authentication failure
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = "/login";
-      throw new Error("Authentication required");
-    }
-    throw new Error(`API request failed: ${response.statusText}`);
-  }
-
   return response;
 }
 

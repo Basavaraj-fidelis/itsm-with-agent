@@ -8,11 +8,11 @@ import { Monitor, CheckCircle, AlertTriangle, XCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export default function Dashboard() {
-  const { data: summary, isLoading: summaryLoading } = useDashboardSummary();
-  const { data: alerts, isLoading: alertsLoading } = useAlerts();
-  const { data: agents, isLoading: agentsLoading } = useAgents();
+  const { data: summary, isLoading: summaryLoading, error: summaryError } = useDashboardSummary();
+  const { data: alerts, isLoading: alertsLoading, error: alertsError } = useAlerts();
+  const { data: agents, isLoading: agentsLoading, error: agentsError } = useAgents();
 
-  if (summaryLoading) {
+  if (summaryLoading || agentsLoading || alertsLoading) {
     return (
       <div className="p-6 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -22,6 +22,37 @@ export default function Dashboard() {
               className="animate-pulse bg-neutral-200 dark:bg-neutral-700 h-32 rounded-lg"
             ></div>
           ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (summaryError || alertsError || agentsError) {
+    return (
+      <div className="flex items-center justify-center h-96 p-6">
+        <div className="text-center">
+          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-2" />
+          <h3 className="text-lg font-semibold text-red-600 mb-2">
+            Error Loading Dashboard
+          </h3>
+          <p className="text-neutral-600">
+            Please refresh the page or try again later.
+          </p>
+          {summaryError && (
+            <p className="text-xs text-red-500 mt-2">
+              Summary Error: {summaryError.message}
+            </p>
+          )}
+          {alertsError && (
+            <p className="text-xs text-red-500 mt-2">
+              Alerts Error: {alertsError.message}
+            </p>
+          )}
+          {agentsError && (
+            <p className="text-xs text-red-500 mt-2">
+              Agents Error: {agentsError.message}
+            </p>
+          )}
         </div>
       </div>
     );

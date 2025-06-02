@@ -1,18 +1,51 @@
-
-import { ReactNode, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { createContext, useContext, useEffect, useState } from "react";
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  department?: string;
-  is_active: boolean;
+// Auth Context
+const AuthContext = createContext<{
+  user: any;
+  login: (token: string, userData: any) => void;
+  logout: () => void;
+}>({
+  user: null,
+  login: () => {},
+  logout: () => {}
+});
+
+export function useAuth() {
+  return useContext(AuthContext);
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState(() => {
+    const storedUser = localStorage.getItem("user");
+    return storedUser ? JSON.parse(storedUser) : null;
+  });
+
+  const login = (token: string, userData: any) => {
+    localStorage.setItem("auth_token", token);
+    localStorage.setItem("user", JSON.stringify(userData));
+    setUser(userData);
+  };
+
+  const logout = () => {
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("user");
+    setUser(null);
+    window.location.href = "/login";
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 interface ProtectedRouteProps {
-  children: ReactNode;
+  children: React.ReactNode;
   requiredRole?: string | string[];
   fallbackPath?: string;
 }
@@ -22,44 +55,18 @@ export function ProtectedRoute({
   requiredRole, 
   fallbackPath = "/login" 
 }: ProtectedRouteProps) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const token = localStorage.getItem("auth_token");
-        if (!token) {
-          setIsLoading(false);
-          return;
-        }
-
-        // Verify token with server
-        const response = await fetch("/api/auth/verify", {
-          headers: {
-            "Authorization": `Bearer ${token}`
-          }
-        });
-
-        if (response.ok) {
-          const userData = await response.json();
-          setUser(userData);
-        } else {
-          // Token invalid, remove from storage
-          localStorage.removeItem("auth_token");
-          localStorage.removeItem("user");
-        }
-      } catch (error) {
-        console.error("Auth check failed:", error);
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("user");
-      } finally {
-        setIsLoading(false);
+  const { data: user, isLoading, error } = useQuery({
+    queryKey: ["auth"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/auth/verify");
+      if (!response.ok) {
+        throw new Error("Authentication failed");
       }
-    };
-
-    checkAuth();
-  }, []);
+      return response.json();
+    },
+    retry: false,
+    staleTime: 0,
+  });
 
   if (isLoading) {
     return (
@@ -109,12 +116,9 @@ export function ProtectedRoute({
       return (
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center p-8">
-            <h2 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h2>
+            <h2 className="text-2xl font-bold text-orange-600 mb-4">Access Denied</h2>
             <p className="text-neutral-600 mb-4">
               You don't have permission to access this page.
-            </p>
-            <p className="text-sm text-neutral-500 mb-4">
-              Required role: {roles.join(" or ")} | Your role: {user.role}
             </p>
             <button
               onClick={() => window.history.back()}
@@ -129,28 +133,4 @@ export function ProtectedRoute({
   }
 
   return <>{children}</>;
-}
-
-export function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (userData) {
-      try {
-        setUser(JSON.parse(userData));
-      } catch (error) {
-        console.error("Error parsing user data:", error);
-        localStorage.removeItem("user");
-      }
-    }
-  }, []);
-
-  const logout = () => {
-    localStorage.removeItem("auth_token");
-    localStorage.removeItem("user");
-    window.location.href = "/login";
-  };
-
-  return { user, logout };
 }
