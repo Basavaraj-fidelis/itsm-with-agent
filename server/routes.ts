@@ -2,11 +2,178 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { registerTicketRoutes } from "./ticket-routes";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 // Removed validation schema import - using flexible data parsing
 
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+
+// Auth middleware
+const authenticateToken = async (req: any, res: any, next: any) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ message: 'Access token required' });
+  }
+
+  try {
+    const decoded: any = jwt.verify(token, JWT_SECRET);
+    const user = await storage.getUserById(decoded.userId);
+    
+    if (!user || !user.is_active) {
+      return res.status(403).json({ message: 'User not found or inactive' });
+    }
+    
+    req.user = user;
+    next();
+  } catch (error) {
+    return res.status(403).json({ message: 'Invalid token' });
+  }
+};
+
+// Role check middleware
+const requireRole = (roles: string | string[]) => {
+  return (req: any, res: any, next: any) => {
+    const userRole = req.user?.role;
+    const allowedRoles = Array.isArray(roles) ? roles : [roles];
+    
+    if (userRole === 'admin' || allowedRoles.includes(userRole)) {
+      next();
+    } else {
+      res.status(403).json({ message: 'Insufficient permissions' });
+    }
+  };
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Authentication routes
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password required" });
+      }
+
+      // Get user by email
+      const users = await storage.getUsers({ search: email });
+      const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Check if user is active
+      if (!user.is_active) {
+        return res.status(403).json({ message: "Account is suspended" });
+      }
+
+      // For demo purposes, check simple passwords
+      let isValidPassword = false;
+      if (email === "admin@company.com" && password === "admin123") {
+        isValidPassword = true;
+      } else if (email === "tech@company.com" && password === "tech123") {
+        isValidPassword = true;
+      } else {
+        // In production, use bcrypt to compare hashed passwords
+        try {
+          // Assuming password is hashed in database
+          isValidPassword = await bcrypt.compare(password, user.password_hash || '');
+        } catch (error) {
+          // Fallback for demo users
+          isValidPassword = password === "demo123";
+        }
+      }
+
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Update last login
+      await storage.updateUser(user.id, { last_login: new Date() });
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { userId: user.id, email: user.email, role: user.role },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      // Return user data without password
+      const { password_hash, ...userWithoutPassword } = user as any;
+      
+      res.json({
+        token,
+        user: userWithoutPassword
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/auth/signup", async (req, res) => {
+    try {
+      const { name, email, password, role, department, phone } = req.body;
+
+      if (!name || !email || !password) {
+        return res.status(400).json({ message: "Name, email and password required" });
+      }
+
+      // Check if user already exists
+      const existingUsers = await storage.getUsers({ search: email });
+      if (existingUsers.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+        return res.status(400).json({ message: "Email already exists" });
+      }
+
+      // Hash password
+      const password_hash = await bcrypt.hash(password, 10);
+
+      // Create user
+      const newUser = await storage.createUser({
+        name,
+        email: email.toLowerCase(),
+        password_hash,
+        role: role || 'user',
+        department: department || '',
+        phone: phone || '',
+        is_active: true
+      });
+
+      // Return user data without password
+      const { password_hash: _, ...userWithoutPassword } = newUser as any;
+      
+      res.status(201).json({
+        message: "Account created successfully",
+        user: userWithoutPassword
+      });
+    } catch (error) {
+      console.error("Signup error:", error);
+      if (error.message?.includes("duplicate")) {
+        res.status(400).json({ message: "Email already exists" });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+
+  app.get("/api/auth/verify", authenticateToken, async (req: any, res) => {
+    try {
+      const { password_hash, ...userWithoutPassword } = req.user as any;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    // In a more sophisticated setup, you'd invalidate the token
+    res.json({ message: "Logged out successfully" });
+  });
+
   // Dashboard summary endpoint
-  app.get("/api/dashboard/summary", async (req, res) => {
+  app.get("/api/dashboard/summary", authenticateToken, async (req, res) => {
     try {
       const summary = await storage.getDashboardSummary();
       res.json(summary);
@@ -17,7 +184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all devices
-  app.get("/api/devices", async (req, res) => {
+  app.get("/api/devices", authenticateToken, async (req, res) => {
     try {
       const devices = await storage.getDevices();
 
@@ -60,7 +227,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get device by ID or hostname
-  app.get("/api/devices/:id", async (req, res) => {
+  app.get("/api/devices/:id", authenticateToken, async (req, res) => {
     try {
       let device = await storage.getDevice(req.params.id);
 
@@ -484,7 +651,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/alerts", async (req, res) => {
+  app.get("/api/alerts", authenticateToken, async (req, res) => {
     try {
       const alerts = await storage.getActiveAlerts();
 
@@ -544,7 +711,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Knowledge Base routes
-  app.get("/api/knowledge-base", async (req, res) => {
+  app.get("/api/knowledge-base", authenticateToken, async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
@@ -611,8 +778,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User Management routes
-  app.get("/api/users", async (req, res) => {
+  // User Management routes (Admin and Manager access)
+  app.get("/api/users", authenticateToken, requireRole(['admin', 'manager']), async (req, res) => {
     try {
       const search = req.query.search as string;
       const role = req.query.role as string;
@@ -638,7 +805,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/users", async (req, res) => {
+  app.post("/api/users", authenticateToken, requireRole(['admin']), async (req, res) => {
     try {
       const user = await storage.createUser(req.body);
       res.status(201).json(user);

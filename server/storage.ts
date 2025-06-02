@@ -32,12 +32,14 @@ export class MemStorage implements IStorage {
   private devices: Map<string, Device>;
   private deviceReports: Map<string, DeviceReport>;
   private alerts: Map<string, Alert>;
+  private users: Map<string, any>;
   private currentId: number;
 
   constructor() {
     this.devices = new Map();
     this.deviceReports = new Map();
     this.alerts = new Map();
+    this.users = new Map();
     this.currentId = 1;
 
     // Add some sample data for development
@@ -140,6 +142,130 @@ export class MemStorage implements IStorage {
     sampleAlerts.forEach(alert => {
       this.alerts.set(alert.id, alert);
     });
+
+    // Sample users for demo
+    const sampleUsers = [
+      {
+        id: this.generateId(),
+        email: "admin@company.com",
+        name: "System Administrator",
+        password_hash: "$2b$10$dummy.hash.for.demo", // In real app, this would be bcrypt hash
+        role: "admin",
+        department: "IT",
+        phone: "+1 (555) 123-4567",
+        is_active: true,
+        last_login: new Date(),
+        created_at: new Date(),
+        updated_at: new Date()
+      },
+      {
+        id: this.generateId(),
+        email: "tech@company.com",
+        name: "John Technician",
+        password_hash: "$2b$10$dummy.hash.for.demo",
+        role: "technician",
+        department: "IT",
+        phone: "+1 (555) 123-4568",
+        is_active: true,
+        last_login: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+        created_at: new Date(),
+        updated_at: new Date()
+      },
+      {
+        id: this.generateId(),
+        email: "manager@company.com",
+        name: "Jane Manager",
+        password_hash: "$2b$10$dummy.hash.for.demo",
+        role: "manager",
+        department: "IT",
+        phone: "+1 (555) 123-4569",
+        is_active: true,
+        last_login: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+        created_at: new Date(),
+        updated_at: new Date()
+      },
+      {
+        id: this.generateId(),
+        email: "user@company.com",
+        name: "Bob User",
+        password_hash: "$2b$10$dummy.hash.for.demo",
+        role: "user",
+        department: "Finance",
+        phone: "+1 (555) 123-4570",
+        is_active: true,
+        last_login: null,
+        created_at: new Date(),
+        updated_at: new Date()
+      }
+    ];
+
+    this.users = new Map();
+    sampleUsers.forEach(user => {
+      this.users.set(user.id, user);
+    });
+  }
+
+  // User management methods for in-memory storage
+  async getUsers(filters: { search?: string; role?: string } = {}): Promise<any[]> {
+    let users = Array.from(this.users.values());
+
+    if (filters.search) {
+      const search = filters.search.toLowerCase();
+      users = users.filter(user => 
+        user.name.toLowerCase().includes(search) ||
+        user.email.toLowerCase().includes(search)
+      );
+    }
+
+    if (filters.role && filters.role !== "all") {
+      users = users.filter(user => user.role === filters.role);
+    }
+
+    return users.map(user => {
+      const { password_hash, ...userWithoutPassword } = user;
+      return userWithoutPassword;
+    });
+  }
+
+  async getUserById(id: string): Promise<any | null> {
+    const user = this.users.get(id);
+    if (!user) return null;
+    
+    const { password_hash, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  }
+
+  async createUser(data: any): Promise<any> {
+    const id = this.generateId();
+    const newUser = {
+      ...data,
+      id,
+      created_at: new Date(),
+      updated_at: new Date()
+    };
+    this.users.set(id, newUser);
+    
+    const { password_hash, ...userWithoutPassword } = newUser;
+    return userWithoutPassword;
+  }
+
+  async updateUser(id: string, updates: any): Promise<any | null> {
+    const existing = this.users.get(id);
+    if (!existing) return null;
+
+    const updated = {
+      ...existing,
+      ...updates,
+      updated_at: new Date()
+    };
+    this.users.set(id, updated);
+    
+    const { password_hash, ...userWithoutPassword } = updated;
+    return userWithoutPassword;
+  }
+
+  async deleteUser(id: string): Promise<boolean> {
+    return this.users.delete(id);
   }
 
   async getDevices(): Promise<Device[]> {
@@ -216,6 +342,40 @@ export class MemStorage implements IStorage {
     };
     this.alerts.set(id, newAlert);
     return newAlert;
+  }
+
+  async getActiveAlertByDeviceAndMetric(deviceId: string, metric: string): Promise<Alert | null> {
+    const alert = Array.from(this.alerts.values()).find(alert => 
+      alert.device_id === deviceId && 
+      alert.is_active && 
+      alert.metadata && 
+      (alert.metadata as any).metric === metric
+    );
+    return alert || null;
+  }
+
+  async updateAlert(alertId: string, updates: Partial<Alert>): Promise<void> {
+    const existing = this.alerts.get(alertId);
+    if (existing) {
+      const updated: Alert = {
+        ...existing,
+        ...updates,
+        triggered_at: new Date()
+      };
+      this.alerts.set(alertId, updated);
+    }
+  }
+
+  async resolveAlert(alertId: string): Promise<void> {
+    const existing = this.alerts.get(alertId);
+    if (existing) {
+      const updated: Alert = {
+        ...existing,
+        is_active: false,
+        resolved_at: new Date()
+      };
+      this.alerts.set(alertId, updated);
+    }
   }
 
   async getActiveAlertByDeviceAndMetric(deviceId: string, metric: string): Promise<Alert | null> {

@@ -1,73 +1,88 @@
-import { Link, useLocation } from "wouter";
+import { Home, Users, AlertTriangle, Settings, BarChart3, Ticket, BookOpen, Monitor, Menu, X, Shield } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Server, BarChart3, Monitor, AlertTriangle, FileText, Settings, Ticket, BookOpen, Users } from "lucide-react";
+import { useState } from "react";
+import { useAuth } from "@/components/auth/protected-route";
 
-const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
-  { name: "Agents", href: "/agents", icon: Monitor },
-  { name: "Alerts", href: "/alerts", icon: AlertTriangle },
-  { name: "Service Desk", href: "/tickets", icon: Ticket },
-  { name: "Knowledge Base", href: "/knowledge-base", icon: BookOpen },
-  { name: "Users", href: "/users", icon: Users },
-  { name: "Reports", href: "/reports", icon: FileText },
-  { name: "Settings", href: "/settings", icon: Settings },
-];
+export default function Sidebar() {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { user } = useAuth();
 
-export function Sidebar() {
-  const [location] = useLocation();
+  // Define navigation based on user role
+  const getNavigation = () => {
+    const baseNavigation = [
+      { name: "Dashboard", href: "/dashboard", icon: Home, current: window.location.pathname === "/dashboard", roles: ["user", "technician", "manager", "admin"] },
+      { name: "Tickets", href: "/tickets", icon: Ticket, current: window.location.pathname === "/tickets", roles: ["user", "technician", "manager", "admin"] },
+      { name: "Knowledge Base", href: "/knowledge-base", icon: BookOpen, current: window.location.pathname === "/knowledge-base", roles: ["user", "technician", "manager", "admin"] },
+    ];
+
+    const techNavigation = [
+      { name: "Agents", href: "/agents", icon: Monitor, current: window.location.pathname === "/agents", roles: ["technician", "manager", "admin"] },
+      { name: "Alerts", href: "/alerts", icon: AlertTriangle, current: window.location.pathname === "/alerts", roles: ["technician", "manager", "admin"] },
+    ];
+
+    const managerNavigation = [
+      { name: "Users", href: "/users", icon: Users, current: window.location.pathname === "/users", roles: ["manager", "admin"] },
+      { name: "Reports", href: "/reports", icon: BarChart3, current: window.location.pathname === "/reports", roles: ["manager", "admin"] },
+    ];
+
+    const adminNavigation = [
+      { name: "Settings", href: "/settings", icon: Settings, current: window.location.pathname === "/settings", roles: ["admin"] },
+    ];
+
+    const allNavigation = [...baseNavigation, ...techNavigation, ...managerNavigation, ...adminNavigation];
+
+    // Filter navigation based on user role
+    return allNavigation.filter(item => 
+      user?.role === 'admin' || item.roles.includes(user?.role || 'user')
+    );
+  };
+
+  const navigation = getNavigation();
 
   return (
-    <div className="w-64 bg-white dark:bg-neutral-800 shadow-sm border-r border-neutral-200 dark:border-neutral-700 flex flex-col">
-      {/* Logo */}
-      <div className="p-6 border-b border-neutral-200 dark:border-neutral-700">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <Server className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200">ITSM Portal</h1>
-            <p className="text-xs text-neutral-500">IT Service Management</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 p-4">
-        <ul className="space-y-2">
-          {navigation.map((item) => {
-            const isActive = location === item.href || (item.href === "/dashboard" && location === "/");
-            return (
-              <li key={item.name}>
-                <Link
-                  href={item.href}
-                  className={cn(
-                    "w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-base font-medium transition-colors",
-                    isActive
-                      ? "bg-blue-600 text-white"
-                      : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+    <div className={cn("flex flex-col h-full bg-white border-r border-neutral-200 dark:bg-neutral-900 dark:border-neutral-800 w-full", isCollapsed ? "w-16" : "w-64")}>
+      <div className="flex items-center justify-between p-4">
+          <div className={cn("flex items-center space-x-3", isCollapsed && "justify-center")}>
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+              <Monitor className="w-5 h-5 text-white" />
+            </div>
+            {!isCollapsed && (
+              <div className="flex-1">
+                <h1 className="text-lg font-semibold text-neutral-900 dark:text-white">ITSM</h1>
+                <div className="flex items-center space-x-2">
+                  <p className="text-xs text-neutral-600 dark:text-neutral-400">Portal</p>
+                  {user?.role && (
+                    <Badge variant="outline" className="text-xs px-1 py-0">
+                      <Shield className="w-3 h-3 mr-1" />
+                      {user.role}
+                    </Badge>
                   )}
-                >
-                  <item.icon className="w-4 h-4" />
-                  <span>{item.name}</span>
-                </Link>
-              </li>
-            );
-          })}
+                </div>
+              </div>
+            )}
+          </div>
+          <Button variant="ghost" size="icon" className="p-0" onClick={() => setIsCollapsed(!isCollapsed)}>
+            {isCollapsed ? <Menu /> : <X />}
+          </Button>
+        </div>
+      <nav className="flex-1 px-2 py-4">
+        <ul className="space-y-1">
+          {navigation.map((item) => (
+            <li key={item.name}>
+              <Link href={item.href} className="group flex items-center space-x-3 py-2 px-3 rounded-md font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
+                <item.icon className="w-4 h-4 text-neutral-600 dark:text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-neutral-100" />
+                {!isCollapsed && (
+                  <span>
+                    {item.name}
+                  </span>
+                )}
+              </Link>
+            </li>
+          ))}
         </ul>
       </nav>
-
-      {/* User section */}
-      <div className="p-4 border-t border-neutral-200 dark:border-neutral-700">
-        <div className="flex items-center space-x-3 px-3 py-2">
-          <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-600 rounded-full flex items-center justify-center">
-            <span className="text-neutral-600 dark:text-neutral-300 text-sm font-medium">A</span>
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">Admin User</p>
-            <p className="text-xs text-neutral-500">System Administrator</p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
