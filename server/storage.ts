@@ -870,8 +870,28 @@ export class DatabaseStorage implements IStorage {
     const allDevices = await db.select().from(devices);
     const activeAlerts = await db.select().from(alerts).where(eq(alerts.is_active, true));
 
+    // Update offline status for devices that haven't been seen for 5+ minutes
+    const now = new Date();
+    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+
+    for (const device of allDevices) {
+      const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
+      if (lastSeen && lastSeen < fiveMinutesAgo && device.status === "online") {
+        await db
+          .update(devices)
+          .set({ status: "offline" })
+          .where(eq(devices.id, device.id));
+        device.status = "offline";
+      }
+    }
+
+    const onlineDevices = allDevices.filter(device => device.status === "online").length;
+    const offlineDevices = allDevices.filter(device => device.status === "offline").length;
+
     return {
       total_devices: allDevices.length,
+      online_devices: onlineDevices,
+      offline_devices: offlineDevices,
       active_alerts: activeAlerts.length
     };
   }

@@ -12,6 +12,21 @@ export default function Dashboard() {
   const { data: alerts, isLoading: alertsLoading, error: alertsError } = useAlerts();
   const { data: agents, isLoading: agentsLoading, error: agentsError } = useAgents();
 
+  // Debug authentication state
+  React.useEffect(() => {
+    const token = localStorage.getItem('auth_token');
+    console.log('Dashboard - Auth token present:', !!token);
+    if (summaryError) {
+      console.error('Dashboard summary error:', summaryError);
+    }
+    if (alertsError) {
+      console.error('Dashboard alerts error:', alertsError);
+    }
+    if (agentsError) {
+      console.error('Dashboard agents error:', agentsError);
+    }
+  }, [summaryError, alertsError, agentsError]);
+
   if (summaryLoading || agentsLoading || alertsLoading) {
     return (
       <div className="p-6 space-y-6">

@@ -43,6 +43,12 @@ export interface Alert {
   device_hostname?: string;
 }
 
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('auth_token');
+  console.log('Getting auth token from localStorage:', token ? 'Token found' : 'No token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 export const api = {
   async getDashboardSummary(): Promise<DashboardSummary> {
     const response = await apiRequest("GET", "/api/dashboard/summary");
