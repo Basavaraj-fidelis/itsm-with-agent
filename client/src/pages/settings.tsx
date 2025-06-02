@@ -125,12 +125,27 @@ export default function Settings() {
   // Load settings from localStorage on component mount
   useEffect(() => {
     const savedSettings = localStorage.getItem("itsm-settings");
+    const savedGeneralSettings = localStorage.getItem("settings");
+    
     if (savedSettings) {
       try {
         const parsed = JSON.parse(savedSettings);
         setSettings((prev) => ({ ...prev, ...parsed }));
       } catch (error) {
         console.error("Failed to load settings:", error);
+      }
+    }
+
+    if (savedGeneralSettings) {
+      try {
+        const parsed = JSON.parse(savedGeneralSettings);
+        if (parsed.darkMode !== undefined) setDarkMode(parsed.darkMode);
+        if (parsed.emailNotifications !== undefined) setEmailNotifications(parsed.emailNotifications);
+        if (parsed.pushNotifications !== undefined) setPushNotifications(parsed.pushNotifications);
+        if (parsed.notificationEmail !== undefined) setNotificationEmail(parsed.notificationEmail);
+        if (parsed.smtpSettings !== undefined) setSmtpSettings(parsed.smtpSettings);
+      } catch (error) {
+        console.error("Failed to load general settings:", error);
       }
     }
   }, []);
@@ -158,13 +173,30 @@ export default function Settings() {
   }, []);
 
   const updateSetting = (key: string, value: any) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
+    const newSettings = { ...settings, [key]: value };
+    setSettings(newSettings);
     setHasChanges(true);
+    
+    // Auto-save to localStorage
+    localStorage.setItem("itsm-settings", JSON.stringify(newSettings));
   };
 
   const saveSettings = async () => {
     try {
-      // In a real app, you would save to backend
+      // Save all settings to localStorage
+      localStorage.setItem("itsm-settings", JSON.stringify(settings));
+      localStorage.setItem(
+        "settings",
+        JSON.stringify({
+          darkMode,
+          emailNotifications,
+          pushNotifications,
+          notificationEmail,
+          smtpSettings,
+        }),
+      );
+
+      // In a real app, you would also save to backend
       // await api.saveSettings(settings);
 
       toast({

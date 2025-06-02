@@ -445,73 +445,227 @@ export class MemStorage implements IStorage {
 export class DatabaseStorage implements IStorage {
   // Initialize demo users if they don't exist
   async initializeDemoUsers() {
-    const { users } = await import("@shared/user-schema");
-    const bcrypt = await import('bcrypt');
+    try {
+      const { users } = await import("@shared/user-schema");
+      const bcrypt = await import("bcrypt");
 
-    const demoUsers = [
-      {
-        email: "admin@company.com",
-        name: "System Administrator",
-        password: "admin123", // Plain password to be hashed
-        role: "admin",
-        department: "IT",
-        phone: "+1-555-0100",
-        is_active: true
-      },
-      {
-        email: "tech@company.com", 
-        name: "Technical Support",
-        password: "tech123",
-        role: "technician",
-        department: "IT Support",
-        phone: "+1-555-0101",
-        is_active: true
-      },
-      {
-        email: "manager@company.com",
-        name: "IT Manager", 
-        password: "demo123",
-        role: "manager",
-        department: "IT Management",
-        phone: "+1-555-0102",
-        is_active: true
-      },
-      {
-        email: "user@company.com",
-        name: "End User",
-        password: "demo123", 
-        role: "user",
-        department: "General",
-        phone: "+1-555-0103",
-        is_active: true
+      // Check if demo users already exist
+      const existingUsers = await db.select().from(users);
+      if (existingUsers.length > 0) {
+        console.log("Demo users already exist, skipping initialization");
+      } else {
+        const demoUsers = [
+          {
+            email: "admin@company.com",
+            name: "System Administrator",
+            password_hash: await bcrypt.hash("admin123", 10),
+            role: "admin",
+            department: "IT",
+            phone: "+1-555-0101",
+            is_active: true
+          },
+          {
+            email: "manager@company.com", 
+            name: "IT Manager",
+            password_hash: await bcrypt.hash("demo123", 10),
+            role: "manager",
+            department: "IT",
+            phone: "+1-555-0102",
+            is_active: true
+          },
+          {
+            email: "tech@company.com",
+            name: "Senior Technician",
+            password_hash: await bcrypt.hash("tech123", 10),
+            role: "technician",
+            department: "IT Support",
+            phone: "+1-555-0103",
+            is_active: true
+          },
+          {
+            email: "user@company.com",
+            name: "End User",
+            password_hash: await bcrypt.hash("demo123", 10),
+            role: "user",
+            department: "Sales",
+            phone: "+1-555-0104",
+            is_active: true
+          }
+        ];
+
+        await db.insert(users).values(demoUsers);
+        console.log("Demo users created successfully");
       }
-    ];
 
-    for (const userData of demoUsers) {
-      try {
-        // Check if user already exists by querying database directly
-        const existingUser = await db.select().from(users).where(eq(users.email, userData.email));
+      // Initialize sample knowledge base articles
+      await this.initializeSampleKBArticles();
+    } catch (error) {
+      console.error("Error creating demo users:", error);
+    }
+  }
 
-        if (existingUser.length === 0) {
-          // Hash password properly
-          const hashedPassword = await bcrypt.hash(userData.password, 10);
+  async initializeSampleKBArticles() {
+    try {
+      const { knowledgeBase } = await import("@shared/ticket-schema");
 
-          await db.insert(users).values({
-            email: userData.email,
-            name: userData.name,
-            password_hash: hashedPassword,
-            role: userData.role,
-            department: userData.department,
-            phone: userData.phone,
-            is_active: userData.is_active
-          });
-          console.log(`✓ Created demo user: ${userData.email} with role: ${userData.role}`);
-        } else {
-          console.log(`✓ Demo user already exists: ${userData.email}`);
+      // Check if articles already exist
+      const existingArticles = await db.select().from(knowledgeBase);
+      if (existingArticles.length > 0) {
+        console.log("Knowledge base articles already exist, skipping initialization");
+        return;
+      }
+
+      const sampleArticles = [
+        {
+          title: "How to Reset Your Password",
+          content: `# Password Reset Guide
+
+Follow these steps to reset your password:
+
+1. Navigate to the login page
+2. Click "Forgot Password?"
+3. Enter your email address
+4. Check your email for reset instructions
+5. Follow the link in the email
+6. Create a new secure password
+
+## Password Requirements
+- Minimum 8 characters
+- At least one uppercase letter
+- At least one lowercase letter
+- At least one number
+- At least one special character
+
+If you continue to have issues, contact IT support.`,
+          category: "General",
+          tags: ["password", "login", "security"],
+          author_email: "admin@company.com",
+          status: "published",
+          views: 45,
+          helpful_votes: 12
+        },
+        {
+          title: "VPN Setup Instructions",
+          content: `# VPN Configuration Guide
+
+## Windows Setup
+1. Download the VPN client from the IT portal
+2. Install the application
+3. Use your domain credentials to connect
+4. Select the appropriate server location
+
+## macOS Setup
+1. Open System Preferences > Network
+2. Click the + button to add a new connection
+3. Choose VPN from the Interface dropdown
+4. Enter the server details provided by IT
+
+## Troubleshooting
+- Check your internet connection
+- Verify your credentials
+- Try different server locations
+- Contact IT if connection fails`,
+          category: "Technical",
+          tags: ["vpn", "network", "remote-access"],
+          author_email: "tech@company.com",
+          status: "published",
+          views: 78,
+          helpful_votes: 25
+        },
+        {
+          title: "Software Installation Policy",
+          content: `# Software Installation Guidelines
+
+## Approved Software
+All software installations must be approved by IT before installation.
+
+## Request Process
+1. Submit a software request ticket
+2. Include business justification
+3. Wait for IT approval
+4. Schedule installation with IT team
+
+## Prohibited Software
+- File sharing applications
+- Unauthorized communication tools
+- Games and entertainment software
+- Software from untrusted sources
+
+## Security Considerations
+All software is scanned for security vulnerabilities before approval.`,
+          category: "Policy",
+          tags: ["software", "policy", "security"],
+          author_email: "manager@company.com",
+          status: "published",
+          views: 32,
+          helpful_votes: 8
+        },
+        {
+          title: "Email Configuration for Mobile Devices",
+          content: `# Mobile Email Setup
+
+## iPhone/iPad Setup
+1. Go to Settings > Mail > Accounts
+2. Tap "Add Account"
+3. Select "Microsoft Exchange"
+4. Enter your email and password
+5. Configure server settings as provided
+
+## Android Setup
+1. Open the Email app
+2. Tap "Add Account"
+3. Choose "Microsoft Exchange"
+4. Enter your credentials
+5. Allow the security policy
+
+## Server Settings
+- Server: mail.company.com
+- Domain: company.com
+- Use SSL: Yes
+- Port: 443`,
+          category: "Technical",
+          tags: ["email", "mobile", "configuration"],
+          author_email: "tech@company.com",
+          status: "published",
+          views: 56,
+          helpful_votes: 18
+        },
+        {
+          title: "Hardware Request Process",
+          content: `# Hardware Request Guidelines
+
+## Eligible Equipment
+- Laptops and desktops
+- Monitors and peripherals
+- Mobile devices
+- Specialized software tools
+
+## Request Process
+1. Submit hardware request ticket
+2. Include business justification
+3. Get manager approval
+4. Wait for procurement processing
+5. Schedule delivery and setup
+
+## Timeline
+- Standard requests: 5-7 business days
+- Specialized equipment: 2-3 weeks
+- Emergency requests: 24-48 hours
+
+Contact your manager for approval before submitting requests.`,
+          category: "Hardware",
+          tags: ["hardware", "request", "procurement"],
+          author_email: "manager@company.com",
+          status: "published",
+          views: 23,
+          helpful_votes: 5
         }
-      } catch (error) {
-        console.error(`✗ Error with demo user ${userData.email}:`, error.message);
-      }
+      ];
+
+      await db.insert(knowledgeBase).values(sampleArticles);
+      console.log("Sample knowledge base articles created successfully");
+    } catch (error) {
+      console.error("Error creating sample KB articles:", error);
     }
   }
   async getDevices(): Promise<Device[]> {
@@ -637,7 +791,6 @@ export class DatabaseStorage implements IStorage {
 
   // Knowledge Base methods
   async getKBArticles(page: number = 1, limit: number = 20, filters: any = {}) {
-    const offset = (page - 1) * limit;
     const { knowledgeBase } = await import("@shared/ticket-schema");
     const { and, or, like, count, desc } = await import("drizzle-orm");
 
@@ -828,8 +981,7 @@ export class DatabaseStorage implements IStorage {
     const updateData = { ...updates };
     if (updateData.password) {
       const bcrypt = await import("bcrypt");
-      updateData.password_hash = await bcrypt.hash(updateData.password, 10);
-      delete updateData.password;
+      updateData.password_hash = await bcrypt.hash(updateData.password, 10);delete updateData.password;
     }
 
     const [updatedUser] = await db
