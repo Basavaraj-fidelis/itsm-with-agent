@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,9 @@ import {
   ThumbsUp,
   MessageSquare,
   Filter,
-  Tag
+  Tag,
+  ArrowLeft,
+  ExternalLink
 } from "lucide-react";
 
 interface Article {
@@ -36,65 +38,47 @@ interface Article {
 export default function KnowledgeBase() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Mock data - replace with actual API call
-  const [articles] = useState<Article[]>([
-    {
-      id: "1",
-      title: "How to Reset Your Password",
-      content: "Step-by-step guide to reset your account password...",
-      author: "John Doe",
-      category: "Account Management",
-      tags: ["password", "account", "security"],
-      created_at: "2024-01-15T10:00:00Z",
-      updated_at: "2024-01-15T10:00:00Z",
-      views: 245,
-      likes: 12,
-      status: "published"
-    },
-    {
-      id: "2", 
-      title: "Network Connectivity Issues",
-      content: "Troubleshooting common network problems...",
-      author: "Jane Smith",
-      category: "Network",
-      tags: ["network", "connectivity", "troubleshooting"],
-      created_at: "2024-01-14T14:30:00Z",
-      updated_at: "2024-01-14T14:30:00Z",
-      views: 189,
-      likes: 8,
-      status: "published"
-    },
-    {
-      id: "3",
-      title: "Software Installation Guide",
-      content: "Installing and configuring business software...",
-      author: "Mike Johnson",
-      category: "Software",
-      tags: ["software", "installation", "configuration"],
-      created_at: "2024-01-13T09:15:00Z",
-      updated_at: "2024-01-13T09:15:00Z",
-      views: 156,
-      likes: 15,
-      status: "published"
+  // Fetch articles from API
+  const [articles, setArticles] = useState<Article[]>([]);
+
+  useEffect(() => {
+    fetchArticles();
+  }, []);
+
+  const fetchArticles = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/knowledge-base');
+      if (response.ok) {
+        const data = await response.json();
+        setArticles(data);
+      }
+    } catch (error) {
+      console.error('Error fetching articles:', error);
+    } finally {
+      setIsLoading(false);
     }
-  ]);
+  };
 
   const categories = [
     "all",
-    "Account Management", 
+    "Installation", 
+    "Troubleshooting",
+    "Alerts",
+    "Account Management",
     "Network",
     "Software",
     "Hardware",
-    "Security",
-    "Policies"
+    "Security"
   ];
 
   const filteredArticles = articles.filter(article => {
     const matchesSearch = article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          article.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         article.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+                         article.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesCategory = selectedCategory === "all" || article.category === selectedCategory;
     
@@ -109,6 +93,125 @@ export default function KnowledgeBase() {
     });
   };
 
+  const handleArticleClick = (article: Article) => {
+    setSelectedArticle(article);
+  };
+
+  const handleBackToList = () => {
+    setSelectedArticle(null);
+  };
+
+  const renderMarkdown = (content: string) => {
+    // Simple markdown-like rendering
+    return content
+      .split('\n')
+      .map((line, index) => {
+        if (line.startsWith('# ')) {
+          return <h1 key={index} className="text-2xl font-bold mt-6 mb-4 text-neutral-800 dark:text-neutral-200">{line.slice(2)}</h1>;
+        } else if (line.startsWith('## ')) {
+          return <h2 key={index} className="text-xl font-semibold mt-5 mb-3 text-neutral-700 dark:text-neutral-300">{line.slice(3)}</h2>;
+        } else if (line.startsWith('### ')) {
+          return <h3 key={index} className="text-lg font-medium mt-4 mb-2 text-neutral-700 dark:text-neutral-300">{line.slice(4)}</h3>;
+        } else if (line.startsWith('**') && line.endsWith('**')) {
+          return <p key={index} className="font-semibold mb-2 text-neutral-700 dark:text-neutral-300">{line.slice(2, -2)}</p>;
+        } else if (line.startsWith('- ')) {
+          return <li key={index} className="ml-4 mb-1 text-neutral-600 dark:text-neutral-400">{line.slice(2)}</li>;
+        } else if (/^\d+\./.test(line)) {
+          return <li key={index} className="ml-4 mb-1 text-neutral-600 dark:text-neutral-400 list-decimal">{line.replace(/^\d+\.\s*/, '')}</li>;
+        } else if (line.trim() === '') {
+          return <br key={index} />;
+        } else {
+          return <p key={index} className="mb-2 text-neutral-600 dark:text-neutral-400 leading-relaxed">{line}</p>;
+        }
+      });
+  };
+
+  // Article detail view
+  if (selectedArticle) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <Button 
+            variant="ghost" 
+            onClick={handleBackToList}
+            className="mb-4 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Knowledge Base
+          </Button>
+          
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <Badge variant="secondary" className="mb-3">
+                {selectedArticle.category}
+              </Badge>
+              <h1 className="text-3xl font-bold text-neutral-800 dark:text-neutral-200 mb-4">
+                {selectedArticle.title}
+              </h1>
+              
+              {/* Article meta */}
+              <div className="flex items-center space-x-6 text-sm text-neutral-500 mb-6">
+                <div className="flex items-center space-x-2">
+                  <User className="w-4 h-4" />
+                  <span>{selectedArticle.author}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Clock className="w-4 h-4" />
+                  <span>Updated {formatDate(selectedArticle.updated_at)}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Eye className="w-4 h-4" />
+                  <span>{selectedArticle.views} views</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <ThumbsUp className="w-4 h-4" />
+                  <span>{selectedArticle.likes} helpful</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex space-x-2">
+              <Button variant="outline" size="sm">
+                <ThumbsUp className="w-4 h-4 mr-2" />
+                Helpful
+              </Button>
+              <Button variant="outline" size="sm">
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Share
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Article content */}
+        <Card>
+          <CardContent className="p-8">
+            <div className="prose prose-neutral dark:prose-invert max-w-none">
+              {renderMarkdown(selectedArticle.content)}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tags */}
+        {selectedArticle.tags && selectedArticle.tags.length > 0 && (
+          <div className="mt-6">
+            <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Tags</h3>
+            <div className="flex flex-wrap gap-2">
+              {selectedArticle.tags.map((tag) => (
+                <Badge key={tag} variant="outline" className="text-xs">
+                  <Tag className="w-3 h-3 mr-1" />
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Article list view
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -157,73 +260,89 @@ export default function KnowledgeBase() {
         </CardContent>
       </Card>
 
-      {/* Articles Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredArticles.map((article) => (
-          <Card key={article.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <Badge variant="secondary" className="mb-2">
-                  {article.category}
-                </Badge>
-                <Button variant="ghost" size="sm">
-                  <Eye className="w-4 h-4" />
-                </Button>
-              </div>
-              <CardTitle className="text-lg line-clamp-2">
-                {article.title}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <p className="text-sm text-neutral-600 dark:text-neutral-400 line-clamp-3 mb-4">
-                {article.content}
-              </p>
-              
-              {/* Tags */}
-              <div className="flex flex-wrap gap-1 mb-4">
-                {article.tags.slice(0, 3).map((tag) => (
-                  <Badge key={tag} variant="outline" className="text-xs">
-                    <Tag className="w-3 h-3 mr-1" />
-                    {tag}
-                  </Badge>
-                ))}
-                {article.tags.length > 3 && (
-                  <Badge variant="outline" className="text-xs">
-                    +{article.tags.length - 3}
-                  </Badge>
-                )}
-              </div>
+      {/* Loading State */}
+      {isLoading && (
+        <div className="text-center py-8">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="mt-2 text-neutral-600">Loading articles...</p>
+        </div>
+      )}
 
-              <Separator className="mb-3" />
-              
-              {/* Footer */}
-              <div className="flex items-center justify-between text-xs text-neutral-500">
-                <div className="flex items-center space-x-2">
-                  <User className="w-3 h-3" />
-                  <span>{article.author}</span>
+      {/* Articles Grid */}
+      {!isLoading && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {filteredArticles.map((article) => (
+            <Card 
+              key={article.id} 
+              className="hover:shadow-lg transition-all cursor-pointer hover:border-blue-200 dark:hover:border-blue-800"
+              onClick={() => handleArticleClick(article)}
+            >
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <Badge variant="secondary" className="mb-2">
+                    {article.category}
+                  </Badge>
+                  <Button variant="ghost" size="sm">
+                    <Eye className="w-4 h-4" />
+                  </Button>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <div className="flex items-center space-x-1">
-                    <Eye className="w-3 h-3" />
-                    <span>{article.views}</span>
+                <CardTitle className="text-lg line-clamp-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                  {article.title}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-sm text-neutral-600 dark:text-neutral-400 line-clamp-3 mb-4">
+                  {article.content.split('\n').find(line => line.trim() && !line.startsWith('#'))?.slice(0, 150)}...
+                </p>
+                
+                {/* Tags */}
+                {article.tags && article.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-4">
+                    {article.tags.slice(0, 3).map((tag) => (
+                      <Badge key={tag} variant="outline" className="text-xs">
+                        <Tag className="w-3 h-3 mr-1" />
+                        {tag}
+                      </Badge>
+                    ))}
+                    {article.tags.length > 3 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{article.tags.length - 3}
+                      </Badge>
+                    )}
                   </div>
-                  <div className="flex items-center space-x-1">
-                    <ThumbsUp className="w-3 h-3" />
-                    <span>{article.likes}</span>
+                )}
+
+                <Separator className="mb-3" />
+                
+                {/* Footer */}
+                <div className="flex items-center justify-between text-xs text-neutral-500">
+                  <div className="flex items-center space-x-2">
+                    <User className="w-3 h-3" />
+                    <span>{article.author}</span>
                   </div>
-                  <div className="flex items-center space-x-1">
-                    <Clock className="w-3 h-3" />
-                    <span>{formatDate(article.created_at)}</span>
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-1">
+                      <Eye className="w-3 h-3" />
+                      <span>{article.views}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <ThumbsUp className="w-3 h-3" />
+                      <span>{article.likes}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Clock className="w-3 h-3" />
+                      <span>{formatDate(article.created_at)}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Empty State */}
-      {filteredArticles.length === 0 && (
+      {!isLoading && filteredArticles.length === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <BookOpen className="w-12 h-12 text-neutral-400 mb-4" />
