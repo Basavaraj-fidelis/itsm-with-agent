@@ -51,7 +51,7 @@ export default function App() {
 
   useEffect(() => {
     // Check for authentication token on app load
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('auth_token');
     const user = localStorage.getItem('user');
 
     if (token && user) {
