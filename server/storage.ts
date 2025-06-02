@@ -1222,6 +1222,7 @@ ipconfig /flushdns
     const { knowledgeBase } = await import("@shared/ticket-schema");
     const { and, or, like, count, desc } = await import("drizzle-orm");
 
+    const offset = (page - 1) * limit;
     const conditions = [];
 
     if (filters.category) {

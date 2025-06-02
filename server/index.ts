@@ -43,6 +43,117 @@ app.use((req, res, next) => {
 
   const server = await registerRoutes(app);
 
+  // Knowledge Base Routes (publicly accessible)
+  app.get("/api/knowledge-base", async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const filters = {
+        category: req.query.category as string,
+        search: req.query.search as string,
+        status: (req.query.status as string) || "published"
+      };
+
+      const result = await storage.getKBArticles(page, limit, filters);
+      res.json(result.data);
+    } catch (error) {
+      console.error("Error fetching KB articles:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // User Management Routes
+  app.get("/api/users", async (req, res) => {
+    try {
+      const search = req.query.search as string;
+      const role = req.query.role as string;
+      const users = await storage.getUsers({ search, role });
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Ticket Management Routes
+  app.get("/api/tickets", async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const filters = {
+        type: req.query.type as string,
+        status: req.query.status as string,
+        priority: req.query.priority as string,
+        search: req.query.search as string
+      };
+
+      const { ticketStorage } = await import("./ticket-storage");
+      const result = await ticketStorage.getTickets(page, limit, filters);
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching tickets:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/tickets/:id", async (req, res) => {
+    try {
+      const { ticketStorage } = await import("./ticket-storage");
+      const ticket = await ticketStorage.getTicketById(req.params.id);
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+      res.json(ticket);
+    } catch (error) {
+      console.error("Error fetching ticket:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/tickets", async (req, res) => {
+    try {
+      const { ticketStorage } = await import("./ticket-storage");
+      const ticket = await ticketStorage.createTicket(req.body);
+      res.status(201).json(ticket);
+    } catch (error) {
+      console.error("Error creating ticket:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.put("/api/tickets/:id", async (req, res) => {
+    try {
+      const { ticketStorage } = await import("./ticket-storage");
+      const ticket = await ticketStorage.updateTicket(req.params.id, req.body);
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+      res.json(ticket);
+    } catch (error) {
+      console.error("Error updating ticket:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/tickets/:id", async (req, res) => {
+    try {
+      const { ticketStorage } = await import("./ticket-storage");
+      const success = await ticketStorage.deleteTicket(req.params.id);
+      if (!success) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+      res.json({ message: "Ticket deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting ticket:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Health check
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "ok", timestamp: new Date() });
+  });
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";

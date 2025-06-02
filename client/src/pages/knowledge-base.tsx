@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,7 +17,9 @@ import {
   Filter,
   Tag,
   ArrowLeft,
-  ExternalLink
+  ExternalLink,
+  AlertCircle,
+  RefreshCw
 } from "lucide-react";
 
 interface Article {
@@ -43,6 +44,7 @@ export default function KnowledgeBase() {
 
   // Fetch articles from API
   const [articles, setArticles] = useState<Article[]>([]);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     fetchArticles();
@@ -51,13 +53,17 @@ export default function KnowledgeBase() {
   const fetchArticles = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/knowledge-base');
-      if (response.ok) {
-        const data = await response.json();
-        setArticles(data);
+      const response = await fetch(`/api/knowledge-base?status=published`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch articles: ${response.status}`);
       }
-    } catch (error) {
-      console.error('Error fetching articles:', error);
+      const data = await response.json();
+      setArticles(Array.isArray(data) ? data : []);
+      setError(null);
+    } catch (err: any) {
+      console.error('Error fetching articles:', err);
+      setError(err);
+      setArticles([]);
     } finally {
       setIsLoading(false);
     }
@@ -79,9 +85,9 @@ export default function KnowledgeBase() {
     const matchesSearch = article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          article.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          article.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-    
+
     const matchesCategory = selectedCategory === "all" || article.category === selectedCategory;
-    
+
     return matchesSearch && matchesCategory;
   });
 
@@ -140,7 +146,7 @@ export default function KnowledgeBase() {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Knowledge Base
           </Button>
-          
+
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <Badge variant="secondary" className="mb-3">
@@ -149,7 +155,7 @@ export default function KnowledgeBase() {
               <h1 className="text-3xl font-bold text-neutral-800 dark:text-neutral-200 mb-4">
                 {selectedArticle.title}
               </h1>
-              
+
               {/* Article meta */}
               <div className="flex items-center space-x-6 text-sm text-neutral-500 mb-6">
                 <div className="flex items-center space-x-2">
@@ -170,7 +176,7 @@ export default function KnowledgeBase() {
                 </div>
               </div>
             </div>
-            
+
             <div className="flex space-x-2">
               <Button variant="outline" size="sm">
                 <ThumbsUp className="w-4 h-4 mr-2" />
@@ -271,78 +277,115 @@ export default function KnowledgeBase() {
       {/* Articles Grid */}
       {!isLoading && (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {filteredArticles.map((article) => (
-            <Card 
-              key={article.id} 
-              className="hover:shadow-lg transition-all cursor-pointer hover:border-blue-200 dark:hover:border-blue-800"
-              onClick={() => handleArticleClick(article)}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <Badge variant="secondary" className="mb-2">
-                    {article.category}
-                  </Badge>
-                  <Button variant="ghost" size="sm">
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                </div>
-                <CardTitle className="text-lg line-clamp-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                  {article.title}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <p className="text-sm text-neutral-600 dark:text-neutral-400 line-clamp-3 mb-4">
-                  {article.content.split('\n').find(line => line.trim() && !line.startsWith('#'))?.slice(0, 150)}...
+          {error ? (
+            <Card className="p-12 text-center">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
+                <h3 className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-2">
+                  Error Loading Articles
+                </h3>
+                <p className="text-neutral-600 dark:text-neutral-400 text-center mb-4">
+                  {error.message}
                 </p>
-                
-                {/* Tags */}
-                {article.tags && article.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-4">
-                    {article.tags.slice(0, 3).map((tag) => (
-                      <Badge key={tag} variant="outline" className="text-xs">
-                        <Tag className="w-3 h-3 mr-1" />
-                        {tag}
-                      </Badge>
-                    ))}
-                    {article.tags.length > 3 && (
-                      <Badge variant="outline" className="text-xs">
-                        +{article.tags.length - 3}
-                      </Badge>
-                    )}
-                  </div>
-                )}
-
-                <Separator className="mb-3" />
-                
-                {/* Footer */}
-                <div className="flex items-center justify-between text-xs text-neutral-500">
-                  <div className="flex items-center space-x-2">
-                    <User className="w-3 h-3" />
-                    <span>{article.author_email}</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="flex items-center space-x-1">
-                      <Eye className="w-3 h-3" />
-                      <span>{article.views}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <ThumbsUp className="w-3 h-3" />
-                      <span>{article.helpful_votes}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Clock className="w-3 h-3" />
-                      <span>{formatDate(article.created_at)}</span>
-                    </div>
-                  </div>
-                </div>
+                <Button onClick={() => window.location.reload()}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Retry
+                </Button>
               </CardContent>
             </Card>
-          ))}
+          ) : articles.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <BookOpen className="w-12 h-12 text-neutral-400 mb-4" />
+                <h3 className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-2">
+                  No articles found
+                </h3>
+                <p className="text-neutral-600 dark:text-neutral-400 text-center mb-4">
+                  {searchTerm || selectedCategory !== "all" 
+                    ? "Try adjusting your search or filters"
+                    : "No knowledge base articles available yet"
+                  }
+                </p>
+                <Button className="bg-blue-600 hover:bg-blue-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create First Article
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            filteredArticles.map((article) => (
+              <Card 
+                key={article.id} 
+                className="hover:shadow-lg transition-all cursor-pointer hover:border-blue-200 dark:hover:border-blue-800"
+                onClick={() => handleArticleClick(article)}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <Badge variant="secondary" className="mb-2">
+                      {article.category}
+                    </Badge>
+                    <Button variant="ghost" size="sm">
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <CardTitle className="text-lg line-clamp-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    {article.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400 line-clamp-3 mb-4">
+                    {article.content.split('\n').find(line => line.trim() && !line.startsWith('#'))?.slice(0, 150)}...
+                  </p>
+
+                  {/* Tags */}
+                  {article.tags && article.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-4">
+                      {article.tags.slice(0, 3).map((tag) => (
+                        <Badge key={tag} variant="outline" className="text-xs">
+                          <Tag className="w-3 h-3 mr-1" />
+                          {tag}
+                        </Badge>
+                      ))}
+                      {article.tags.length > 3 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{article.tags.length - 3}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+
+                  <Separator className="mb-3" />
+
+                  {/* Footer */}
+                  <div className="flex items-center justify-between text-xs text-neutral-500">
+                    <div className="flex items-center space-x-2">
+                      <User className="w-3 h-3" />
+                      <span>{article.author_email}</span>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <div className="flex items-center space-x-1">
+                        <Eye className="w-3 h-3" />
+                        <span>{article.views}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <ThumbsUp className="w-3 h-3" />
+                        <span>{article.helpful_votes}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Clock className="w-3 h-3" />
+                        <span>{formatDate(article.created_at)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
       )}
 
       {/* Empty State */}
-      {!isLoading && filteredArticles.length === 0 && (
+      {!isLoading && filteredArticles.length === 0 && !error && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <BookOpen className="w-12 h-12 text-neutral-400 mb-4" />
