@@ -18,7 +18,7 @@ import {
   ArrowRight,
   CheckCircle
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "wouter";
 
 export default function Signup() {
   const { toast } = useToast();
