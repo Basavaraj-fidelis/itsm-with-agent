@@ -72,7 +72,7 @@ export default function Sidebar() {
         <ul className="space-y-1">
           {navigation.map((item) => (
             <li key={item.name}>
-              <Link href={item.href} className="group flex items-center space-x-3 py-2 px-3 rounded-md font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
+              <Link to={item.href} className="group flex items-center space-x-3 py-2 px-3 rounded-md font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
                 <item.icon className="w-4 h-4 text-neutral-600 dark:text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-neutral-100" />
                 {!isCollapsed && (
                   <span>
