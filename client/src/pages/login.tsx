@@ -20,7 +20,7 @@ import {
   Users,
   Settings
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "wouter";
 
 export default function Login() {
   const { toast } = useToast();
