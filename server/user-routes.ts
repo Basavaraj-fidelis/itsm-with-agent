@@ -3,6 +3,7 @@ import { Router } from "express";
 import { db } from "./db";
 import { users } from "../shared/user-schema";
 import { eq } from "drizzle-orm";
+import bcrypt from "bcrypt";
 
 const router = Router();
 
@@ -12,8 +13,10 @@ router.get("/", async (req, res) => {
     const allUsers = await db.select({
       id: users.id,
       email: users.email,
-      full_name: users.full_name,
+      name: users.name,
       role: users.role,
+      department: users.department,
+      phone: users.phone,
       is_active: users.is_active,
       created_at: users.created_at,
       last_login: users.last_login
@@ -32,8 +35,10 @@ router.get("/:id", async (req, res) => {
     const user = await db.select({
       id: users.id,
       email: users.email,
-      full_name: users.full_name,
+      name: users.name,
       role: users.role,
+      department: users.department,
+      phone: users.phone,
       is_active: users.is_active,
       created_at: users.created_at,
       last_login: users.last_login
@@ -53,20 +58,27 @@ router.get("/:id", async (req, res) => {
 // Create new user
 router.post("/", async (req, res) => {
   try {
-    const { email, full_name, role, password } = req.body;
+    const { email, name, role, password, department, phone } = req.body;
+    
+    // Hash the password
+    const saltRounds = 10;
+    const password_hash = await bcrypt.hash(password, saltRounds);
     
     const newUser = await db.insert(users).values({
       email,
-      full_name,
-      role,
-      password_hash: password, // In production, this should be hashed
-      is_active: true,
-      created_at: new Date().toISOString()
+      name,
+      role: role || "user",
+      password_hash,
+      department,
+      phone,
+      is_active: true
     }).returning({
       id: users.id,
       email: users.email,
-      full_name: users.full_name,
+      name: users.name,
       role: users.role,
+      department: users.department,
+      phone: users.phone,
       is_active: users.is_active,
       created_at: users.created_at
     });
@@ -81,22 +93,26 @@ router.post("/", async (req, res) => {
 // Update user
 router.put("/:id", async (req, res) => {
   try {
-    const { email, full_name, role, is_active } = req.body;
+    const { email, name, role, department, phone, is_active } = req.body;
     
     const updatedUser = await db.update(users)
       .set({
         email,
-        full_name,
+        name,
         role,
+        department,
+        phone,
         is_active,
-        updated_at: new Date().toISOString()
+        updated_at: new Date()
       })
       .where(eq(users.id, req.params.id))
       .returning({
         id: users.id,
         email: users.email,
-        full_name: users.full_name,
+        name: users.name,
         role: users.role,
+        department: users.department,
+        phone: users.phone,
         is_active: users.is_active,
         created_at: users.created_at
       });
