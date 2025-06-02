@@ -218,6 +218,40 @@ export class MemStorage implements IStorage {
     return newAlert;
   }
 
+  async getActiveAlertByDeviceAndMetric(deviceId: string, metric: string): Promise<Alert | null> {
+    const alert = Array.from(this.alerts.values()).find(alert => 
+      alert.device_id === deviceId && 
+      alert.is_active && 
+      alert.metadata && 
+      (alert.metadata as any).metric === metric
+    );
+    return alert || null;
+  }
+
+  async updateAlert(alertId: string, updates: Partial<Alert>): Promise<void> {
+    const existing = this.alerts.get(alertId);
+    if (existing) {
+      const updated: Alert = {
+        ...existing,
+        ...updates,
+        triggered_at: new Date()
+      };
+      this.alerts.set(alertId, updated);
+    }
+  }
+
+  async resolveAlert(alertId: string): Promise<void> {
+    const existing = this.alerts.get(alertId);
+    if (existing) {
+      const updated: Alert = {
+        ...existing,
+        is_active: false,
+        resolved_at: new Date()
+      };
+      this.alerts.set(alertId, updated);
+    }
+  }
+
   async getDashboardSummary(): Promise<{
     total_devices: number;
     online_devices: number;

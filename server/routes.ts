@@ -465,7 +465,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Join with devices to get hostnames
       const alertsWithHostnames = await Promise.all(
         alerts.map(async (alert) => {
-          const device = await storage.getDeviceById(alert.device_id);
+          const device = await storage.getDevice(alert.device_id);
           return {
             ...alert,
             device_hostname: device?.hostname || "Unknown Device"
