@@ -25,13 +25,13 @@ interface Article {
   id: string;
   title: string;
   content: string;
-  author: string;
+  author_email: string;
   category: string;
   tags: string[];
   created_at: string;
   updated_at: string;
   views: number;
-  likes: number;
+  helpful_votes: number;
   status: "published" | "draft";
 }
 
@@ -154,7 +154,7 @@ export default function KnowledgeBase() {
               <div className="flex items-center space-x-6 text-sm text-neutral-500 mb-6">
                 <div className="flex items-center space-x-2">
                   <User className="w-4 h-4" />
-                  <span>{selectedArticle.author}</span>
+                  <span>{selectedArticle.author_email}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Clock className="w-4 h-4" />
@@ -166,7 +166,7 @@ export default function KnowledgeBase() {
                 </div>
                 <div className="flex items-center space-x-2">
                   <ThumbsUp className="w-4 h-4" />
-                  <span>{selectedArticle.likes} helpful</span>
+                  <span>{selectedArticle.helpful_votes} helpful</span>
                 </div>
               </div>
             </div>
@@ -318,7 +318,7 @@ export default function KnowledgeBase() {
                 <div className="flex items-center justify-between text-xs text-neutral-500">
                   <div className="flex items-center space-x-2">
                     <User className="w-3 h-3" />
-                    <span>{article.author}</span>
+                    <span>{article.author_email}</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <div className="flex items-center space-x-1">
@@ -327,7 +327,7 @@ export default function KnowledgeBase() {
                     </div>
                     <div className="flex items-center space-x-1">
                       <ThumbsUp className="w-3 h-3" />
-                      <span>{article.likes}</span>
+                      <span>{article.helpful_votes}</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Clock className="w-3 h-3" />
