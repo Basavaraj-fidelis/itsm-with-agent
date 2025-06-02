@@ -68,9 +68,10 @@ export default function UserManagement() {
 
       const response = await fetch(`/api/users?${params}`);
       const data = await response.json();
-      setUsers(data || []);
+      setUsers(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error fetching users:", error);
+      setUsers([]);
       toast({
         title: "Error",
         description: "Failed to fetch users",
@@ -342,7 +343,7 @@ export default function UserManagement() {
 
       {/* Users List */}
       <div className="grid gap-4">
-        {users.map((user) => (
+        {Array.isArray(users) && users.map((user) => (
           <Card key={user.id}>
             <CardContent className="p-6">
               <div className="flex justify-between items-start">
