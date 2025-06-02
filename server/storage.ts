@@ -632,20 +632,20 @@ All software is scanned for security vulnerabilities before approval.`,
         },
         {
           title: "Hardware Request Process",
-          content: `# Hardware Request Guidelines
+          content: `# Hardware Request Process
 
-## Eligible Equipment
+## How to Request New Hardware
+
+1. **Assessment**: Determine if new hardware is truly needed
+2. **Budget Approval**: Get manager approval for budget
+3. **Procurement**: Submit request through IT portal
+4. **Delivery**: Wait for hardware delivery and setup
+
+## Supported Hardware Types
 - Laptops and desktops
 - Monitors and peripherals
 - Mobile devices
-- Specialized software tools
-
-## Request Process
-1. Submit hardware request ticket
-2. Include business justification
-3. Get manager approval
-4. Wait for procurement processing
-5. Schedule delivery and setup
+- Printers and scanners
 
 ## Timeline
 - Standard requests: 5-7 business days
@@ -659,6 +659,434 @@ Contact your manager for approval before submitting requests.`,
           status: "published",
           views: 23,
           helpful_votes: 5
+        },
+        {
+          title: "Email Issues - Cannot Send or Receive",
+          content: `# Email Problems Troubleshooting
+
+## Common Email Issues and Solutions
+
+### Cannot Send Emails
+1. **Check Internet Connection**: Ensure you have stable internet
+2. **Verify Email Settings**: Check SMTP server settings
+3. **Clear Cache**: Clear browser cache or restart email client
+4. **Check Spam Folder**: Emails might be filtered as spam
+5. **Contact IT**: If issue persists after 30 minutes
+
+### Cannot Receive Emails
+1. **Check Spam/Junk Folder**: Emails might be filtered
+2. **Mailbox Full**: Delete old emails to free space
+3. **Email Forwarding**: Check if forwarding rules are blocking emails
+4. **Server Issues**: Check company status page for outages
+
+### Outlook Specific Issues
+- Try safe mode: Hold Ctrl while starting Outlook
+- Repair PST file using built-in repair tool
+- Recreate email profile if other solutions fail
+
+**Emergency Contact**: For urgent email issues, call IT helpdesk at ext. 4357`,
+          category: "Email",
+          tags: ["email", "outlook", "smtp", "troubleshooting"],
+          author_email: "support@company.com",
+          status: "published",
+          views: 156,
+          helpful_votes: 28
+        },
+        {
+          title: "Printer Not Working - Complete Guide",
+          content: `# Printer Troubleshooting Guide
+
+## Quick Fixes (Try These First)
+
+### 1. Basic Checks
+- Ensure printer is powered on
+- Check all cables are securely connected
+- Verify paper is loaded correctly
+- Check for paper jams
+
+### 2. Driver Issues
+- Update printer drivers from manufacturer website
+- Remove and reinstall printer in Windows Settings
+- Restart print spooler service
+
+### 3. Network Printer Issues
+- Ping printer IP address to test connectivity
+- Check if other users can print
+- Restart router/switch if needed
+
+## Common Error Messages
+
+### "Printer Offline"
+1. Open Settings > Printers & Scanners
+2. Select your printer
+3. Uncheck "Use Printer Offline"
+4. Restart printer
+
+### "Access Denied" 
+- Check if you have print permissions
+- Contact IT to verify printer access rights
+
+### Print Queue Stuck
+1. Open Services (services.msc)
+2. Stop Print Spooler service
+3. Delete files in C:\\Windows\\System32\\spool\\PRINTERS
+4. Start Print Spooler service
+
+**For persistent issues**: Submit IT ticket with printer model and error details`,
+          category: "Hardware",
+          tags: ["printer", "troubleshooting", "drivers", "network"],
+          author_email: "support@company.com",
+          status: "published",
+          views: 203,
+          helpful_votes: 45
+        },
+        {
+          title: "WiFi Connection Problems",
+          content: `# WiFi Connectivity Issues
+
+## Step-by-Step WiFi Troubleshooting
+
+### 1. Basic WiFi Fixes
+- Turn WiFi off and on again
+- Forget and reconnect to network
+- Restart your device
+- Move closer to router
+
+### 2. Windows WiFi Issues
+\`\`\`
+# Reset network settings (Run as Administrator)
+netsh winsock reset
+netsh int ip reset
+ipconfig /release
+ipconfig /renew
+ipconfig /flushdns
+\`\`\`
+
+### 3. Check Network Status
+- Verify if others have same issue
+- Check company network status page
+- Try connecting to guest network
+
+### 4. Advanced Solutions
+- Update WiFi adapter drivers
+- Reset network adapter in Device Manager
+- Check for Windows updates
+
+## Corporate WiFi Setup
+1. Connect to "CompanyWiFi" network
+2. Enter your domain credentials (username@company.com)
+3. Install company certificate if prompted
+4. Contact IT if certificate installation fails
+
+## Speed Issues
+- Run speed test (speedtest.net)
+- Close bandwidth-heavy applications
+- Switch to 5GHz network if available
+- Consider ethernet connection for important tasks
+
+**Note**: Personal devices must be registered with IT before connecting to corporate WiFi`,
+          category: "Network",
+          tags: ["wifi", "network", "connectivity", "troubleshooting"],
+          author_email: "netadmin@company.com",
+          status: "published",
+          views: 189,
+          helpful_votes: 34
+        },
+        {
+          title: "Software Installation and Updates",
+          content: `# Software Installation Guide
+
+## Approved Software Installation
+
+### Through Company Portal
+1. Open Company Software Center
+2. Browse or search for required software
+3. Click Install and wait for completion
+4. Restart if prompted
+
+### Business Applications
+- **Microsoft Office**: Available through Office 365 portal
+- **Adobe Creative Suite**: Request through IT ticket
+- **Development Tools**: Requires manager approval
+- **Browser Extensions**: Check approved list first
+
+## Software Updates
+
+### Windows Updates
+- Enable automatic updates (recommended)
+- Manual check: Settings > Update & Security
+- Critical updates install immediately
+- Feature updates require IT approval
+
+### Application Updates
+- Most business apps update automatically
+- Adobe/Office apps: Update through respective clients
+- Chrome/Firefox: Updates happen automatically
+
+## Installation Issues
+
+### "Administrator Rights Required"
+- Submit IT ticket for software installation
+- Provide business justification
+- Include software name and version
+
+### "Installation Failed"
+1. Run Windows Update
+2. Clear temporary files
+3. Restart and try again
+4. Contact IT if error persists
+
+### Prohibited Software
+- Peer-to-peer applications
+- Cracked/pirated software  
+- Personal gaming software
+- Unapproved browser extensions
+
+**Security Note**: Only install software from official sources and company-approved lists`,
+          category: "Software",
+          tags: ["installation", "updates", "applications", "security"],
+          author_email: "support@company.com",
+          status: "published",
+          views: 134,
+          helpful_votes: 22
+        },
+        {
+          title: "Computer Running Slow - Performance Guide",
+          content: `# Computer Performance Optimization
+
+## Immediate Quick Fixes
+
+### 1. Close Unnecessary Programs
+- Press Ctrl+Shift+Esc to open Task Manager
+- End high CPU/memory usage programs
+- Disable startup programs you don't need
+
+### 2. Restart Your Computer
+- Close all programs and restart
+- Install pending Windows updates
+- Allow 5-10 minutes for startup optimization
+
+### 3. Free Up Disk Space
+- Empty Recycle Bin
+- Clear Downloads folder
+- Use Disk Cleanup tool (cleanmgr.exe)
+- Remove temporary files
+
+## Performance Monitoring
+
+### Check System Resources
+- **CPU Usage**: Should be <80% when idle
+- **Memory**: Upgrade needed if consistently >85%
+- **Disk Space**: Keep at least 15% free
+
+### Task Manager Analysis
+- **Processes Tab**: Identify resource-heavy programs
+- **Startup Tab**: Disable unnecessary startup items
+- **Performance Tab**: Monitor real-time usage
+
+## Long-term Solutions
+
+### Regular Maintenance
+- Restart weekly (don't just sleep/hibernate)
+- Run Windows Update monthly
+- Clear browser cache weekly
+- Scan for malware monthly
+
+### Hardware Considerations
+- **RAM**: Upgrade if <8GB
+- **Storage**: Consider SSD upgrade
+- **Age**: Computers >4 years may need replacement
+
+## When to Contact IT
+- Consistent high CPU with no heavy programs
+- Blue screen errors (BSOD)
+- Frequent freezing or crashes
+- Performance hasn't improved after following this guide
+
+**Prevention**: Avoid installing unnecessary software and keep files organized`,
+          category: "Performance",
+          tags: ["slow", "performance", "optimization", "maintenance"],
+          author_email: "support@company.com",
+          status: "published",
+          views: 267,
+          helpful_votes: 52
+        },
+        {
+          title: "Two-Factor Authentication Setup",
+          content: `# Two-Factor Authentication (2FA) Setup
+
+## Why 2FA is Required
+- Protects against password breaches
+- Required for accessing sensitive company data
+- Compliance with security policies
+- Reduces risk of account compromise
+
+## Setting Up 2FA
+
+### Microsoft Authenticator (Recommended)
+1. **Download App**: Install Microsoft Authenticator from app store
+2. **Add Account**: Open app, tap "+", select "Work or school account"
+3. **Scan QR Code**: Follow prompts in company portal
+4. **Verify**: Enter code from app to complete setup
+
+### Alternative Methods
+- **Text Messages**: Less secure, use only if app unavailable
+- **Phone Calls**: For users without smartphones
+- **Hardware Tokens**: For high-security accounts
+
+## Using 2FA Daily
+
+### Login Process
+1. Enter username and password normally
+2. Wait for push notification OR open authenticator app
+3. Approve notification or enter 6-digit code
+4. Complete login
+
+### Backup Codes
+- Save backup codes in secure location
+- Use if phone is unavailable
+- Generate new codes after use
+
+## Troubleshooting 2FA
+
+### Common Issues
+- **Time Sync**: Ensure phone time is correct
+- **No Notifications**: Check app permissions
+- **Wrong Codes**: Verify correct account selected
+
+### Lost Phone/Device
+1. Contact IT immediately
+2. Use backup codes for temporary access
+3. Setup 2FA on replacement device
+4. Invalidate old device access
+
+**Security Tip**: Never share 2FA codes with anyone, including IT staff`,
+          category: "Security",
+          tags: ["2fa", "authentication", "security", "microsoft"],
+          author_email: "security@company.com",
+          status: "published",
+          views: 198,
+          helpful_votes: 41
+        },
+        {
+          title: "File Sharing and OneDrive Issues",
+          content: `# File Sharing and OneDrive Guide
+
+## OneDrive Sync Issues
+
+### Files Not Syncing
+1. **Check Sync Status**: Look for OneDrive icon in system tray
+2. **Pause and Resume**: Right-click OneDrive icon > Pause/Resume sync
+3. **Restart OneDrive**: Exit completely and restart application
+4. **Check Available Space**: Ensure sufficient local and cloud storage
+
+### Sync Errors
+- **File in Use**: Close file and wait for sync
+- **Path Too Long**: Shorten folder/file names
+- **Invalid Characters**: Remove special characters (< > : " | ? * \\)
+- **Large Files**: Files >100GB need special handling
+
+## File Sharing Best Practices
+
+### Internal Sharing
+1. **Right-click** file/folder in OneDrive
+2. **Select "Share"**
+3. **Enter colleague's email**
+4. **Set permissions** (View/Edit)
+5. **Add message** and send
+
+### External Sharing
+- Requires approval for external recipients
+- Use "Anyone with link" sparingly
+- Set expiration dates for sensitive documents
+- Remove access when no longer needed
+
+## Common File Issues
+
+### Cannot Open Shared File
+- Check if you have correct permissions
+- Try opening in web browser
+- Clear browser cache/cookies
+- Ask sender to reshare file
+
+### Version Conflicts
+- OneDrive creates copies for conflicting versions
+- Review "ConflictedCopy" files manually
+- Merge changes if necessary
+- Delete conflicted copies after merging
+
+### Storage Quota Issues
+- **Check Usage**: OneDrive settings > Account
+- **Free Up Space**: Delete unnecessary files
+- **Archive Old Files**: Move to SharePoint or local backup
+- **Request Increase**: Submit IT ticket for more storage
+
+**Collaboration Tip**: Use "Co-authoring" in Office apps for real-time collaboration`,
+          category: "Collaboration",
+          tags: ["onedrive", "sharing", "sync", "collaboration"],
+          author_email: "support@company.com",
+          status: "published",
+          views: 145,
+          helpful_votes: 31
+        },
+        {
+          title: "Video Conferencing - Teams & Zoom Issues",
+          content: `# Video Conferencing Troubleshooting
+
+## Microsoft Teams Issues
+
+### Cannot Join Meeting
+1. **Use Web Browser**: Try joining through browser instead of app
+2. **Update Teams**: Ensure latest version installed
+3. **Check URL**: Verify meeting link is correct and not expired
+4. **Phone Backup**: Use dial-in number if available
+
+### Audio/Video Problems
+- **Microphone**: Check if muted in Teams and Windows
+- **Camera**: Verify camera permissions in Windows Privacy settings
+- **Speakers**: Test audio devices in Teams settings
+- **Bandwidth**: Close other applications using internet
+
+### Screen Sharing Issues
+- **Permission**: Allow Teams to record screen in Windows settings
+- **Multiple Monitors**: Select correct monitor to share
+- **Performance**: Close unnecessary applications before sharing
+
+## Zoom Troubleshooting
+
+### Poor Video Quality
+1. **Check Internet**: Run speed test (minimum 1Mbps up/down)
+2. **Close Apps**: Shut down bandwidth-heavy applications
+3. **Lower Quality**: Reduce video quality in Zoom settings
+4. **Use Ethernet**: Wired connection more stable than WiFi
+
+### Echo or Audio Issues
+- **Headphones**: Use headphones to prevent echo
+- **Mute When Not Speaking**: Reduce background noise
+- **Audio Settings**: Test microphone and speakers before meetings
+- **Phone Audio**: Dial in for better audio quality
+
+## Best Practices
+
+### Before Important Meetings
+- Test audio/video 15 minutes early
+- Ensure good lighting (face toward light source)
+- Use professional background or blur
+- Charge laptop and have power cable ready
+
+### During Meetings
+- Mute when not speaking
+- Use chat for questions during presentations
+- Have backup dial-in number ready
+- Keep meeting software updated
+
+**Pro Tip**: Keep a backup device (phone/tablet) ready for critical meetings`,
+          category: "Collaboration",
+          tags: ["teams", "zoom", "video", "meetings", "audio"],
+          author_email: "support@company.com",
+          status: "published",
+          views: 312,
+          helpful_votes: 67
         }
       ];
 
@@ -898,7 +1326,7 @@ Contact your manager for approval before submitting requests.`,
 
   async getAlerts() {
     const { alerts } = await import("@shared/schema");
-    
+
     return await db.select().from(alerts).orderBy(alerts.created_at);
   }
 
