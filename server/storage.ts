@@ -447,7 +447,7 @@ export class DatabaseStorage implements IStorage {
   async initializeDemoUsers() {
     const { users } = await import("@shared/user-schema");
     const bcrypt = await import('bcrypt');
-    
+
     const demoUsers = [
       {
         email: "admin@company.com",
@@ -491,7 +491,7 @@ export class DatabaseStorage implements IStorage {
       try {
         // Check if user already exists by querying database directly
         const existingUser = await db.select().from(users).where(eq(users.email, userData.email));
-        
+
         if (existingUser.length === 0) {
           // Hash password properly
           const hashedPassword = await bcrypt.hash(userData.password, 10);
