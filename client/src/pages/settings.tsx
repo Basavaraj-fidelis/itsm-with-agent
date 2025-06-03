@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -16,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import SettingsSidebar from "@/components/layout/settings-sidebar";
 import {
   Settings as SettingsIcon,
   Shield,
@@ -517,28 +517,15 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
     });
   };
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-neutral-800 dark:text-neutral-200 mb-2">
-          System Settings
-        </h1>
-        <p className="text-neutral-600">
-          Configure system preferences and monitoring settings
-        </p>
-      </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-7">
-          <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="sla">SLA Policies</TabsTrigger>
-          <TabsTrigger value="agent">Agent</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="general" className="space-y-6">
+    <div className="flex h-screen bg-neutral-50 dark:bg-neutral-900">
+      {/* Settings Sidebar */}
+      <SettingsSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+      
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto">
+        <div className="p-6 space-y-6">
+          {/* General Settings */}
+          {activeTab === "general" && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -606,9 +593,10 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        )}
 
-        <TabsContent value="monitoring" className="space-y-6">
+          {/* Monitoring Settings */}
+          {activeTab === "monitoring" && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -712,9 +700,10 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        )}
 
-        <TabsContent value="notifications" className="space-y-6">
+          {/* Notifications Settings */}
+          {activeTab === "notifications" && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
@@ -1118,9 +1107,10 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        )}
 
-        <TabsContent value="security" className="space-y-6">
+          {/* Security Settings */}
+          {activeTab === "security" && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -1401,9 +1391,10 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
               })()}
             </CardContent>
           </Card>
-        </TabsContent>
+        )}
 
-        <TabsContent value="sla" className="space-y-6">
+          {/* SLA Settings */}
+          {activeTab === "sla" && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
@@ -1521,9 +1512,10 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        )}
 
-        <TabsContent value="agent" className="space-y-6">
+          {/* Agent Settings */}
+          {activeTab === "agent" && (
           {/* Agent Download Section */}
           <Card>
             <CardHeader>
@@ -2226,20 +2218,21 @@ auth_token = your-api-token`}
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
-
-      {/* Save Button */}
-      <div className="flex justify-end">
-        {hasChanges && (
-          <Button
-            onClick={saveSettings}
-            className="flex items-center space-x-2"
-          >
-            <Save className="w-4 h-4" />
-            <span>Save Changes</span>
-          </Button>
         )}
+
+          {/* Save Button */}
+          {hasChanges && (
+            <div className="flex justify-end pt-4 border-t border-neutral-200 dark:border-neutral-700">
+              <Button
+                onClick={saveSettings}
+                className="flex items-center space-x-2"
+              >
+                <Save className="w-4 h-4" />
+                <span>Save Changes</span>
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
