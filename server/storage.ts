@@ -1,4 +1,14 @@
-import { devices, device_reports, alerts, type Device, type InsertDevice, type DeviceReport, type InsertDeviceReport, type Alert, type InsertAlert } from "@shared/schema";
+import {
+  devices,
+  device_reports,
+  alerts,
+  type Device,
+  type InsertDevice,
+  type DeviceReport,
+  type InsertDeviceReport,
+  type Alert,
+  type InsertAlert,
+} from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, or, like, count } from "drizzle-orm";
 
@@ -8,7 +18,10 @@ export interface IStorage {
   getDevice(id: string): Promise<Device | undefined>;
   getDeviceByHostname(hostname: string): Promise<Device | undefined>;
   createDevice(device: InsertDevice): Promise<Device>;
-  updateDevice(id: string, device: Partial<InsertDevice>): Promise<Device | undefined>;
+  updateDevice(
+    id: string,
+    device: Partial<InsertDevice>,
+  ): Promise<Device | undefined>;
 
   // Device report operations
   createDeviceReport(report: InsertDeviceReport): Promise<DeviceReport>;
@@ -63,7 +76,7 @@ export class MemStorage implements IStorage {
         status: "online",
         last_seen: new Date(Date.now() - 2 * 60 * 1000), // 2 minutes ago
         created_at: new Date(),
-        updated_at: new Date()
+        updated_at: new Date(),
       },
       {
         id: this.generateId(),
@@ -75,7 +88,7 @@ export class MemStorage implements IStorage {
         status: "online",
         last_seen: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
         created_at: new Date(),
-        updated_at: new Date()
+        updated_at: new Date(),
       },
       {
         id: this.generateId(),
@@ -87,11 +100,11 @@ export class MemStorage implements IStorage {
         status: "offline",
         last_seen: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
         created_at: new Date(),
-        updated_at: new Date()
-      }
+        updated_at: new Date(),
+      },
     ];
 
-    sampleDevices.forEach(device => {
+    sampleDevices.forEach((device) => {
       this.devices.set(device.id, device);
 
       // Add sample reports for online devices
@@ -106,8 +119,10 @@ export class MemStorage implements IStorage {
           network_io: "1200000",
           raw_data: {
             hardware: { cpu: "Intel Core i7", memory: "32GB" },
-            system_health: { cpu_percent: device.hostname === "SRV-DATABASE" ? 92 : 45 }
-          }
+            system_health: {
+              cpu_percent: device.hostname === "SRV-DATABASE" ? 92 : 45,
+            },
+          },
         };
         this.deviceReports.set(report.id, report);
       }
@@ -124,22 +139,22 @@ export class MemStorage implements IStorage {
         metadata: { cpu_usage: 92, threshold: 80 },
         triggered_at: new Date(Date.now() - 15 * 60 * 1000), // 15 minutes ago
         resolved_at: null,
-        is_active: true
+        is_active: true,
       },
       {
         id: this.generateId(),
         device_id: "1", // WS-FINANCE-01
         category: "storage",
-        severity: "warning", 
+        severity: "warning",
         message: "Disk space running low on C: drive",
         metadata: { disk_usage: 85, threshold: 80 },
         triggered_at: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
         resolved_at: null,
-        is_active: true
-      }
+        is_active: true,
+      },
     ];
 
-    sampleAlerts.forEach(alert => {
+    sampleAlerts.forEach((alert) => {
       this.alerts.set(alert.id, alert);
     });
 
@@ -156,7 +171,7 @@ export class MemStorage implements IStorage {
         is_active: true,
         last_login: new Date(),
         created_at: new Date(),
-        updated_at: new Date()
+        updated_at: new Date(),
       },
       {
         id: this.generateId(),
@@ -169,7 +184,7 @@ export class MemStorage implements IStorage {
         is_active: true,
         last_login: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
         created_at: new Date(),
-        updated_at: new Date()
+        updated_at: new Date(),
       },
       {
         id: this.generateId(),
@@ -182,7 +197,7 @@ export class MemStorage implements IStorage {
         is_active: true,
         last_login: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
         created_at: new Date(),
-        updated_at: new Date()
+        updated_at: new Date(),
       },
       {
         id: this.generateId(),
@@ -195,33 +210,36 @@ export class MemStorage implements IStorage {
         is_active: true,
         last_login: null,
         created_at: new Date(),
-        updated_at: new Date()
-      }
+        updated_at: new Date(),
+      },
     ];
 
     this.users = new Map();
-    sampleUsers.forEach(user => {
+    sampleUsers.forEach((user) => {
       this.users.set(user.id, user);
     });
   }
 
   // User management methods for in-memory storage
-  async getUsers(filters: { search?: string; role?: string } = {}): Promise<any[]> {
+  async getUsers(
+    filters: { search?: string; role?: string } = {},
+  ): Promise<any[]> {
     let users = Array.from(this.users.values());
 
     if (filters.search) {
       const search = filters.search.toLowerCase();
-      users = users.filter(user => 
-        user.name.toLowerCase().includes(search) ||
-        user.email.toLowerCase().includes(search)
+      users = users.filter(
+        (user) =>
+          user.name.toLowerCase().includes(search) ||
+          user.email.toLowerCase().includes(search),
       );
     }
 
     if (filters.role && filters.role !== "all") {
-      users = users.filter(user => user.role === filters.role);
+      users = users.filter((user) => user.role === filters.role);
     }
 
-    return users.map(user => {
+    return users.map((user) => {
       const { password_hash, ...userWithoutPassword } = user;
       return userWithoutPassword;
     });
@@ -241,7 +259,7 @@ export class MemStorage implements IStorage {
       ...data,
       id,
       created_at: new Date(),
-      updated_at: new Date()
+      updated_at: new Date(),
     };
     this.users.set(id, newUser);
 
@@ -256,7 +274,7 @@ export class MemStorage implements IStorage {
     const updated = {
       ...existing,
       ...updates,
-      updated_at: new Date()
+      updated_at: new Date(),
     };
     this.users.set(id, updated);
 
@@ -277,7 +295,9 @@ export class MemStorage implements IStorage {
   }
 
   async getDeviceByHostname(hostname: string): Promise<Device | undefined> {
-    return Array.from(this.devices.values()).find(device => device.hostname === hostname);
+    return Array.from(this.devices.values()).find(
+      (device) => device.hostname === hostname,
+    );
   }
 
   async createDevice(device: InsertDevice): Promise<Device> {
@@ -286,20 +306,23 @@ export class MemStorage implements IStorage {
       ...device,
       id,
       created_at: new Date(),
-      updated_at: new Date()
+      updated_at: new Date(),
     };
     this.devices.set(id, newDevice);
     return newDevice;
   }
 
-  async updateDevice(id: string, device: Partial<InsertDevice>): Promise<Device | undefined> {
+  async updateDevice(
+    id: string,
+    device: Partial<InsertDevice>,
+  ): Promise<Device | undefined> {
     const existing = this.devices.get(id);
     if (!existing) return undefined;
 
     const updated: Device = {
       ...existing,
       ...device,
-      updated_at: new Date()
+      updated_at: new Date(),
     };
     this.devices.set(id, updated);
     return updated;
@@ -310,7 +333,7 @@ export class MemStorage implements IStorage {
     const newReport: DeviceReport = {
       ...report,
       id,
-      collected_at: new Date()
+      collected_at: new Date(),
     };
     this.deviceReports.set(id, newReport);
     return newReport;
@@ -318,19 +341,29 @@ export class MemStorage implements IStorage {
 
   async getDeviceReports(deviceId: string): Promise<DeviceReport[]> {
     return Array.from(this.deviceReports.values())
-      .filter(report => report.device_id === deviceId)
-      .sort((a, b) => new Date(b.collected_at!).getTime() - new Date(a.collected_at!).getTime());
+      .filter((report) => report.device_id === deviceId)
+      .sort(
+        (a, b) =>
+          new Date(b.collected_at!).getTime() -
+          new Date(a.collected_at!).getTime(),
+      );
   }
 
-  async getLatestDeviceReport(deviceId: string): Promise<DeviceReport | undefined> {
+  async getLatestDeviceReport(
+    deviceId: string,
+  ): Promise<DeviceReport | undefined> {
     const reports = await this.getDeviceReports(deviceId);
     return reports[0];
   }
 
   async getActiveAlerts(): Promise<Alert[]> {
     return Array.from(this.alerts.values())
-      .filter(alert => alert.is_active)
-      .sort((a, b) => new Date(b.triggered_at!).getTime() - new Date(a.triggered_at!).getTime());
+      .filter((alert) => alert.is_active)
+      .sort(
+        (a, b) =>
+          new Date(b.triggered_at!).getTime() -
+          new Date(a.triggered_at!).getTime(),
+      );
   }
 
   async createAlert(alert: InsertAlert): Promise<Alert> {
@@ -338,18 +371,22 @@ export class MemStorage implements IStorage {
     const newAlert: Alert = {
       ...alert,
       id,
-      triggered_at: new Date()
+      triggered_at: new Date(),
     };
     this.alerts.set(id, newAlert);
     return newAlert;
   }
 
-  async getActiveAlertByDeviceAndMetric(deviceId: string, metric: string): Promise<Alert | null> {
-    const alert = Array.from(this.alerts.values()).find(alert => 
-      alert.device_id === deviceId && 
-      alert.is_active && 
-      alert.metadata && 
-      (alert.metadata as any).metric === metric
+  async getActiveAlertByDeviceAndMetric(
+    deviceId: string,
+    metric: string,
+  ): Promise<Alert | null> {
+    const alert = Array.from(this.alerts.values()).find(
+      (alert) =>
+        alert.device_id === deviceId &&
+        alert.is_active &&
+        alert.metadata &&
+        (alert.metadata as any).metric === metric,
     );
     return alert || null;
   }
@@ -360,7 +397,7 @@ export class MemStorage implements IStorage {
       const updated: Alert = {
         ...existing,
         ...updates,
-        triggered_at: new Date()
+        triggered_at: new Date(),
       };
       this.alerts.set(alertId, updated);
     }
@@ -372,45 +409,45 @@ export class MemStorage implements IStorage {
       const updated: Alert = {
         ...existing,
         is_active: false,
-        resolved_at: new Date()
+        resolved_at: new Date(),
       };
       this.alerts.set(alertId, updated);
     }
   }
 
-  async getActiveAlertByDeviceAndMetric(deviceId: string, metric: string): Promise<Alert | null> {
-    const alert = Array.from(this.alerts.values()).find(alert => 
-      alert.device_id === deviceId && 
-      alert.is_active && 
-      alert.metadata && 
-      (alert.metadata as any).metric === metric
-    );
-    return alert || null;
-  }
+  // async getActiveAlertByDeviceAndMetric(deviceId: string, metric: string): Promise<Alert | null> {
+  //   const alert = Array.from(this.alerts.values()).find(alert =>
+  //     alert.device_id === deviceId &&
+  //     alert.is_active &&
+  //     alert.metadata &&
+  //     (alert.metadata as any).metric === metric
+  //   );
+  //   return alert || null;
+  // }
 
-  async updateAlert(alertId: string, updates: Partial<Alert>): Promise<void> {
-    const existing = this.alerts.get(alertId);
-    if (existing) {
-      const updated: Alert = {
-        ...existing,
-        ...updates,
-        triggered_at: new Date()
-      };
-      this.alerts.set(alertId, updated);
-    }
-  }
+  // async updateAlert(alertId: string, updates: Partial<Alert>): Promise<void> {
+  //   const existing = this.alerts.get(alertId);
+  //   if (existing) {
+  //     const updated: Alert = {
+  //       ...existing,
+  //       ...updates,
+  //       triggered_at: new Date()
+  //     };
+  //     this.alerts.set(alertId, updated);
+  //   }
+  // }
 
-  async resolveAlert(alertId: string): Promise<void> {
-    const existing = this.alerts.get(alertId);
-    if (existing) {
-      const updated: Alert = {
-        ...existing,
-        is_active: false,
-        resolved_at: new Date()
-      };
-      this.alerts.set(alertId, updated);
-    }
-  }
+  // async resolveAlert(alertId: string): Promise<void> {
+  //   const existing = this.alerts.get(alertId);
+  //   if (existing) {
+  //     const updated: Alert = {
+  //       ...existing,
+  //       is_active: false,
+  //       resolved_at: new Date()
+  //     };
+  //     this.alerts.set(alertId, updated);
+  //   }
+  // }
 
   async getDashboardSummary(): Promise<{
     total_devices: number;
@@ -419,13 +456,15 @@ export class MemStorage implements IStorage {
     active_alerts: number;
   }> {
     const allDevices = Array.from(this.devices.values());
-    const activeAlerts = Array.from(this.alerts.values()).filter(alert => alert.is_active);
+    const activeAlerts = Array.from(this.alerts.values()).filter(
+      (alert) => alert.is_active,
+    );
 
     // Update offline status for devices that haven't been seen for 5+ minutes
     const now = new Date();
     const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
 
-    allDevices.forEach(device => {
+    allDevices.forEach((device) => {
       const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
       if (lastSeen && lastSeen < fiveMinutesAgo && device.status === "online") {
         device.status = "offline";
@@ -435,9 +474,12 @@ export class MemStorage implements IStorage {
 
     return {
       total_devices: allDevices.length,
-      online_devices: allDevices.filter(device => device.status === "online").length,
-      offline_devices: allDevices.filter(device => device.status === "offline").length,
-      active_alerts: activeAlerts.length
+      online_devices: allDevices.filter((device) => device.status === "online")
+        .length,
+      offline_devices: allDevices.filter(
+        (device) => device.status === "offline",
+      ).length,
+      active_alerts: activeAlerts.length,
     };
   }
 }
@@ -462,16 +504,16 @@ export class DatabaseStorage implements IStorage {
             role: "admin",
             department: "IT",
             phone: "+1-555-0101",
-            is_active: true
+            is_active: true,
           },
           {
-            email: "manager@company.com", 
+            email: "manager@company.com",
             name: "IT Manager",
             password_hash: await bcrypt.hash("demo123", 10),
             role: "manager",
             department: "IT",
             phone: "+1-555-0102",
-            is_active: true
+            is_active: true,
           },
           {
             email: "tech@company.com",
@@ -480,7 +522,7 @@ export class DatabaseStorage implements IStorage {
             role: "technician",
             department: "IT Support",
             phone: "+1-555-0103",
-            is_active: true
+            is_active: true,
           },
           {
             email: "user@company.com",
@@ -489,8 +531,8 @@ export class DatabaseStorage implements IStorage {
             role: "user",
             department: "Sales",
             phone: "+1-555-0104",
-            is_active: true
-          }
+            is_active: true,
+          },
         ];
 
         await db.insert(users).values(demoUsers);
@@ -511,7 +553,9 @@ export class DatabaseStorage implements IStorage {
       // Check if articles already exist
       const existingArticles = await db.select().from(knowledgeBase);
       if (existingArticles.length > 0) {
-        console.log("Knowledge base articles already exist, skipping initialization");
+        console.log(
+          "Knowledge base articles already exist, skipping initialization",
+        );
         return;
       }
 
@@ -542,7 +586,7 @@ If you continue to have issues, contact IT support.`,
           author_email: "admin@company.com",
           status: "published",
           views: 45,
-          helpful_votes: 12
+          helpful_votes: 12,
         },
         {
           title: "VPN Setup Instructions",
@@ -570,7 +614,7 @@ If you continue to have issues, contact IT support.`,
           author_email: "tech@company.com",
           status: "published",
           views: 78,
-          helpful_votes: 25
+          helpful_votes: 25,
         },
         {
           title: "Software Installation Policy",
@@ -598,7 +642,7 @@ All software is scanned for security vulnerabilities before approval.`,
           author_email: "manager@company.com",
           status: "published",
           views: 32,
-          helpful_votes: 8
+          helpful_votes: 8,
         },
         {
           title: "Email Configuration for Mobile Devices",
@@ -628,7 +672,7 @@ All software is scanned for security vulnerabilities before approval.`,
           author_email: "tech@company.com",
           status: "published",
           views: 56,
-          helpful_votes: 18
+          helpful_votes: 18,
         },
         {
           title: "Hardware Request Process",
@@ -658,7 +702,7 @@ Contact your manager for approval before submitting requests.`,
           author_email: "manager@company.com",
           status: "published",
           views: 23,
-          helpful_votes: 5
+          helpful_votes: 5,
         },
         {
           title: "Email Issues - Cannot Send or Receive",
@@ -690,7 +734,7 @@ Contact your manager for approval before submitting requests.`,
           author_email: "support@company.com",
           status: "published",
           views: 156,
-          helpful_votes: 28
+          helpful_votes: 28,
         },
         {
           title: "Printer Not Working - Complete Guide",
@@ -738,7 +782,7 @@ Contact your manager for approval before submitting requests.`,
           author_email: "support@company.com",
           status: "published",
           views: 203,
-          helpful_votes: 45
+          helpful_votes: 45,
         },
         {
           title: "WiFi Connection Problems",
@@ -790,7 +834,7 @@ ipconfig /flushdns
           author_email: "netadmin@company.com",
           status: "published",
           views: 189,
-          helpful_votes: 34
+          helpful_votes: 34,
         },
         {
           title: "Software Installation and Updates",
@@ -848,7 +892,7 @@ ipconfig /flushdns
           author_email: "support@company.com",
           status: "published",
           views: 134,
-          helpful_votes: 22
+          helpful_votes: 22,
         },
         {
           title: "Computer Running Slow - Performance Guide",
@@ -909,7 +953,7 @@ ipconfig /flushdns
           author_email: "support@company.com",
           status: "published",
           views: 267,
-          helpful_votes: 52
+          helpful_votes: 52,
         },
         {
           title: "Two-Factor Authentication Setup",
@@ -966,7 +1010,7 @@ ipconfig /flushdns
           author_email: "security@company.com",
           status: "published",
           views: 198,
-          helpful_votes: 41
+          helpful_votes: 41,
         },
         {
           title: "File Sharing and OneDrive Issues",
@@ -1027,7 +1071,7 @@ ipconfig /flushdns
           author_email: "support@company.com",
           status: "published",
           views: 145,
-          helpful_votes: 31
+          helpful_votes: 31,
         },
         {
           title: "Video Conferencing - Teams & Zoom Issues",
@@ -1086,8 +1130,8 @@ ipconfig /flushdns
           author_email: "support@company.com",
           status: "published",
           views: 312,
-          helpful_votes: 67
-        }
+          helpful_votes: 67,
+        },
       ];
 
       await db.insert(knowledgeBase).values(sampleArticles);
@@ -1107,7 +1151,10 @@ ipconfig /flushdns
   }
 
   async getDeviceByHostname(hostname: string): Promise<Device | undefined> {
-    const [device] = await db.select().from(devices).where(eq(devices.hostname, hostname));
+    const [device] = await db
+      .select()
+      .from(devices)
+      .where(eq(devices.hostname, hostname));
     return device || undefined;
   }
 
@@ -1121,18 +1168,21 @@ ipconfig /flushdns
         os_version: device.os_version || null,
         ip_address: device.ip_address || null,
         status: device.status || "offline",
-        last_seen: device.last_seen || null
+        last_seen: device.last_seen || null,
       })
       .returning();
     return newDevice;
   }
 
-  async updateDevice(id: string, device: Partial<InsertDevice>): Promise<Device | undefined> {
+  async updateDevice(
+    id: string,
+    device: Partial<InsertDevice>,
+  ): Promise<Device | undefined> {
     const [updatedDevice] = await db
       .update(devices)
       .set({
         ...device,
-        updated_at: new Date()
+        updated_at: new Date(),
       })
       .where(eq(devices.id, id))
       .returning();
@@ -1147,7 +1197,7 @@ ipconfig /flushdns
         cpu_usage: report.cpu_usage || null,
         memory_usage: report.memory_usage || null,
         disk_usage: report.disk_usage || null,
-        network_io: report.network_io || null
+        network_io: report.network_io || null,
       })
       .returning();
     return newReport;
@@ -1162,7 +1212,9 @@ ipconfig /flushdns
     return reports;
   }
 
-  async getLatestDeviceReport(deviceId: string): Promise<DeviceReport | undefined> {
+  async getLatestDeviceReport(
+    deviceId: string,
+  ): Promise<DeviceReport | undefined> {
     const [report] = await db
       .select()
       .from(device_reports)
@@ -1181,7 +1233,10 @@ ipconfig /flushdns
     return activeAlerts;
   }
 
-  async getActiveAlertByDeviceAndMetric(deviceId: string, metric: string): Promise<Alert | null> {
+  async getActiveAlertByDeviceAndMetric(
+    deviceId: string,
+    metric: string,
+  ): Promise<Alert | null> {
     const result = await db
       .select()
       .from(alerts)
@@ -1189,8 +1244,8 @@ ipconfig /flushdns
         and(
           eq(alerts.device_id, deviceId),
           eq(alerts.is_active, true),
-          sql`${alerts.metadata}->>'metric' = ${metric}`
-        )
+          sql`${alerts.metadata}->>'metric' = ${metric}`,
+        ),
       )
       .limit(1);
 
@@ -1202,7 +1257,7 @@ ipconfig /flushdns
       .update(alerts)
       .set({
         ...updates,
-        triggered_at: new Date() // Update timestamp when alert is updated
+        triggered_at: new Date(), // Update timestamp when alert is updated
       })
       .where(eq(alerts.id, alertId));
   }
@@ -1212,7 +1267,7 @@ ipconfig /flushdns
       .update(alerts)
       .set({
         is_active: false,
-        resolved_at: new Date()
+        resolved_at: new Date(),
       })
       .where(eq(alerts.id, alertId));
   }
@@ -1237,8 +1292,8 @@ ipconfig /flushdns
       conditions.push(
         or(
           like(knowledgeBase.title, `%${filters.search}%`),
-          like(knowledgeBase.content, `%${filters.search}%`)
-        )
+          like(knowledgeBase.content, `%${filters.search}%`),
+        ),
       );
     }
 
@@ -1262,7 +1317,7 @@ ipconfig /flushdns
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(total / limit),
     };
   }
 
@@ -1280,10 +1335,7 @@ ipconfig /flushdns
   async createKBArticle(data: any) {
     const { knowledgeBase } = await import("@shared/ticket-schema");
 
-    const [article] = await db
-      .insert(knowledgeBase)
-      .values(data)
-      .returning();
+    const [article] = await db.insert(knowledgeBase).values(data).returning();
 
     return article;
   }
@@ -1295,7 +1347,7 @@ ipconfig /flushdns
       .update(knowledgeBase)
       .set({
         ...updates,
-        updated_at: new Date()
+        updated_at: new Date(),
       })
       .where(eq(knowledgeBase.id, id))
       .returning();
@@ -1317,10 +1369,7 @@ ipconfig /flushdns
   async createAlert(data: any) {
     const { alerts } = await import("@shared/schema");
 
-    const [alert] = await db
-      .insert(alerts)
-      .values(data)
-      .returning();
+    const [alert] = await db.insert(alerts).values(data).returning();
 
     return alert;
   }
@@ -1342,8 +1391,8 @@ ipconfig /flushdns
       conditions.push(
         or(
           like(users.name, `%${filters.search}%`),
-          like(users.email, `%${filters.search}%`)
-        )
+          like(users.email, `%${filters.search}%`),
+        ),
       );
     }
 
@@ -1363,7 +1412,7 @@ ipconfig /flushdns
         phone: users.phone,
         is_active: users.is_active,
         last_login: users.last_login,
-        created_at: users.created_at
+        created_at: users.created_at,
       })
       .from(users)
       .where(whereClause)
@@ -1385,7 +1434,7 @@ ipconfig /flushdns
         phone: users.phone,
         is_active: users.is_active,
         last_login: users.last_login,
-        created_at: users.created_at
+        created_at: users.created_at,
       })
       .from(users)
       .where(eq(users.id, id));
@@ -1405,7 +1454,7 @@ ipconfig /flushdns
       .values({
         ...data,
         password_hash,
-        password: undefined // Remove plain password
+        password: undefined, // Remove plain password
       })
       .returning({
         id: users.id,
@@ -1415,7 +1464,7 @@ ipconfig /flushdns
         department: users.department,
         phone: users.phone,
         is_active: users.is_active,
-        created_at: users.created_at
+        created_at: users.created_at,
       });
 
     return user;
@@ -1428,14 +1477,15 @@ ipconfig /flushdns
     const updateData = { ...updates };
     if (updateData.password) {
       const bcrypt = await import("bcrypt");
-      updateData.password_hash = await bcrypt.hash(updateData.password, 10);delete updateData.password;
+      updateData.password_hash = await bcrypt.hash(updateData.password, 10);
+      delete updateData.password;
     }
 
     const [updatedUser] = await db
       .update(users)
       .set({
         ...updateData,
-        updated_at: new Date()
+        updated_at: new Date(),
       })
       .where(eq(users.id, id))
       .returning({
@@ -1446,7 +1496,7 @@ ipconfig /flushdns
         department: users.department,
         phone: users.phone,
         is_active: users.is_active,
-        created_at: users.created_at
+        created_at: users.created_at,
       });
 
     return updatedUser || null;
@@ -1455,9 +1505,7 @@ ipconfig /flushdns
   async deleteUser(id: string) {
     const { users } = await import("@shared/user-schema");
 
-    const result = await db
-      .delete(users)
-      .where(eq(users.id, id));
+    const result = await db.delete(users).where(eq(users.id, id));
 
     return result.rowCount > 0;
   }
@@ -1467,7 +1515,10 @@ ipconfig /flushdns
     const { eq } = await import("drizzle-orm");
 
     const allDevices = await db.select().from(devices);
-    const activeAlerts = await db.select().from(alerts).where(eq(alerts.is_active, true));
+    const activeAlerts = await db
+      .select()
+      .from(alerts)
+      .where(eq(alerts.is_active, true));
 
     // Update offline status for devices that haven't been seen for 5+ minutes
     const now = new Date();
@@ -1484,14 +1535,18 @@ ipconfig /flushdns
       }
     }
 
-    const onlineDevices = allDevices.filter(device => device.status === "online").length;
-    const offlineDevices = allDevices.filter(device => device.status === "offline").length;
+    const onlineDevices = allDevices.filter(
+      (device) => device.status === "online",
+    ).length;
+    const offlineDevices = allDevices.filter(
+      (device) => device.status === "offline",
+    ).length;
 
     return {
       total_devices: allDevices.length,
       online_devices: onlineDevices,
       offline_devices: offlineDevices,
-      active_alerts: activeAlerts.length
+      active_alerts: activeAlerts.length,
     };
   }
 }
