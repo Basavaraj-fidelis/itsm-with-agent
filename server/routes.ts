@@ -743,7 +743,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Knowledge Base routes
-  app.get("/api/knowledge-base", authenticateToken, async (req, res) => {
+  app.get("/api/knowledge-base", async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
@@ -774,7 +774,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/knowledge-base", async (req, res) => {
+  app.post("/api/knowledge-base", authenticateToken, async (req, res) => {
     try {
       const article = await storage.createKBArticle(req.body);
       res.status(201).json(article);

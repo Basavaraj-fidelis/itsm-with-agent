@@ -45,6 +45,12 @@ export default function KnowledgeBase() {
   // Fetch articles from API
   const [articles, setArticles] = useState<Article[]>([]);
   const [error, setError] = useState<Error | null>(null);
+  const [showNewArticleForm, setShowNewArticleForm] = useState(false);
+  const [newArticle, setNewArticle] = useState({
+    title: '',
+    content: '',
+    category: 'General'
+  });
 
   useEffect(() => {
     fetchArticles();
@@ -53,8 +59,23 @@ export default function KnowledgeBase() {
   const fetchArticles = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/knowledge-base?status=published`);
+      const token = localStorage.getItem('auth_token');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`/api/knowledge-base?status=published`, {
+        headers
+      });
+      
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication required. Please log in.');
+        }
         throw new Error(`Failed to fetch articles: ${response.status}`);
       }
       const data = await response.json();
@@ -66,6 +87,51 @@ export default function KnowledgeBase() {
       setArticles([]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCreateArticle = async () => {
+    if (!newArticle.title.trim() || !newArticle.content.trim()) {
+      alert('Please fill in both title and content');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch('/api/knowledge-base', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          title: newArticle.title,
+          content: newArticle.content,
+          category: newArticle.category,
+          tags: [],
+          author_email: 'admin@company.com',
+          status: 'published',
+          views: 0,
+          helpful_votes: 0
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create article');
+      }
+
+      // Reset form and refresh articles
+      setNewArticle({ title: '', content: '', category: 'General' });
+      setShowNewArticleForm(false);
+      fetchArticles();
+    } catch (err) {
+      console.error('Error creating article:', err);
+      alert('Failed to create article');
     }
   };
 
@@ -182,10 +248,6 @@ export default function KnowledgeBase() {
                 <ThumbsUp className="w-4 h-4 mr-2" />
                 Helpful
               </Button>
-              <Button variant="outline" size="sm">
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Share
-              </Button>
             </div>
           </div>
         </div>
@@ -229,12 +291,63 @@ export default function KnowledgeBase() {
             </h1>
             <p className="text-neutral-600">Browse articles and documentation</p>
           </div>
-          <Button className="bg-blue-600 hover:bg-blue-700">
+          <Button 
+            className="bg-blue-600 hover:bg-blue-700"
+            onClick={() => setShowNewArticleForm(true)}
+          >
             <Plus className="w-4 h-4 mr-2" />
             New Article
           </Button>
         </div>
       </div>
+
+      {/* New Article Form */}
+      {showNewArticleForm && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Create New Article</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Title</label>
+              <Input
+                value={newArticle.title}
+                onChange={(e) => setNewArticle({ ...newArticle, title: e.target.value })}
+                placeholder="Enter article title"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Category</label>
+              <select 
+                value={newArticle.category}
+                onChange={(e) => setNewArticle({ ...newArticle, category: e.target.value })}
+                className="w-full p-2 border border-gray-300 rounded-md"
+              >
+                {categories.filter(cat => cat !== 'all').map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Content</label>
+              <textarea
+                value={newArticle.content}
+                onChange={(e) => setNewArticle({ ...newArticle, content: e.target.value })}
+                placeholder="Enter article content (supports markdown)"
+                className="w-full p-2 border border-gray-300 rounded-md h-40"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleCreateArticle} className="bg-blue-600 hover:bg-blue-700">
+                Create Article
+              </Button>
+              <Button variant="outline" onClick={() => setShowNewArticleForm(false)}>
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Search and Filters */}
       <Card>

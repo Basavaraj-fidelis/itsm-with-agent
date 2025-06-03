@@ -85,7 +85,10 @@ export const api = {
   getAgent: (id: string) => get(`/api/agents/${id}`),
 
   // Users
-  getUsers: () => get("/api/users"),
+  getUsers: async () => {
+    const response = await apiRequest("GET", "/api/users");
+    return response.json();
+  },
 
   // Alerts
   getAlerts2: () => get("/api/alerts"),
