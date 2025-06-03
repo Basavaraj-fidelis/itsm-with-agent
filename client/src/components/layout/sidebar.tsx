@@ -1,3 +1,4 @@
+
 import { Home, Users, AlertTriangle, Settings, BarChart3, Ticket, BookOpen, Monitor, Menu, X, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,19 +44,19 @@ export default function Sidebar() {
   const navigation = getNavigation();
 
   return (
-    <div className={cn("flex flex-col h-full bg-white border-r border-neutral-200 dark:bg-neutral-900 dark:border-neutral-800 w-full", isCollapsed ? "w-16" : "w-64")}>
+    <div className={cn("flex flex-col h-full bg-[#F3F2F1] border-r border-[#E1DFDD] dark:bg-[#323130] dark:border-[#484644] w-full", isCollapsed ? "w-16" : "w-64")}>
       <div className="flex items-center justify-between p-4">
           <div className={cn("flex items-center space-x-3", isCollapsed && "justify-center")}>
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-[#0078D4] rounded-lg flex items-center justify-center">
               <Monitor className="w-5 h-5 text-white" />
             </div>
             {!isCollapsed && (
               <div className="flex-1">
-                <h1 className="text-lg font-semibold text-neutral-900 dark:text-white">ITSM</h1>
+                <h1 className="text-lg font-semibold text-[#201F1E] dark:text-[#F3F2F1]">ITSM</h1>
                 <div className="flex items-center space-x-2">
-                  <p className="text-xs text-neutral-600 dark:text-neutral-400">Portal</p>
+                  <p className="text-xs text-[#605E5C]">Portal</p>
                   {user?.role && (
-                    <Badge variant="outline" className="text-xs px-1 py-0">
+                    <Badge variant="outline" className="text-xs px-1 py-0 border-[#0078D4] text-[#0078D4]">
                       <Shield className="w-3 h-3 mr-1" />
                       {user.role}
                     </Badge>
@@ -64,7 +65,7 @@ export default function Sidebar() {
               </div>
             )}
           </div>
-          <Button variant="ghost" size="icon" className="p-0" onClick={() => setIsCollapsed(!isCollapsed)}>
+          <Button variant="ghost" size="icon" className="p-0 hover:bg-[#E1DFDD] dark:hover:bg-[#484644] text-[#201F1E] dark:text-[#F3F2F1]" onClick={() => setIsCollapsed(!isCollapsed)}>
             {isCollapsed ? <Menu /> : <X />}
           </Button>
         </div>
@@ -72,8 +73,18 @@ export default function Sidebar() {
         <ul className="space-y-1">
           {navigation.map((item) => (
             <li key={item.name}>
-              <Link to={item.href} className="group flex items-center space-x-3 py-2 px-3 rounded-md font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
-                <item.icon className="w-4 h-4 text-neutral-600 dark:text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-neutral-100" />
+              <Link to={item.href} className={cn(
+                "group flex items-center space-x-3 py-2 px-3 rounded-md font-medium transition-colors",
+                item.current 
+                  ? "bg-[#0078D4] text-white" 
+                  : "text-[#201F1E] dark:text-[#F3F2F1] hover:bg-[#E1DFDD] dark:hover:bg-[#484644]"
+              )}>
+                <item.icon className={cn(
+                  "w-4 h-4 transition-colors",
+                  item.current 
+                    ? "text-white" 
+                    : "text-[#605E5C] group-hover:text-[#201F1E] dark:group-hover:text-[#F3F2F1]"
+                )} />
                 {!isCollapsed && (
                   <span>
                     {item.name}

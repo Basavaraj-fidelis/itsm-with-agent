@@ -1,3 +1,4 @@
+
 import { useLocation } from "wouter";
 import { Bell, Search, Menu, Settings, User, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -47,11 +48,11 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-white dark:bg-neutral-800 shadow-sm border-b border-neutral-200 dark:border-neutral-700">
+    <header className="bg-white dark:bg-[#201F1E] shadow-sm border-b border-[#F3F2F1] dark:border-[#323130]">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <h1 className="text-2xl font-semibold text-neutral-800 dark:text-neutral-200">
+            <h1 className="text-2xl font-semibold text-[#201F1E] dark:text-[#F3F2F1]">
               {getPageName()}
             </h1>
           </div>
@@ -60,18 +61,18 @@ export default function Header() {
         <div className="flex items-center space-x-4">
           {/* Search */}
           <div className="relative hidden md:block">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#605E5C] w-4 h-4" />
             <Input
               type="search"
               placeholder="Search..."
-              className="pl-10 w-64"
+              className="pl-10 w-64 bg-[#F3F2F1] border-[#E1DFDD] text-[#201F1E] placeholder-[#605E5C] focus:border-[#0078D4] focus:ring-[#0078D4] dark:bg-[#323130] dark:border-[#484644] dark:text-[#F3F2F1]"
             />
           </div>
 
           {/* Notifications */}
-          <Button variant="ghost" size="sm" className="relative">
+          <Button variant="ghost" size="sm" className="relative hover:bg-[#F3F2F1] dark:hover:bg-[#323130] text-[#201F1E] dark:text-[#F3F2F1]">
             <Bell className="w-5 h-5" />
-            <Badge className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center p-0 text-xs">
+            <Badge className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center p-0 text-xs bg-[#0078D4] text-white">
               3
             </Badge>
           </Button>
@@ -79,9 +80,9 @@ export default function Header() {
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-10 px-3">
+              <Button variant="ghost" className="h-10 px-3 hover:bg-[#F3F2F1] dark:hover:bg-[#323130] text-[#201F1E] dark:text-[#F3F2F1]">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-blue-600 text-white text-sm">
+                  <AvatarFallback className="bg-[#0078D4] text-white text-sm">
                     {user ? getUserInitials(user.name) : 'U'}
                   </AvatarFallback>
                 </Avatar>
@@ -95,33 +96,33 @@ export default function Header() {
                 </div>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end">
+            <DropdownMenuContent className="w-56 bg-white dark:bg-[#201F1E] border-[#E1DFDD] dark:border-[#484644]" align="end">
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">{user?.name}</p>
-                  <p className="text-xs text-neutral-500">{user?.email}</p>
+                  <p className="text-sm font-medium text-[#201F1E] dark:text-[#F3F2F1]">{user?.name}</p>
+                  <p className="text-xs text-[#605E5C]">{user?.email}</p>
                   {user?.department && (
-                    <p className="text-xs text-neutral-500">{user.department} Department</p>
+                    <p className="text-xs text-[#605E5C]">{user.department} Department</p>
                   )}
                 </div>
               </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => window.location.href = '/settings'}>
+              <DropdownMenuSeparator className="bg-[#E1DFDD] dark:bg-[#484644]" />
+              <DropdownMenuItem onClick={() => window.location.href = '/settings'} className="text-[#201F1E] dark:text-[#F3F2F1] hover:bg-[#F3F2F1] dark:hover:bg-[#323130]">
                 <User className="mr-2 h-4 w-4" />
                 Profile Settings
               </DropdownMenuItem>
               {(user?.role === 'admin') && (
-                <DropdownMenuItem onClick={() => window.location.href = '/settings'}>
+                <DropdownMenuItem onClick={() => window.location.href = '/settings'} className="text-[#201F1E] dark:text-[#F3F2F1] hover:bg-[#F3F2F1] dark:hover:bg-[#323130]">
                   <Settings className="mr-2 h-4 w-4" />
                   System Settings
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem onClick={() => window.location.href = '/settings?tab=security'}>
+              <DropdownMenuItem onClick={() => window.location.href = '/settings?tab=security'} className="text-[#201F1E] dark:text-[#F3F2F1] hover:bg-[#F3F2F1] dark:hover:bg-[#323130]">
                 <Shield className="mr-2 h-4 w-4" />
                 Security
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={logout} className="text-red-600">
+              <DropdownMenuSeparator className="bg-[#E1DFDD] dark:bg-[#484644]" />
+              <DropdownMenuItem onClick={logout} className="text-red-600 hover:bg-[#F3F2F1] dark:hover:bg-[#323130]">
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign out
               </DropdownMenuItem>
