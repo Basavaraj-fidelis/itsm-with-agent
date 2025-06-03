@@ -1,6 +1,5 @@
-
 import { useLocation } from "wouter";
-import { Bell, Search, Menu, Settings, User, LogOut, Shield } from "lucide-react";
+import { Bell, Search, Menu, Settings, User, LogOut, Shield, Clock, AlertTriangle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -69,20 +68,68 @@ export default function Header() {
             />
           </div>
 
-          {/* Notifications */}
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="relative hover:bg-[#F3F2F1] dark:hover:bg-[#323130] text-[#201F1E] dark:text-[#F3F2F1]"
-            onClick={() => window.location.href = '/notifications'}
-          >
-            <Bell className="w-5 h-5" />
-            <Badge className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center p-0 text-xs bg-[#0078D4] text-white">
-              5
-            </Badge>
-          </Button>
+          {/* Notifications Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="relative">
+                <Bell className="h-5 w-5" />
+                <Badge 
+                  variant="destructive" 
+                  className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                >
+                  3
+                </Badge>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-80">
+              <div className="flex items-center justify-between p-2">
+                <h3 className="font-semibold">Notifications</h3>
+                <Button variant="ghost" size="sm" className="text-xs">
+                  Mark all as read
+                </Button>
+              </div>
+              <DropdownMenuSeparator />
 
-          {/* User Menu */}
+              <DropdownMenuItem className="flex items-start space-x-3 p-3">
+                <div className="flex-shrink-0">
+                  <AlertTriangle className="h-5 w-5 text-orange-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">High Priority Ticket</p>
+                  <p className="text-xs text-muted-foreground">Ticket #1234 requires immediate attention</p>
+                  <p className="text-xs text-muted-foreground mt-1">5 minutes ago</p>
+                </div>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem className="flex items-start space-x-3 p-3">
+                <div className="flex-shrink-0">
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">Ticket Resolved</p>
+                  <p className="text-xs text-muted-foreground">Ticket #1235 has been resolved successfully</p>
+                  <p className="text-xs text-muted-foreground mt-1">15 minutes ago</p>
+                </div>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem className="flex items-start space-x-3 p-3">
+                <div className="flex-shrink-0">
+                  <Clock className="h-5 w-5 text-blue-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">SLA Warning</p>
+                  <p className="text-xs text-muted-foreground">Ticket #1236 approaching SLA deadline</p>
+                  <p className="text-xs text-muted-foreground mt-1">1 hour ago</p>
+                </div>
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-center text-sm text-muted-foreground">
+                View all notifications
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-10 px-3 hover:bg-[#F3F2F1] dark:hover:bg-[#323130] text-[#201F1E] dark:text-[#F3F2F1]">

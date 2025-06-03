@@ -1,4 +1,3 @@
-
 import type { Express } from "express";
 import { ticketStorage } from "./ticket-storage";
 import { z } from "zod";
@@ -158,7 +157,7 @@ export function registerTicketRoutes(app: Express) {
       };
 
       const csvData = await ticketStorage.exportTicketsCSV(filters);
-      
+
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', 'attachment; filename="tickets.csv"');
       res.send(csvData);

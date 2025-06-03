@@ -1,4 +1,3 @@
-
 import { db } from "./db";
 import { 
   tickets, 
@@ -33,7 +32,7 @@ export class TicketStorage {
   private async generateTicketNumber(type: string): Promise<string> {
     const year = new Date().getFullYear();
     const prefix = type.toUpperCase().substring(0, 3);
-    
+
     // Get count of tickets of this type this year
     const [result] = await db
       .select({ count: count() })
@@ -52,7 +51,7 @@ export class TicketStorage {
   // CRUD Operations for Tickets
   async createTicket(ticketData: Omit<NewTicket, 'ticket_number'>): Promise<Ticket> {
     const ticket_number = await this.generateTicketNumber(ticketData.type);
-    
+
     const [newTicket] = await db
       .insert(tickets)
       .values({
@@ -71,22 +70,22 @@ export class TicketStorage {
     filters: TicketFilters = {}
   ): Promise<PaginatedResult<Ticket>> {
     const offset = (page - 1) * limit;
-    
+
     // Build where conditions
     const conditions = [];
-    
+
     if (filters.type) {
       conditions.push(eq(tickets.type, filters.type));
     }
-    
+
     if (filters.status) {
       conditions.push(eq(tickets.status, filters.status));
     }
-    
+
     if (filters.priority) {
       conditions.push(eq(tickets.priority, filters.priority));
     }
-    
+
     if (filters.search) {
       conditions.push(
         or(
@@ -190,17 +189,17 @@ export class TicketStorage {
     filters: { category?: string; search?: string; status?: string } = {}
   ): Promise<PaginatedResult<KnowledgeBaseArticle>> {
     const offset = (page - 1) * limit;
-    
+
     const conditions = [];
-    
+
     if (filters.category) {
       conditions.push(eq(knowledgeBase.category, filters.category));
     }
-    
+
     if (filters.status) {
       conditions.push(eq(knowledgeBase.status, filters.status));
     }
-    
+
     if (filters.search) {
       conditions.push(
         or(
@@ -267,7 +266,7 @@ export class TicketStorage {
   // Export functionality
   async exportTicketsCSV(filters: TicketFilters = {}): Promise<string> {
     const { data: tickets } = await this.getTickets(1, 10000, filters); // Get all matching tickets
-    
+
     const headers = [
       'Ticket Number',
       'Type',
@@ -307,13 +306,13 @@ export class TicketStorage {
     try {
       // First delete all related reports
       await db.delete(device_reports).where(eq(device_reports.device_id, id));
-      
+
       // Then delete all related alerts
       await db.delete(alerts).where(eq(alerts.device_id, id));
-      
+
       // Finally delete the device
       const result = await db.delete(devices).where(eq(devices.id, id));
-      
+
       return result.rowCount > 0;
     } catch (error) {
       console.error("Error deleting device:", error);

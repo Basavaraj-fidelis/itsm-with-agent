@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -196,6 +195,63 @@ export default function Tickets() {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const renderWorkflowActions = (ticket: any) => {
+    // Mock workflow actions based on ticket status
+    const actions = [];
+
+    switch (ticket.status) {
+      case "new":
+        actions.push(
+          <Button key="assign" variant="default" size="sm">
+            Assign to Self
+          </Button>
+        );
+        actions.push(
+          <Button key="in_progress" variant="outline" size="sm">
+            Mark as In Progress
+          </Button>
+        );
+        break;
+      case "assigned":
+        actions.push(
+          <Button key="in_progress" variant="default" size="sm">
+            Mark as In Progress
+          </Button>
+        );
+        break;
+      case "in_progress":
+        actions.push(
+          <Button key="pending" variant="outline" size="sm">
+            Mark as Pending
+          </Button>
+        );
+        actions.push(
+          <Button key="resolved" variant="default" size="sm">
+            Mark as Resolved
+          </Button>
+        );
+        break;
+      case "pending":
+        actions.push(
+          <Button key="in_progress" variant="outline" size="sm">
+            Mark as In Progress
+          </Button>
+        );
+        break;
+      case "resolved":
+        actions.push(
+          <Button key="closed" variant="default" size="sm">
+            Close Ticket
+          </Button>
+        );
+        break;
+      default:
+        break;
+    }
+
+    return actions;
   };
 
   return (
@@ -501,6 +557,15 @@ export default function Tickets() {
                   <h2 className="text-xl font-semibold mb-2">{selectedTicket.title}</h2>
                   <p className="text-neutral-600">{selectedTicket.description}</p>
                 </div>
+                <div className="flex space-x-2">
+                    {renderWorkflowActions(selectedTicket)}
+                    <Button variant="outline" size="sm">
+                      Edit
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      Add Comment
+                    </Button>
+                  </div>
               </div>
 
               <div className="grid grid-cols-2 gap-6">
