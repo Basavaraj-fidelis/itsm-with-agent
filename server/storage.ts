@@ -2494,6 +2494,7 @@ ipconfig /flushdns
       filteredArticles = filteredArticles.filter(article => 
         article.category?.toLowerCase() === filters.category.toLowerCase()
       );
+      console.log(`Filtered by category '${filters.category}': ${filteredArticles.length} articles`);
     }
     
     if (filters.status) {

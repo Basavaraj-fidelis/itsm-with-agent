@@ -54,7 +54,7 @@ export default function KnowledgeBase() {
 
   useEffect(() => {
     fetchArticles();
-  }, []);
+  }, [selectedCategory, searchTerm]);
 
   const fetchArticles = async () => {
     try {
@@ -72,6 +72,12 @@ export default function KnowledgeBase() {
         params.append('search', searchTerm.trim());
       }
 
+      console.log(`Fetching KB articles with filters:`, { 
+        category: selectedCategory !== 'all' ? selectedCategory : undefined, 
+        search: searchTerm.trim() || undefined, 
+        status: 'published' 
+      });
+
       const response = await fetch(`/api/knowledge-base?${params.toString()}`);
 
       if (!response.ok) {
@@ -79,7 +85,7 @@ export default function KnowledgeBase() {
       }
 
       const data = await response.json();
-      console.log("Received articles:", data.length);
+      console.log(`Received ${data.length} articles for category: ${selectedCategory}`);
       setArticles(data);
       setError(null);
     } catch (err) {
@@ -138,26 +144,15 @@ export default function KnowledgeBase() {
 
   const categories = [
     "all",
-    "Installation", 
-    "Troubleshooting",
-    "Alerts",
     "Account Management",
+    "Hardware", 
     "Network",
+    "Security",
     "Software",
-    "Hardware",
-    "Security"
+    "Troubleshooting"
   ];
-  // Since filtering is now done on the server side, we can use articles directly
-  // But we still keep the client-side filtering for real-time search as user types
-  const filteredArticles = articles.filter(article => {
-    if (!searchTerm) return true;
-
-    const searchLower = searchTerm.toLowerCase();
-    return article.title?.toLowerCase().includes(searchLower) ||
-           article.content?.toLowerCase().includes(searchLower) ||
-           article.category?.toLowerCase().includes(searchLower) ||
-           article.tags?.some((tag: string) => tag.toLowerCase().includes(searchLower));
-  });
+  // Use articles directly since server-side filtering handles everything
+  const filteredArticles = articles;
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
