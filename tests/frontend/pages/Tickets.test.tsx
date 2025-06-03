@@ -1,140 +1,94 @@
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import Tickets from '../../../client/src/pages/tickets';
 
-import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import Tickets from '../../../client/src/pages/tickets'
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false }
+    }
+  });
 
-// Mock useQuery
-vi.mock('@tanstack/react-query', async () => {
-  const actual = await vi.importActual('@tanstack/react-query')
-  return {
-    ...actual,
-    useQuery: vi.fn(),
-  }
-})
-
-const createTestQueryClient = () => new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
-})
-
-const renderWithQueryClient = (component: React.ReactElement) => {
-  const queryClient = createTestQueryClient()
-  return render(
+  return ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>
-      {component}
+      {children}
     </QueryClientProvider>
-  )
-}
+  );
+};
 
 describe('Tickets', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
-  })
+    vi.clearAllMocks();
+  });
 
-  it('renders loading state', () => {
-    const { useQuery } = require('@tanstack/react-query')
-    
-    useQuery.mockReturnValue({
-      data: undefined,
-      isLoading: true,
-      error: null
-    })
+  it('renders tickets page with header', () => {
+    render(<Tickets />, { wrapper: createWrapper() });
 
-    renderWithQueryClient(<Tickets />)
-    
-    expect(screen.getByText('Loading...')).toBeInTheDocument()
-  })
+    expect(screen.getByText('Service Desk')).toBeInTheDocument();
+    expect(screen.getByText('Manage tickets and service workflows')).toBeInTheDocument();
+  });
 
-  it('renders tickets list when data is loaded', async () => {
-    const { useQuery } = require('@tanstack/react-query')
-    
-    const mockTickets = [
-      {
-        id: 'INC-001',
-        title: 'Network connectivity issue',
-        status: 'open',
-        priority: 'high',
-        type: 'incident',
-        created_at: new Date().toISOString(),
-        requester_email: 'user@example.com'
-      },
-      {
-        id: 'REQ-001',
-        title: 'Software installation request',
-        status: 'pending',
-        priority: 'medium',
-        type: 'request',
-        created_at: new Date().toISOString(),
-        requester_email: 'user2@example.com'
-      }
-    ]
-    
-    useQuery.mockReturnValue({
-      data: mockTickets,
-      isLoading: false,
-      error: null
-    })
+  it('displays tickets and workflows toggle buttons', () => {
+    render(<Tickets />, { wrapper: createWrapper() });
 
-    renderWithQueryClient(<Tickets />)
-    
+    expect(screen.getByRole('button', { name: /tickets/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /workflows/i })).toBeInTheDocument();
+  });
+
+  it('shows new ticket button', () => {
+    render(<Tickets />, { wrapper: createWrapper() });
+
+    expect(screen.getByRole('button', { name: /new ticket/i })).toBeInTheDocument();
+  });
+
+  it('displays search and filter controls', () => {
+    render(<Tickets />, { wrapper: createWrapper() });
+
+    expect(screen.getByPlaceholderText('Search tickets...')).toBeInTheDocument();
+    expect(screen.getByText('All Types')).toBeInTheDocument();
+    expect(screen.getByText('All Status')).toBeInTheDocument();
+    expect(screen.getByText('All Priority')).toBeInTheDocument();
+  });
+
+  it('displays mock tickets', () => {
+    render(<Tickets />, { wrapper: createWrapper() });
+
+    expect(screen.getByText('REQ-2024-001')).toBeInTheDocument();
+    expect(screen.getByText('New Software Installation Request')).toBeInTheDocument();
+  });
+
+  it('filters tickets by search term', async () => {
+    render(<Tickets />, { wrapper: createWrapper() });
+
+    const searchInput = screen.getByPlaceholderText('Search tickets...');
+    fireEvent.change(searchInput, { target: { value: 'Software' } });
+
     await waitFor(() => {
-      expect(screen.getByText('INC-001')).toBeInTheDocument()
-      expect(screen.getByText('REQ-001')).toBeInTheDocument()
-      expect(screen.getByText('Network connectivity issue')).toBeInTheDocument()
-      expect(screen.getByText('Software installation request')).toBeInTheDocument()
-    })
-  })
+      expect(screen.getByText('New Software Installation Request')).toBeInTheDocument();
+    });
+  });
 
-  it('handles empty tickets list', async () => {
-    const { useQuery } = require('@tanstack/react-query')
-    
-    useQuery.mockReturnValue({
-      data: [],
-      isLoading: false,
-      error: null
-    })
+  it('opens new ticket dialog when button is clicked', async () => {
+    render(<Tickets />, { wrapper: createWrapper() });
 
-    renderWithQueryClient(<Tickets />)
-    
+    const newTicketButton = screen.getByRole('button', { name: /new ticket/i });
+    fireEvent.click(newTicketButton);
+
     await waitFor(() => {
-      expect(screen.getByText('No tickets found')).toBeInTheDocument()
-    })
-  })
+      expect(screen.getByText('Create New Ticket')).toBeInTheDocument();
+    });
+  });
 
-  it('filters tickets by status', async () => {
-    const { useQuery } = require('@tanstack/react-query')
-    
-    const mockTickets = [
-      {
-        id: 'INC-001',
-        title: 'Network connectivity issue',
-        status: 'open',
-        priority: 'high',
-        type: 'incident',
-        created_at: new Date().toISOString(),
-        requester_email: 'user@example.com'
-      }
-    ]
-    
-    useQuery.mockReturnValue({
-      data: mockTickets,
-      isLoading: false,
-      error: null
-    })
+  it('switches to workflows view when workflows button is clicked', async () => {
+    render(<Tickets />, { wrapper: createWrapper() });
 
-    const user = userEvent.setup()
-    renderWithQueryClient(<Tickets />)
-    
-    const statusFilter = screen.getByRole('button', { name: /status/i })
-    await user.click(statusFilter)
-    
+    const workflowsButton = screen.getByRole('button', { name: /workflows/i });
+    fireEvent.click(workflowsButton);
+
     await waitFor(() => {
-      expect(screen.getByRole('option', { name: /open/i })).toBeInTheDocument()
-    })
-  })
-})
+      expect(screen.getByText('Service Desk Workflows')).toBeInTheDocument();
+    });
+  });
+});

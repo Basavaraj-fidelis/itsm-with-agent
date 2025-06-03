@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -141,254 +140,250 @@ export default function Tickets() {
   const [tickets, setTickets] = useState(mockTickets);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchTickets = async () => {
-      setLoading(true);
-      try {
-        const response = await api.get("/tickets");
-        if (response.data && response.data.length > 0) {
-          setTickets(response.data);
-        } else {
-          // Use mock data if no real tickets exist
-          setTickets(mockTickets);
-        }
-      } catch (error) {
-        console.error("Failed to fetch tickets:", error);
-        // Use mock data on error
-        setTickets(mockTickets);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTickets();
-  }, []);
-
-  const handleNewTicket = () => {
-    const ticketType = activeTab === "all" ? "request" : activeTab;
-    setNewTicketData({ ...newTicketData, type: ticketType });
-    setShowNewTicketDialog(true);
-  };
-
-  const handleViewTicket = (ticket: any) => {
-    setSelectedTicket(ticket);
-    setShowTicketDetailsDialog(true);
-  };
-
-  const handleCreateTicket = async () => {
-    try {
-      await api.post("/tickets", newTicketData);
-      // Refresh tickets after creating a new one
-      const response = await api.get("/tickets");
-      setTickets(response.data);
-      setShowNewTicketDialog(false);
-    } catch (error) {
-      console.error("Failed to create ticket:", error);
-      // Handle error appropriately
-    }
-    // Here you would normally send the data to your API
-    console.log("Creating ticket:", newTicketData);
-    setShowNewTicketDialog(false);
-    // Reset form
-    setNewTicketData({
-      type: "request",
-      title: "",
-      description: "",
-      priority: "medium",
-      requester_email: "",
-      category: ""
-    });
-  };
-
+  // Filter tickets based on current filters
   const filteredTickets = tickets.filter(ticket => {
-    const matchesTab = activeTab === "all" || ticket.type === activeTab;
     const matchesSearch = ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         ticket.ticket_number.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesPriority = filterPriority === "all" || ticket.priority === filterPriority;
-    const matchesStatus = filterStatus === "all" || ticket.status === filterStatus;
+                         ticket.ticket_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         ticket.requester_email.toLowerCase().includes(searchTerm.toLowerCase());
 
-    return matchesTab && matchesSearch && matchesPriority && matchesStatus;
+    const matchesType = selectedType === "all" || ticket.type === selectedType;
+    const matchesStatus = selectedStatus === "all" || ticket.status === selectedStatus;
+    const matchesPriority = selectedPriority === "all" || ticket.priority === selectedPriority;
+
+    return matchesSearch && matchesType && matchesStatus && matchesPriority;
   });
 
-  const ticketCounts = {
-    all: tickets.length,
-    request: tickets.filter(t => t.type === "request").length,
-    incident: tickets.filter(t => t.type === "incident").length,
-    problem: tickets.filter(t => t.type === "problem").length,
-    change: tickets.filter(t => t.type === "change").length
+  const handleCreateTicket = async () => {
+    if (!newTicketData.title || !newTicketData.description || !newTicketData.requester_email) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Create new ticket
+      const newTicket = {
+        id: (tickets.length + 1).toString(),
+        ticket_number: `${newTicketData.type.toUpperCase().slice(0, 3)}-2024-${String(tickets.length + 1).padStart(3, '0')}`,
+        ...newTicketData,
+        status: "new",
+        created_at: new Date().toISOString(),
+        assigned_to: null
+      };
+
+      setTickets(prev => [newTicket, ...prev]);
+      setShowNewTicketDialog(false);
+      setNewTicketData({
+        type: "request",
+        title: "",
+        description: "",
+        priority: "medium",
+        requester_email: "",
+        category: ""
+      });
+    } catch (error) {
+      console.error('Error creating ticket:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleExportCSV = () => {
-    // Implement CSV export logic here
-    console.log("Exporting CSV...");
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-neutral-800 dark:text-neutral-200 mb-2">
             Service Desk
           </h1>
-          <p className="text-neutral-600">Manage requests, incidents, problems, and changes</p>
+          <p className="text-neutral-600">Manage tickets and service workflows</p>
         </div>
+
         <div className="flex items-center space-x-2">
           <Button
             variant={viewMode === "tickets" ? "default" : "outline"}
+            size="sm"
             onClick={() => setViewMode("tickets")}
           >
+            <Ticket className="w-4 h-4 mr-2" />
             Tickets
           </Button>
           <Button
             variant={viewMode === "workflows" ? "default" : "outline"}
+            size="sm"
             onClick={() => setViewMode("workflows")}
           >
             <Workflow className="w-4 h-4 mr-2" />
             Workflows
           </Button>
-          <Button onClick={handleNewTicket} className="flex items-center space-x-2">
-            <Plus className="w-4 h-4" />
-            <span>New Ticket</span>
-          </Button>
+          {viewMode === "tickets" && (
+            <Button onClick={() => setShowNewTicketDialog(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              New Ticket
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Conditional Content Based on View Mode */}
       {viewMode === "workflows" ? (
         <ServiceDeskWorkflows />
       ) : (
         <>
           {/* Filters */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-4 h-4" />
-                    <Input
-                      placeholder="Search tickets..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                <Select value={filterPriority} onValueChange={setFilterPriority}>
-                  <SelectTrigger className="w-full md:w-40">
-                    <SelectValue placeholder="Priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Priorities</SelectItem>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="critical">Critical</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="w-full md:w-40">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="new">New</SelectItem>
-                    <SelectItem value="assigned">Assigned</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="resolved">Resolved</SelectItem>
-                    <SelectItem value="closed">Closed</SelectItem>
-                  </SelectContent>
-                </Select>
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex items-center space-x-2">
+              <Search className="w-4 h-4 text-neutral-500" />
+              <Input
+                placeholder="Search tickets..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-64"
+              />
+            </div>
+
+            <Select value={selectedType} onValueChange={setSelectedType}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="request">Request</SelectItem>
+                <SelectItem value="incident">Incident</SelectItem>
+                <SelectItem value="problem">Problem</SelectItem>
+                <SelectItem value="change">Change</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="new">New</SelectItem>
+                <SelectItem value="assigned">Assigned</SelectItem>
+                <SelectItem value="in_progress">In Progress</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="resolved">Resolved</SelectItem>
+                <SelectItem value="closed">Closed</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedPriority} onValueChange={setSelectedPriority}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Priority</SelectItem>
+                <SelectItem value="low">Low</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="critical">Critical</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Tickets List */}
+          <div className="space-y-4">
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-2 text-neutral-600">Loading tickets...</p>
               </div>
-            </CardContent>
-          </Card>
+            ) : filteredTickets.length === 0 ? (
+              <div className="text-center py-8">
+                <Ticket className="w-12 h-12 text-neutral-400 mx-auto mb-2" />
+                <p className="text-neutral-600">No tickets found</p>
+              </div>
+            ) : (
+              filteredTickets.map((ticket) => {
+                const IconComponent = typeIcons[ticket.type as keyof typeof typeIcons];
+                return (
+                  <Card 
+                    key={ticket.id} 
+                    className="cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => {
+                      setSelectedTicket(ticket);
+                      setShowTicketDetailsDialog(true);
+                    }}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start space-x-4 flex-1">
+                          <div className={`p-2 rounded-lg ${
+                            ticket.type === 'incident' ? 'bg-red-100 text-red-600' :
+                            ticket.type === 'problem' ? 'bg-orange-100 text-orange-600' :
+                            ticket.type === 'change' ? 'bg-blue-100 text-blue-600' :
+                            'bg-green-100 text-green-600'
+                          }`}>
+                            <IconComponent className="w-4 h-4" />
+                          </div>
 
-          {/* Tickets Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="all">
-                All ({ticketCounts.all})
-              </TabsTrigger>
-              <TabsTrigger value="request">
-                Requests ({ticketCounts.request})
-              </TabsTrigger>
-              <TabsTrigger value="incident">
-                Incidents ({ticketCounts.incident})
-              </TabsTrigger>
-              <TabsTrigger value="problem">
-                Problems ({ticketCounts.problem})
-              </TabsTrigger>
-              <TabsTrigger value="change">
-                Changes ({ticketCounts.change})
-              </TabsTrigger>
-            </TabsList>
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <span className="font-mono text-sm text-neutral-600">
+                                {ticket.ticket_number}
+                              </span>
+                              <Badge 
+                                variant="outline" 
+                                className={priorityColors[ticket.priority as keyof typeof priorityColors]}
+                              >
+                                {ticket.priority}
+                              </Badge>
+                              <Badge 
+                                variant="outline"
+                                className={statusColors[ticket.status as keyof typeof statusColors]}
+                              >
+                                {ticket.status.replace('_', ' ')}
+                              </Badge>
+                            </div>
 
-            <TabsContent value={activeTab} className="space-y-4">
-              {loading ? (
-                <div className="text-center py-8">Loading tickets...</div>
-              ) : filteredTickets.length === 0 ? (
-                <div className="text-center py-8">No tickets found</div>
-              ) : (
-                filteredTickets.map((ticket) => {
-                  const TypeIcon = typeIcons[ticket.type as keyof typeof typeIcons];
-                  return (
-                    <Card 
-                      key={ticket.id} 
-                      className="hover:bg-neutral-50 dark:hover:bg-neutral-800 cursor-pointer transition-colors"
-                      onClick={() => handleViewTicket(ticket)}
-                    >
-                      <CardContent className="pt-6">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-start space-x-4 flex-1">
-                            <TypeIcon className="w-5 h-5 text-neutral-600 mt-1" />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center space-x-2 mb-2">
-                                <span className="font-mono text-sm text-neutral-600">
-                                  {ticket.ticket_number}
-                                </span>
-                                <Badge className={priorityColors[ticket.priority as keyof typeof priorityColors]}>
-                                  {ticket.priority}
-                                </Badge>
-                                <Badge className={statusColors[ticket.status as keyof typeof statusColors]}>
-                                  {ticket.status.replace('_', ' ')}
-                                </Badge>
+                            <h3 className="font-medium text-neutral-900 dark:text-neutral-100 mb-1">
+                              {ticket.title}
+                            </h3>
+
+                            <p className="text-sm text-neutral-600 mb-2 line-clamp-2">
+                              {ticket.description}
+                            </p>
+
+                            <div className="flex items-center space-x-4 text-xs text-neutral-500">
+                              <div className="flex items-center space-x-1">
+                                <User className="w-3 h-3" />
+                                <span>{ticket.requester_email}</span>
                               </div>
-                              <h3 className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-1">
-                                {ticket.title}
-                              </h3>
-                              <p className="text-sm text-neutral-600 mb-3 line-clamp-2">
-                                {ticket.description}
-                              </p>
-                              <div className="flex items-center space-x-4 text-xs text-neutral-500">
-                                <div className="flex items-center space-x-1">
-                                  <User className="w-3 h-3" />
-                                  <span>{ticket.requester_email}</span>
-                                </div>
+                              <div className="flex items-center space-x-1">
+                                <Calendar className="w-3 h-3" />
+                                <span>{formatDate(ticket.created_at)}</span>
+                              </div>
+                              {ticket.due_date && (
                                 <div className="flex items-center space-x-1">
                                   <Clock className="w-3 h-3" />
-                                  <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
+                                  <span>Due: {formatDate(ticket.due_date)}</span>
                                 </div>
-                                {ticket.due_date && (
-                                  <div className="flex items-center space-x-1">
-                                    <Calendar className="w-3 h-3" />
-                                    <span>Due: {new Date(ticket.due_date).toLocaleDateString()}</span>
-                                  </div>
-                                )}
-                              </div>
+                              )}
                             </div>
                           </div>
-                          <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
                         </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })
-              )}
-            </TabsContent>
-          </Tabs>
+
+                        <Button variant="ghost" size="sm">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </div>
         </>
       )}
 
@@ -396,27 +391,33 @@ export default function Tickets() {
       <Dialog open={showNewTicketDialog} onOpenChange={setShowNewTicketDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Create New {newTicketData.type.charAt(0).toUpperCase() + newTicketData.type.slice(1)}</DialogTitle>
+            <DialogTitle>Create New Ticket</DialogTitle>
           </DialogHeader>
+
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="type">Type</Label>
-                <Select value={newTicketData.type} onValueChange={(value) => setNewTicketData({...newTicketData, type: value})}>
+                <Select value={newTicketData.type} onValueChange={(value) => 
+                  setNewTicketData(prev => ({ ...prev, type: value }))
+                }>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="request">Request</SelectItem>
+                    <SelectItem value="request">Service Request</SelectItem>
                     <SelectItem value="incident">Incident</SelectItem>
                     <SelectItem value="problem">Problem</SelectItem>
-                    <SelectItem value="change">Change</SelectItem>
+                    <SelectItem value="change">Change Request</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
               <div>
                 <Label htmlFor="priority">Priority</Label>
-                <Select value={newTicketData.priority} onValueChange={(value) => setNewTicketData({...newTicketData, priority: value})}>
+                <Select value={newTicketData.priority} onValueChange={(value) =>
+                  setNewTicketData(prev => ({ ...prev, priority: value }))
+                }>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -431,33 +432,23 @@ export default function Tickets() {
             </div>
 
             <div>
+              <Label htmlFor="requester">Requester Email</Label>
+              <Input
+                id="requester"
+                type="email"
+                value={newTicketData.requester_email}
+                onChange={(e) => setNewTicketData(prev => ({ ...prev, requester_email: e.target.value }))}
+                placeholder="user@company.com"
+              />
+            </div>
+
+            <div>
               <Label htmlFor="title">Title</Label>
               <Input
                 id="title"
                 value={newTicketData.title}
-                onChange={(e) => setNewTicketData({...newTicketData, title: e.target.value})}
-                placeholder="Enter ticket title"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="requester_email">Requester Email</Label>
-              <Input
-                id="requester_email"
-                type="email"
-                value={newTicketData.requester_email}
-                onChange={(e) => setNewTicketData({...newTicketData, requester_email: e.target.value})}
-                placeholder="requester@company.com"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="category">Category</Label>
-              <Input
-                id="category"
-                value={newTicketData.category}
-                onChange={(e) => setNewTicketData({...newTicketData, category: e.target.value})}
-                placeholder="e.g., Software, Hardware, Network"
+                onChange={(e) => setNewTicketData(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Brief description of the request"
               />
             </div>
 
@@ -466,8 +457,8 @@ export default function Tickets() {
               <Textarea
                 id="description"
                 value={newTicketData.description}
-                onChange={(e) => setNewTicketData({...newTicketData, description: e.target.value})}
-                placeholder="Provide detailed description of the issue or request"
+                onChange={(e) => setNewTicketData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Detailed description of the request"
                 rows={4}
               />
             </div>
@@ -476,8 +467,8 @@ export default function Tickets() {
               <Button variant="outline" onClick={() => setShowNewTicketDialog(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCreateTicket}>
-                Create Ticket
+              <Button onClick={handleCreateTicket} disabled={loading}>
+                {loading ? "Creating..." : "Create Ticket"}
               </Button>
             </div>
           </div>
@@ -486,264 +477,63 @@ export default function Tickets() {
 
       {/* Ticket Details Dialog */}
       <Dialog open={showTicketDetailsDialog} onOpenChange={setShowTicketDetailsDialog}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Ticket Details</DialogTitle>
+          </DialogHeader>
+
           {selectedTicket && (
-            <>
-              <DialogHeader>
-                <div className="flex items-center justify-between">
-                  <DialogTitle className="flex items-center space-x-2">
-                    <span>{selectedTicket.ticket_number}</span>
+            <div className="space-y-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center space-x-2 mb-2">
+                    <span className="font-mono text-lg font-semibold">
+                      {selectedTicket.ticket_number}
+                    </span>
                     <Badge className={priorityColors[selectedTicket.priority as keyof typeof priorityColors]}>
                       {selectedTicket.priority}
                     </Badge>
                     <Badge className={statusColors[selectedTicket.status as keyof typeof statusColors]}>
                       {selectedTicket.status.replace('_', ' ')}
                     </Badge>
-                  </DialogTitle>
-                </div>
-              </DialogHeader>
-
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-xl font-semibold mb-2">{selectedTicket.title}</h3>
+                  </div>
+                  <h2 className="text-xl font-semibold mb-2">{selectedTicket.title}</h2>
                   <p className="text-neutral-600">{selectedTicket.description}</p>
                 </div>
+              </div>
 
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <Label className="text-sm font-medium text-neutral-500">Requester</Label>
-                      <p className="text-sm">{selectedTicket.requester_email}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-neutral-500">Assigned To</Label>
-                      <p className="text-sm">{selectedTicket.assigned_to}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-neutral-500">Type</Label>
-                      <p className="text-sm capitalize">{selectedTicket.type}</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div>
-                      <Label className="text-sm font-medium text-neutral-500">Created</Label>
-                      <p className="text-sm">{new Date(selectedTicket.created_at).toLocaleString()}</p>
-                    </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <h3 className="font-semibold mb-2">Ticket Information</h3>
+                  <div className="space-y-2 text-sm">
+                    <div><strong>Type:</strong> {selectedTicket.type}</div>
+                    <div><strong>Priority:</strong> {selectedTicket.priority}</div>
+                    <div><strong>Status:</strong> {selectedTicket.status}</div>
+                    <div><strong>Requester:</strong> {selectedTicket.requester_email}</div>
+                    <div><strong>Created:</strong> {formatDate(selectedTicket.created_at)}</div>
                     {selectedTicket.due_date && (
-                      <div>
-                        <Label className="text-sm font-medium text-neutral-500">Due Date</Label>
-                        <p className="text-sm">{new Date(selectedTicket.due_date).toLocaleString()}</p>
-                      </div>
-                    )}
-                    {selectedTicket.scheduled_start && (
-                      <div>
-                        <Label className="text-sm font-medium text-neutral-500">Scheduled Start</Label>
-                        <p className="text-sm">{new Date(selectedTicket.scheduled_start).toLocaleString()}</p>
-                      </div>
+                      <div><strong>Due Date:</strong> {formatDate(selectedTicket.due_date)}</div>
                     )}
                   </div>
                 </div>
 
-                <div className="flex justify-end space-x-2">
-                  <Button variant="outline" onClick={() => setShowTicketDetailsDialog(false)}>
-                    Close
-                  </Button>
-                  <Button>
-                    Update Ticket
-                  </Button>
+                <div>
+                  <h3 className="font-semibold mb-2">Assignment</h3>
+                  <div className="space-y-2 text-sm">
+                    <div><strong>Assigned To:</strong> {selectedTicket.assigned_to || 'Unassigned'}</div>
+                    {selectedTicket.scheduled_start && (
+                      <div><strong>Scheduled Start:</strong> {formatDate(selectedTicket.scheduled_start)}</div>
+                    )}
+                    {selectedTicket.scheduled_end && (
+                      <div><strong>Scheduled End:</strong> {formatDate(selectedTicket.scheduled_end)}</div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </>
+            </div>
           )}
         </DialogContent>
       </Dialog>
     </div>
   );
-}
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Label } from '@/components/ui/label'
-
-interface Ticket {
-  id: string
-  title: string
-  description: string
-  status: string
-  priority: string
-  created_at: string
-}
-
-export default function Tickets() {
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [priorityFilter, setPriorityFilter] = useState('all')
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [newTicket, setNewTicket] = useState({
-    title: '',
-    description: '',
-    priority: 'medium'
-  })
-
-  const queryClient = useQueryClient()
-
-  const { data: tickets, isLoading } = useQuery<Ticket[]>({
-    queryKey: ['tickets', statusFilter, priorityFilter],
-    queryFn: async () => {
-      const params = new URLSearchParams()
-      if (statusFilter !== 'all') {
-        params.append('status', statusFilter)
-      }
-      if (priorityFilter !== 'all') {
-        params.append('priority', priorityFilter)
-      }
-      
-      const response = await fetch(`/api/tickets?${params}`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch tickets')
-      }
-      return response.json()
-    }
-  })
-
-  const createTicketMutation = useMutation({
-    mutationFn: async (ticketData: typeof newTicket) => {
-      const response = await fetch('/api/tickets', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(ticketData),
-      })
-      if (!response.ok) {
-        throw new Error('Failed to create ticket')
-      }
-      return response.json()
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tickets'] })
-      setIsCreateModalOpen(false)
-      setNewTicket({ title: '', description: '', priority: 'medium' })
-    }
-  })
-
-  const handleCreateTicket = () => {
-    createTicketMutation.mutate(newTicket)
-  }
-
-  if (isLoading) {
-    return <div>Loading...</div>
-  }
-
-  return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Tickets</h1>
-        
-        <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-          <DialogTrigger asChild>
-            <Button>Create Ticket</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New Ticket</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  value={newTicket.title}
-                  onChange={(e) => setNewTicket(prev => ({ ...prev, title: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={newTicket.description}
-                  onChange={(e) => setNewTicket(prev => ({ ...prev, description: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="priority">Priority</Label>
-                <Select value={newTicket.priority} onValueChange={(value) => setNewTicket(prev => ({ ...prev, priority: value }))}>
-                  <SelectTrigger aria-label="Priority">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="critical">Critical</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button onClick={handleCreateTicket} className="w-full">
-                Create
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-      
-      <div className="flex gap-4 mb-6">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-32" aria-label="Status">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="open">Open</SelectItem>
-            <SelectItem value="in_progress">In Progress</SelectItem>
-            <SelectItem value="closed">Closed</SelectItem>
-          </SelectContent>
-        </Select>
-        
-        <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-          <SelectTrigger className="w-32" aria-label="Priority">
-            <SelectValue placeholder="Priority" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="low">Low</SelectItem>
-            <SelectItem value="medium">Medium</SelectItem>
-            <SelectItem value="high">High</SelectItem>
-            <SelectItem value="critical">Critical</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="grid gap-4">
-        {tickets?.map((ticket) => (
-          <Card key={ticket.id}>
-            <CardHeader>
-              <CardTitle>{ticket.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <span className="text-sm text-gray-500">Status:</span>
-                  <div>{ticket.status}</div>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-500">Priority:</span>
-                  <div>{ticket.priority}</div>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-500">Created:</span>
-                  <div>{new Date(ticket.created_at).toLocaleDateString()}</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  )
 }
