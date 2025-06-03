@@ -1,4 +1,3 @@
-
 import { pgTable, text, timestamp, integer, json, uuid, varchar, boolean } from "drizzle-orm/pg-core";
 
 // Ticket types and statuses
@@ -15,22 +14,22 @@ export const tickets = pgTable("tickets", {
   description: text("description").notNull(),
   priority: varchar("priority", { length: 20 }).notNull().default("medium"),
   status: varchar("status", { length: 20 }).notNull().default("new"),
-  
+
   // Assignment
   requester_email: varchar("requester_email", { length: 255 }).notNull(),
   assigned_to: varchar("assigned_to", { length: 255 }),
   assigned_group: varchar("assigned_group", { length: 100 }),
-  
+
   // Related entities
   device_id: uuid("device_id"),
   related_tickets: json("related_tickets").$type<string[]>().default([]),
-  
+
   // Workflow specific fields
   impact: varchar("impact", { length: 20 }).default("medium"), // low, medium, high, critical
   urgency: varchar("urgency", { length: 20 }).default("medium"), // low, medium, high, critical
   category: varchar("category", { length: 100 }),
   subcategory: varchar("subcategory", { length: 100 }),
-  
+
   // Change management specific
   change_type: varchar("change_type", { length: 50 }), // standard, emergency, normal
   risk_level: varchar("risk_level", { length: 20 }), // low, medium, high
@@ -39,16 +38,16 @@ export const tickets = pgTable("tickets", {
   rollback_plan: text("rollback_plan"),
   scheduled_start: timestamp("scheduled_start"),
   scheduled_end: timestamp("scheduled_end"),
-  
+
   // Problem management specific
   root_cause: text("root_cause"),
   workaround: text("workaround"),
   known_error: boolean("known_error").default(false),
-  
+
   // Metadata
   tags: json("tags").$type<string[]>().default([]),
   custom_fields: json("custom_fields").$type<Record<string, any>>().default({}),
-  
+
   // SLA fields
   sla_policy: varchar("sla_policy", { length: 100 }),
   sla_response_time: integer("sla_response_time"), // in minutes
@@ -57,7 +56,7 @@ export const tickets = pgTable("tickets", {
   sla_resolution_due: timestamp("sla_resolution_due"),
   first_response_at: timestamp("first_response_at"),
   sla_breached: boolean("sla_breached").default(false),
-  
+
   // Timestamps
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),

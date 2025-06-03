@@ -22,8 +22,10 @@ import {
   Calendar,
   MoreVertical,
   X,
-  Download
+  Download,
+  Workflow
 } from "lucide-react";
+import ServiceDeskWorkflows from "@/components/tickets/service-desk-workflows";
 
 // Mock ticket data
 const mockTickets = [
@@ -115,8 +117,12 @@ interface NewTicketFormData {
 }
 
 export default function Tickets() {
-  const [activeTab, setActiveTab] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedType, setSelectedType] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedPriority, setSelectedPriority] = useState("all");
+  const [viewMode, setViewMode] = useState<"tickets" | "workflows">("tickets");
+  const [activeTab, setActiveTab] = useState("all");
   const [filterPriority, setFilterPriority] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
@@ -226,20 +232,25 @@ export default function Tickets() {
           </h1>
           <p className="text-neutral-600">Manage requests, incidents, problems, and changes</p>
         </div>
-        <div className="flex space-x-2">
-              <Button 
-                variant="outline" 
-                onClick={handleExportCSV}
-                className="flex items-center space-x-2"
-              >
-                <Download className="w-4 h-4" />
-                <span>Export CSV</span>
-              </Button>
-              <Button onClick={handleNewTicket} className="flex items-center space-x-2">
-                <Plus className="w-4 h-4" />
-                <span>New Ticket</span>
-              </Button>
-            </div>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant={viewMode === "tickets" ? "default" : "outline"}
+            onClick={() => setViewMode("tickets")}
+          >
+            Tickets
+          </Button>
+          <Button
+            variant={viewMode === "workflows" ? "default" : "outline"}
+            onClick={() => setViewMode("workflows")}
+          >
+            <Workflow className="w-4 h-4 mr-2" />
+            Workflows
+          </Button>
+          <Button onClick={handleNewTicket} className="flex items-center space-x-2">
+            <Plus className="w-4 h-4" />
+            <span>New Ticket</span>
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -539,6 +550,10 @@ export default function Tickets() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
+
+      {/* Conditional Content */}
+      {viewMode === "workflows" ? (
+        <ServiceDeskWorkflows />
+      ) : (
+        /* Tickets Table */
+        <Card>

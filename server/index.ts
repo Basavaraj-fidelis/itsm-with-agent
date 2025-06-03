@@ -46,6 +46,9 @@ app.use((req, res, next) => {
   // Import storage after it's available
   const { storage } = await import("./storage");
   
+  // Import authentication middleware
+  const { authenticateToken, requireRole } = await import("./routes");
+
   // Knowledge Base Routes (publicly accessible)
   app.get("/api/knowledge-base", async (req, res) => {
     try {
@@ -66,12 +69,28 @@ app.use((req, res, next) => {
   });
 
   // User Management Routes
-  app.get("/api/users", async (req, res) => {
+  app.get("/api/users", authenticateToken, requireRole(['admin', 'manager']), async (req, res) => {
     try {
-      const search = req.query.search as string;
-      const role = req.query.role as string;
-      const users = await storage.getUsers({ search, role });
-      res.json(users);
+      // Import user routes functionality
+      const { userRoutes } = await import("./user-routes");
+      
+      // Get all users (filtering can be added later)
+      const { db } = await import("./db");
+      const { users } = await import("../shared/user-schema");
+      
+      const allUsers = await db.select({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        role: users.role,
+        department: users.department,
+        phone: users.phone,
+        is_active: users.is_active,
+        created_at: users.created_at,
+        last_login: users.last_login
+      }).from(users);
+      
+      res.json(allUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ message: "Internal server error" });
