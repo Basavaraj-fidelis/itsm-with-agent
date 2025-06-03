@@ -43,6 +43,9 @@ app.use((req, res, next) => {
 
   const server = await registerRoutes(app);
 
+  // Import storage after it's available
+  const { storage } = await import("./storage");
+  
   // Knowledge Base Routes (publicly accessible)
   app.get("/api/knowledge-base", async (req, res) => {
     try {
