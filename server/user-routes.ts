@@ -1,7 +1,7 @@
 
 import { Router } from "express";
 import { db } from "./db";
-import { users } from "../shared/user-schema";
+import { users, userSessions } from "../shared/user-schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
@@ -143,6 +143,59 @@ router.delete("/:id", async (req, res) => {
   } catch (error) {
     console.error("Error deleting user:", error);
     res.status(500).json({ message: "Failed to delete user" });
+  }
+});
+
+// Change password endpoint
+router.post("/change-password", async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    const token = authHeader.substring(7);
+    
+    // Get user from session
+    const session = await db.select({
+      user_id: userSessions.user_id
+    }).from(userSessions).where(eq(userSessions.token, token));
+    
+    if (session.length === 0) {
+      return res.status(401).json({ message: "Invalid session" });
+    }
+    
+    const user = await db.select().from(users).where(eq(users.id, session[0].user_id));
+    
+    if (user.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    // Verify current password
+    const isValidPassword = await bcrypt.compare(currentPassword, user[0].password_hash);
+    
+    if (!isValidPassword) {
+      return res.status(400).json({ message: "Current password is incorrect" });
+    }
+    
+    // Hash new password
+    const saltRounds = 10;
+    const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+    
+    // Update password
+    await db.update(users)
+      .set({ 
+        password_hash: newPasswordHash,
+        updated_at: new Date()
+      })
+      .where(eq(users.id, user[0].id));
+    
+    res.json({ message: "Password changed successfully" });
+  } catch (error) {
+    console.error("Error changing password:", error);
+    res.status(500).json({ message: "Failed to change password" });
   }
 });
 

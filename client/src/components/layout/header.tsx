@@ -70,10 +70,15 @@ export default function Header() {
           </div>
 
           {/* Notifications */}
-          <Button variant="ghost" size="sm" className="relative hover:bg-[#F3F2F1] dark:hover:bg-[#323130] text-[#201F1E] dark:text-[#F3F2F1]">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="relative hover:bg-[#F3F2F1] dark:hover:bg-[#323130] text-[#201F1E] dark:text-[#F3F2F1]"
+            onClick={() => window.location.href = '/notifications'}
+          >
             <Bell className="w-5 h-5" />
             <Badge className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center p-0 text-xs bg-[#0078D4] text-white">
-              3
+              5
             </Badge>
           </Button>
 
@@ -107,7 +112,7 @@ export default function Header() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-[#E1DFDD] dark:bg-[#484644]" />
-              <DropdownMenuItem onClick={() => window.location.href = '/settings'} className="text-[#201F1E] dark:text-[#F3F2F1] hover:bg-[#F3F2F1] dark:hover:bg-[#323130]">
+              <DropdownMenuItem onClick={() => window.location.href = '/profile'} className="text-[#201F1E] dark:text-[#F3F2F1] hover:bg-[#F3F2F1] dark:hover:bg-[#323130]">
                 <User className="mr-2 h-4 w-4" />
                 Profile Settings
               </DropdownMenuItem>

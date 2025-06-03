@@ -13,6 +13,8 @@ import AgentDetail from "@/pages/agent-detail";
 import Alerts from "@/pages/alerts";
 import Tickets from "@/pages/tickets";
 import KnowledgeBase from "@/pages/knowledge-base";
+import Profile from "@/pages/profile";
+import Notifications from "@/pages/notifications";
 import Users from "@/pages/users";
 import Settings from "@/pages/settings";
 import Reports from "@/pages/reports";
@@ -91,7 +93,7 @@ export default function App() {
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>
-            
+
             <Route path="/agents/:id">
               <ProtectedRoute requiredRole={["admin", "manager", "technician"]}>
                 <AuthenticatedLayout>
@@ -99,7 +101,7 @@ export default function App() {
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>
-            
+
             <Route path="/agents">
               <ProtectedRoute requiredRole={["admin", "manager", "technician"]}>
                 <AuthenticatedLayout>
@@ -107,7 +109,7 @@ export default function App() {
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>
-            
+
             <Route path="/alerts">
               <ProtectedRoute requiredRole={["admin", "manager", "technician"]}>
                 <AuthenticatedLayout>
@@ -115,7 +117,7 @@ export default function App() {
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>
-            
+
             <Route path="/tickets">
               <ProtectedRoute>
                 <AuthenticatedLayout>
@@ -123,7 +125,7 @@ export default function App() {
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>
-            
+
             <Route path="/knowledge-base">
               <ProtectedRoute>
                 <AuthenticatedLayout>
@@ -131,7 +133,7 @@ export default function App() {
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>
-            
+
             <Route path="/users">
               <ProtectedRoute requiredRole={["admin", "manager"]}>
                 <AuthenticatedLayout>
@@ -139,7 +141,7 @@ export default function App() {
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>
-            
+
             <Route path="/settings">
               <ProtectedRoute requiredRole={["admin"]}>
                 <AuthenticatedLayout>
@@ -147,7 +149,23 @@ export default function App() {
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>
-            
+
+            <Route path="/profile">
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <Profile />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            </Route>
+
+             <Route path="/notifications">
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <Notifications />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            </Route>
+
             <Route path="/reports">
               <ProtectedRoute requiredRole={["admin", "manager"]}>
                 <AuthenticatedLayout>
@@ -160,7 +178,7 @@ export default function App() {
             <Route path="/">
               {isAuthenticated ? <Redirect to="/dashboard" /> : <Redirect to="/login" />}
             </Route>
-            
+
             {/* 404 route */}
             <Route>
               <NotFound />

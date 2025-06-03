@@ -8,10 +8,12 @@ const AuthContext = createContext<{
   user: any;
   login: (token: string, userData: any) => void;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }>({
   user: null,
   login: () => {},
-  logout: () => {}
+  logout: () => {},
+  refreshUser: async () => {}
 });
 
 export function useAuth() {
@@ -36,9 +38,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     window.location.href = "/login";
   };
+  const refreshUser = async () => {
+    try {
+      const response = await apiRequest("GET", "/api/auth/verify");
+      if (!response.ok) {
+        throw new Error("Authentication failed");
+      }
+      const userData = await response.json();
+      localStorage.setItem("user", JSON.stringify(userData));
+      setUser(userData);
+    } catch (error) {
+      console.error("Failed to refresh user:", error);
+      // Handle error appropriately, e.g., redirect to login
+      logout();
+    }
+  };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
