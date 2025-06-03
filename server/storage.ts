@@ -581,12 +581,1093 @@ Follow these steps to reset your password:
 - At least one special character
 
 If you continue to have issues, contact IT support.`,
-          category: "General",
+          category: "Account Management",
           tags: ["password", "login", "security"],
           author_email: "admin@company.com",
           status: "published",
           views: 45,
           helpful_votes: 12,
+        },
+        {
+          title: "Computer Won't Start - Complete Troubleshooting Guide",
+          content: `# Computer Won't Start - Troubleshooting Steps
+
+## Quick Checks (Try These First)
+
+### 1. Power Issues
+- **Check Power Cable**: Ensure power cord is securely connected
+- **Try Different Outlet**: Test with a known working power outlet
+- **Check Power Strip**: If using power strip, try plugging directly into wall
+- **Battery Check**: For laptops, try removing battery and using AC power only
+
+### 2. Display Issues
+- **Monitor Connection**: Check if monitor cable is properly connected
+- **Monitor Power**: Ensure monitor is turned on and receiving power
+- **Try Different Cable**: Use different VGA/HDMI/DisplayPort cable
+- **External Monitor**: For laptops, connect external monitor to test
+
+## Advanced Troubleshooting
+
+### Hardware Reset
+1. **Complete Power Down**: Hold power button for 10 seconds
+2. **Unplug Everything**: Remove all USB devices, external drives
+3. **Wait 30 Seconds**: Allow capacitors to discharge
+4. **Reconnect and Test**: Plug back in and try starting
+
+### Boot Sequence Issues
+- **Safe Mode**: Try starting in Safe Mode (F8 during startup)
+- **Last Known Good**: Try "Last Known Good Configuration"
+- **System Restore**: Boot from recovery and restore to earlier point
+
+## When to Contact IT
+- Computer makes unusual noises (clicking, grinding)
+- Repeated blue screen errors (BSOD)
+- Smoke or burning smell
+- Hardware reset doesn't work
+- Multiple startup failures
+
+**Emergency**: If you smell burning or see smoke, immediately unplug computer and contact IT`,
+          category: "Troubleshooting",
+          tags: ["startup", "hardware", "power", "boot"],
+          author_email: "support@company.com",
+          status: "published",
+          views: 289,
+          helpful_votes: 78,
+        },
+        {
+          title: "Internet Not Working - Step by Step Fix",
+          content: `# Internet Connection Problems
+
+## Quick Network Fixes
+
+### 1. Basic Connection Check
+- **WiFi Icon**: Look for WiFi symbol in system tray (bottom right)
+- **Ethernet Cable**: If wired, check cable connections
+- **Router Lights**: Ensure router shows green/blue lights (not red)
+- **Other Devices**: Test if phones/tablets can connect
+
+### 2. Restart Network Components
+**Order is important - follow this sequence:**
+1. **Unplug Router**: Wait 30 seconds
+2. **Unplug Modem**: Wait 30 seconds  
+3. **Restart Computer**: Complete shutdown and restart
+4. **Plug Modem Back In**: Wait 2 minutes for full startup
+5. **Plug Router Back In**: Wait 2 minutes for full startup
+6. **Test Connection**: Try browsing to a website
+
+## Windows Network Troubleshooting
+
+### Network Troubleshooter
+1. Right-click WiFi icon in system tray
+2. Select "Troubleshoot problems"
+3. Follow automated diagnostic steps
+4. Apply any suggested fixes
+
+### Reset Network Settings
+Open Command Prompt as Administrator and run:
+\`\`\`
+ipconfig /flushdns
+ipconfig /release
+ipconfig /renew
+netsh winsock reset
+netsh int ip reset
+\`\`\`
+**Restart computer after running these commands**
+
+## WiFi Specific Issues
+
+### Can't See Network
+- **Refresh Networks**: Click WiFi icon and refresh list
+- **Network Name**: Verify correct network name (SSID)
+- **Distance**: Move closer to router/access point
+- **5GHz vs 2.4GHz**: Try connecting to different frequency band
+
+### Wrong Password Error
+- **Case Sensitive**: Check uppercase/lowercase letters
+- **Number vs Letter**: Verify 0 (zero) vs O (letter O)
+- **Special Characters**: Double-check symbols and punctuation
+- **Contact Admin**: Get fresh WiFi password from IT
+
+## When It's Not Your Problem
+
+### Service Provider Issues
+- **Check Provider Status**: Visit ISP website for outage reports
+- **Call Provider**: Report if widespread outage suspected
+- **Backup Connection**: Use mobile hotspot temporarily
+
+### Company Network Issues
+- **Ask Colleagues**: Check if others have same problem
+- **IT Helpdesk**: Contact if multiple users affected
+- **VPN Issues**: Try disconnecting/reconnecting VPN
+
+**Quick Test**: Try visiting google.com - if it loads, DNS might be the issue`,
+          category: "Network",
+          tags: ["internet", "wifi", "connectivity", "network"],
+          author_email: "support@company.com",
+          status: "published",
+          views: 445,
+          helpful_votes: 123,
+        },
+        {
+          title: "Microsoft Office Issues - Common Problems & Solutions",
+          content: `# Microsoft Office Troubleshooting Guide
+
+## Word, Excel, PowerPoint Won't Open
+
+### 1. Application Crashes
+- **Safe Mode**: Hold Ctrl while clicking Office app icon
+- **Run as Administrator**: Right-click app, select "Run as administrator"
+- **Windows Updates**: Install all pending Windows updates
+- **Office Updates**: File > Account > Update Options > Update Now
+
+### 2. File Won't Open
+- **Try Different File**: Test with new/different document
+- **Compatibility Mode**: Try opening in compatibility mode
+- **Copy File Locally**: If file is on network, copy to desktop first
+- **Check File Extension**: Ensure .docx, .xlsx, .pptx extensions are correct
+
+## Document Recovery
+
+### AutoRecover Files
+1. **Open Office App**: Start Word/Excel/PowerPoint
+2. **File > Open**: Look for "Recover Unsaved Documents"
+3. **Document Recovery Pane**: May appear automatically on startup
+4. **Temp Files Location**: 
+   - Windows: \`C:\\Users\\[username]\\AppData\\Roaming\\Microsoft\\[App]\\UnsavedFiles\`
+
+### Corrupted File Recovery
+- **Open and Repair**: File > Open > Browse > Select file > Open dropdown > "Open and Repair"
+- **Previous Versions**: Right-click file > Properties > Previous Versions
+- **OneDrive Version History**: If saved to OneDrive, check version history online
+
+## Common Office Errors
+
+### "Not Enough Memory" Error
+1. **Close Other Programs**: Free up system memory
+2. **Restart Computer**: Clear memory completely
+3. **Disable Add-ins**: File > Options > Add-ins > Manage > Go > Uncheck all
+4. **Increase Virtual Memory**: Control Panel > System > Advanced > Performance Settings
+
+### Activation Issues
+- **Sign In**: File > Account > Sign in with company credentials
+- **Retry Activation**: File > Account > Activate Product
+- **Contact IT**: If activation fails, submit helpdesk ticket
+
+## Formatting Problems
+
+### Document Looks Different
+- **Font Substitution**: Missing fonts replaced with defaults
+- **Compatibility Mode**: File might be in older format
+- **Display Settings**: Check Windows display scaling (100%, 125%, etc.)
+- **Print Layout**: View > Print Layout for proper formatting view
+
+### Slow Performance
+- **Large Files**: Break large documents into smaller sections
+- **Images**: Compress images (Picture Tools > Compress Pictures)
+- **Track Changes**: Accept/reject all changes when done editing
+- **Add-ins**: Disable unnecessary add-ins for better performance
+
+## Email (Outlook) Issues
+
+### Can't Send/Receive Email
+- **Send/Receive Button**: Click manually to force sync
+- **Offline Mode**: Check if "Work Offline" is disabled
+- **Large Attachments**: Outlook has 25MB attachment limit
+- **Mailbox Full**: Delete old emails to free space
+
+### Calendar/Meeting Issues
+- **Time Zone**: Verify correct time zone in Outlook settings
+- **Free/Busy**: Check if calendar sharing is enabled
+- **Meeting Responses**: Ensure responses are being sent
+- **Sync Issues**: Try closing and reopening Outlook
+
+**Quick Fix**: When in doubt, restart the Office application first!`,
+          category: "Software",
+          tags: ["office", "word", "excel", "outlook", "powerpoint"],
+          author_email: "support@company.com",
+          status: "published",
+          views: 356,
+          helpful_votes: 89,
+        },
+        {
+          title: "Forgot Password - Complete Recovery Guide",
+          content: `# Password Recovery & Reset Guide
+
+## Company Account Password Reset
+
+### Self-Service Password Reset
+1. **Go to Login Page**: Navigate to company login portal
+2. **Click "Forgot Password"**: Usually below login fields
+3. **Enter Email**: Use your company email address
+4. **Check Email**: Look for reset link (check spam folder)
+5. **Follow Link**: Click link within 15 minutes of receiving
+6. **Create New Password**: Follow password requirements
+
+### Password Requirements
+- **Length**: Minimum 8 characters (12+ recommended)
+- **Complexity**: Must include:
+  - At least one uppercase letter (A-Z)
+  - At least one lowercase letter (a-z)
+  - At least one number (0-9)
+  - At least one special character (!@#$%^&*)
+- **No Common Words**: Avoid dictionary words, names, dates
+- **No Reuse**: Can't use last 12 passwords
+
+## Browser Password Recovery
+
+### Saved Passwords in Browser
+**Chrome:**
+1. Three dots menu > Settings > Passwords
+2. Click eye icon next to password to reveal
+3. Enter Windows password when prompted
+
+**Edge:**
+1. Three dots menu > Settings > Passwords
+2. Find website and click eye icon
+3. Use Windows Hello or PIN to reveal
+
+**Firefox:**
+1. Menu > Logins and Passwords
+2. Click on site entry
+3. Click eye icon to show password
+
+### Password Manager Recovery
+- **LastPass**: Use master password or recovery options
+- **1Password**: Check emergency kit or family sharing
+- **Bitwarden**: Use master password or recovery code
+- **Built-in Managers**: Check browser sync settings
+
+## Windows Account Recovery
+
+### Local Account Reset
+1. **Boot to Login Screen**: Restart computer
+2. **Click "Reset Password"**: Below password field
+3. **Answer Security Questions**: Provide correct answers
+4. **Create New Password**: Follow prompts
+
+### Microsoft Account Reset
+1. **Go to account.microsoft.com**: Use any device
+2. **Click "Sign In"**: Then "Forgot Password"
+3. **Verify Identity**: Via phone, email, or authenticator
+4. **Reset Password**: Create new secure password
+
+## When Self-Service Doesn't Work
+
+### Contact IT Support
+**Submit helpdesk ticket with:**
+- Your full name and employee ID
+- Email address that needs reset
+- Phone number for verification
+- Urgency level (normal/urgent)
+
+### Account Lockout Issues
+- **Multiple Failed Attempts**: Account locks after 5 wrong passwords
+- **Wait Time**: Usually 15-30 minutes before retry
+- **IT Override**: Contact helpdesk for immediate unlock
+
+### Two-Factor Authentication Problems
+- **Lost Phone**: Use backup codes provided during setup
+- **New Device**: Contact IT to reset 2FA settings
+- **Authenticator App**: Use recovery codes or contact IT
+
+## Prevention Tips
+
+### Password Best Practices
+- **Unique Passwords**: Different password for each account
+- **Password Manager**: Use one to generate and store passwords
+- **Regular Updates**: Change passwords every 90 days
+- **Write Down**: Only if stored securely (locked drawer)
+
+### Security Questions
+- **Memorable Answers**: Use answers you'll remember in 6 months
+- **Unique Responses**: Don't use same answer for multiple questions
+- **Avoid Social Media**: Don't use info easily found online
+
+**Important**: Never share your password with anyone, including IT staff!`,
+          category: "Account Management",
+          tags: ["password", "reset", "recovery", "login", "security"],
+          author_email: "support@company.com",
+          status: "published",
+          views: 567,
+          helpful_votes: 145,
+        },
+        {
+          title: "Laptop Battery Problems & Power Issues",
+          content: `# Laptop Battery & Power Troubleshooting
+
+## Battery Not Charging
+
+### 1. Basic Checks
+- **Charging Light**: Look for LED indicator when plugged in
+- **Power Adapter**: Ensure correct wattage adapter for your laptop
+- **Cable Connection**: Check both wall and laptop connections
+- **Different Outlet**: Try different power outlet
+- **Remove Battery**: If removable, reseat battery connections
+
+### 2. Software Diagnostics
+**Windows Battery Report:**
+1. Open Command Prompt as Administrator
+2. Type: \`powercfg /batteryreport\`
+3. Open generated HTML report in browser
+4. Check battery health and cycle count
+
+**Check Power Settings:**
+- Control Panel > Power Options
+- Ensure balanced or power saver mode
+- Check advanced settings for battery optimization
+
+## Battery Drains Quickly
+
+### Power Optimization
+**Windows Power Troubleshooter:**
+1. Settings > Update & Security > Troubleshoot
+2. Run "Power" troubleshooter
+3. Apply recommended fixes
+
+**Identify Power Hungry Apps:**
+1. Settings > System > Battery
+2. See which apps use most battery
+3. Close unnecessary programs
+4. Adjust background app permissions
+
+### Performance Adjustments
+- **Screen Brightness**: Lower to 50-70% when on battery
+- **WiFi**: Turn off when not needed
+- **Bluetooth**: Disable if not using wireless devices
+- **Background Sync**: Reduce email/cloud sync frequency
+
+## Charging Issues by Symptom
+
+### Plugged In, Not Charging
+1. **Update Battery Driver**: Device Manager > Batteries > Uninstall > Restart
+2. **Reset Power Management**: Uninstall "Microsoft ACPI Battery" and restart
+3. **BIOS Settings**: Check if battery settings are enabled in BIOS
+4. **Hardware Test**: Try different compatible charger
+
+### Battery Percentage Stuck
+- **Calibrate Battery**: Drain completely, charge to 100% without interruption
+- **Reset Battery Stats**: Power off, remove battery for 5 minutes, reinstall
+- **Windows Battery Reset**: Run \`powercfg /energy\` in admin command prompt
+
+### Overheating While Charging
+- **Clean Vents**: Use compressed air to clear dust from cooling vents
+- **Hard Surface**: Use laptop on hard, flat surface for airflow
+- **Reduce Load**: Close intensive programs while charging
+- **Contact IT**: If overheating persists, hardware inspection needed
+
+## Power Adapter Problems
+
+### Adapter Not Working
+**Visual Inspection:**
+- Check for damaged cables, bent connectors
+- Look for scorch marks or unusual odors
+- Verify LED light on adapter brick
+
+**Test Methods:**
+- **Multimeter**: Check voltage output (if available)
+- **Different Laptop**: Test adapter on compatible device
+- **Borrow Adapter**: Try known working adapter on your laptop
+
+### Travel Power Tips
+- **Voltage**: Ensure adapter supports local voltage (110V/220V)
+- **Plug Adapters**: International travel may need plug converters
+- **Backup Power**: Carry portable battery pack for emergencies
+- **Car Chargers**: Available for most laptop models
+
+## Battery Health & Maintenance
+
+### Extend Battery Life
+- **Partial Charging**: Keep between 20-80% when possible
+- **Avoid Heat**: Don't leave in hot cars or direct sunlight
+- **Monthly Full Cycle**: Once monthly, drain to 5% then charge to 100%
+- **Storage**: If storing long term, charge to 50%
+
+### When to Replace Battery
+**Signs of failing battery:**
+- Holds charge for less than 2 hours normal use
+- Battery report shows <50% original capacity
+- Physical swelling or deformation
+- Laptop shuts down unexpectedly at >20% charge
+
+### Emergency Power Solutions
+- **Power Banks**: USB-C power delivery models work with newer laptops
+- **Car Inverters**: Convert 12V to 110V for regular chargers
+- **Spare Battery**: Keep charged spare if removable battery type
+
+**Safety Warning**: Never attempt to repair or disassemble laptop batteries!`,
+          category: "Hardware",
+          tags: ["laptop", "battery", "power", "charging"],
+          author_email: "support@company.com",
+          status: "published",
+          views: 412,
+          helpful_votes: 98,
+        },
+        {
+          title: "Browser Problems - Chrome, Edge, Firefox Issues",
+          content: `# Web Browser Troubleshooting Guide
+
+## Browser Won't Start or Crashes
+
+### 1. Basic Restart Methods
+- **Close Completely**: Use Task Manager to end all browser processes
+- **Restart Computer**: Full reboot clears memory issues
+- **Run as Administrator**: Right-click browser icon, select "Run as administrator"
+- **Safe Mode**: Start browser in safe mode (disable extensions)
+
+### 2. Clear Browser Data
+**Chrome/Edge:**
+1. Press Ctrl+Shift+Delete
+2. Select "All time" for time range
+3. Check: Browsing history, Cookies, Cached images/files
+4. Click "Clear data"
+
+**Firefox:**
+1. Press Ctrl+Shift+Delete
+2. Select everything in time range dropdown
+3. Check all items except passwords/logins
+4. Click "Clear Now"
+
+## Slow Browser Performance
+
+### Speed Optimization
+**Too Many Tabs:**
+- Keep under 10 tabs open at once
+- Use bookmarks for pages you'll read later
+- Consider tab management extensions
+
+**Extension Cleanup:**
+1. **Chrome**: Three dots > More tools > Extensions
+2. **Edge**: Three dots > Extensions
+3. **Firefox**: Three lines > Add-ons and themes
+4. **Disable unused extensions** - they consume memory
+
+### Cache and Storage Issues
+**Clear Cache (keeps passwords):**
+- Chrome: Settings > Privacy & Security > Clear browsing data
+- Edge: Settings > Privacy > Clear browsing data
+- Firefox: Settings > Privacy & Security > Clear Data
+
+**Reset Browser (last resort):**
+- **Chrome**: Settings > Advanced > Reset and clean up
+- **Edge**: Settings > Reset settings (left sidebar)
+- **Firefox**: Help > More troubleshooting info > Refresh Firefox
+
+## Website Loading Problems
+
+### Can't Access Specific Websites
+**DNS Issues:**
+1. **Try Different DNS**: Use 8.8.8.8 (Google) or 1.1.1.1 (Cloudflare)
+2. **Flush DNS**: Command Prompt > \`ipconfig /flushdns\`
+3. **Different Browser**: Test if site works in another browser
+4. **Mobile Data**: Try accessing on phone using cellular data
+
+**Connection Errors:**
+- **"This site can't be reached"**: Network connectivity issue
+- **"Your connection is not private"**: Certificate/security issue
+- **"403 Forbidden"**: Access denied by website/firewall
+- **"404 Not Found"**: Page doesn't exist or moved
+
+### Blocked Content
+**Company Firewall:**
+- Some sites blocked by corporate policy
+- Contact IT if work-related site is blocked
+- Use approved alternatives when possible
+
+**Ad Blockers:**
+- May break some website functionality
+- Try disabling ad blocker for specific site
+- Whitelist trusted websites
+
+## Browser-Specific Issues
+
+### Chrome Problems
+**"Aw, Snap!" Error:**
+- Close other programs to free memory
+- Disable hardware acceleration: Settings > Advanced > System
+- Create new user profile: Settings > People > Add person
+
+**Sync Issues:**
+- Sign out and back into Google account
+- Settings > Sync and Google services > Manage sync
+
+### Edge Problems
+**Integration Issues:**
+- Check Windows Update for Edge updates
+- Reset Edge: Settings > Reset settings
+- Try Edge Beta/Dev channel for newer features
+
+### Firefox Problems
+**Slow Startup:**
+- Reduce startup tabs: Settings > General > Startup
+- Disable unnecessary add-ons
+- Clear startup cache: about:support > Clear startup cache
+
+**Profile Corruption:**
+- Create new profile: Type \`about:profiles\` in address bar
+- Copy bookmarks/passwords to new profile
+
+## Downloads and File Issues
+
+### Download Problems
+**Downloads Fail:**
+- Check available disk space (need 2x file size)
+- Temporarily disable antivirus scanner
+- Try downloading in incognito/private mode
+- Download from different source/mirror
+
+**Can't Open Downloaded Files:**
+- Check file extension (.exe, .pdf, .docx)
+- Ensure you have appropriate software installed
+- Scan file with antivirus before opening
+- Download again if file appears corrupted
+
+### Security Warnings
+**"File may be harmful":**
+- Only download from trusted sources
+- Company policy may block certain file types
+- Contact IT if legitimate business file is blocked
+
+**Certificate Errors:**
+- Don't proceed to sites with certificate errors
+- Could indicate compromised or fraudulent site
+- Report suspicious sites to IT security team
+
+**Pro Tip**: Keep browser updated - enable automatic updates in settings!`,
+          category: "Software",
+          tags: ["browser", "chrome", "edge", "firefox", "internet"],
+          author_email: "support@company.com",
+          status: "published",
+          views: 389,
+          helpful_votes: 102,
+        },
+        {
+          title: "How to Connect to Company WiFi",
+          content: `# Company WiFi Connection Guide
+
+## Initial WiFi Setup
+
+### 1. Find Available Networks
+**Windows 10/11:**
+1. Click WiFi icon in system tray (bottom right)
+2. Look for company network name (SSID)
+3. Click on network name
+4. Check "Connect automatically" if desired
+5. Click "Connect"
+
+**Common Company Network Names:**
+- CompanyWiFi
+- [CompanyName]_Secure
+- Corporate_Network
+- Guest_Network (for visitors)
+
+### 2. Enter Credentials
+**Personal Devices:**
+- **Username**: Your company email address
+- **Password**: Your domain/network password
+- **Domain**: Usually company.com or company.local
+
+**Company-Managed Devices:**
+- May connect automatically
+- Certificate-based authentication
+- Contact IT if connection fails
+
+## Authentication Methods
+
+### WPA2-Enterprise (Most Secure)
+**Settings Required:**
+- **Security Type**: WPA2-Enterprise
+- **Encryption**: AES
+- **Authentication**: PEAP or EAP-TTLS
+- **Username**: domain\\username or username@company.com
+- **Password**: Your network password
+
+### Certificate-Based Authentication
+**For Company Devices:**
+1. **Download Certificate**: From IT portal or email
+2. **Install Certificate**: Double-click .cer file to install
+3. **Connect to Network**: Should authenticate automatically
+4. **Verify Connection**: Check for lock icon in WiFi status
+
+## Troubleshooting Connection Issues
+
+### Can't See Company Network
+**Signal Strength:**
+- Move closer to wireless access point
+- Check if 2.4GHz or 5GHz network is stronger
+- Some networks broadcast both frequencies
+
+**Network Broadcasting:**
+- Company may hide network name (SSID)
+- Manually add network: WiFi Settings > Manage known networks > Add network
+- Enter exact network name and security details
+
+### Authentication Failures
+**Wrong Credentials:**
+- Verify username format (with or without domain)
+- Check password carefully (case-sensitive)
+- Ensure account isn't locked out
+
+**Certificate Issues:**
+- Download latest certificate from IT
+- Clear saved network and reconnect
+- Contact IT for certificate installation
+
+### Connection Drops Frequently
+**Power Management:**
+1. Device Manager > Network adapters
+2. Right-click WiFi adapter > Properties
+3. Power Management tab
+4. Uncheck "Allow computer to turn off this device"
+
+**Profile Reset:**
+1. Forget/remove network from saved networks
+2. Restart computer
+3. Reconnect with fresh credentials
+
+## Guest Network Access
+
+### For Visitors
+**Guest Network Features:**
+- Internet access only (no internal resources)
+- Time-limited access (usually 24 hours)
+- May require sponsor approval
+- Bandwidth limitations may apply
+
+**Getting Guest Access:**
+1. **Self-Registration**: Use web portal when connected
+2. **Sponsor Request**: Have employee request access
+3. **Reception Desk**: Get temporary credentials from front desk
+4. **Meeting Rooms**: Special guest codes may be available
+
+### Guest Network Limitations
+- No access to company printers
+- Can't reach internal websites/applications
+- File sharing disabled
+- VPN may be required for company resources
+
+## Security Best Practices
+
+### Device Security
+**Automatic Connection:**
+- Only enable for trusted company networks
+- Disable for public/guest networks
+- Regularly review saved networks
+
+**VPN Usage:**
+- Use company VPN when on guest networks
+- Required for accessing internal resources
+- Connect to VPN before accessing company data
+
+### Password Security
+- **Never Share**: Don't give WiFi password to non-employees
+- **Change Regularly**: Update when prompted by IT
+- **Report Compromises**: Contact IT if password may be compromised
+
+## Mobile Device Setup
+
+### iPhone/iPad
+1. Settings > WiFi
+2. Select company network
+3. Enter username and password
+4. Trust certificate when prompted
+5. Test connection with company email
+
+### Android
+1. Settings > WiFi
+2. Select company network
+3. Choose security type (usually WPA2-Enterprise)
+4. Enter credentials as specified by IT
+5. Install certificate if required
+
+## Advanced Configuration
+
+### Manual Network Setup
+**When Auto-Connect Fails:**
+1. **Network Name**: Get exact SSID from IT
+2. **Security Type**: Usually WPA2-Enterprise
+3. **EAP Method**: PEAP or EAP-TTLS
+4. **Phase 2 Auth**: MSCHAPv2 (most common)
+5. **CA Certificate**: Install if provided by IT
+
+### Proxy Settings
+**If Required by Company:**
+- Get proxy server address and port from IT
+- Configure in Windows: Settings > Network > Proxy
+- Apply to browsers and applications as needed
+
+**Need Help?** Contact IT with your device type and specific error messages for faster resolution.`,
+          category: "Network",
+          tags: ["wifi", "wireless", "connection", "authentication"],
+          author_email: "support@company.com",
+          status: "published",
+          views: 523,
+          helpful_votes: 134,
+        },
+        {
+          title: "How to Print from Your Computer",
+          content: `# Complete Printing Guide
+
+## Setting Up a Printer
+
+### 1. Connect to Network Printer
+**Windows 10/11:**
+1. **Settings** > **Devices** > **Printers & scanners**
+2. Click **"Add a printer or scanner"**
+3. Wait for automatic detection
+4. Select your printer from list
+5. Follow installation prompts
+
+**Can't Find Printer?**
+- Click **"The printer that I want isn't listed"**
+- Select **"Add a printer using a TCP/IP address"**
+- Enter printer IP address (get from IT)
+- Choose printer model and install
+
+### 2. Install Printer Drivers
+**Automatic Installation:**
+- Windows usually downloads drivers automatically
+- Allow Windows to complete installation
+- Test print after installation finishes
+
+**Manual Driver Installation:**
+1. **Identify Printer Model**: Check sticker on printer
+2. **Download Drivers**: From manufacturer website
+   - HP: hp.com/support
+   - Canon: canon.com/support  
+   - Epson: epson.com/support
+3. **Run Installer**: Follow manufacturer instructions
+4. **Restart Computer**: If prompted by installer
+
+## Printing Documents
+
+### Basic Printing
+**From Any Application:**
+1. **File** > **Print** (or Ctrl+P)
+2. **Select Printer**: Choose correct printer from dropdown
+3. **Page Range**: All pages, current page, or custom range
+4. **Copies**: Specify number of copies needed
+5. **Click Print**
+
+### Print Settings
+**Paper Size & Orientation:**
+- **Letter (8.5x11)**: Standard US paper size
+- **A4**: Standard international paper size
+- **Legal (8.5x14)**: For legal documents
+- **Portrait vs Landscape**: Choose based on content
+
+**Quality Settings:**
+- **Draft**: Fast, uses less ink, lower quality
+- **Normal**: Standard quality for everyday printing
+- **Best/High**: Slow, uses more ink, highest quality
+
+## Common Printing Problems
+
+### Nothing Prints
+**Check Printer Status:**
+1. **Printer Power**: Ensure printer is turned on
+2. **Connection**: Check USB cable or network connection
+3. **Paper**: Make sure paper tray isn't empty
+4. **Ink/Toner**: Check if cartridges need replacement
+
+**Clear Print Queue:**
+1. **Settings** > **Devices** > **Printers & scanners**
+2. Click on your printer
+3. **Open queue**
+4. **Cancel all documents** if stuck
+5. **Restart print spooler**: Services.msc > Print Spooler > Restart
+
+### Print Quality Issues
+**Faded or Light Printing:**
+- Replace ink/toner cartridges
+- Check if in "Draft" or "Eco" mode
+- Run printer cleaning cycle from settings
+- Ensure correct paper type selected
+
+**Smudged or Streaked Output:**
+- Clean printer heads (usually in printer settings)
+- Check for paper jams or debris
+- Use correct paper type (not too thin/thick)
+- Replace old or damaged cartridges
+
+### Paper Problems
+**Paper Jams:**
+1. **Turn Off Printer**: Always power down first
+2. **Open Covers**: Check all access panels
+3. **Remove Paper**: Pull gently in direction of paper path
+4. **Check for Torn Pieces**: Remove any remaining bits
+5. **Close Covers**: Power on and test print
+
+**Wrong Paper Size:**
+- **Printer Settings**: Check selected paper size in driver
+- **Application Settings**: Verify page setup in document
+- **Physical Tray**: Ensure correct paper is loaded
+- **Tray Settings**: Some printers have tray-specific settings
+
+## Color vs Black and White
+
+### Saving Ink/Toner
+**Black and White Only:**
+- Select "Print in grayscale" or "Black ink only"
+- Good for text documents, drafts, internal memos
+- Significantly reduces color cartridge usage
+
+**When to Use Color:**
+- Presentations for clients/management
+- Charts and graphs with color coding
+- Marketing materials and brochures
+- Photos and images
+
+### Duplex (Double-Sided) Printing
+**Automatic Duplex:**
+- Select "Print on both sides" in print dialog
+- Choose "Flip on long edge" for typical documents
+- "Flip on short edge" for booklet-style binding
+
+**Manual Duplex:**
+1. Print odd pages first
+2. Reinsert paper with blank side facing down
+3. Print even pages
+4. Check page orientation before printing page 2
+
+## Network Printer Issues
+
+### Can't Connect to Shared Printer
+**Windows Network Discovery:**
+1. **Control Panel** > **Network and Sharing Center**
+2. **Change advanced sharing settings**
+3. **Turn on network discovery**
+4. **Turn on file and printer sharing**
+
+**Printer Server Problems:**
+- Check if printer server computer is running
+- Verify shared printer permissions
+- Contact IT if authentication fails
+
+### Printing from Mobile Devices
+**iPhone/iPad:**
+- Use **AirPrint** compatible printers
+- Ensure device on same WiFi network
+- Print directly from apps using share button
+
+**Android:**
+- Install manufacturer's print app
+- Use **Google Cloud Print** (if supported)
+- Print via email (some printers accept email attachments)
+
+## Special Printing Tasks
+
+### Print Email Messages
+**Outlook:**
+- Open email message
+- File > Print
+- Choose to print attachments separately if needed
+
+**Web-based Email:**
+- Use browser's print function (Ctrl+P)
+- May need to adjust layout for better formatting
+
+### Print Web Pages
+**Better Web Printing:**
+- Use "Reader Mode" if available in browser
+- Print preview to check layout
+- Adjust scaling if content is cut off
+- Consider "Print to PDF" for digital copies
+
+### Large Format Printing
+**Posters and Banners:**
+- Check if printer supports large paper sizes
+- May need special plotter or wide-format printer
+- Contact IT for availability and scheduling
+
+**Print Shop Services:**
+- For professional quality large prints
+- Submit files in PDF format for best results
+- Allow extra time for external printing services
+
+**Printer Not Listed?** Contact IT helpdesk with printer location and model number for setup assistance.`,
+          category: "Hardware",
+          tags: ["printer", "printing", "paper", "setup"],
+          author_email: "support@company.com",
+          status: "published",
+          views: 467,
+          helpful_votes: 118,
+        },
+        {
+          title: "Software Installation & App Store Issues",
+          content: `# Software Installation Guide
+
+## Company Software Center
+
+### Installing Approved Software
+**Access Software Center:**
+1. **Start Menu** > Search "Software Center" or "Company Portal"
+2. **Browse Categories**: Business, Development, Utilities
+3. **Search Function**: Type software name in search box
+4. **Install Button**: Click install for approved applications
+5. **Wait for Installation**: Monitor progress bar
+
+**Common Business Applications:**
+- **Microsoft Office Suite**: Word, Excel, PowerPoint, Outlook
+- **Adobe Acrobat Reader**: For PDF documents
+- **Zoom/Teams**: Video conferencing software
+- **VPN Client**: For secure remote access
+- **Antivirus Software**: Company-approved security tools
+
+### Installation Progress
+**Monitoring Installation:**
+- Software Center shows download progress
+- Some installations happen in background
+- Computer may restart if required
+- Check Start Menu for new applications
+
+**Installation Issues:**
+- **Insufficient Space**: Free up disk space (5GB minimum recommended)
+- **Admin Rights**: Contact IT if permission errors occur
+- **Network Issues**: Check internet connection
+- **Conflicting Software**: Uninstall old versions first
+
+## Browser Extensions & Add-ons
+
+### Safe Extension Installation
+**Chrome Web Store:**
+1. **Open Chrome** > Three dots menu > **More tools** > **Extensions**
+2. **Open Chrome Web Store** (link at bottom)
+3. **Search for Extension**: Use specific, well-known names
+4. **Check Reviews**: Read user ratings and comments
+5. **Add to Chrome**: Click button and confirm
+
+**Extension Safety Tips:**
+- Only install from official stores (Chrome, Edge, Firefox)
+- Check developer credibility and user reviews
+- Avoid extensions with excessive permissions
+- Remove unused extensions regularly
+
+### Common Useful Extensions
+**Productivity:**
+- **LastPass/1Password**: Password managers
+- **Grammarly**: Writing assistance
+- **AdBlock Plus**: Ad blocking (if company allows)
+- **OneTab**: Tab management
+
+**Security:**
+- **HTTPS Everywhere**: Force secure connections
+- **Privacy Badger**: Block trackers
+- **uBlock Origin**: Ad and script blocking
+
+## Microsoft Store / App Store
+
+### Windows Store Apps
+**Installing from Microsoft Store:**
+1. **Start Menu** > **Microsoft Store**
+2. **Search Apps**: Use search bar at top
+3. **Check Compatibility**: Ensure Windows 10/11 compatible
+4. **Install Button**: Click Get or Install
+5. **Sign In**: May require Microsoft account
+
+**Troubleshooting Store Issues:**
+- **Reset Store**: Settings > Apps > Microsoft Store > Advanced options > Reset
+- **Update Store**: Check for Windows Updates
+- **Clear Cache**: WSReset.exe command
+- **Network Issues**: Check proxy/firewall settings
+
+### Apple App Store (Mac)
+**Installing on Company Mac:**
+1. **App Store Icon** in Dock
+2. **Sign In** with Apple ID (personal or company)
+3. **Search Applications**
+4. **Click Get/Install**
+5. **Enter Password** or use Touch ID
+
+## Unauthorized Software Installation
+
+### Policy Guidelines
+**Company Restrictions:**
+- **Administrative Rights**: Most users can't install system-level software
+- **Security Scanning**: All software must pass security checks
+- **License Compliance**: Only legally licensed software allowed
+- **Business Justification**: Software must support work activities
+
+**Prohibited Software Types:**
+- **Peer-to-peer file sharing**: BitTorrent, LimeWire, etc.
+- **Gaming Software**: Unless job-related
+- **Cryptocurrency Mining**: Any mining or wallet software
+- **Unauthorized Communication**: Non-approved chat/messaging apps
+
+### Requesting Software Installation
+**Submit IT Request:**
+1. **Business Justification**: Explain why software is needed
+2. **Software Details**: Name, version, vendor, website
+3. **License Information**: How software will be licensed
+4. **Alternative Evaluation**: Why existing tools won't work
+5. **Manager Approval**: May require supervisor sign-off
+
+**Request Process Timeline:**
+- **Standard Requests**: 3-5 business days
+- **Security Review**: 1-2 weeks for new/unknown software
+- **Complex Installation**: May require scheduled deployment
+- **Emergency Requests**: Contact IT for urgent business needs
+
+## Software Updates
+
+### Automatic vs Manual Updates
+**Windows Update:**
+- **Automatic**: Recommended for security updates
+- **Settings** > **Update & Security** > **Windows Update**
+- **Schedule Restarts**: Choose convenient times
+- **Pause Updates**: Temporarily if needed for critical work
+
+**Application Updates:**
+- **Microsoft Office**: Updates through Office applications
+- **Chrome**: Updates automatically in background
+- **Adobe**: Updates through Creative Cloud or standalone updater
+- **Antivirus**: Should update automatically for protection
+
+### Managing Update Notifications
+**Reducing Interruptions:**
+- Set **Active Hours** in Windows Update settings
+- Schedule restarts for after work hours
+- Enable **Do Not Disturb** during presentations
+- Postpone feature updates if system is stable
+
+## Troubleshooting Installation Issues
+
+### Common Error Messages
+**"Access Denied" or "Administrator Required":**
+- Contact IT helpdesk for software installation
+- Provide software name and business justification
+- May require manager approval for non-standard software
+
+**"This app can't run on your PC":**
+- Check system requirements (32-bit vs 64-bit)
+- Verify Windows version compatibility
+- Look for alternative versions or similar software
+
+**"Installation Failed" or "Error 1603":**
+- Restart computer and try again
+- Clear temporary files (Disk Cleanup)
+- Disable antivirus temporarily during installation
+- Download fresh installer from vendor website
+
+### Safe Software Sources
+**Trusted Download Sites:**
+- **Manufacturer Websites**: Always first choice
+- **Microsoft Store**: Pre-screened applications
+- **Ninite.com**: Bundles common free software safely
+- **PortableApps**: Software that doesn't require installation
+
+**Avoid These Sources:**
+- **File sharing sites**: High malware risk
+- **"Crack" or "Keygen" sites**: Illegal and dangerous
+- **Unknown download mirrors**: Stick to official sources
+- **Software bundled with other downloads**: Often contains unwanted programs
+
+**Remember**: When in doubt, contact IT before installing any software on company devices!`,
+          category: "Software",
+          tags: ["installation", "software", "apps", "permissions"],
+          author_email: "support@company.com",
+          status: "published",
+          views: 334,
+          helpful_votes: 87,
         },
         {
           title: "VPN Setup Instructions",
