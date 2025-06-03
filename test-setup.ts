@@ -1,54 +1,49 @@
 
 import '@testing-library/jest-dom'
-import { beforeAll, afterEach, afterAll, vi } from 'vitest'
+import { beforeAll, afterEach, afterAll } from 'vitest'
+import { cleanup } from '@testing-library/react'
 import { server } from './tests/mocks/server'
 
-// Mock fetch globally for tests
-global.fetch = vi.fn()
+// Establish API mocking before all tests
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 
-beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }))
+// Reset any request handlers that we may add during the tests,
+// so they don't affect other tests
 afterEach(() => {
+  cleanup()
   server.resetHandlers()
-  vi.clearAllMocks()
 })
+
+// Clean up after the tests are finished
 afterAll(() => server.close())
 
-// Mock window.location for tests
-Object.defineProperty(window, 'location', {
-  value: {
-    origin: 'http://localhost:3000',
-    reload: vi.fn()
-  },
-  writable: true
-})
-
-// Mock URL methods for file downloads in tests
-Object.defineProperty(URL, 'createObjectURL', {
+// Mock window.matchMedia
+Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: vi.fn(() => 'mock-url'),
+  value: (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => {},
+  }),
 })
-
-Object.defineProperty(URL, 'revokeObjectURL', {
-  writable: true,
-  value: vi.fn(),
-})
-
-// Mock window.alert
-Object.defineProperty(window, 'alert', {
-  writable: true,
-  value: vi.fn(),
-})
-
-// Mock ResizeObserver
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}))
 
 // Mock IntersectionObserver
-global.IntersectionObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}))
+global.IntersectionObserver = class IntersectionObserver {
+  constructor() {}
+  disconnect() {}
+  observe() {}
+  unobserve() {}
+}
+
+// Mock ResizeObserver
+global.ResizeObserver = class ResizeObserver {
+  constructor() {}
+  disconnect() {}
+  observe() {}
+  unobserve() {}
+}
