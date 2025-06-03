@@ -81,7 +81,7 @@ export default function Sidebar() {
 
     const adminNavigation = [
       { 
-        name: "Settings", 
+        name: "Admin Panel", 
         href: "/settings", 
         icon: Settings, 
         current: location === "/settings", 
