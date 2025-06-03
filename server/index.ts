@@ -46,8 +46,48 @@ app.use((req, res, next) => {
   // Import storage after it's available
   const { storage } = await import("./storage");
   
-  // Import authentication middleware
-  const { authenticateToken, requireRole } = await import("./routes");
+  // Import authentication middleware from routes
+  const routesModule = await import("./routes");
+  
+  // Define authentication middleware locally since it's not exported from routes
+  const authenticateToken = async (req: any, res: any, next: any) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+      return res.status(401).json({ message: 'Access token required' });
+    }
+
+    try {
+      const jwt = await import("jsonwebtoken");
+      const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+      const decoded: any = jwt.default.verify(token, JWT_SECRET);
+      const user = await storage.getUserById(decoded.userId);
+
+      if (!user || !user.is_active) {
+        return res.status(403).json({ message: 'User not found or inactive' });
+      }
+
+      req.user = user;
+      next();
+    } catch (error) {
+      return res.status(403).json({ message: 'Invalid token' });
+    }
+  };
+
+  // Role check middleware
+  const requireRole = (roles: string | string[]) => {
+    return (req: any, res: any, next: any) => {
+      const userRole = req.user?.role;
+      const allowedRoles = Array.isArray(roles) ? roles : [roles];
+
+      if (userRole === 'admin' || allowedRoles.includes(userRole)) {
+        next();
+      } else {
+        res.status(403).json({ message: 'Insufficient permissions' });
+      }
+    };
+  };
 
   // Knowledge Base Routes (publicly accessible)
   app.get("/api/knowledge-base", async (req, res) => {
