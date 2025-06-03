@@ -11,7 +11,7 @@ import {
   CheckCircle,
   Info,
   Trash2,
-  MarkAsRead,
+  Check,
   Clock,
   X,
 } from "lucide-react";
@@ -254,7 +254,7 @@ export default function Notifications() {
                           size="sm"
                           className="text-neutral-500 hover:text-neutral-700"
                         >
-                          <MarkAsRead className="w-4 h-4" />
+                          <Check className="w-4 h-4" />
                         </Button>
                       )}
                       <Button
