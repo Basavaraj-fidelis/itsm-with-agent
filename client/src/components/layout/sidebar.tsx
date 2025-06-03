@@ -1,5 +1,5 @@
 
-import { Home, Users, AlertTriangle, Settings, BarChart3, Ticket, BookOpen, Monitor, Menu, X, Shield } from "lucide-react";
+import { Home, Users, AlertTriangle, Settings, BarChart3, Headphones, FileText, Server, Menu, X, Shield, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -15,22 +15,22 @@ export default function Sidebar() {
   const getNavigation = () => {
     const baseNavigation = [
       { name: "Dashboard", href: "/dashboard", icon: Home, current: window.location.pathname === "/dashboard", roles: ["user", "technician", "manager", "admin"] },
-      { name: "Tickets", href: "/tickets", icon: Ticket, current: window.location.pathname === "/tickets", roles: ["user", "technician", "manager", "admin"] },
-      { name: "Knowledge Base", href: "/knowledge-base", icon: BookOpen, current: window.location.pathname === "/knowledge-base", roles: ["user", "technician", "manager", "admin"] },
+      { name: "Service Desk", href: "/tickets", icon: Headphones, current: window.location.pathname === "/tickets", roles: ["user", "technician", "manager", "admin"] },
+      { name: "Help Articles", href: "/knowledge-base", icon: FileText, current: window.location.pathname === "/knowledge-base", roles: ["user", "technician", "manager", "admin"] },
     ];
 
     const techNavigation = [
-      { name: "Agents", href: "/agents", icon: Monitor, current: window.location.pathname === "/agents", roles: ["technician", "manager", "admin"] },
-      { name: "Alerts", href: "/alerts", icon: AlertTriangle, current: window.location.pathname === "/alerts", roles: ["technician", "manager", "admin"] },
+      { name: "Managed Systems", href: "/agents", icon: Server, current: window.location.pathname === "/agents", roles: ["technician", "manager", "admin"] },
+      { name: "System Alerts", href: "/alerts", icon: AlertTriangle, current: window.location.pathname === "/alerts", roles: ["technician", "manager", "admin"] },
     ];
 
     const managerNavigation = [
-      { name: "Users", href: "/users", icon: Users, current: window.location.pathname === "/users", roles: ["manager", "admin"] },
-      { name: "Reports", href: "/reports", icon: BarChart3, current: window.location.pathname === "/reports", roles: ["manager", "admin"] },
+      { name: "User Directory", href: "/users", icon: UserCheck, current: window.location.pathname === "/users", roles: ["manager", "admin"] },
+      { name: "Analytics", href: "/reports", icon: BarChart3, current: window.location.pathname === "/reports", roles: ["manager", "admin"] },
     ];
 
     const adminNavigation = [
-      { name: "Settings", href: "/settings", icon: Settings, current: window.location.pathname === "/settings", roles: ["admin"] },
+      { name: "Admin Panel", href: "/settings", icon: Settings, current: window.location.pathname === "/settings", roles: ["admin"] },
     ];
 
     const allNavigation = [...baseNavigation, ...techNavigation, ...managerNavigation, ...adminNavigation];
