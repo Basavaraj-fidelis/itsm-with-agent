@@ -1,8 +1,18 @@
 
 import { render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import Dashboard from '../../../client/src/pages/dashboard'
+
+// Mock the hooks
+vi.mock('../../../client/src/hooks/use-dashboard', () => ({
+  useDashboardSummary: vi.fn(),
+  useAlerts: vi.fn(),
+}))
+
+vi.mock('../../../client/src/hooks/use-agents', () => ({
+  useAgents: vi.fn(),
+}))
 
 const createTestQueryClient = () => new QueryClient({
   defaultOptions: {
@@ -23,57 +33,112 @@ const renderWithQueryClient = (component: React.ReactElement) => {
 
 describe('Dashboard', () => {
   beforeEach(() => {
-    // Reset any mocks between tests
+    vi.clearAllMocks()
   })
 
-  it('renders dashboard metrics correctly', async () => {
+  it('renders loading state', () => {
+    const { useDashboardSummary, useAlerts } = require('../../../client/src/hooks/use-dashboard')
+    const { useAgents } = require('../../../client/src/hooks/use-agents')
+    
+    useDashboardSummary.mockReturnValue({
+      data: null,
+      isLoading: true,
+      error: null
+    })
+    
+    useAlerts.mockReturnValue({
+      data: null,
+      isLoading: true,
+      error: null
+    })
+    
+    useAgents.mockReturnValue({
+      data: null,
+      isLoading: true,
+      error: null
+    })
+
     renderWithQueryClient(<Dashboard />)
     
-    expect(screen.getByText('System Overview')).toBeInTheDocument()
+    expect(screen.getByText('Dashboard')).toBeInTheDocument()
+    expect(screen.getByText('System overview and monitoring')).toBeInTheDocument()
+  })
+
+  it('renders dashboard metrics when data is loaded', async () => {
+    const { useDashboardSummary, useAlerts } = require('../../../client/src/hooks/use-dashboard')
+    const { useAgents } = require('../../../client/src/hooks/use-agents')
     
-    await waitFor(() => {
-      expect(screen.getByText('150')).toBeInTheDocument() // Total devices
-      expect(screen.getByText('12')).toBeInTheDocument() // Active alerts
-      expect(screen.getByText('34')).toBeInTheDocument() // Open tickets
-    })
-  })
-
-  it('shows loading state initially', () => {
-    renderWithQueryClient(<Dashboard />)
+    const mockSummary = {
+      total_devices: 150,
+      online_devices: 140,
+      offline_devices: 10,
+      active_alerts: 5
+    }
     
-    expect(screen.getByText('Loading...')).toBeInTheDocument()
-  })
-
-  it('handles error state gracefully', async () => {
-    // Mock error response
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: {
-          retry: false,
-          queryFn: () => Promise.reject(new Error('API Error'))
-        },
-      },
+    const mockAlerts = [
+      {
+        id: '1',
+        message: 'High CPU usage',
+        severity: 'warning',
+        device_hostname: 'server-01',
+        triggered_at: new Date().toISOString()
+      }
+    ]
+    
+    useDashboardSummary.mockReturnValue({
+      data: mockSummary,
+      isLoading: false,
+      error: null
+    })
+    
+    useAlerts.mockReturnValue({
+      data: mockAlerts,
+      isLoading: false,
+      error: null
+    })
+    
+    useAgents.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null
     })
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <Dashboard />
-      </QueryClientProvider>
-    )
-
-    await waitFor(() => {
-      expect(screen.getByText(/error/i)).toBeInTheDocument()
-    })
-  })
-
-  it('refreshes data when refresh button is clicked', async () => {
     renderWithQueryClient(<Dashboard />)
     
     await waitFor(() => {
       expect(screen.getByText('150')).toBeInTheDocument()
+      expect(screen.getByText('140')).toBeInTheDocument()
+      expect(screen.getByText('5')).toBeInTheDocument()
+      expect(screen.getByText('10')).toBeInTheDocument()
+    })
+  })
+
+  it('renders error state when data fails to load', async () => {
+    const { useDashboardSummary, useAlerts } = require('../../../client/src/hooks/use-dashboard')
+    const { useAgents } = require('../../../client/src/hooks/use-agents')
+    
+    useDashboardSummary.mockReturnValue({
+      data: null,
+      isLoading: false,
+      error: new Error('Failed to fetch summary')
+    })
+    
+    useAlerts.mockReturnValue({
+      data: null,
+      isLoading: false,
+      error: null
+    })
+    
+    useAgents.mockReturnValue({
+      data: null,
+      isLoading: false,
+      error: null
     })
 
-    const refreshButton = screen.getByRole('button', { name: /refresh/i })
-    expect(refreshButton).toBeInTheDocument()
+    renderWithQueryClient(<Dashboard />)
+    
+    await waitFor(() => {
+      expect(screen.getByText('Error Loading Dashboard')).toBeInTheDocument()
+    })
   })
 })

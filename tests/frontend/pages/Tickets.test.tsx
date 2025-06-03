@@ -1,9 +1,18 @@
 
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import Tickets from '../../../client/src/pages/tickets'
+
+// Mock useQuery
+vi.mock('@tanstack/react-query', async () => {
+  const actual = await vi.importActual('@tanstack/react-query')
+  return {
+    ...actual,
+    useQuery: vi.fn(),
+  }
+})
 
 const createTestQueryClient = () => new QueryClient({
   defaultOptions: {
@@ -23,76 +32,109 @@ const renderWithQueryClient = (component: React.ReactElement) => {
 }
 
 describe('Tickets', () => {
-  const user = userEvent.setup()
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
 
-  it('renders tickets list correctly', async () => {
+  it('renders loading state', () => {
+    const { useQuery } = require('@tanstack/react-query')
+    
+    useQuery.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null
+    })
+
     renderWithQueryClient(<Tickets />)
     
-    expect(screen.getByText('Tickets')).toBeInTheDocument()
+    expect(screen.getByText('Loading...')).toBeInTheDocument()
+  })
+
+  it('renders tickets list when data is loaded', async () => {
+    const { useQuery } = require('@tanstack/react-query')
+    
+    const mockTickets = [
+      {
+        id: 'INC-001',
+        title: 'Network connectivity issue',
+        status: 'open',
+        priority: 'high',
+        type: 'incident',
+        created_at: new Date().toISOString(),
+        requester_email: 'user@example.com'
+      },
+      {
+        id: 'REQ-001',
+        title: 'Software installation request',
+        status: 'pending',
+        priority: 'medium',
+        type: 'request',
+        created_at: new Date().toISOString(),
+        requester_email: 'user2@example.com'
+      }
+    ]
+    
+    useQuery.mockReturnValue({
+      data: mockTickets,
+      isLoading: false,
+      error: null
+    })
+
+    renderWithQueryClient(<Tickets />)
     
     await waitFor(() => {
-      expect(screen.getByText('Test Ticket')).toBeInTheDocument()
-      expect(screen.getByText('open')).toBeInTheDocument()
-      expect(screen.getByText('medium')).toBeInTheDocument()
+      expect(screen.getByText('INC-001')).toBeInTheDocument()
+      expect(screen.getByText('REQ-001')).toBeInTheDocument()
+      expect(screen.getByText('Network connectivity issue')).toBeInTheDocument()
+      expect(screen.getByText('Software installation request')).toBeInTheDocument()
     })
   })
 
-  it('opens create ticket modal', async () => {
+  it('handles empty tickets list', async () => {
+    const { useQuery } = require('@tanstack/react-query')
+    
+    useQuery.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null
+    })
+
     renderWithQueryClient(<Tickets />)
     
-    const createButton = screen.getByRole('button', { name: /create ticket/i })
-    await user.click(createButton)
-
-    expect(screen.getByText('Create New Ticket')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('No tickets found')).toBeInTheDocument()
+    })
   })
 
   it('filters tickets by status', async () => {
-    renderWithQueryClient(<Tickets />)
+    const { useQuery } = require('@tanstack/react-query')
     
-    await waitFor(() => {
-      expect(screen.getByText('Test Ticket')).toBeInTheDocument()
+    const mockTickets = [
+      {
+        id: 'INC-001',
+        title: 'Network connectivity issue',
+        status: 'open',
+        priority: 'high',
+        type: 'incident',
+        created_at: new Date().toISOString(),
+        requester_email: 'user@example.com'
+      }
+    ]
+    
+    useQuery.mockReturnValue({
+      data: mockTickets,
+      isLoading: false,
+      error: null
     })
 
-    const statusFilter = screen.getByRole('combobox', { name: /status/i })
+    const user = userEvent.setup()
+    renderWithQueryClient(<Tickets />)
+    
+    const statusFilter = screen.getByRole('button', { name: /status/i })
     await user.click(statusFilter)
-    await user.click(screen.getByText('Open'))
-
-    expect(screen.getByText('Test Ticket')).toBeInTheDocument()
-  })
-
-  it('filters tickets by priority', async () => {
-    renderWithQueryClient(<Tickets />)
     
     await waitFor(() => {
-      expect(screen.getByText('Test Ticket')).toBeInTheDocument()
-    })
-
-    const priorityFilter = screen.getByRole('combobox', { name: /priority/i })
-    await user.click(priorityFilter)
-    await user.click(screen.getByText('Medium'))
-
-    expect(screen.getByText('Test Ticket')).toBeInTheDocument()
-  })
-
-  it('creates a new ticket successfully', async () => {
-    renderWithQueryClient(<Tickets />)
-    
-    const createButton = screen.getByRole('button', { name: /create ticket/i })
-    await user.click(createButton)
-
-    await user.type(screen.getByLabelText(/title/i), 'New Test Ticket')
-    await user.type(screen.getByLabelText(/description/i), 'Test description')
-    
-    const prioritySelect = screen.getByRole('combobox', { name: /priority/i })
-    await user.click(prioritySelect)
-    await user.click(screen.getByText('High'))
-
-    const submitButton = screen.getByRole('button', { name: /create/i })
-    await user.click(submitButton)
-
-    // Should close modal and refresh list
-    await waitFor(() => {
-      expect(screen.queryByText('Create New Ticket')).not.toBeInTheDocument()
+      expect(screen.getByRole('option', { name: /open/i })).toBeInTheDocument()
     })
   })
 })

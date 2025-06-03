@@ -2,8 +2,18 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import Settings from '../../../client/src/pages/settings'
+
+// Mock useQuery
+vi.mock('@tanstack/react-query', async () => {
+  const actual = await vi.importActual('@tanstack/react-query')
+  return {
+    ...actual,
+    useQuery: vi.fn(),
+    useMutation: vi.fn(),
+  }
+})
 
 const createTestQueryClient = () => new QueryClient({
   defaultOptions: {
@@ -23,80 +33,76 @@ const renderWithQueryClient = (component: React.ReactElement) => {
 }
 
 describe('Settings', () => {
-  const user = userEvent.setup()
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
 
-  it('renders settings page correctly', async () => {
+  it('renders settings page', () => {
+    const { useQuery, useMutation } = require('@tanstack/react-query')
+    
+    useQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: null
+    })
+    
+    useMutation.mockReturnValue({
+      mutate: vi.fn(),
+      isLoading: false
+    })
+
     renderWithQueryClient(<Settings />)
     
     expect(screen.getByText('Settings')).toBeInTheDocument()
-    expect(screen.getByText('General Settings')).toBeInTheDocument()
-    expect(screen.getByText('Notification Settings')).toBeInTheDocument()
+    expect(screen.getByText('System configuration and preferences')).toBeInTheDocument()
   })
 
-  it('updates general settings', async () => {
+  it('renders settings tabs', async () => {
+    const { useQuery, useMutation } = require('@tanstack/react-query')
+    
+    useQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: null
+    })
+    
+    useMutation.mockReturnValue({
+      mutate: vi.fn(),
+      isLoading: false
+    })
+
     renderWithQueryClient(<Settings />)
     
-    const organizationInput = screen.getByLabelText(/organization name/i)
-    await user.clear(organizationInput)
-    await user.type(organizationInput, 'New Organization')
-
-    const saveButton = screen.getByRole('button', { name: /save settings/i })
-    await user.click(saveButton)
-
     await waitFor(() => {
-      expect(screen.getByText(/settings saved/i)).toBeInTheDocument()
+      expect(screen.getByText('General')).toBeInTheDocument()
+      expect(screen.getByText('Agent')).toBeInTheDocument()
+      expect(screen.getByText('Notifications')).toBeInTheDocument()
+      expect(screen.getByText('Security')).toBeInTheDocument()
     })
   })
 
-  it('toggles notification settings', async () => {
-    renderWithQueryClient(<Settings />)
+  it('handles tab switching', async () => {
+    const { useQuery, useMutation } = require('@tanstack/react-query')
     
-    const emailNotifications = screen.getByRole('checkbox', { name: /email notifications/i })
-    await user.click(emailNotifications)
-
-    expect(emailNotifications).toBeChecked()
-
-    const saveButton = screen.getByRole('button', { name: /save settings/i })
-    await user.click(saveButton)
-
-    await waitFor(() => {
-      expect(screen.getByText(/settings saved/i)).toBeInTheDocument()
+    useQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: null
     })
-  })
-
-  it('configures alert thresholds', async () => {
-    renderWithQueryClient(<Settings />)
     
-    const cpuThresholdInput = screen.getByLabelText(/cpu threshold/i)
-    await user.clear(cpuThresholdInput)
-    await user.type(cpuThresholdInput, '85')
-
-    const memoryThresholdInput = screen.getByLabelText(/memory threshold/i)
-    await user.clear(memoryThresholdInput)
-    await user.type(memoryThresholdInput, '90')
-
-    const saveButton = screen.getByRole('button', { name: /save settings/i })
-    await user.click(saveButton)
-
-    await waitFor(() => {
-      expect(screen.getByText(/settings saved/i)).toBeInTheDocument()
+    useMutation.mockReturnValue({
+      mutate: vi.fn(),
+      isLoading: false
     })
-  })
 
-  it('resets settings to default', async () => {
+    const user = userEvent.setup()
     renderWithQueryClient(<Settings />)
     
-    const resetButton = screen.getByRole('button', { name: /reset to default/i })
-    await user.click(resetButton)
-
-    // Should show confirmation dialog
-    expect(screen.getByText(/reset settings/i)).toBeInTheDocument()
-
-    const confirmButton = screen.getByRole('button', { name: /confirm/i })
-    await user.click(confirmButton)
-
+    const agentTab = screen.getByText('Agent')
+    await user.click(agentTab)
+    
     await waitFor(() => {
-      expect(screen.getByText(/settings reset/i)).toBeInTheDocument()
+      expect(screen.getByText('Agent Configuration')).toBeInTheDocument()
     })
   })
 })

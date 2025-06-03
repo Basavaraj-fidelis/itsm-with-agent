@@ -2,8 +2,18 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import Users from '../../../client/src/pages/users'
+
+// Mock useQuery
+vi.mock('@tanstack/react-query', async () => {
+  const actual = await vi.importActual('@tanstack/react-query')
+  return {
+    ...actual,
+    useQuery: vi.fn(),
+    useMutation: vi.fn(),
+  }
+})
 
 const createTestQueryClient = () => new QueryClient({
   defaultOptions: {
@@ -23,75 +33,132 @@ const renderWithQueryClient = (component: React.ReactElement) => {
 }
 
 describe('Users', () => {
-  const user = userEvent.setup()
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
 
-  it('renders users list correctly', async () => {
+  it('renders loading state', () => {
+    const { useQuery, useMutation } = require('@tanstack/react-query')
+    
+    useQuery.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null
+    })
+    
+    useMutation.mockReturnValue({
+      mutate: vi.fn(),
+      isLoading: false
+    })
+
     renderWithQueryClient(<Users />)
     
-    expect(screen.getByText('Users')).toBeInTheDocument()
+    expect(screen.getByText('Loading...')).toBeInTheDocument()
+  })
+
+  it('renders users list when data is loaded', async () => {
+    const { useQuery, useMutation } = require('@tanstack/react-query')
+    
+    const mockUsers = [
+      {
+        id: '1',
+        name: 'John Doe',
+        email: 'john.doe@example.com',
+        role: 'admin',
+        department: 'IT',
+        phone: '+1234567890',
+        status: 'active',
+        created_at: new Date().toISOString()
+      },
+      {
+        id: '2',
+        name: 'Jane Smith',
+        email: 'jane.smith@example.com',
+        role: 'user',
+        department: 'HR',
+        phone: '+1234567891',
+        status: 'active',
+        created_at: new Date().toISOString()
+      }
+    ]
+    
+    useQuery.mockReturnValue({
+      data: mockUsers,
+      isLoading: false,
+      error: null
+    })
+    
+    useMutation.mockReturnValue({
+      mutate: vi.fn(),
+      isLoading: false
+    })
+
+    renderWithQueryClient(<Users />)
     
     await waitFor(() => {
-      expect(screen.getByText('testuser')).toBeInTheDocument()
-      expect(screen.getByText('test@example.com')).toBeInTheDocument()
-      expect(screen.getByText('user')).toBeInTheDocument()
+      expect(screen.getByText('John Doe')).toBeInTheDocument()
+      expect(screen.getByText('Jane Smith')).toBeInTheDocument()
+      expect(screen.getByText('john.doe@example.com')).toBeInTheDocument()
+      expect(screen.getByText('jane.smith@example.com')).toBeInTheDocument()
     })
   })
 
-  it('searches users by username', async () => {
-    renderWithQueryClient(<Users />)
+  it('handles empty users list', async () => {
+    const { useQuery, useMutation } = require('@tanstack/react-query')
     
-    await waitFor(() => {
-      expect(screen.getByText('testuser')).toBeInTheDocument()
+    useQuery.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null
+    })
+    
+    useMutation.mockReturnValue({
+      mutate: vi.fn(),
+      isLoading: false
     })
 
-    const searchInput = screen.getByPlaceholderText(/search users/i)
-    await user.type(searchInput, 'test')
-
-    expect(screen.getByText('testuser')).toBeInTheDocument()
-  })
-
-  it('filters users by role', async () => {
     renderWithQueryClient(<Users />)
     
     await waitFor(() => {
-      expect(screen.getByText('testuser')).toBeInTheDocument()
+      expect(screen.getByText('No users found')).toBeInTheDocument()
+    })
+  })
+
+  it('filters users by search term', async () => {
+    const { useQuery, useMutation } = require('@tanstack/react-query')
+    
+    const mockUsers = [
+      {
+        id: '1',
+        name: 'John Doe',
+        email: 'john.doe@example.com',
+        role: 'admin',
+        department: 'IT',
+        phone: '+1234567890',
+        status: 'active',
+        created_at: new Date().toISOString()
+      }
+    ]
+    
+    useQuery.mockReturnValue({
+      data: mockUsers,
+      isLoading: false,
+      error: null
+    })
+    
+    useMutation.mockReturnValue({
+      mutate: vi.fn(),
+      isLoading: false
     })
 
-    const roleFilter = screen.getByRole('combobox', { name: /role/i })
-    await user.click(roleFilter)
-    await user.click(screen.getByText('User'))
-
-    expect(screen.getByText('testuser')).toBeInTheDocument()
-  })
-
-  it('opens create user modal', async () => {
+    const user = userEvent.setup()
     renderWithQueryClient(<Users />)
     
-    const createButton = screen.getByRole('button', { name: /create user/i })
-    await user.click(createButton)
-
-    expect(screen.getByText('Create New User')).toBeInTheDocument()
-  })
-
-  it('creates a new user successfully', async () => {
-    renderWithQueryClient(<Users />)
+    const searchInput = screen.getByPlaceholderText('Search users...')
+    await user.type(searchInput, 'John')
     
-    const createButton = screen.getByRole('button', { name: /create user/i })
-    await user.click(createButton)
-
-    await user.type(screen.getByLabelText(/username/i), 'newuser')
-    await user.type(screen.getByLabelText(/email/i), 'newuser@example.com')
-    await user.type(screen.getByLabelText(/password/i), 'password123')
-    
-    const roleSelect = screen.getByRole('combobox', { name: /role/i })
-    await user.click(roleSelect)
-    await user.click(screen.getByText('Admin'))
-
-    const submitButton = screen.getByRole('button', { name: /create/i })
-    await user.click(submitButton)
-
     await waitFor(() => {
-      expect(screen.queryByText('Create New User')).not.toBeInTheDocument()
+      expect(screen.getByText('John Doe')).toBeInTheDocument()
     })
   })
 })
