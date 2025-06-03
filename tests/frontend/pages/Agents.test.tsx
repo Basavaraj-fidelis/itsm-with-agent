@@ -3,7 +3,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { describe, it, expect, beforeEach } from 'vitest'
-import Agents from '@/pages/agents'
+import Agents from '../../../client/src/pages/agents'
 
 const createTestQueryClient = () => new QueryClient({
   defaultOptions: {

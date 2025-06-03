@@ -2,7 +2,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { describe, it, expect, beforeEach } from 'vitest'
-import Dashboard from '@/pages/dashboard'
+import Dashboard from '../../../client/src/pages/dashboard'
 
 const createTestQueryClient = () => new QueryClient({
   defaultOptions: {

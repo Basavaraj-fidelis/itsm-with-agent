@@ -2,7 +2,7 @@
 import request from 'supertest'
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import express from 'express'
-import { createServer } from '../../server/index'
+import { createServer } from '../../../server/test-server'
 
 describe('Agents API', () => {
   let app: express.Application
