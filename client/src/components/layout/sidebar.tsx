@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useAuth } from "@/components/auth/protected-route";
 
 export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { user } = useAuth();
+  const [location] = useLocation();
 
   // Define navigation with colored icons based on user role
   const getNavigation = () => {
@@ -18,7 +19,7 @@ export default function Sidebar() {
         name: "Dashboard", 
         href: "/dashboard", 
         icon: Home, 
-        current: window.location.pathname === "/dashboard", 
+        current: location === "/dashboard", 
         roles: ["user", "technician", "manager", "admin"],
         iconColor: "text-blue-500"
       },
@@ -26,7 +27,7 @@ export default function Sidebar() {
         name: "Service Desk", 
         href: "/tickets", 
         icon: Headphones, 
-        current: window.location.pathname === "/tickets", 
+        current: location === "/tickets" || location.startsWith("/tickets/"), 
         roles: ["user", "technician", "manager", "admin"],
         iconColor: "text-green-500"
       },
@@ -34,7 +35,7 @@ export default function Sidebar() {
         name: "Help Articles", 
         href: "/knowledge-base", 
         icon: FileText, 
-        current: window.location.pathname === "/knowledge-base", 
+        current: location === "/knowledge-base", 
         roles: ["user", "technician", "manager", "admin"],
         iconColor: "text-purple-500"
       },
@@ -45,7 +46,7 @@ export default function Sidebar() {
         name: "Managed Systems", 
         href: "/agents", 
         icon: Server, 
-        current: window.location.pathname === "/agents", 
+        current: location === "/agents" || location.startsWith("/agents/"), 
         roles: ["technician", "manager", "admin"],
         iconColor: "text-orange-500"
       },
@@ -53,7 +54,7 @@ export default function Sidebar() {
         name: "System Alerts", 
         href: "/alerts", 
         icon: AlertTriangle, 
-        current: window.location.pathname === "/alerts", 
+        current: location === "/alerts", 
         roles: ["technician", "manager", "admin"],
         iconColor: "text-red-500"
       },
@@ -64,7 +65,7 @@ export default function Sidebar() {
         name: "User Directory", 
         href: "/users", 
         icon: UserCheck, 
-        current: window.location.pathname === "/users", 
+        current: location === "/users", 
         roles: ["manager", "admin"],
         iconColor: "text-cyan-500"
       },
@@ -72,7 +73,7 @@ export default function Sidebar() {
         name: "Analytics", 
         href: "/reports", 
         icon: BarChart3, 
-        current: window.location.pathname === "/reports", 
+        current: location === "/reports", 
         roles: ["manager", "admin"],
         iconColor: "text-indigo-500"
       },
@@ -83,7 +84,7 @@ export default function Sidebar() {
         name: "Admin Panel", 
         href: "/settings", 
         icon: Settings, 
-        current: window.location.pathname === "/settings", 
+        current: location === "/settings", 
         roles: ["admin"],
         iconColor: "text-gray-500"
       },
