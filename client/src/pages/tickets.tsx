@@ -552,8 +552,6 @@ export default function Tickets() {
       </Dialog>
 
       {/* Conditional Content */}
-      {viewMode === "workflows" ? (
+      {viewMode === "workflows" && (
         <ServiceDeskWorkflows />
-      ) : (
-        /* Tickets Table */
-        <Card>
+      )}
