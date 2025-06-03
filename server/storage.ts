@@ -2361,7 +2361,13 @@ ipconfig /flushdns
     const articlesDir = path.resolve(process.cwd(), "attached_assets", "Knowledgebase");
     
     try {
+      if (!fs.existsSync(articlesDir)) {
+        console.log("Knowledgebase directory does not exist");
+        return [];
+      }
+
       const files = fs.readdirSync(articlesDir).filter(file => file.endsWith('.md'));
+      console.log(`Found ${files.length} markdown files in Knowledgebase directory`);
       const articles = [];
       
       for (const file of files) {
@@ -2369,11 +2375,13 @@ ipconfig /flushdns
           const filePath = path.join(articlesDir, file);
           const content = fs.readFileSync(filePath, 'utf-8');
           
-          // Parse frontmatter and content
+          // Try to parse frontmatter, but fall back to generating from filename
           const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
           const match = content.match(frontmatterRegex);
           
+          let article;
           if (match) {
+            // Has frontmatter
             const frontmatter = match[1];
             const articleContent = match[2];
             
@@ -2386,34 +2394,89 @@ ipconfig /flushdns
                 
                 // Handle special types
                 if (key === 'tags') {
-                  metadata[key] = JSON.parse(value);
+                  try {
+                    metadata[key] = JSON.parse(value);
+                  } catch {
+                    metadata[key] = value.split(',').map(t => t.trim());
+                  }
                 } else if (key === 'views' || key === 'helpful_votes') {
-                  metadata[key] = parseInt(value);
+                  metadata[key] = parseInt(value) || 0;
                 } else {
                   metadata[key] = value;
                 }
               }
             });
             
-            articles.push({
+            article = {
               id: metadata.id || file.replace('.md', ''),
-              title: metadata.title,
+              title: metadata.title || file.replace('.md', '').replace(/-/g, ' '),
               content: articleContent,
-              category: metadata.category,
+              category: metadata.category || 'General',
               tags: metadata.tags || [],
-              author_email: metadata.author_email,
+              author_email: metadata.author_email || 'support@company.com',
               status: metadata.status || 'published',
               views: metadata.views || 0,
               helpful_votes: metadata.helpful_votes || 0,
-              created_at: metadata.created_at,
-              updated_at: metadata.updated_at
-            });
+              created_at: metadata.created_at || new Date().toISOString(),
+              updated_at: metadata.updated_at || new Date().toISOString()
+            };
+          } else {
+            // No frontmatter, generate article from content
+            const lines = content.split('\n');
+            let title = file.replace('.md', '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            
+            // Try to extract title from first line if it's a header
+            if (lines[0] && lines[0].startsWith('# ')) {
+              title = lines[0].replace('# ', '').trim();
+            }
+            
+            // Determine category from filename
+            let category = 'General';
+            const filename = file.toLowerCase();
+            if (filename.includes('password') || filename.includes('login') || filename.includes('account')) {
+              category = 'Account Management';
+            } else if (filename.includes('network') || filename.includes('wifi') || filename.includes('internet') || filename.includes('connection')) {
+              category = 'Network';
+            } else if (filename.includes('computer') || filename.includes('slow') || filename.includes('hardware')) {
+              category = 'Hardware';
+            } else if (filename.includes('software') || filename.includes('installation') || filename.includes('office') || filename.includes('browser')) {
+              category = 'Software';
+            } else if (filename.includes('troubleshoot') || filename.includes('problem') || filename.includes('issue') || filename.includes('fix')) {
+              category = 'Troubleshooting';
+            } else if (filename.includes('print')) {
+              category = 'Hardware';
+            } else if (filename.includes('vpn') || filename.includes('security')) {
+              category = 'Security';
+            }
+            
+            // Generate tags from filename
+            const tags = filename.replace('.md', '').split('-').filter(tag => 
+              !['guide', 'problems', 'issues', 'how', 'to', 'the', 'and', 'or', 'a', 'an'].includes(tag)
+            );
+            
+            article = {
+              id: file.replace('.md', ''),
+              title: title,
+              content: content,
+              category: category,
+              tags: tags,
+              author_email: 'support@company.com',
+              status: 'published',
+              views: Math.floor(Math.random() * 500) + 50, // Random views for demo
+              helpful_votes: Math.floor(Math.random() * 100) + 10, // Random helpful votes for demo
+              created_at: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toISOString(), // Random date within last 30 days
+              updated_at: new Date(Date.now() - Math.floor(Math.random() * 7) * 24 * 60 * 60 * 1000).toISOString() // Random date within last 7 days
+            };
           }
+          
+          articles.push(article);
+          console.log(`Loaded article: ${article.title} (${article.category})`);
         } catch (error) {
           console.error(`Error loading article ${file}:`, error);
         }
       }
       
+      console.log(`Successfully loaded ${articles.length} articles from files`);
       return articles;
     } catch (error) {
       console.error("Error loading articles from files:", error);
