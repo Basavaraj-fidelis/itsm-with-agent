@@ -11,11 +11,16 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { users, type User } from "@shared/user-schema";
-import { tickets, ticketComments, ticketAttachments, knowledgeBase } from "@shared/ticket-schema";
+import {
+  tickets,
+  ticketComments,
+  ticketAttachments,
+  knowledgeBase,
+} from "@shared/ticket-schema";
 import { eq, desc, gte, and, sql, or, like, count } from "drizzle-orm";
-import fs from 'fs';
-import path from 'path';
-import matter from 'gray-matter';
+import fs from "fs";
+import path from "path";
+import matter from "gray-matter";
 
 export interface IStorage {
   // Device operations
@@ -941,8 +946,7 @@ netsh int ip reset
 - **Clean Vents**: Use compressed air to clear dust from cooling vents
 - **Hard Surface**: Use laptop on hard, flat surface for airflow
 - **Reduce Load**: Close intensive programs while charging
-- **Contact IT**: If overheating```text
-persists, hardware inspection needed
+- **Contact IT**: If overheating persists, hardware inspection needed
 
 ## Power Adapter Problems
 
@@ -2354,12 +2358,14 @@ smartphones
       const whereConditions = [];
 
       if (filters.category) {
-        whereConditions.push(sql`${knowledgeBase.category} ILIKE ${'%' + filters.category + '%'}`);
+        whereConditions.push(
+          sql`${knowledgeBase.category} ILIKE ${"%" + filters.category + "%"}`,
+        );
       }
 
       if (filters.search) {
         whereConditions.push(
-          sql`(${knowledgeBase.title} ILIKE ${'%' + filters.search + '%'} OR ${knowledgeBase.content} ILIKE ${'%' + filters.search + '%'})`
+          sql`(${knowledgeBase.title} ILIKE ${"%" + filters.search + "%"} OR ${knowledgeBase.content} ILIKE ${"%" + filters.search + "%"})`,
         );
       }
 
@@ -2368,11 +2374,17 @@ smartphones
       }
 
       if (whereConditions.length > 0) {
-        query = query.where(whereConditions.length === 1 ? whereConditions[0] : and(...whereConditions));
+        query = query.where(
+          whereConditions.length === 1
+            ? whereConditions[0]
+            : and(...whereConditions),
+        );
       }
 
       // Get total count
-      const countResult = await db.select({ count: count() }).from(knowledgeBase);
+      const countResult = await db
+        .select({ count: count() })
+        .from(knowledgeBase);
       const total = countResult[0].count;
 
       // Apply pagination and ordering
@@ -2387,9 +2399,8 @@ smartphones
         data: articles,
         total,
         page,
-        limit
+        limit,
       };
-
     } catch (error) {
       console.error("Error loading KB articles from database:", error);
       return { data: [], total: 0, page, limit };
@@ -2398,7 +2409,10 @@ smartphones
 
   async getKBArticleById(id: string) {
     try {
-      const articles = await db.select().from(knowledgeBase).where(eq(knowledgeBase.id, id));
+      const articles = await db
+        .select()
+        .from(knowledgeBase)
+        .where(eq(knowledgeBase.id, id));
       return articles[0] || null;
     } catch (error) {
       console.error("Error loading KB article from database:", error);
@@ -2408,16 +2422,19 @@ smartphones
 
   async createKBArticle(data: any) {
     try {
-      const newArticle = await db.insert(knowledgeBase).values({
-        title: data.title,
-        content: data.content || '',
-        category: data.category || 'General',
-        tags: data.tags || [],
-        author_email: data.author_email || 'system@company.com',
-        status: data.status || 'draft',
-        views: 0,
-        helpful_votes: 0
-      }).returning();
+      const newArticle = await db
+        .insert(knowledgeBase)
+        .values({
+          title: data.title,
+          content: data.content || "",
+          category: data.category || "General",
+          tags: data.tags || [],
+          author_email: data.author_email || "system@company.com",
+          status: data.status || "draft",
+          views: 0,
+          helpful_votes: 0,
+        })
+        .returning();
 
       return newArticle[0];
     } catch (error) {
@@ -2436,7 +2453,7 @@ smartphones
           category: data.category,
           tags: data.tags,
           status: data.status,
-          updated_at: new Date()
+          updated_at: new Date(),
         })
         .where(eq(knowledgeBase.id, id))
         .returning();
