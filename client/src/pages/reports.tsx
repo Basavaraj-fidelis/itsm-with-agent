@@ -279,3 +279,41 @@ export default function Reports() {
     </div>
   );
 }
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+
+export default function Reports() {
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-6">Reports</h1>
+      
+      <div className="grid gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>System Reports</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>Generate and view system performance reports</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Ticket Reports</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>Analyze ticket trends and resolution times</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Agent Reports</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>Monitor agent performance and availability</p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}

@@ -561,3 +561,189 @@ export default function Tickets() {
     </div>
   );
 }
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
+
+interface Ticket {
+  id: string
+  title: string
+  description: string
+  status: string
+  priority: string
+  created_at: string
+}
+
+export default function Tickets() {
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [priorityFilter, setPriorityFilter] = useState('all')
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [newTicket, setNewTicket] = useState({
+    title: '',
+    description: '',
+    priority: 'medium'
+  })
+
+  const queryClient = useQueryClient()
+
+  const { data: tickets, isLoading } = useQuery<Ticket[]>({
+    queryKey: ['tickets', statusFilter, priorityFilter],
+    queryFn: async () => {
+      const params = new URLSearchParams()
+      if (statusFilter !== 'all') {
+        params.append('status', statusFilter)
+      }
+      if (priorityFilter !== 'all') {
+        params.append('priority', priorityFilter)
+      }
+      
+      const response = await fetch(`/api/tickets?${params}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch tickets')
+      }
+      return response.json()
+    }
+  })
+
+  const createTicketMutation = useMutation({
+    mutationFn: async (ticketData: typeof newTicket) => {
+      const response = await fetch('/api/tickets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(ticketData),
+      })
+      if (!response.ok) {
+        throw new Error('Failed to create ticket')
+      }
+      return response.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tickets'] })
+      setIsCreateModalOpen(false)
+      setNewTicket({ title: '', description: '', priority: 'medium' })
+    }
+  })
+
+  const handleCreateTicket = () => {
+    createTicketMutation.mutate(newTicket)
+  }
+
+  if (isLoading) {
+    return <div>Loading...</div>
+  }
+
+  return (
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Tickets</h1>
+        
+        <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+          <DialogTrigger asChild>
+            <Button>Create Ticket</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create New Ticket</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="title">Title</Label>
+                <Input
+                  id="title"
+                  value={newTicket.title}
+                  onChange={(e) => setNewTicket(prev => ({ ...prev, title: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={newTicket.description}
+                  onChange={(e) => setNewTicket(prev => ({ ...prev, description: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="priority">Priority</Label>
+                <Select value={newTicket.priority} onValueChange={(value) => setNewTicket(prev => ({ ...prev, priority: value }))}>
+                  <SelectTrigger aria-label="Priority">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="critical">Critical</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={handleCreateTicket} className="w-full">
+                Create
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+      
+      <div className="flex gap-4 mb-6">
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-32" aria-label="Status">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="open">Open</SelectItem>
+            <SelectItem value="in_progress">In Progress</SelectItem>
+            <SelectItem value="closed">Closed</SelectItem>
+          </SelectContent>
+        </Select>
+        
+        <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+          <SelectTrigger className="w-32" aria-label="Priority">
+            <SelectValue placeholder="Priority" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="low">Low</SelectItem>
+            <SelectItem value="medium">Medium</SelectItem>
+            <SelectItem value="high">High</SelectItem>
+            <SelectItem value="critical">Critical</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid gap-4">
+        {tickets?.map((ticket) => (
+          <Card key={ticket.id}>
+            <CardHeader>
+              <CardTitle>{ticket.title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <span className="text-sm text-gray-500">Status:</span>
+                  <div>{ticket.status}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-500">Priority:</span>
+                  <div>{ticket.priority}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-500">Created:</span>
+                  <div>{new Date(ticket.created_at).toLocaleDateString()}</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  )
+}

@@ -253,3 +253,189 @@ export default function Users() {
     </div>
   );
 }
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
+
+interface User {
+  id: string
+  username: string
+  email: string
+  role: string
+  created_at: string
+}
+
+export default function Users() {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [roleFilter, setRoleFilter] = useState('all')
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [newUser, setNewUser] = useState({
+    username: '',
+    email: '',
+    password: '',
+    role: 'user'
+  })
+
+  const queryClient = useQueryClient()
+
+  const { data: users, isLoading } = useQuery<User[]>({
+    queryKey: ['users', roleFilter, searchTerm],
+    queryFn: async () => {
+      const params = new URLSearchParams()
+      if (roleFilter !== 'all') {
+        params.append('role', roleFilter)
+      }
+      if (searchTerm) {
+        params.append('search', searchTerm)
+      }
+      
+      const response = await fetch(`/api/users?${params}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch users')
+      }
+      return response.json()
+    }
+  })
+
+  const createUserMutation = useMutation({
+    mutationFn: async (userData: typeof newUser) => {
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      })
+      if (!response.ok) {
+        throw new Error('Failed to create user')
+      }
+      return response.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      setIsCreateModalOpen(false)
+      setNewUser({ username: '', email: '', password: '', role: 'user' })
+    }
+  })
+
+  const handleCreateUser = () => {
+    createUserMutation.mutate(newUser)
+  }
+
+  if (isLoading) {
+    return <div>Loading...</div>
+  }
+
+  return (
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Users</h1>
+        
+        <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+          <DialogTrigger asChild>
+            <Button>Create User</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create New User</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  value={newUser.username}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, username: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={newUser.password}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="role">Role</Label>
+                <Select value={newUser.role} onValueChange={(value) => setNewUser(prev => ({ ...prev, role: value }))}>
+                  <SelectTrigger aria-label="Role">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">User</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={handleCreateUser} className="w-full">
+                Create
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+      
+      <div className="flex gap-4 mb-6">
+        <Input
+          placeholder="Search users..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-sm"
+        />
+        
+        <Select value={roleFilter} onValueChange={setRoleFilter}>
+          <SelectTrigger className="w-32" aria-label="Role">
+            <SelectValue placeholder="Role" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="user">User</SelectItem>
+            <SelectItem value="admin">Admin</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid gap-4">
+        {users?.map((user) => (
+          <Card key={user.id}>
+            <CardHeader>
+              <CardTitle>{user.username}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <span className="text-sm text-gray-500">Email:</span>
+                  <div>{user.email}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-500">Role:</span>
+                  <div>{user.role}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-500">Created:</span>
+                  <div>{new Date(user.created_at).toLocaleDateString()}</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  )
+}

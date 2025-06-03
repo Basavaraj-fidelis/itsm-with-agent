@@ -300,3 +300,84 @@ export default function Dashboard() {
     </div>
   );
 }
+import { useQuery } from '@tanstack/react-query'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+
+interface DashboardMetrics {
+  totalDevices: number
+  activeAlerts: number
+  ticketsOpen: number
+  systemHealth: number
+}
+
+export default function Dashboard() {
+  const { data: metrics, isLoading, error } = useQuery<DashboardMetrics>({
+    queryKey: ['dashboard-metrics'],
+    queryFn: async () => {
+      const response = await fetch('/api/dashboard/metrics')
+      if (!response.ok) {
+        throw new Error('Failed to fetch metrics')
+      }
+      return response.json()
+    }
+  })
+
+  if (isLoading) {
+    return <div>Loading...</div>
+  }
+
+  if (error) {
+    return <div>Error loading dashboard data</div>
+  }
+
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-6">System Overview</h1>
+      
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Total Devices</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metrics?.totalDevices}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Active Alerts</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metrics?.activeAlerts}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Open Tickets</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metrics?.ticketsOpen}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>System Health</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metrics?.systemHealth}%</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <button 
+        onClick={() => window.location.reload()} 
+        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+      >
+        Refresh
+      </button>
+    </div>
+  )
+}

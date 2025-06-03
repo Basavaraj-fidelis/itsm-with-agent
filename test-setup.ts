@@ -1,14 +1,22 @@
-
 import '@testing-library/jest-dom'
-import { beforeAll, afterEach, afterAll } from 'vitest'
+import { beforeAll, afterEach, afterAll, vi } from 'vitest'
 import { server } from './tests/mocks/server'
 
-// Establish API mocking before all tests.
-beforeAll(() => server.listen())
+// Mock fetch globally for tests
+global.fetch = vi.fn()
 
-// Reset any request handlers that we may add during the tests,
-// so they don't affect other tests.
-afterEach(() => server.resetHandlers())
-
-// Clean up after the tests are finished.
+beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }))
+afterEach(() => {
+  server.resetHandlers()
+  vi.clearAllMocks()
+})
 afterAll(() => server.close())
+
+// Mock window.location for tests
+Object.defineProperty(window, 'location', {
+  value: {
+    origin: 'http://localhost:3000',
+    reload: vi.fn()
+  },
+  writable: true
+})
