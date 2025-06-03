@@ -1,7 +1,6 @@
-
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import path from 'path'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
 export default defineConfig({
@@ -29,4 +28,9 @@ export default defineConfig({
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
   },
-})
+  server: {
+    allowedHosts: [
+      "ed7950a6-3ab3-4ea6-bef1-2d4ab3e882f6-00-2ho8a3zsn9ezz.sisko.replit.dev",
+    ],
+  },
+});
