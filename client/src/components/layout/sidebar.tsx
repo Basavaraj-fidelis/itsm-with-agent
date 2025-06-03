@@ -1,5 +1,5 @@
 
-import { Home, Users, AlertTriangle, Settings, BarChart3, Headphones, FileText, Server, Menu, X, Shield, UserCheck } from "lucide-react";
+import { Home, Users, AlertTriangle, Settings, BarChart3, Headphones, FileText, Server, Menu, X, Shield, UserCheck, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
