@@ -26,6 +26,7 @@ import {
   Workflow
 } from "lucide-react";
 import ServiceDeskWorkflows from "@/components/tickets/service-desk-workflows";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 // Mock ticket data
 const mockTickets = [
@@ -197,6 +198,51 @@ export default function Tickets() {
     });
   };
 
+  // Calculate chart data
+  const getTicketsByType = () => {
+    const typeCounts = tickets.reduce((acc, ticket) => {
+      acc[ticket.type] = (acc[ticket.type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(typeCounts).map(([type, count]) => ({
+      name: type.charAt(0).toUpperCase() + type.slice(1),
+      value: count,
+      color: type === 'incident' ? '#ef4444' : 
+             type === 'problem' ? '#f97316' : 
+             type === 'change' ? '#3b82f6' : '#10b981'
+    }));
+  };
+
+  const getTicketsByStatus = () => {
+    const statusCounts = tickets.reduce((acc, ticket) => {
+      acc[ticket.status] = (acc[ticket.status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(statusCounts).map(([status, count]) => ({
+      name: status.replace('_', ' ').split(' ').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1)
+      ).join(' '),
+      value: count
+    }));
+  };
+
+  const getTicketsByPriority = () => {
+    const priorityCounts = tickets.reduce((acc, ticket) => {
+      acc[ticket.priority] = (acc[ticket.priority] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(priorityCounts).map(([priority, count]) => ({
+      name: priority.charAt(0).toUpperCase() + priority.slice(1),
+      value: count,
+      color: priority === 'critical' ? '#ef4444' : 
+             priority === 'high' ? '#f97316' : 
+             priority === 'medium' ? '#eab308' : '#3b82f6'
+    }));
+  };
+
   const renderWorkflowActions = (ticket: any) => {
     // Mock workflow actions based on ticket status
     const actions = [];
@@ -295,6 +341,115 @@ export default function Tickets() {
         <ServiceDeskWorkflows />
       ) : (
         <>
+          {/* Ticket Statistics Charts */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            {/* Tickets by Type */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Tickets by Type</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie
+                      data={getTicketsByType()}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={40}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {getTicketsByType().map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="mt-2 space-y-1">
+                  {getTicketsByType().map((item, index) => (
+                    <div key={index} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center space-x-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: item.color }}
+                        ></div>
+                        <span>{item.name}</span>
+                      </div>
+                      <span className="font-medium">{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tickets by Status */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Tickets by Status</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={getTicketsByStatus()}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="name" 
+                      fontSize={12}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis fontSize={12} />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="#3b82f6" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Tickets by Priority */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Tickets by Priority</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie
+                      data={getTicketsByPriority()}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={40}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {getTicketsByPriority().map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="mt-2 space-y-1">
+                  {getTicketsByPriority().map((item, index) => (
+                    <div key={index} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center space-x-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: item.color }}
+                        ></div>
+                        <span>{item.name}</span>
+                      </div>
+                      <span className="font-medium">{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Filters */}
           <div className="flex flex-wrap gap-4 items-center">
             <div className="flex items-center space-x-2">

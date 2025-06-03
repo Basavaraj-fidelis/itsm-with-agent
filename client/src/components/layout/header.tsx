@@ -84,7 +84,16 @@ export default function Header() {
             <DropdownMenuContent align="end" className="w-80">
               <div className="flex items-center justify-between p-2">
                 <h3 className="font-semibold">Notifications</h3>
-                <Button variant="ghost" size="sm" className="text-xs">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-xs"
+                  onClick={() => {
+                    // In a real app, this would call an API to mark notifications as read
+                    // For now, we'll just show a toast
+                    console.log("Marking all notifications as read");
+                  }}
+                >
                   Mark all as read
                 </Button>
               </div>
