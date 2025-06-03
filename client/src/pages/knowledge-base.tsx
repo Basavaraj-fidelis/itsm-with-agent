@@ -59,31 +59,32 @@ export default function KnowledgeBase() {
   const fetchArticles = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('auth_token');
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json'
-      };
-      
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+      // Build query parameters
+      const params = new URLSearchParams({
+        status: 'published'
+      });
+
+      if (selectedCategory && selectedCategory !== 'all') {
+        params.append('category', selectedCategory);
       }
 
-      const response = await fetch(`/api/knowledge-base?status=published`, {
-        headers
-      });
-      
+      if (searchTerm.trim()) {
+        params.append('search', searchTerm.trim());
+      }
+
+      const response = await fetch(`/api/knowledge-base?${params.toString()}`);
+
       if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Authentication required. Please log in.');
-        }
         throw new Error(`Failed to fetch articles: ${response.status}`);
       }
+
       const data = await response.json();
-      setArticles(Array.isArray(data) ? data : []);
+      console.log("Received articles:", data.length);
+      setArticles(data);
       setError(null);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error fetching articles:', err);
-      setError(err);
+      setError(err as Error);
       setArticles([]);
     } finally {
       setIsLoading(false);
@@ -101,7 +102,7 @@ export default function KnowledgeBase() {
       const headers: HeadersInit = {
         'Content-Type': 'application/json'
       };
-      
+
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
@@ -146,15 +147,16 @@ export default function KnowledgeBase() {
     "Hardware",
     "Security"
   ];
-
+  // Since filtering is now done on the server side, we can use articles directly
+  // But we still keep the client-side filtering for real-time search as user types
   const filteredArticles = articles.filter(article => {
-    const matchesSearch = article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         article.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         article.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+    if (!searchTerm) return true;
 
-    const matchesCategory = selectedCategory === "all" || article.category === selectedCategory;
-
-    return matchesSearch && matchesCategory;
+    const searchLower = searchTerm.toLowerCase();
+    return article.title?.toLowerCase().includes(searchLower) ||
+           article.content?.toLowerCase().includes(searchLower) ||
+           article.category?.toLowerCase().includes(searchLower) ||
+           article.tags?.some((tag: string) => tag.toLowerCase().includes(searchLower));
   });
 
   const formatDate = (dateString: string) => {

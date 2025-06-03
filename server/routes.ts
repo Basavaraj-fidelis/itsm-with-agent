@@ -753,12 +753,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: req.query.status as string || "published"
       };
 
+      console.log("Fetching KB articles with filters:", filters);
       const result = await storage.getKBArticles(page, limit, filters);
+      console.log(`Returning ${result.data.length} articles out of ${result.total} total`);
       
-      // If the result has a data property (paginated), return the data array
-      // Otherwise return the result directly for backward compatibility
-      const articles = result.data || result;
-      res.json(articles);
+      // Return the data array from file-based storage
+      res.json(result.data);
     } catch (error) {
       console.error("Error fetching KB articles:", error);
       res.status(500).json({ message: "Internal server error" });

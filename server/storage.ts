@@ -2353,48 +2353,114 @@ ipconfig /flushdns
       .where(eq(alerts.id, alertId));
   }
 
-  // Knowledge Base methods
+  // Knowledge Base methods - File-based storage
+  private async loadKBArticlesFromFiles() {
+    const fs = await import("fs");
+    const path = await import("path");
+    
+    const articlesDir = path.resolve(process.cwd(), "attached_assets", "Knowledgebase");
+    
+    try {
+      const files = fs.readdirSync(articlesDir).filter(file => file.endsWith('.md'));
+      const articles = [];
+      
+      for (const file of files) {
+        try {
+          const filePath = path.join(articlesDir, file);
+          const content = fs.readFileSync(filePath, 'utf-8');
+          
+          // Parse frontmatter and content
+          const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
+          const match = content.match(frontmatterRegex);
+          
+          if (match) {
+            const frontmatter = match[1];
+            const articleContent = match[2];
+            
+            // Parse YAML-like frontmatter
+            const metadata: any = {};
+            frontmatter.split('\n').forEach(line => {
+              const [key, ...valueParts] = line.split(':');
+              if (key && valueParts.length > 0) {
+                const value = valueParts.join(':').trim().replace(/^["']|["']$/g, '');
+                
+                // Handle special types
+                if (key === 'tags') {
+                  metadata[key] = JSON.parse(value);
+                } else if (key === 'views' || key === 'helpful_votes') {
+                  metadata[key] = parseInt(value);
+                } else {
+                  metadata[key] = value;
+                }
+              }
+            });
+            
+            articles.push({
+              id: metadata.id || file.replace('.md', ''),
+              title: metadata.title,
+              content: articleContent,
+              category: metadata.category,
+              tags: metadata.tags || [],
+              author_email: metadata.author_email,
+              status: metadata.status || 'published',
+              views: metadata.views || 0,
+              helpful_votes: metadata.helpful_votes || 0,
+              created_at: metadata.created_at,
+              updated_at: metadata.updated_at
+            });
+          }
+        } catch (error) {
+          console.error(`Error loading article ${file}:`, error);
+        }
+      }
+      
+      return articles;
+    } catch (error) {
+      console.error("Error loading articles from files:", error);
+      return [];
+    }
+  }
+
   async getKBArticles(page: number = 1, limit: number = 20, filters: any = {}) {
-    const { knowledgeBase } = await import("@shared/ticket-schema");
-    const { and, or, like, count, desc } = await import("drizzle-orm");
-
-    const offset = (page - 1) * limit;
-    const conditions = [];
-
-    if (filters.category) {
-      conditions.push(eq(knowledgeBase.category, filters.category));
-    }
-
-    if (filters.status) {
-      conditions.push(eq(knowledgeBase.status, filters.status));
-    }
-
-    if (filters.search) {
-      conditions.push(
-        or(
-          like(knowledgeBase.title, `%${filters.search}%`),
-          like(knowledgeBase.content, `%${filters.search}%`),
-        ),
+    const articles = await this.loadKBArticlesFromFiles();
+    
+    // Apply filters
+    let filteredArticles = articles;
+    
+    if (filters.category && filters.category !== 'all') {
+      filteredArticles = filteredArticles.filter(article => 
+        article.category?.toLowerCase() === filters.category.toLowerCase()
       );
     }
-
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-    const [{ total }] = await db
-      .select({ total: count() })
-      .from(knowledgeBase)
-      .where(whereClause);
-
-    const data = await db
-      .select()
-      .from(knowledgeBase)
-      .where(whereClause)
-      .orderBy(desc(knowledgeBase.created_at))
-      .limit(limit)
-      .offset(offset);
-
+    
+    if (filters.status) {
+      filteredArticles = filteredArticles.filter(article => 
+        article.status === filters.status
+      );
+    }
+    
+    if (filters.search) {
+      const searchTerm = filters.search.toLowerCase();
+      filteredArticles = filteredArticles.filter(article => 
+        article.title?.toLowerCase().includes(searchTerm) ||
+        article.content?.toLowerCase().includes(searchTerm) ||
+        article.category?.toLowerCase().includes(searchTerm) ||
+        article.tags?.some((tag: string) => tag.toLowerCase().includes(searchTerm))
+      );
+    }
+    
+    // Sort by created_at descending
+    filteredArticles.sort((a, b) => 
+      new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+    );
+    
+    // Pagination
+    const total = filteredArticles.length;
+    const offset = (page - 1) * limit;
+    const paginatedArticles = filteredArticles.slice(offset, offset + limit);
+    
     return {
-      data,
+      data: paginatedArticles,
       total,
       page,
       limit,
@@ -2403,47 +2469,113 @@ ipconfig /flushdns
   }
 
   async getKBArticleById(id: string) {
-    const { knowledgeBase } = await import("@shared/ticket-schema");
-
-    const [article] = await db
-      .select()
-      .from(knowledgeBase)
-      .where(eq(knowledgeBase.id, id));
-
-    return article || null;
+    const articles = await this.loadKBArticlesFromFiles();
+    return articles.find(article => article.id === id) || null;
   }
 
   async createKBArticle(data: any) {
-    const { knowledgeBase } = await import("@shared/ticket-schema");
+    const fs = await import("fs");
+    const path = await import("path");
+    
+    const articlesDir = path.resolve(process.cwd(), "attached_assets", "Knowledgebase");
+    
+    // Generate ID and filename
+    const id = Date.now().toString();
+    const filename = `${data.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}.md`;
+    const filePath = path.join(articlesDir, filename);
+    
+    // Create frontmatter
+    const frontmatter = `---
+id: ${id}
+title: "${data.title}"
+category: "${data.category || 'General'}"
+tags: ${JSON.stringify(data.tags || [])}
+author_email: "${data.author_email || 'admin@company.com'}"
+status: "${data.status || 'published'}"
+views: 0
+helpful_votes: 0
+created_at: "${new Date().toISOString()}"
+updated_at: "${new Date().toISOString()}"
+---
 
-    const [article] = await db.insert(knowledgeBase).values(data).returning();
-
-    return article;
+${data.content}`;
+    
+    // Write file
+    fs.writeFileSync(filePath, frontmatter);
+    
+    return {
+      id,
+      ...data,
+      views: 0,
+      helpful_votes: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
   }
 
   async updateKBArticle(id: string, updates: any) {
-    const { knowledgeBase } = await import("@shared/ticket-schema");
+    const fs = await import("fs");
+    const path = await import("path");
+    
+    const articles = await this.loadKBArticlesFromFiles();
+    const article = articles.find(a => a.id === id);
+    
+    if (!article) return null;
+    
+    const articlesDir = path.resolve(process.cwd(), "attached_assets", "Knowledgebase");
+    const files = fs.readdirSync(articlesDir).filter(file => file.endsWith('.md'));
+    
+    // Find the file containing this article
+    for (const file of files) {
+      const filePath = path.join(articlesDir, file);
+      const content = fs.readFileSync(filePath, 'utf-8');
+      
+      if (content.includes(`id: ${id}`)) {
+        // Update the article
+        const updatedArticle = { ...article, ...updates, updated_at: new Date().toISOString() };
+        
+        const frontmatter = `---
+id: ${updatedArticle.id}
+title: "${updatedArticle.title}"
+category: "${updatedArticle.category}"
+tags: ${JSON.stringify(updatedArticle.tags)}
+author_email: "${updatedArticle.author_email}"
+status: "${updatedArticle.status}"
+views: ${updatedArticle.views}
+helpful_votes: ${updatedArticle.helpful_votes}
+created_at: "${updatedArticle.created_at}"
+updated_at: "${updatedArticle.updated_at}"
+---
 
-    const [updatedArticle] = await db
-      .update(knowledgeBase)
-      .set({
-        ...updates,
-        updated_at: new Date(),
-      })
-      .where(eq(knowledgeBase.id, id))
-      .returning();
-
-    return updatedArticle || null;
+${updatedArticle.content}`;
+        
+        fs.writeFileSync(filePath, frontmatter);
+        return updatedArticle;
+      }
+    }
+    
+    return null;
   }
 
   async deleteKBArticle(id: string) {
-    const { knowledgeBase } = await import("@shared/ticket-schema");
-
-    const result = await db
-      .delete(knowledgeBase)
-      .where(eq(knowledgeBase.id, id));
-
-    return result.rowCount > 0;
+    const fs = await import("fs");
+    const path = await import("path");
+    
+    const articlesDir = path.resolve(process.cwd(), "attached_assets", "Knowledgebase");
+    const files = fs.readdirSync(articlesDir).filter(file => file.endsWith('.md'));
+    
+    // Find and delete the file containing this article
+    for (const file of files) {
+      const filePath = path.join(articlesDir, file);
+      const content = fs.readFileSync(filePath, 'utf-8');
+      
+      if (content.includes(`id: ${id}`)) {
+        fs.unlinkSync(filePath);
+        return true;
+      }
+    }
+    
+    return false;
   }
 
   // Alert Management methods
