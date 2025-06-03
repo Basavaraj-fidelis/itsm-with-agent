@@ -1,4 +1,4 @@
-import { Home, Users, AlertTriangle, Settings, BarChart3, Ticket, BookOpen, Monitor, Menu, X, Shield } from "lucide-react";
+import { Home, AlertTriangle, BarChart3, Ticket, BookOpen, Monitor, Menu, X, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -24,12 +24,11 @@ export default function Sidebar() {
     ];
 
     const managerNavigation = [
-      { name: "Users", href: "/users", icon: Users, current: window.location.pathname === "/users", roles: ["manager", "admin"] },
       { name: "Reports", href: "/reports", icon: BarChart3, current: window.location.pathname === "/reports", roles: ["manager", "admin"] },
     ];
 
     const adminNavigation = [
-      { name: "Settings", href: "/settings", icon: Settings, current: window.location.pathname === "/settings", roles: ["admin"] },
+      
     ];
 
     const allNavigation = [...baseNavigation, ...techNavigation, ...managerNavigation, ...adminNavigation];

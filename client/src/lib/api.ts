@@ -84,9 +84,6 @@ export const api = {
   getAgents: () => get("/api/agents"),
   getAgent: (id: string) => get(`/api/agents/${id}`),
 
-  // Users
-  getUsers: () => get("/api/users"),
-
   // Alerts
   getAlerts2: () => get("/api/alerts"),
 };

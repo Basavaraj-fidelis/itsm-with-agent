@@ -13,8 +13,7 @@ import AgentDetail from "@/pages/agent-detail";
 import Alerts from "@/pages/alerts";
 import Tickets from "@/pages/tickets";
 import KnowledgeBase from "@/pages/knowledge-base";
-import Users from "@/pages/users";
-import Settings from "@/pages/settings";
+
 import Reports from "@/pages/reports";
 import NotFound from "@/pages/not-found";
 
@@ -132,21 +131,7 @@ export default function App() {
               </ProtectedRoute>
             </Route>
             
-            <Route path="/users">
-              <ProtectedRoute requiredRole={["admin", "manager"]}>
-                <AuthenticatedLayout>
-                  <Users />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
             
-            <Route path="/settings">
-              <ProtectedRoute requiredRole={["admin"]}>
-                <AuthenticatedLayout>
-                  <Settings />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
             
             <Route path="/reports">
               <ProtectedRoute requiredRole={["admin", "manager"]}>
