@@ -10,7 +10,12 @@ import {
   type InsertAlert,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql, or, like, count } from "drizzle-orm";
+import { users, type User } from "@shared/user-schema";
+import { tickets, ticketComments, ticketAttachments, knowledgeBase } from "@shared/ticket-schema";
+import { eq, desc, gte, and, sql, or, like, count } from "drizzle-orm";
+import fs from 'fs';
+import path from 'path';
+import matter from 'gray-matter';
 
 export interface IStorage {
   // Device operations
@@ -415,40 +420,6 @@ export class MemStorage implements IStorage {
     }
   }
 
-  // async getActiveAlertByDeviceAndMetric(deviceId: string, metric: string): Promise<Alert | null> {
-  //   const alert = Array.from(this.alerts.values()).find(alert =>
-  //     alert.device_id === deviceId &&
-  //     alert.is_active &&
-  //     alert.metadata &&
-  //     (alert.metadata as any).metric === metric
-  //   );
-  //   return alert || null;
-  // }
-
-  // async updateAlert(alertId: string, updates: Partial<Alert>): Promise<void> {
-  //   const existing = this.alerts.get(alertId);
-  //   if (existing) {
-  //     const updated: Alert = {
-  //       ...existing,
-  //       ...updates,
-  //       triggered_at: new Date()
-  //     };
-  //     this.alerts.set(alertId, updated);
-  //   }
-  // }
-
-  // async resolveAlert(alertId: string): Promise<void> {
-  //   const existing = this.alerts.get(alertId);
-  //   if (existing) {
-  //     const updated: Alert = {
-  //       ...existing,
-  //       is_active: false,
-  //       resolved_at: new Date()
-  //     };
-  //     this.alerts.set(alertId, updated);
-  //   }
-  // }
-
   async getDashboardSummary(): Promise<{
     total_devices: number;
     online_devices: number;
@@ -487,63 +458,80 @@ export class MemStorage implements IStorage {
 export class DatabaseStorage implements IStorage {
   // Initialize demo users if they don't exist
   async initializeDemoUsers() {
+    // Ensure knowledge base table exists
     try {
+      await this.db.execute(sql`
+        CREATE TABLE IF NOT EXISTS knowledge_base (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          title TEXT NOT NULL,
+          content TEXT NOT NULL,
+          category VARCHAR(100),
+          tags JSON DEFAULT '[]'::json,
+          author_email VARCHAR(255) NOT NULL,
+          status VARCHAR(20) DEFAULT 'draft',
+          views INTEGER DEFAULT 0,
+          helpful_votes INTEGER DEFAULT 0,
+          created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+          updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+        )
+      `);
+    } catch (error) {
+      console.log("Knowledge base table may already exist");
+    }
+
+    // Check if demo users already exist
+    const existingUsers = await this.getUsers({ search: "admin@company.com" });
+    if (existingUsers.length > 0) {
+      console.log("Demo users already exist, skipping initialization");
+    } else {
       const { users } = await import("@shared/user-schema");
       const bcrypt = await import("bcrypt");
 
-      // Check if demo users already exist
-      const existingUsers = await db.select().from(users);
-      if (existingUsers.length > 0) {
-        console.log("Demo users already exist, skipping initialization");
-      } else {
-        const demoUsers = [
-          {
-            email: "admin@company.com",
-            name: "System Administrator",
-            password_hash: await bcrypt.hash("admin123", 10),
-            role: "admin",
-            department: "IT",
-            phone: "+1-555-0101",
-            is_active: true,
-          },
-          {
-            email: "manager@company.com",
-            name: "IT Manager",
-            password_hash: await bcrypt.hash("demo123", 10),
-            role: "manager",
-            department: "IT",
-            phone: "+1-555-0102",
-            is_active: true,
-          },
-          {
-            email: "tech@company.com",
-            name: "Senior Technician",
-            password_hash: await bcrypt.hash("tech123", 10),
-            role: "technician",
-            department: "IT Support",
-            phone: "+1-555-0103",
-            is_active: true,
-          },
-          {
-            email: "user@company.com",
-            name: "End User",
-            password_hash: await bcrypt.hash("demo123", 10),
-            role: "user",
-            department: "Sales",
-            phone: "+1-555-0104",
-            is_active: true,
-          },
-        ];
+      const demoUsers = [
+        {
+          email: "admin@company.com",
+          name: "System Administrator",
+          password_hash: await bcrypt.hash("admin123", 10),
+          role: "admin",
+          department: "IT",
+          phone: "+1-555-0101",
+          is_active: true,
+        },
+        {
+          email: "manager@company.com",
+          name: "IT Manager",
+          password_hash: await bcrypt.hash("demo123", 10),
+          role: "manager",
+          department: "IT",
+          phone: "+1-555-0102",
+          is_active: true,
+        },
+        {
+          email: "tech@company.com",
+          name: "Senior Technician",
+          password_hash: await bcrypt.hash("tech123", 10),
+          role: "technician",
+          department: "IT Support",
+          phone: "+1-555-0103",
+          is_active: true,
+        },
+        {
+          email: "user@company.com",
+          name: "End User",
+          password_hash: await bcrypt.hash("demo123", 10),
+          role: "user",
+          department: "Sales",
+          phone: "+1-555-0104",
+          is_active: true,
+        },
+      ];
 
-        await db.insert(users).values(demoUsers);
-        console.log("Demo users created successfully");
-      }
-
-      // Initialize sample knowledge base articles
-      await this.initializeSampleKBArticles();
-    } catch (error) {
-      console.error("Error creating demo users:", error);
+      await db.insert(users).values(demoUsers);
+      console.log("Demo users created successfully");
     }
+
+    // Initialize sample knowledge base articles
+    await this.initializeSampleKBArticles();
   }
 
   async initializeSampleKBArticles() {
@@ -953,7 +941,8 @@ netsh int ip reset
 - **Clean Vents**: Use compressed air to clear dust from cooling vents
 - **Hard Surface**: Use laptop on hard, flat surface for airflow
 - **Reduce Load**: Close intensive programs while charging
-- **Contact IT**: If overheating persists, hardware inspection needed
+- **Contact IT**: If overheating```text
+persists, hardware inspection needed
 
 ## Power Adapter Problems
 
@@ -2056,7 +2045,8 @@ ipconfig /flushdns
 
 ### Alternative Methods
 - **Text Messages**: Less secure, use only if app unavailable
-- **Phone Calls**: For users without smartphones
+- **Phone Calls**: For the next line.
+smartphones
 - **Hardware Tokens**: For high-security accounts
 
 ## Using 2FA Daily
@@ -2353,293 +2343,123 @@ ipconfig /flushdns
       .where(eq(alerts.id, alertId));
   }
 
-  // Knowledge Base methods - File-based storage
-  private async loadKBArticlesFromFiles() {
-    const fs = await import("fs");
-    const path = await import("path");
-    
-    const articlesDir = path.resolve(process.cwd(), "attached_assets", "Knowledgebase");
-    
-    try {
-      if (!fs.existsSync(articlesDir)) {
-        console.log("Knowledgebase directory does not exist");
-        return [];
-      }
-
-      const files = fs.readdirSync(articlesDir).filter(file => file.endsWith('.md'));
-      console.log(`Found ${files.length} markdown files in Knowledgebase directory`);
-      const articles = [];
-      
-      for (const file of files) {
-        try {
-          const filePath = path.join(articlesDir, file);
-          const content = fs.readFileSync(filePath, 'utf-8');
-          
-          // Try to parse frontmatter, but fall back to generating from filename
-          const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
-          const match = content.match(frontmatterRegex);
-          
-          let article;
-          if (match) {
-            // Has frontmatter
-            const frontmatter = match[1];
-            const articleContent = match[2];
-            
-            // Parse YAML-like frontmatter
-            const metadata: any = {};
-            frontmatter.split('\n').forEach(line => {
-              const [key, ...valueParts] = line.split(':');
-              if (key && valueParts.length > 0) {
-                const value = valueParts.join(':').trim().replace(/^["']|["']$/g, '');
-                
-                // Handle special types
-                if (key === 'tags') {
-                  try {
-                    metadata[key] = JSON.parse(value);
-                  } catch {
-                    metadata[key] = value.split(',').map(t => t.trim());
-                  }
-                } else if (key === 'views' || key === 'helpful_votes') {
-                  metadata[key] = parseInt(value) || 0;
-                } else {
-                  metadata[key] = value;
-                }
-              }
-            });
-            
-            article = {
-              id: metadata.id || file.replace('.md', ''),
-              title: metadata.title || file.replace('.md', '').replace(/-/g, ' '),
-              content: articleContent,
-              category: metadata.category || 'General',
-              tags: metadata.tags || [],
-              author_email: metadata.author_email || 'support@company.com',
-              status: metadata.status || 'published',
-              views: metadata.views || 0,
-              helpful_votes: metadata.helpful_votes || 0,
-              created_at: metadata.created_at || new Date().toISOString(),
-              updated_at: metadata.updated_at || new Date().toISOString()
-            };
-          } else {
-            // No frontmatter, generate article from content
-            const lines = content.split('\n');
-            let title = file.replace('.md', '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-            
-            // Try to extract title from first line if it's a header
-            if (lines[0] && lines[0].startsWith('# ')) {
-              title = lines[0].replace('# ', '').trim();
-            }
-            
-            // Determine category from filename
-            let category = 'General';
-            const filename = file.toLowerCase();
-            if (filename.includes('password') || filename.includes('login') || filename.includes('account')) {
-              category = 'Account Management';
-            } else if (filename.includes('network') || filename.includes('wifi') || filename.includes('internet') || filename.includes('connection')) {
-              category = 'Network';
-            } else if (filename.includes('computer') || filename.includes('slow') || filename.includes('hardware')) {
-              category = 'Hardware';
-            } else if (filename.includes('software') || filename.includes('installation') || filename.includes('office') || filename.includes('browser')) {
-              category = 'Software';
-            } else if (filename.includes('troubleshoot') || filename.includes('problem') || filename.includes('issue') || filename.includes('fix')) {
-              category = 'Troubleshooting';
-            } else if (filename.includes('print')) {
-              category = 'Hardware';
-            } else if (filename.includes('vpn') || filename.includes('security')) {
-              category = 'Security';
-            }
-            
-            // Generate tags from filename
-            const tags = filename.replace('.md', '').split('-').filter(tag => 
-              !['guide', 'problems', 'issues', 'how', 'to', 'the', 'and', 'or', 'a', 'an'].includes(tag)
-            );
-            
-            article = {
-              id: file.replace('.md', ''),
-              title: title,
-              content: content,
-              category: category,
-              tags: tags,
-              author_email: 'support@company.com',
-              status: 'published',
-              views: Math.floor(Math.random() * 500) + 50, // Random views for demo
-              helpful_votes: Math.floor(Math.random() * 100) + 10, // Random helpful votes for demo
-              created_at: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toISOString(), // Random date within last 30 days
-              updated_at: new Date(Date.now() - Math.floor(Math.random() * 7) * 24 * 60 * 60 * 1000).toISOString() // Random date within last 7 days
-            };
-          }
-          
-          articles.push(article);
-          console.log(`Loaded article: ${article.title} (${article.category})`);
-        } catch (error) {
-          console.error(`Error loading article ${file}:`, error);
-        }
-      }
-      
-      console.log(`Successfully loaded ${articles.length} articles from files`);
-      return articles;
-    } catch (error) {
-      console.error("Error loading articles from files:", error);
-      return [];
-    }
-  }
-
+  // Knowledge Base methods - Database storage
   async getKBArticles(page: number = 1, limit: number = 20, filters: any = {}) {
-    const articles = await this.loadKBArticlesFromFiles();
-    
-    // Apply filters
-    let filteredArticles = articles;
-    
-    if (filters.category && filters.category !== 'all') {
-      filteredArticles = filteredArticles.filter(article => 
-        article.category?.toLowerCase() === filters.category.toLowerCase()
-      );
-      console.log(`Filtered by category '${filters.category}': ${filteredArticles.length} articles`);
+    try {
+      console.log("Fetching KB articles from database with filters:", filters);
+
+      let query = db.select().from(knowledgeBase);
+
+      // Apply filters
+      const whereConditions = [];
+
+      if (filters.category) {
+        whereConditions.push(sql`${knowledgeBase.category} ILIKE ${'%' + filters.category + '%'}`);
+      }
+
+      if (filters.search) {
+        whereConditions.push(
+          sql`(${knowledgeBase.title} ILIKE ${'%' + filters.search + '%'} OR ${knowledgeBase.content} ILIKE ${'%' + filters.search + '%'})`
+        );
+      }
+
+      if (filters.status) {
+        whereConditions.push(eq(knowledgeBase.status, filters.status));
+      }
+
+      if (whereConditions.length > 0) {
+        query = query.where(whereConditions.length === 1 ? whereConditions[0] : and(...whereConditions));
+      }
+
+      // Get total count
+      const countResult = await db.select({ count: count() }).from(knowledgeBase);
+      const total = countResult[0].count;
+
+      // Apply pagination and ordering
+      const articles = await query
+        .orderBy(desc(knowledgeBase.created_at))
+        .limit(limit)
+        .offset((page - 1) * limit);
+
+      console.log(`Returning ${articles.length} articles from database`);
+
+      return {
+        data: articles,
+        total,
+        page,
+        limit
+      };
+
+    } catch (error) {
+      console.error("Error loading KB articles from database:", error);
+      return { data: [], total: 0, page, limit };
     }
-    
-    if (filters.status) {
-      filteredArticles = filteredArticles.filter(article => 
-        article.status === filters.status
-      );
-    }
-    
-    if (filters.search) {
-      const searchTerm = filters.search.toLowerCase();
-      filteredArticles = filteredArticles.filter(article => 
-        article.title?.toLowerCase().includes(searchTerm) ||
-        article.content?.toLowerCase().includes(searchTerm) ||
-        article.category?.toLowerCase().includes(searchTerm) ||
-        article.tags?.some((tag: string) => tag.toLowerCase().includes(searchTerm))
-      );
-    }
-    
-    // Sort by created_at descending
-    filteredArticles.sort((a, b) => 
-      new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
-    );
-    
-    // Pagination
-    const total = filteredArticles.length;
-    const offset = (page - 1) * limit;
-    const paginatedArticles = filteredArticles.slice(offset, offset + limit);
-    
-    return {
-      data: paginatedArticles,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
   }
 
   async getKBArticleById(id: string) {
-    const articles = await this.loadKBArticlesFromFiles();
-    return articles.find(article => article.id === id) || null;
+    try {
+      const articles = await db.select().from(knowledgeBase).where(eq(knowledgeBase.id, id));
+      return articles[0] || null;
+    } catch (error) {
+      console.error("Error loading KB article from database:", error);
+      return null;
+    }
   }
 
   async createKBArticle(data: any) {
-    const fs = await import("fs");
-    const path = await import("path");
-    
-    const articlesDir = path.resolve(process.cwd(), "attached_assets", "Knowledgebase");
-    
-    // Generate ID and filename
-    const id = Date.now().toString();
-    const filename = `${data.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}.md`;
-    const filePath = path.join(articlesDir, filename);
-    
-    // Create frontmatter
-    const frontmatter = `---
-id: ${id}
-title: "${data.title}"
-category: "${data.category || 'General'}"
-tags: ${JSON.stringify(data.tags || [])}
-author_email: "${data.author_email || 'admin@company.com'}"
-status: "${data.status || 'published'}"
-views: 0
-helpful_votes: 0
-created_at: "${new Date().toISOString()}"
-updated_at: "${new Date().toISOString()}"
----
+    try {
+      const newArticle = await db.insert(knowledgeBase).values({
+        title: data.title,
+        content: data.content || '',
+        category: data.category || 'General',
+        tags: data.tags || [],
+        author_email: data.author_email || 'system@company.com',
+        status: data.status || 'draft',
+        views: 0,
+        helpful_votes: 0
+      }).returning();
 
-${data.content}`;
-    
-    // Write file
-    fs.writeFileSync(filePath, frontmatter);
-    
-    return {
-      id,
-      ...data,
-      views: 0,
-      helpful_votes: 0,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
+      return newArticle[0];
+    } catch (error) {
+      console.error("Error creating KB article in database:", error);
+      throw error;
+    }
   }
 
-  async updateKBArticle(id: string, updates: any) {
-    const fs = await import("fs");
-    const path = await import("path");
-    
-    const articles = await this.loadKBArticlesFromFiles();
-    const article = articles.find(a => a.id === id);
-    
-    if (!article) return null;
-    
-    const articlesDir = path.resolve(process.cwd(), "attached_assets", "Knowledgebase");
-    const files = fs.readdirSync(articlesDir).filter(file => file.endsWith('.md'));
-    
-    // Find the file containing this article
-    for (const file of files) {
-      const filePath = path.join(articlesDir, file);
-      const content = fs.readFileSync(filePath, 'utf-8');
-      
-      if (content.includes(`id: ${id}`)) {
-        // Update the article
-        const updatedArticle = { ...article, ...updates, updated_at: new Date().toISOString() };
-        
-        const frontmatter = `---
-id: ${updatedArticle.id}
-title: "${updatedArticle.title}"
-category: "${updatedArticle.category}"
-tags: ${JSON.stringify(updatedArticle.tags)}
-author_email: "${updatedArticle.author_email}"
-status: "${updatedArticle.status}"
-views: ${updatedArticle.views}
-helpful_votes: ${updatedArticle.helpful_votes}
-created_at: "${updatedArticle.created_at}"
-updated_at: "${updatedArticle.updated_at}"
----
+  async updateKBArticle(id: string, data: any) {
+    try {
+      const updatedArticles = await db
+        .update(knowledgeBase)
+        .set({
+          title: data.title,
+          content: data.content,
+          category: data.category,
+          tags: data.tags,
+          status: data.status,
+          updated_at: new Date()
+        })
+        .where(eq(knowledgeBase.id, id))
+        .returning();
 
-${updatedArticle.content}`;
-        
-        fs.writeFileSync(filePath, frontmatter);
-        return updatedArticle;
-      }
+      return updatedArticles[0] || null;
+    } catch (error) {
+      console.error("Error updating KB article in database:", error);
+      throw error;
     }
-    
-    return null;
   }
 
   async deleteKBArticle(id: string) {
-    const fs = await import("fs");
-    const path = await import("path");
-    
-    const articlesDir = path.resolve(process.cwd(), "attached_assets", "Knowledgebase");
-    const files = fs.readdirSync(articlesDir).filter(file => file.endsWith('.md'));
-    
-    // Find and delete the file containing this article
-    for (const file of files) {
-      const filePath = path.join(articlesDir, file);
-      const content = fs.readFileSync(filePath, 'utf-8');
-      
-      if (content.includes(`id: ${id}`)) {
-        fs.unlinkSync(filePath);
-        return true;
-      }
+    try {
+      const deletedArticles = await db
+        .delete(knowledgeBase)
+        .where(eq(knowledgeBase.id, id))
+        .returning();
+
+      return deletedArticles.length > 0;
+    } catch (error) {
+      console.error("Error deleting KB article from database:", error);
+      return false;
     }
-    
-    return false;
   }
 
   // Alert Management methods
