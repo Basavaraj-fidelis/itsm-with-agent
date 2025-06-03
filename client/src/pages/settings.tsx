@@ -40,9 +40,17 @@ import {
   Mail,
   Copy,
 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLocation } from "wouter";
+import {
+  Eye,
+  AlertTriangle,
+  Timer,
+} from "lucide-react";
 
 export default function Settings() {
   const { toast } = useToast();
+  const [location] = useLocation();
   const [darkMode, setDarkMode] = useState(() => {
     return (
       localStorage.getItem("darkMode") === "true" ||
@@ -59,38 +67,6 @@ export default function Settings() {
     password: "",
     secure: false,
   });
-
-  useEffect(() => {
-    // Apply dark mode
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("darkMode", "true");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("darkMode", "false");
-    }
-  }, [darkMode]);
-
-  const handleSaveChanges = () => {
-    // Save all settings to localStorage
-    localStorage.setItem("itsm-settings", JSON.stringify(settings));
-    localStorage.setItem(
-      "settings",
-      JSON.stringify({
-        darkMode,
-        emailNotifications,
-        pushNotifications,
-        notificationEmail,
-        smtpSettings,
-      }),
-    );
-
-    toast({
-      title: "Settings Saved",
-      description: "Your settings have been saved successfully.",
-    });
-  };
-
   const [settings, setSettings] = useState({
     orgName: "ITSM Portal",
     timezone: "utc",
@@ -119,14 +95,26 @@ export default function Settings() {
     maxLoginAttempts: 5,
     lockoutDuration: 30,
   });
-
   const [hasChanges, setHasChanges] = useState(false);
+  const [activeTab, setActiveTab] = useState("general");
+  const [copiedStep, setCopiedStep] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Apply dark mode
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("darkMode", "true");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("darkMode", "false");
+    }
+  }, [darkMode]);
 
   // Load settings from localStorage on component mount
   useEffect(() => {
     const savedSettings = localStorage.getItem("itsm-settings");
     const savedGeneralSettings = localStorage.getItem("settings");
-    
+
     if (savedSettings) {
       try {
         const parsed = JSON.parse(savedSettings);
@@ -140,18 +128,19 @@ export default function Settings() {
       try {
         const parsed = JSON.parse(savedGeneralSettings);
         if (parsed.darkMode !== undefined) setDarkMode(parsed.darkMode);
-        if (parsed.emailNotifications !== undefined) setEmailNotifications(parsed.emailNotifications);
-        if (parsed.pushNotifications !== undefined) setPushNotifications(parsed.pushNotifications);
-        if (parsed.notificationEmail !== undefined) setNotificationEmail(parsed.notificationEmail);
-        if (parsed.smtpSettings !== undefined) setSmtpSettings(parsed.smtpSettings);
+        if (parsed.emailNotifications !== undefined)
+          setEmailNotifications(parsed.emailNotifications);
+        if (parsed.pushNotifications !== undefined)
+          setPushNotifications(parsed.pushNotifications);
+        if (parsed.notificationEmail !== undefined)
+          setNotificationEmail(parsed.notificationEmail);
+        if (parsed.smtpSettings !== undefined)
+          setSmtpSettings(parsed.smtpSettings);
       } catch (error) {
         console.error("Failed to load general settings:", error);
       }
     }
   }, []);
-
-  const [activeTab, setActiveTab] = useState("general");
-  const [copiedStep, setCopiedStep] = useState<number | null>(null);
 
   useEffect(() => {
     // Check for tab parameter in URL
@@ -176,11 +165,10 @@ export default function Settings() {
     const newSettings = { ...settings, [key]: value };
     setSettings(newSettings);
     setHasChanges(true);
-    
+
     // Auto-save to localStorage
     localStorage.setItem("itsm-settings", JSON.stringify(newSettings));
   };
-
   const saveSettings = async () => {
     try {
       // Save all settings to localStorage
@@ -212,7 +200,6 @@ export default function Settings() {
       });
     }
   };
-
   const getPasswordStrengthIndicator = () => {
     const {
       passwordPolicy,
@@ -244,7 +231,8 @@ export default function Settings() {
       requirements.push("special characters");
     }
 
-    if (strength >= 4) return { level: "Strong", color: "green", requirements };
+    if (strength >= 4)
+      return { level: "Strong", color: "green", requirements };
     if (strength >= 2)
       return { level: "Medium", color: "orange", requirements };
     return { level: "Weak", color: "red", requirements };
@@ -506,7 +494,9 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
 
     toast({
       title: "Agent Downloaded",
-      description: `${platform.charAt(0).toUpperCase() + platform.slice(1)} agent files downloaded successfully.`,
+      description: `${
+        platform.charAt(0).toUpperCase() + platform.slice(1)
+      } agent files downloaded successfully.`,
     });
   };
 
@@ -516,98 +506,101 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
       setTimeout(() => setCopiedStep(null), 2000);
     });
   };
-  return (
-    <div className="flex h-screen bg-neutral-50 dark:bg-neutral-900">
-      {/* Settings Sidebar */}
-      <SettingsSidebar activeTab={activeTab} onTabChange={setActiveTab} />
-      
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="p-6 space-y-6">
-          {/* General Settings */}
-          {activeTab === "general" && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <SettingsIcon className="w-5 h-5 mr-2" />
-                General Settings
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="org-name">Organization Name</Label>
-                  <Input
-                    id="org-name"
-                    value={settings.orgName}
-                    onChange={(e) => updateSetting("orgName", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="timezone">Timezone</Label>
-                  <Select
-                    value={settings.timezone}
-                    onValueChange={(value) => updateSetting("timezone", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="utc">UTC</SelectItem>
-                      <SelectItem value="est">Eastern Time</SelectItem>
-                      <SelectItem value="pst">Pacific Time</SelectItem>
-                      <SelectItem value="cet">Central European Time</SelectItem>
-                      <SelectItem value="ist">
-                        Indian Standard Time (IST)
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+    // Get active section from URL or default to general
+    const activeSection = location.split('/')[2] || 'general';
+
+    const renderGeneralSettings = () => (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <SettingsIcon className="h-5 w-5" />
+              General Settings
+            </CardTitle>
+            {/*<CardDescription>
+              Configure system preferences and monitoring settings
+            </CardDescription>*/}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="orgName">Organization Name</Label>
+                <Input
+                  id="orgName"
+                  value={settings.orgName}
+                  onChange={(e) => updateSetting('orgName', e.target.value)}
+                />
               </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Dark Mode</Label>
-                    <p className="text-sm text-neutral-600">
-                      Enable dark theme for the interface
-                    </p>
-                  </div>
-                  <Switch checked={darkMode} onCheckedChange={setDarkMode} />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Auto-refresh Dashboard</Label>
-                    <p className="text-sm text-neutral-600">
-                      Automatically refresh data every 30 seconds
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.autoRefresh}
-                    onCheckedChange={(checked) =>
-                      updateSetting("autoRefresh", checked)
-                    }
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="timezone">Timezone</Label>
+                <Select
+                  value={settings.timezone}
+                  onValueChange={(value) => updateSetting("timezone", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="utc">UTC</SelectItem>
+                    <SelectItem value="est">Eastern Time</SelectItem>
+                    <SelectItem value="pst">Pacific Time</SelectItem>
+                    <SelectItem value="cet">Central European Time</SelectItem>
+                    <SelectItem value="ist">
+                      Indian Standard Time (IST)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-          {/* Monitoring Settings */}
-          {activeTab === "monitoring" && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Monitor className="w-5 h-5 mr-2" />
-                Monitoring Configuration
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="cpu-threshold">CPU Alert Threshold (%)</Label>
+            </div>
+  
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Dark Mode</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Enable dark theme for the interface
+                  </p>
+                </div>
+                <Switch
+                  checked={darkMode}
+                  onCheckedChange={setDarkMode}
+                />
+              </div>
+  
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Auto-refresh Dashboard</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Automatically refresh data every 30 seconds
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.autoRefresh}
+                  onCheckedChange={(checked) => updateSetting('autoRefresh', checked)}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  
+    const renderMonitoringSettings = () => (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              Monitoring Settings
+            </CardTitle>
+           {/* <CardDescription>
+              Configure system monitoring and alerting thresholds
+            </CardDescription>*/}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+              <Label htmlFor="cpu-threshold">CPU Alert Threshold (%)</Label>
                   <Input
                     id="cpu-threshold"
                     type="number"
@@ -644,7 +637,7 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                   />
                 </div>
               </div>
-
+  
               <div className="space-y-2">
                 <Label htmlFor="collection-interval">
                   Data Collection Interval (seconds)
@@ -666,12 +659,12 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                   </SelectContent>
                 </Select>
               </div>
-
+  
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <Label>Enable Performance Monitoring</Label>
-                    <p className="text-sm text-neutral-600">
+                    <p className="text-sm text-muted-foreground">
                       Monitor CPU, memory, and disk usage
                     </p>
                   </div>
@@ -682,11 +675,11 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                     }
                   />
                 </div>
-
+  
                 <div className="flex items-center justify-between">
                   <div>
                     <Label>Network Monitoring</Label>
-                    <p className="text-sm text-neutral-600">
+                    <p className="text-sm text-muted-foreground">
                       Monitor network traffic and connectivity
                     </p>
                   </div>
@@ -698,1542 +691,264 @@ sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist
                   />
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-          {/* Notifications Settings */}
-          {activeTab === "notifications" && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Bell className="w-5 h-5" />
-                <span>Notification Preferences</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Email Configuration */}
-              <div className="space-y-4">
-                <h4 className="text-lg font-medium">Email Configuration</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label
-                      htmlFor="notification-email"
-                      className="flex items-center space-x-2"
-                    >
-                      <Mail className="w-4 h-4" />
-                      <span>Primary Notification Email</span>
-                    </Label>
-                    <Input
-                      id="notification-email"
-                      type="email"
-                      placeholder="admin@company.com"
-                      value={notificationEmail}
-                      onChange={(e) => setNotificationEmail(e.target.value)}
-                      className="mt-2"
-                    />
-                    <p className="text-sm text-neutral-600 mt-1">
-                      Primary email address for receiving system notifications
-                    </p>
-                  </div>
-                  <div>
-                    <Label htmlFor="cc-emails">CC Email Addresses</Label>
-                    <Textarea
-                      id="cc-emails"
-                      placeholder="user1@company.com, user2@company.com"
-                      className="mt-2 h-20"
-                    />
-                    <p className="text-sm text-neutral-600 mt-1">
-                      Additional email addresses (comma-separated)
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Notification Methods */}
-              <div className="space-y-4">
-                <h4 className="text-lg font-medium">Notification Methods</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Email Notifications</Label>
-                      <p className="text-sm text-neutral-600">
-                        Receive notifications via email
-                      </p>
-                    </div>
-                    <Switch
-                      checked={emailNotifications}
-                      onCheckedChange={setEmailNotifications}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Push Notifications</Label>
-                      <p className="text-sm text-neutral-600">
-                        Receive browser push notifications
-                      </p>
-                    </div>
-                    <Switch
-                      checked={pushNotifications}
-                      onCheckedChange={setPushNotifications}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>SMS Notifications</Label>
-                      <p className="text-sm text-neutral-600">
-                        Receive critical alerts via SMS
-                      </p>
-                    </div>
-                    <Switch />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Slack Integration</Label>
-                      <p className="text-sm text-neutral-600">
-                        Send notifications to Slack channels
-                      </p>
-                    </div>
-                    <Switch />
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Notification Types */}
-              <div className="space-y-4">
-                <h4 className="text-lg font-medium">Notification Types</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-3">
-                    <h5 className="text-sm font-medium text-neutral-700">
-                      System Alerts
-                    </h5>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm">
-                          Critical System Alerts
-                        </Label>
-                        <Switch defaultChecked />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm">Performance Warnings</Label>
-                        <Switch defaultChecked />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm">Security Alerts</Label>
-                        <Switch defaultChecked />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm">Disk Space Warnings</Label>
-                        <Switch defaultChecked />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <h5 className="text-sm font-medium text-neutral-700">
-                      Agent & System
-                    </h5>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm">Agent Status Changes</Label>
-                        <Switch defaultChecked />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm">
-                          New Agent Registrations
-                        </Label>
-                        <Switch defaultChecked />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm">Agent Connection Lost</Label>
-                        <Switch defaultChecked />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm">System Health Reports</Label>
-                        <Switch />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <h5 className="text-sm font-medium text-neutral-700">
-                      Tickets & SLA
-                    </h5>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm">New Ticket Created</Label>
-                        <Switch defaultChecked />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm">Ticket Assignments</Label>
-                        <Switch defaultChecked />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm">SLA Breach Warnings</Label>
-                        <Switch defaultChecked />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm">Escalated Tickets</Label>
-                        <Switch defaultChecked />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <h5 className="text-sm font-medium text-neutral-700">
-                      Reports & Summaries
-                    </h5>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm">Daily Summary Reports</Label>
-                        <Switch />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm">
-                          Weekly Performance Reports
-                        </Label>
-                        <Switch />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm">Monthly SLA Reports</Label>
-                        <Switch />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm">
-                          Maintenance Notifications
-                        </Label>
-                        <Switch defaultChecked />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Notification Timing */}
-              <div className="space-y-4">
-                <h4 className="text-lg font-medium">Notification Timing</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="quiet-hours-start">Quiet Hours Start</Label>
-                    <Input
-                      id="quiet-hours-start"
-                      type="time"
-                      defaultValue="22:00"
-                      className="mt-2"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="quiet-hours-end">Quiet Hours End</Label>
-                    <Input
-                      id="quiet-hours-end"
-                      type="time"
-                      defaultValue="08:00"
-                      className="mt-2"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="timezone-notifications">Timezone</Label>
-                    <Select defaultValue="utc">
-                      <SelectTrigger className="mt-2">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="utc">UTC</SelectItem>
-                        <SelectItem value="est">Eastern Time</SelectItem>
-                        <SelectItem value="pst">Pacific Time</SelectItem>
-                        <SelectItem value="cet">
-                          Central European Time
-                        </SelectItem>
-                        <SelectItem value="ist">
-                          Indian Standard Time (IST)
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch />
-                  <Label>
-                    Respect quiet hours for non-critical notifications
+          </CardContent>
+        </Card>
+      </div>
+    );
+  
+    const renderNotificationSettings = () => (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              Notification Settings
+            </CardTitle>
+            {/*<CardDescription>
+              Configure how you receive notifications
+            </CardDescription>*/}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    Email Notifications
                   </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Receive notifications via email
+                  </p>
                 </div>
+                <Switch
+                  checked={emailNotifications}
+                  onCheckedChange={setEmailNotifications}
+                />
               </div>
-
-              <Separator />
-
-              {/* SMTP Configuration */}
-              <div className="space-y-4">
-                <h4 className="text-lg font-medium">SMTP Configuration</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="smtp-host">SMTP Host</Label>
-                    <Input
-                      id="smtp-host"
-                      placeholder="smtp.gmail.com"
-                      value={smtpSettings.host}
-                      onChange={(e) =>
-                        setSmtpSettings({
-                          ...smtpSettings,
-                          host: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="smtp-port">Port</Label>
-                    <Input
-                      id="smtp-port"
-                      placeholder="587"
-                      value={smtpSettings.port}
-                      onChange={(e) =>
-                        setSmtpSettings({
-                          ...smtpSettings,
-                          port: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="smtp-username">Username</Label>
-                    <Input
-                      id="smtp-username"
-                      placeholder="your-email@gmail.com"
-                      value={smtpSettings.username}
-                      onChange={(e) =>
-                        setSmtpSettings({
-                          ...smtpSettings,
-                          username: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="smtp-password">Password/App Password</Label>
-                    <Input
-                      id="smtp-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={smtpSettings.password}
-                      onChange={(e) =>
-                        setSmtpSettings({
-                          ...smtpSettings,
-                          password: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
+  
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Push Notifications</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Receive browser push notifications
+                  </p>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={smtpSettings.secure}
-                    onCheckedChange={(checked) =>
-                      setSmtpSettings({ ...smtpSettings, secure: checked })
-                    }
-                  />
-                  <Label>Use SSL/TLS</Label>
-                </div>
-                <Button variant="outline" size="sm">
-                  <Mail className="w-4 h-4 mr-2" />
-                  Test SMTP Connection
-                </Button>
+                <Switch
+                  checked={pushNotifications}
+                  onCheckedChange={setPushNotifications}
+                />
               </div>
-
-              <Separator />
-
-              {/* Integration Settings */}
-              <div className="space-y-4">
-                <h4 className="text-lg font-medium">
-                  Third-Party Integrations
-                </h4>
-                <div className="space-y-4">
-                  <div className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h5 className="font-medium">Slack Integration</h5>
-                        <p className="text-sm text-neutral-600">
-                          Send notifications to Slack channels
-                        </p>
-                      </div>
-                      <Switch />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <Input placeholder="Webhook URL" />
-                      <Input placeholder="Default Channel" />
-                    </div>
-                  </div>
-
-                  <div className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h5 className="font-medium">Microsoft Teams</h5>
-                        <p className="text-sm text-neutral-600">
-                          Send notifications to Teams channels
-                        </p>
-                      </div>
-                      <Switch />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <Input placeholder="Webhook URL" />
-                      <Input placeholder="Team Name" />
-                    </div>
-                  </div>
-
-                  <div className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h5 className="font-medium">SMS/Twilio</h5>
-                        <p className="text-sm text-neutral-600">
-                          Send critical alerts via SMS
-                        </p>
-                      </div>
-                      <Switch />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <Input placeholder="Account SID" />
-                      <Input placeholder="Auth Token" type="password" />
-                      <Input placeholder="From Number" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-          {/* Security Settings */}
-          {activeTab === "security" && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Shield className="w-5 h-5 mr-2" />
-                Security Settings
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Two-Factor Authentication</Label>
-                    <p className="text-sm text-neutral-600">
-                      Enable 2FA for enhanced security
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.twoFactor}
-                    onCheckedChange={(checked) =>
-                      updateSetting("twoFactor", checked)
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Session Timeout</Label>
-                    <p className="text-sm text-neutral-600">
-                      Automatically log out inactive users
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.sessionTimeout}
-                    onCheckedChange={(checked) =>
-                      updateSetting("sessionTimeout", checked)
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Account Lockout</Label>
-                    <p className="text-sm text-neutral-600">
-                      Lock accounts after failed login attempts
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.accountLockout}
-                    onCheckedChange={(checked) =>
-                      updateSetting("accountLockout", checked)
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="session-duration">
-                    Session Duration (hours)
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  
+    const renderSecuritySettings = () => (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Security Settings
+            </CardTitle>
+            {/*<CardDescription>
+              Configure security and authentication settings
+            </CardDescription>*/}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="flex items-center gap-2">
+                    <Key className="h-4 w-4" />
+                    Two-Factor Authentication
                   </Label>
-                  <Select
-                    value={settings.sessionDuration}
-                    onValueChange={(value) =>
-                      updateSetting("sessionDuration", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1 hour</SelectItem>
-                      <SelectItem value="4">4 hours</SelectItem>
-                      <SelectItem value="8">8 hours</SelectItem>
-                      <SelectItem value="24">24 hours</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <p className="text-sm text-muted-foreground">
+                    Add an extra layer of security to your account
+                  </p>
                 </div>
-
-                {settings.accountLockout && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="max-attempts">Max Login Attempts</Label>
-                      <Input
-                        id="max-attempts"
-                        type="number"
-                        min="3"
-                        max="10"
-                        value={settings.maxLoginAttempts}
-                        onChange={(e) =>
-                          updateSetting(
-                            "maxLoginAttempts",
-                            parseInt(e.target.value),
-                          )
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lockout-duration">
-                        Lockout Duration (minutes)
-                      </Label>
-                      <Input
-                        id="lockout-duration"
-                        type="number"
-                        min="5"
-                        max="60"
-                        value={settings.lockoutDuration}
-                        onChange={(e) =>
-                          updateSetting(
-                            "lockoutDuration",
-                            parseInt(e.target.value),
-                          )
-                        }
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Password Policy Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Shield className="w-5 h-5 mr-2" />
-                  Password Policy
-                </div>
-                <div className="flex items-center space-x-2">
-                  {(() => {
-                    const strength = getPasswordStrengthIndicator();
-                    return (
-                      <Badge
-                        variant="outline"
-                        className={`
-                          ${strength.color === "green" ? "border-green-500 text-green-700" : ""}
-                          ${strength.color === "orange" ? "border-orange-500 text-orange-700" : ""}
-                          ${strength.color === "red" ? "border-red-500 text-red-700" : ""}
-                        `}
-                      >
-                        {strength.level}
-                      </Badge>
-                    );
-                  })()}
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="min-length">Minimum Password Length</Label>
-                  <Input
-                    id="min-length"
-                    type="number"
-                    min="6"
-                    max="32"
-                    value={settings.minPasswordLength}
-                    onChange={(e) =>
-                      updateSetting(
-                        "minPasswordLength",
-                        parseInt(e.target.value),
-                      )
-                    }
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="password-expiry">
-                    Password Expiry (days)
-                  </Label>
-                  <Input
-                    id="password-expiry"
-                    type="number"
-                    min="30"
-                    max="365"
-                    value={settings.passwordExpiry}
-                    onChange={(e) =>
-                      updateSetting("passwordExpiry", parseInt(e.target.value))
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <Label>Password Requirements</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="require-uppercase">
-                      Require Uppercase Letters
-                    </Label>
-                    <Switch
-                      id="require-uppercase"
-                      checked={settings.requireUppercase}
-                      onCheckedChange={(checked) =>
-                        updateSetting("requireUppercase", checked)
-                      }
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="require-lowercase">
-                      Require Lowercase Letters
-                    </Label>
-                    <Switch
-                      id="require-lowercase"
-                      checked={settings.requireLowercase}
-                      onCheckedChange={(checked) =>
-                        updateSetting("requireLowercase", checked)
-                      }
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="require-numbers">Require Numbers</Label>
-                    <Switch
-                      id="require-numbers"
-                      checked={settings.requireNumbers}
-                      onCheckedChange={(checked) =>
-                        updateSetting("requireNumbers", checked)
-                      }
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="require-special">
-                      Require Special Characters
-                    </Label>
-                    <Switch
-                      id="require-special"
-                      checked={settings.requireSpecialChars}
-                      onCheckedChange={(checked) =>
-                        updateSetting("requireSpecialChars", checked)
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="prevent-reuse">
-                  Prevent Password Reuse (last N passwords)
-                </Label>
-                <Input
-                  id="prevent-reuse"
-                  type="number"
-                  min="0"
-                  max="20"
-                  value={settings.preventReuse}
-                  onChange={(e) =>
-                    updateSetting("preventReuse", parseInt(e.target.value))
+                <Switch
+                  checked={settings.twoFactor}
+                  onCheckedChange={(checked) =>
+                    updateSetting("twoFactor", checked)
                   }
                 />
               </div>
-
-              {(() => {
-                const strength = getPasswordStrengthIndicator();
-                return (
-                  <div className="p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
-                    <h4 className="font-medium mb-2">
-                      Current Policy Requirements:
-                    </h4>
-                    <ul className="text-sm space-y-1 text-neutral-600">
-                      <li>• Minimum {settings.minPasswordLength} characters</li>
-                      {strength.requirements.map((req, index) => (
-                        <li key={index}>• Contains {req}</li>
-                      ))}
-                      <li>
-                        • Password expires after {settings.passwordExpiry} days
-                      </li>
-                      {settings.preventReuse > 0 && (
-                        <li>
-                          • Cannot reuse last {settings.preventReuse} passwords
-                        </li>
-                      )}
-                    </ul>
-                  </div>
-                );
-              })()}
-            </CardContent>
-          </Card>
-        )}
-
-          {/* SLA Settings */}
-          {activeTab === "sla" && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Clock className="w-5 h-5" />
-                <span>SLA Policies</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex justify-between items-center">
-                <p className="text-sm text-neutral-600">
-                  Configure Service Level Agreement policies for different
-                  ticket types
-                </p>
-                <Button size="sm">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add SLA Policy
-                </Button>
-              </div>
-
-              <div className="space-y-4">
-                {/* Default SLA Policies */}
-                <div className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h4 className="font-medium">Critical Incidents</h4>
-                      <p className="text-sm text-neutral-600">
-                        For critical priority incidents
-                      </p>
-                    </div>
-                    <Badge variant="secondary">Active</Badge>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-neutral-600">Response Time:</span>
-                      <span className="ml-2 font-medium">15 minutes</span>
-                    </div>
-                    <div>
-                      <span className="text-neutral-600">Resolution Time:</span>
-                      <span className="ml-2 font-medium">4 hours</span>
-                    </div>
-                    <div>
-                      <span className="text-neutral-600">Business Hours:</span>
-                      <span className="ml-2 font-medium">24/7</span>
-                    </div>
-                    <div>
-                      <span className="text-neutral-600">Applies to:</span>
-                      <span className="ml-2 font-medium">
-                        Type: Incident, Priority: Critical
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h4 className="font-medium">High Priority Issues</h4>
-                      <p className="text-sm text-neutral-600">
-                        For high priority incidents and problems
-                      </p>
-                    </div>
-                    <Badge variant="secondary">Active</Badge>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-neutral-600">Response Time:</span>
-                      <span className="ml-2 font-medium">1 hour</span>
-                    </div>
-                    <div>
-                      <span className="text-neutral-600">Resolution Time:</span>
-                      <span className="ml-2 font-medium">8 hours</span>
-                    </div>
-                    <div>
-                      <span className="text-neutral-600">Business Hours:</span>
-                      <span className="ml-2 font-medium">9 AM - 5 PM</span>
-                    </div>
-                    <div>
-                      <span className="text-neutral-600">Applies to:</span>
-                      <span className="ml-2 font-medium">Priority: High</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h4 className="font-medium">Standard Requests</h4>
-                      <p className="text-sm text-neutral-600">
-                        For service requests and medium priority issues
-                      </p>
-                    </div>
-                    <Badge variant="secondary">Active</Badge>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-neutral-600">Response Time:</span>
-                      <span className="ml-2 font-medium">4 hours</span>
-                    </div>
-                    <div>
-                      <span className="text-neutral-600">Resolution Time:</span>
-                      <span className="ml-2 font-medium">3 business days</span>
-                    </div>
-                    <div>
-                      <span className="text-neutral-600">Business Hours:</span>
-                      <span className="ml-2 font-medium">9 AM - 5 PM</span>
-                    </div>
-                    <div>
-                      <span className="text-neutral-600">Applies to:</span>
-                      <span className="ml-2 font-medium">
-                        Type: Request, Priority: Medium/Low
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-          {/* Agent Settings */}
-          {activeTab === "agent" && (
-          {/* Agent Download Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Monitor className="w-5 h-5 mr-2" />
-                Agent Download & Deployment
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                  <div className="flex items-center mb-3">
-                    <Monitor className="w-6 h-6 text-blue-600 mr-2" />
-                    <h4 className="font-medium text-blue-900 dark:text-blue-100">
-                      Windows Agent
-                    </h4>
-                  </div>
-                  <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
-                    For Windows 10/11 and Windows Server
-                  </p>
-                  <Button
-                    onClick={() => handleDownloadAgent("windows")}
-                    className="w-full flex items-center justify-center space-x-2"
-                    size="sm"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Download Windows Agent</span>
-                  </Button>
-                </div>
-
-                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                  <div className="flex items-center mb-3">
-                    <Monitor className="w-6 h-6 text-green-600 mr-2" />
-                    <h4 className="font-medium text-green-900 dark:text-green-100">
-                      Linux Agent
-                    </h4>
-                  </div>
-                  <p className="text-sm text-green-700 dark:text-green-300 mb-4">
-                    For Ubuntu, CentOS, RHEL, Debian
-                  </p>
-                  <Button
-                    onClick={() => handleDownloadAgent("linux")}
-                    className="w-full flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700"
-                    size="sm"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Download Linux Agent</span>
-                  </Button>
-                </div>
-
-                <div className="bg-neutral-50 dark:bg-neutral-800/20 border border-neutral-200 dark:border-neutral-700 rounded-lg p-4">
-                  <div className="flex items-center mb-3">
-                    <Monitor className="w-6 h-6 text-neutral-600 mr-2" />
-                    <h4 className="font-medium text-neutral-900 dark:text-neutral-100">
-                      macOS Agent
-                    </h4>
-                  </div>
-                  <p className="text-sm text-neutral-700 dark:text-neutral-300 mb-4">
-                    For macOS 10.15+ and Apple Silicon
-                  </p>
-                  <Button
-                    onClick={() => handleDownloadAgent("macos")}
-                    className="w-full flex items-center justify-center space-x-2 bg-neutral-600 hover:bg-neutral-700"
-                    size="sm"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Download macOS Agent</span>
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Installation Instructions */}
-          <Tabs defaultValue="windows" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="windows">Windows</TabsTrigger>
-              <TabsTrigger value="linux">Linux</TabsTrigger>
-              <TabsTrigger value="macos">macOS</TabsTrigger>
-            </TabsList>
-
-            {/* Windows Installation */}
-            <TabsContent value="windows" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Monitor className="w-5 h-5" />
-                    <span>Windows Installation Guide</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-4">
-                    <div className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium">
-                          Step 1: Install Python Dependencies
-                        </h5>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            copyToClipboard(
-                              "pip install psutil requests configparser pywin32",
-                              1,
-                            )
-                          }
-                        >
-                          {copiedStep === 1 ? (
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </div>
-                      <p className="text-sm text-neutral-600 mb-2">
-                        Open Command Prompt as Administrator and run:
-                      </p>
-                      <code className="block bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-sm">
-                        pip install psutil requests configparser pywin32
-                      </code>
-                    </div>
-
-                    <div className="border rounded-lg p-4">
-                      <h5 className="font-medium mb-2">
-                        Step 2: Configure Agent
-                      </h5>
-                      <p className="text-sm text-neutral-600 mb-2">
-                        Edit config.ini with your settings:
-                      </p>
-                      <code className="block bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-sm whitespace-pre">
-                        {`[agent]
-collection_interval = 120
-log_level = INFO
-
-[api]
-base_url = ${window.location.origin}
-auth_token = your-api-token
-
-[security]
-verify_ssl = true`}
-                      </code>
-                    </div>
-
-                    <div className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium">
-                          Step 3: Install Windows Service
-                        </h5>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            copyToClipboard("python install_windows.py", 3)
-                          }
-                        >
-                          {copiedStep === 3 ? (
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </div>
-                      <code className="block bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-sm">
-                        python install_windows.py
-                      </code>
-                    </div>
-
-                    <div className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium">
-                          Step 4: Verify Installation
-                        </h5>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            copyToClipboard('sc query "ITSM Endpoint Agent"', 4)
-                          }
-                        >
-                          {copiedStep === 4 ? (
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </div>
-                      <code className="block bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-sm">
-                        sc query "ITSM Endpoint Agent"
-                      </code>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Linux Installation */}
-            <TabsContent value="linux" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Monitor className="w-5 h-5" />
-                    <span>Linux Installation Guide</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-4">
-                    <div className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium">
-                          Step 1: Install Dependencies
-                        </h5>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            copyToClipboard(
-                              "sudo apt update && sudo apt install python3 python3-pip",
-                              11,
-                            )
-                          }
-                        >
-                          {copiedStep === 11 ? (
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </div>
-                      <p className="text-sm text-neutral-600 mb-2">
-                        For Ubuntu/Debian:
-                      </p>
-                      <code className="block bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-sm">
-                        sudo apt update && sudo apt install python3 python3-pip
-                      </code>
-                      <p className="text-sm text-neutral-600 mt-2 mb-2">
-                        For CentOS/RHEL:
-                      </p>
-                      <code className="block bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-sm">
-                        sudo yum install python3 python3-pip
-                      </code>
-                    </div>
-
-                    <div className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium">
-                          Step 2: Install Python Packages
-                        </h5>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            copyToClipboard(
-                              "pip3 install psutil requests configparser",
-                              12,
-                            )
-                          }
-                        >
-                          {copiedStep === 12 ? (
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </div>
-                      <code className="block bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-sm">
-                        pip3 install psutil requests configparser
-                      </code>
-                    </div>
-
-                    <div className="border rounded-lg p-4">
-                      <h5 className="font-medium mb-2">
-                        Step 3: Configure Agent
-                      </h5>
-                      <p className="text-sm text-neutral-600 mb-2">
-                        Edit /opt/itsm-agent/config.ini:
-                      </p>
-                      <code className="block bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-sm whitespace-pre">
-                        {`[agent]
-collection_interval = 120
-log_level = INFO
-
-[api]
-base_url = ${window.location.origin}
-auth_token = your-api-token`}
-                      </code>
-                    </div>
-
-                    <div className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium">
-                          Step 4: Install Systemd Service
-                        </h5>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            copyToClipboard("sudo ./install_linux.sh", 13)
-                          }
-                        >
-                          {copiedStep === 13 ? (
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </div>
-                      <code className="block bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-sm">
-                        sudo ./install_linux.sh
-                      </code>
-                    </div>
-
-                    <div className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium">
-                          Step 5: Start and Enable Service
-                        </h5>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            copyToClipboard(
-                              "sudo systemctl enable itsm-agent && sudo systemctl start itsm-agent",
-                              14,
-                            )
-                          }
-                        >
-                          {copiedStep === 14 ? (
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </div>
-                      <code className="block bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-sm">
-                        sudo systemctl enable itsm-agent && sudo systemctl start
-                        itsm-agent
-                      </code>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* macOS Installation */}
-            <TabsContent value="macos" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Monitor className="w-5 h-5" />
-                    <span>macOS Installation Guide</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-4">
-                    <div className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium">
-                          Step 1: Install Homebrew (if needed)
-                        </h5>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            copyToClipboard(
-                              '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"',
-                              21,
-                            )
-                          }
-                        >
-                          {copiedStep === 21 ? (
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </div>
-                      <code className="block bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-sm">
-                        /bin/bash -c "$(curl -fsSL
-                        https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-                      </code>
-                    </div>
-
-                    <div className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium">Step 2: Install Python</h5>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            copyToClipboard("brew install python", 22)
-                          }
-                        >
-                          {copiedStep === 22 ? (
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </div>
-                      <code className="block bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-sm">
-                        brew install python
-                      </code>
-                    </div>
-
-                    <div className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium">
-                          Step 3: Install Dependencies
-                        </h5>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            copyToClipboard(
-                              "pip3 install psutil requests configparser",
-                              23,
-                            )
-                          }
-                        >
-                          {copiedStep === 23 ? (
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </div>
-                      <code className="block bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-sm">
-                        pip3 install psutil requests configparser
-                      </code>
-                    </div>
-
-                    <div className="border rounded-lg p-4">
-                      <h5 className="font-medium mb-2">
-                        Step 4: Configure Agent
-                      </h5>
-                      <p className="text-sm text-neutral-600 mb-2">
-                        Edit ~/itsm-agent/config.ini:
-                      </p>
-                      <code className="block bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-sm whitespace-pre">
-                        {`[agent]
-collection_interval = 120
-log_level = INFO
-
-[api]
-base_url = ${window.location.origin}
-auth_token = your-api-token`}
-                      </code>
-                    </div>
-
-                    <div className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium">
-                          Step 5: Install Launch Daemon
-                        </h5>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            copyToClipboard("sudo ./install_macos.sh", 24)
-                          }
-                        >
-                          {copiedStep === 24 ? (
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </div>
-                      <code className="block bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-sm">
-                        sudo ./install_macos.sh
-                      </code>
-                    </div>
-
-                    <div className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium">
-                          Step 6: Load and Start Service
-                        </h5>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            copyToClipboard(
-                              "sudo launchctl load /Library/LaunchDaemons/com.itsm.agent.plist",
-                              25,
-                            )
-                          }
-                        >
-                          {copiedStep === 25 ? (
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </div>
-                      <code className="block bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-sm">
-                        sudo launchctl load
-                        /Library/LaunchDaemons/com.itsm.agent.plist
-                      </code>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-
-          {/* Agent Configuration */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <SettingsIcon className="w-5 h-5" />
-                <span>Agent Configuration</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h4 className="text-lg font-medium">Collection Settings</h4>
-                  <div className="space-y-3">
-                    <div>
-                      <Label htmlFor="collection-interval">
-                        Collection Interval (seconds)
-                      </Label>
-                      <Select defaultValue="120">
-                        <SelectTrigger className="mt-2">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="60">
-                            60 seconds (1 minute)
-                          </SelectItem>
-                          <SelectItem value="120">
-                            120 seconds (2 minutes)
-                          </SelectItem>
-                          <SelectItem value="300">
-                            300 seconds (5 minutes)
-                          </SelectItem>
-                          <SelectItem value="600">
-                            600 seconds (10 minutes)
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="retry-attempts">Retry Attempts</Label>
-                      <Input
-                        id="retry-attempts"
-                        type="number"
-                        defaultValue="3"
-                        min="1"
-                        max="10"
-                        className="mt-2"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="timeout">Request Timeout (seconds)</Label>
-                      <Input
-                        id="timeout"
-                        type="number"
-                        defaultValue="30"
-                        min="5"
-                        max="120"
-                        className="mt-2"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="text-lg font-medium">Security Settings</h4>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label>Verify SSL Certificates</Label>
-                      <Switch defaultChecked />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label>Enable Agent Authentication</Label>
-                      <Switch defaultChecked />
-                    </div>
-                    <div>
-                      <Label htmlFor="api-token">
-                        API Authentication Token
-                      </Label>
-                      <Input
-                        id="api-token"
-                        type="password"
-                        placeholder="Enter API token"
-                        className="mt-2"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <h4 className="text-lg font-medium">Monitoring Modules</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label>System Performance</Label>
-                      <Switch defaultChecked />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label>Network Interfaces</Label>
-                      <Switch defaultChecked />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label>Disk Usage</Label>
-                      <Switch defaultChecked />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label>Process Monitoring</Label>
-                      <Switch defaultChecked />
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label>Installed Software</Label>
-                      <Switch defaultChecked />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label>System Health</Label>
-                      <Switch defaultChecked />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label>Security Status</Label>
-                      <Switch defaultChecked />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label>USB Devices</Label>
-                      <Switch />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Troubleshooting */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Shield className="w-5 h-5" />
-                <span>Troubleshooting & Support</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="border rounded-lg p-4 bg-yellow-50 dark:bg-yellow-900/20">
-                  <h5 className="font-medium text-yellow-900 dark:text-yellow-100 mb-2">
-                    Common Issues
-                  </h5>
-                  <ul className="text-sm text-yellow-700 dark:text-yellow-300 space-y-1">
-                    <li>• Python not found in PATH</li>
-                    <li>• Permission denied errors</li>
-                    <li>• Network connectivity issues</li>
-                    <li>• Service installation failures</li>
-                  </ul>
-                </div>
-
-                <div className="border rounded-lg p-4 bg-blue-50 dark:bg-blue-900/20">
-                  <h5 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
-                    Log Locations
-                  </h5>
-                  <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
-                    <li>• Windows: C:\ProgramData\ITSM\logs</li>
-                    <li>• Linux: /var/log/itsm-agent</li>
-                    <li>• macOS: /var/log/itsm-agent</li>
-                  </ul>
-                </div>
-
-                <div className="border rounded-lg p-4 bg-green-50 dark:bg-green-900/20">
-                  <h5 className="font-medium text-green-900 dark:text-green-100 mb-2">
-                    Support Commands
-                  </h5>
-                  <ul className="text-sm text-green-700 dark:text-green-300 space-y-1">
-                    <li>• Test connection manually</li>
-                    <li>• Check service status</li>
-                    <li>• View recent logs</li>
-                    <li>• Restart agent service</li>
-                  </ul>
-                </div>
-              </div>
-
-              <div className="flex space-x-3">
-                <Button variant="outline" size="sm">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Test Agent Connection
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Monitor className="w-4 h-4 mr-2" />
-                  View Agent Logs
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Key className="w-4 h-4 mr-2" />
-                  Generate New API Token
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-          {/* Save Button */}
-          {hasChanges && (
-            <div className="flex justify-end pt-4 border-t border-neutral-200 dark:border-neutral-700">
-              <Button
-                onClick={saveSettings}
-                className="flex items-center space-x-2"
-              >
-                <Save className="w-4 h-4" />
-                <span>Save Changes</span>
-              </Button>
             </div>
-          )}
+  
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="session-duration">Session Duration (hours)</Label>
+                <Select
+                  value={settings.sessionDuration}
+                  onValueChange={(value) =>
+                    updateSetting("sessionDuration", value)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 hour</SelectItem>
+                    <SelectItem value="4">4 hours</SelectItem>
+                    <SelectItem value="8">8 hours</SelectItem>
+                    <SelectItem value="24">24 hours</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  
+    const renderSLAPolicies = () => (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              SLA Policies
+            </CardTitle>
+            {/*<CardDescription>
+              Configure Service Level Agreement policies and response times
+            </CardDescription>*/}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <h4 className="font-medium">Critical Issues</h4>
+                  <p className="text-sm text-muted-foreground">Response time: 1 hour</p>
+                </div>
+                <Badge variant="destructive">Critical</Badge>
+              </div>
+  
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <h4 className="font-medium">High Priority</h4>
+                  <p className="text-sm text-muted-foreground">Response time: 4 hours</p>
+                </div>
+                <Badge variant="secondary">High</Badge>
+              </div>
+  
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <h4 className="font-medium">Medium Priority</h4>
+                  <p className="text-sm text-muted-foreground">Response time: 24 hours</p>
+                </div>
+                <Badge variant="outline">Medium</Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  
+    const renderAgentSettings = () => (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Agent Management
+            </CardTitle>
+            {/*<CardDescription>
+              Configure agent settings and permissions
+            </CardDescription>*/}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <h4 className="font-medium">Auto-assignment</h4>
+                  <p className="text-sm text-muted-foreground">Automatically assign tickets to available agents</p>
+                </div>
+                <Switch defaultChecked />
+              </div>
+  
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <h4 className="font-medium">Load Balancing</h4>
+                  <p className="text-sm text-muted-foreground">Distribute tickets evenly among agents</p>
+                </div>
+                <Switch />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  
+    const renderContent = () => {
+      switch (activeSection) {
+        case 'general':
+          return renderGeneralSettings();
+        case 'monitoring':
+          return renderMonitoringSettings();
+        case 'notifications':
+          return renderNotificationSettings();
+        case 'security':
+          return renderSecuritySettings();
+        case 'sla':
+          return renderSLAPolicies();
+        case 'agent':
+          return renderAgentSettings();
+        default:
+          return renderGeneralSettings();
+      }
+    };
+  
+    return (
+      <div className="flex h-screen bg-neutral-50 dark:bg-neutral-900">
+        <SettingsSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+        <div className="flex-1 overflow-auto">
+          <div className="p-6 space-y-6">
+            {/* General Settings */}
+            {activeTab === "general" && (
+              renderGeneralSettings()
+            )}
+  
+            {/* Monitoring Settings */}
+            {activeTab === "monitoring" && (
+              renderMonitoringSettings()
+            )}
+  
+            {/* Notifications Settings */}
+            {activeTab === "notifications" && (
+              renderNotificationSettings()
+            )}
+  
+            {/* Security Settings */}
+            {activeTab === "security" && (
+              renderSecuritySettings()
+            )}
+  
+            {/* SLA Settings */}
+            {activeTab === "sla" && (
+              renderSLAPolicies()
+            )}
+  
+            {/* Agent Settings */}
+            {activeTab === "agent" && (
+             renderAgentSettings()
+            )}
+  
+            {/* Save Button */}
+            {hasChanges && (
+              <div className="flex justify-end pt-4 border-t border-neutral-200 dark:border-neutral-700">
+                <Button
+                  onClick={saveSettings}
+                  className="flex items-center space-x-2"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Save Changes</span>
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
