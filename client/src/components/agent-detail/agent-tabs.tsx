@@ -185,7 +185,33 @@ const getAllIPs = (agent: any) => {
   return allIPs;
 };
 
-export function AgentTabs({ agent }: AgentTabsProps) {
+export default function AgentTabs({ agent }: AgentTabsProps) {
+  const [usbHistory, setUsbHistory] = useState([]);
+  const rawData = agent.latest_report?.raw_data;
+
+  useEffect(() => {
+    const fetchUSBHistory = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`/api/devices/${agent.id}/usb-devices`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUsbHistory(data);
+        }
+      } catch (error) {
+        console.error('Error fetching USB history:', error);
+      }
+    };
+
+    if (agent.id) {
+      fetchUSBHistory();
+    }
+  }, [agent.id]);
+
   const latestReport = agent.latest_report;
 
   // Parse metrics
