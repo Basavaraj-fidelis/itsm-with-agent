@@ -52,21 +52,30 @@ export default function Dashboard() {
 
   // Fetch tickets data for ITSM dashboard
   const { data: ticketsResponse, isLoading: ticketsLoading, error: ticketsError } = useQuery({
-    queryKey: ["/api/tickets", { limit: 100 }],
+    queryKey: ["/api/tickets", { limit: 1000 }],
     queryFn: async () => {
       try {
-        return await api.get("/api/tickets?limit=100");
+        const response = await api.get("/api/tickets?limit=1000");
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
       } catch (error) {
         console.warn("Failed to fetch tickets:", error);
-        return { data: { tickets: [] } };
+        return { data: [], total: 0 };
       }
     },
-    refetchInterval: 60000, // Refetch every minute
+    refetchInterval: 30000, // Refetch every 30 seconds
     retry: 1,
-    staleTime: 30000,
+    staleTime: 15000,
   });
 
-  const tickets = ticketsResponse?.data?.tickets || [];
+  // Handle different response formats from the API
+  const tickets = Array.isArray(ticketsResponse?.data) 
+    ? ticketsResponse.data 
+    : ticketsResponse?.data?.tickets || 
+      ticketsResponse?.tickets || 
+      [];
 
   // Helper functions for ticket analytics
   const getTicketDistribution = () => {
@@ -104,9 +113,11 @@ export default function Dashboard() {
     let dueToday = 0;
 
     tickets.forEach(ticket => {
-      if (ticket.sla_resolution_due) {
-        const dueDate = new Date(ticket.sla_resolution_due);
-        const timeDiff = dueDate.getTime() - now.getTime();
+      // Check both sla_resolution_due and due_date fields
+      const dueDate = ticket.sla_resolution_due || ticket.due_date;
+      if (dueDate && !['resolved', 'closed', 'cancelled'].includes(ticket.status)) {
+        const dueDateObj = new Date(dueDate);
+        const timeDiff = dueDateObj.getTime() - now.getTime();
         const hoursDiff = timeDiff / (1000 * 3600);
 
         if (hoursDiff < 0) {
@@ -123,27 +134,28 @@ export default function Dashboard() {
   };
 
   const getAssignmentDistribution = () => {
-    const unassigned = tickets.filter(t => !t.assigned_to).length;
-    const assignedTickets = tickets.filter(t => t.assigned_to);
+    const activeTickets = tickets.filter(t => !['resolved', 'closed', 'cancelled'].includes(t.status));
+    const unassigned = activeTickets.filter(t => !t.assigned_to).length;
+    const assignedTickets = activeTickets.filter(t => t.assigned_to);
 
     const assignmentCounts = assignedTickets.reduce((acc, ticket) => {
-      const assignee = ticket.assigned_to || "Unassigned";
+      const assignee = ticket.assigned_to;
       acc[assignee] = (acc[assignee] || 0) + 1;
       return acc;
     }, {});
 
     const topAssignees = Object.entries(assignmentCounts)
       .sort(([,a], [,b]) => b - a)
-      .slice(0, 3)
+      .slice(0, 4)
       .map(([name, count]) => ({
-        name,
-        team: name.includes("@") ? "Support Team" : "L1 Support",
+        name: name || "Unknown",
+        team: name && name.includes("@") ? "Support Team" : "L1 Support",
         count,
         status: "online"
       }));
 
     if (unassigned > 0) {
-      topAssignees.push({
+      topAssignees.unshift({
         name: "Unassigned",
         team: "Queue",
         count: unassigned,
@@ -151,7 +163,7 @@ export default function Dashboard() {
       });
     }
 
-    return topAssignees;
+    return topAssignees.slice(0, 4);
   };
 
   const ticketDistribution = getTicketDistribution();

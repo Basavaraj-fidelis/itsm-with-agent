@@ -39,10 +39,10 @@ export function registerTicketRoutes(app: Express) {
       const search = req.query.search as string;
 
       const filters = {
-        type: type && type !== "all" ? type : undefined,
-        status: status && status !== "all" ? status : undefined,
-        priority: priority && priority !== "all" ? priority : undefined,
-        search
+        type: type && type !== "all" && type.trim() !== "" ? type : undefined,
+        status: status && status !== "all" && status.trim() !== "" ? status : undefined,
+        priority: priority && priority !== "all" && priority.trim() !== "" ? priority : undefined,
+        search: search && search.trim() !== "" ? search.trim() : undefined
       };
 
       const result = await ticketStorage.getTickets(page, limit, filters);

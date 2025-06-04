@@ -115,13 +115,14 @@ export default function Tickets() {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: "20"
+        limit: "100" // Increased limit to show more tickets
       });
 
-      if (selectedType !== "all") params.append("type", selectedType);
-      if (selectedStatus !== "all") params.append("status", selectedStatus);
-      if (selectedPriority !== "all") params.append("priority", selectedPriority);
-      if (searchTerm) params.append("search", searchTerm);
+      // Only add filter params if they're not "all"
+      if (selectedType && selectedType !== "all") params.append("type", selectedType);
+      if (selectedStatus && selectedStatus !== "all") params.append("status", selectedStatus);
+      if (selectedPriority && selectedPriority !== "all") params.append("priority", selectedPriority);
+      if (searchTerm && searchTerm.trim()) params.append("search", searchTerm.trim());
 
       const response = await api.get(`/api/tickets?${params}`);
       
@@ -137,11 +138,18 @@ export default function Tickets() {
         setTotalTickets(data.length);
         setCurrentPage(1);
         setTotalPages(1);
-      } else {
+      } else if (data.data) {
+        // Paginated response
         setTickets(data.data || []);
         setTotalTickets(data.total || 0);
         setCurrentPage(data.page || 1);
         setTotalPages(data.totalPages || 1);
+      } else {
+        // Direct ticket array response
+        setTickets(data || []);
+        setTotalTickets((data || []).length);
+        setCurrentPage(1);
+        setTotalPages(1);
       }
     } catch (error) {
       console.error('Error fetching tickets:', error);

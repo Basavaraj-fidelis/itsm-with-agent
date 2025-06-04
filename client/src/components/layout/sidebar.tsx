@@ -1,5 +1,18 @@
-
-import { Home, Users, AlertTriangle, Settings, BarChart3, Headphones, FileText, Server, Menu, X, Shield, UserCheck, ChevronLeft, ChevronRight, Bell, MoreHorizontal } from "lucide-react";
+import {
+  Home,
+  Users,
+  Ticket,
+  AlertTriangle,
+  BarChart3,
+  Settings,
+  HelpCircle,
+  Shield,
+  FileText,
+  Bell,
+  Monitor
+} from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -8,11 +21,37 @@ import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/components/auth/protected-route";
+import { useUser } from "@/hooks/use-auth";
 
-export default function Sidebar() {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const { user } = useAuth();
+export function Sidebar() {
   const [location] = useLocation();
+  const { user } = useUser();
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  // Fetch ticket counts for sidebar
+  const { data: ticketsResponse } = useQuery({
+    queryKey: ["/api/tickets", { limit: 1000 }],
+    queryFn: async () => {
+      try {
+        const response = await api.get("/api/tickets?limit=1000");
+        if (!response.ok) throw new Error('Failed to fetch tickets');
+        return await response.json();
+      } catch (error) {
+        console.warn("Failed to fetch tickets for sidebar:", error);
+        return { data: [], total: 0 };
+      }
+    },
+    refetchInterval: 30000,
+    retry: 1,
+  });
+
+  const tickets = Array.isArray(ticketsResponse?.data) ? ticketsResponse.data : ticketsResponse?.data?.tickets || [];
+  const totalTickets = tickets.length;
+  const openTickets = tickets.filter(t => !['resolved', 'closed', 'cancelled'].includes(t.status)).length;
+  const alertCount = tickets.filter(t => t.priority === 'critical' && !['resolved', 'closed', 'cancelled'].includes(t.status)).length;
+
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { user: authUser } = useAuth();
   const [notifications, setNotifications] = useState({
     tickets: 0,
     alerts: 0,
@@ -33,7 +72,7 @@ export default function Sidebar() {
         if (ticketsResponse.ok) {
           const ticketsData = await ticketsResponse.json();
           const openTickets = ticketsData.total || 0;
-          
+
           // Fetch active alerts count
           const alertsResponse = await fetch('/api/alerts', {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -160,7 +199,7 @@ export default function Sidebar() {
 
     // Filter navigation based on user role
     return allNavigation.filter(item => 
-      user?.role === 'admin' || item.roles.includes(user?.role || 'user')
+      authUser?.role === 'admin' || item.roles.includes(authUser?.role || 'user')
     );
   };
 
