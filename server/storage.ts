@@ -945,8 +945,7 @@ netsh int ip reset
 
 ### Overheating While Charging
 - **Clean Vents**: Use compressed air to clear dust from cooling vents
-- **Hard Surface**: Use laptop on hard, flat surface```text
- for airflow
+- **Hard Surface**: Use laptop on hard, flat surface for airflow
 - **Reduce Load**: Close intensive programs whilecharging
 - **Contact IT**: If overheating persists, hardware inspection needed
 
