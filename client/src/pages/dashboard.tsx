@@ -130,8 +130,8 @@ export default function Dashboard() {
             </div>
             <div className="hidden md:flex items-center space-x-4">
               <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-md border border-gray-200 dark:border-gray-700">
-                <div className="text-xs text-gray-500 dark:text-gray-400">System Status</div>
-                <div className="text-sm font-semibold text-green-600 dark:text-green-400">All Systems Operational</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">Active Tickets</div>
+                <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">66 Open</div>
               </div>
             </div>
           </div>
@@ -190,14 +190,152 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Quick Actions */}
-      <div className="mb-8">
-        <QuickActions />
+      {/* ITSM Overview Sections */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        {/* Ticket Distribution by Type */}
+        <Card className="bg-white dark:bg-gray-800 shadow-lg border-0 rounded-xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-600 border-b border-gray-200 dark:border-gray-600">
+            <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Ticket Distribution</CardTitle>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+              Breakdown by ticket type
+            </p>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              {[
+                { type: "Incidents", count: 23, color: "bg-red-500", percentage: 35 },
+                { type: "Requests", count: 31, color: "bg-green-500", percentage: 47 },
+                { type: "Problems", count: 8, color: "bg-orange-500", percentage: 12 },
+                { type: "Changes", count: 4, color: "bg-blue-500", percentage: 6 },
+              ].map((item) => (
+                <div key={item.type} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-3 h-3 rounded-full ${item.color}`}></div>
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.type}</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full ${item.color}`}
+                        style={{ width: `${item.percentage}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 w-8">{item.count}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Ticket Status Overview */}
+        <Card className="bg-white dark:bg-gray-800 shadow-lg border-0 rounded-xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-600 border-b border-gray-200 dark:border-gray-600">
+            <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Ticket Status</CardTitle>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+              Current ticket statuses
+            </p>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              {[
+                { status: "New", count: 12, color: "bg-blue-500", urgency: "normal" },
+                { status: "In Progress", count: 28, color: "bg-yellow-500", urgency: "normal" },
+                { status: "Pending", count: 8, color: "bg-orange-500", urgency: "attention" },
+                { status: "Resolved", count: 15, color: "bg-green-500", urgency: "normal" },
+              ].map((item) => (
+                <div key={item.status} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-3 h-3 rounded-full ${item.color}`}></div>
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.status}</span>
+                    {item.urgency === "attention" && (
+                      <AlertTriangle className="w-4 h-4 text-orange-500" />
+                    )}
+                  </div>
+                  <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">{item.count}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Performance Overview */}
-      <div className="mb-8">
-        <PerformanceChart />
+      {/* SLA and Assignment Overview */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        {/* SLA Violations */}
+        <Card className="bg-white dark:bg-gray-800 shadow-lg border-0 rounded-xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-gray-700 dark:to-gray-600 border-b border-gray-200 dark:border-gray-600">
+            <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+              <Clock className="w-5 h-5 mr-2 text-red-500" />
+              SLA Status
+            </CardTitle>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+              Tickets approaching or exceeding SLA
+            </p>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                <div>
+                  <p className="text-sm font-medium text-red-800 dark:text-red-200">SLA Breached</p>
+                  <p className="text-xs text-red-600 dark:text-red-300">Immediate attention required</p>
+                </div>
+                <span className="text-2xl font-bold text-red-600 dark:text-red-400">3</span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                <div>
+                  <p className="text-sm font-medium text-orange-800 dark:text-orange-200">Due in 2 Hours</p>
+                  <p className="text-xs text-orange-600 dark:text-orange-300">Response time approaching</p>
+                </div>
+                <span className="text-2xl font-bold text-orange-600 dark:text-orange-400">7</span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                <div>
+                  <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Due Today</p>
+                  <p className="text-xs text-yellow-600 dark:text-yellow-300">Resolution time approaching</p>
+                </div>
+                <span className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">12</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Assignment Overview */}
+        <Card className="bg-white dark:bg-gray-800 shadow-lg border-0 rounded-xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-gray-700 dark:to-gray-600 border-b border-gray-200 dark:border-gray-600">
+            <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+              <User className="w-5 h-5 mr-2 text-purple-500" />
+              Assignments
+            </CardTitle>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+              Ticket distribution by assignee
+            </p>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              {[
+                { name: "Sarah Johnson", team: "L1 Support", count: 15, status: "online" },
+                { name: "Mike Chen", team: "L2 Support", count: 12, status: "online" },
+                { name: "Emily Davis", team: "Network Team", count: 8, status: "away" },
+                { name: "Unassigned", team: "Queue", count: 11, status: "pending" },
+              ].map((assignee, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-3 h-3 rounded-full ${
+                      assignee.status === "online" ? "bg-green-500" :
+                      assignee.status === "away" ? "bg-yellow-500" : "bg-gray-400"
+                    }`}></div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{assignee.name}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">{assignee.team}</p>
+                    </div>
+                  </div>
+                  <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">{assignee.count}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Charts and Recent Activity */}
