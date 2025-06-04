@@ -40,7 +40,8 @@ import {
   ArrowUp,
   ArrowDown,
   Minus,
-  Clock
+  Clock,
+  XCircle
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
