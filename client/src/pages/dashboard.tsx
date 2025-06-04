@@ -8,14 +8,47 @@ import { useDashboardSummary, useAlerts } from "@/hooks/use-dashboard";
 import { useAgents } from "@/hooks/use-agents";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { Monitor, CheckCircle, AlertTriangle, XCircle, Clock, User } from "lucide-react";
+import { 
+  Plus, 
+  Users, 
+  AlertTriangle, 
+  CheckCircle, 
+  TrendingUp,
+  Activity,
+  BarChart3,
+  Settings,
+  Bell,
+  Search,
+  Filter,
+  Download,
+  RefreshCw,
+  User,
+  Calendar,
+  FileText,
+  Shield,
+  Database,
+  Zap,
+  Monitor,
+  Server,
+  Wifi,
+  HardDrive,
+  Cpu,
+  MemoryStick,
+  Network,
+  Eye,
+  MoreVertical,
+  ArrowUp,
+  ArrowDown,
+  Minus,
+  Clock
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export default function Dashboard() {
   const { data: summary, isLoading: summaryLoading, error: summaryError } = useDashboardSummary();
   const { data: alerts, isLoading: alertsLoading, error: alertsError } = useAlerts();
   const { data: agents, isLoading: agentsLoading, error: agentsError } = useAgents();
-  
+
   // Fetch tickets data for ITSM dashboard
   const { data: ticketsResponse, isLoading: ticketsLoading, error: ticketsError } = useQuery({
     queryKey: ["/api/tickets", { limit: 100 }],
@@ -74,7 +107,7 @@ export default function Dashboard() {
         const dueDate = new Date(ticket.sla_resolution_due);
         const timeDiff = dueDate.getTime() - now.getTime();
         const hoursDiff = timeDiff / (1000 * 3600);
-        
+
         if (hoursDiff < 0) {
           breached++;
         } else if (hoursDiff <= 2) {
@@ -91,7 +124,7 @@ export default function Dashboard() {
   const getAssignmentDistribution = () => {
     const unassigned = tickets.filter(t => !t.assigned_to).length;
     const assignedTickets = tickets.filter(t => t.assigned_to);
-    
+
     const assignmentCounts = assignedTickets.reduce((acc, ticket) => {
       const assignee = ticket.assigned_to || "Unassigned";
       acc[assignee] = (acc[assignee] || 0) + 1;
@@ -148,7 +181,7 @@ export default function Dashboard() {
           <div className="h-8 bg-gradient-to-r from-neutral-200 to-neutral-300 dark:from-neutral-700 dark:to-neutral-600 rounded-lg w-64 animate-pulse"></div>
           <div className="h-4 bg-gradient-to-r from-neutral-200 to-neutral-300 dark:from-neutral-700 dark:to-neutral-600 rounded w-96 animate-pulse"></div>
         </div>
-        
+
         {/* Metrics Cards Skeleton */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[...Array(4)].map((_, i) => (
@@ -167,7 +200,7 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
-        
+
         {/* Charts Skeleton */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 space-y-4 animate-pulse">

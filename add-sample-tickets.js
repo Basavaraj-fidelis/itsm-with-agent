@@ -201,8 +201,9 @@ async function addSampleTickets() {
           requester_email, category, impact, urgency, root_cause, 
           workaround, known_error, change_type, risk_level, 
           approval_status, implementation_plan, rollback_plan,
-          scheduled_start, scheduled_end
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+          scheduled_start, scheduled_end, sla_policy, sla_response_time,
+          sla_resolution_time, sla_breached
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
         RETURNING id, ticket_number, title;
       `;
       
@@ -226,7 +227,11 @@ async function addSampleTickets() {
         ticket.implementation_plan || null,
         ticket.rollback_plan || null,
         ticket.scheduled_start || null,
-        ticket.scheduled_end || null
+        ticket.scheduled_end || null,
+        'Standard SLA',
+        240, // 4 hours response time in minutes
+        1440, // 24 hours resolution time in minutes  
+        false // sla_breached
       ];
       
       const result = await pool.query(insertQuery, values);

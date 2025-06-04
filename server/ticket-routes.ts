@@ -49,7 +49,15 @@ export function registerTicketRoutes(app: Express) {
       res.json(result);
     } catch (error) {
       console.error("Error fetching tickets:", error);
-      res.status(500).json({ error: "Failed to fetch tickets" });
+      if (error instanceof Error) {
+        if (error.message.includes('column') && error.message.includes('does not exist')) {
+          res.status(500).json({ error: "Database schema error. Please run migrations." });
+        } else {
+          res.status(500).json({ error: error.message });
+        }
+      } else {
+        res.status(500).json({ error: "Failed to fetch tickets" });
+      }
     }
   });
 
