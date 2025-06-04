@@ -10,8 +10,8 @@ console.log(chalk.blue('=' .repeat(50)));
 const tests = [
   {
     name: 'Backend API Tests',
-    command: 'node',
-    args: ['--experimental-modules', 'test-service-desk.js'],
+    command: 'npm',
+    args: ['run', 'test'],
     description: 'Testing all API endpoints and backend functionality'
   },
   {
@@ -22,14 +22,14 @@ const tests = [
   },
   {
     name: 'Performance Tests',
-    command: 'node',
-    args: ['--experimental-modules', 'test-service-desk-performance.js'],
+    command: 'npm',
+    args: ['run', 'test:performance'],
     description: 'Testing response times and load handling'
   },
   {
     name: 'Database Integration Tests',
-    command: 'node',
-    args: ['test-database-integration.js'],
+    command: 'npm',
+    args: ['run', 'test:database'],
     description: 'Testing database operations and data integrity'
   }
 ];

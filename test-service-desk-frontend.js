@@ -1,4 +1,3 @@
-
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
@@ -23,7 +22,7 @@ const createWrapper = () => {
       mutations: { retry: false }
     }
   });
-  
+
   return ({ children }) => (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
@@ -39,8 +38,10 @@ describe('Service Desk Frontend Tests', () => {
   });
 
   describe('Ticket Page Component', () => {
+    const mockTickets = () => <Tickets />;
+
     it('should render ticket management interface', async () => {
-      const mockTickets = {
+      const mockTicketsData = {
         data: [
           {
             id: '1',
@@ -58,9 +59,9 @@ describe('Service Desk Frontend Tests', () => {
         current_page: 1
       };
 
-      vi.mocked(api.get).mockResolvedValueOnce({ data: mockTickets });
+      vi.mocked(api.get).mockResolvedValueOnce({ data: mockTicketsData });
 
-      render(<Tickets />, { wrapper: createWrapper() });
+      render(mockTickets(), { wrapper: createWrapper() });
 
       await waitFor(() => {
         expect(screen.getByText('Service Desk')).toBeInTheDocument();
@@ -69,7 +70,7 @@ describe('Service Desk Frontend Tests', () => {
     });
 
     it('should filter tickets by type', async () => {
-      const mockTickets = {
+      const mockTicketsData = {
         data: [
           {
             id: '1',
@@ -85,9 +86,9 @@ describe('Service Desk Frontend Tests', () => {
         current_page: 1
       };
 
-      vi.mocked(api.get).mockResolvedValueOnce({ data: mockTickets });
+      vi.mocked(api.get).mockResolvedValueOnce({ data: mockTicketsData });
 
-      render(<Tickets />, { wrapper: createWrapper() });
+      render(mockTickets(), { wrapper: createWrapper() });
 
       await waitFor(() => {
         const typeFilter = screen.getByDisplayValue('All Types');
@@ -114,7 +115,7 @@ describe('Service Desk Frontend Tests', () => {
         }
       });
 
-      render(<Tickets />, { wrapper: createWrapper() });
+      render(mockTickets(), { wrapper: createWrapper() });
 
       const createButton = screen.getByText('Create Ticket');
       fireEvent.click(createButton);
@@ -140,7 +141,7 @@ describe('Service Desk Frontend Tests', () => {
     });
 
     it('should search tickets', async () => {
-      render(<Tickets />, { wrapper: createWrapper() });
+      render(mockTickets(), { wrapper: createWrapper() });
 
       const searchInput = screen.getByPlaceholderText('Search tickets...');
       fireEvent.change(searchInput, { target: { value: 'server issue' } });
@@ -165,7 +166,7 @@ describe('Service Desk Frontend Tests', () => {
 
       vi.mocked(api.get).mockResolvedValueOnce({ data: mockAnalytics });
 
-      render(<Tickets />, { wrapper: createWrapper() });
+      render(mockTickets(), { wrapper: createWrapper() });
 
       // Switch to analytics view
       const analyticsTab = screen.getByText('Analytics');
@@ -179,8 +180,10 @@ describe('Service Desk Frontend Tests', () => {
   });
 
   describe('Service Desk Workflows Component', () => {
+    const mockServiceDeskWorkflows = () => <ServiceDeskWorkflows />;
+
     it('should render workflow templates', () => {
-      render(<ServiceDeskWorkflows />, { wrapper: createWrapper() });
+      render(mockServiceDeskWorkflows(), { wrapper: createWrapper() });
 
       expect(screen.getByText('Service Request')).toBeInTheDocument();
       expect(screen.getByText('Incident Management')).toBeInTheDocument();
@@ -189,7 +192,7 @@ describe('Service Desk Frontend Tests', () => {
     });
 
     it('should show workflow steps', () => {
-      render(<ServiceDeskWorkflows />, { wrapper: createWrapper() });
+      render(mockServiceDeskWorkflows(), { wrapper: createWrapper() });
 
       expect(screen.getByText('Request Submitted')).toBeInTheDocument();
       expect(screen.getByText('Initial Review')).toBeInTheDocument();
@@ -197,12 +200,12 @@ describe('Service Desk Frontend Tests', () => {
     });
 
     it('should display step status indicators', () => {
-      render(<ServiceDeskWorkflows />, { wrapper: createWrapper() });
+      render(mockServiceDeskWorkflows(), { wrapper: createWrapper() });
 
       // Check for completed, active, and pending step indicators
       const completedSteps = screen.getAllByRole('img', { name: /completed/i });
       const activeSteps = screen.getAllByRole('img', { name: /active/i });
-      
+
       expect(completedSteps.length).toBeGreaterThan(0);
       expect(activeSteps.length).toBeGreaterThan(0);
     });
@@ -210,7 +213,7 @@ describe('Service Desk Frontend Tests', () => {
 
   describe('Ticket Form Validation', () => {
     it('should validate required fields', async () => {
-      render(<Tickets />, { wrapper: createWrapper() });
+      render(mockTickets(), { wrapper: createWrapper() });
 
       const createButton = screen.getByText('Create Ticket');
       fireEvent.click(createButton);
@@ -225,7 +228,7 @@ describe('Service Desk Frontend Tests', () => {
     });
 
     it('should validate email format', async () => {
-      render(<Tickets />, { wrapper: createWrapper() });
+      render(mockTickets(), { wrapper: createWrapper() });
 
       const createButton = screen.getByText('Create Ticket');
       fireEvent.click(createButton);
@@ -256,7 +259,7 @@ describe('Service Desk Frontend Tests', () => {
         data: { ...mockTicket, status: 'assigned' }
       });
 
-      render(<Tickets />, { wrapper: createWrapper() });
+      render(mockTickets(), { wrapper: createWrapper() });
 
       await waitFor(() => {
         const statusDropdown = screen.getByDisplayValue('new');
@@ -277,7 +280,7 @@ describe('Service Desk Frontend Tests', () => {
 
   describe('SLA Indicators', () => {
     it('should show SLA status for tickets', async () => {
-      const mockTickets = {
+      const mockTicketsData = {
         data: [
           {
             id: '1',
@@ -289,9 +292,9 @@ describe('Service Desk Frontend Tests', () => {
         ]
       };
 
-      vi.mocked(api.get).mockResolvedValueOnce({ data: mockTickets });
+      vi.mocked(api.get).mockResolvedValueOnce({ data: mockTicketsData });
 
-      render(<Tickets />, { wrapper: createWrapper() });
+      render(mockTickets(), { wrapper: createWrapper() });
 
       await waitFor(() => {
         expect(screen.getByText('SLA Breached')).toBeInTheDocument();
@@ -304,7 +307,7 @@ describe('Service Desk Frontend Tests', () => {
       const mockBlob = new Blob(['csv,data'], { type: 'text/csv' });
       vi.mocked(api.get).mockResolvedValueOnce({ data: mockBlob });
 
-      render(<Tickets />, { wrapper: createWrapper() });
+      render(mockTickets(), { wrapper: createWrapper() });
 
       const exportButton = screen.getByText('Export CSV');
       fireEvent.click(exportButton);
@@ -324,7 +327,7 @@ describe('Service Desk Frontend Tests', () => {
     it('should handle API errors gracefully', async () => {
       vi.mocked(api.get).mockRejectedValueOnce(new Error('Network Error'));
 
-      render(<Tickets />, { wrapper: createWrapper() });
+      render(mockTickets(), { wrapper: createWrapper() });
 
       await waitFor(() => {
         expect(screen.getByText('Failed to load tickets')).toBeInTheDocument();
@@ -336,7 +339,7 @@ describe('Service Desk Frontend Tests', () => {
         () => new Promise(resolve => setTimeout(resolve, 1000))
       );
 
-      render(<Tickets />, { wrapper: createWrapper() });
+      render(mockTickets(), { wrapper: createWrapper() });
 
       expect(screen.getByText('Loading...')).toBeInTheDocument();
     });
@@ -351,7 +354,7 @@ describe('Service Desk Frontend Tests', () => {
         value: 375,
       });
 
-      render(<Tickets />, { wrapper: createWrapper() });
+      render(mockTickets(), { wrapper: createWrapper() });
 
       // Check for mobile-specific elements or layouts
       expect(screen.getByRole('button', { name: /menu/i })).toBeInTheDocument();
