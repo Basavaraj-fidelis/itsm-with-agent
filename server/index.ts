@@ -38,21 +38,28 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Run migrations on startup
-  await createTicketTables();
+  try {
+    // Run migrations on startup
+    console.log("🚀 Starting server...");
+    await createTicketTables();
+    
+    // Import and run admin tables migration
+    const { createAdminTables } = await import("./migrate-admin-tables");
+    await createAdminTables();
 
-  const server = await registerRoutes(app);
+    const server = await registerRoutes(app);
 
-  // Import storage after it's available
-  const { storage } = await import("./storage");
+    // Import storage after it's available
+    const { storage } = await import("./storage");
 
-  // Import authentication middleware from routes
-  const routesModule = await import("./routes");
-
-  // Define authentication middleware locally since it's not exported from routes
-  const authenticateToken = async (req: any, res: any, next: any) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    console.log("✅ Server started successfully on port", server.address()?.port || 5000);
+  } catch (error) {
+    console.error("❌ Server startup failed:", error);
+    process.exit(1);
+  }
+})().catch(error => {
+  console.error("❌ Unhandled server error:", error);
+  process.exit(1);];
 
     if (!token) {
       return res.status(401).json({ message: 'Access token required' });

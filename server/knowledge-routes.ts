@@ -1,5 +1,7 @@
-
 import { Router } from "express";
+import { db } from "./db";
+import { knowledgeBase } from "@shared/ticket-schema";
+import { eq, like, desc } from "drizzle-orm";
 import { TicketStorage } from "./ticket-storage";
 
 const router = Router();
@@ -15,7 +17,7 @@ router.get("/", async (req, res) => {
       search: req.query.search as string,
       status: (req.query.status as string) || "published"
     };
-    
+
     const result = await storage.getKBArticles(page, limit, filters);
     res.json(result.data);
   } catch (error) {
@@ -52,7 +54,7 @@ router.post("/", async (req, res) => {
       views: 0,
       helpful_votes: 0
     };
-    
+
     const article = await storage.createKBArticle(newArticle);
     res.status(201).json(article);
   } catch (error) {

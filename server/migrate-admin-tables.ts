@@ -130,7 +130,7 @@ export async function createAdminTables() {
 }
 
 // Run migration if called directly
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   createAdminTables()
     .then(() => {
       console.log("Migration completed successfully!");
