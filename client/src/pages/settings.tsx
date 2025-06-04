@@ -449,7 +449,7 @@ export default function Settings() {
                   updateSetting("networkThreshold", parseInt(e.target.value))
                 }
               />
-              <p className="text-xs text-muted-foreground">Alert when response > threshold</p>
+              <p className="text-xs text-muted-foreground">Alert when response &gt; threshold</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="temperature-threshold">Temperature (°C)</Label>
