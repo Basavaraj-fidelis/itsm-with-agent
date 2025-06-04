@@ -21,12 +21,13 @@ import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/components/auth/protected-route";
-import { useUser } from "@/hooks/use-auth";
+// import { useUser } from "@/hooks/use-auth"; // Removed this line
 
 export function Sidebar() {
   const [location] = useLocation();
-  const { user } = useUser();
+  // const { user } = useUser(); // Removed this line
   const [isExpanded, setIsExpanded] = useState(true);
+  const { user: authUser } = useAuth();
 
   // Fetch ticket counts for sidebar
   const { data: ticketsResponse } = useQuery({
@@ -51,7 +52,7 @@ export function Sidebar() {
   const alertCount = tickets.filter(t => t.priority === 'critical' && !['resolved', 'closed', 'cancelled'].includes(t.status)).length;
 
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const { user: authUser } = useAuth();
+  // const { user: authUser } = useAuth(); // Already defined above
   const [notifications, setNotifications] = useState({
     tickets: 0,
     alerts: 0,
@@ -233,10 +234,10 @@ export function Sidebar() {
                 </h1>
                 <div className="flex items-center space-x-2 mt-1">
                   <p className="text-xs text-[#605E5C] dark:text-[#A19F9D]">IT Service Management</p>
-                  {user?.role && (
+                  {authUser?.role && (
                     <Badge variant="outline" className="text-xs px-2 py-0.5 border-blue-200 text-blue-700 bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:bg-blue-900/30">
                       <Shield className="w-3 h-3 mr-1" />
-                      {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                      {authUser.role.charAt(0).toUpperCase() + authUser.role.slice(1)}
                     </Badge>
                   )}
                 </div>
@@ -261,18 +262,18 @@ export function Sidebar() {
         </div>
 
         {/* User Info */}
-        {!isCollapsed && user && (
+        {!isCollapsed && authUser && (
           <div className="p-4 border-b border-[#E1DFDD] dark:border-[#484644]">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-medium text-sm">
-                {user.email?.charAt(0).toUpperCase() || 'U'}
+                {authUser.email?.charAt(0).toUpperCase() || 'U'}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-[#201F1E] dark:text-[#F3F2F1] truncate">
-                  {user.name || user.email}
+                  {authUser.name || authUser.email}
                 </p>
                 <p className="text-xs text-[#605E5C] dark:text-[#A19F9D] truncate">
-                  {user.email}
+                  {authUser.email}
                 </p>
               </div>
               {(notifications.tickets + notifications.alerts) > 0 && (
