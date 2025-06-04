@@ -51,9 +51,7 @@ export default function Header() {
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <h1 className="text-2xl font-semibold text-[#201F1E] dark:text-[#F3F2F1]">
-              {getPageName()}
-            </h1>
+            {/* Page title removed to avoid duplication with sidebar */}
           </div>
 
           {/* Right side actions */}
