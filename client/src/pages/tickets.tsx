@@ -88,7 +88,7 @@ export default function Tickets() {
   const [selectedType, setSelectedType] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedPriority, setSelectedPriority] = useState("all");
-  const [viewMode, setViewMode<"tickets" | "workflows" | "analytics">("tickets");
+  const [viewMode, setViewMode] = useState<"tickets" | "workflows" | "analytics">("tickets");
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [showNewTicketDialog, setShowNewTicketDialog] = useState(false);
   const [showTicketDetailsDialog, setShowTicketDetailsDialog] = useState(false);
