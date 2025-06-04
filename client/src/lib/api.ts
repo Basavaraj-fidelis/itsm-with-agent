@@ -46,9 +46,15 @@ export interface Alert {
 
 
 export const api = {
+  // Core HTTP methods
+  get: (url: string) => apiClient.get(url),
+  post: (url: string, data?: any) => apiClient.post(url, data),
+  put: (url: string, data?: any) => apiClient.put(url, data),
+  delete: (url: string) => apiClient.delete(url),
+
   async getDashboardSummary(): Promise<DashboardSummary> {
     try {
-      const response = await apiRequest("GET", "/api/dashboard/summary");
+      const response = await apiClient.get("/api/dashboard/summary");
       if (!response.ok) {
         throw new Error(`Failed to fetch dashboard summary: ${response.status}`);
       }
@@ -66,7 +72,7 @@ export const api = {
 
   async getDevices(): Promise<Device[]> {
     try {
-      const response = await apiRequest("GET", "/api/devices");
+      const response = await apiClient.get("/api/devices");
       if (!response.ok) {
         throw new Error(`Failed to fetch devices: ${response.status}`);
       }
@@ -78,18 +84,18 @@ export const api = {
   },
 
   async getDevice(id: string): Promise<Device> {
-    const response = await apiRequest("GET", `/api/devices/${id}`);
+    const response = await apiClient.get(`/api/devices/${id}`);
     return response.json();
   },
 
   async getDeviceReports(id: string): Promise<DeviceReport[]> {
-    const response = await apiRequest("GET", `/api/devices/${id}/reports`);
+    const response = await apiClient.get(`/api/devices/${id}/reports`);
     return response.json();
   },
 
   async getAlerts(): Promise<Alert[]> {
     try {
-      const response = await apiRequest("GET", "/api/alerts");
+      const response = await apiClient.get("/api/alerts");
       if (!response.ok) {
         throw new Error(`Failed to fetch alerts: ${response.status}`);
       }
@@ -99,28 +105,29 @@ export const api = {
       return [];
     }
   },
+
   // Auth
-  login: (credentials: { email: string; password: string }) => post("/api/auth/login", credentials),
-  register: (userData: any) => post("/api/auth/register", userData),
-  logout: () => post("/api/auth/logout", {}),
-  getProfile: () => get("/api/auth/profile"),
+  login: (credentials: { email: string; password: string }) => apiClient.post("/api/auth/login", credentials),
+  register: (userData: any) => apiClient.post("/api/auth/register", userData),
+  logout: () => apiClient.post("/api/auth/logout", {}),
+  getProfile: () => apiClient.get("/api/auth/profile"),
 
   // Dashboard
-  getDashboard: () => get("/api/dashboard"),
+  getDashboard: () => apiClient.get("/api/dashboard"),
 
   // Devices/Agents
-  getDevices2: () => get("/api/devices"),
-  getAgents: () => get("/api/agents"),
-  getAgent: (id: string) => get(`/api/agents/${id}`),
+  getDevices2: () => apiClient.get("/api/devices"),
+  getAgents: () => apiClient.get("/api/agents"),
+  getAgent: (id: string) => apiClient.get(`/api/agents/${id}`),
 
   // Users
   getUsers: async () => {
-    const response = await apiRequest("GET", "/api/users");
+    const response = await apiClient.get("/api/users");
     return response.json();
   },
 
   // Alerts
-  getAlerts2: () => get("/api/alerts"),
+  getAlerts2: () => apiClient.get("/api/alerts"),
 };
 
 async function post(url: string, data?: any) {
@@ -174,4 +181,29 @@ class ApiClient {
       throw error;
     }
   }
+
+  async get(url: string): Promise<Response> {
+    return this.request(url, { method: 'GET' });
+  }
+
+  async post(url: string, data?: any): Promise<Response> {
+    return this.request(url, {
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async put(url: string, data?: any): Promise<Response> {
+    return this.request(url, {
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async delete(url: string): Promise<Response> {
+    return this.request(url, { method: 'DELETE' });
+  }
 }
+
+// Create and export a singleton instance
+const apiClient = new ApiClient();
