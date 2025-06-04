@@ -42,7 +42,7 @@ app.use((req, res, next) => {
     // Run migrations on startup
     console.log("🚀 Starting server...");
     await createTicketTables();
-    
+
     // Import and run admin tables migration
     const { createAdminTables } = await import("./migrate-admin-tables");
     await createAdminTables();
@@ -59,7 +59,8 @@ app.use((req, res, next) => {
   }
 })().catch(error => {
   console.error("❌ Unhandled server error:", error);
-  process.exit(1);];
+  process.exit(1);
+});
 
     if (!token) {
       return res.status(401).json({ message: 'Access token required' });
