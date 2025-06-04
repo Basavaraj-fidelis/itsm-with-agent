@@ -42,12 +42,15 @@ async function testDatabaseIntegration() {
     // Test 2: Test ticket CRUD operations
     console.log("\n2️⃣ Testing ticket CRUD operations...");
 
-    // Create test ticket
+    // Create test ticket with ticket_number
+    const year = new Date().getFullYear();
+    const ticketNumber = `TEST-${year}-001`;
+    
     const createTicketResult = await pool.query(`
-      INSERT INTO tickets (title, description, type, priority, requester_email, status)
-      VALUES ('Test Ticket', 'This is a test ticket', 'request', 'medium', 'test@company.com', 'new')
+      INSERT INTO tickets (ticket_number, title, description, type, priority, requester_email, status)
+      VALUES ($1, 'Test Ticket', 'This is a test ticket', 'request', 'medium', 'test@company.com', 'new')
       RETURNING *;
-    `);
+    `, [ticketNumber]);
 
     if (createTicketResult.rows.length > 0) {
       console.log("✅ Ticket creation works");

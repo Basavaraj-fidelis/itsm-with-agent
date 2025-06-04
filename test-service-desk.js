@@ -1,7 +1,10 @@
+Fixes the import path in the test file to correctly reference the TypeScript server entry point.
+```
 
+```typescript
 import { expect } from 'chai';
 import request from 'supertest';
-import { app } from './server/index.js';
+import app from './server/index.ts';
 
 describe('Service Desk - Comprehensive Test Suite', () => {
   let authToken;
@@ -17,7 +20,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
         email: 'admin@company.com',
         password: 'admin123'
       });
-    
+
     expect(loginResponse.status).to.equal(200);
     authToken = loginResponse.body.token;
   });
@@ -30,7 +33,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
           email: 'admin@company.com',
           password: 'admin123'
         });
-      
+
       expect(response.status).to.equal(200);
       expect(response.body).to.have.property('token');
       expect(response.body).to.have.property('user');
@@ -43,7 +46,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
           email: 'admin@company.com',
           password: 'wrongpassword'
         });
-      
+
       expect(response.status).to.equal(401);
     });
 
@@ -51,7 +54,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
       const response = await request(app)
         .get('/api/auth/verify')
         .set('Authorization', `Bearer ${authToken}`);
-      
+
       expect(response.status).to.equal(200);
       expect(response.body).to.have.property('email');
     });
@@ -66,7 +69,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
           role: 'user',
           department: 'IT'
         });
-      
+
       expect(response.status).to.equal(201);
       expect(response.body.user.email).to.equal('testuser@company.com');
     });
@@ -75,7 +78,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
       const response = await request(app)
         .get('/api/users')
         .set('Authorization', `Bearer ${authToken}`);
-      
+
       expect(response.status).to.equal(200);
       expect(response.body).to.be.an('array');
     });
@@ -96,7 +99,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
           impact: 'low',
           urgency: 'medium'
         });
-      
+
       expect(response.status).to.equal(201);
       expect(response.body.type).to.equal('request');
       expect(response.body.ticket_number).to.match(/REQ-\d{4}-\d{3}/);
@@ -117,7 +120,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
           impact: 'critical',
           urgency: 'critical'
         });
-      
+
       expect(response.status).to.equal(201);
       expect(response.body.type).to.equal('incident');
       expect(response.body.ticket_number).to.match(/INC-\d{4}-\d{3}/);
@@ -139,7 +142,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
           root_cause: 'Memory leak in version 3.2.1',
           workaround: 'Restart application every 4 hours'
         });
-      
+
       expect(response.status).to.equal(201);
       expect(response.body.type).to.equal('problem');
       expect(response.body.ticket_number).to.match(/PRO-\d{4}-\d{3}/);
@@ -166,7 +169,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
           scheduled_start: new Date('2024-03-01T02:00:00Z'),
           scheduled_end: new Date('2024-03-01T06:00:00Z')
         });
-      
+
       expect(response.status).to.equal(201);
       expect(response.body.type).to.equal('change');
       expect(response.body.ticket_number).to.match(/CHA-\d{4}-\d{3}/);
@@ -176,7 +179,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
       const response = await request(app)
         .get('/api/tickets?page=1&limit=10')
         .set('Authorization', `Bearer ${authToken}`);
-      
+
       expect(response.status).to.equal(200);
       expect(response.body).to.have.property('data');
       expect(response.body).to.have.property('total');
@@ -187,7 +190,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
       const response = await request(app)
         .get('/api/tickets?type=incident')
         .set('Authorization', `Bearer ${authToken}`);
-      
+
       expect(response.status).to.equal(200);
       response.body.data.forEach(ticket => {
         expect(ticket.type).to.equal('incident');
@@ -198,7 +201,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
       const response = await request(app)
         .get('/api/tickets?status=new')
         .set('Authorization', `Bearer ${authToken}`);
-      
+
       expect(response.status).to.equal(200);
       response.body.data.forEach(ticket => {
         expect(ticket.status).to.equal('new');
@@ -209,7 +212,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
       const response = await request(app)
         .get('/api/tickets?priority=critical')
         .set('Authorization', `Bearer ${authToken}`);
-      
+
       expect(response.status).to.equal(200);
       response.body.data.forEach(ticket => {
         expect(ticket.priority).to.equal('critical');
@@ -220,7 +223,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
       const response = await request(app)
         .get('/api/tickets?search=server')
         .set('Authorization', `Bearer ${authToken}`);
-      
+
       expect(response.status).to.equal(200);
       expect(response.body.data.length).to.be.greaterThan(0);
     });
@@ -229,7 +232,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
       const response = await request(app)
         .get(`/api/tickets/${testTicketId}`)
         .set('Authorization', `Bearer ${authToken}`);
-      
+
       expect(response.status).to.equal(200);
       expect(response.body.id).to.equal(testTicketId);
     });
@@ -242,7 +245,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
           status: 'assigned',
           assigned_to: 'tech@company.com'
         });
-      
+
       expect(response.status).to.equal(200);
       expect(response.body.status).to.equal('assigned');
       expect(response.body.assigned_to).to.equal('tech@company.com');
@@ -255,7 +258,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
         .send({
           priority: 'high'
         });
-      
+
       expect(response.status).to.equal(200);
       expect(response.body.priority).to.equal('high');
     });
@@ -271,7 +274,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
           author_email: 'tech@company.com',
           is_internal: false
         });
-      
+
       expect(response.status).to.equal(201);
       expect(response.body.comment).to.equal('Started working on this request');
       expect(response.body.is_internal).to.equal(false);
@@ -286,7 +289,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
           author_email: 'tech@company.com',
           is_internal: true
         });
-      
+
       expect(response.status).to.equal(201);
       expect(response.body.is_internal).to.equal(true);
     });
@@ -295,7 +298,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
       const response = await request(app)
         .get(`/api/tickets/${testTicketId}/comments`)
         .set('Authorization', `Bearer ${authToken}`);
-      
+
       expect(response.status).to.equal(200);
       expect(response.body).to.be.an('array');
       expect(response.body.length).to.be.greaterThan(0);
@@ -307,7 +310,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
       const response = await request(app)
         .get('/api/tickets/export/csv')
         .set('Authorization', `Bearer ${authToken}`);
-      
+
       expect(response.status).to.equal(200);
       expect(response.headers['content-type']).to.include('text/csv');
       expect(response.headers['content-disposition']).to.include('attachment');
@@ -317,7 +320,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
       const response = await request(app)
         .get('/api/tickets/export/csv?type=incident&priority=critical')
         .set('Authorization', `Bearer ${authToken}`);
-      
+
       expect(response.status).to.equal(200);
       expect(response.headers['content-type']).to.include('text/csv');
     });
@@ -335,7 +338,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
           tags: ['password', 'reset', 'user'],
           status: 'published'
         });
-      
+
       expect(response.status).to.equal(201);
       expect(response.body.title).to.equal('How to Reset Password');
       testKBArticleId = response.body.id;
@@ -345,7 +348,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
       const response = await request(app)
         .get('/api/knowledge-base')
         .set('Authorization', `Bearer ${authToken}`);
-      
+
       expect(response.status).to.equal(200);
       expect(response.body).to.be.an('array');
     });
@@ -354,7 +357,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
       const response = await request(app)
         .get(`/api/knowledge-base/${testKBArticleId}`)
         .set('Authorization', `Bearer ${authToken}`);
-      
+
       expect(response.status).to.equal(200);
       expect(response.body.id).to.equal(testKBArticleId);
     });
@@ -367,7 +370,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
           title: 'How to Reset Password - Updated',
           content: 'Updated step-by-step guide...'
         });
-      
+
       expect(response.status).to.equal(200);
       expect(response.body.title).to.equal('How to Reset Password - Updated');
     });
@@ -376,7 +379,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
       const response = await request(app)
         .get('/api/knowledge-base?search=password')
         .set('Authorization', `Bearer ${authToken}`);
-      
+
       expect(response.status).to.equal(200);
       expect(response.body.length).to.be.greaterThan(0);
     });
@@ -385,7 +388,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
       const response = await request(app)
         .get('/api/knowledge-base?category=User Management')
         .set('Authorization', `Bearer ${authToken}`);
-      
+
       expect(response.status).to.equal(200);
       response.body.forEach(article => {
         expect(article.category).to.equal('User Management');
@@ -398,7 +401,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
       const response = await request(app)
         .get('/api/dashboard/summary')
         .set('Authorization', `Bearer ${authToken}`);
-      
+
       expect(response.status).to.equal(200);
       expect(response.body).to.have.property('total_tickets');
       expect(response.body).to.have.property('open_tickets');
@@ -410,7 +413,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
       const response = await request(app)
         .get('/api/dashboard/summary')
         .set('Authorization', `Bearer ${authToken}`);
-      
+
       expect(response.status).to.equal(200);
       expect(response.body.ticket_trends).to.be.an('array');
       expect(response.body).to.have.property('sla_performance');
@@ -423,7 +426,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
       const response = await request(app)
         .get('/api/devices')
         .set('Authorization', `Bearer ${authToken}`);
-      
+
       expect(response.status).to.equal(200);
       expect(response.body).to.be.an('array');
     });
@@ -432,7 +435,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
       const response = await request(app)
         .get('/api/agents')
         .set('Authorization', `Bearer ${authToken}`);
-      
+
       expect(response.status).to.equal(200);
       expect(response.body).to.be.an('array');
     });
@@ -443,7 +446,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
       const response = await request(app)
         .get('/api/alerts')
         .set('Authorization', `Bearer ${authToken}`);
-      
+
       expect(response.status).to.equal(200);
       expect(response.body).to.be.an('array');
     });
@@ -453,7 +456,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
     it('should validate SLA response times', async () => {
       // Create high priority ticket and measure response
       const startTime = Date.now();
-      
+
       const response = await request(app)
         .post('/api/tickets')
         .set('Authorization', `Bearer ${authToken}`)
@@ -467,16 +470,16 @@ describe('Service Desk - Comprehensive Test Suite', () => {
           impact: 'critical',
           urgency: 'critical'
         });
-      
+
       const responseTime = Date.now() - startTime;
-      
+
       expect(response.status).to.equal(201);
       expect(responseTime).to.be.lessThan(5000); // 5 second max response
     });
 
     it('should handle concurrent ticket creation', async () => {
       const promises = [];
-      
+
       for (let i = 0; i < 5; i++) {
         promises.push(
           request(app)
@@ -492,9 +495,9 @@ describe('Service Desk - Comprehensive Test Suite', () => {
             })
         );
       }
-      
+
       const responses = await Promise.all(promises);
-      
+
       responses.forEach(response => {
         expect(response.status).to.equal(201);
         expect(response.body.ticket_number).to.match(/REQ-\d{4}-\d{3}/);
@@ -507,7 +510,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
       const response = await request(app)
         .get('/api/tickets/invalid-id')
         .set('Authorization', `Bearer ${authToken}`);
-      
+
       expect(response.status).to.equal(404);
     });
 
@@ -519,7 +522,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
           type: 'request'
           // Missing required fields
         });
-      
+
       expect(response.status).to.equal(400);
     });
 
@@ -527,7 +530,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
       const response = await request(app)
         .get('/api/tickets')
         // No auth token
-        
+
       expect(response.status).to.equal(401);
     });
 
@@ -542,7 +545,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
           priority: 'medium',
           requester_email: 'user@company.com'
         });
-      
+
       expect(response.status).to.equal(400);
     });
 
@@ -557,7 +560,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
           priority: 'invalid_priority',
           requester_email: 'user@company.com'
         });
-      
+
       expect(response.status).to.equal(400);
     });
   });
@@ -576,18 +579,18 @@ describe('Service Desk - Comprehensive Test Suite', () => {
           requester_email: 'user@company.com',
           category: 'Testing'
         });
-      
+
       const ticketId = createResponse.body.id;
-      
+
       // Test state progression: new -> assigned -> in_progress -> resolved
       const states = ['assigned', 'in_progress', 'resolved'];
-      
+
       for (const state of states) {
         const response = await request(app)
           .put(`/api/tickets/${ticketId}`)
           .set('Authorization', `Bearer ${authToken}`)
           .send({ status: state });
-        
+
         expect(response.status).to.equal(200);
         expect(response.body.status).to.equal(state);
       }
@@ -609,15 +612,15 @@ describe('Service Desk - Comprehensive Test Suite', () => {
           risk_level: 'low',
           approval_status: 'pending'
         });
-      
+
       const ticketId = createResponse.body.id;
-      
+
       // Approve change
       const approveResponse = await request(app)
         .put(`/api/tickets/${ticketId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ approval_status: 'approved' });
-      
+
       expect(approveResponse.status).to.equal(200);
       expect(approveResponse.body.approval_status).to.equal('approved');
     });
@@ -626,7 +629,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
   describe('Data Integrity & Validation', () => {
     it('should generate unique ticket numbers', async () => {
       const ticketNumbers = new Set();
-      
+
       for (let i = 0; i < 3; i++) {
         const response = await request(app)
           .post('/api/tickets')
@@ -638,11 +641,11 @@ describe('Service Desk - Comprehensive Test Suite', () => {
             priority: 'low',
             requester_email: 'user@company.com'
           });
-        
+
         expect(response.status).to.equal(201);
         ticketNumbers.add(response.body.ticket_number);
       }
-      
+
       expect(ticketNumbers.size).to.equal(3);
     });
 
@@ -657,7 +660,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
           priority: 'medium',
           requester_email: 'invalid-email-format'
         });
-      
+
       expect(response.status).to.equal(400);
     });
   });
@@ -670,7 +673,7 @@ describe('Service Desk - Comprehensive Test Suite', () => {
         .delete(`/api/tickets/${testTicketId}`)
         .set('Authorization', `Bearer ${authToken}`);
     }
-    
+
     // Delete test KB article
     if (testKBArticleId) {
       await request(app)
@@ -679,3 +682,5 @@ describe('Service Desk - Comprehensive Test Suite', () => {
     }
   });
 });
+```Fixes the import path in the test file to correctly reference the TypeScript server entry point.
+`
