@@ -10,6 +10,7 @@ import {
   type KnowledgeBaseArticle,
   type NewKnowledgeBaseArticle
 } from "@shared/ticket-schema";
+import { auditLog } from "@shared/admin-schema";
 import { eq, desc, and, or, like, sql, count } from "drizzle-orm";
 
 interface TicketFilters {
@@ -49,7 +50,7 @@ export class TicketStorage {
   }
 
   // CRUD Operations for Tickets
-  async createTicket(ticketData: Omit<NewTicket, 'ticket_number'>): Promise<Ticket> {
+  async createTicket(ticketData: Omit<NewTicket, 'ticket_number'>, userEmail?: string): Promise<Ticket> {
     const ticket_number = await this.generateTicketNumber(ticketData.type);
 
     const [newTicket] = await db
@@ -60,6 +61,9 @@ export class TicketStorage {
         status: "new"
       })
       .returning();
+
+    // Log audit event
+    await this.logAudit('ticket', newTicket.id, 'create', undefined, userEmail, null, newTicket);
 
     return newTicket;
   }
@@ -131,7 +135,10 @@ export class TicketStorage {
     return ticket || null;
   }
 
-  async updateTicket(id: string, updates: Partial<NewTicket>): Promise<Ticket | null> {
+  async updateTicket(id: string, updates: Partial<NewTicket>, userEmail?: string): Promise<Ticket | null> {
+    // Get old values for audit
+    const oldTicket = await this.getTicketById(id);
+
     const [updatedTicket] = await db
       .update(tickets)
       .set({
@@ -140,6 +147,11 @@ export class TicketStorage {
       })
       .where(eq(tickets.id, id))
       .returning();
+
+    if (updatedTicket && oldTicket) {
+      // Log audit event
+      await this.logAudit('ticket', id, 'update', undefined, userEmail, oldTicket, updatedTicket);
+    }
 
     return updatedTicket || null;
   }
@@ -299,6 +311,54 @@ export class TicketStorage {
     ];
 
     return csvRows.join('\n');
+  }
+
+  // Audit logging functionality
+  async logAudit(
+    entityType: string,
+    entityId: string,
+    action: string,
+    userId?: string,
+    userEmail?: string,
+    oldValues?: any,
+    newValues?: any
+  ) {
+    try {
+      const changes = this.calculateChanges(oldValues, newValues);
+      
+      await db.insert(auditLog).values({
+        entity_type: entityType,
+        entity_id: entityId,
+        action: action,
+        user_id: userId || null,
+        user_email: userEmail || null,
+        old_values: oldValues ? JSON.stringify(oldValues) : null,
+        new_values: newValues ? JSON.stringify(newValues) : null,
+        changes: changes ? JSON.stringify(changes) : null,
+        ip_address: null,
+        user_agent: null
+      });
+    } catch (error) {
+      console.error("Error logging audit event:", error);
+    }
+  }
+
+  private calculateChanges(oldValues: any, newValues: any): any {
+    if (!oldValues || !newValues) return null;
+
+    const changes: any = {};
+    const allKeys = new Set([...Object.keys(oldValues), ...Object.keys(newValues)]);
+
+    for (const key of allKeys) {
+      if (oldValues[key] !== newValues[key]) {
+        changes[key] = {
+          from: oldValues[key],
+          to: newValues[key]
+        };
+      }
+    }
+
+    return Object.keys(changes).length > 0 ? changes : null;
   }
 
   // Device delete operation

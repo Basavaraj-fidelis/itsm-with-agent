@@ -17,6 +17,7 @@ import {
   ticketAttachments,
   knowledgeBase,
 } from "@shared/ticket-schema";
+import { auditLog } from "@shared/admin-schema";
 import { eq, desc, gte, and, sql, or, like, count } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
@@ -944,7 +945,8 @@ netsh int ip reset
 
 ### Overheating While Charging
 - **Clean Vents**: Use compressed air to clear dust from cooling vents
-- **Hard Surface**: Use laptop on hard, flat surface for airflow
+- **Hard Surface**: Use laptop on hard, flat surface```text
+ for airflow
 - **Reduce Load**: Close intensive programs whilecharging
 - **Contact IT**: If overheating persists, hardware inspection needed
 
@@ -2753,6 +2755,143 @@ smartphones
       offline_devices: offlineDevices,
       active_alerts: activeAlerts.length,
     };
+  }
+
+  // Audit logging functionality
+  async logAudit(
+    entityType: string,
+    entityId: string,
+    action: string,
+    userId?: string,
+    userEmail?: string,
+    oldValues?: any,
+    newValues?: any,
+    ipAddress?: string,
+    userAgent?: string
+  ) {
+    try {
+      const changes = this.calculateChanges(oldValues, newValues);
+
+      await db.insert(auditLog).values({
+        entity_type: entityType,
+        entity_id: entityId,
+        action: action,
+        user_id: userId || null,
+        user_email: userEmail || null,
+        old_values: oldValues ? JSON.stringify(oldValues) : null,
+        new_values: newValues ? JSON.stringify(newValues) : null,
+        changes: changes ? JSON.stringify(changes) : null,
+        ip_address: ipAddress || null,
+        user_agent: userAgent || null
+      });
+    } catch (error) {
+      console.error("Error logging audit event:", error);
+      // Don't throw - audit logging shouldn't break main functionality
+    }
+  }
+
+  private calculateChanges(oldValues: any, newValues: any): any {
+    if (!oldValues || !newValues) return null;
+
+    const changes: any = {};
+    const allKeys = new Set([...Object.keys(oldValues), ...Object.keys(newValues)]);
+
+    for (const key of allKeys) {
+      if (oldValues[key] !== newValues[key]) {
+        changes[key] = {
+          from: oldValues[key],
+          to: newValues[key]
+        };
+      }
+    }
+
+    return Object.keys(changes).length > 0 ? changes : null;
+  }
+
+  async getAuditLog(page: number = 1, limit: number = 50, filters: {
+    entityType?: string;
+    entityId?: string;
+    userId?: string;
+    action?: string;
+    startDate?: Date;
+    endDate?: Date;
+  } = {}) {
+    const offset = (page - 1) * limit;
+    const conditions = [];
+
+    if (filters.entityType) {
+      conditions.push(eq(auditLog.entity_type, filters.entityType));
+    }
+    if (filters.entityId) {
+      conditions.push(eq(auditLog.entity_id, filters.entityId));
+    }
+    if (filters.userId) {
+      conditions.push(eq(auditLog.user_id, filters.userId));
+    }
+    if (filters.action) {
+      conditions.push(eq(auditLog.action, filters.action));
+    }
+    if (filters.startDate) {
+      conditions.push(sql`${auditLog.timestamp} >= ${filters.startDate}`);
+    }
+    if (filters.endDate) {
+      conditions.push(sql`${auditLog.timestamp} <= ${filters.endDate}`);
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [{ total }] = await db
+      .select({ total: count() })
+      .from(auditLog)
+      .where(whereClause);
+
+    const data = await db
+      .select()
+      .from(auditLog)
+      .where(whereClause)
+      .orderBy(desc(auditLog.timestamp))
+      .limit(limit)
+      .offset(offset);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    };
+  }
+
+  // Export functionality
+  async exportDevicesCSV(): Promise<string> {
+    const devices = await this.getDevices();
+
+    const headers = [
+      'Hostname',
+      'Assigned User',
+      'OS Name',
+      'OS Version',
+      'IP Address',
+      'Status',
+      'Last Seen',
+      'Created At'
+    ];
+
+    const csvRows = [
+      headers.join(','),
+      ...devices.map(device => [
+        device.hostname,
+        device.assigned_user || '',
+        device.os_name || '',
+        device.os_version || '',
+        device.ip_address || '',
+        device.status || '',
+        device.last_seen?.toISOString() || '',
+        device.created_at?.toISOString() || ''
+      ].join(','))
+    ];
+
+    return csvRows.join('\n');
   }
 }
 
