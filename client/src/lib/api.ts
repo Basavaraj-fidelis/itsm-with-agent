@@ -142,8 +142,8 @@ class ApiClient {
   private baseURL: string;
 
   constructor() {
-    // Use relative URLs in production, full URLs in development
-    this.baseURL = import.meta.env.DEV ? 'http://localhost:5000' : '';
+    // Use relative URLs for Replit to avoid localhost issues
+    this.baseURL = '';
   }
 
   private async request(url: string, options: RequestInit = {}): Promise<Response> {
