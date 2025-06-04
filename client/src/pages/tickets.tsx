@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -125,11 +124,11 @@ export default function Tickets() {
       if (searchTerm && searchTerm.trim()) params.append("search", searchTerm.trim());
 
       const response = await api.get(`/api/tickets?${params}`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
 
       // Handle both array and paginated response formats
@@ -185,7 +184,7 @@ export default function Tickets() {
     setLoading(true);
     try {
       const response = await api.post('/api/tickets', newTicketData);
-      
+
       if (response.ok) {
         const newTicket = await response.json();
         setTickets(prev => [newTicket, ...prev]);
@@ -222,7 +221,7 @@ export default function Tickets() {
   const handleUpdateTicketStatus = async (ticketId: string, newStatus: string) => {
     try {
       const response = await api.put(`/api/tickets/${ticketId}`, { status: newStatus });
-      
+
       if (response.ok) {
         const updatedTicket = await response.json();
         setTickets(prev => prev.map(ticket => 
@@ -690,7 +689,7 @@ export default function Tickets() {
                 {filteredTickets.map((ticket) => {
                   const IconComponent = typeIcons[ticket.type as keyof typeof typeIcons];
                   const isOverdue = ticket.due_date && new Date(ticket.due_date) < new Date();
-                  
+
                   return (
                     <Card 
                       key={ticket.id} 

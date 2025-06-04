@@ -79,21 +79,33 @@ export default function Dashboard() {
 
   // Helper functions for ticket analytics
   const getTicketDistribution = () => {
-    const distribution = tickets.reduce((acc, ticket) => {
+    // Only count active tickets (not resolved, closed, or cancelled)
+    const activeTickets = tickets.filter(ticket => 
+      !['resolved', 'closed', 'cancelled'].includes(ticket.status)
+    );
+    
+    const distribution = activeTickets.reduce((acc, ticket) => {
       acc[ticket.type] = (acc[ticket.type] || 0) + 1;
       return acc;
     }, {});
 
+    const totalActive = activeTickets.length;
+
     return [
-      { type: "Incidents", count: distribution.incident || 0, color: "bg-red-500", percentage: Math.round(((distribution.incident || 0) / tickets.length) * 100) || 0 },
-      { type: "Requests", count: distribution.request || 0, color: "bg-green-500", percentage: Math.round(((distribution.request || 0) / tickets.length) * 100) || 0 },
-      { type: "Problems", count: distribution.problem || 0, color: "bg-orange-500", percentage: Math.round(((distribution.problem || 0) / tickets.length) * 100) || 0 },
-      { type: "Changes", count: distribution.change || 0, color: "bg-blue-500", percentage: Math.round(((distribution.change || 0) / tickets.length) * 100) || 0 },
+      { type: "Incidents", count: distribution.incident || 0, color: "bg-red-500", percentage: totalActive > 0 ? Math.round(((distribution.incident || 0) / totalActive) * 100) : 0 },
+      { type: "Requests", count: distribution.request || 0, color: "bg-green-500", percentage: totalActive > 0 ? Math.round(((distribution.request || 0) / totalActive) * 100) : 0 },
+      { type: "Problems", count: distribution.problem || 0, color: "bg-orange-500", percentage: totalActive > 0 ? Math.round(((distribution.problem || 0) / totalActive) * 100) : 0 },
+      { type: "Changes", count: distribution.change || 0, color: "bg-blue-500", percentage: totalActive > 0 ? Math.round(((distribution.change || 0) / totalActive) * 100) : 0 },
     ];
   };
 
   const getTicketStatusDistribution = () => {
-    const statusDistribution = tickets.reduce((acc, ticket) => {
+    // Only count active tickets for status distribution
+    const activeTickets = tickets.filter(ticket => 
+      !['resolved', 'closed', 'cancelled'].includes(ticket.status)
+    );
+    
+    const statusDistribution = activeTickets.reduce((acc, ticket) => {
       acc[ticket.status] = (acc[ticket.status] || 0) + 1;
       return acc;
     }, {});
@@ -102,7 +114,7 @@ export default function Dashboard() {
       { status: "New", count: statusDistribution.new || 0, color: "bg-blue-500", urgency: "normal" },
       { status: "In Progress", count: statusDistribution.in_progress || 0, color: "bg-yellow-500", urgency: "normal" },
       { status: "Pending", count: statusDistribution.pending || 0, color: "bg-orange-500", urgency: "attention" },
-      { status: "Resolved", count: statusDistribution.resolved || 0, color: "bg-green-500", urgency: "normal" },
+      { status: "Assigned", count: statusDistribution.assigned || 0, color: "bg-purple-500", urgency: "normal" },
     ];
   };
 
@@ -291,6 +303,9 @@ export default function Dashboard() {
                 <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
                   {tickets.filter(t => !['resolved', 'closed', 'cancelled'].includes(t.status)).length} Open
                 </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {tickets.filter(t => ['resolved', 'closed', 'cancelled'].includes(t.status)).length} Resolved
+                </div>
               </div>
             </div>
           </div>
@@ -354,9 +369,9 @@ export default function Dashboard() {
         {/* Ticket Distribution by Type */}
         <Card className="bg-white dark:bg-gray-800 shadow-lg border-0 rounded-xl overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-600 border-b border-gray-200 dark:border-gray-600">
-            <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Ticket Distribution</CardTitle>
+            <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Active Ticket Distribution</CardTitle>
             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-              Breakdown by ticket type
+              Breakdown by ticket type (open tickets only)
             </p>
           </CardHeader>
           <CardContent className="p-6">
@@ -385,9 +400,9 @@ export default function Dashboard() {
         {/* Ticket Status Overview */}
         <Card className="bg-white dark:bg-gray-800 shadow-lg border-0 rounded-xl overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-600 border-b border-gray-200 dark:border-gray-600">
-            <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Ticket Status</CardTitle>
+            <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Active Ticket Status</CardTitle>
             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-              Current ticket statuses
+              Status of open tickets only
             </p>
           </CardHeader>
           <CardContent className="p-6">
