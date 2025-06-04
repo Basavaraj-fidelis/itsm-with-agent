@@ -1,14 +1,7 @@
-
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { 
-  Settings, 
-  Monitor, 
-  Bell, 
-  Shield, 
-  Clock, 
-  Server
-} from "lucide-react";
+import { Settings, Monitor, Bell, Shield, Clock, Server } from "lucide-react";
+import { useLocation } from "wouter";
 
 interface SettingsSidebarProps {
   activeTab: string;
@@ -55,8 +48,10 @@ export default function SettingsSidebar({ activeTab, onTabChange }: SettingsSide
     }
   ];
 
+  const [, setLocation] = useLocation();
+
   return (
-    <div className="w-64 bg-white dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-700 h-full">
+    <div className="w-64 bg-white dark:bg-neutral-800 border-r border-neutral-200 dark:border-neutral-700 h-full">
       <div className="p-4 border-b border-neutral-200 dark:border-neutral-700">
         <h2 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200">
           Settings
@@ -65,13 +60,13 @@ export default function SettingsSidebar({ activeTab, onTabChange }: SettingsSide
           System configuration
         </p>
       </div>
-      
+
       <nav className="p-4">
         <ul className="space-y-2">
           {settingsNavigation.map((item) => (
             <li key={item.id}>
               <button
-                onClick={() => onTabChange(item.id)}
+                onClick={() => setLocation(`/settings/${item.id}`)}
                 className={cn(
                   "w-full flex items-start space-x-3 p-3 rounded-lg text-left transition-colors",
                   activeTab === item.id
