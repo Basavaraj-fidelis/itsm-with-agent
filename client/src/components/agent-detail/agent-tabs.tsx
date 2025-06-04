@@ -165,14 +165,25 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
     const fetchUSBHistory = async () => {
       try {
         const token = localStorage.getItem('token');
+        if (!token) {
+          console.warn('No authentication token found');
+          return;
+        }
+
         const response = await fetch(`/api/devices/${agent.id}/usb-devices`, {
           headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
         });
+        
         if (response.ok) {
           const data = await response.json();
           setUsbHistory(data);
+        } else if (response.status === 403) {
+          console.warn('Access forbidden for USB devices endpoint');
+        } else {
+          console.error('Failed to fetch USB devices:', response.status, response.statusText);
         }
       } catch (error) {
         console.error('Error fetching USB history:', error);

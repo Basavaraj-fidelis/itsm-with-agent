@@ -2348,56 +2348,94 @@ smartphones
   }
 
   async getUSBDevicesForDevice(deviceId: string): Promise<any[]> {
-    // Implementation for DatabaseStorage
-    // You would need to adjust this based on your database schema
-    // and how you store USB device information.  Since the original
-    // MemStorage example used JSON.stringify and JSON.parse, I'm
-    // assuming you have a similar structure in your database.
-    //
-    // Example using Drizzle ORM:
-    // const result = await db
-    //   .select()
-    //   .from(usb_devices) // Assuming you have a 'usb_devices' table
-    //   .where(eq(usb_devices.device_id, deviceId))
-    //   .orderBy(desc(usb_devices.last_seen));
-    //
-    // return result;
-    return []; // Placeholder, replace with actual implementation
+    try {
+      const { db } = await import("./db");
+      const { usb_devices } = await import("../shared/schema");
+      const { eq, desc } = await import("drizzle-orm");
+
+      const result = await db
+        .select()
+        .from(usb_devices)
+        .where(eq(usb_devices.device_id, deviceId))
+        .orderBy(desc(usb_devices.last_seen));
+
+      return result;
+    } catch (error) {
+      console.error("Error fetching USB devices for device:", error);
+      return [];
+    }
   }
 
   async updateUSBDevices(deviceId: string, usbDevices: any[]): Promise<void> {
-    // Implementation for DatabaseStorage
-    // This is a complex operation that needs to handle:
-    // 1. Marking existing devices as disconnected if they are not present in the new report
-    // 2. Updating existing devices with new information
-    // 3. Inserting new devices that were not previously known
-    //
-    // This implementation is a placeholder and you will need to adapt
-    // it to your specific database schema and data structures.
-    //
-    // Example using Drizzle ORM (conceptual):
-    // 1. Mark all existing devices as disconnected:
-    //    await db.update(usb_devices).set({ is_connected: false }).where(eq(usb_devices.device_id, deviceId));
-    //
-    // 2. Iterate through the usbDevices array:
-    //    for (const device of usbDevices) {
-    //      // Try to find the device in the database
-    //      const existingDevice = await db.select().from(usb_devices).where(
-    //        and(
-    //          eq(usb_devices.device_id, deviceId),
-    //          eq(usb_devices.device_identifier, deviceIdentifier) // You'll need a way to uniquely identify the device
-    //        )
-    //      );
-    //
-    //      if (existingDevice.length > 0) {
-    //        // Update the existing device
-    //        await db.update(usb_devices).set({ ...device, last_seen: new Date(), is_connected: true }).where(eq(usb_devices.id, existingDevice[0].id));
-    //      } else {
-    //        // Insert the new device
-    //        await db.insert(usb_devices).values({ ...device, device_id: deviceId, first_seen: new Date(), last_seen: new Date(), is_connected: true });
-    //      }
-    //    }
-    console.warn("updateUSBDevices is not fully implemented for DatabaseStorage");
+    try {
+      const { db } = await import("./db");
+      const { usb_devices } = await import("../shared/schema");
+      const { eq, and } = await import("drizzle-orm");
+
+      // First, mark all existing devices for this device as disconnected
+      await db.update(usb_devices)
+        .set({ is_connected: false, last_seen: new Date() })
+        .where(eq(usb_devices.device_id, deviceId));
+
+      // Process each USB device from the current report
+      for (const device of usbDevices) {
+        // Create a unique identifier for the device (prefer vendor_id:product_id combo or serial)
+        const deviceIdentifier = device.vendor_id && device.product_id 
+          ? `${device.vendor_id}:${device.product_id}:${device.serial_number || 'no-serial'}`
+          : device.device_id || device.serial_number || `unknown-${Date.now()}`;
+
+        // Check if this device already exists
+        const existingDevices = await db.select()
+          .from(usb_devices)
+          .where(
+            and(
+              eq(usb_devices.device_id, deviceId),
+              eq(usb_devices.device_identifier, deviceIdentifier)
+            )
+          );
+
+        if (existingDevices.length > 0) {
+          // Update existing device - mark as connected and update last seen
+          await db.update(usb_devices)
+            .set({
+              description: device.description || device.name,
+              vendor_id: device.vendor_id,
+              product_id: device.product_id,
+              manufacturer: device.manufacturer,
+              serial_number: device.serial_number,
+              device_class: device.device_class || device.class,
+              location: device.location,
+              speed: device.speed,
+              last_seen: new Date(),
+              is_connected: true,
+              raw_data: device
+            })
+            .where(eq(usb_devices.id, existingDevices[0].id));
+        } else {
+          // Insert new device
+          await db.insert(usb_devices).values({
+            device_id: deviceId,
+            device_identifier: deviceIdentifier,
+            description: device.description || device.name,
+            vendor_id: device.vendor_id,
+            product_id: device.product_id,
+            manufacturer: device.manufacturer,
+            serial_number: device.serial_number,
+            device_class: device.device_class || device.class,
+            location: device.location,
+            speed: device.speed,
+            first_seen: new Date(),
+            last_seen: new Date(),
+            is_connected: true,
+            raw_data: device
+          });
+        }
+      }
+
+      console.log(`Updated USB devices for device ${deviceId}: ${usbDevices.length} devices processed`);
+    } catch (error) {
+      console.error("Error updating USB devices:", error);
+    }
   }
 
   // Knowledge Base methods - Database storage
