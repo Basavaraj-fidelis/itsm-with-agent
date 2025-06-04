@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,66 +24,15 @@ import {
   MoreVertical,
   X,
   Download,
-  Workflow
+  Workflow,
+  TrendingUp,
+  CheckCircle,
+  UserCheck,
+  FileText
 } from "lucide-react";
 import ServiceDeskWorkflows from "@/components/tickets/service-desk-workflows";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-
-// Mock ticket data
-const mockTickets = [
-  {
-    id: "1",
-    ticket_number: "REQ-2024-001",
-    type: "request",
-    title: "New Software Installation Request",
-    description: "Request to install Microsoft Office 365 on workstation",
-    priority: "medium",
-    status: "new",
-    requester_email: "john.doe@company.com",
-    assigned_to: "it-support@company.com",
-    created_at: "2024-01-15T10:30:00Z",
-    due_date: "2024-01-20T17:00:00Z"
-  },
-  {
-    id: "2",
-    ticket_number: "INC-2024-001",
-    type: "incident",
-    title: "Email Server Down",
-    description: "Users unable to access email services",
-    priority: "critical",
-    status: "in_progress",
-    requester_email: "jane.smith@company.com",
-    assigned_to: "network-team@company.com",
-    created_at: "2024-01-15T08:15:00Z",
-    due_date: "2024-01-15T12:00:00Z"
-  },
-  {
-    id: "3",
-    ticket_number: "PRB-2024-001",
-    type: "problem",
-    title: "Recurring Network Timeouts",
-    description: "Multiple incidents of network connectivity issues",
-    priority: "high",
-    status: "assigned",
-    requester_email: "system@company.com",
-    assigned_to: "senior-engineer@company.com",
-    created_at: "2024-01-14T14:20:00Z"
-  },
-  {
-    id: "4",
-    ticket_number: "CHG-2024-001",
-    type: "change",
-    title: "Server OS Update",
-    description: "Scheduled update of production servers to latest OS version",
-    priority: "medium",
-    status: "pending",
-    requester_email: "system-admin@company.com",
-    assigned_to: "change-team@company.com",
-    created_at: "2024-01-13T16:45:00Z",
-    scheduled_start: "2024-01-20T02:00:00Z",
-    scheduled_end: "2024-01-20T06:00:00Z"
-  }
-];
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { useToast } from "@/hooks/use-toast";
 
 const priorityColors = {
   low: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
@@ -117,16 +67,29 @@ interface NewTicketFormData {
   category: string;
 }
 
+interface TicketData {
+  id: string;
+  ticket_number: string;
+  type: string;
+  title: string;
+  description: string;
+  priority: string;
+  status: string;
+  requester_email: string;
+  assigned_to?: string;
+  created_at: string;
+  updated_at: string;
+  due_date?: string;
+  category?: string;
+}
+
 export default function Tickets() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedPriority, setSelectedPriority] = useState("all");
-  const [viewMode, setViewMode] = useState<"tickets" | "workflows">("tickets");
-  const [activeTab, setActiveTab] = useState("all");
-  const [filterPriority, setFilterPriority] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<"tickets" | "workflows" | "analytics">("tickets");
+  const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [showNewTicketDialog, setShowNewTicketDialog] = useState(false);
   const [showTicketDetailsDialog, setShowTicketDetailsDialog] = useState(false);
   const [newTicketData, setNewTicketData] = useState<NewTicketFormData>({
@@ -138,53 +101,125 @@ export default function Tickets() {
     category: ""
   });
 
-  const [tickets, setTickets] = useState(mockTickets);
+  const [tickets, setTickets] = useState<TicketData[]>([]);
   const [loading, setLoading] = useState(false);
+  const [totalTickets, setTotalTickets] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const { toast } = useToast();
+
+  // Fetch tickets from API
+  const fetchTickets = async (page = 1) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: "20"
+      });
+
+      if (selectedType !== "all") params.append("type", selectedType);
+      if (selectedStatus !== "all") params.append("status", selectedStatus);
+      if (selectedPriority !== "all") params.append("priority", selectedPriority);
+      if (searchTerm) params.append("search", searchTerm);
+
+      const response = await api.get(`/api/tickets?${params}`);
+      const data = await response.json();
+
+      setTickets(data.data || []);
+      setTotalTickets(data.total || 0);
+      setCurrentPage(data.page || 1);
+      setTotalPages(data.totalPages || 1);
+    } catch (error) {
+      console.error('Error fetching tickets:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch tickets",
+        variant: "destructive"
+      });
+      setTickets([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTickets(1);
+  }, [selectedType, selectedStatus, selectedPriority, searchTerm]);
 
   // Filter tickets based on current filters
-  const filteredTickets = tickets.filter(ticket => {
-    const matchesSearch = ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         ticket.ticket_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         ticket.requester_email.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesType = selectedType === "all" || ticket.type === selectedType;
-    const matchesStatus = selectedStatus === "all" || ticket.status === selectedStatus;
-    const matchesPriority = selectedPriority === "all" || ticket.priority === selectedPriority;
-
-    return matchesSearch && matchesType && matchesStatus && matchesPriority;
-  });
+  const filteredTickets = tickets;
 
   const handleCreateTicket = async () => {
     if (!newTicketData.title || !newTicketData.description || !newTicketData.requester_email) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
       return;
     }
 
     setLoading(true);
     try {
-      // Create new ticket
-      const newTicket = {
-        id: (tickets.length + 1).toString(),
-        ticket_number: `${newTicketData.type.toUpperCase().slice(0, 3)}-2024-${String(tickets.length + 1).padStart(3, '0')}`,
-        ...newTicketData,
-        status: "new",
-        created_at: new Date().toISOString(),
-        assigned_to: null
-      };
-
-      setTickets(prev => [newTicket, ...prev]);
-      setShowNewTicketDialog(false);
-      setNewTicketData({
-        type: "request",
-        title: "",
-        description: "",
-        priority: "medium",
-        requester_email: "",
-        category: ""
-      });
+      const response = await api.post('/api/tickets', newTicketData);
+      
+      if (response.ok) {
+        const newTicket = await response.json();
+        setTickets(prev => [newTicket, ...prev]);
+        setShowNewTicketDialog(false);
+        setNewTicketData({
+          type: "request",
+          title: "",
+          description: "",
+          priority: "medium",
+          requester_email: "",
+          category: ""
+        });
+        toast({
+          title: "Success",
+          description: `Ticket ${newTicket.ticket_number} created successfully`
+        });
+        fetchTickets(currentPage); // Refresh the list
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create ticket');
+      }
     } catch (error) {
       console.error('Error creating ticket:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create ticket",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdateTicketStatus = async (ticketId: string, newStatus: string) => {
+    try {
+      const response = await api.put(`/api/tickets/${ticketId}`, { status: newStatus });
+      
+      if (response.ok) {
+        const updatedTicket = await response.json();
+        setTickets(prev => prev.map(ticket => 
+          ticket.id === ticketId ? updatedTicket : ticket
+        ));
+        if (selectedTicket && selectedTicket.id === ticketId) {
+          setSelectedTicket(updatedTicket);
+        }
+        toast({
+          title: "Success",
+          description: `Ticket status updated to ${newStatus.replace('_', ' ')}`
+        });
+      }
+    } catch (error) {
+      console.error('Error updating ticket:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update ticket status",
+        variant: "destructive"
+      });
     }
   };
 
@@ -198,7 +233,7 @@ export default function Tickets() {
     });
   };
 
-  // Calculate chart data
+  // Calculate analytics data
   const getTicketsByType = () => {
     const typeCounts = tickets.reduce((acc, ticket) => {
       acc[ticket.type] = (acc[ticket.type] || 0) + 1;
@@ -243,52 +278,101 @@ export default function Tickets() {
     }));
   };
 
-  const renderWorkflowActions = (ticket: any) => {
-    // Mock workflow actions based on ticket status
+  const getSLAMetrics = () => {
+    const openTickets = tickets.filter(t => !['resolved', 'closed', 'cancelled'].includes(t.status));
+    const slaViolations = openTickets.filter(t => {
+      if (!t.due_date) return false;
+      return new Date(t.due_date) < new Date();
+    });
+
+    return {
+      totalOpen: openTickets.length,
+      slaViolations: slaViolations.length,
+      slaCompliance: openTickets.length > 0 ? 
+        Math.round(((openTickets.length - slaViolations.length) / openTickets.length) * 100) : 100
+    };
+  };
+
+  const renderWorkflowActions = (ticket: TicketData) => {
     const actions = [];
 
     switch (ticket.status) {
       case "new":
         actions.push(
-          <Button key="assign" variant="default" size="sm">
+          <Button 
+            key="assign" 
+            variant="default" 
+            size="sm"
+            onClick={() => handleUpdateTicketStatus(ticket.id, "assigned")}
+          >
             Assign to Self
           </Button>
         );
         actions.push(
-          <Button key="in_progress" variant="outline" size="sm">
+          <Button 
+            key="in_progress" 
+            variant="outline" 
+            size="sm"
+            onClick={() => handleUpdateTicketStatus(ticket.id, "in_progress")}
+          >
             Mark as In Progress
           </Button>
         );
         break;
       case "assigned":
         actions.push(
-          <Button key="in_progress" variant="default" size="sm">
+          <Button 
+            key="in_progress" 
+            variant="default" 
+            size="sm"
+            onClick={() => handleUpdateTicketStatus(ticket.id, "in_progress")}
+          >
             Mark as In Progress
           </Button>
         );
         break;
       case "in_progress":
         actions.push(
-          <Button key="pending" variant="outline" size="sm">
+          <Button 
+            key="pending" 
+            variant="outline" 
+            size="sm"
+            onClick={() => handleUpdateTicketStatus(ticket.id, "pending")}
+          >
             Mark as Pending
           </Button>
         );
         actions.push(
-          <Button key="resolved" variant="default" size="sm">
+          <Button 
+            key="resolved" 
+            variant="default" 
+            size="sm"
+            onClick={() => handleUpdateTicketStatus(ticket.id, "resolved")}
+          >
             Mark as Resolved
           </Button>
         );
         break;
       case "pending":
         actions.push(
-          <Button key="in_progress" variant="outline" size="sm">
+          <Button 
+            key="in_progress" 
+            variant="outline" 
+            size="sm"
+            onClick={() => handleUpdateTicketStatus(ticket.id, "in_progress")}
+          >
             Mark as In Progress
           </Button>
         );
         break;
       case "resolved":
         actions.push(
-          <Button key="closed" variant="default" size="sm">
+          <Button 
+            key="closed" 
+            variant="default" 
+            size="sm"
+            onClick={() => handleUpdateTicketStatus(ticket.id, "closed")}
+          >
             Close Ticket
           </Button>
         );
@@ -300,15 +384,19 @@ export default function Tickets() {
     return actions;
   };
 
+  const slaMetrics = getSLAMetrics();
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-[#201F1E] dark:text-[#F3F2F1] mb-2">
+          <h1 className="text-3xl font-bold text-[#201F1E] dark:text-[#F3F2F1] mb-2">
             Service Desk
           </h1>
-          <p className="text-neutral-600">Manage tickets and service workflows</p>
+          <p className="text-neutral-600 dark:text-neutral-400">
+            Manage tickets, workflows, and service analytics
+          </p>
         </div>
 
         <div className="flex items-center space-x-2">
@@ -328,6 +416,14 @@ export default function Tickets() {
             <Workflow className="w-4 h-4 mr-2" />
             Workflows
           </Button>
+          <Button
+            variant={viewMode === "analytics" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("analytics")}
+          >
+            <TrendingUp className="w-4 h-4 mr-2" />
+            Analytics
+          </Button>
           {viewMode === "tickets" && (
             <Button onClick={() => setShowNewTicketDialog(true)}>
               <Plus className="w-4 h-4 mr-2" />
@@ -337,121 +433,165 @@ export default function Tickets() {
         </div>
       </div>
 
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Total Tickets</p>
+                <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">{totalTickets}</p>
+              </div>
+              <FileText className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-green-600 dark:text-green-400">Open Tickets</p>
+                <p className="text-3xl font-bold text-green-900 dark:text-green-100">{slaMetrics.totalOpen}</p>
+              </div>
+              <AlertTriangle className="h-8 w-8 text-green-600 dark:text-green-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-orange-200">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-orange-600 dark:text-orange-400">SLA Violations</p>
+                <p className="text-3xl font-bold text-orange-900 dark:text-orange-100">{slaMetrics.slaViolations}</p>
+              </div>
+              <Clock className="h-8 w-8 text-orange-600 dark:text-orange-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-purple-600 dark:text-purple-400">SLA Compliance</p>
+                <p className="text-3xl font-bold text-purple-900 dark:text-purple-100">{slaMetrics.slaCompliance}%</p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {viewMode === "workflows" ? (
         <ServiceDeskWorkflows />
+      ) : viewMode === "analytics" ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Analytics Charts */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Ticket Distribution by Type</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={getTicketsByType()}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={120}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {getTicketsByType().map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Status Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={getTicketsByStatus()}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" fontSize={12} />
+                  <YAxis fontSize={12} />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#3b82f6" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Priority Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={getTicketsByPriority()}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={120}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {getTicketsByPriority().map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>SLA Performance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Compliance Rate</span>
+                  <span className="text-2xl font-bold text-green-600">{slaMetrics.slaCompliance}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-green-600 h-2 rounded-full" 
+                    style={{ width: `${slaMetrics.slaCompliance}%` }}
+                  ></div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-600">On Time</p>
+                    <p className="text-lg font-semibold">{slaMetrics.totalOpen - slaMetrics.slaViolations}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">Violations</p>
+                    <p className="text-lg font-semibold text-red-600">{slaMetrics.slaViolations}</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       ) : (
         <>
-          {/* Ticket Statistics Charts */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            {/* Tickets by Type */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Tickets by Type</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={200}>
-                  <PieChart>
-                    <Pie
-                      data={getTicketsByType()}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={40}
-                      outerRadius={80}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {getTicketsByType().map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="mt-2 space-y-1">
-                  {getTicketsByType().map((item, index) => (
-                    <div key={index} className="flex items-center justify-between text-sm">
-                      <div className="flex items-center space-x-2">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
-                          style={{ backgroundColor: item.color }}
-                        ></div>
-                        <span>{item.name}</span>
-                      </div>
-                      <span className="font-medium">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Tickets by Status */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Tickets by Status</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={getTicketsByStatus()}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                      dataKey="name" 
-                      fontSize={12}
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
-                    />
-                    <YAxis fontSize={12} />
-                    <Tooltip />
-                    <Bar dataKey="value" fill="#3b82f6" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            {/* Tickets by Priority */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Tickets by Priority</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={200}>
-                  <PieChart>
-                    <Pie
-                      data={getTicketsByPriority()}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={40}
-                      outerRadius={80}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {getTicketsByPriority().map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="mt-2 space-y-1">
-                  {getTicketsByPriority().map((item, index) => (
-                    <div key={index} className="flex items-center justify-between text-sm">
-                      <div className="flex items-center space-x-2">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
-                          style={{ backgroundColor: item.color }}
-                        ></div>
-                        <span>{item.name}</span>
-                      </div>
-                      <span className="font-medium">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
           {/* Filters */}
-          <div className="flex flex-wrap gap-4 items-center">
+          <div className="flex flex-wrap gap-4 items-center bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border">
             <div className="flex items-center space-x-2">
               <Search className="w-4 h-4 text-neutral-500" />
               <Input
@@ -463,7 +603,7 @@ export default function Tickets() {
             </div>
 
             <Select value={selectedType} onValueChange={setSelectedType}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-40">
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
               <SelectContent>
@@ -476,7 +616,7 @@ export default function Tickets() {
             </Select>
 
             <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-40">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -491,7 +631,7 @@ export default function Tickets() {
             </Select>
 
             <Select value={selectedPriority} onValueChange={setSelectedPriority}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-40">
                 <SelectValue placeholder="Priority" />
               </SelectTrigger>
               <SelectContent>
@@ -502,98 +642,154 @@ export default function Tickets() {
                 <SelectItem value="critical">Critical</SelectItem>
               </SelectContent>
             </Select>
+
+            <Button variant="outline" size="sm">
+              <Download className="w-4 h-4 mr-2" />
+              Export
+            </Button>
           </div>
 
           {/* Tickets List */}
           <div className="space-y-4">
             {loading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-2 text-neutral-600">Loading tickets...</p>
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-4 text-neutral-600">Loading tickets...</p>
               </div>
             ) : filteredTickets.length === 0 ? (
-              <div className="text-center py-8">
-                <Ticket className="w-12 h-12 text-neutral-400 mx-auto mb-2" />
-                <p className="text-neutral-600">No tickets found</p>
+              <div className="text-center py-12">
+                <Ticket className="w-16 h-16 text-neutral-400 mx-auto mb-4" />
+                <p className="text-xl font-medium text-neutral-600 mb-2">No tickets found</p>
+                <p className="text-neutral-500">Try adjusting your filters or create a new ticket</p>
               </div>
             ) : (
-              filteredTickets.map((ticket) => {
-                const IconComponent = typeIcons[ticket.type as keyof typeof typeIcons];
-                return (
-                  <Card 
-                    key={ticket.id} 
-                    className="cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => {
-                      setSelectedTicket(ticket);
-                      setShowTicketDetailsDialog(true);
-                    }}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start space-x-4 flex-1">
-                          <div className={`p-2 rounded-lg ${
-                            ticket.type === 'incident' ? 'bg-red-100 text-red-600' :
-                            ticket.type === 'problem' ? 'bg-orange-100 text-orange-600' :
-                            ticket.type === 'change' ? 'bg-blue-100 text-blue-600' :
-                            'bg-green-100 text-green-600'
-                          }`}>
-                            <IconComponent className="w-4 h-4" />
-                          </div>
-
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-1">
-                              <span className="font-mono text-sm text-neutral-600">
-                                {ticket.ticket_number}
-                              </span>
-                              <Badge 
-                                variant="outline" 
-                                className={priorityColors[ticket.priority as keyof typeof priorityColors]}
-                              >
-                                {ticket.priority}
-                              </Badge>
-                              <Badge 
-                                variant="outline"
-                                className={statusColors[ticket.status as keyof typeof statusColors]}
-                              >
-                                {ticket.status.replace('_', ' ')}
-                              </Badge>
+              <>
+                {filteredTickets.map((ticket) => {
+                  const IconComponent = typeIcons[ticket.type as keyof typeof typeIcons];
+                  const isOverdue = ticket.due_date && new Date(ticket.due_date) < new Date();
+                  
+                  return (
+                    <Card 
+                      key={ticket.id} 
+                      className={cn(
+                        "cursor-pointer hover:shadow-lg transition-all duration-200 border-l-4",
+                        ticket.priority === "critical" ? "border-l-red-500 bg-red-50/50 dark:bg-red-900/10" :
+                        ticket.priority === "high" ? "border-l-orange-500 bg-orange-50/50 dark:bg-orange-900/10" :
+                        ticket.priority === "medium" ? "border-l-yellow-500 bg-yellow-50/50 dark:bg-yellow-900/10" :
+                        "border-l-blue-500 bg-blue-50/50 dark:bg-blue-900/10",
+                        isOverdue && "ring-2 ring-red-200"
+                      )}
+                      onClick={() => {
+                        setSelectedTicket(ticket);
+                        setShowTicketDetailsDialog(true);
+                      }}
+                    >
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start space-x-4 flex-1">
+                            <div className={cn(
+                              "p-3 rounded-xl",
+                              ticket.type === 'incident' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
+                              ticket.type === 'problem' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' :
+                              ticket.type === 'change' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
+                              'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                            )}>
+                              <IconComponent className="w-5 h-5" />
                             </div>
 
-                            <h3 className="font-medium text-neutral-900 dark:text-neutral-100 mb-1">
-                              {ticket.title}
-                            </h3>
-
-                            <p className="text-sm text-neutral-600 mb-2 line-clamp-2">
-                              {ticket.description}
-                            </p>
-
-                            <div className="flex items-center space-x-4 text-xs text-neutral-500">
-                              <div className="flex items-center space-x-1">
-                                <User className="w-3 h-3" />
-                                <span>{ticket.requester_email}</span>
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-3 mb-2">
+                                <span className="font-mono text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+                                  {ticket.ticket_number}
+                                </span>
+                                <Badge 
+                                  variant="outline" 
+                                  className={priorityColors[ticket.priority as keyof typeof priorityColors]}
+                                >
+                                  {ticket.priority.toUpperCase()}
+                                </Badge>
+                                <Badge 
+                                  variant="outline"
+                                  className={statusColors[ticket.status as keyof typeof statusColors]}
+                                >
+                                  {ticket.status.replace('_', ' ').toUpperCase()}
+                                </Badge>
+                                {isOverdue && (
+                                  <Badge variant="destructive" className="animate-pulse">
+                                    OVERDUE
+                                  </Badge>
+                                )}
                               </div>
-                              <div className="flex items-center space-x-1">
-                                <Calendar className="w-3 h-3" />
-                                <span>{formatDate(ticket.created_at)}</span>
-                              </div>
-                              {ticket.due_date && (
+
+                              <h3 className="font-semibold text-lg text-neutral-900 dark:text-neutral-100 mb-2">
+                                {ticket.title}
+                              </h3>
+
+                              <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-3 line-clamp-2">
+                                {ticket.description}
+                              </p>
+
+                              <div className="flex items-center space-x-6 text-xs text-neutral-500 dark:text-neutral-400">
                                 <div className="flex items-center space-x-1">
-                                  <Clock className="w-3 h-3" />
-                                  <span>Due: {formatDate(ticket.due_date)}</span>
+                                  <User className="w-3 h-3" />
+                                  <span>{ticket.requester_email}</span>
                                 </div>
-                              )}
+                                <div className="flex items-center space-x-1">
+                                  <Calendar className="w-3 h-3" />
+                                  <span>Created: {formatDate(ticket.created_at)}</span>
+                                </div>
+                                {ticket.assigned_to && (
+                                  <div className="flex items-center space-x-1">
+                                    <UserCheck className="w-3 h-3" />
+                                    <span>Assigned: {ticket.assigned_to}</span>
+                                  </div>
+                                )}
+                                {ticket.due_date && (
+                                  <div className="flex items-center space-x-1">
+                                    <Clock className="w-3 h-3" />
+                                    <span className={isOverdue ? "text-red-600 font-medium" : ""}>
+                                      Due: {formatDate(ticket.due_date)}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })
+                          <Button variant="ghost" size="sm">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center space-x-2 mt-6">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fetchTickets(currentPage - 1)}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-sm text-neutral-600">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fetchTickets(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </>
@@ -609,7 +805,7 @@ export default function Tickets() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="type">Type</Label>
+                <Label htmlFor="type">Type *</Label>
                 <Select value={newTicketData.type} onValueChange={(value) => 
                   setNewTicketData(prev => ({ ...prev, type: value }))
                 }>
@@ -626,7 +822,7 @@ export default function Tickets() {
               </div>
 
               <div>
-                <Label htmlFor="priority">Priority</Label>
+                <Label htmlFor="priority">Priority *</Label>
                 <Select value={newTicketData.priority} onValueChange={(value) =>
                   setNewTicketData(prev => ({ ...prev, priority: value }))
                 }>
@@ -644,7 +840,7 @@ export default function Tickets() {
             </div>
 
             <div>
-              <Label htmlFor="requester">Requester Email</Label>
+              <Label htmlFor="requester">Requester Email *</Label>
               <Input
                 id="requester"
                 type="email"
@@ -655,7 +851,17 @@ export default function Tickets() {
             </div>
 
             <div>
-              <Label htmlFor="title">Title</Label>
+              <Label htmlFor="category">Category</Label>
+              <Input
+                id="category"
+                value={newTicketData.category}
+                onChange={(e) => setNewTicketData(prev => ({ ...prev, category: e.target.value }))}
+                placeholder="e.g., Hardware, Software, Network"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="title">Title *</Label>
               <Input
                 id="title"
                 value={newTicketData.title}
@@ -665,7 +871,7 @@ export default function Tickets() {
             </div>
 
             <div>
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">Description *</Label>
               <Textarea
                 id="description"
                 value={newTicketData.description}
@@ -689,7 +895,7 @@ export default function Tickets() {
 
       {/* Ticket Details Dialog */}
       <Dialog open={showTicketDetailsDialog} onOpenChange={setShowTicketDetailsDialog}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Ticket Details</DialogTitle>
           </DialogHeader>
@@ -698,58 +904,89 @@ export default function Tickets() {
             <div className="space-y-6">
               <div className="flex items-start justify-between">
                 <div>
-                  <div className="flex items-center space-x-2 mb-2">
-                    <span className="font-mono text-lg font-semibold">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <span className="font-mono text-xl font-bold text-blue-600">
                       {selectedTicket.ticket_number}
                     </span>
                     <Badge className={priorityColors[selectedTicket.priority as keyof typeof priorityColors]}>
-                      {selectedTicket.priority}
+                      {selectedTicket.priority.toUpperCase()}
                     </Badge>
                     <Badge className={statusColors[selectedTicket.status as keyof typeof statusColors]}>
-                      {selectedTicket.status.replace('_', ' ')}
+                      {selectedTicket.status.replace('_', ' ').toUpperCase()}
                     </Badge>
                   </div>
-                  <h2 className="text-xl font-semibold mb-2">{selectedTicket.title}</h2>
-                  <p className="text-neutral-600">{selectedTicket.description}</p>
+                  <h2 className="text-2xl font-bold mb-3">{selectedTicket.title}</h2>
+                  <p className="text-neutral-600 dark:text-neutral-400 leading-relaxed">{selectedTicket.description}</p>
                 </div>
                 <div className="flex space-x-2">
-                    {renderWorkflowActions(selectedTicket)}
-                    <Button variant="outline" size="sm">
-                      Edit
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      Add Comment
-                    </Button>
-                  </div>
+                  {renderWorkflowActions(selectedTicket)}
+                  <Button variant="outline" size="sm">
+                    Edit
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    Add Comment
+                  </Button>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <h3 className="font-semibold mb-2">Ticket Information</h3>
-                  <div className="space-y-2 text-sm">
-                    <div><strong>Type:</strong> {selectedTicket.type}</div>
-                    <div><strong>Priority:</strong> {selectedTicket.priority}</div>
-                    <div><strong>Status:</strong> {selectedTicket.status}</div>
-                    <div><strong>Requester:</strong> {selectedTicket.requester_email}</div>
-                    <div><strong>Created:</strong> {formatDate(selectedTicket.created_at)}</div>
-                    {selectedTicket.due_date && (
-                      <div><strong>Due Date:</strong> {formatDate(selectedTicket.due_date)}</div>
-                    )}
-                  </div>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Ticket Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Type</Label>
+                        <p className="font-medium">{selectedTicket.type}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Priority</Label>
+                        <p className="font-medium">{selectedTicket.priority}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Status</Label>
+                        <p className="font-medium">{selectedTicket.status}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Category</Label>
+                        <p className="font-medium">{selectedTicket.category || 'N/A'}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                <div>
-                  <h3 className="font-semibold mb-2">Assignment</h3>
-                  <div className="space-y-2 text-sm">
-                    <div><strong>Assigned To:</strong> {selectedTicket.assigned_to || 'Unassigned'}</div>
-                    {selectedTicket.scheduled_start && (
-                      <div><strong>Scheduled Start:</strong> {formatDate(selectedTicket.scheduled_start)}</div>
-                    )}
-                    {selectedTicket.scheduled_end && (
-                      <div><strong>Scheduled End:</strong> {formatDate(selectedTicket.scheduled_end)}</div>
-                    )}
-                  </div>
-                </div>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Assignment & Timeline</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="grid grid-cols-1 gap-4 text-sm">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Requester</Label>
+                        <p className="font-medium">{selectedTicket.requester_email}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Assigned To</Label>
+                        <p className="font-medium">{selectedTicket.assigned_to || 'Unassigned'}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Created</Label>
+                        <p className="font-medium">{formatDate(selectedTicket.created_at)}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Last Updated</Label>
+                        <p className="font-medium">{formatDate(selectedTicket.updated_at)}</p>
+                      </div>
+                      {selectedTicket.due_date && (
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Due Date</Label>
+                          <p className="font-medium">{formatDate(selectedTicket.due_date)}</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           )}

@@ -1,9 +1,11 @@
 
-import { Home, Users, AlertTriangle, Settings, BarChart3, Headphones, FileText, Server, Menu, X, Shield, UserCheck } from "lucide-react";
+import { Home, Users, AlertTriangle, Settings, BarChart3, Headphones, FileText, Server, Menu, X, Shield, UserCheck, ChevronLeft, ChevronRight, Bell, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/components/auth/protected-route";
 
@@ -11,6 +13,7 @@ export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { user } = useAuth();
   const [location] = useLocation();
+  const [notifications, setNotifications] = useState(3); // Mock notification count
 
   // Define navigation with colored icons based on user role
   const getNavigation = () => {
@@ -21,7 +24,9 @@ export default function Sidebar() {
         icon: Home, 
         current: location === "/dashboard", 
         roles: ["user", "technician", "manager", "admin"],
-        iconColor: "text-blue-500"
+        iconColor: "text-blue-500",
+        activeColor: "bg-blue-50 border-blue-200 text-blue-700",
+        description: "Overview and metrics"
       },
       { 
         name: "Service Desk", 
@@ -29,7 +34,10 @@ export default function Sidebar() {
         icon: Headphones, 
         current: location === "/tickets" || location.startsWith("/tickets/"), 
         roles: ["user", "technician", "manager", "admin"],
-        iconColor: "text-green-500"
+        iconColor: "text-green-500",
+        activeColor: "bg-green-50 border-green-200 text-green-700",
+        description: "Manage tickets and requests",
+        notification: 5
       },
       { 
         name: "Help Articles", 
@@ -37,7 +45,9 @@ export default function Sidebar() {
         icon: FileText, 
         current: location === "/knowledge-base", 
         roles: ["user", "technician", "manager", "admin"],
-        iconColor: "text-purple-500"
+        iconColor: "text-purple-500",
+        activeColor: "bg-purple-50 border-purple-200 text-purple-700",
+        description: "Documentation and guides"
       },
     ];
 
@@ -48,7 +58,10 @@ export default function Sidebar() {
         icon: Server, 
         current: location === "/agents" || location.startsWith("/agents/"), 
         roles: ["technician", "manager", "admin"],
-        iconColor: "text-orange-500"
+        iconColor: "text-orange-500",
+        activeColor: "bg-orange-50 border-orange-200 text-orange-700",
+        description: "Monitor system health",
+        notification: 2
       },
       { 
         name: "System Alerts", 
@@ -56,7 +69,10 @@ export default function Sidebar() {
         icon: AlertTriangle, 
         current: location === "/alerts", 
         roles: ["technician", "manager", "admin"],
-        iconColor: "text-red-500"
+        iconColor: "text-red-500",
+        activeColor: "bg-red-50 border-red-200 text-red-700",
+        description: "Critical system notifications",
+        notification: 1
       },
     ];
 
@@ -67,7 +83,9 @@ export default function Sidebar() {
         icon: UserCheck, 
         current: location === "/users", 
         roles: ["manager", "admin"],
-        iconColor: "text-cyan-500"
+        iconColor: "text-cyan-500",
+        activeColor: "bg-cyan-50 border-cyan-200 text-cyan-700",
+        description: "Manage user accounts"
       },
       { 
         name: "Analytics", 
@@ -75,7 +93,9 @@ export default function Sidebar() {
         icon: BarChart3, 
         current: location === "/reports", 
         roles: ["manager", "admin"],
-        iconColor: "text-indigo-500"
+        iconColor: "text-indigo-500",
+        activeColor: "bg-indigo-50 border-indigo-200 text-indigo-700",
+        description: "Performance insights"
       },
     ];
 
@@ -86,7 +106,9 @@ export default function Sidebar() {
         icon: Settings, 
         current: location === "/settings", 
         roles: ["admin"],
-        iconColor: "text-gray-500"
+        iconColor: "text-gray-500",
+        activeColor: "bg-gray-50 border-gray-200 text-gray-700",
+        description: "System configuration"
       },
     ];
 
@@ -101,67 +123,195 @@ export default function Sidebar() {
   const navigation = getNavigation();
 
   return (
-    <div className={cn("flex flex-col h-full bg-[#F3F2F1] border-r border-[#E1DFDD] dark:bg-[#323130] dark:border-[#484644] w-full", isCollapsed ? "w-16" : "w-64")}>
-      <div className="flex items-center justify-between p-4">
+    <TooltipProvider>
+      <div className={cn(
+        "flex flex-col h-full bg-gradient-to-b from-white to-gray-50 dark:from-[#323130] dark:to-[#2B2A29] border-r border-[#E1DFDD] dark:border-[#484644] transition-all duration-300 ease-in-out shadow-lg",
+        isCollapsed ? "w-16" : "w-72"
+      )}>
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-[#E1DFDD] dark:border-[#484644]">
           <div className={cn("flex items-center space-x-3", isCollapsed && "justify-center")}>
-            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center border border-[#E1DFDD]">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md">
               <img 
                 src="https://fidelisgroup.in/assets/imgs/logo/Logo_Fidelis.png" 
                 alt="Fidelis Logo" 
-                className="w-6 h-6 object-contain"
+                className="w-7 h-7 object-contain"
                 onError={(e) => {
-                  // Fallback to a colored shield icon if image fails to load
                   e.currentTarget.style.display = 'none';
                   e.currentTarget.nextElementSibling.style.display = 'block';
                 }}
               />
-              <Shield className="w-5 h-5 text-[#0078D4] hidden" />
+              <Shield className="w-6 h-6 text-white hidden" />
             </div>
             {!isCollapsed && (
               <div className="flex-1">
-                <h1 className="text-lg font-semibold text-[#201F1E] dark:text-[#F3F2F1]">Nexole ITSM</h1>
-                <div className="flex items-center space-x-2">
-                  <p className="text-xs text-[#605E5C]">Portal</p>
+                <h1 className="text-xl font-bold text-[#201F1E] dark:text-[#F3F2F1] bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Nexole ITSM
+                </h1>
+                <div className="flex items-center space-x-2 mt-1">
+                  <p className="text-xs text-[#605E5C] dark:text-[#A19F9D]">IT Service Management</p>
                   {user?.role && (
-                    <Badge variant="outline" className="text-xs px-1 py-0 border-[#0078D4] text-[#0078D4]">
+                    <Badge variant="outline" className="text-xs px-2 py-0.5 border-blue-200 text-blue-700 bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:bg-blue-900/30">
                       <Shield className="w-3 h-3 mr-1" />
-                      {user.role}
+                      {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                     </Badge>
                   )}
                 </div>
               </div>
             )}
           </div>
-          <Button variant="ghost" size="icon" className="p-0 hover:bg-[#E1DFDD] dark:hover:bg-[#484644] text-[#201F1E] dark:text-[#F3F2F1]" onClick={() => setIsCollapsed(!isCollapsed)}>
-            {isCollapsed ? <Menu /> : <X />}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 rounded-lg hover:bg-gray-100 dark:hover:bg-[#484644] transition-colors" 
+                onClick={() => setIsCollapsed(!isCollapsed)}
+              >
+                {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              {isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            </TooltipContent>
+          </Tooltip>
         </div>
-      <nav className="flex-1 px-2 py-4">
-        <ul className="space-y-1">
-          {navigation.map((item) => (
-            <li key={item.name}>
-              <Link to={item.href} className={cn(
-                "group flex items-center space-x-3 py-2 px-3 rounded-md font-medium transition-colors",
-                item.current 
-                  ? "bg-[#0078D4] text-white" 
-                  : "text-[#201F1E] dark:text-[#F3F2F1] hover:bg-[#E1DFDD] dark:hover:bg-[#484644]"
-              )}>
-                <item.icon className={cn(
-                  "w-4 h-4 transition-colors",
-                  item.current 
-                    ? "text-white" 
-                    : `${item.iconColor} group-hover:${item.iconColor}`
-                )} />
+
+        {/* User Info */}
+        {!isCollapsed && user && (
+          <div className="p-4 border-b border-[#E1DFDD] dark:border-[#484644]">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                {user.email?.charAt(0).toUpperCase() || 'U'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-[#201F1E] dark:text-[#F3F2F1] truncate">
+                  {user.name || user.email}
+                </p>
+                <p className="text-xs text-[#605E5C] dark:text-[#A19F9D] truncate">
+                  {user.email}
+                </p>
+              </div>
+              {notifications > 0 && (
+                <div className="relative">
+                  <Bell className="w-4 h-4 text-[#605E5C] dark:text-[#A19F9D]" />
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
+                    <span className="text-xs text-white font-bold">{notifications}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Navigation */}
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          {navigation.map((item, index) => {
+            const isActive = item.current;
+            const NavItem = (
+              <Link 
+                key={item.name}
+                to={item.href} 
+                className={cn(
+                  "group flex items-center space-x-3 py-3 px-3 rounded-xl font-medium transition-all duration-200 relative",
+                  isActive
+                    ? `${item.activeColor} shadow-sm border`
+                    : "text-[#201F1E] dark:text-[#F3F2F1] hover:bg-gray-100 dark:hover:bg-[#484644] hover:scale-[1.02]"
+                )}
+              >
+                <div className={cn(
+                  "relative flex items-center justify-center",
+                  isActive && "transform scale-110"
+                )}>
+                  <item.icon className={cn(
+                    "w-5 h-5 transition-all duration-200",
+                    isActive 
+                      ? item.iconColor.replace('text-', 'text-')
+                      : `${item.iconColor} group-hover:scale-110`
+                  )} />
+                  {item.notification && !isCollapsed && (
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                      <span className="text-xs text-white font-bold">{item.notification}</span>
+                    </div>
+                  )}
+                </div>
                 {!isCollapsed && (
-                  <span>
-                    {item.name}
-                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium truncate">{item.name}</span>
+                      {item.notification && (
+                        <Badge variant="secondary" className="ml-2 h-5 text-xs bg-red-100 text-red-700 border-red-200">
+                          {item.notification}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                      {item.description}
+                    </p>
+                  </div>
+                )}
+                {isActive && (
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-purple-500 rounded-r-full" />
                 )}
               </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
-    </div>
+            );
+
+            if (isCollapsed) {
+              return (
+                <Tooltip key={item.name}>
+                  <TooltipTrigger asChild>
+                    {NavItem}
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="flex items-center space-x-2">
+                    <span>{item.name}</span>
+                    {item.notification && (
+                      <Badge variant="secondary" className="h-5 text-xs bg-red-100 text-red-700">
+                        {item.notification}
+                      </Badge>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+              );
+            }
+
+            return NavItem;
+          })}
+
+          {/* Quick Actions */}
+          {!isCollapsed && (
+            <>
+              <Separator className="my-4" />
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-[#605E5C] dark:text-[#A19F9D] uppercase tracking-wider px-3">
+                  Quick Actions
+                </p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-start text-xs h-8 border-dashed hover:border-solid transition-all"
+                >
+                  <MoreHorizontal className="w-3 h-3 mr-2" />
+                  Create Ticket
+                </Button>
+              </div>
+            </>
+          )}
+        </nav>
+
+        {/* Footer */}
+        {!isCollapsed && (
+          <div className="p-4 border-t border-[#E1DFDD] dark:border-[#484644]">
+            <div className="text-center">
+              <p className="text-xs text-[#605E5C] dark:text-[#A19F9D]">
+                © 2024 Nexole ITSM
+              </p>
+              <p className="text-xs text-[#605E5C] dark:text-[#A19F9D] mt-1">
+                v1.0.0
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    </TooltipProvider>
   );
 }
