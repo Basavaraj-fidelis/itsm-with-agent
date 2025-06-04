@@ -47,13 +47,34 @@ export interface Alert {
 
 export const api = {
   async getDashboardSummary(): Promise<DashboardSummary> {
-    const response = await apiRequest("GET", "/api/dashboard/summary");
-    return response.json();
+    try {
+      const response = await apiRequest("GET", "/api/dashboard/summary");
+      if (!response.ok) {
+        throw new Error(`Failed to fetch dashboard summary: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Dashboard summary fetch failed:', error);
+      return {
+        total_devices: 0,
+        online_devices: 0,
+        offline_devices: 0,
+        active_alerts: 0
+      };
+    }
   },
 
   async getDevices(): Promise<Device[]> {
-    const response = await apiRequest("GET", "/api/devices");
-    return response.json();
+    try {
+      const response = await apiRequest("GET", "/api/devices");
+      if (!response.ok) {
+        throw new Error(`Failed to fetch devices: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Devices fetch failed:', error);
+      return [];
+    }
   },
 
   async getDevice(id: string): Promise<Device> {
@@ -67,8 +88,16 @@ export const api = {
   },
 
   async getAlerts(): Promise<Alert[]> {
-    const response = await apiRequest("GET", "/api/alerts");
-    return response.json();
+    try {
+      const response = await apiRequest("GET", "/api/alerts");
+      if (!response.ok) {
+        throw new Error(`Failed to fetch alerts: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Alerts fetch failed:', error);
+      return [];
+    }
   },
   // Auth
   login: (credentials: { email: string; password: string }) => post("/api/auth/login", credentials),
@@ -129,6 +158,11 @@ class ApiClient {
         localStorage.removeItem('auth_token');
         window.location.href = '/login';
         throw new Error('Unauthorized');
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
       return response;

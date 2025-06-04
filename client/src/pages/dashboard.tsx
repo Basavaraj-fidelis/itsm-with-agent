@@ -17,10 +17,19 @@ export default function Dashboard() {
   const { data: agents, isLoading: agentsLoading, error: agentsError } = useAgents();
   
   // Fetch tickets data for ITSM dashboard
-  const { data: ticketsResponse, isLoading: ticketsLoading } = useQuery({
+  const { data: ticketsResponse, isLoading: ticketsLoading, error: ticketsError } = useQuery({
     queryKey: ["/api/tickets", { limit: 100 }],
-    queryFn: () => api.get("/api/tickets?limit=100"),
+    queryFn: async () => {
+      try {
+        return await api.get("/api/tickets?limit=100");
+      } catch (error) {
+        console.warn("Failed to fetch tickets:", error);
+        return { data: { tickets: [] } };
+      }
+    },
     refetchInterval: 60000, // Refetch every minute
+    retry: 1,
+    staleTime: 30000,
   });
 
   const tickets = ticketsResponse?.data?.tickets || [];
