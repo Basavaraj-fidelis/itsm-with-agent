@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import { 
   Plus, 
   Search, 
