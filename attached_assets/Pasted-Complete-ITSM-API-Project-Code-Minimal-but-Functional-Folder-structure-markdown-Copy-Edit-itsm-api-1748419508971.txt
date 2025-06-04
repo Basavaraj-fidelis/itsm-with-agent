@@ -1,0 +1,338 @@
+Complete ITSM API Project Code (Minimal but Functional)
+Folder structure
+markdown
+Copy
+Edit
+itsm_api/
+├── app/
+│   ├── __init__.py
+│   ├── main.py
+│   ├── database.py
+│   ├── models.py
+│   ├── schemas.py
+│   ├── api/
+│   │   ├── __init__.py
+│   │   ├── devices.py
+│   │   ├── reports.py
+│   │   ├── alerts.py
+│   │   ├── dashboard.py
+└── requirements.txt
+1. requirements.txt
+txt
+Copy
+Edit
+fastapi
+uvicorn
+psycopg2-binary
+sqlalchemy
+pydantic
+python-multipart
+2. app/database.py
+python
+Copy
+Edit
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+
+DATABASE_URL = "postgresql+psycopg2://user:password@localhost/itsm_db"
+
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base = declarative_base()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+3. app/models.py
+python
+Copy
+Edit
+import uuid
+from sqlalchemy import Column, String, Text, DateTime, Numeric, BigInteger, JSON, ForeignKey, Boolean
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
+from app.database import Base
+
+class Device(Base):
+    __tablename__ = "devices"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    hostname = Column(Text, unique=True, nullable=False)
+    assigned_user = Column(Text)
+    os_name = Column(Text)
+    os_version = Column(Text)
+    ip_address = Column(Text)
+    status = Column(Text, default="offline")
+    last_seen = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    reports = relationship("DeviceReport", back_populates="device")
+    alerts = relationship("Alert", back_populates="device")
+
+class DeviceReport(Base):
+    __tablename__ = "device_reports"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    device_id = Column(UUID(as_uuid=True), ForeignKey("devices.id", ondelete="CASCADE"))
+    collected_at = Column(DateTime(timezone=True), server_default=func.now())
+    cpu_usage = Column(Numeric)
+    memory_usage = Column(Numeric)
+    disk_usage = Column(Numeric)
+    network_io = Column(BigInteger)
+    raw_data = Column(JSON, nullable=False)
+
+    device = relationship("Device", back_populates="reports")
+
+class Alert(Base):
+    __tablename__ = "alerts"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    device_id = Column(UUID(as_uuid=True), ForeignKey("devices.id", ondelete="CASCADE"))
+    category = Column(Text, nullable=False)
+    severity = Column(Text, nullable=False)
+    message = Column(Text, nullable=False)
+    metadata = Column(JSON)
+    triggered_at = Column(DateTime(timezone=True), server_default=func.now())
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+    is_active = Column(Boolean, default=True)
+
+    device = relationship("Device", back_populates="alerts")
+4. app/schemas.py
+python
+Copy
+Edit
+from pydantic import BaseModel
+from typing import Optional, List, Dict, Any
+from datetime import datetime
+
+# Device schemas
+class DeviceBase(BaseModel):
+    hostname: str
+    assigned_user: Optional[str]
+    os_name: Optional[str]
+    os_version: Optional[str]
+    ip_address: Optional[str]
+    status: Optional[str]
+
+class DeviceCreate(DeviceBase):
+    pass
+
+class Device(DeviceBase):
+    id: str
+    last_seen: Optional[datetime]
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
+
+# DeviceReport schemas
+class DeviceReportBase(BaseModel):
+    cpu_usage: Optional[float]
+    memory_usage: Optional[float]
+    disk_usage: Optional[float]
+    network_io: Optional[int]
+    raw_data: Dict[str, Any]
+
+class DeviceReportCreate(DeviceReportBase):
+    device_id: str
+
+class DeviceReport(DeviceReportBase):
+    id: str
+    device_id: str
+    collected_at: datetime
+
+    class Config:
+        orm_mode = True
+
+# Alert schemas
+class AlertBase(BaseModel):
+    category: str
+    severity: str
+    message: str
+    metadata: Optional[Dict[str, Any]]
+
+class AlertCreate(AlertBase):
+    device_id: str
+
+class Alert(AlertBase):
+    id: str
+    device_id: str
+    triggered_at: datetime
+    resolved_at: Optional[datetime]
+    is_active: bool
+
+    class Config:
+        orm_mode = True
+
+# POST /api/report request schema (from agent)
+class ReportData(BaseModel):
+    hardware: Optional[Dict[str, Any]]
+    storage: Optional[Dict[str, Any]]
+    network: Optional[Dict[str, Any]]
+    software: Optional[List[Dict[str, Any]]]
+    processes: Optional[List[Dict[str, Any]]]
+    usb_devices: Optional[List[Dict[str, Any]]]
+    os_info: Optional[Dict[str, Any]]
+    system_health: Optional[Dict[str, Any]]
+
+class DeviceReportRequest(BaseModel):
+    hostname: str
+    assigned_user: Optional[str]
+    data: ReportData
+
+class DeviceReportResponse(BaseModel):
+    message: str
+5. app/api/devices.py
+python
+Copy
+Edit
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from typing import List
+from app import models, schemas
+from app.database import get_db
+
+router = APIRouter()
+
+@router.get("/api/devices", response_model=List[schemas.Device])
+def get_devices(db: Session = Depends(get_db)):
+    devices = db.query(models.Device).all()
+    return devices
+
+@router.get("/api/devices/{device_id}", response_model=schemas.Device)
+def get_device(device_id: str, db: Session = Depends(get_db)):
+    device = db.query(models.Device).filter(models.Device.id == device_id).first()
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+    return device
+6. app/api/reports.py
+python
+Copy
+Edit
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from datetime import datetime
+from app import models, schemas
+from app.database import get_db
+
+router = APIRouter()
+
+@router.post("/api/report", response_model=schemas.DeviceReportResponse)
+def post_report(report: schemas.DeviceReportRequest, db: Session = Depends(get_db)):
+    # Check if device exists
+    device = db.query(models.Device).filter(models.Device.hostname == report.hostname).first()
+    if not device:
+        device = models.Device(
+            hostname=report.hostname,
+            assigned_user=report.assigned_user,
+            os_name=report.data.os_info.get("name") if report.data.os_info else None,
+            os_version=report.data.os_info.get("version") if report.data.os_info else None,
+            status="online",
+            last_seen=datetime.utcnow()
+        )
+        db.add(device)
+        db.commit()
+        db.refresh(device)
+    else:
+        device.assigned_user = report.assigned_user or device.assigned_user
+        device.os_name = report.data.os_info.get("name") if report.data.os_info else device.os_name
+        device.os_version = report.data.os_info.get("version") if report.data.os_info else device.os_version
+        device.status = "online"
+        device.last_seen = datetime.utcnow()
+        db.commit()
+
+    # Extract summary metrics - dummy example, replace with real extraction
+    cpu = None
+    memory = None
+    disk = None
+    network_io = None
+
+    if report.data.system_health and "cpu_percent" in report.data.system_health:
+        cpu = report.data.system_health.get("cpu_percent")
+
+    device_report = models.DeviceReport(
+        device_id=device.id,
+        cpu_usage=cpu,
+        memory_usage=memory,
+        disk_usage=disk,
+        network_io=network_io,
+        raw_data=report.data.dict()
+    )
+    db.add(device_report)
+    db.commit()
+
+    return schemas.DeviceReportResponse(message="Report saved successfully")
+
+@router.get("/api/devices/{device_id}/reports", response_model=List[schemas.DeviceReport])
+def get_device_reports(device_id: str, db: Session = Depends(get_db)):
+    reports = db.query(models.DeviceReport).filter(models.DeviceReport.device_id == device_id).order_by(models.DeviceReport.collected_at.desc()).all()
+    return reports
+7. app/api/alerts.py
+python
+Copy
+Edit
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from typing import List
+from app import models, schemas
+from app.database import get_db
+
+router = APIRouter()
+
+@router.get("/api/alerts", response_model=List[schemas.Alert])
+def get_alerts(db: Session = Depends(get_db)):
+    alerts = db.query(models.Alert).filter(models.Alert.is_active == True).order_by(models.Alert.triggered_at.desc()).all()
+    return alerts
+8. app/api/dashboard.py
+python
+Copy
+Edit
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from app.database import get_db
+from app import models
+
+router = APIRouter()
+
+@router.get("/api/dashboard/summary")
+def dashboard_summary(db: Session = Depends(get_db)):
+    total_devices = db.query(models.Device).count()
+    online_devices = db.query(models.Device).filter(models.Device.status == "online").count()
+    active_alerts = db.query(models.Alert).filter(models.Alert.is_active == True).count()
+
+    return {
+        "total_devices": total_devices,
+        "online_devices": online_devices,
+        "active_alerts": active_alerts
+    }
+9. app/main.py
+python
+Copy
+Edit
+from fastapi import FastAPI
+from app.database import engine, Base
+from app.api import devices, reports, alerts, dashboard
+from app import models
+
+# Create all tables
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI(title="ITSM Web API")
+
+# Include routers
+app.include_router(devices.router)
+app.include_router(reports.router)
+app.include_router(alerts.router)
+app.include_router(dashboard.router)
+
+@app.get("/")
+def root():
+    return {"message": "ITSM API is running"}

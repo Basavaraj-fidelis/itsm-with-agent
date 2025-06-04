@@ -1,0 +1,59 @@
+ rest-express@1.0.0 dev
+> NODE_ENV=development tsx server/index.ts
+
+Creating ticket tables...
+All tables created successfully!
+✓ Demo user already exists: admin@company.com
+✓ Demo user already exists: tech@company.com
+✓ Demo user already exists: manager@company.com
+✓ Demo user already exists: user@company.com
+Demo users initialized successfully
+10:49:05 AM [express] serving on port 5000
+Login attempt for: admin@company.com
+Found 1 users in search
+User found: Yes (admin@company.com)
+Checking password for user: admin@company.com
+User has password_hash: false
+Demo credentials match for admin@company.com
+Updated demo user admin@company.com with hashed password
+10:49:16 AM [express] POST /api/auth/login 200 in 650ms :: {"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpX…
+10:49:17 AM [express] GET /api/auth/verify 200 in 66ms :: {"id":"bf76e358-65ad-4325-9400-2f61da582c6c…
+10:49:17 AM [express] GET /api/dashboard/summary 401 in 0ms :: {"message":"Access token required"}
+10:49:17 AM [express] GET /api/devices 401 in 1ms :: {"message":"Access token required"}
+10:49:17 AM [express] GET /api/alerts 401 in 1ms :: {"message":"Access token required"}
+Login attempt for: tech@company.com
+Found 1 users in search
+User found: Yes (tech@company.com)
+Checking password for user: tech@company.com
+User has password_hash: false
+Demo credentials match for tech@company.com
+Updated demo user tech@company.com with hashed password
+10:49:21 AM [express] POST /api/auth/login 200 in 259ms :: {"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpX…
+10:49:22 AM [express] GET /api/auth/verify 200 in 64ms :: {"id":"a65171f7-2650-4662-8b98-2901ce5e61f5…
+10:49:24 AM [express] GET /api/devices 401 in 0ms :: {"message":"Access token required"}
+10:49:24 AM [express] GET /api/dashboard/summary 401 in 0ms :: {"message":"Access token required"}
+10:49:24 AM [express] GET /api/alerts 401 in 1ms :: {"message":"Access token required"}
+Login attempt for: user@company.com
+Found 1 users in search
+User found: Yes (user@company.com)
+Checking password for user: user@company.com
+User has password_hash: false
+Demo credentials match for user@company.com
+Updated demo user user@company.com with hashed password
+10:49:28 AM [express] POST /api/auth/login 200 in 254ms :: {"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpX…
+10:49:28 AM [express] GET /api/auth/verify 200 in 65ms :: {"id":"7c782680-afc3-4945-9d34-172956e3736c…
+10:49:31 AM [express] GET /api/knowledge-base 401 in 0ms :: {"message":"Access token required"}
+10:49:33 AM [express] GET /api/dashboard/summary 401 in 1ms :: {"message":"Access token required"}
+10:49:33 AM [express] GET /api/devices 401 in 0ms :: {"message":"Access token required"}
+10:49:33 AM [express] GET /api/alerts 401 in 0ms :: {"message":"Access token required"}
+Login attempt for: manager@company.com
+Found 1 users in search
+User found: Yes (manager@company.com)
+Checking password for user: manager@company.com
+User has password_hash: false
+Demo credentials match for manager@company.com
+Updated demo user manager@company.com with hashed password
+10:49:37 AM [express] POST /api/auth/login 200 in 258ms :: {"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpX…
+10:49:38 AM [express] GET /api/auth/verify 200 in 64ms :: {"id":"0b8827ea-3db5-4994-9b84-f81a70028311…
+10:49:42 AM [express] GET /api/knowledge-base 401 in 0ms :: {"message":"Access token required"}
+10:49:43 AM [express] GET /api/devices 401 in 1ms :: {"message":"Access token required"}
