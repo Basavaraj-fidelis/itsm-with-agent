@@ -9,7 +9,13 @@ import {
   Shield,
   FileText,
   Bell,
-  Monitor
+  Monitor,
+  Headphones,
+  Server,
+  UserCheck,
+  ChevronRight,
+  ChevronLeft,
+  MoreHorizontal
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -399,3 +405,5 @@ export function Sidebar() {
     </TooltipProvider>
   );
 }
+
+export default Sidebar;
