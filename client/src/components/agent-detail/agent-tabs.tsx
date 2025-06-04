@@ -35,35 +35,8 @@ interface AgentTabsProps {
   agent: any;
 }
 
-export default function AgentTabs({ agent }: AgentTabsProps) {
-  const [usbHistory, setUsbHistory] = useState([]);
-  const rawData = agent.latest_report?.raw_data;
-
-  useEffect(() => {
-    const fetchUSBHistory = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`/api/devices/${agent.id}/usb-devices`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setUsbHistory(data);
-        }
-      } catch (error) {
-        console.error('Error fetching USB history:', error);
-      }
-    };
-
-    if (agent.id) {
-      fetchUSBHistory();
-    }
-  }, [agent.id]);
-
-  // Helper function to format bytes to human-readable format
-  const formatBytes = (bytes: number, decimals: number = 2) => {
+// Helper function to format bytes to human-readable format
+const formatBytes = (bytes: number, decimals: number = 2) => {
   if (bytes === 0) return "0 Bytes";
 
   const k = 1024;
@@ -187,7 +160,6 @@ const getAllIPs = (agent: any) => {
 
 export default function AgentTabs({ agent }: AgentTabsProps) {
   const [usbHistory, setUsbHistory] = useState([]);
-  const rawData = agent.latest_report?.raw_data;
 
   useEffect(() => {
     const fetchUSBHistory = async () => {
@@ -1308,236 +1280,6 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
         </Card>
       </TabsContent>
 
-      {/* <TabsContent value="storage" className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <HardDrive className="w-5 h-5" />
-              <span>Storage Information</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {storageInfo.disks && Array.isArray(storageInfo.disks) ? (
-                storageInfo.disks.map((drive: any, index: number) => (
-                  <div
-                    key={index}
-                    className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-4"
-                  >
-                    <div className="flex items-center space-x-2 mb-3">
-                      <HardDrive className="w-4 h-4 text-orange-600" />
-                      <h4 className="font-medium text-neutral-900 dark:text-neutral-100">
-                        {drive.device ||
-                          drive.mountpoint ||
-                          `Drive ${index + 1}`}
-                      </h4>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">Total Size:</span>
-                        <span className="font-medium">
-                          {drive.total ? bytesToGB(drive.total) : "N/A"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">Used:</span>
-                        <span className="font-medium">
-                          {drive.used ? bytesToGB(drive.used) : "N/A"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">Free:</span>
-                        <span className="font-medium">
-                          {drive.free ? bytesToGB(drive.free) : "N/A"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">Usage:</span>
-                        <span
-                          className={`font-medium ${
-                            Math.round(
-                              drive.percent || drive.usage?.percentage || 0,
-                            ) >= 85
-                              ? "text-red-600"
-                              : Math.round(
-                                    drive.percent ||
-                                      drive.usage?.percentage ||
-                                      0,
-                                  ) >= 75
-                                ? "text-yellow-600"
-                                : "text-green-600"
-                          }`}
-                        >
-                          {drive.percent || drive.usage?.percentage
-                            ? Math.round(
-                                drive.percent || drive.usage?.percentage,
-                              )
-                            : "N/A"}
-                          %
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">Filesystem:</span>
-                        <span className="font-medium">
-                          {drive.filesystem || "N/A"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">Mount Point:</span>
-                        <span className="font-medium">
-                          {drive.mountpoint || "N/A"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : Array.isArray(storageInfo) && storageInfo.length > 0 ? (
-                storageInfo.map((drive, index) => (
-                  <div
-                    key={index}
-                    className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-4"
-                  >
-                    <div className="flex items-center space-x-2 mb-3">
-                      <HardDrive className="w-4 h-4 text-orange-600" />
-                      <h4 className="font-medium text-neutral-900 dark:text-neutral-100">
-                        {drive.drive ||
-                          drive.device ||
-                          drive.mountpoint ||
-                          `Drive ${index + 1}`}
-                      </h4>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">Total Size:</span>
-                        <span className="font-medium">
-                          {drive.total_size
-                            ? bytesToGB(drive.total_size)
-                            : drive.size
-                              ? bytesToGB(drive.size)
-                              : drive.total
-                                ? bytesToGB(drive.total)
-                                : "N/A"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">Used:</span>
-                        <span className="font-medium">
-                          {drive.used ? bytesToGB(drive.used) : "N/A"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">Free:</span>
-                        <span className="font-medium">
-                          {drive.free ? bytesToGB(drive.free) : "N/A"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">Usage:</span>
-                        <span
-                          className={`font-medium ${
-                            Math.round(
-                              drive.usage_percent ||
-                                drive.percent ||
-                                drive.usage ||
-                                0,
-                            ) >= 85
-                              ? "text-red-600"
-                              : Math.round(
-                                    drive.usage_percent ||
-                                      drive.percent ||
-                                      drive.usage ||
-                                      0,
-                                  ) >= 75
-                                ? "text-yellow-600"
-                                : "text-green-600"
-                          }`}
-                        >
-                          {drive.usage_percent || drive.percent || drive.usage
-                            ? Math.round(
-                                drive.usage_percent ||
-                                  drive.percent ||
-                                  drive.usage,
-                              )
-                            : "N/A"}
-                          %
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">Type:</span>
-                        <span className="font-medium">
-                          {drive.filesystem ||
-                            drive.type ||
-                            drive.fstype ||
-                            "N/A"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : Object.entries(storageInfo).length > 0 ? (
-                Object.entries(storageInfo).map(([driveName, details]) => (
-                  <div
-                    key={driveName}
-                    className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-4"
-                  >
-                    <div className="flex items-center space-x-2 mb-3">
-                      <HardDrive className="w-4 h-4 text-orange-600" />
-                      <h4 className="font-medium text-neutral-900 dark:text-neutral-100">
-                        {driveName}
-                      </h4>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                      {typeof details === "object" && details !== null ? (
-                        <>
-                          <div className="flex justify-between">
-                            <span className="text-neutral-600">
-                              Total Size:
-                            </span>
-                            <span className="font-medium">
-                              {(details as any).total
-                                ? bytesToGB((details as any).total)
-                                : (details as any).size
-                                  ? bytesToGB((details as any).size)
-                                  : "N/A"}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-neutral-600">Used:</span>
-                            <span className="font-medium">
-                              {(details as any).used
-                                ? bytesToGB((details as any).used)
-                                : "N/A"}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-neutral-600">Free:</span>
-                            <span className="font-medium">
-                              {(details as any).free
-                                ? bytesToGB((details as any).free)
-                                : "N/A"}
-                            </span>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="flex justify-between">
-                          <span className="text-neutral-600">Details:</span>
-                          <span className="font-medium">{String(details)}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-neutral-500">
-                  <HardDrive className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
-                  <p>No storage data available</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent> */}
-
       <TabsContent value="storage" className="space-y-6">
         <Card className="shadow-lg rounded-2xl border border-gray-200 dark:border-gray-700">
           <CardHeader className="bg-muted/40 rounded-t-2xl p-4">
@@ -1702,7 +1444,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                 <Cpu className="w-5 h-5" />
                 <span>Top 10 Processes (by CPU Usage)</span>
               </CardTitle>
-            </Card            </CardHeader>
+            </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {Array.isArray(processInfo) && processInfo.length > 0 ? (
