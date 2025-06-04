@@ -712,8 +712,9 @@ export default function Settings() {
       <div className="flex-1 overflow-auto">
         <div className="p-6 space-y-6">
           <div className="mb-8">
-          <p className="text-neutral-600">System configuration and preferences</p>
-        </div>
+            <h1 className="text-2xl font-semibold text-[#201F1E] dark:text-[#F3F2F1] mb-2">Admin Panel</h1>
+            <p className="text-neutral-600">System configuration and preferences</p>
+          </div>
           {renderContent()}
 
           {/* Save Button */}

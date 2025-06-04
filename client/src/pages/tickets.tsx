@@ -305,7 +305,7 @@ export default function Tickets() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-neutral-800 dark:text-neutral-200 mb-2">
+          <h1 className="text-2xl font-semibold text-[#201F1E] dark:text-[#F3F2F1] mb-2">
             Service Desk
           </h1>
           <p className="text-neutral-600">Manage tickets and service workflows</p>

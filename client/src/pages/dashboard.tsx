@@ -78,6 +78,7 @@ export default function Dashboard() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="mb-8">
+        <h1 className="text-2xl font-semibold text-[#201F1E] dark:text-[#F3F2F1] mb-2">Dashboard</h1>
         <p className="text-neutral-600">System overview and monitoring</p>
       </div>
 

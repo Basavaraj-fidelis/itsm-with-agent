@@ -371,7 +371,7 @@ export default function Users() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          
+          <h1 className="text-2xl font-semibold text-[#201F1E] dark:text-[#F3F2F1] mb-2">User Directory</h1>
           <p className="text-neutral-600">
             Manage user accounts, roles, and permissions
           </p>

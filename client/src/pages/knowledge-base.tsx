@@ -283,6 +283,7 @@ export default function KnowledgeBase() {
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
+            <h1 className="text-2xl font-semibold text-[#201F1E] dark:text-[#F3F2F1] mb-2">Help Articles</h1>
             <p className="text-neutral-600">Browse articles and documentation</p>
           </div>
           <Button 
