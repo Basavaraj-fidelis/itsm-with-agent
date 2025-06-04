@@ -1,6 +1,7 @@
 import React from "react";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { PerformanceChart } from "@/components/dashboard/performance-chart";
+import { QuickActions } from "@/components/dashboard/quick-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useDashboardSummary, useAlerts } from "@/hooks/use-dashboard";
@@ -30,14 +31,50 @@ export default function Dashboard() {
 
   if (summaryLoading || agentsLoading || alertsLoading) {
     return (
-      <div className="p-6 space-y-6">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900 p-6 space-y-8">
+        {/* Header Skeleton */}
+        <div className="space-y-3">
+          <div className="h-8 bg-gradient-to-r from-neutral-200 to-neutral-300 dark:from-neutral-700 dark:to-neutral-600 rounded-lg w-64 animate-pulse"></div>
+          <div className="h-4 bg-gradient-to-r from-neutral-200 to-neutral-300 dark:from-neutral-700 dark:to-neutral-600 rounded w-96 animate-pulse"></div>
+        </div>
+        
+        {/* Metrics Cards Skeleton */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[...Array(4)].map((_, i) => (
             <div
               key={i}
-              className="animate-pulse bg-neutral-200 dark:bg-neutral-700 h-32 rounded-lg"
-            ></div>
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 space-y-4 animate-pulse"
+            >
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <div className="h-4 bg-gradient-to-r from-neutral-200 to-neutral-300 dark:from-neutral-700 dark:to-neutral-600 rounded w-20"></div>
+                  <div className="h-8 bg-gradient-to-r from-neutral-200 to-neutral-300 dark:from-neutral-700 dark:to-neutral-600 rounded w-16"></div>
+                </div>
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-200 to-blue-300 dark:from-blue-700 dark:to-blue-600 rounded-lg"></div>
+              </div>
+              <div className="h-3 bg-gradient-to-r from-neutral-200 to-neutral-300 dark:from-neutral-700 dark:to-neutral-600 rounded w-32"></div>
+            </div>
           ))}
+        </div>
+        
+        {/* Charts Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 space-y-4 animate-pulse">
+            <div className="h-6 bg-gradient-to-r from-neutral-200 to-neutral-300 dark:from-neutral-700 dark:to-neutral-600 rounded w-48"></div>
+            <div className="space-y-3">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-16 bg-gradient-to-r from-neutral-200 to-neutral-300 dark:from-neutral-700 dark:to-neutral-600 rounded-lg"></div>
+              ))}
+            </div>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 space-y-4 animate-pulse">
+            <div className="h-6 bg-gradient-to-r from-neutral-200 to-neutral-300 dark:from-neutral-700 dark:to-neutral-600 rounded w-32"></div>
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-16 bg-gradient-to-r from-neutral-200 to-neutral-300 dark:from-neutral-700 dark:to-neutral-600 rounded-lg"></div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -75,14 +112,33 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-[#201F1E] dark:text-[#F3F2F1] mb-2">Dashboard</h1>
-        <p className="text-neutral-600">System overview and monitoring</p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900 p-6 space-y-8">
+      {/* Enhanced Header */}
+      <div className="mb-8 relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-indigo-600/10 rounded-2xl -z-10"></div>
+        <div className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+                IT Service Management Dashboard
+              </h1>
+              <p className="text-gray-600 dark:text-gray-300 text-lg">Real-time system overview and monitoring</p>
+              <div className="flex items-center mt-3 text-sm text-gray-500 dark:text-gray-400">
+                <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                Live data • Last updated {new Date().toLocaleTimeString()}
+              </div>
+            </div>
+            <div className="hidden md:flex items-center space-x-4">
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-md border border-gray-200 dark:border-gray-700">
+                <div className="text-xs text-gray-500 dark:text-gray-400">System Status</div>
+                <div className="text-sm font-semibold text-green-600 dark:text-green-400">All Systems Operational</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Metrics Cards */}
+      {/* Enhanced Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           title="Total Agents"
@@ -134,15 +190,32 @@ export default function Dashboard() {
         />
       </div>
 
+      {/* Quick Actions */}
+      <div className="mb-8">
+        <QuickActions />
+      </div>
+
+      {/* Performance Overview */}
+      <div className="mb-8">
+        <PerformanceChart />
+      </div>
+
       {/* Charts and Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Recent Tickets */}
-        <Card className="col-span-2">
-          <CardHeader>
-            <CardTitle>Recent Tickets</CardTitle>
-            <p className="text-sm text-neutral-600">
-              Latest service desk requests and incidents
-            </p>
+        <Card className="col-span-2 bg-white dark:bg-gray-800 shadow-lg border-0 rounded-xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-600 border-b border-gray-200 dark:border-gray-600">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Recent Tickets</CardTitle>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                  Latest service desk requests and incidents
+                </p>
+              </div>
+              <div className="bg-blue-100 dark:bg-blue-900 rounded-lg p-2">
+                <Monitor className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -230,9 +303,14 @@ export default function Dashboard() {
         </Card>
 
         {/* Recent Alerts */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Alerts</CardTitle>
+        <Card className="bg-white dark:bg-gray-800 shadow-lg border-0 rounded-xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-gray-700 dark:to-gray-600 border-b border-gray-200 dark:border-gray-600">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Recent Alerts</CardTitle>
+              <div className="bg-red-100 dark:bg-red-900 rounded-lg p-2">
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {alertsLoading ? (
