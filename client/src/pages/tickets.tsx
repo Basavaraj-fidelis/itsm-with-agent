@@ -88,7 +88,7 @@ export default function Tickets() {
   const [selectedType, setSelectedType] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedPriority, setSelectedPriority] = useState("all");
-  const [viewMode, setViewMode] = useState<"tickets" | "workflows" | "analytics">("tickets");
+  const [viewMode, setViewMode<"tickets" | "workflows" | "analytics">("tickets");
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [showNewTicketDialog, setShowNewTicketDialog] = useState(false);
   const [showTicketDetailsDialog, setShowTicketDetailsDialog] = useState(false);
@@ -107,6 +107,8 @@ export default function Tickets() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
+    const [statusFilter, setStatusFilter] = useState("all");
+    const [priorityFilter, setPriorityFilter] = useState("all");
 
   // Fetch tickets from API
   const fetchTickets = async (page = 1) => {
@@ -408,6 +410,205 @@ export default function Tickets() {
 
   const slaMetrics = getSLAMetrics();
 
+  const renderTicketFiltersAndList = (ticketsToShow: TicketData[]) => {
+    const filteredTickets = ticketsToShow.filter((ticket) => {
+      const matchesSearch = ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           ticket.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           ticket.ticket_number.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = selectedStatus === "all" || ticket.status === selectedStatus;
+      const matchesPriority = selectedPriority === "all" || ticket.priority === selectedPriority;
+
+      return matchesSearch && matchesStatus && matchesPriority;
+    });
+
+    return (
+      <>
+        {/* Filters */}
+        <div className="flex flex-wrap gap-4 items-center bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border mb-6">
+          <div className="flex items-center space-x-2">
+            <Search className="w-4 h-4 text-neutral-500" />
+            <Input
+              placeholder="Search tickets..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-64"
+            />
+          </div>
+
+          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="new">New</SelectItem>
+              <SelectItem value="assigned">Assigned</SelectItem>
+              <SelectItem value="in_progress">In Progress</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="resolved">Resolved</SelectItem>
+              <SelectItem value="closed">Closed</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedPriority} onValueChange={setSelectedPriority}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Priority</SelectItem>
+              <SelectItem value="low">Low</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+              <SelectItem value="critical">Critical</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button variant="outline" size="sm">
+            <Download className="w-4 h-4 mr-2" />
+            Export
+          </Button>
+        </div>
+
+        {/* Tickets List */}
+        <div className="space-y-4">
+          {filteredTickets.length === 0 ? (
+            <div className="text-center py-12">
+              <Ticket className="w-16 h-16 text-neutral-400 mx-auto mb-4" />
+              <p className="text-xl font-medium text-neutral-600 mb-2">No tickets found</p>
+              <p className="text-neutral-500">Try adjusting your filters or create a new ticket</p>
+            </div>
+          ) : (
+            filteredTickets.map((ticket) => {
+              const IconComponent = typeIcons[ticket.type as keyof typeof typeIcons];
+              const isOverdue = ticket.due_date && new Date(ticket.due_date) < new Date();
+
+              return (
+                <Card 
+                  key={ticket.id} 
+                  className={cn(
+                    "cursor-pointer hover:shadow-lg transition-all duration-200 border-l-4",
+                    ticket.priority === "critical" ? "border-l-red-500 bg-red-50/50 dark:bg-red-900/10" :
+                    ticket.priority === "high" ? "border-l-orange-500 bg-orange-50/50 dark:bg-orange-900/10" :
+                    ticket.priority === "medium" ? "border-l-yellow-500 bg-yellow-50/50 dark:bg-yellow-900/10" :
+                    "border-l-blue-500 bg-blue-50/50 dark:bg-blue-900/10",
+                    isOverdue && "ring-2 ring-red-200"
+                  )}
+                  onClick={() => {
+                    setSelectedTicket(ticket);
+                    setShowTicketDetailsDialog(true);
+                  }}
+                >
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start space-x-4 flex-1">
+                        <div className={cn(
+                          "p-3 rounded-xl",
+                          ticket.type === 'incident' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
+                          ticket.type === 'problem' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' :
+                          ticket.type === 'change' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
+                          'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                        )}>
+                          <IconComponent className="w-5 h-5" />
+                        </div>
+
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3 mb-2">
+                            <span className="font-mono text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+                              {ticket.ticket_number}
+                            </span>
+                            <Badge 
+                              variant="outline" 
+                              className={priorityColors[ticket.priority as keyof typeof priorityColors]}
+                            >
+                              {ticket.priority.toUpperCase()}
+                            </Badge>
+                            <Badge 
+                              variant="outline"
+                              className={statusColors[ticket.status as keyof typeof statusColors]}
+                            >
+                              {ticket.status.replace('_', ' ').toUpperCase()}
+                            </Badge>
+                            {isOverdue && (
+                              <Badge variant="destructive" className="animate-pulse">
+                                OVERDUE
+                              </Badge>
+                            )}
+                          </div>
+
+                          <h3 className="font-semibold text-lg text-neutral-900 dark:text-neutral-100 mb-2">
+                            {ticket.title}
+                          </h3>
+
+                          <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-3 line-clamp-2">
+                            {ticket.description}
+                          </p>
+
+                          <div className="flex items-center space-x-6 text-xs text-neutral-500 dark:text-neutral-400">
+                            <div className="flex items-center space-x-1">
+                              <User className="w-3 h-3" />
+                              <span>{ticket.requester_email}</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <Calendar className="w-3 h-3" />
+                              <span>Created: {formatDate(ticket.created_at)}</span>
+                            </div>
+                            {ticket.assigned_to && (
+                              <div className="flex items-center space-x-1">
+                                <UserCheck className="w-3 h-3" />
+                                <span>Assigned: {ticket.assigned_to}</span>
+                              </div>
+                            )}
+                            {ticket.due_date && (
+                              <div className="flex items-center space-x-1">
+                                <Clock className="w-3 h-3" />
+                                <span className={isOverdue ? "text-red-600 font-medium" : ""}>
+                                  Due: {formatDate(ticket.due_date)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <Button variant="ghost" size="sm">
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center space-x-2 mt-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchTickets(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              <span className="text-sm text-neutral-600">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchTickets(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          )}
+        </div>
+      </>
+    );
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -623,382 +824,27 @@ export default function Tickets() {
             </TabsList>
 
             <TabsContent value="all" className="mt-6">
-              {/* Filters for All Tickets */}
-              <div className="flex flex-wrap gap-4 items-center bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border mb-6">
-                <div className="flex items-center space-x-2">
-                  <Search className="w-4 h-4 text-neutral-500" />
-                  <Input
-                    placeholder="Search tickets..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-64"
-                  />
-                </div>
-
-                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="new">New</SelectItem>
-                    <SelectItem value="assigned">Assigned</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="resolved">Resolved</SelectItem>
-                    <SelectItem value="closed">Closed</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select value={selectedPriority} onValueChange={setSelectedPriority}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Priority</SelectItem>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="critical">Critical</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Button variant="outline" size="sm">
-                  <Download className="w-4 h-4 mr-2" />
-                  Export
-                </Button>
-              </div>
+              {renderTicketFiltersAndList(tickets)}
             </TabsContent>
 
             <TabsContent value="request" className="mt-6">
-              {/* Filters for Service Requests */}
-              <div className="flex flex-wrap gap-4 items-center bg-green-50 dark:bg-green-900/20 p-4 rounded-lg shadow-sm border border-green-200 mb-6">
-                <div className="flex items-center space-x-2">
-                  <Ticket className="w-4 h-4 text-green-600" />
-                  <span className="text-sm font-medium text-green-700 dark:text-green-300">Service Requests</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Search className="w-4 h-4 text-neutral-500" />
-                  <Input
-                    placeholder="Search service requests..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-64"
-                  />
-                </div>
-                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="new">New</SelectItem>
-                    <SelectItem value="assigned">Assigned</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="resolved">Resolved</SelectItem>
-                    <SelectItem value="closed">Closed</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={selectedPriority} onValueChange={setSelectedPriority}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Priority</SelectItem>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="critical">Critical</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {renderTicketFiltersAndList(tickets.filter(t => t.type === 'request'))}
             </TabsContent>
 
             <TabsContent value="incident" className="mt-6">
-              {/* Filters for Incidents */}
-              <div className="flex flex-wrap gap-4 items-center bg-red-50 dark:bg-red-900/20 p-4 rounded-lg shadow-sm border border-red-200 mb-6">
-                <div className="flex items-center space-x-2">
-                  <AlertTriangle className="w-4 h-4 text-red-600" />
-                  <span className="text-sm font-medium text-red-700 dark:text-red-300">Incidents</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Search className="w-4 h-4 text-neutral-500" />
-                  <Input
-                    placeholder="Search incidents..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-64"
-                  />
-                </div>
-                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="new">New</SelectItem>
-                    <SelectItem value="assigned">Assigned</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="resolved">Resolved</SelectItem>
-                    <SelectItem value="closed">Closed</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={selectedPriority} onValueChange={setSelectedPriority}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Priority</SelectItem>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="critical">Critical</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {renderTicketFiltersAndList(tickets.filter(t => t.type === 'incident'))}
             </TabsContent>
 
             <TabsContent value="problem" className="mt-6">
-              {/* Filters for Problems */}
-              <div className="flex flex-wrap gap-4 items-center bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg shadow-sm border border-orange-200 mb-6">
-                <div className="flex items-center space-x-2">
-                  <Wrench className="w-4 h-4 text-orange-600" />
-                  <span className="text-sm font-medium text-orange-700 dark:text-orange-300">Problems</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Search className="w-4 h-4 text-neutral-500" />
-                  <Input
-                    placeholder="Search problems..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-64"
-                  />
-                </div>
-                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="new">New</SelectItem>
-                    <SelectItem value="assigned">Assigned</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="resolved">Resolved</SelectItem>
-                    <SelectItem value="closed">Closed</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={selectedPriority} onValueChange={setSelectedPriority}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Priority</SelectItem>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="critical">Critical</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {renderTicketFiltersAndList(tickets.filter(t => t.type === 'problem'))}
             </TabsContent>
 
             <TabsContent value="change" className="mt-6">
-              {/* Filters for Changes */}
-              <div className="flex flex-wrap gap-4 items-center bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg shadow-sm border border-blue-200 mb-6">
-                <div className="flex items-center space-x-2">
-                  <RefreshCw className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Change Requests</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Search className="w-4 h-4 text-neutral-500" />
-                  <Input
-                    placeholder="Search change requests..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-64"
-                  />
-                </div>
-                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="new">New</SelectItem>
-                    <SelectItem value="assigned">Assigned</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="resolved">Resolved</SelectItem>
-                    <SelectItem value="closed">Closed</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={selectedPriority} onValueChange={setSelectedPriority}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Priority</SelectItem>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="critical">Critical</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {renderTicketFiltersAndList(tickets.filter(t => t.type === 'change'))}
             </TabsContent>
           </Tabs>
-
-          {/* Tickets List */}
-          <div className="space-y-4"></old_str>
-
-            <div className="space-y-4"></old_str>
-            {loading ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-4 text-neutral-600">Loading tickets...</p>
-              </div>
-            ) : filteredTickets.length === 0 ? (
-              <div className="text-center py-12">
-                <Ticket className="w-16 h-16 text-neutral-400 mx-auto mb-4" />
-                <p className="text-xl font-medium text-neutral-600 mb-2">No tickets found</p>
-                <p className="text-neutral-500">Try adjusting your filters or create a new ticket</p>
-              </div>
-            ) : (
-              <>
-                {filteredTickets.map((ticket) => {
-                  const IconComponent = typeIcons[ticket.type as keyof typeof typeIcons];
-                  const isOverdue = ticket.due_date && new Date(ticket.due_date) < new Date();
-
-                  return (
-                    <Card 
-                      key={ticket.id} 
-                      className={cn(
-                        "cursor-pointer hover:shadow-lg transition-all duration-200 border-l-4",
-                        ticket.priority === "critical" ? "border-l-red-500 bg-red-50/50 dark:bg-red-900/10" :
-                        ticket.priority === "high" ? "border-l-orange-500 bg-orange-50/50 dark:bg-orange-900/10" :
-                        ticket.priority === "medium" ? "border-l-yellow-500 bg-yellow-50/50 dark:bg-yellow-900/10" :
-                        "border-l-blue-500 bg-blue-50/50 dark:bg-blue-900/10",
-                        isOverdue && "ring-2 ring-red-200"
-                      )}
-                      onClick={() => {
-                        setSelectedTicket(ticket);
-                        setShowTicketDetailsDialog(true);
-                      }}
-                    >
-                      <CardContent className="p-6">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-start space-x-4 flex-1">
-                            <div className={cn(
-                              "p-3 rounded-xl",
-                              ticket.type === 'incident' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
-                              ticket.type === 'problem' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' :
-                              ticket.type === 'change' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
-                              'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
-                            )}>
-                              <IconComponent className="w-5 h-5" />
-                            </div>
-
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-3 mb-2">
-                                <span className="font-mono text-sm font-semibold text-neutral-600 dark:text-neutral-400">
-                                  {ticket.ticket_number}
-                                </span>
-                                <Badge 
-                                  variant="outline" 
-                                  className={priorityColors[ticket.priority as keyof typeof priorityColors]}
-                                >
-                                  {ticket.priority.toUpperCase()}
-                                </Badge>
-                                <Badge 
-                                  variant="outline"
-                                  className={statusColors[ticket.status as keyof typeof statusColors]}
-                                >
-                                  {ticket.status.replace('_', ' ').toUpperCase()}
-                                </Badge>
-                                {isOverdue && (
-                                  <Badge variant="destructive" className="animate-pulse">
-                                    OVERDUE
-                                  </Badge>
-                                )}
-                              </div>
-
-                              <h3 className="font-semibold text-lg text-neutral-900 dark:text-neutral-100 mb-2">
-                                {ticket.title}
-                              </h3>
-
-                              <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-3 line-clamp-2">
-                                {ticket.description}
-                              </p>
-
-                              <div className="flex items-center space-x-6 text-xs text-neutral-500 dark:text-neutral-400">
-                                <div className="flex items-center space-x-1">
-                                  <User className="w-3 h-3" />
-                                  <span>{ticket.requester_email}</span>
-                                </div>
-                                <div className="flex items-center space-x-1">
-                                  <Calendar className="w-3 h-3" />
-                                  <span>Created: {formatDate(ticket.created_at)}</span>
-                                </div>
-                                {ticket.assigned_to && (
-                                  <div className="flex items-center space-x-1">
-                                    <UserCheck className="w-3 h-3" />
-                                    <span>Assigned: {ticket.assigned_to}</span>
-                                  </div>
-                                )}
-                                {ticket.due_date && (
-                                  <div className="flex items-center space-x-1">
-                                    <Clock className="w-3 h-3" />
-                                    <span className={isOverdue ? "text-red-600 font-medium" : ""}>
-                                      Due: {formatDate(ticket.due_date)}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          <Button variant="ghost" size="sm">
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-center space-x-2 mt-6">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fetchTickets(currentPage - 1)}
-                      disabled={currentPage === 1}
-                    >
-                      Previous
-                    </Button>
-                    <span className="text-sm text-neutral-600">
-                      Page {currentPage} of {totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fetchTickets(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
         </>
       )}
-    </div></old_str>
 
       {/* New Ticket Dialog */}
       <Dialog open={showNewTicketDialog} onOpenChange={setShowNewTicketDialog}>
