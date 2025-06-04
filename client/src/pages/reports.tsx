@@ -76,9 +76,6 @@ export default function Reports() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-neutral-800 dark:text-neutral-200 mb-2">
-          System Reports
-        </h1>
         <p className="text-neutral-600">
           Generate and view system performance reports
         </p>

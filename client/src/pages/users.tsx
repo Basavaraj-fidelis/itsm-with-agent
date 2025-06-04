@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -372,9 +371,7 @@ export default function Users() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-semibold text-neutral-800 dark:text-neutral-200 mb-2">
-            User Management
-          </h1>
+          
           <p className="text-neutral-600">
             Manage user accounts, roles, and permissions
           </p>

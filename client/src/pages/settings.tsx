@@ -711,6 +711,9 @@ export default function Settings() {
       <SettingsSidebar activeTab={activeSection} onTabChange={() => {}} />
       <div className="flex-1 overflow-auto">
         <div className="p-6 space-y-6">
+          <div className="mb-8">
+          <p className="text-neutral-600">System configuration and preferences</p>
+        </div>
           {renderContent()}
 
           {/* Save Button */}
