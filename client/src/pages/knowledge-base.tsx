@@ -1,26 +1,46 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { api } from "@/lib/api";
 import { 
   Search, 
   Plus, 
-  BookOpen, 
-  Star, 
-  Clock, 
-  User,
-  Eye,
-  ThumbsUp,
-  MessageSquare,
+  FileText, 
+  Eye, 
+  Edit, 
+  Trash2,
   Filter,
+  Clock,
+  User,
+  ThumbsUp,
+  ThumbsDown,
+  Star,
+  BookOpen,
+  HelpCircle,
   Tag,
-  ArrowLeft,
-  ExternalLink,
-  AlertCircle,
-  RefreshCw
+  Calendar,
+  TrendingUp,
+  Award,
+  Users,
+  Download,
+  Share,
+  Heart,
+  MessageCircle,
+  Lightbulb,
+  Shield,
+  Zap,
+  Settings
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { formatDistanceToNow } from "date-fns";
 
 interface Article {
   id: string;
@@ -36,15 +56,27 @@ interface Article {
   status: "published" | "draft";
 }
 
+const getCategoryIcon = (category: string) => {
+  const icons = {
+    troubleshooting: "🔧",
+    "how-to": "📋", 
+    policy: "📜",
+    technical: "⚙️",
+    security: "🛡️",
+    network: "🌐",
+    hardware: "💻",
+    software: "📱"
+  };
+  return icons[category] || "📄";
+};
+
 export default function KnowledgeBase() {
+  const [articles, setArticles] = useState<Article[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+    const [selectedStatus, setSelectedStatus] = useState("all");
   const [isLoading, setIsLoading] = useState(false);
-
-  // Fetch articles from API
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [error, setError] = useState<Error | null>(null);
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [showNewArticleForm, setShowNewArticleForm] = useState(false);
   const [newArticle, setNewArticle] = useState({
     title: '',
@@ -87,10 +119,8 @@ export default function KnowledgeBase() {
       const data = await response.json();
       console.log(`Received ${data.length} articles for category: ${selectedCategory}`);
       setArticles(data);
-      setError(null);
     } catch (err) {
       console.error('Error fetching articles:', err);
-      setError(err as Error);
       setArticles([]);
     } finally {
       setIsLoading(false);
@@ -280,12 +310,17 @@ export default function KnowledgeBase() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-[#201F1E] dark:text-[#F3F2F1] mb-2">Help Articles</h1>
-            <p className="text-neutral-600">Browse articles and documentation</p>
-          </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-[#201F1E] dark:text-[#F3F2F1] mb-2">Help Articles</h1>
+          <p className="text-neutral-600 dark:text-neutral-400">Browse articles and documentation to solve common problems</p>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" size="sm">
+            <Download className="w-4 h-4 mr-2" />
+            Export
+          </Button>
           <Button 
             className="bg-blue-600 hover:bg-blue-700"
             onClick={() => setShowNewArticleForm(true)}
@@ -294,6 +329,63 @@ export default function KnowledgeBase() {
             New Article
           </Button>
         </div>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Total Articles</p>
+                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{articles.length}</p>
+              </div>
+              <BookOpen className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-green-600 dark:text-green-400">Published</p>
+                <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+                  {articles.filter(a => a.status === 'published').length}
+                </p>
+              </div>
+              <Award className="h-6 w-6 text-green-600 dark:text-green-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Categories</p>
+                <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                  {new Set(articles.map(a => a.category)).size}
+                </p>
+              </div>
+              <Tag className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-orange-200">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Most Helpful</p>
+                <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">
+                  {articles.filter(a => a.helpful_votes && a.helpful_votes > 0).length}
+                </p>
+              </div>
+              <ThumbsUp className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* New Article Form */}
@@ -344,177 +436,257 @@ export default function KnowledgeBase() {
         </Card>
       )}
 
-      {/* Search and Filters */}
-      <Card>
+      {/* Enhanced Search and Filters */}
+      <Card className="bg-white dark:bg-gray-800 shadow-sm border">
         <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-4 h-4" />
-              <Input
-                placeholder="Search articles, tags, or content..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+          <div className="flex flex-col space-y-4">
+            <div className="flex items-center space-x-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search articles, tags, or content..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Button variant="outline" size="sm">
+                <Filter className="w-4 h-4 mr-2" />
+                Advanced Search
+              </Button>
             </div>
-            <div className="flex gap-2 flex-wrap">
-              {categories.map((category) => (
-                <Button
-                  key={category}
-                  variant={selectedCategory === category ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedCategory(category)}
-                  className="capitalize"
-                >
-                  {category === "all" ? "All Categories" : category}
-                </Button>
-              ))}
+
+            <div className="flex flex-wrap gap-2">
+              <div className="flex items-center space-x-2">
+                <Label className="text-sm font-medium">Category:</Label>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem value="troubleshooting">🔧 Troubleshooting</SelectItem>
+                    <SelectItem value="how-to">📋 How To</SelectItem>
+                    <SelectItem value="policy">📜 Policy</SelectItem>
+                    <SelectItem value="technical">⚙️ Technical</SelectItem>
+                    <SelectItem value="security">🛡️ Security</SelectItem>
+                    <SelectItem value="network">🌐 Network</SelectItem>
+                    <SelectItem value="hardware">💻 Hardware</SelectItem>
+                    <SelectItem value="software">📱 Software</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Label className="text-sm font-medium">Status:</Label>
+                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="published">✅ Published</SelectItem>
+                    <SelectItem value="draft">📝 Draft</SelectItem>
+                    <SelectItem value="archived">📦 Archived</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Label className="text-sm font-medium">Sort:</Label>
+                <Select value="recent" onValueChange={() => {}}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="recent">Recent</SelectItem>
+                    <SelectItem value="popular">Popular</SelectItem>
+                    <SelectItem value="helpful">Most Helpful</SelectItem>
+                    <SelectItem value="title">Title A-Z</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Popular Tags */}
+            <div className="flex items-center space-x-2">
+              <Label className="text-sm font-medium">Popular Tags:</Label>
+              <div className="flex flex-wrap gap-1">
+                {['password-reset', 'email-setup', 'vpn', 'printer', 'wifi', 'slow-computer'].map(tag => (
+                  <Badge 
+                    key={tag} 
+                    variant="outline" 
+                    className="cursor-pointer hover:bg-primary hover:text-primary-foreground"
+                    onClick={() => setSearchTerm(tag)}
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Loading State */}
-      {isLoading && (
-        <div className="text-center py-8">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="mt-2 text-neutral-600">Loading articles...</p>
+      {/* Articles Layout */}
+      <Tabs defaultValue="grid" className="space-y-4">
+        <div className="flex items-center justify-between">
+          <TabsList className="grid w-[200px] grid-cols-2">
+            <TabsTrigger value="grid">Grid View</TabsTrigger>
+            <TabsTrigger value="list">List View</TabsTrigger>
+          </TabsList>
+          <div className="text-sm text-muted-foreground">
+            Showing {filteredArticles.length} article{filteredArticles.length !== 1 ? 's' : ''}
+          </div>
         </div>
-      )}
 
-      {/* Articles Grid */}
-      {!isLoading && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {error ? (
-            <Card className="p-12 text-center">
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
-                <h3 className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-2">
-                  Error Loading Articles
-                </h3>
-                <p className="text-neutral-600 dark:text-neutral-400 text-center mb-4">
-                  {error.message}
-                </p>
-                <Button onClick={() => window.location.reload()}>
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Retry
-                </Button>
-              </CardContent>
-            </Card>
-          ) : articles.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <BookOpen className="w-12 h-12 text-neutral-400 mb-4" />
-                <h3 className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-2">
-                  No articles found
-                </h3>
-                <p className="text-neutral-600 dark:text-neutral-400 text-center mb-4">
-                  {searchTerm || selectedCategory !== "all" 
-                    ? "Try adjusting your search or filters"
-                    : "No knowledge base articles available yet"
-                  }
-                </p>
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create First Article
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            filteredArticles.map((article) => (
-              <Card 
-                key={article.id} 
-                className="hover:shadow-lg transition-all cursor-pointer hover:border-blue-200 dark:hover:border-blue-800"
-                onClick={() => handleArticleClick(article)}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <Badge variant="secondary" className="mb-2">
-                      {article.category}
-                    </Badge>
-                    <Button variant="ghost" size="sm">
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  <CardTitle className="text-lg line-clamp-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                    {article.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400 line-clamp-3 mb-4">
-                    {article.content.split('\n').find(line => line.trim() && !line.startsWith('#'))?.slice(0, 150)}...
+        <TabsContent value="grid" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {isLoading && (
+              <div className="text-center py-8">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p className="mt-2 text-neutral-600">Loading articles...</p>
+              </div>
+            )}
+
+            {!isLoading && filteredArticles.length === 0 && (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <BookOpen className="w-12 h-12 text-neutral-400 mb-4" />
+                  <h3 className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-2">
+                    No articles found
+                  </h3>
+                  <p className="text-neutral-600 dark:text-neutral-400 text-center mb-4">
+                    {searchTerm || selectedCategory !== "all" 
+                      ? "Try adjusting your search or filters"
+                      : "No knowledge base articles available yet"
+                    }
                   </p>
-
-                  {/* Tags */}
-                  {article.tags && article.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-4">
-                      {article.tags.slice(0, 3).map((tag) => (
-                        <Badge key={tag} variant="outline" className="text-xs">
-                          <Tag className="w-3 h-3 mr-1" />
-                          {tag}
-                        </Badge>
-                      ))}
-                      {article.tags.length > 3 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{article.tags.length - 3}
-                        </Badge>
-                      )}
-                    </div>
-                  )}
-
-                  <Separator className="mb-3" />
-
-                  {/* Footer */}
-                  <div className="flex items-center justify-between text-xs text-neutral-500">
-                    <div className="flex items-center space-x-2">
-                      <User className="w-3 h-3" />
-                      <span>{article.author_email}</span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="flex items-center space-x-1">
-                        <Eye className="w-3 h-3" />
-                        <span>{article.views}</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <ThumbsUp className="w-3 h-3" />
-                        <span>{article.helpful_votes}</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <Clock className="w-3 h-3" />
-                        <span>{formatDate(article.created_at)}</span>
-                      </div>
-                    </div>
-                  </div>
+                  <Button className="bg-blue-600 hover:bg-blue-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create First Article
+                  </Button>
                 </CardContent>
               </Card>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* Empty State */}
-      {!isLoading && filteredArticles.length === 0 && !error && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <BookOpen className="w-12 h-12 text-neutral-400 mb-4" />
-            <h3 className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-2">
-              No articles found
-            </h3>
-            <p className="text-neutral-600 dark:text-neutral-400 text-center mb-4">
-              {searchTerm || selectedCategory !== "all" 
-                ? "Try adjusting your search or filters"
-                : "No knowledge base articles available yet"
-              }
-            </p>
-            {!searchTerm && selectedCategory === "all" && (
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Create First Article
-              </Button>
             )}
-          </CardContent>
-        </Card>
-      )}
+            {!isLoading && (
+              filteredArticles.map((article) => (
+                <Card 
+                  key={article.id} 
+                  className="group cursor-pointer hover:shadow-lg transition-all duration-200 border-l-4 border-l-blue-500 hover:border-l-blue-600"
+                  onClick={() => {
+                    setSelectedArticle(article);
+                    setShowNewArticleForm(true);
+                  }}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-3">
+                          <Badge 
+                            variant={article.status === "published" ? "default" : "secondary"}
+                            className={article.status === "published" ? "bg-green-100 text-green-800" : ""}
+                          >
+                            {article.status === "published" ? "✅ Published" : "📝 Draft"}
+                          </Badge>
+                          <Badge variant="outline" className="font-normal">
+                            {getCategoryIcon(article.category)} {article.category}
+                          </Badge>
+                        </div>
+                        <CardTitle className="text-lg mb-2 group-hover:text-blue-600 transition-colors">
+                          {article.title}
+                        </CardTitle>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100">
+                          <Share className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100">
+                          <Heart className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4 line-clamp-3">
+                      {article.content?.slice(0, 150)}...
+                    </p>
+
+                    <Separator className="my-3" />
+
+                    <div className="flex items-center justify-between text-xs text-neutral-500">
+                      <div className="flex items-center space-x-1">
+                        <Clock className="w-3 h-3" />
+                        <span>{formatDistanceToNow(new Date(article.created_at), { addSuffix: true })}</span>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-1">
+                          <Eye className="w-3 h-3" />
+                          <span>{article.views || 0}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <ThumbsUp className="w-3 h-3 text-green-600" />
+                          <span>{article.helpful_votes || 0}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <MessageCircle className="w-3 h-3 text-blue-600" />
+                          <span>0</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="list" className="space-y-2">
+          {filteredArticles.map((article) => (
+            <Card 
+              key={article.id}
+              className="cursor-pointer hover:shadow-md transition-all duration-200"
+              onClick={() => {
+                setSelectedArticle(article);
+                setShowNewArticleForm(true);
+              }}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Badge variant={article.status === "published" ? "default" : "secondary"}>
+                        {article.status}
+                      </Badge>
+                      <Badge variant="outline">
+                        {getCategoryIcon(article.category)} {article.category}
+                      </Badge>
+                    </div>
+                    <h3 className="font-semibold text-lg mb-1">{article.title}</h3>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {article.content?.slice(0, 200)}...
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-6 text-sm text-muted-foreground">
+                    <div className="flex items-center space-x-1">
+                      <Eye className="w-4 h-4" />
+                      <span>{article.views || 0}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <ThumbsUp className="w-4 h-4" />
+                      <span>{article.helpful_votes || 0}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Clock className="w-4 h-4" />
+                      <span>{formatDistanceToNow(new Date(article.created_at), { addSuffix: true })}</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

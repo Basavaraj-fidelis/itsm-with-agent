@@ -13,7 +13,52 @@ export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { user } = useAuth();
   const [location] = useLocation();
-  const [notifications, setNotifications] = useState(3); // Mock notification count
+  const [notifications, setNotifications] = useState({
+    tickets: 0,
+    alerts: 0,
+    agents: 0
+  });
+
+  // Fetch notification counts
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const token = localStorage.getItem('auth_token');
+        if (!token) return;
+
+        // Fetch open tickets count
+        const ticketsResponse = await fetch('/api/tickets?status=new&limit=1', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (ticketsResponse.ok) {
+          const ticketsData = await ticketsResponse.json();
+          const openTickets = ticketsData.total || 0;
+          
+          // Fetch active alerts count
+          const alertsResponse = await fetch('/api/alerts', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (alertsResponse.ok) {
+            const alertsData = await alertsResponse.json();
+            const activeAlerts = alertsData.length || 0;
+
+            setNotifications({
+              tickets: openTickets,
+              alerts: activeAlerts,
+              agents: 0 // Don't show count for managed systems
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      }
+    };
+
+    fetchNotifications();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Define navigation with colored icons based on user role
   const getNavigation = () => {
@@ -37,7 +82,7 @@ export default function Sidebar() {
         iconColor: "text-green-500",
         activeColor: "bg-green-50 border-green-200 text-green-700",
         description: "Manage tickets and requests",
-        notification: 5
+        notification: notifications.tickets > 0 ? notifications.tickets : undefined
       },
       { 
         name: "Help Articles", 
@@ -60,8 +105,7 @@ export default function Sidebar() {
         roles: ["technician", "manager", "admin"],
         iconColor: "text-orange-500",
         activeColor: "bg-orange-50 border-orange-200 text-orange-700",
-        description: "Monitor system health",
-        notification: 2
+        description: "Monitor system health"
       },
       { 
         name: "System Alerts", 
@@ -72,7 +116,7 @@ export default function Sidebar() {
         iconColor: "text-red-500",
         activeColor: "bg-red-50 border-red-200 text-red-700",
         description: "Critical system notifications",
-        notification: 1
+        notification: notifications.alerts > 0 ? notifications.alerts : undefined
       },
     ];
 
@@ -192,11 +236,11 @@ export default function Sidebar() {
                   {user.email}
                 </p>
               </div>
-              {notifications > 0 && (
+              {(notifications.tickets + notifications.alerts) > 0 && (
                 <div className="relative">
                   <Bell className="w-4 h-4 text-[#605E5C] dark:text-[#A19F9D]" />
                   <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
-                    <span className="text-xs text-white font-bold">{notifications}</span>
+                    <span className="text-xs text-white font-bold">{notifications.tickets + notifications.alerts}</span>
                   </div>
                 </div>
               )}

@@ -101,3 +101,43 @@ async function post(url: string, data?: any) {
 async function get(url: string) {
   return apiRequest(url, { method: "GET" });
 }
+
+class ApiClient {
+  private baseURL: string;
+
+  constructor() {
+    // Use relative URLs in production, full URLs in development
+    this.baseURL = import.meta.env.DEV ? 'http://localhost:5000' : '';
+  }
+
+  private async request(url: string, options: RequestInit = {}): Promise<Response> {
+    const token = localStorage.getItem('auth_token');
+
+    const config: RequestInit = {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...options.headers,
+      },
+    };
+
+    try {
+      const response = await fetch(`${this.baseURL}${url}`, config);
+
+      if (response.status === 401) {
+        localStorage.removeItem('auth_token');
+        window.location.href = '/login';
+        throw new Error('Unauthorized');
+      }
+
+      return response;
+    } catch (error) {
+      console.error('API request failed:', error);
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('Network connection failed. Please check your connection.');
+      }
+      throw error;
+    }
+  }
+}

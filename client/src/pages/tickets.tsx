@@ -123,20 +123,34 @@ export default function Tickets() {
       if (searchTerm) params.append("search", searchTerm);
 
       const response = await api.get(`/api/tickets?${params}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const data = await response.json();
 
-      setTickets(data.data || []);
-      setTotalTickets(data.total || 0);
-      setCurrentPage(data.page || 1);
-      setTotalPages(data.totalPages || 1);
+      // Handle both array and paginated response formats
+      if (Array.isArray(data)) {
+        setTickets(data);
+        setTotalTickets(data.length);
+        setCurrentPage(1);
+        setTotalPages(1);
+      } else {
+        setTickets(data.data || []);
+        setTotalTickets(data.total || 0);
+        setCurrentPage(data.page || 1);
+        setTotalPages(data.totalPages || 1);
+      }
     } catch (error) {
       console.error('Error fetching tickets:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch tickets",
+        description: error instanceof Error ? error.message : "Failed to fetch tickets. Please check your connection.",
         variant: "destructive"
       });
       setTickets([]);
+      setTotalTickets(0);
     } finally {
       setLoading(false);
     }

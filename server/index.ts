@@ -45,10 +45,10 @@ app.use((req, res, next) => {
 
   // Import storage after it's available
   const { storage } = await import("./storage");
-  
+
   // Import authentication middleware from routes
   const routesModule = await import("./routes");
-  
+
   // Define authentication middleware locally since it's not exported from routes
   const authenticateToken = async (req: any, res: any, next: any) => {
     const authHeader = req.headers['authorization'];
@@ -113,11 +113,11 @@ app.use((req, res, next) => {
     try {
       // Import user routes functionality
       const { userRoutes } = await import("./user-routes");
-      
+
       // Get all users (filtering can be added later)
       const { db } = await import("./db");
       const { users } = await import("../shared/user-schema");
-      
+
       const allUsers = await db.select({
         id: users.id,
         email: users.email,
@@ -129,7 +129,7 @@ app.use((req, res, next) => {
         created_at: users.created_at,
         last_login: users.last_login
       }).from(users);
-      
+
       res.json(allUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
