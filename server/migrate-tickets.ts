@@ -1,4 +1,3 @@
-
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 
@@ -144,6 +143,31 @@ export async function createTicketTables() {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)`);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_user_sessions_token ON user_sessions(token)`);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id)`);
+
+    // Create USB devices table
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS usb_devices (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        device_id UUID,
+        device_identifier TEXT NOT NULL,
+        description TEXT,
+        vendor_id TEXT,
+        product_id TEXT,
+        manufacturer TEXT,
+        serial_number TEXT,
+        device_class TEXT,
+        location TEXT,
+        speed TEXT,
+        first_seen TIMESTAMP DEFAULT NOW() NOT NULL,
+        last_seen TIMESTAMP DEFAULT NOW() NOT NULL,
+        is_connected BOOLEAN DEFAULT TRUE,
+        raw_data JSON DEFAULT '{}'::json
+      )
+    `);
+
+    // Create index for usb_devices
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_usb_devices_device_id ON usb_devices(device_id)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_usb_devices_identifier ON usb_devices(device_id, device_identifier)`);
 
     console.log("All tables created successfully!");
   } catch (error) {

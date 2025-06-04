@@ -38,6 +38,24 @@ export const alerts = pgTable("alerts", {
   is_active: boolean("is_active").default(true)
 });
 
+export const usb_devices = pgTable("usb_devices", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  device_id: uuid("device_id").references(() => devices.id).notNull(),
+  device_identifier: text("device_identifier").notNull(), // device_id or vid:pid combo
+  description: text("description"),
+  vendor_id: text("vendor_id"),
+  product_id: text("product_id"),
+  manufacturer: text("manufacturer"),
+  serial_number: text("serial_number"),
+  device_class: text("device_class"),
+  location: text("location"),
+  speed: text("speed"),
+  first_seen: timestamp("first_seen").defaultNow(),
+  last_seen: timestamp("last_seen").defaultNow(),
+  is_connected: boolean("is_connected").default(true),
+  raw_data: json("raw_data")
+});
+
 // Report data schema (from agent)
 export const reportDataSchema = z.object({
   hardware: z.record(z.any()).optional(),

@@ -303,6 +303,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/devices/:id/usb-devices", authenticateToken, async (req, res) => {
+    try {
+      const usbDevices = await storage.getUSBDevicesForDevice(req.params.id);
+      res.json(usbDevices);
+    } catch (error) {
+      console.error("Error fetching USB devices:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Report endpoint (from ITSM agents)
   app.post("/api/report", async (req, res) => {
     try {
@@ -630,8 +640,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await checkAndManageAlert("disk", disk_usage, { critical: 95, high: 85, warning: 75 }, "storage");
       }
 
-      // USB device detection (from raw data) - manage alerts to prevent duplicates
+      // USB device detection and tracking
       const usbDevices = data.usb_devices || data.hardware?.usb_devices || [];
+
+      // Update USB device tracking
+      await storage.updateUSBDevices(device.id, usbDevices);
 
       // Check for existing USB alert
       const existingUsbAlert = await storage.getActiveAlertByDeviceAndMetric(device.id, "usb");
