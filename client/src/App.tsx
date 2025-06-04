@@ -142,8 +142,8 @@ export default function App() {
               </ProtectedRoute>
             </Route>
 
-            <Route path="/settings">
-              <ProtectedRoute requiredRole={["admin"]}>
+            <Route path="/settings/:section?">
+              <ProtectedRoute requiredRole={["admin", "manager"]}>
                 <AuthenticatedLayout>
                   <Settings />
                 </AuthenticatedLayout>
