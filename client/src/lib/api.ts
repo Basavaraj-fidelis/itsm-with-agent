@@ -93,3 +93,11 @@ export const api = {
   // Alerts
   getAlerts2: () => get("/api/alerts"),
 };
+
+async function post(url: string, data?: any) {
+  return apiRequest(url, { method: "POST", body: JSON.stringify(data) });
+}
+
+async function get(url: string) {
+  return apiRequest(url, { method: "GET" });
+}

@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useDashboardSummary, useAlerts } from "@/hooks/use-dashboard";
 import { useAgents } from "@/hooks/use-agents";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 import { Monitor, CheckCircle, AlertTriangle, XCircle, Clock, User } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -13,6 +15,106 @@ export default function Dashboard() {
   const { data: summary, isLoading: summaryLoading, error: summaryError } = useDashboardSummary();
   const { data: alerts, isLoading: alertsLoading, error: alertsError } = useAlerts();
   const { data: agents, isLoading: agentsLoading, error: agentsError } = useAgents();
+  
+  // Fetch tickets data for ITSM dashboard
+  const { data: ticketsResponse, isLoading: ticketsLoading } = useQuery({
+    queryKey: ["/api/tickets", { limit: 100 }],
+    queryFn: () => api.get("/api/tickets?limit=100"),
+    refetchInterval: 60000, // Refetch every minute
+  });
+
+  const tickets = ticketsResponse?.data?.tickets || [];
+
+  // Helper functions for ticket analytics
+  const getTicketDistribution = () => {
+    const distribution = tickets.reduce((acc, ticket) => {
+      acc[ticket.type] = (acc[ticket.type] || 0) + 1;
+      return acc;
+    }, {});
+
+    return [
+      { type: "Incidents", count: distribution.incident || 0, color: "bg-red-500", percentage: Math.round(((distribution.incident || 0) / tickets.length) * 100) || 0 },
+      { type: "Requests", count: distribution.request || 0, color: "bg-green-500", percentage: Math.round(((distribution.request || 0) / tickets.length) * 100) || 0 },
+      { type: "Problems", count: distribution.problem || 0, color: "bg-orange-500", percentage: Math.round(((distribution.problem || 0) / tickets.length) * 100) || 0 },
+      { type: "Changes", count: distribution.change || 0, color: "bg-blue-500", percentage: Math.round(((distribution.change || 0) / tickets.length) * 100) || 0 },
+    ];
+  };
+
+  const getTicketStatusDistribution = () => {
+    const statusDistribution = tickets.reduce((acc, ticket) => {
+      acc[ticket.status] = (acc[ticket.status] || 0) + 1;
+      return acc;
+    }, {});
+
+    return [
+      { status: "New", count: statusDistribution.new || 0, color: "bg-blue-500", urgency: "normal" },
+      { status: "In Progress", count: statusDistribution.in_progress || 0, color: "bg-yellow-500", urgency: "normal" },
+      { status: "Pending", count: statusDistribution.pending || 0, color: "bg-orange-500", urgency: "attention" },
+      { status: "Resolved", count: statusDistribution.resolved || 0, color: "bg-green-500", urgency: "normal" },
+    ];
+  };
+
+  const getSLAStatus = () => {
+    const now = new Date();
+    let breached = 0;
+    let dueIn2Hours = 0;
+    let dueToday = 0;
+
+    tickets.forEach(ticket => {
+      if (ticket.sla_resolution_due) {
+        const dueDate = new Date(ticket.sla_resolution_due);
+        const timeDiff = dueDate.getTime() - now.getTime();
+        const hoursDiff = timeDiff / (1000 * 3600);
+        
+        if (hoursDiff < 0) {
+          breached++;
+        } else if (hoursDiff <= 2) {
+          dueIn2Hours++;
+        } else if (hoursDiff <= 24) {
+          dueToday++;
+        }
+      }
+    });
+
+    return { breached, dueIn2Hours, dueToday };
+  };
+
+  const getAssignmentDistribution = () => {
+    const unassigned = tickets.filter(t => !t.assigned_to).length;
+    const assignedTickets = tickets.filter(t => t.assigned_to);
+    
+    const assignmentCounts = assignedTickets.reduce((acc, ticket) => {
+      const assignee = ticket.assigned_to || "Unassigned";
+      acc[assignee] = (acc[assignee] || 0) + 1;
+      return acc;
+    }, {});
+
+    const topAssignees = Object.entries(assignmentCounts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 3)
+      .map(([name, count]) => ({
+        name,
+        team: name.includes("@") ? "Support Team" : "L1 Support",
+        count,
+        status: "online"
+      }));
+
+    if (unassigned > 0) {
+      topAssignees.push({
+        name: "Unassigned",
+        team: "Queue",
+        count: unassigned,
+        status: "pending"
+      });
+    }
+
+    return topAssignees;
+  };
+
+  const ticketDistribution = getTicketDistribution();
+  const statusDistribution = getTicketStatusDistribution();
+  const slaStatus = getSLAStatus();
+  const assignmentDistribution = getAssignmentDistribution();
 
   // Debug authentication state
   React.useEffect(() => {
@@ -29,7 +131,7 @@ export default function Dashboard() {
     }
   }, [summaryError, alertsError, agentsError]);
 
-  if (summaryLoading || agentsLoading || alertsLoading) {
+  if (summaryLoading || agentsLoading || alertsLoading || ticketsLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900 p-6 space-y-8">
         {/* Header Skeleton */}
@@ -131,7 +233,9 @@ export default function Dashboard() {
             <div className="hidden md:flex items-center space-x-4">
               <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-md border border-gray-200 dark:border-gray-700">
                 <div className="text-xs text-gray-500 dark:text-gray-400">Active Tickets</div>
-                <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">66 Open</div>
+                <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                  {tickets.filter(t => !['resolved', 'closed', 'cancelled'].includes(t.status)).length} Open
+                </div>
               </div>
             </div>
           </div>
@@ -202,12 +306,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="p-6">
             <div className="space-y-4">
-              {[
-                { type: "Incidents", count: 23, color: "bg-red-500", percentage: 35 },
-                { type: "Requests", count: 31, color: "bg-green-500", percentage: 47 },
-                { type: "Problems", count: 8, color: "bg-orange-500", percentage: 12 },
-                { type: "Changes", count: 4, color: "bg-blue-500", percentage: 6 },
-              ].map((item) => (
+              {ticketDistribution.map((item) => (
                 <div key={item.type} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className={`w-3 h-3 rounded-full ${item.color}`}></div>
@@ -238,12 +337,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="p-6">
             <div className="space-y-4">
-              {[
-                { status: "New", count: 12, color: "bg-blue-500", urgency: "normal" },
-                { status: "In Progress", count: 28, color: "bg-yellow-500", urgency: "normal" },
-                { status: "Pending", count: 8, color: "bg-orange-500", urgency: "attention" },
-                { status: "Resolved", count: 15, color: "bg-green-500", urgency: "normal" },
-              ].map((item) => (
+              {statusDistribution.map((item) => (
                 <div key={item.status} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className={`w-3 h-3 rounded-full ${item.color}`}></div>
@@ -280,21 +374,21 @@ export default function Dashboard() {
                   <p className="text-sm font-medium text-red-800 dark:text-red-200">SLA Breached</p>
                   <p className="text-xs text-red-600 dark:text-red-300">Immediate attention required</p>
                 </div>
-                <span className="text-2xl font-bold text-red-600 dark:text-red-400">3</span>
+                <span className="text-2xl font-bold text-red-600 dark:text-red-400">{slaStatus.breached}</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
                 <div>
                   <p className="text-sm font-medium text-orange-800 dark:text-orange-200">Due in 2 Hours</p>
                   <p className="text-xs text-orange-600 dark:text-orange-300">Response time approaching</p>
                 </div>
-                <span className="text-2xl font-bold text-orange-600 dark:text-orange-400">7</span>
+                <span className="text-2xl font-bold text-orange-600 dark:text-orange-400">{slaStatus.dueIn2Hours}</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
                 <div>
                   <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Due Today</p>
                   <p className="text-xs text-yellow-600 dark:text-yellow-300">Resolution time approaching</p>
                 </div>
-                <span className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">12</span>
+                <span className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{slaStatus.dueToday}</span>
               </div>
             </div>
           </CardContent>
@@ -313,12 +407,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="p-6">
             <div className="space-y-4">
-              {[
-                { name: "Sarah Johnson", team: "L1 Support", count: 15, status: "online" },
-                { name: "Mike Chen", team: "L2 Support", count: 12, status: "online" },
-                { name: "Emily Davis", team: "Network Team", count: 8, status: "away" },
-                { name: "Unassigned", team: "Queue", count: 11, status: "pending" },
-              ].map((assignee, index) => (
+              {assignmentDistribution.map((assignee, index) => (
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className={`w-3 h-3 rounded-full ${
@@ -357,45 +446,8 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {/* Mock ticket data */}
-              {[
-                {
-                  id: "REQ-2024-001",
-                  type: "request",
-                  title: "New Software Installation Request",
-                  priority: "medium",
-                  status: "new",
-                  requester: "john.doe@company.com",
-                  time: "2 hours ago",
-                },
-                {
-                  id: "INC-2024-001",
-                  type: "incident",
-                  title: "Email Server Down",
-                  priority: "critical",
-                  status: "in_progress",
-                  requester: "jane.smith@company.com",
-                  time: "4 hours ago",
-                },
-                {
-                  id: "PRB-2024-001",
-                  type: "problem",
-                  title: "Recurring Network Timeouts",
-                  priority: "high",
-                  status: "assigned",
-                  requester: "system@company.com",
-                  time: "1 day ago",
-                },
-                {
-                  id: "CHG-2024-001",
-                  type: "change",
-                  title: "Server OS Update",
-                  priority: "medium",
-                  status: "pending",
-                  requester: "system-admin@company.com",
-                  time: "2 days ago",
-                },
-              ].map((ticket) => (
+              {/* Recent tickets data */}
+              {tickets.slice(0, 4).map((ticket) => (
                 <div
                   key={ticket.id}
                   className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800 ${
@@ -422,7 +474,7 @@ export default function Dashboard() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2 mb-1">
                       <span className="font-mono text-xs text-neutral-600">
-                        {ticket.id}
+                        {ticket.ticket_number || ticket.id}
                       </span>
                       <StatusBadge status={ticket.status} />
                     </div>
@@ -430,9 +482,11 @@ export default function Dashboard() {
                       {ticket.title}
                     </p>
                     <p className="text-xs text-neutral-600">
-                      {ticket.requester}
+                      {ticket.requester_email}
                     </p>
-                    <p className="text-xs text-neutral-500">{ticket.time}</p>
+                    <p className="text-xs text-neutral-500">
+                      {formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true })}
+                    </p>
                   </div>
                 </div>
               ))}
