@@ -1,0 +1,67 @@
+Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+api.ts:177 API request failed: Error: HTTP 500: {"message":"Internal server error"}
+    at ApiClient.request (api.ts:172:15)
+    at async fetchNotifications (sidebar.tsx:89:39)
+request @ api.ts:177
+sidebar.tsx:115 Error fetching notifications: Error: HTTP 500: {"message":"Internal server error"}
+    at ApiClient.request (api.ts:172:15)
+    at async fetchNotifications (sidebar.tsx:89:39)
+fetchNotifications @ sidebar.tsx:115
+api.ts:104 Alerts fetch failed: SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+getAlerts @ api.ts:104
+api/notifications?filter=unread:1 
+            
+            
+           Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+api.ts:177 API request failed: Error: HTTP 500: {"message":"Internal server error"}
+    at ApiClient.request (api.ts:172:15)
+    at async fetchNotifications (header.tsx:40:26)
+request @ api.ts:177
+header.tsx:50 Error fetching notifications: Error: HTTP 500: {"message":"Internal server error"}
+    at ApiClient.request (api.ts:172:15)
+    at async fetchNotifications (header.tsx:40:26)
+fetchNotifications @ header.tsx:50
+dashboard.tsx:189 Dashboard - Auth token present: true
+2knowledge-base.tsx:277 Uncaught ReferenceError: Link is not defined
+    at KnowledgeBase (knowledge-base.tsx:277:12)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=390105e9:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=390105e9:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=390105e9:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=390105e9:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=390105e9:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=390105e9:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=390105e9:19765:15)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=390105e9:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=390105e9:19137:13)
+chunk-RPCDYKBN.js?v=390105e9:14032 The above error occurred in the <KnowledgeBase> component:
+
+    at KnowledgeBase (https://e285c015-3d5c-4217-9dc8-cda0ba14b110-00-3qkcu4t17zbhn.sisko.replit.dev/src/pages/knowledge-base.tsx:59:35)
+    at main
+    at div
+    at div
+    at AuthenticatedLayout (https://e285c015-3d5c-4217-9dc8-cda0ba14b110-00-3qkcu4t17zbhn.sisko.replit.dev/src/App.tsx:50:32)
+    at ProtectedRoute (https://e285c015-3d5c-4217-9dc8-cda0ba14b110-00-3qkcu4t17zbhn.sisko.replit.dev/src/components/auth/protected-route.tsx:76:3)
+    at Route (https://e285c015-3d5c-4217-9dc8-cda0ba14b110-00-3qkcu4t17zbhn.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=390105e9:206:16)
+    at Switch (https://e285c015-3d5c-4217-9dc8-cda0ba14b110-00-3qkcu4t17zbhn.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=390105e9:262:17)
+    at Router (https://e285c015-3d5c-4217-9dc8-cda0ba14b110-00-3qkcu4t17zbhn.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=390105e9:161:17)
+    at AuthProvider (https://e285c015-3d5c-4217-9dc8-cda0ba14b110-00-3qkcu4t17zbhn.sisko.replit.dev/src/components/auth/protected-route.tsx:36:32)
+    at QueryClientProvider (https://e285c015-3d5c-4217-9dc8-cda0ba14b110-00-3qkcu4t17zbhn.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=390105e9:2923:3)
+    at App (https://e285c015-3d5c-4217-9dc8-cda0ba14b110-00-3qkcu4t17zbhn.sisko.replit.dev/src/App.tsx:82:49)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-RPCDYKBN.js?v=390105e9:14032
+chunk-RPCDYKBN.js?v=390105e9:9129 Uncaught ReferenceError: Link is not defined
+    at KnowledgeBase (knowledge-base.tsx:277:12)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=390105e9:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=390105e9:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=390105e9:15914:22)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=390105e9:19753:22)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=390105e9:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=390105e9:19137:13)
+    at renderRootSync (chunk-RPCDYKBN.js?v=390105e9:19116:15)
+    at recoverFromConcurrentError (chunk-RPCDYKBN.js?v=390105e9:18736:28)
+    at performSyncWorkOnRoot (chunk-RPCDYKBN.js?v=390105e9:18879:28)
+client:536 WebSocket connection to 'wss://e285c015-3d5c-4217-9dc8-cda0ba14b110-00-3qkcu4t17zbhn.sisko.replit.dev:24678/?token=4rNARzsu2eSc' failed: 
+setupWebSocket @ client:536
+client:560 [vite] server connection lost. Polling for restart...
