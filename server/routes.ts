@@ -620,6 +620,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("Extracted metrics:", { cpu_usage, memory_usage, disk_usage, network_io });
 
+      // USB device detection and tracking
+      const usbDevices = data.usb_devices || data.hardware?.usb_devices || [];
+
       // Create device report with enhanced data
       await storage.createDeviceReport({
         device_id: device.id,
@@ -733,9 +736,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (disk_usage !== null && disk_usage !== undefined) {
         await checkAndManageAlert("disk", disk_usage, { critical: 95, high: 85, warning: 75 }, "storage");
       }
-
-      // USB device detection and tracking
-      const usbDevices = data.usb_devices || data.hardware?.usb_devices || [];
 
       // Update USB device tracking
       await storage.updateUSBDevices(device.id, usbDevices);
