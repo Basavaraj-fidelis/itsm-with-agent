@@ -735,15 +735,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const filter = req.query.filter as string;
 
-      // Get recent tickets and alerts for notifications
-      const recentTicketsResult = await storage.getTickets(1, 20, { 
-        created_after: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() // Last 24 hours
-      });
-      const recentTickets = recentTicketsResult.data;
-
       const alerts = await storage.getActiveAlerts();
 
       const notifications = [];
+      let recentTickets = [];
+
+      // Get recent tickets for notifications
+      try {
+        const { getTickets } = await import("./ticket-storage");
+        const recentTicketsResult = await getTickets(1, 20, { 
+          created_after: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() // Last 24 hours
+        });
+        recentTickets = recentTicketsResult.data || [];
+      } catch (error) {
+        console.error("Error fetching tickets for notifications:", error);
+        recentTickets = [];
+      }
 
       // Add ticket notifications
       recentTickets.forEach(ticket => {
