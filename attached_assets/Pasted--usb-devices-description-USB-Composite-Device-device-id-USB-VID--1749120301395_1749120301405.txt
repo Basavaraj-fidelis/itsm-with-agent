@@ -1,0 +1,89 @@
+"usb_devices": [
+    {
+      "description": "USB Composite Device",
+      "device_id": "USB\\VID_0408&PID_5425\\0001"
+    },
+    {
+      "description": "USB Mass Storage Device",
+      "device_id": "USB\\VID_346D&PID_5678\\0525151317421634830"
+    }
+  ],
+  "virtualization": {
+    "is_virtual": false,
+    "hypervisor": "unknown",
+    "detection_methods": []
+  },
+  "system_health": {
+    "cpu_temperature": null,
+    "disk_health": {
+      "status": "healthy",
+      "note": "Basic disk health check - see storage section for SMART data"
+    },
+    "memory_pressure": {
+      "pressure_level": "high",
+      "usage_percent": 92.5
+    },
+    "system_load": null
+  },
+  "security": {
+    "firewall_status": "enabled",
+    "antivirus_status": "enabled",
+    "last_scan": "QuickScanStartTime   FullScanStartTime\n------------------   -----------------\n6/2/2025 12:52:33 PM"
+  },
+  "assigned_user": "DESKTOP-CMM8H3C$"
+}
+Found hostname: DESKTOP-CMM8H3C
+Updated existing device: bd31fd4c-fa93-431a-92ed-d6412c2ff28e
+Extracted metrics: {
+  cpu_usage: 20.4,
+  memory_usage: 92.2,
+  disk_usage: 53.69594958779532,
+  network_io: 44088483394
+}
+Error processing report: ReferenceError: Cannot access 'usbDevices' before initialization
+    at <anonymous> (/home/runner/workspace/server/routes.ts:633:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+10:36:56 AM [express] POST /api/report 500 in 141ms :: {"message":"Internal server error"}
+10:36:57 AM [express] GET /api/notifications 304 in 131ms :: []
+10:36:57 AM [express] GET /api/tickets 304 in 132ms :: {"data":[{"id":"b8b20a0f-964f-4e02-b542-84e140…
+Received report data: {
+  "timestamp": "2025-06-05T10:36:46.223096Z",
+  "hostname": "DESKTOP-CMM8H3C",
+  "os_info": {
+    "name": "Windows",
+    "version": "10.0.26100",
+    "release": "10",
+    "architecture": "64bit",
+    "machine": "AMD64",
+    "processor": "AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD",
+    "platform_string": "Windows-10-10.0.26100",
+    "boot_time": "2025-05-22T18:39:51.177212",
+    "uptime_seconds": 1200415,
+    "build_number": "26100",
+    "display_version": "24H2",
+    "product_name": "Windows 10 Home Single Language",
+    "last_update": "5/29/2025"
+  },
+  "network": {
+    "public_ip": "49.205.38.147",
+    "interfaces": [
+      {
+        "name": "vEthernet (WSL (Hyper-V firewall))",
+        "addresses": [
+          {
+            "family": "AF_LINK",
+            "address": "00-15-5D-23-50-2E",
+            "netmask": null,
+            "broadcast": null
+          },
+          {
+            "family": "AF_INET",
+            "address": "172.26.208.1",
+            "netmask": "255.255.240.0",
+            "broadcast": null
+          },
+          {
+            "family": "AF_INET6",
+            "address": "fe80::85a4:3e9f:f677:b90c",
+            "netmask": null,
+            "broadcast": null
