@@ -78,12 +78,7 @@ export default function KnowledgeBase() {
     const [selectedStatus, setSelectedStatus] = useState("all");
   const [isLoading, setIsLoading] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
-  const [showNewArticleForm, setShowNewArticleForm] = useState(false);
-  const [newArticle, setNewArticle] = useState({
-    title: '',
-    content: '',
-    category: 'General'
-  });
+  
 
   useEffect(() => {
     fetchArticles();
@@ -128,50 +123,7 @@ export default function KnowledgeBase() {
     }
   };
 
-  const handleCreateArticle = async () => {
-    if (!newArticle.title.trim() || !newArticle.content.trim()) {
-      alert('Please fill in both title and content');
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('auth_token');
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json'
-      };
-
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      const response = await fetch('/api/knowledge-base', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          title: newArticle.title,
-          content: newArticle.content,
-          category: newArticle.category,
-          tags: [],
-          author_email: 'admin@company.com',
-          status: 'published',
-          views: 0,
-          helpful_votes: 0
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create article');
-      }
-
-      // Reset form and refresh articles
-      setNewArticle({ title: '', content: '', category: 'General' });
-      setShowNewArticleForm(false);
-      fetchArticles();
-    } catch (err) {
-      console.error('Error creating article:', err);
-      alert('Failed to create article');
-    }
-  };
+  
 
   const categories = [
     "all",
@@ -322,65 +274,18 @@ export default function KnowledgeBase() {
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
-          <Button 
-            className="bg-blue-600 hover:bg-blue-700"
-            onClick={() => setShowNewArticleForm(true)}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Article
-          </Button>
+          <Link to="/knowledge-base/new">
+            <Button className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="w-4 h-4 mr-2" />
+              New Article
+            </Button>
+          </Link>
         </div>
       </div>
 
       {/* Quick Stats - REMOVED */}
 
-      {/* New Article Form */}
-      {showNewArticleForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Create New Article</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Title</label>
-              <Input
-                value={newArticle.title}
-                onChange={(e) => setNewArticle({ ...newArticle, title: e.target.value })}
-                placeholder="Enter article title"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Category</label>
-              <select 
-                value={newArticle.category}
-                onChange={(e) => setNewArticle({ ...newArticle, category: e.target.value })}
-                className="w-full p-2 border border-gray-300 rounded-md"
-              >
-                {categories.filter(cat => cat !== 'all').map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Content</label>
-              <textarea
-                value={newArticle.content}
-                onChange={(e) => setNewArticle({ ...newArticle, content: e.target.value })}
-                placeholder="Enter article content (supports markdown)"
-                className="w-full p-2 border border-gray-300 rounded-md h-40"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={handleCreateArticle} className="bg-blue-600 hover:bg-blue-700">
-                Create Article
-              </Button>
-              <Button variant="outline" onClick={() => setShowNewArticleForm(false)}>
-                Cancel
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      
 
       {/* Enhanced Search and Filters */}
       <Card className="bg-white dark:bg-gray-800 shadow-sm border">
@@ -520,10 +425,7 @@ export default function KnowledgeBase() {
                 <Card 
                   key={article.id} 
                   className="group cursor-pointer hover:shadow-lg transition-all duration-200 border-l-4 border-l-blue-500 hover:border-l-blue-600"
-                  onClick={() => {
-                    setSelectedArticle(article);
-                    setShowNewArticleForm(true);
-                  }}
+                  onClick={() => handleArticleClick(article)}
                 >
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
@@ -592,10 +494,7 @@ export default function KnowledgeBase() {
             <Card 
               key={article.id}
               className="cursor-pointer hover:shadow-md transition-all duration-200"
-              onClick={() => {
-                setSelectedArticle(article);
-                setShowNewArticleForm(true);
-              }}
+              onClick={() => handleArticleClick(article)}
             >
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">

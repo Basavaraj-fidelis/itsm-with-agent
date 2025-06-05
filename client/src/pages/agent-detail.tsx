@@ -5,7 +5,28 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { MetricCard } from "@/components/agent-detail/metric-card";
 import AgentTabs from "@/components/agent-detail/agent-tabs";
 import { useAgent } from "@/hooks/use-agents";
-import { ArrowLeft, RefreshCw, Download, Monitor, ChevronDown, Terminal, Eye, Globe, Cpu, MemoryStick, HardDrive, Network } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  ArrowLeft,
+  Calendar,
+  CheckCircle,
+  Clock,
+  Cpu,
+  HardDrive,
+  Memory,
+  Monitor,
+  Network,
+  Settings,
+  Shield,
+  Usb,
+  Wifi,
+  XCircle,
+  Zap,
+  TrendingUp,
+  TrendingDown,
+  Minus
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export default function AgentDetail() {

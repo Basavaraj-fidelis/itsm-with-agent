@@ -14,8 +14,9 @@ import Alerts from "@/pages/alerts";
 import Tickets from "@/pages/tickets";
 import TicketDetail from "@/pages/ticket-detail";
 import KnowledgeBase from "@/pages/knowledge-base";
-import Profile from "@/pages/profile";
+import NewArticle from "@/pages/new-article";
 import Notifications from "@/pages/notifications";
+import Profile from "@/pages/profile";
 import Users from "@/pages/users";
 import Settings from "@/pages/settings";
 import Reports from "@/pages/reports";
@@ -138,6 +139,14 @@ export default function App() {
               <ProtectedRoute>
                 <AuthenticatedLayout>
                   <KnowledgeBase />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/knowledge-base/new">
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <NewArticle />
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>

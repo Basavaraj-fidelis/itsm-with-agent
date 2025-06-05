@@ -74,13 +74,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { db } = await import("./db");
         const { users } = await import("../shared/user-schema");
         const { eq } = await import("drizzle-orm");
-        
+
         const dbUsers = await db.select().from(users).where(eq(users.email, email.toLowerCase()));
-        
+
         if (dbUsers.length > 0) {
           user = dbUsers[0];
           console.log(`Found user in database: ${user.email}`);
-          
+
           // Check if user is active
           if (!user.is_active) {
             return res.status(403).json({ message: "Account is suspended" });
@@ -111,7 +111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (storageUser) {
           user = storageUser;
           console.log(`Found user in file storage: ${user.email}`);
-          
+
           // Check if user is active
           if (!user.is_active) {
             return res.status(403).json({ message: "Account is suspended" });
@@ -730,295 +730,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/alerts", authenticateToken, async (req, res) => {
+// Notifications endpoint
+  app.get("/api/notifications", async (req, res) => {
     try {
+      const filter = req.query.filter as string;
+
+      // Get recent tickets and alerts for notifications
+      const recentTicketsResult = await storage.getTickets(1, 20, { 
+        created_after: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() // Last 24 hours
+      });
+      const recentTickets = recentTicketsResult.data;
+
       const alerts = await storage.getActiveAlerts();
 
-      // Join with devices to get hostnames
-      const alertsWithHostnames = await Promise.all(
-        alerts.map(async (alert) => {
-          const device = await storage.getDevice(alert.device_id);
-          return {
-            ...alert,
-            device_hostname: device?.hostname || "Unknown Device"
-          };
-        })
-      );
-
-      res.json(alertsWithHostnames);
-    } catch (error) {
-      console.error("Error fetching alerts:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.post("/api/alerts/:id/resolve", async (req, res) => {
-    try {
-      const alertId = req.params.id;
-      await storage.resolveAlert(alertId);
-      res.json({ message: "Alert resolved successfully" });
-    } catch (error) {
-      console.error("Error resolving alert:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  // Get all agents
-  app.get("/api/agents", async (req, res) => {
-    try {
-      const agents = await storage.getDevices();
-      console.log(`Found ${agents.length} agents in database`);
-
-      // Get latest reports for each device
-      const agentsWithReports = await Promise.all(
-        agents.map(async (agent) => {
-          const latestReport = await storage.getLatestDeviceReport(agent.id);
-
-          return {
-            ...agent,
-            latest_report: latestReport || null,
-          };
-        })
-      );
-
-      console.log(`Returning ${agentsWithReports.length} agents with reports`);
-      res.json(agentsWithReports);
-    } catch (error) {
-      console.error('Error fetching agents:', error);
-      res.status(500).json({ error: "Failed to fetch agents" });
-    }
-  });
-
-  // Knowledge Base routes
-  app.get("/api/knowledge-base", async (req, res) => {
-    try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 20;
-      const filters = {
-        category: req.query.category as string,
-        search: req.query.search as string,
-        status: req.query.status as string || "published"
-      };
-
-      console.log("Fetching KB articles with filters:", filters);
-      const result = await storage.getKBArticles(page, limit, filters);
-      console.log(`Returning ${result.data.length} articles out of ${result.total} total`);
-      
-      // Return the data array from file-based storage
-      res.json(result.data);
-    } catch (error) {
-      console.error("Error fetching KB articles:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.get("/api/knowledge-base/:id", async (req, res) => {
-    try {
-      const article = await storage.getKBArticleById(req.params.id);
-      if (!article) {
-        return res.status(404).json({ message: "Article not found" });
-      }
-      res.json(article);
-    } catch (error) {
-      console.error("Error fetching KB article:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.post("/api/knowledge-base", authenticateToken, async (req, res) => {
-    try {
-      const article = await storage.createKBArticle(req.body);
-      res.status(201).json(article);
-    } catch (error) {
-      console.error("Error creating KB article:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.put("/api/knowledge-base/:id", async (req, res) => {
-    try {
-      const article = await storage.updateKBArticle(req.params.id, req.body);
-      if (!article) {
-        return res.status(404).json({ message: "Article not found" });
-      }
-      res.json(article);
-    } catch (error) {
-      console.error("Error updating KB article:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.delete("/api/knowledge-base/:id", async (req, res) => {
-    try {
-      const success = await storage.deleteKBArticle(req.params.id);
-      if (!success) {
-        return res.status(404).json({ message: "Article not found" });
-      }
-      res.json({ message: "Article deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting KB article:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  // User Management routes (Admin and Manager access)
-  app.get("/api/users", authenticateToken, requireRole(['admin', 'manager']), async (req, res) => {
-    try {
-      const search = req.query.search as string;
-      const role = req.query.role as string;
-
-      const users = await storage.getUsers({ search, role });
-      res.json(users);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.get("/api/users/:id", async (req, res) => {
-    try {
-      const user = await storage.getUserById(req.params.id);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.post("/api/users", authenticateToken, requireRole(['admin']), async (req, res) => {
-    try {
-      const { password_hash, ...userWithoutPassword } = await storage.createUser(req.body) as any;
-      res.status(201).json(userWithoutPassword);
-    } catch (error) {
-      console.error("Error creating user:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.put("/api/users/:id", authenticateToken, requireRole(['admin']), async (req, res) => {
-    try {
-      const { password_hash, ...userWithoutPassword } = await storage.updateUser(req.params.id, req.body) as any;
-      res.json(userWithoutPassword);
-    } catch (error) {
-      console.error("Error updating user:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.delete("/api/users/:id", authenticateToken, requireRole(['admin']), async (req, res) => {
-    try {
-      await storage.deleteUser(req.params.id);
-      res.json({ message: "User deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting user:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  // Notifications routes
-  app.get("/api/notifications", authenticateToken, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const userRole = req.user.role;
-      const filter = req.query.filter || 'all';
-      
-      // Get notifications from multiple sources
       const notifications = [];
-      
-      // Get ticket-related notifications based on user role
-      let ticketFilters = {};
-      if (userRole === 'user') {
-        // Users see their own tickets
-        ticketFilters = { requesterEmail: req.user.email };
-      } else if (userRole === 'technician') {
-        // Technicians see unassigned tickets and their assigned tickets
-        ticketFilters = { assignedTo: userId, status: ['new', 'assigned', 'in_progress'] };
-      } else if (['manager', 'admin'].includes(userRole)) {
-        // Managers and admins see all critical/high priority tickets
-        ticketFilters = { priority: ['critical', 'high'] };
-      }
-      
-      // Get tickets from ticket storage instead of main storage
-      const { getTickets } = await import("./ticket-storage");
-      const tickets = await getTickets(ticketFilters);
-      
-      // Create notifications for relevant tickets
-      tickets.forEach(ticket => {
-        let shouldNotify = false;
-        let notificationTitle = '';
-        let notificationType = 'info';
-        
-        if (ticket.priority === 'critical') {
-          shouldNotify = true;
-          notificationTitle = 'Critical Ticket';
-          notificationType = 'error';
-        } else if (ticket.priority === 'high' && ticket.status === 'new') {
-          shouldNotify = true;
-          notificationTitle = 'High Priority Ticket';
-          notificationType = 'warning';
-        } else if (userRole === 'user' && ['assigned', 'in_progress'].includes(ticket.status)) {
-          shouldNotify = true;
-          notificationTitle = 'Ticket Update';
-          notificationType = 'info';
-        }
-        
-        if (shouldNotify) {
-          notifications.push({
-            id: `ticket-${ticket.id}`,
-            title: notificationTitle,
-            message: `Ticket #${ticket.ticket_number}: ${ticket.title}`,
-            type: notificationType,
-            read: false,
-            created_at: ticket.updated_at || ticket.created_at,
-            source: 'Service Desk'
-          });
-        }
+
+      // Add ticket notifications
+      recentTickets.forEach(ticket => {
+        notifications.push({
+          id: `ticket-${ticket.id}`,
+          title: "New Ticket",
+          message: `Ticket #${ticket.ticket_number}: ${ticket.title}`,
+          type: "info",
+          read: false,
+          created_at: ticket.created_at,
+          source: 'Service Desk'
+        });
       });
-      
-      // Get system alerts as notifications (for technicians, managers, and admins)
-      if (['technician', 'manager', 'admin'].includes(userRole)) {
-        const alerts = await storage.getActiveAlerts();
-        
-        for (const alert of alerts) {
-          try {
-            const device = await storage.getDevice(alert.device_id);
-            const deviceName = device?.hostname || 'Unknown Device';
-            
-            notifications.push({
-              id: `alert-${alert.id}`,
-              title: `System Alert - ${alert.severity.toUpperCase()}`,
-              message: `${deviceName}: ${alert.message}`,
-              type: alert.severity === 'critical' ? 'error' : 
-                   alert.severity === 'high' ? 'warning' : 
-                   alert.severity === 'warning' ? 'warning' : 'info',
-              read: false,
-              created_at: alert.triggered_at || alert.created_at,
-              source: 'System Monitor'
-            });
-          } catch (deviceError) {
-            console.warn(`Could not fetch device for alert ${alert.id}:`, deviceError);
-            // Still add the notification without device name
-            notifications.push({
-              id: `alert-${alert.id}`,
-              title: `System Alert - ${alert.severity.toUpperCase()}`,
-              message: alert.message,
-              type: alert.severity === 'critical' ? 'error' : 
-                   alert.severity === 'high' ? 'warning' : 
-                   alert.severity === 'warning' ? 'warning' : 'info',
-              read: false,
-              created_at: alert.triggered_at || alert.created_at,
-              source: 'System Monitor'
-            });
-          }
-        }
-      }
-      
+
+      // Add system alert notifications
+      alerts.forEach(alert => {
+        notifications.push({
+          id: `alert-${alert.id}`,
+          title: "System Alert",
+          message: alert.message,
+          type: alert.severity === 'critical' ? 'error' : 'warning',
+          read: false,
+          created_at: alert.created_at,
+          source: 'System Monitor'
+        });
+      });
+
       // Sort by creation date (newest first)
       notifications.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      
+
       // Apply filter
       let filteredNotifications = notifications;
       if (filter === 'unread') {
@@ -1026,8 +781,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (filter === 'read') {
         filteredNotifications = notifications.filter(n => n.read);
       }
-      
-      console.log(`Returning ${filteredNotifications.length} notifications for user ${req.user.email} (role: ${userRole})`);
+
       res.json(filteredNotifications);
     } catch (error) {
       console.error("Error fetching notifications:", error);
@@ -1038,7 +792,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/notifications/:id/read", authenticateToken, async (req, res) => {
     try {
       const notificationId = req.params.id;
-      
+
       // In a real implementation, you'd store read status in database
       // For now, we'll just return success
       res.json({ message: "Notification marked as read" });
@@ -1051,11 +805,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/notifications/mark-all-read", authenticateToken, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      
+
       // In a real implementation, you'd update all notifications for the user in database
       // For now, we'll just return success with a more detailed response
       console.log(`Marking all notifications as read for user: ${userId}`);
-      
+
       res.json({ 
         message: "All notifications marked as read",
         success: true,
@@ -1070,7 +824,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/notifications/:id", authenticateToken, async (req, res) => {
     try {
       const notificationId = req.params.id;
-      
+
       // In a real implementation, you'd delete the notification from database
       // For now, we'll just return success
       res.json({ message: "Notification deleted" });
