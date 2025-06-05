@@ -32,7 +32,7 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 5173,
     allowedHosts: [
-      "0729f86d-38ae-4a41-a257-a950ba98d5e6-00-2l87cimo74lbi.sisko.replit.dev",
+      "3971fc04-f9f2-4de9-9154-3ddec4760310-00-10atua6wm7nc.pike.replit.dev",
     ],
     hmr: {
       port: 24678,
