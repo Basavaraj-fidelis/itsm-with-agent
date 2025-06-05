@@ -2,9 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, Monitor, Wifi } from "lucide-react";
-import Header from "@/components/layout/header";
-import Sidebar from "@/components/layout/sidebar";
+import { AlertCircle, Monitor, Wifi, ArrowLeft } from "lucide-react";
 
 export default function VNCPage() {
   const vncRef = useRef<HTMLDivElement>(null);
@@ -55,46 +53,86 @@ export default function VNCPage() {
         vncRef.current.innerHTML = '';
 
         try {
-          // WebSocket URL for VNC connection (typically through NoVNC websockify)
-          const wsUrl = `ws://${host}:${port}/websockify`;
+          // Try different WebSocket URLs for NoVNC connection
+          const possibleUrls = [
+            `ws://${host}:${port}/websockify`,
+            `ws://${host}:6080/websockify`,
+            `ws://${host}:8080/websockify`,
+            `wss://${host}:${port}/websockify`
+          ];
 
-          console.log('Connecting to VNC via:', wsUrl);
-
-          // Create RFB connection
-          rfb = new RFB(vncRef.current, wsUrl, {
-            credentials: {
-              username: '',
-              password: ''
+          let attemptCount = 0;
+          
+          const tryConnection = (urlIndex: number) => {
+            if (urlIndex >= possibleUrls.length) {
+              setConnectionStatus('error');
+              setErrorMessage('Could not connect to any VNC endpoints. Please ensure NoVNC is properly configured on the target system.');
+              return;
             }
-          });
 
-          // Handle connection events
-          rfb.addEventListener('connect', () => {
-            console.log('VNC connected successfully');
-            setConnectionStatus('connected');
-          });
+            const wsUrl = possibleUrls[urlIndex];
+            console.log(`Attempting VNC connection ${urlIndex + 1}/${possibleUrls.length}: ${wsUrl}`);
 
-          rfb.addEventListener('disconnect', (e: any) => {
-            console.log('VNC disconnected:', e.detail);
-            setConnectionStatus('disconnected');
-            setErrorMessage(e.detail.reason || 'Connection lost');
-          });
+            try {
+              // Create RFB connection
+              rfb = new RFB(vncRef.current, wsUrl, {
+                credentials: {
+                  username: '',
+                  password: ''
+                }
+              });
 
-          rfb.addEventListener('credentialsrequired', () => {
-            const password = prompt('VNC Password (leave blank if none):');
-            rfb.sendCredentials({ password: password || '' });
-          });
+              // Handle connection events
+              rfb.addEventListener('connect', () => {
+                console.log('VNC connected successfully via:', wsUrl);
+                setConnectionStatus('connected');
+              });
 
-          rfb.addEventListener('securityfailure', (e: any) => {
-            console.error('VNC security failure:', e.detail);
-            setConnectionStatus('error');
-            setErrorMessage('Authentication failed');
-          });
+              rfb.addEventListener('disconnect', (e: any) => {
+                console.log('VNC disconnected:', e.detail);
+                if (connectionStatus === 'connecting' && urlIndex + 1 < possibleUrls.length) {
+                  console.log('Trying next connection method...');
+                  setTimeout(() => tryConnection(urlIndex + 1), 1000);
+                } else {
+                  setConnectionStatus('disconnected');
+                  setErrorMessage(e.detail.reason || 'Connection lost');
+                }
+              });
+
+              rfb.addEventListener('credentialsrequired', () => {
+                const password = prompt('VNC Password (leave blank if none):');
+                rfb.sendCredentials({ password: password || '' });
+              });
+
+              rfb.addEventListener('securityfailure', (e: any) => {
+                console.error('VNC security failure:', e.detail);
+                if (urlIndex + 1 < possibleUrls.length) {
+                  console.log('Authentication failed, trying next connection method...');
+                  setTimeout(() => tryConnection(urlIndex + 1), 1000);
+                } else {
+                  setConnectionStatus('error');
+                  setErrorMessage('Authentication failed on all connection attempts');
+                }
+              });
+
+            } catch (error) {
+              console.error(`Failed to create VNC connection with ${wsUrl}:`, error);
+              if (urlIndex + 1 < possibleUrls.length) {
+                setTimeout(() => tryConnection(urlIndex + 1), 1000);
+              } else {
+                setConnectionStatus('error');
+                setErrorMessage('Failed to establish VNC connection with any method');
+              }
+            }
+          };
+
+          // Start connection attempts
+          tryConnection(0);
 
         } catch (error) {
-          console.error('Failed to create VNC connection:', error);
+          console.error('Failed to initialize VNC:', error);
           setConnectionStatus('error');
-          setErrorMessage('Failed to establish VNC connection');
+          setErrorMessage('Failed to initialize VNC client');
         }
       }
     };
@@ -140,11 +178,18 @@ export default function VNCPage() {
             <div className="space-y-2 text-xs text-gray-500">
               <p>Possible issues:</p>
               <ul className="list-disc list-inside space-y-1">
-                <li>NoVNC server not running on target machine</li>
-                <li>Firewall blocking connection</li>
+                <li>NoVNC websockify not running on target machine (typically port 6080)</li>
+                <li>VNC server not running (typically port 5900)</li>
+                <li>Firewall blocking websocket connection</li>
                 <li>Incorrect host or port settings</li>
-                <li>VNC service not configured</li>
+                <li>SSL/TLS certificate issues (try HTTP instead of HTTPS)</li>
               </ul>
+              <div className="mt-3 p-2 bg-blue-50 rounded text-blue-700">
+                <p className="font-medium">Setup Instructions:</p>
+                <p>1. Install NoVNC on target machine</p>
+                <p>2. Start websockify: <code className="bg-white px-1 rounded">websockify 6080 localhost:5900</code></p>
+                <p>3. Ensure VNC server is running on port 5900</p>
+              </div>
             </div>
             <Button onClick={handleReconnect} className="w-full">
               Try Again
@@ -189,19 +234,47 @@ export default function VNCPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
+                <Monitor className="w-5 h-5" />
                 <span>Remote Desktop Connection</span>
                 <div className="flex items-center space-x-2 ml-auto">
-                  <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm text-gray-600">Connected</span>
+                  <div className={`h-2 w-2 rounded-full ${
+                    connectionStatus === 'connected' ? 'bg-green-500' :
+                    connectionStatus === 'connecting' ? 'bg-yellow-500 animate-pulse' :
+                    connectionStatus === 'error' ? 'bg-red-500' : 'bg-gray-500'
+                  }`}></div>
+                  <span className="text-sm text-gray-600 capitalize">{connectionStatus}</span>
                 </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {connectionStatus === 'connecting' && (
+                <div className="w-full h-[600px] border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-900 flex items-center justify-center">
+                  <div className="text-center text-white">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                    <p className="text-lg font-medium">Establishing connection...</p>
+                    <p className="text-sm text-gray-300 mt-2">Connecting to {host}</p>
+                  </div>
+                </div>
+              )}
               <div 
                 ref={vncRef}
-                className="w-full h-[600px] border border-gray-300 dark:border-gray-600 rounded-lg bg-black"
+                className={`w-full h-[600px] border border-gray-300 dark:border-gray-600 rounded-lg bg-black ${
+                  connectionStatus === 'connecting' ? 'hidden' : ''
+                }`}
                 style={{ minHeight: "600px" }}
               />
+              {connectionStatus === 'disconnected' && (
+                <div className="w-full h-[600px] border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 flex items-center justify-center">
+                  <div className="text-center">
+                    <Wifi className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-lg font-medium text-gray-600">Connection Lost</p>
+                    <p className="text-sm text-gray-500 mt-2">The remote desktop connection was terminated</p>
+                    <Button onClick={handleReconnect} className="mt-4">
+                      Reconnect
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
