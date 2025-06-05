@@ -42,6 +42,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen bg-neutral-100 dark:bg-neutral-950">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
+        <Header />
         <main className="flex-1 overflow-auto bg-neutral-50 dark:bg-neutral-900">
           {children}
         </main>

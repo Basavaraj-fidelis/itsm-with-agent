@@ -1,25 +1,26 @@
-
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, Monitor, Wifi } from "lucide-react";
+import Header from "@/components/layout/header";
+import Sidebar from "@/components/layout/sidebar";
 
 export default function VNCPage() {
   const vncRef = useRef<HTMLDivElement>(null);
   const [location] = useLocation();
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
   const [errorMessage, setErrorMessage] = useState<string>('');
-  
+
   useEffect(() => {
     // Parse URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const host = urlParams.get('host') || 'localhost';
     const port = urlParams.get('port') || '6080'; // NoVNC web port, not VNC port
     const vncPort = urlParams.get('vncport') || '5900';
-    
+
     let rfb: any = null;
-    
+
     // Load NoVNC
     const loadNoVNC = async () => {
       try {
@@ -27,7 +28,7 @@ export default function VNCPage() {
         if (!(window as any).RFB) {
           await loadScript('https://cdn.jsdelivr.net/npm/@novnc/novnc@1.4.0/core/rfb.js');
         }
-        
+
         initializeVNC();
       } catch (error) {
         console.error('Failed to load NoVNC:', error);
@@ -49,16 +50,16 @@ export default function VNCPage() {
     const initializeVNC = () => {
       if (vncRef.current && (window as any).RFB) {
         const RFB = (window as any).RFB;
-        
+
         // Clear any existing content
         vncRef.current.innerHTML = '';
-        
+
         try {
           // WebSocket URL for VNC connection (typically through NoVNC websockify)
           const wsUrl = `ws://${host}:${port}/websockify`;
-          
+
           console.log('Connecting to VNC via:', wsUrl);
-          
+
           // Create RFB connection
           rfb = new RFB(vncRef.current, wsUrl, {
             credentials: {
@@ -66,30 +67,30 @@ export default function VNCPage() {
               password: ''
             }
           });
-          
+
           // Handle connection events
           rfb.addEventListener('connect', () => {
             console.log('VNC connected successfully');
             setConnectionStatus('connected');
           });
-          
+
           rfb.addEventListener('disconnect', (e: any) => {
             console.log('VNC disconnected:', e.detail);
             setConnectionStatus('disconnected');
             setErrorMessage(e.detail.reason || 'Connection lost');
           });
-          
+
           rfb.addEventListener('credentialsrequired', () => {
             const password = prompt('VNC Password (leave blank if none):');
             rfb.sendCredentials({ password: password || '' });
           });
-          
+
           rfb.addEventListener('securityfailure', (e: any) => {
             console.error('VNC security failure:', e.detail);
             setConnectionStatus('error');
             setErrorMessage('Authentication failed');
           });
-          
+
         } catch (error) {
           console.error('Failed to create VNC connection:', error);
           setConnectionStatus('error');
@@ -99,7 +100,7 @@ export default function VNCPage() {
     };
 
     loadNoVNC();
-    
+
     // Cleanup function
     return () => {
       if (rfb) {
@@ -155,47 +156,56 @@ export default function VNCPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black">
-      <div className="p-4 bg-gray-800 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-semibold flex items-center space-x-2">
-              <Monitor className="w-5 h-5" />
-              <span>Remote Desktop - {host}</span>
-            </h1>
-            <div className="flex items-center space-x-2 mt-1">
-              <Wifi className={`w-4 h-4 ${connectionStatus === 'connected' ? 'text-green-400' : 'text-yellow-400'}`} />
-              <span className="text-sm text-gray-300">
-                Status: {connectionStatus === 'connecting' ? 'Connecting...' : 
-                        connectionStatus === 'connected' ? 'Connected' : 'Disconnected'}
-              </span>
-            </div>
-          </div>
-          {connectionStatus === 'disconnected' && (
-            <Button onClick={handleReconnect} size="sm" variant="outline">
-              Reconnect
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Sidebar */}
+      <Sidebar />
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <Header />
+
+        {/* Page Header */}
+        <div className="bg-white dark:bg-gray-800 shadow-sm border-b px-6 py-4">
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => window.history.back()}
+              className="flex items-center space-x-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Back to Agent</span>
             </Button>
-          )}
+            <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
+            <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
+              Remote Desktop - {host}
+            </h1>
+          </div>
+        </div>
+
+        {/* VNC Content */}
+        <div className="flex-1 p-6 overflow-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <span>Remote Desktop Connection</span>
+                <div className="flex items-center space-x-2 ml-auto">
+                  <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                  <span className="text-sm text-gray-600">Connected</span>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div 
+                ref={vncRef}
+                className="w-full h-[600px] border border-gray-300 dark:border-gray-600 rounded-lg bg-black"
+                style={{ minHeight: "600px" }}
+              />
+            </CardContent>
+          </Card>
         </div>
       </div>
-      
-      {connectionStatus === 'connecting' && (
-        <div className="flex items-center justify-center h-[calc(100vh-80px)]">
-          <div className="text-center text-white">
-            <Monitor className="w-12 h-12 mx-auto mb-4 animate-pulse" />
-            <p>Establishing remote connection...</p>
-            <p className="text-sm text-gray-400 mt-2">
-              Connecting to {host}
-            </p>
-          </div>
-        </div>
-      )}
-      
-      <div 
-        ref={vncRef} 
-        className={`w-full h-[calc(100vh-80px)] ${connectionStatus === 'connecting' ? 'hidden' : ''}`}
-        style={{ minHeight: '600px' }}
-      />
     </div>
   );
 }
