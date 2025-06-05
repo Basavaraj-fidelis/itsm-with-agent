@@ -43,7 +43,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { ArrowLeft } from "lucide-react";
-import { Link } from "wouter";
 
 interface Article {
   id: string;
