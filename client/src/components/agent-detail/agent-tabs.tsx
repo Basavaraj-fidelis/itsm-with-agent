@@ -823,8 +823,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                   <span className="text-neutral-600">Max Frequency:</span>
                   <span className="font-medium">{maxFreq}</span>
                 </div>
-                <div className<replit_final_file>
-<div className="flex justify-between">
+                <div className="flex justify-between">
                   <span className="text-neutral-600">Architecture:</span>
                   <span className="font-medium">
                     {architecture !== "Unknown" ? architecture : "N/A"}
