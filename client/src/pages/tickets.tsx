@@ -33,6 +33,7 @@ import {
 import ServiceDeskWorkflows from "@/components/tickets/service-desk-workflows";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 const priorityColors = {
   low: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
@@ -91,7 +92,6 @@ export default function Tickets() {
   const [viewMode, setViewMode] = useState<"tickets" | "workflows" | "analytics">("tickets");
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [showNewTicketDialog, setShowNewTicketDialog] = useState(false);
-  const [showTicketDetailsDialog, setShowTicketDetailsDialog] = useState(false);
   const [showEditTicketDialog, setShowEditTicketDialog] = useState(false);
   const [showAddCommentDialog, setShowAddCommentDialog] = useState(false);
   const [newCommentText, setNewCommentText] = useState("");
@@ -110,8 +110,9 @@ export default function Tickets() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
-    const [statusFilter, setStatusFilter] = useState("all");
-    const [priorityFilter, setPriorityFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [location, setLocation] = useLocation();
 
   // Fetch tickets from API
   const fetchTickets = async (page = 1) => {
@@ -604,7 +605,7 @@ export default function Tickets() {
                   )}
                   onClick={(e) => {
                     e.preventDefault();
-                    setSelectedTicket(ticket);
+                    setLocation(`/tickets/${ticket.id}`);
                   }}
                 >
                   <CardContent className="p-6">
@@ -1069,105 +1070,7 @@ export default function Tickets() {
         </DialogContent>
       </Dialog>
 
-      {/* Ticket Details Dialog */}
-      <Dialog open={showTicketDetailsDialog} onOpenChange={setShowTicketDetailsDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Ticket Details</DialogTitle>
-          </DialogHeader>
-
-          {selectedTicket && (
-            <div className="space-y-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center space-x-3 mb-3">
-                    <span className="font-mono text-xl font-bold text-blue-600">
-                      {selectedTicket.ticket_number}
-                    </span>
-                    <Badge className={priorityColors[selectedTicket.priority as keyof typeof priorityColors]}>
-                      {selectedTicket.priority.toUpperCase()}
-                    </Badge>
-                    <Badge className={statusColors[selectedTicket.status as keyof typeof statusColors]}>
-                      {selectedTicket.status.replace('_', ' ').toUpperCase()}
-                    </Badge>
-                  </div>
-                  <h2 className="text-2xl font-bold mb-3">{selectedTicket.title}</h2>
-                  <p className="text-neutral-600 dark:text-neutral-400 leading-relaxed">{selectedTicket.description}</p>
-                </div>
-                <div className="flex space-x-2">
-                  {renderWorkflowActions(selectedTicket)}
-                  <Button variant="outline" size="sm" onClick={handleEditTicket}>
-                    Edit
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => setShowAddCommentDialog(true)}>
-                    Add Comment
-                  </Button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Ticket Information</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Type</Label>
-                        <p className="font-medium">{selectedTicket.type}</p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Priority</Label>
-                        <p className="font-medium">{selectedTicket.priority}</p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Status</Label>
-                        <p className="font-medium">{selectedTicket.status}</p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Category</Label>
-                        <p className="font-medium">{selectedTicket.category || 'N/A'}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Assignment & Timeline</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="grid grid-cols-1 gap-4 text-sm">
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Requester</Label>
-                        <p className="font-medium">{selectedTicket.requester_email}</p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Assigned To</Label>
-                        <p className="font-medium">{selectedTicket.assigned_to || 'Unassigned'}</p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Created</Label>
-                        <p className="font-medium">{formatDate(selectedTicket.created_at)}</p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Last Updated</Label>
-                        <p className="font-medium">{formatDate(selectedTicket.updated_at)}</p>
-                      </div>
-                      {selectedTicket.due_date && (
-                        <div>
-                          <Label className="text-xs text-muted-foreground">Due Date</Label>
-                          <p className="font-medium">{formatDate(selectedTicket.due_date)}</p>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      
 
       {/* Edit Ticket Dialog */}
       <Dialog open={showEditTicketDialog} onOpenChange={setShowEditTicketDialog}>

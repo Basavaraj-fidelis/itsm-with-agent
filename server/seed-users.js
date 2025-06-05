@@ -1,4 +1,3 @@
-
 import pg from 'pg';
 const { Pool } = pg;
 
@@ -9,6 +8,39 @@ const pool = new Pool({
   connectionString: DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
+
+const users = [
+      {
+        email: 'john.smith@company.com',
+        name: 'John Smith',
+        password: 'password123',
+        role: 'technician',
+        department: 'IT Support',
+        phone: null,
+        active: true,
+        last_login: null
+      },
+{
+        email: 'sarah.wilson@company.com',
+        name: 'Sarah Wilson',
+        password: 'password123',
+        role: 'technician',
+        department: 'Network Operations',
+        phone: null,
+        active: true,
+        last_login: null
+      },
+      {
+        email: 'mike.chen@company.com',
+        name: 'Mike Chen',
+        password: 'password123',
+        role: 'technician',
+        department: 'Security',
+        phone: null,
+        active: true,
+        last_login: null
+      }
+    ];
 
 const sampleUsers = [
   {
@@ -44,7 +76,7 @@ const sampleUsers = [
 async function seedUsers() {
   try {
     console.log("👥 Creating sample technician users...\n");
-    
+
     // Create users table if it doesn't exist
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
@@ -57,7 +89,7 @@ async function seedUsers() {
         created_at TIMESTAMP DEFAULT NOW()
       );
     `);
-    
+
     for (const user of sampleUsers) {
       const insertQuery = `
         INSERT INTO users (name, email, role, department, is_active)
@@ -65,7 +97,7 @@ async function seedUsers() {
         ON CONFLICT (email) DO NOTHING
         RETURNING id, name, email;
       `;
-      
+
       const result = await pool.query(insertQuery, [
         user.name,
         user.email,
@@ -73,16 +105,16 @@ async function seedUsers() {
         user.department,
         user.is_active
       ]);
-      
+
       if (result.rows.length > 0) {
         console.log(`✅ Created user: ${result.rows[0].name} (${result.rows[0].email})`);
       } else {
         console.log(`⚠️  User already exists: ${user.email}`);
       }
     }
-    
+
     console.log("\n🎉 All technician users processed successfully!");
-    
+
   } catch (error) {
     console.error("❌ Error creating users:", error);
   } finally {

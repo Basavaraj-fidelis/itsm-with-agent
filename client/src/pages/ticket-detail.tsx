@@ -1,28 +1,23 @@
 import { useState, useEffect } from "react";
-import { useRoute, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle 
-} from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  ArrowLeft, 
-  Clock, 
-  User, 
+import { useLocation, useRoute } from "wouter";
+import {
+  ArrowLeft,
   Calendar,
+  Clock,
+  User,
+  UserCheck,
   MessageSquare,
-  Edit,
-  Save,
-  X,
+  Settings,
   Ticket,
   AlertTriangle,
   Wrench,
@@ -166,7 +161,7 @@ export default function TicketDetail() {
       }
 
       const response = await api.put(`/api/tickets/${ticket.id}`, updateData);
-      
+
       if (response.ok) {
         const updatedTicket = await response.json();
         setTicket(updatedTicket);
@@ -199,7 +194,7 @@ export default function TicketDetail() {
       const response = await api.put(`/api/tickets/${ticket.id}`, { 
         assigned_to: selectedTechnician 
       });
-      
+
       if (response.ok) {
         const updatedTicket = await response.json();
         setTicket(updatedTicket);
@@ -542,87 +537,45 @@ export default function TicketDetail() {
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Comments Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Comments & Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {comments.length === 0 ? (
-              <p className="text-neutral-500 dark:text-neutral-400 text-center py-4">
-                No comments yet
-              </p>
-            ) : (
-              comments.map((comment) => (
-                <div 
-                  key={comment.id} 
-                  className={`p-4 rounded-lg border ${
-                    comment.is_internal 
-                      ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800' 
-                      : 'bg-gray-50 border-gray-200 dark:bg-gray-800 dark:border-gray-700'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-2">
-                      <span className="font-medium text-sm">
-                        {comment.author_email}
+        {/* Comments and Activity Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Comments & Activity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {comments.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">No comments or activity yet</p>
+              ) : (
+                comments.map((comment, index) => (
+                  <div key={index} className="border-l-2 border-blue-200 pl-4 py-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-2">
+                        <User className="w-4 h-4" />
+                        <span className="font-medium text-sm">{comment.author_email}</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(comment.created_at).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
                       </span>
-                      {comment.is_internal && (
-                        <Badge variant="secondary" className="text-xs">
-                          Internal
-                        </Badge>
-                      )}
                     </div>
-                    <span className="text-xs text-neutral-500">
-                      {formatDate(comment.created_at)}
-                    </span>
+                    <p className="text-sm">{comment.comment}</p>
+                    {comment.is_internal && (
+                      <Badge variant="secondary" className="mt-2 text-xs">Internal</Badge>
+                    )}
                   </div>
-                  <p className="text-sm text-neutral-700 dark:text-neutral-300">
-                    {comment.comment}
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Add Comment Dialog */}
-      <Dialog open={showAddCommentDialog} onOpenChange={setShowAddCommentDialog}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add Comment</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="comment">Comment *</Label>
-              <Textarea
-                id="comment"
-                value={newCommentText}
-                onChange={(e) => setNewCommentText(e.target.value)}
-                placeholder="Enter your comment..."
-                rows={4}
-              />
+                ))
+              )}
             </div>
-
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => {
-                setShowAddCommentDialog(false);
-                setNewCommentText("");
-              }}>
-                Cancel
-              </Button>
-              <Button onClick={handleAddComment}>
-                Add Comment
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Reassign Dialog */}
       <Dialog open={showReassignDialog} onOpenChange={setShowReassignDialog}>
@@ -674,7 +627,7 @@ export default function TicketDetail() {
             <p className="text-sm text-neutral-600 dark:text-neutral-400">
               Please provide a reason for changing the status to "{pendingStatusChange.replace('_', ' ')}":
             </p>
-            
+
             <div>
               <Label htmlFor="status-comment">Reason *</Label>
               <Textarea
