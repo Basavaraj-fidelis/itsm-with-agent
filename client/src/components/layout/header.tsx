@@ -2,10 +2,22 @@ import { useLocation } from "wouter";
 import { Bell, Search, Menu, Settings, User, LogOut, Shield, Clock, AlertTriangle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/components/auth/protected-route";
+import { Moon, Sun } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useState, useEffect } from "react";
+import { api } from "@/lib/api";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+
 
 const pageNames: Record<string, string> = {
   "/": "Dashboard",
@@ -18,6 +30,30 @@ const pageNames: Record<string, string> = {
 
 export default function Header() {
   const { user, logout } = useAuth();
+  const [isDark, setIsDark] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Fetch notification count
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const response = await api.get("/api/notifications?filter=unread");
+        if (response.ok) {
+          const notifications = await response.json();
+          setUnreadCount(notifications.length);
+        }
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+      }
+    };
+
+    if (user) {
+      fetchNotifications();
+      // Refresh every 30 seconds
+      const interval = setInterval(fetchNotifications, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   const [location] = useLocation();
 
@@ -75,7 +111,7 @@ export default function Header() {
                   variant="destructive" 
                   className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
                 >
-                  3
+                  {unreadCount}
                 </Badge>
               </Button>
             </DropdownMenuTrigger>
@@ -97,38 +133,23 @@ export default function Header() {
               </div>
               <DropdownMenuSeparator />
 
-              <DropdownMenuItem className="flex items-start space-x-3 p-3">
-                <div className="flex-shrink-0">
-                  <AlertTriangle className="h-5 w-5 text-orange-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">High Priority Ticket</p>
-                  <p className="text-xs text-muted-foreground">Ticket #1234 requires immediate attention</p>
-                  <p className="text-xs text-muted-foreground mt-1">5 minutes ago</p>
-                </div>
-              </DropdownMenuItem>
+              
 
-              <DropdownMenuItem className="flex items-start space-x-3 p-3">
-                <div className="flex-shrink-0">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
+              <div className="p-4 space-y-2">
+                <div className="text-center">
+                  <span className="text-sm text-neutral-600">
+                    {unreadCount > 0 ? `${unreadCount} unread notifications` : 'No new notifications'}
+                  </span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">Ticket Resolved</p>
-                  <p className="text-xs text-muted-foreground">Ticket #1235 has been resolved successfully</p>
-                  <p className="text-xs text-muted-foreground mt-1">15 minutes ago</p>
-                </div>
-              </DropdownMenuItem>
-
-              <DropdownMenuItem className="flex items-start space-x-3 p-3">
-                <div className="flex-shrink-0">
-                  <Clock className="h-5 w-5 text-blue-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">SLA Warning</p>
-                  <p className="text-xs text-muted-foreground">Ticket #1236 approaching SLA deadline</p>
-                  <p className="text-xs text-muted-foreground mt-1">1 hour ago</p>
-                </div>
-              </DropdownMenuItem>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => window.location.href = '/notifications'}
+                >
+                  View All Notifications
+                </Button>
+              </div>
 
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-center text-sm text-muted-foreground">

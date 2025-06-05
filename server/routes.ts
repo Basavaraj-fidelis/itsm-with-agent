@@ -922,41 +922,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/notifications", authenticateToken, async (req: any, res) => {
     try {
       const userId = req.user.id;
+      const userRole = req.user.role;
       const filter = req.query.filter || 'all';
       
       // Get notifications from multiple sources
       const notifications = [];
       
-      // Get ticket-related notifications
-      const tickets = await storage.getTickets({ assignedTo: userId });
+      // Get ticket-related notifications based on user role
+      let ticketFilters = {};
+      if (userRole === 'user') {
+        // Users see their own tickets
+        ticketFilters = { requesterEmail: req.user.email };
+      } else if (userRole === 'technician') {
+        // Technicians see unassigned tickets and their assigned tickets
+        ticketFilters = { assignedTo: userId, status: ['new', 'assigned', 'in_progress'] };
+      } else if (['manager', 'admin'].includes(userRole)) {
+        // Managers and admins see all critical/high priority tickets
+        ticketFilters = { priority: ['critical', 'high'] };
+      }
+      
+      const tickets = await storage.getTickets(ticketFilters);
+      
+      // Create notifications for relevant tickets
       tickets.forEach(ticket => {
-        if (ticket.priority === 'critical' || ticket.priority === 'high') {
+        let shouldNotify = false;
+        let notificationTitle = '';
+        let notificationType = 'info';
+        
+        if (ticket.priority === 'critical') {
+          shouldNotify = true;
+          notificationTitle = 'Critical Ticket';
+          notificationType = 'error';
+        } else if (ticket.priority === 'high' && ticket.status === 'new') {
+          shouldNotify = true;
+          notificationTitle = 'High Priority Ticket';
+          notificationType = 'warning';
+        } else if (userRole === 'user' && ['assigned', 'in_progress'].includes(ticket.status)) {
+          shouldNotify = true;
+          notificationTitle = 'Ticket Update';
+          notificationType = 'info';
+        }
+        
+        if (shouldNotify) {
           notifications.push({
             id: `ticket-${ticket.id}`,
-            title: `${ticket.priority === 'critical' ? 'Critical' : 'High Priority'} Ticket`,
-            message: `Ticket #${ticket.ticket_number} requires attention: ${ticket.title}`,
-            type: ticket.priority === 'critical' ? 'error' : 'warning',
+            title: notificationTitle,
+            message: `Ticket #${ticket.ticket_number}: ${ticket.title}`,
+            type: notificationType,
             read: false,
-            created_at: ticket.created_at,
+            created_at: ticket.updated_at || ticket.created_at,
             source: 'Service Desk'
           });
         }
       });
       
-      // Get system alerts as notifications
-      const alerts = await storage.getActiveAlerts();
-      alerts.forEach(alert => {
-        const device = storage.getDevice(alert.device_id);
-        notifications.push({
-          id: `alert-${alert.id}`,
-          title: `System Alert - ${alert.severity.toUpperCase()}`,
-          message: alert.message,
-          type: alert.severity === 'critical' ? 'error' : alert.severity === 'high' ? 'warning' : 'info',
-          read: false,
-          created_at: alert.created_at,
-          source: 'System Monitor'
-        });
-      });
+      // Get system alerts as notifications (for technicians, managers, and admins)
+      if (['technician', 'manager', 'admin'].includes(userRole)) {
+        const alerts = await storage.getActiveAlerts();
+        
+        for (const alert of alerts) {
+          try {
+            const device = await storage.getDevice(alert.device_id);
+            const deviceName = device?.hostname || 'Unknown Device';
+            
+            notifications.push({
+              id: `alert-${alert.id}`,
+              title: `System Alert - ${alert.severity.toUpperCase()}`,
+              message: `${deviceName}: ${alert.message}`,
+              type: alert.severity === 'critical' ? 'error' : 
+                   alert.severity === 'high' ? 'warning' : 
+                   alert.severity === 'warning' ? 'warning' : 'info',
+              read: false,
+              created_at: alert.triggered_at || alert.created_at,
+              source: 'System Monitor'
+            });
+          } catch (deviceError) {
+            console.warn(`Could not fetch device for alert ${alert.id}:`, deviceError);
+            // Still add the notification without device name
+            notifications.push({
+              id: `alert-${alert.id}`,
+              title: `System Alert - ${alert.severity.toUpperCase()}`,
+              message: alert.message,
+              type: alert.severity === 'critical' ? 'error' : 
+                   alert.severity === 'high' ? 'warning' : 
+                   alert.severity === 'warning' ? 'warning' : 'info',
+              read: false,
+              created_at: alert.triggered_at || alert.created_at,
+              source: 'System Monitor'
+            });
+          }
+        }
+      }
       
       // Sort by creation date (newest first)
       notifications.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -969,6 +1025,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         filteredNotifications = notifications.filter(n => n.read);
       }
       
+      console.log(`Returning ${filteredNotifications.length} notifications for user ${req.user.email} (role: ${userRole})`);
       res.json(filteredNotifications);
     } catch (error) {
       console.error("Error fetching notifications:", error);

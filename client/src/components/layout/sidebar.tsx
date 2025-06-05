@@ -85,39 +85,61 @@ export function Sidebar() {
         const token = localStorage.getItem("auth_token");
         if (!token) return;
 
-        // Fetch open tickets count
-        const ticketsResponse = await fetch("/api/tickets?status=new&limit=1", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        // Fetch tickets that need attention based on user role
+        const ticketsResponse = await api.get("/api/tickets");
         if (ticketsResponse.ok) {
           const ticketsData = await ticketsResponse.json();
-          const openTickets = ticketsData.total || 0;
-
-          // Fetch active alerts count
-          const alertsResponse = await fetch("/api/alerts", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (alertsResponse.ok) {
-            const alertsData = await alertsResponse.json();
-            const activeAlerts = alertsData.length || 0;
-
-            setNotifications({
-              tickets: openTickets,
-              alerts: activeAlerts,
-              agents: 0, // Don't show count for managed systems
-            });
+          const tickets = Array.isArray(ticketsData) ? ticketsData : ticketsData.data || [];
+          
+          // Count tickets that need attention based on user role
+          let ticketCount = 0;
+          if (authUser?.role === 'user') {
+            // Users see their own open tickets
+            ticketCount = tickets.filter(t => 
+              t.requester_email === authUser.email && 
+              !['resolved', 'closed', 'cancelled'].includes(t.status)
+            ).length;
+          } else if (authUser?.role === 'technician') {
+            // Technicians see new/assigned tickets
+            ticketCount = tickets.filter(t => 
+              ['new', 'assigned'].includes(t.status)
+            ).length;
+          } else if (['manager', 'admin'].includes(authUser?.role || '')) {
+            // Managers/admins see critical/high priority tickets
+            ticketCount = tickets.filter(t => 
+              ['critical', 'high'].includes(t.priority) && 
+              !['resolved', 'closed', 'cancelled'].includes(t.status)
+            ).length;
           }
+
+          // Fetch active alerts count (for technical roles)
+          let alertCount = 0;
+          if (['technician', 'manager', 'admin'].includes(authUser?.role || '')) {
+            const alertsResponse = await api.get("/api/alerts");
+            if (alertsResponse.ok) {
+              const alertsData = await alertsResponse.json();
+              alertCount = Array.isArray(alertsData) ? alertsData.length : 0;
+            }
+          }
+
+          setNotifications({
+            tickets: ticketCount,
+            alerts: alertCount,
+            agents: 0, // Don't show count for managed systems
+          });
         }
       } catch (error) {
         console.error("Error fetching notifications:", error);
       }
     };
 
-    fetchNotifications();
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    if (authUser) {
+      fetchNotifications();
+      // Refresh every 30 seconds
+      const interval = setInterval(fetchNotifications, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [authUser]);
 
   // Define navigation with colored icons based on user role
   const getNavigation = () => {
