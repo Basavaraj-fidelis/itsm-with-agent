@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -573,14 +572,14 @@ export default function TicketDetail() {
                   </p>
                 </div>
               </div>
-              
+
               {ticket.implementation_plan && (
                 <div>
                   <Label className="text-xs text-muted-foreground">Implementation Plan</Label>
                   <p className="font-medium text-sm mt-1 bg-gray-50 p-2 rounded">{ticket.implementation_plan}</p>
                 </div>
               )}
-              
+
               {ticket.rollback_plan && (
                 <div>
                   <Label className="text-xs text-muted-foreground">Rollback Plan</Label>
@@ -665,7 +664,11 @@ export default function TicketDetail() {
     return (
       <div className="p-6 space-y-6">
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" onClick={() => setLocation('/tickets')}>
+          <Button 
+            variant="outline" 
+            onClick={() => setLocation('/tickets')}
+            className="border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 transition-colors"
+          >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Tickets
           </Button>
@@ -682,7 +685,11 @@ export default function TicketDetail() {
     return (
       <div className="p-6 space-y-6">
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" onClick={() => setLocation('/tickets')}>
+          <Button 
+            variant="outline" 
+            onClick={() => setLocation('/tickets')}
+            className="border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 transition-colors"
+          >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Tickets
           </Button>
@@ -704,7 +711,11 @@ export default function TicketDetail() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" onClick={() => setLocation('/tickets')}>
+          <Button 
+            variant="outline" 
+            onClick={() => setLocation('/tickets')}
+            className="border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 transition-colors"
+          >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Tickets
           </Button>
@@ -864,7 +875,7 @@ export default function TicketDetail() {
       </div>
 
       {/* Dialogs */}
-      
+
       {/* Add Comment Dialog */}
       <Dialog open={showAddCommentDialog} onOpenChange={setShowAddCommentDialog}>
         <DialogContent className="max-w-lg">
@@ -883,7 +894,7 @@ export default function TicketDetail() {
               />
             </div>
             <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => {
+<Button variant="outline" onClick={() => {
                 setShowAddCommentDialog(false);
                 setNewCommentText("");
               }}>

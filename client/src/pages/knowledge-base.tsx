@@ -186,9 +186,9 @@ export default function KnowledgeBase() {
         {/* Header */}
         <div className="mb-6">
           <Button 
-            variant="ghost" 
+            variant="outline" 
             onClick={handleBackToList}
-            className="mb-4 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            className="mb-4 border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-300 transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Knowledge Base

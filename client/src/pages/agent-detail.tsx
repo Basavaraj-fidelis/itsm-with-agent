@@ -104,7 +104,11 @@ export default function AgentDetail() {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Link href="/agents">
-            <Button variant="ghost" size="sm" className="flex items-center space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center space-x-2 border-orange-200 text-orange-700 hover:bg-orange-50 hover:border-orange-300 transition-colors"
+            >
               <ArrowLeft className="w-4 h-4" />
               <span>Back to Agents</span>
             </Button>
