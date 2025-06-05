@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useRoute } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -60,7 +60,7 @@ interface TicketData {
 
 export default function TicketDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
+  const [match, params, setLocation] = useLocation();
   const { toast } = useToast();
 
   const [ticket, setTicket] = useState<TicketData | null>(null);
@@ -91,7 +91,7 @@ export default function TicketDetail() {
         description: "Failed to fetch ticket details",
         variant: "destructive"
       });
-      navigate('/tickets');
+      setLocation('/tickets');
     } finally {
       setLoading(false);
     }
@@ -260,7 +260,7 @@ export default function TicketDetail() {
     return (
       <div className="p-6 space-y-6">
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" onClick={() => navigate('/tickets')}>
+          <Button variant="ghost" onClick={() => setLocation('/tickets')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Tickets
           </Button>
@@ -277,7 +277,7 @@ export default function TicketDetail() {
     return (
       <div className="p-6 space-y-6">
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" onClick={() => navigate('/tickets')}>
+          <Button variant="ghost" onClick={() => setLocation('/tickets')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Tickets
           </Button>
@@ -299,7 +299,7 @@ export default function TicketDetail() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" onClick={() => navigate('/tickets')}>
+          <Button variant="ghost" onClick={() => setLocation('/tickets')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Tickets
           </Button>

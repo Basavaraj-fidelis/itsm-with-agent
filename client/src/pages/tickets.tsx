@@ -816,7 +816,7 @@ export default function Tickets() {
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{status.replace('_', ' ').toUpperCase()}</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{count}</p>
                 </div>
-                {/* You can add icons based on status here */}}
+                {/* You can add icons based on status here */}
               </div>
             </CardContent>
           </Card>
