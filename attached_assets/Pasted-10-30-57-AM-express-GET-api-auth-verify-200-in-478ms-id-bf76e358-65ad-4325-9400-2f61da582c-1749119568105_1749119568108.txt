@@ -1,0 +1,28 @@
+10:30:57 AM [express] GET /api/auth/verify 200 in 478ms :: {"id":"bf76e358-65ad-4325-9400-2f61da582c6…
+Error fetching tickets for notifications: TypeError: ticketStorage.getTickets is not a function
+    at <anonymous> (/home/runner/workspace/server/routes.ts:798:57)
+10:30:57 AM [express] GET /api/notifications 200 in 75ms :: []
+10:30:58 AM [express] GET /api/tickets 200 in 596ms :: {"data":[{"id":"b8b20a0f-964f-4e02-b542-84e140…
+10:30:58 AM [express] GET /api/devices/bd31fd4c-fa93-431a-92ed-d6412c2ff28e 200 in 667ms :: {"id":"bd…
+Error fetching tickets for notifications: TypeError: ticketStorage.getTickets is not a function
+    at <anonymous> (/home/runner/workspace/server/routes.ts:798:57)
+10:31:07 AM [express] GET /api/notifications 304 in 66ms :: []
+Error fetching tickets for notifications: TypeError: ticketStorage.getTickets is not a function
+    at <anonymous> (/home/runner/workspace/server/routes.ts:798:57)
+10:31:17 AM [express] GET /api/notifications 304 in 64ms :: []
+Error fetching tickets for notifications: TypeError: ticketStorage.getTickets is not a function
+    at <anonymous> (/home/runner/workspace/server/routes.ts:798:57)
+10:31:27 AM [express] GET /api/notifications 304 in 64ms :: []
+10:31:28 AM [express] GET /api/tickets 304 in 197ms :: {"data":[{"id":"b8b20a0f-964f-4e02-b542-84e140…
+Error fetching tickets for notifications: TypeError: ticketStorage.getTickets is not a function
+    at <anonymous> (/home/runner/workspace/server/routes.ts:798:57)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+10:31:37 AM [express] GET /api/notifications 304 in 65ms :: []
+Error fetching tickets for notifications: TypeError: ticketStorage.getTickets is not a function
+    at <anonymous> (/home/runner/workspace/server/routes.ts:798:57)
+10:31:48 AM [express] GET /api/notifications 304 in 462ms :: []
+Error fetching tickets for notifications: TypeError: ticketStorage.getTickets is not a function
+    at <anonymous> (/home/runner/workspace/server/routes.ts:798:57)
+10:31:58 AM [express] GET /api/notifications 304 in 65ms :: []
+Received report data: {
+  "timestamp": "2025-06-05T10:31:57.149672Z",
