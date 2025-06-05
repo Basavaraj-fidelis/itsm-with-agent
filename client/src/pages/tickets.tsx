@@ -179,10 +179,10 @@ export default function Tickets() {
     const activeStatuses = ['new', 'assigned', 'in_progress', 'pending'];
     const aIsActive = activeStatuses.includes(a.status);
     const bIsActive = activeStatuses.includes(b.status);
-    
+
     if (aIsActive && !bIsActive) return -1;
     if (!aIsActive && bIsActive) return 1;
-    
+
     // Then sort by updated_at (most recent first)
     return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
   });
@@ -280,7 +280,7 @@ export default function Tickets() {
 
     try {
       const response = await api.put(`/api/tickets/${selectedTicket.id}`, newTicketData);
-      
+
       if (response.ok) {
         const updatedTicket = await response.json();
         setTickets(prev => prev.map(ticket => 
@@ -407,6 +407,15 @@ export default function Tickets() {
         Math.round(((openTickets.length - slaViolations.length) / openTickets.length) * 100) : 100
     };
   };
+  
+   const getStatusDistribution = () => {
+    const statusCounts = tickets.reduce((acc, ticket) => {
+      acc[ticket.status] = (acc[ticket.status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return statusCounts;
+  };
 
   const renderWorkflowActions = (ticket: TicketData) => {
     const actions = [];
@@ -500,6 +509,7 @@ export default function Tickets() {
   };
 
   const slaMetrics = getSLAMetrics();
+  const statusDistribution = getStatusDistribution();
 
   const renderTicketFiltersAndList = (ticketsToShow: TicketData[]) => {
     const filteredTickets = ticketsToShow.filter((ticket) => {
@@ -796,6 +806,22 @@ export default function Tickets() {
             </div>
           </CardContent>
         </Card>
+      </div>
+       {/* Status Distribution */}
+       <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
+        {Object.entries(statusDistribution).map(([status, count]) => (
+          <Card key={status} className="bg-gray-50 dark:bg-gray-800 border-gray-200">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{status.replace('_', ' ').toUpperCase()}</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{count}</p>
+                </div>
+                {/* You can add icons based on status here */}}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {viewMode === "workflows" ? (

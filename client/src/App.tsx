@@ -12,6 +12,7 @@ import Agents from "@/pages/agents";
 import AgentDetail from "@/pages/agent-detail";
 import Alerts from "@/pages/alerts";
 import Tickets from "@/pages/tickets";
+import TicketDetail from "@/pages/ticket-detail";
 import KnowledgeBase from "@/pages/knowledge-base";
 import Profile from "@/pages/profile";
 import Notifications from "@/pages/notifications";
@@ -122,6 +123,13 @@ export default function App() {
               <ProtectedRoute>
                 <AuthenticatedLayout>
                   <Tickets />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            </Route>
+            <Route path="/tickets/:id">
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <TicketDetail />
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>
