@@ -9,7 +9,7 @@ import { schema } from "@shared/schema";
 import { userSchema } from "@shared/user-schema";
 import { adminSchema } from "@shared/admin-schema";
 import { knowledgeSchema } from "@shared/knowledge-schema";
-import { ticketSchema } from "@shared/ticket-schema";
+import { tickets } from "@shared/ticket-schema";
 import userStorage from './user-storage';
 import knowledgeStorage from './knowledge-storage';
 import ticketStorage from './ticket-storage';
@@ -807,12 +807,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get tickets from database for notifications
         const { db } = await import("./db");
         const { desc } = await import("drizzle-orm");
-        const tickets = await db
+        const ticketsList = await db
           .select()
-          .from(ticketSchema.tickets)
-          .orderBy(desc(ticketSchema.tickets.updated_at));
+          .from(tickets)
+          .orderBy(desc(tickets.updated_at));
 
-        const userTickets = tickets.filter(ticket => 
+        const userTickets = ticketsList.filter(ticket => 
           ticket.assigned_to === userId || ticket.requester_email === decoded.email
         );
 
