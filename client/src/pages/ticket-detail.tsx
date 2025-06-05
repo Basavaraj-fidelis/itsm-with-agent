@@ -796,33 +796,6 @@ export default function TicketDetail() {
 
       {/* Details Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Basic Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Ticket Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-xs text-muted-foreground">Type</Label>
-                <p className="font-medium capitalize">{ticket.type}</p>
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Priority</Label>
-                <p className="font-medium capitalize">{ticket.priority}</p>
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Status</Label>
-                <p className="font-medium capitalize">{ticket.status.replace('_', ' ')}</p>
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Category</Label>
-                <p className="font-medium">{ticket.category || 'N/A'}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Assignment & Timeline */}
         <Card>
           <CardHeader>
