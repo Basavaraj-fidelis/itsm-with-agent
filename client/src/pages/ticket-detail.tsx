@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -21,7 +23,17 @@ import {
   Ticket,
   AlertTriangle,
   Wrench,
-  RefreshCw
+  RefreshCw,
+  CheckCircle,
+  XCircle,
+  FileText,
+  Shield,
+  Target,
+  TrendingUp,
+  Info,
+  PlayCircle,
+  PauseCircle,
+  StopCircle
 } from "lucide-react";
 
 const priorityColors = {
@@ -62,6 +74,22 @@ interface TicketData {
   updated_at: string;
   due_date?: string;
   category?: string;
+  impact?: string;
+  urgency?: string;
+  root_cause?: string;
+  workaround?: string;
+  known_error?: boolean;
+  change_type?: string;
+  risk_level?: string;
+  approval_status?: string;
+  implementation_plan?: string;
+  rollback_plan?: string;
+  scheduled_start?: string;
+  scheduled_end?: string;
+  sla_policy?: string;
+  sla_response_time?: number;
+  sla_resolution_time?: number;
+  sla_breached?: boolean;
 }
 
 export default function TicketDetail() {
@@ -75,10 +103,13 @@ export default function TicketDetail() {
   const [showAddCommentDialog, setShowAddCommentDialog] = useState(false);
   const [showReassignDialog, setShowReassignDialog] = useState(false);
   const [showStatusChangeDialog, setShowStatusChangeDialog] = useState(false);
+  const [showUpdateFieldDialog, setShowUpdateFieldDialog] = useState(false);
   const [newCommentText, setNewCommentText] = useState("");
   const [statusChangeComment, setStatusChangeComment] = useState("");
   const [selectedTechnician, setSelectedTechnician] = useState("");
   const [pendingStatusChange, setPendingStatusChange] = useState("");
+  const [updateField, setUpdateField] = useState<string>("");
+  const [updateValue, setUpdateValue] = useState<string>("");
   const [technicians, setTechnicians] = useState<any[]>([]);
   const [comments, setComments] = useState<any[]>([]);
 
@@ -211,6 +242,35 @@ export default function TicketDetail() {
       toast({
         title: "Error",
         description: "Failed to reassign ticket",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleUpdateField = async () => {
+    if (!ticket || !updateField || !updateValue.trim()) return;
+
+    try {
+      const updateData = { [updateField]: updateValue.trim() };
+      const response = await api.put(`/api/tickets/${ticket.id}`, updateData);
+
+      if (response.ok) {
+        const updatedTicket = await response.json();
+        setTicket(updatedTicket);
+        fetchComments(ticket.id); // Refresh comments
+        toast({
+          title: "Success",
+          description: `${updateField.replace('_', ' ')} updated successfully`
+        });
+        setShowUpdateFieldDialog(false);
+        setUpdateField('');
+        setUpdateValue('');
+      }
+    } catch (error) {
+      console.error('Error updating field:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update field",
         variant: "destructive"
       });
     }
@@ -353,6 +413,254 @@ export default function TicketDetail() {
     return actions;
   };
 
+  const renderTypeSpecificSection = (ticket: TicketData) => {
+    switch (ticket.type) {
+      case 'incident':
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <AlertTriangle className="w-5 h-5 mr-2 text-red-600" />
+                Incident Management
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Impact</Label>
+                  <p className="font-medium capitalize">{ticket.impact || 'Medium'}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Urgency</Label>
+                  <p className="font-medium capitalize">{ticket.urgency || 'Medium'}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">SLA Policy</Label>
+                  <p className="font-medium">{ticket.sla_policy || 'Standard SLA'}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">SLA Status</Label>
+                  <Badge variant={ticket.sla_breached ? "destructive" : "default"}>
+                    {ticket.sla_breached ? "Breached" : "Within SLA"}
+                  </Badge>
+                </div>
+              </div>
+              <div className="flex space-x-2 mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setUpdateField('impact');
+                    setUpdateValue(ticket.impact || '');
+                    setShowUpdateFieldDialog(true);
+                  }}
+                >
+                  <Target className="w-4 h-4 mr-2" />
+                  Update Impact
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setUpdateField('urgency');
+                    setUpdateValue(ticket.urgency || '');
+                    setShowUpdateFieldDialog(true);
+                  }}
+                >
+                  <TrendingUp className="w-4 h-4 mr-2" />
+                  Update Urgency
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        );
+
+      case 'problem':
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <Wrench className="w-5 h-5 mr-2 text-orange-600" />
+                Problem Management
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label className="text-xs text-muted-foreground">Known Error</Label>
+                <Badge variant={ticket.known_error ? "destructive" : "default"}>
+                  {ticket.known_error ? "Yes" : "No"}
+                </Badge>
+              </div>
+              {ticket.root_cause && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Root Cause</Label>
+                  <p className="font-medium text-sm mt-1">{ticket.root_cause}</p>
+                </div>
+              )}
+              {ticket.workaround && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Workaround</Label>
+                  <p className="font-medium text-sm mt-1">{ticket.workaround}</p>
+                </div>
+              )}
+              <div className="flex space-x-2 mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setUpdateField('root_cause');
+                    setUpdateValue(ticket.root_cause || '');
+                    setShowUpdateFieldDialog(true);
+                  }}
+                >
+                  <Info className="w-4 h-4 mr-2" />
+                  Update Root Cause
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setUpdateField('workaround');
+                    setUpdateValue(ticket.workaround || '');
+                    setShowUpdateFieldDialog(true);
+                  }}
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Update Workaround
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        );
+
+      case 'change':
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <RefreshCw className="w-5 h-5 mr-2 text-blue-600" />
+                Change Management
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Change Type</Label>
+                  <p className="font-medium capitalize">{ticket.change_type || 'Normal'}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Risk Level</Label>
+                  <Badge variant={
+                    ticket.risk_level === 'high' ? 'destructive' :
+                    ticket.risk_level === 'medium' ? 'default' : 'secondary'
+                  }>
+                    {ticket.risk_level || 'Low'}
+                  </Badge>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Approval Status</Label>
+                  <Badge variant={
+                    ticket.approval_status === 'approved' ? 'default' :
+                    ticket.approval_status === 'rejected' ? 'destructive' : 'secondary'
+                  }>
+                    {ticket.approval_status || 'Pending'}
+                  </Badge>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Scheduled</Label>
+                  <p className="font-medium">
+                    {ticket.scheduled_start ? formatDate(ticket.scheduled_start) : 'Not scheduled'}
+                  </p>
+                </div>
+              </div>
+              
+              {ticket.implementation_plan && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Implementation Plan</Label>
+                  <p className="font-medium text-sm mt-1 bg-gray-50 p-2 rounded">{ticket.implementation_plan}</p>
+                </div>
+              )}
+              
+              {ticket.rollback_plan && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Rollback Plan</Label>
+                  <p className="font-medium text-sm mt-1 bg-gray-50 p-2 rounded">{ticket.rollback_plan}</p>
+                </div>
+              )}
+
+              <div className="flex space-x-2 mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setUpdateField('implementation_plan');
+                    setUpdateValue(ticket.implementation_plan || '');
+                    setShowUpdateFieldDialog(true);
+                  }}
+                >
+                  <PlayCircle className="w-4 h-4 mr-2" />
+                  Update Implementation
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setUpdateField('rollback_plan');
+                    setUpdateValue(ticket.rollback_plan || '');
+                    setShowUpdateFieldDialog(true);
+                  }}
+                >
+                  <StopCircle className="w-4 h-4 mr-2" />
+                  Update Rollback
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        );
+
+      case 'request':
+      default:
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <Ticket className="w-5 h-5 mr-2 text-green-600" />
+                Service Request
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Service Category</Label>
+                  <p className="font-medium">{ticket.category || 'General'}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Expected Completion</Label>
+                  <p className="font-medium">
+                    {ticket.due_date ? formatDate(ticket.due_date) : 'Not set'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex space-x-2 mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setUpdateField('category');
+                    setUpdateValue(ticket.category || '');
+                    setShowUpdateFieldDialog(true);
+                  }}
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Update Category
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        );
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-6 space-y-6">
@@ -402,7 +710,7 @@ export default function TicketDetail() {
           </Button>
           <div className="h-6 w-px bg-gray-300"></div>
           <h1 className="text-2xl font-bold text-[#201F1E] dark:text-[#F3F2F1]">
-            Ticket Details
+            {ticket.type.charAt(0).toUpperCase() + ticket.type.slice(1)} Details
           </h1>
         </div>
 
@@ -487,7 +795,8 @@ export default function TicketDetail() {
       </Card>
 
       {/* Details Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Basic Information */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Ticket Information</CardTitle>
@@ -514,6 +823,7 @@ export default function TicketDetail() {
           </CardContent>
         </Card>
 
+        {/* Assignment & Timeline */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Assignment & Timeline</CardTitle>
@@ -537,6 +847,9 @@ export default function TicketDetail() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Type-specific Section */}
+        {renderTypeSpecificSection(ticket)}
 
         {/* Comments and Activity Section */}
         <Card>
@@ -576,6 +889,40 @@ export default function TicketDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialogs */}
+      
+      {/* Add Comment Dialog */}
+      <Dialog open={showAddCommentDialog} onOpenChange={setShowAddCommentDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add Comment</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="comment">Comment *</Label>
+              <Textarea
+                id="comment"
+                value={newCommentText}
+                onChange={(e) => setNewCommentText(e.target.value)}
+                placeholder="Enter your comment..."
+                rows={4}
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => {
+                setShowAddCommentDialog(false);
+                setNewCommentText("");
+              }}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddComment} disabled={!newCommentText.trim()}>
+                Add Comment
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Reassign Dialog */}
       <Dialog open={showReassignDialog} onOpenChange={setShowReassignDialog}>
@@ -652,6 +999,53 @@ export default function TicketDetail() {
                 disabled={!statusChangeComment.trim()}
               >
                 Update Status
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Update Field Dialog */}
+      <Dialog open={showUpdateFieldDialog} onOpenChange={setShowUpdateFieldDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Update {updateField.replace('_', ' ')}</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="update-value">New Value *</Label>
+              {updateField.includes('plan') ? (
+                <Textarea
+                  id="update-value"
+                  value={updateValue}
+                  onChange={(e) => setUpdateValue(e.target.value)}
+                  placeholder={`Enter new ${updateField.replace('_', ' ')}...`}
+                  rows={4}
+                />
+              ) : (
+                <Input
+                  id="update-value"
+                  value={updateValue}
+                  onChange={(e) => setUpdateValue(e.target.value)}
+                  placeholder={`Enter new ${updateField.replace('_', ' ')}...`}
+                />
+              )}
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => {
+                setShowUpdateFieldDialog(false);
+                setUpdateField("");
+                setUpdateValue("");
+              }}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleUpdateField}
+                disabled={!updateValue.trim()}
+              >
+                Update
               </Button>
             </div>
           </div>
