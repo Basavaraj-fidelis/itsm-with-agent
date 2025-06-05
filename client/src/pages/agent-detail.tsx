@@ -4,7 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { MetricCard } from "@/components/agent-detail/metric-card";
 import AgentTabs from "@/components/agent-detail/agent-tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAgent } from "@/hooks/use-agents";
+import { useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -35,6 +37,7 @@ import { formatDistanceToNow } from "date-fns";
 export default function AgentDetail() {
   const { id } = useParams();
   const { data: agent, isLoading, error } = useAgent(id || "");
+  const [showVNCModal, setShowVNCModal] = useState(false);
 
   if (isLoading) {
     return (
@@ -176,11 +179,7 @@ export default function AgentDetail() {
             variant="default" 
             size="sm" 
             className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
-            onClick={() => {
-              // Handle remote connection logic here
-              console.log(`Connecting remotely to ${agent.hostname}`);
-              // You can implement RDP, SSH, or other remote connection methods here
-            }}
+            onClick={() => setShowVNCModal(true)}
           >
             <Monitor className="w-4 h-4" />
             <span>Connect Remotely</span>
@@ -224,6 +223,22 @@ export default function AgentDetail() {
 
       {/* Tabbed Content */}
       <AgentTabs agent={agent} />
+
+      {/* VNC Modal */}
+      <Dialog open={showVNCModal} onOpenChange={setShowVNCModal}>
+        <DialogContent className="max-w-6xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Remote Desktop - {agent.hostname}</DialogTitle>
+          </DialogHeader>
+          <div className="h-[600px] w-full">
+            <iframe
+              src={`/vnc?host=${agent.hostname}&port=5900&embed=true`}
+              className="w-full h-full border-0"
+              title={`VNC connection to ${agent.hostname}`}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
