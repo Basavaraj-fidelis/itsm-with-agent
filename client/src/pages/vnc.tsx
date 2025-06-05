@@ -1,12 +1,11 @@
+
 import { useEffect, useRef, useState } from "react";
-import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, Monitor, Wifi, ArrowLeft } from "lucide-react";
 
 export default function VNCPage() {
   const vncRef = useRef<HTMLDivElement>(null);
-  const [location] = useLocation();
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
   const [errorMessage, setErrorMessage] = useState<string>('');
 
@@ -201,83 +200,74 @@ export default function VNCPage() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Sidebar */}
-      <Sidebar />
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <Header />
-
-        {/* Page Header */}
-        <div className="bg-white dark:bg-gray-800 shadow-sm border-b px-6 py-4">
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => window.history.back()}
-              className="flex items-center space-x-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span>Back to Agent</span>
-            </Button>
-            <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Remote Desktop - {host}
-            </h1>
-          </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Page Header */}
+      <div className="bg-white dark:bg-gray-800 shadow-sm border-b px-6 py-4">
+        <div className="flex items-center space-x-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => window.history.back()}
+            className="flex items-center space-x-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back to Agent</span>
+          </Button>
+          <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Remote Desktop - {host}
+          </h1>
         </div>
+      </div>
 
-        {/* VNC Content */}
-        <div className="flex-1 p-6 overflow-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Monitor className="w-5 h-5" />
-                <span>Remote Desktop Connection</span>
-                <div className="flex items-center space-x-2 ml-auto">
-                  <div className={`h-2 w-2 rounded-full ${
-                    connectionStatus === 'connected' ? 'bg-green-500' :
-                    connectionStatus === 'connecting' ? 'bg-yellow-500 animate-pulse' :
-                    connectionStatus === 'error' ? 'bg-red-500' : 'bg-gray-500'
-                  }`}></div>
-                  <span className="text-sm text-gray-600 capitalize">{connectionStatus}</span>
+      {/* VNC Content */}
+      <div className="p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Monitor className="w-5 h-5" />
+              <span>Remote Desktop Connection</span>
+              <div className="flex items-center space-x-2 ml-auto">
+                <div className={`h-2 w-2 rounded-full ${
+                  connectionStatus === 'connected' ? 'bg-green-500' :
+                  connectionStatus === 'connecting' ? 'bg-yellow-500 animate-pulse' :
+                  connectionStatus === 'error' ? 'bg-red-500' : 'bg-gray-500'
+                }`}></div>
+                <span className="text-sm text-gray-600 capitalize">{connectionStatus}</span>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {connectionStatus === 'connecting' && (
+              <div className="w-full h-[600px] border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-900 flex items-center justify-center">
+                <div className="text-center text-white">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                  <p className="text-lg font-medium">Establishing connection...</p>
+                  <p className="text-sm text-gray-300 mt-2">Connecting to {host}</p>
                 </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {connectionStatus === 'connecting' && (
-                <div className="w-full h-[600px] border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-900 flex items-center justify-center">
-                  <div className="text-center text-white">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-                    <p className="text-lg font-medium">Establishing connection...</p>
-                    <p className="text-sm text-gray-300 mt-2">Connecting to {host}</p>
-                  </div>
+              </div>
+            )}
+            <div 
+              ref={vncRef}
+              className={`w-full h-[600px] border border-gray-300 dark:border-gray-600 rounded-lg bg-black ${
+                connectionStatus === 'connecting' ? 'hidden' : ''
+              }`}
+              style={{ minHeight: "600px" }}
+            />
+            {connectionStatus === 'disconnected' && (
+              <div className="w-full h-[600px] border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 flex items-center justify-center">
+                <div className="text-center">
+                  <Wifi className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-lg font-medium text-gray-600">Connection Lost</p>
+                  <p className="text-sm text-gray-500 mt-2">The remote desktop connection was terminated</p>
+                  <Button onClick={handleReconnect} className="mt-4">
+                    Reconnect
+                  </Button>
                 </div>
-              )}
-              <div 
-                ref={vncRef}
-                className={`w-full h-[600px] border border-gray-300 dark:border-gray-600 rounded-lg bg-black ${
-                  connectionStatus === 'connecting' ? 'hidden' : ''
-                }`}
-                style={{ minHeight: "600px" }}
-              />
-              {connectionStatus === 'disconnected' && (
-                <div className="w-full h-[600px] border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 flex items-center justify-center">
-                  <div className="text-center">
-                    <Wifi className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-lg font-medium text-gray-600">Connection Lost</p>
-                    <p className="text-sm text-gray-500 mt-2">The remote desktop connection was terminated</p>
-                    <Button onClick={handleReconnect} className="mt-4">
-                      Reconnect
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
