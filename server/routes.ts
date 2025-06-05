@@ -884,6 +884,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Notifications routes
+  app.get("/api/notifications", authenticateToken, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const filter = req.query.filter || 'all';
+      
+      // Get notifications from multiple sources
+      const notifications = [];
+      
+      // Get ticket-related notifications
+      const tickets = await storage.getTickets({ assignedTo: userId });
+      tickets.forEach(ticket => {
+        if (ticket.priority === 'critical' || ticket.priority === 'high') {
+          notifications.push({
+            id: `ticket-${ticket.id}`,
+            title: `${ticket.priority === 'critical' ? 'Critical' : 'High Priority'} Ticket`,
+            message: `Ticket #${ticket.ticket_number} requires attention: ${ticket.title}`,
+            type: ticket.priority === 'critical' ? 'error' : 'warning',
+            read: false,
+            created_at: ticket.created_at,
+            source: 'Service Desk'
+          });
+        }
+      });
+      
+      // Get system alerts as notifications
+      const alerts = await storage.getActiveAlerts();
+      alerts.forEach(alert => {
+        const device = storage.getDevice(alert.device_id);
+        notifications.push({
+          id: `alert-${alert.id}`,
+          title: `System Alert - ${alert.severity.toUpperCase()}`,
+          message: alert.message,
+          type: alert.severity === 'critical' ? 'error' : alert.severity === 'high' ? 'warning' : 'info',
+          read: false,
+          created_at: alert.created_at,
+          source: 'System Monitor'
+        });
+      });
+      
+      // Sort by creation date (newest first)
+      notifications.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      
+      // Apply filter
+      let filteredNotifications = notifications;
+      if (filter === 'unread') {
+        filteredNotifications = notifications.filter(n => !n.read);
+      } else if (filter === 'read') {
+        filteredNotifications = notifications.filter(n => n.read);
+      }
+      
+      res.json(filteredNotifications);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/notifications/:id/read", authenticateToken, async (req, res) => {
+    try {
+      const notificationId = req.params.id;
+      
+      // In a real implementation, you'd store read status in database
+      // For now, we'll just return success
+      res.json({ message: "Notification marked as read" });
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/notifications/mark-all-read", authenticateToken, async (req, res) => {
+    try {
+      // In a real implementation, you'd update all notifications for the user
+      // For now, we'll just return success
+      res.json({ message: "All notifications marked as read" });
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/notifications/:id", authenticateToken, async (req, res) => {
+    try {
+      const notificationId = req.params.id;
+      
+      // In a real implementation, you'd delete the notification from database
+      // For now, we'll just return success
+      res.json({ message: "Notification deleted" });
+    } catch (error) {
+      console.error("Error deleting notification:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Register ticket routes
   registerTicketRoutes(app);
 

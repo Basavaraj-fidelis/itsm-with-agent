@@ -60,12 +60,22 @@ router.post("/", async (req, res) => {
   try {
     const { email, name, role, password, department, phone } = req.body;
     
+    if (!password) {
+      return res.status(400).json({ message: "Password is required" });
+    }
+    
+    // Check if user already exists
+    const existingUser = await db.select().from(users).where(eq(users.email, email.toLowerCase()));
+    if (existingUser.length > 0) {
+      return res.status(400).json({ message: "User with this email already exists" });
+    }
+    
     // Hash the password
     const saltRounds = 10;
     const password_hash = await bcrypt.hash(password, saltRounds);
     
     const newUser = await db.insert(users).values({
-      email,
+      email: email.toLowerCase(),
       name,
       role: role || "user",
       password_hash,

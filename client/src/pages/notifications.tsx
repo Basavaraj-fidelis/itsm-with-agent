@@ -31,56 +31,30 @@ export default function Notifications() {
   const [filter, setFilter] = useState<"all" | "unread" | "read">("all");
 
   useEffect(() => {
-    // Mock notifications - in real app, fetch from API
-    const mockNotifications: Notification[] = [
-      {
-        id: "1",
-        title: "High CPU Usage Alert",
-        message: "Server DESKTOP-CMM8H3C has exceeded 90% CPU usage for the last 5 minutes.",
-        type: "warning",
-        read: false,
-        created_at: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
-        source: "System Monitor"
-      },
-      {
-        id: "2",
-        title: "Agent Connected",
-        message: "New agent DESKTOP-CMM8H3C has been successfully registered and is reporting data.",
-        type: "success",
-        read: false,
-        created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-        source: "Agent Management"
-      },
-      {
-        id: "3",
-        title: "Memory Usage Warning",
-        message: "System memory usage has reached 88% on DESKTOP-CMM8H3C.",
-        type: "warning",
-        read: true,
-        created_at: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-        source: "System Monitor"
-      },
-      {
-        id: "4",
-        title: "Weekly Report Generated",
-        message: "Your weekly system health report is now available for download.",
-        type: "info",
-        read: true,
-        created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-        source: "Reports"
-      },
-      {
-        id: "5",
-        title: "Disk Space Alert",
-        message: "Disk usage on C: drive has reached 85% capacity. Consider cleaning up files.",
-        type: "error",
-        read: false,
-        created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-        source: "Storage Monitor"
+    fetchNotifications();
+  }, [filter]);
+
+  const fetchNotifications = async () => {
+    try {
+      const token = localStorage.getItem("auth_token");
+      if (!token) return;
+
+      const response = await fetch(`/api/notifications?filter=${filter}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(data);
+      } else {
+        console.error('Failed to fetch notifications');
       }
-    ];
-    setNotifications(mockNotifications);
-  }, []);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -100,32 +74,95 @@ export default function Notifications() {
     }
   };
 
-  const markAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(notif => 
-        notif.id === id ? { ...notif, read: true } : notif
-      )
-    );
-    toast({
-      title: "Marked as read",
-      description: "Notification has been marked as read.",
-    });
+  const markAsRead = async (id: string) => {
+    try {
+      const token = localStorage.getItem("auth_token");
+      if (!token) return;
+
+      const response = await fetch(`/api/notifications/${id}/read`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        setNotifications(prev => 
+          prev.map(notif => 
+            notif.id === id ? { ...notif, read: true } : notif
+          )
+        );
+        toast({
+          title: "Marked as read",
+          description: "Notification has been marked as read.",
+        });
+      }
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      toast({
+        title: "Error",
+        description: "Failed to mark notification as read.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const deleteNotification = (id: string) => {
-    setNotifications(prev => prev.filter(notif => notif.id !== id));
-    toast({
-      title: "Notification deleted",
-      description: "Notification has been removed.",
-    });
+  const deleteNotification = async (id: string) => {
+    try {
+      const token = localStorage.getItem("auth_token");
+      if (!token) return;
+
+      const response = await fetch(`/api/notifications/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        setNotifications(prev => prev.filter(notif => notif.id !== id));
+        toast({
+          title: "Notification deleted",
+          description: "Notification has been removed.",
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete notification.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(notif => ({ ...notif, read: true })));
-    toast({
-      title: "All marked as read",
-      description: "All notifications have been marked as read.",
-    });
+  const markAllAsRead = async () => {
+    try {
+      const token = localStorage.getItem("auth_token");
+      if (!token) return;
+
+      const response = await fetch('/api/notifications/mark-all-read', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        setNotifications(prev => prev.map(notif => ({ ...notif, read: true })));
+        toast({
+          title: "All marked as read",
+          description: "All notifications have been marked as read.",
+        });
+      }
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      toast({
+        title: "Error",
+        description: "Failed to mark all notifications as read.",
+        variant: "destructive"
+      });
+    }
   };
 
   const filteredNotifications = notifications.filter(notif => {
