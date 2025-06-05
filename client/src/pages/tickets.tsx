@@ -595,8 +595,7 @@ export default function Tickets() {
                     isOverdue && "ring-2 ring-red-200"
                   )}
                   onClick={() => {
-                    setSelectedTicket(ticket);
-                    setShowTicketDetailsDialog(true);
+                    window.open(`/tickets/${ticket.id}`, '_blank');
                   }}
                 >
                   <CardContent className="p-6">

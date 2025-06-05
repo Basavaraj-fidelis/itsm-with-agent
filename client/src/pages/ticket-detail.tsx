@@ -1,26 +1,21 @@
-
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useRoute } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  ArrowLeft,
-  User,
+  ArrowLeft, 
+  Clock, 
+  User, 
   Calendar,
-  Clock,
-  Edit,
   MessageSquare,
-  CheckCircle,
-  AlertTriangle,
-  Wrench,
-  RefreshCw,
-  Ticket
+  Edit,
+  Save,
+  X
 } from "lucide-react";
 
 const priorityColors = {
@@ -67,7 +62,7 @@ export default function TicketDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+
   const [ticket, setTicket] = useState<TicketData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddCommentDialog, setShowAddCommentDialog] = useState(false);
@@ -313,7 +308,7 @@ export default function TicketDetail() {
             Ticket Details
           </h1>
         </div>
-        
+
         <div className="flex space-x-2">
           {renderWorkflowActions(ticket)}
           <Button variant="outline" size="sm" onClick={() => setShowAddCommentDialog(true)}>
