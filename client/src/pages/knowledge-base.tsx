@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -73,17 +74,27 @@ const getCategoryIcon = (category: string) => {
 };
 
 export default function KnowledgeBase() {
+  const [location, setLocation] = useLocation();
   const [articles, setArticles] = useState<Article[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-    const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
   const [isLoading, setIsLoading] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+
+  // Check if we're viewing a specific article
+  const articleMatch = location.match(/^\/knowledge-base\/(.+)$/);
+  const articleId = articleMatch ? articleMatch[1] : null;
   
 
   useEffect(() => {
-    fetchArticles();
-  }, [selectedCategory, searchTerm]);
+    if (articleId) {
+      fetchSingleArticle(articleId);
+    } else {
+      fetchArticles();
+    }
+  }, [selectedCategory, searchTerm, articleId]);
 
   const fetchArticles = async () => {
     try {
@@ -124,6 +135,25 @@ export default function KnowledgeBase() {
     }
   };
 
+  const fetchSingleArticle = async (id: string) => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/knowledge-base/${id}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch article: ${response.status}`);
+      }
+
+      const article = await response.json();
+      setSelectedArticle(article);
+    } catch (err) {
+      console.error('Error fetching article:', err);
+      setSelectedArticle(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   
 
   const categories = [
@@ -147,11 +177,12 @@ export default function KnowledgeBase() {
   };
 
   const handleArticleClick = (article: Article) => {
-    setSelectedArticle(article);
+    const slug = article.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    setLocation(`/knowledge-base/${article.id}-${slug}`);
   };
 
   const handleBackToList = () => {
-    setSelectedArticle(null);
+    setLocation('/knowledge-base');
   };
 
   const renderMarkdown = (content: string) => {
@@ -180,7 +211,7 @@ export default function KnowledgeBase() {
   };
 
   // Article detail view
-  if (selectedArticle) {
+  if (articleId && selectedArticle) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
         {/* Header */}
@@ -302,63 +333,69 @@ export default function KnowledgeBase() {
                   className="pl-10"
                 />
               </div>
-              <Button variant="outline" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
+              >
                 <Filter className="w-4 h-4 mr-2" />
                 Advanced Search
               </Button>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              <div className="flex items-center space-x-2">
-                <Label className="text-sm font-medium">Category:</Label>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="All Categories" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    <SelectItem value="troubleshooting">🔧 Troubleshooting</SelectItem>
-                    <SelectItem value="how-to">📋 How To</SelectItem>
-                    <SelectItem value="policy">📜 Policy</SelectItem>
-                    <SelectItem value="technical">⚙️ Technical</SelectItem>
-                    <SelectItem value="security">🛡️ Security</SelectItem>
-                    <SelectItem value="network">🌐 Network</SelectItem>
-                    <SelectItem value="hardware">💻 Hardware</SelectItem>
-                    <SelectItem value="software">📱 Software</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            {showAdvancedSearch && (
+              <div className="flex flex-wrap gap-2">
+                <div className="flex items-center space-x-2">
+                  <Label className="text-sm font-medium">Category:</Label>
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="All Categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      <SelectItem value="troubleshooting">🔧 Troubleshooting</SelectItem>
+                      <SelectItem value="how-to">📋 How To</SelectItem>
+                      <SelectItem value="policy">📜 Policy</SelectItem>
+                      <SelectItem value="technical">⚙️ Technical</SelectItem>
+                      <SelectItem value="security">🛡️ Security</SelectItem>
+                      <SelectItem value="network">🌐 Network</SelectItem>
+                      <SelectItem value="hardware">💻 Hardware</SelectItem>
+                      <SelectItem value="software">📱 Software</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className="flex items-center space-x-2">
-                <Label className="text-sm font-medium">Status:</Label>
-                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue placeholder="All" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="published">✅ Published</SelectItem>
-                    <SelectItem value="draft">📝 Draft</SelectItem>
-                    <SelectItem value="archived">📦 Archived</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                <div className="flex items-center space-x-2">
+                  <Label className="text-sm font-medium">Status:</Label>
+                  <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue placeholder="All" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="published">✅ Published</SelectItem>
+                      <SelectItem value="draft">📝 Draft</SelectItem>
+                      <SelectItem value="archived">📦 Archived</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className="flex items-center space-x-2">
-                <Label className="text-sm font-medium">Sort:</Label>
-                <Select value="recent" onValueChange={() => {}}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="recent">Recent</SelectItem>
-                    <SelectItem value="popular">Popular</SelectItem>
-                    <SelectItem value="helpful">Most Helpful</SelectItem>
-                    <SelectItem value="title">Title A-Z</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center space-x-2">
+                  <Label className="text-sm font-medium">Sort:</Label>
+                  <Select value="recent" onValueChange={() => {}}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="recent">Recent</SelectItem>
+                      <SelectItem value="popular">Popular</SelectItem>
+                      <SelectItem value="helpful">Most Helpful</SelectItem>
+                      <SelectItem value="title">Title A-Z</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Popular Tags */}
             <div className="flex items-center space-x-2">
@@ -468,19 +505,9 @@ export default function KnowledgeBase() {
                         <Clock className="w-3 h-3" />
                         <span>{formatDistanceToNow(new Date(article.created_at), { addSuffix: true })}</span>
                       </div>
-                      <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-1">
-                          <Eye className="w-3 h-3" />
-                          <span>{article.views || 0}</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <ThumbsUp className="w-3 h-3 text-green-600" />
-                          <span>{article.helpful_votes || 0}</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <MessageCircle className="w-3 h-3 text-blue-600" />
-                          <span>0</span>
-                        </div>
+                      <div className="flex items-center space-x-1">
+                        <User className="w-3 h-3" />
+                        <span>{article.author_email}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -515,12 +542,8 @@ export default function KnowledgeBase() {
                   </div>
                   <div className="flex items-center space-x-6 text-sm text-muted-foreground">
                     <div className="flex items-center space-x-1">
-                      <Eye className="w-4 h-4" />
-                      <span>{article.views || 0}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <ThumbsUp className="w-4 h-4" />
-                      <span>{article.helpful_votes || 0}</span>
+                      <User className="w-4 h-4" />
+                      <span>{article.author_email}</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Clock className="w-4 h-4" />

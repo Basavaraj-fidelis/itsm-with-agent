@@ -31,7 +31,19 @@ import {
   FileText
 } from "lucide-react";
 import ServiceDeskWorkflows from "@/components/tickets/service-desk-workflows";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { 
+  ResponsiveContainer, 
+  PieChart, 
+  Pie, 
+  Cell, 
+  Tooltip,
+  Legend,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid
+} from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 
@@ -853,11 +865,14 @@ export default function Tickets() {
                     outerRadius={120}
                     paddingAngle={5}
                     dataKey="value"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                   >
                     {getTicketsByType().map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
+                  <Legend layout="vertical" align="right" verticalAlign="middle" />
                   <Tooltip />
                 </PieChart>
               </ResponsiveContainer>
@@ -896,11 +911,14 @@ export default function Tickets() {
                     outerRadius={120}
                     paddingAngle={5}
                     dataKey="value"
+                     labelLine={false}
+                     label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                   >
                     {getTicketsByPriority().map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
+                   <Legend layout="vertical" align="right" verticalAlign="middle" />
                   <Tooltip />
                 </PieChart>
               </ResponsiveContainer>
@@ -1070,7 +1088,7 @@ export default function Tickets() {
         </DialogContent>
       </Dialog>
 
-      
+
 
       {/* Edit Ticket Dialog */}
       <Dialog open={showEditTicketDialog} onOpenChange={setShowEditTicketDialog}>

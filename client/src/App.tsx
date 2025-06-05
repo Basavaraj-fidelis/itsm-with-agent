@@ -149,6 +149,13 @@ export default function App() {
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>
+            <Route path="/knowledge-base/:articleId">
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <KnowledgeBase />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            </Route>
 
             <Route path="/users">
               <ProtectedRoute requiredRole={["admin", "manager"]}>
