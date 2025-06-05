@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,7 +60,7 @@ export default function VNCPage() {
           ];
 
           let attemptCount = 0;
-          
+
           const tryConnection = (urlIndex: number) => {
             if (urlIndex >= possibleUrls.length) {
               setConnectionStatus('error');
@@ -258,7 +257,7 @@ export default function VNCPage() {
             </div>
           </div>
         )}
-        
+
         <div 
           ref={vncRef}
           className="w-full h-full bg-black"
@@ -270,7 +269,7 @@ export default function VNCPage() {
             left: 0
           }}
         />
-        
+
         {connectionStatus === 'disconnected' && (
           <div className="absolute inset-0 bg-gray-900 flex items-center justify-center z-10">
             <div className="text-center text-white">
