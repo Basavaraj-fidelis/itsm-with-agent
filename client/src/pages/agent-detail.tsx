@@ -232,7 +232,7 @@ export default function AgentDetail() {
           </DialogHeader>
           <div className="h-[600px] w-full">
             <iframe
-              src={`/vnc?host=${agent.hostname}&port=5900&embed=true`}
+              src={`/vnc?host=${agent.hostname}&port=6080&vncport=5900&embed=true`}
               className="w-full h-full border-0"
               title={`VNC connection to ${agent.hostname}`}
             />
