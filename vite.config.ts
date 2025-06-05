@@ -30,7 +30,7 @@ export default defineConfig({
   },
   server: {
     allowedHosts: [
-      "df7972a2-9f66-4c08-b9b6-a0cc6137e8ba-00-2djq1r7s7fwki.sisko.replit.dev",
+      "e285c015-3d5c-4217-9dc8-cda0ba14b110-00-3qkcu4t17zbhn.sisko.replit.dev",
     ],
   },
 });

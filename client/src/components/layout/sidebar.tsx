@@ -15,13 +15,18 @@ import {
   UserCheck,
   ChevronRight,
   ChevronLeft,
-  MoreHorizontal
+  MoreHorizontal,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -41,7 +46,7 @@ export function Sidebar() {
     queryFn: async () => {
       try {
         const response = await api.get("/api/tickets?limit=1000");
-        if (!response.ok) throw new Error('Failed to fetch tickets');
+        if (!response.ok) throw new Error("Failed to fetch tickets");
         return await response.json();
       } catch (error) {
         console.warn("Failed to fetch tickets for sidebar:", error);
@@ -52,37 +57,45 @@ export function Sidebar() {
     retry: 1,
   });
 
-  const tickets = Array.isArray(ticketsResponse?.data) ? ticketsResponse.data : ticketsResponse?.data?.tickets || [];
+  const tickets = Array.isArray(ticketsResponse?.data)
+    ? ticketsResponse.data
+    : ticketsResponse?.data?.tickets || [];
   const totalTickets = tickets.length;
-  const openTickets = tickets.filter(t => !['resolved', 'closed', 'cancelled'].includes(t.status)).length;
-  const alertCount = tickets.filter(t => t.priority === 'critical' && !['resolved', 'closed', 'cancelled'].includes(t.status)).length;
+  const openTickets = tickets.filter(
+    (t) => !["resolved", "closed", "cancelled"].includes(t.status),
+  ).length;
+  const alertCount = tickets.filter(
+    (t) =>
+      t.priority === "critical" &&
+      !["resolved", "closed", "cancelled"].includes(t.status),
+  ).length;
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   // const { user: authUser } = useAuth(); // Already defined above
   const [notifications, setNotifications] = useState({
     tickets: 0,
     alerts: 0,
-    agents: 0
+    agents: 0,
   });
 
   // Fetch notification counts
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem("auth_token");
         if (!token) return;
 
         // Fetch open tickets count
-        const ticketsResponse = await fetch('/api/tickets?status=new&limit=1', {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const ticketsResponse = await fetch("/api/tickets?status=new&limit=1", {
+          headers: { Authorization: `Bearer ${token}` },
         });
         if (ticketsResponse.ok) {
           const ticketsData = await ticketsResponse.json();
           const openTickets = ticketsData.total || 0;
 
           // Fetch active alerts count
-          const alertsResponse = await fetch('/api/alerts', {
-            headers: { 'Authorization': `Bearer ${token}` }
+          const alertsResponse = await fetch("/api/alerts", {
+            headers: { Authorization: `Bearer ${token}` },
           });
           if (alertsResponse.ok) {
             const alertsData = await alertsResponse.json();
@@ -91,12 +104,12 @@ export function Sidebar() {
             setNotifications({
               tickets: openTickets,
               alerts: activeAlerts,
-              agents: 0 // Don't show count for managed systems
+              agents: 0, // Don't show count for managed systems
             });
           }
         }
       } catch (error) {
-        console.error('Error fetching notifications:', error);
+        console.error("Error fetching notifications:", error);
       }
     };
 
@@ -109,104 +122,113 @@ export function Sidebar() {
   // Define navigation with colored icons based on user role
   const getNavigation = () => {
     const baseNavigation = [
-      { 
-        name: "Dashboard", 
-        href: "/dashboard", 
-        icon: Home, 
-        current: location === "/dashboard", 
+      {
+        name: "Dashboard",
+        href: "/dashboard",
+        icon: Home,
+        current: location === "/dashboard",
         roles: ["user", "technician", "manager", "admin"],
         iconColor: "text-blue-500",
         activeColor: "bg-blue-50 border-blue-200 text-blue-700",
-        description: "Overview and metrics"
+        description: "Overview and metrics",
       },
-      { 
-        name: "Service Desk", 
-        href: "/tickets", 
-        icon: Headphones, 
-        current: location === "/tickets" || location.startsWith("/tickets/"), 
+      {
+        name: "Service Desk",
+        href: "/tickets",
+        icon: Headphones,
+        current: location === "/tickets" || location.startsWith("/tickets/"),
         roles: ["user", "technician", "manager", "admin"],
         iconColor: "text-green-500",
         activeColor: "bg-green-50 border-green-200 text-green-700",
         description: "Manage tickets and requests",
-        notification: notifications.tickets > 0 ? notifications.tickets : undefined
+        notification:
+          notifications.tickets > 0 ? notifications.tickets : undefined,
       },
-      { 
-        name: "Help Articles", 
-        href: "/knowledge-base", 
-        icon: FileText, 
-        current: location === "/knowledge-base", 
+      {
+        name: "Help Articles",
+        href: "/knowledge-base",
+        icon: FileText,
+        current: location === "/knowledge-base",
         roles: ["user", "technician", "manager", "admin"],
         iconColor: "text-purple-500",
         activeColor: "bg-purple-50 border-purple-200 text-purple-700",
-        description: "Documentation and guides"
+        description: "Documentation and guides",
       },
     ];
 
     const techNavigation = [
-      { 
-        name: "Managed Systems", 
-        href: "/agents", 
-        icon: Server, 
-        current: location === "/agents" || location.startsWith("/agents/"), 
+      {
+        name: "Managed Systems",
+        href: "/agents",
+        icon: Server,
+        current: location === "/agents" || location.startsWith("/agents/"),
         roles: ["technician", "manager", "admin"],
         iconColor: "text-orange-500",
         activeColor: "bg-orange-50 border-orange-200 text-orange-700",
-        description: "Monitor system health"
+        description: "Monitor system health",
       },
-      { 
-        name: "System Alerts", 
-        href: "/alerts", 
-        icon: AlertTriangle, 
-        current: location === "/alerts", 
+      {
+        name: "System Alerts",
+        href: "/alerts",
+        icon: AlertTriangle,
+        current: location === "/alerts",
         roles: ["technician", "manager", "admin"],
         iconColor: "text-red-500",
         activeColor: "bg-red-50 border-red-200 text-red-700",
         description: "Critical system notifications",
-        notification: notifications.alerts > 0 ? notifications.alerts : undefined
+        notification:
+          notifications.alerts > 0 ? notifications.alerts : undefined,
       },
     ];
 
     const managerNavigation = [
-      { 
-        name: "User Directory", 
-        href: "/users", 
-        icon: UserCheck, 
-        current: location === "/users", 
+      {
+        name: "User Directory",
+        href: "/users",
+        icon: UserCheck,
+        current: location === "/users",
         roles: ["manager", "admin"],
         iconColor: "text-cyan-500",
         activeColor: "bg-cyan-50 border-cyan-200 text-cyan-700",
-        description: "Manage user accounts"
+        description: "Manage user accounts",
       },
-      { 
-        name: "Analytics", 
-        href: "/reports", 
-        icon: BarChart3, 
-        current: location === "/reports", 
+      {
+        name: "Analytics",
+        href: "/reports",
+        icon: BarChart3,
+        current: location === "/reports",
         roles: ["manager", "admin"],
         iconColor: "text-indigo-500",
         activeColor: "bg-indigo-50 border-indigo-200 text-indigo-700",
-        description: "Performance insights"
+        description: "Performance insights",
       },
     ];
 
     const adminNavigation = [
-      { 
-        name: "Admin Panel", 
-        href: "/settings", 
-        icon: Settings, 
-        current: location === "/settings", 
+      {
+        name: "Admin Panel",
+        href: "/settings",
+        icon: Settings,
+        current: location === "/settings",
         roles: ["admin"],
         iconColor: "text-gray-500",
         activeColor: "bg-gray-50 border-gray-200 text-gray-700",
-        description: "System configuration"
+        description: "System configuration",
       },
     ];
 
-    const allNavigation = [...baseNavigation, ...techNavigation, ...managerNavigation, ...adminNavigation];
+    const allNavigation = [
+      ...baseNavigation,
+      ...techNavigation,
+      ...managerNavigation,
+      ...adminNavigation,
+    ];
 
     // Filter navigation based on user role
-    return allNavigation.filter(item => 
-      authUser?.role === 'admin' || item.roles.includes(authUser?.role || 'user')
+    return allNavigation.filter(
+      (item) =>
+        authUser?.role === "admin" ||
+        item.roles.includes(authUser?.role || "user"),
     );
   };
 
@@ -214,21 +236,28 @@ export function Sidebar() {
 
   return (
     <TooltipProvider>
-      <div className={cn(
-        "flex flex-col h-full bg-gradient-to-b from-white to-gray-50 dark:from-[#323130] dark:to-[#2B2A29] border-r border-[#E1DFDD] dark:border-[#484644] transition-all duration-300 ease-in-out shadow-lg",
-        isCollapsed ? "w-16" : "w-72"
-      )}>
+      <div
+        className={cn(
+          "flex flex-col h-full bg-gradient-to-b from-white to-gray-50 dark:from-[#323130] dark:to-[#2B2A29] border-r border-[#E1DFDD] dark:border-[#484644] transition-all duration-300 ease-in-out shadow-lg",
+          isCollapsed ? "w-16" : "w-72",
+        )}
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-[#E1DFDD] dark:border-[#484644]">
-          <div className={cn("flex items-center space-x-3", isCollapsed && "justify-center")}>
+          <div
+            className={cn(
+              "flex items-center space-x-3",
+              isCollapsed && "justify-center",
+            )}
+          >
             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md">
-              <img 
-                src="https://fidelisgroup.in/assets/imgs/logo/Logo_Fidelis.png" 
-                alt="Fidelis Logo" 
+              <img
+                src="https://fidelisgroup.in/assets/imgs/logo/Logo_Fidelis.png"
+                alt="Fidelis Logo"
                 className="w-7 h-7 object-contain"
                 onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  e.currentTarget.nextElementSibling.style.display = 'block';
+                  e.currentTarget.style.display = "none";
+                  e.currentTarget.nextElementSibling.style.display = "block";
                 }}
               />
               <Shield className="w-6 h-6 text-white hidden" />
@@ -239,11 +268,17 @@ export function Sidebar() {
                   Nexole ITSM
                 </h1>
                 <div className="flex items-center space-x-2 mt-1">
-                  <p className="text-xs text-[#605E5C] dark:text-[#A19F9D]">IT Service Management</p>
+                  <p className="text-xs text-[#605E5C] dark:text-[#A19F9D]">
+                    IT Service Management
+                  </p>
                   {authUser?.role && (
-                    <Badge variant="outline" className="text-xs px-2 py-0.5 border-blue-200 text-blue-700 bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:bg-blue-900/30">
+                    <Badge
+                      variant="outline"
+                      className="text-xs px-2 py-0.5 border-blue-200 text-blue-700 bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:bg-blue-900/30"
+                    >
                       <Shield className="w-3 h-3 mr-1" />
-                      {authUser.role.charAt(0).toUpperCase() + authUser.role.slice(1)}
+                      {authUser.role.charAt(0).toUpperCase() +
+                        authUser.role.slice(1)}
                     </Badge>
                   )}
                 </div>
@@ -252,13 +287,17 @@ export function Sidebar() {
           </div>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8 rounded-lg hover:bg-gray-100 dark:hover:bg-[#484644] transition-colors" 
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg hover:bg-gray-100 dark:hover:bg-[#484644] transition-colors"
                 onClick={() => setIsCollapsed(!isCollapsed)}
               >
-                {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                {isCollapsed ? (
+                  <ChevronRight className="h-4 w-4" />
+                ) : (
+                  <ChevronLeft className="h-4 w-4" />
+                )}
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right">
@@ -268,7 +307,7 @@ export function Sidebar() {
         </div>
 
         {/* User Info */}
-        {!isCollapsed && authUser && (
+        {/* {!isCollapsed && authUser && (
           <div className="p-4 border-b border-[#E1DFDD] dark:border-[#484644]">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-medium text-sm">
@@ -292,45 +331,54 @@ export function Sidebar() {
               )}
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {navigation.map((item, index) => {
             const isActive = item.current;
             const NavItem = (
-              <Link 
+              <Link
                 key={item.name}
-                to={item.href} 
+                to={item.href}
                 className={cn(
                   "group flex items-center space-x-3 py-3 px-3 rounded-xl font-medium transition-all duration-200 relative",
                   isActive
                     ? `${item.activeColor} shadow-sm border`
-                    : "text-[#201F1E] dark:text-[#F3F2F1] hover:bg-gray-100 dark:hover:bg-[#484644] hover:scale-[1.02]"
+                    : "text-[#201F1E] dark:text-[#F3F2F1] hover:bg-gray-100 dark:hover:bg-[#484644] hover:scale-[1.02]",
                 )}
               >
-                <div className={cn(
-                  "relative flex items-center justify-center",
-                  isActive && "transform scale-110"
-                )}>
-                  <item.icon className={cn(
-                    "w-5 h-5 transition-all duration-200",
-                    isActive 
-                      ? item.iconColor.replace('text-', 'text-')
-                      : `${item.iconColor} group-hover:scale-110`
-                  )} />
-                  {item.notification && !isCollapsed && (
+                <div
+                  className={cn(
+                    "relative flex items-center justify-center",
+                    isActive && "transform scale-110",
+                  )}
+                >
+                  <item.icon
+                    className={cn(
+                      "w-5 h-5 transition-all duration-200",
+                      isActive
+                        ? item.iconColor.replace("text-", "text-")
+                        : `${item.iconColor} group-hover:scale-110`,
+                    )}
+                  />
+                  {/* {item.notification && !isCollapsed && (
                     <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
                       <span className="text-xs text-white font-bold">{item.notification}</span>
                     </div>
-                  )}
+                  )} */}
                 </div>
                 {!isCollapsed && (
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium truncate">{item.name}</span>
+                      <span className="text-sm font-medium truncate">
+                        {item.name}
+                      </span>
                       {item.notification && (
-                        <Badge variant="secondary" className="ml-2 h-5 text-xs bg-red-100 text-red-700 border-red-200">
+                        <Badge
+                          variant="secondary"
+                          className="ml-2 h-5 text-xs bg-red-100 text-red-700 border-red-200"
+                        >
                           {item.notification}
                         </Badge>
                       )}
@@ -349,13 +397,17 @@ export function Sidebar() {
             if (isCollapsed) {
               return (
                 <Tooltip key={item.name}>
-                  <TooltipTrigger asChild>
-                    {NavItem}
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="flex items-center space-x-2">
+                  <TooltipTrigger asChild>{NavItem}</TooltipTrigger>
+                  <TooltipContent
+                    side="right"
+                    className="flex items-center space-x-2"
+                  >
                     <span>{item.name}</span>
                     {item.notification && (
-                      <Badge variant="secondary" className="h-5 text-xs bg-red-100 text-red-700">
+                      <Badge
+                        variant="secondary"
+                        className="h-5 text-xs bg-red-100 text-red-700"
+                      >
                         {item.notification}
                       </Badge>
                     )}
@@ -375,9 +427,9 @@ export function Sidebar() {
                 <p className="text-xs font-semibold text-[#605E5C] dark:text-[#A19F9D] uppercase tracking-wider px-3">
                   Quick Actions
                 </p>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="w-full justify-start text-xs h-8 border-dashed hover:border-solid transition-all"
                 >
                   <MoreHorizontal className="w-3 h-3 mr-2" />
