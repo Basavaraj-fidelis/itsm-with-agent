@@ -241,6 +241,7 @@ export default function TicketDetail() {
       if (response.ok) {
         setNewCommentText("");
         setShowAddCommentDialog(false);
+        fetchComments(ticket.id); // Refresh comments
         toast({
           title: "Success",
           description: "Comment added successfully"

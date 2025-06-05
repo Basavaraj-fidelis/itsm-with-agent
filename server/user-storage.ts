@@ -1,7 +1,7 @@
 
 import { db } from "./db";
 import { users } from "@shared/user-schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, or } from "drizzle-orm";
 
 export interface User {
   id: string;
@@ -18,7 +18,16 @@ export class UserStorage {
     return await db
       .select()
       .from(users)
-      .where(eq(users.is_active, true))
+      .where(
+        and(
+          eq(users.is_active, true),
+          or(
+            eq(users.role, 'technician'),
+            eq(users.role, 'admin'),
+            eq(users.role, 'manager')
+          )
+        )
+      )
       .orderBy(desc(users.created_at));
   }
 

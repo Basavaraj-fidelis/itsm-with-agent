@@ -415,7 +415,7 @@ export default function Tickets() {
         Math.round(((openTickets.length - slaViolations.length) / openTickets.length) * 100) : 100
     };
   };
-  
+
    const getStatusDistribution = () => {
     const statusCounts = tickets.reduce((acc, ticket) => {
       acc[ticket.status] = (acc[ticket.status] || 0) + 1;
@@ -602,8 +602,9 @@ export default function Tickets() {
                     "border-l-blue-500 bg-blue-50/50 dark:bg-blue-900/10",
                     isOverdue && "ring-2 ring-red-200"
                   )}
-                  onClick={() => {
-                    window.open(`/tickets/${ticket.id}`, '_blank');
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setSelectedTicket(ticket);
                   }}
                 >
                   <CardContent className="p-6">
