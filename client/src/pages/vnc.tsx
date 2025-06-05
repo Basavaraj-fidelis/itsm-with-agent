@@ -73,12 +73,19 @@ export default function VNCPage() {
             console.log(`Attempting VNC connection ${urlIndex + 1}/${possibleUrls.length}: ${wsUrl}`);
 
             try {
-              // Create RFB connection
+              // Create RFB connection with better scaling options
               rfb = new RFB(vncRef.current, wsUrl, {
                 credentials: {
                   username: '',
                   password: ''
-                }
+                },
+                viewOnly: false,
+                focusOnClick: true,
+                clipViewport: false,
+                scaleViewport: true,
+                resizeSession: false,
+                showDotCursor: false,
+                background: '#000000'
               });
 
               // Handle connection events
@@ -200,77 +207,82 @@ export default function VNCPage() {
   }
 
   return (
-    <div className="h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
-      {/* Page Header */}
-      <div className="bg-white dark:bg-gray-800 shadow-sm border-b px-6 py-3 flex-shrink-0">
-        <div className="flex items-center space-x-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => window.history.back()}
-            className="flex items-center space-x-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back to Agent</span>
-          </Button>
-          <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
-            Remote Desktop - {host}
-          </h1>
+    <div className="h-screen bg-black flex flex-col overflow-hidden">
+      {/* Compact Header */}
+      <div className="bg-gray-800 border-b border-gray-700 px-4 py-2 flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => window.history.back()}
+              className="text-gray-300 hover:text-white hover:bg-gray-700"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back
+            </Button>
+            <div className="h-4 w-px bg-gray-600" />
+            <h1 className="text-sm font-medium text-white truncate">
+              {host}
+            </h1>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className={`h-2 w-2 rounded-full ${
+              connectionStatus === 'connected' ? 'bg-green-500' :
+              connectionStatus === 'connecting' ? 'bg-yellow-500 animate-pulse' :
+              connectionStatus === 'error' ? 'bg-red-500' : 'bg-gray-500'
+            }`}></div>
+            <span className="text-xs text-gray-400 capitalize">{connectionStatus}</span>
+            {connectionStatus !== 'connected' && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleReconnect}
+                className="text-gray-300 hover:text-white hover:bg-gray-700 text-xs px-2 py-1"
+              >
+                Retry
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* VNC Content */}
-      <div className="flex-1 p-4">
-        <div className="h-full flex flex-col">
-          {/* Connection Status Header */}
-          <div className="flex items-center justify-between mb-4 px-4 py-2 bg-white dark:bg-gray-800 border rounded-lg shadow-sm">
-            <div className="flex items-center space-x-3">
-              <Monitor className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              <span className="font-medium text-gray-900 dark:text-white">Remote Desktop Connection</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className={`h-2 w-2 rounded-full ${
-                connectionStatus === 'connected' ? 'bg-green-500' :
-                connectionStatus === 'connecting' ? 'bg-yellow-500 animate-pulse' :
-                connectionStatus === 'error' ? 'bg-red-500' : 'bg-gray-500'
-              }`}></div>
-              <span className="text-sm text-gray-600 dark:text-gray-400 capitalize">{connectionStatus}</span>
+      {/* Full Screen VNC Display */}
+      <div className="flex-1 relative overflow-hidden">
+        {connectionStatus === 'connecting' && (
+          <div className="absolute inset-0 bg-gray-900 flex items-center justify-center z-10">
+            <div className="text-center text-white">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-3"></div>
+              <p className="text-sm font-medium">Establishing connection...</p>
+              <p className="text-xs text-gray-400 mt-1">Connecting to {host}</p>
             </div>
           </div>
-
-          {/* VNC Display Area */}
-          <div className="flex-1 relative">
-            {connectionStatus === 'connecting' && (
-              <div className="absolute inset-0 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-900 flex items-center justify-center">
-                <div className="text-center text-white">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-                  <p className="text-lg font-medium">Establishing connection...</p>
-                  <p className="text-sm text-gray-300 mt-2">Connecting to {host}</p>
-                </div>
-              </div>
-            )}
-            <div 
-              ref={vncRef}
-              className={`w-full h-full border border-gray-300 dark:border-gray-600 rounded-lg bg-black ${
-                connectionStatus === 'connecting' ? 'hidden' : ''
-              }`}
-              style={{ minHeight: "calc(100vh - 200px)" }}
-            />
-            {connectionStatus === 'disconnected' && (
-              <div className="absolute inset-0 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                <div className="text-center">
-                  <Wifi className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-lg font-medium text-gray-600 dark:text-gray-300">Connection Lost</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">The remote desktop connection was terminated</p>
-                  <Button onClick={handleReconnect} className="mt-4">
-                    Reconnect
-                  </Button>
-                </div>
-              </div>
-            )}
+        )}
+        
+        <div 
+          ref={vncRef}
+          className="w-full h-full bg-black"
+          style={{ 
+            width: '100%', 
+            height: '100%',
+            position: 'absolute',
+            top: 0,
+            left: 0
+          }}
+        />
+        
+        {connectionStatus === 'disconnected' && (
+          <div className="absolute inset-0 bg-gray-900 flex items-center justify-center z-10">
+            <div className="text-center text-white">
+              <Wifi className="w-8 h-8 text-gray-400 mx-auto mb-3" />
+              <p className="text-sm font-medium">Connection Lost</p>
+              <p className="text-xs text-gray-400 mt-1">The remote desktop connection was terminated</p>
+              <Button onClick={handleReconnect} className="mt-3 text-xs px-3 py-1">
+                Reconnect
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
