@@ -451,10 +451,41 @@ export function Sidebar() {
           )}
         </nav>
 
-        {/* Footer */}
-        {!isCollapsed && (
+        {/* User Profile Section */}
+        {!isCollapsed && authUser && (
           <div className="p-4 border-t border-[#E1DFDD] dark:border-[#484644]">
-            <div className="text-center">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                {authUser.email?.charAt(0).toUpperCase() || 'U'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-[#201F1E] dark:text-[#F3F2F1] truncate">
+                  {authUser.name || authUser.email}
+                </p>
+                <div className="flex items-center space-x-2 mt-1">
+                  <Badge
+                    variant="outline"
+                    className="text-xs px-2 py-0.5 border-blue-200 text-blue-700 bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:bg-blue-900/30"
+                  >
+                    <Shield className="w-3 h-3 mr-1" />
+                    {authUser.role.charAt(0).toUpperCase() + authUser.role.slice(1)}
+                  </Badge>
+                  {(notifications.tickets + notifications.alerts) > 0 && (
+                    <div className="relative">
+                      <Bell className="w-4 h-4 text-[#605E5C] dark:text-[#A19F9D]" />
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
+                        <span className="text-xs text-white font-bold">{notifications.tickets + notifications.alerts}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-[#605E5C] dark:text-[#A19F9D] truncate mt-1">
+                  {authUser.email}
+                </p>
+              </div>
+            </div>
+            
+            <div className="text-center border-t border-[#E1DFDD] dark:border-[#484644] pt-3">
               <p className="text-xs text-[#605E5C] dark:text-[#A19F9D]">
                 © 2024 Nexole ITSM
               </p>
@@ -462,6 +493,24 @@ export function Sidebar() {
                 v1.0.0
               </p>
             </div>
+          </div>
+        )}
+
+        {/* Footer for collapsed state */}
+        {isCollapsed && (
+          <div className="p-2 border-t border-[#E1DFDD] dark:border-[#484644]">
+            {authUser && (
+              <div className="flex justify-center mb-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-medium text-xs relative">
+                  {authUser.email?.charAt(0).toUpperCase() || 'U'}
+                  {(notifications.tickets + notifications.alerts) > 0 && (
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
+                      <span className="text-xs text-white font-bold">{notifications.tickets + notifications.alerts}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

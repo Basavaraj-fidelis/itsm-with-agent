@@ -1,7 +1,6 @@
 import { useLocation } from "wouter";
-import { Bell, Search, Menu, Settings, User, LogOut, Shield, Clock, AlertTriangle, CheckCircle } from "lucide-react";
+import { Settings, User, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,34 +30,6 @@ const pageNames: Record<string, string> = {
 export default function Header() {
   const { user, logout } = useAuth();
   const [isDark, setIsDark] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  // Fetch notification count
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const response = await api.get("/api/notifications?filter=unread");
-        if (response.ok) {
-          const notifications = await response.json();
-          const count = Array.isArray(notifications) ? notifications.length : 0;
-          setUnreadCount(count);
-        } else {
-          console.warn("Failed to fetch notifications:", response.status);
-          setUnreadCount(0);
-        }
-      } catch (error) {
-        console.error("Error fetching notifications:", error);
-        setUnreadCount(0);
-      }
-    };
-
-    if (user) {
-      fetchNotifications();
-      // Refresh every 10 seconds for more responsive updates
-      const interval = setInterval(fetchNotifications, 10000);
-      return () => clearInterval(interval);
-    }
-  }, [user]);
 
   const [location] = useLocation();
 
@@ -97,81 +68,6 @@ export default function Header() {
 
           {/* Right side actions */}
         <div className="flex items-center space-x-4">
-          {/* Search */}
-          <div className="relative hidden md:block">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#605E5C] w-4 h-4" />
-            <Input
-              type="search"
-              placeholder="Search..."
-              className="pl-10 w-64 bg-[#F3F2F1] border-[#E1DFDD] text-[#201F1E] placeholder-[#605E5C] focus:border-[#0078D4] focus:ring-[#0078D4] dark:bg-[#323130] dark:border-[#484644] dark:text-[#F3F2F1]"
-            />
-          </div>
-
-          {/* Notifications Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="relative">
-                <Bell className="h-5 w-5" />
-                {unreadCount > 0 && (
-                  <Badge 
-                    variant="destructive" 
-                    className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-                  >
-                    {unreadCount}
-                  </Badge>
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-              <div className="flex items-center justify-between p-2">
-                <h3 className="font-semibold">Notifications</h3>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="text-xs"
-                  onClick={() => {
-                    // In a real app, this would call an API to mark notifications as read
-                    // For now, we'll just show a toast
-                    console.log("Marking all notifications as read");
-                  }}
-                >
-                  Mark all as read
-                </Button>
-              </div>
-              <DropdownMenuSeparator />
-
-              
-
-              <div className="max-h-80 overflow-y-auto">
-                {unreadCount > 0 ? (
-                  <div className="p-2">
-                    <div className="text-center text-sm text-neutral-600 p-2">
-                      {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full"
-                      onClick={() => window.location.href = '/notifications'}
-                    >
-                      View All Notifications
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="p-4 text-center">
-                    <Bell className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
-                    <span className="text-sm text-neutral-600">No new notifications</span>
-                  </div>
-                )}
-              </div>
-
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-center text-sm text-muted-foreground">
-                View all notifications
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-10 px-3 hover:bg-[#F3F2F1] dark:hover:bg-[#323130] text-[#201F1E] dark:text-[#F3F2F1]">
