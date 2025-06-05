@@ -97,9 +97,16 @@ export const api = {
     try {
       const response = await apiClient.get("/api/alerts");
       if (!response.ok) {
-        throw new Error(`Failed to fetch alerts: ${response.status}`);
+        console.error(`Alerts API returned ${response.status}`);
+        return [];
       }
-      return await response.json();
+      const text = await response.text();
+      try {
+        return JSON.parse(text);
+      } catch (parseError) {
+        console.error('Alerts response is not valid JSON:', text.substring(0, 100));
+        return [];
+      }
     } catch (error) {
       console.error('Alerts fetch failed:', error);
       return [];

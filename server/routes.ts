@@ -249,6 +249,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all alerts
+  app.get("/api/alerts", authenticateToken, async (req, res) => {
+    try {
+      const alerts = await storage.getActiveAlerts();
+      
+      // Enhance alerts with device hostname
+      const enhancedAlerts = await Promise.all(
+        alerts.map(async (alert) => {
+          const device = await storage.getDevice(alert.device_id);
+          return {
+            ...alert,
+            device_hostname: device?.hostname || 'Unknown Device'
+          };
+        })
+      );
+
+      res.json(enhancedAlerts);
+    } catch (error) {
+      console.error("Error fetching alerts:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Resolve alert endpoint
+  app.post("/api/alerts/:id/resolve", authenticateToken, async (req, res) => {
+    try {
+      await storage.resolveAlert(req.params.id);
+      res.json({ message: "Alert resolved successfully" });
+    } catch (error) {
+      console.error("Error resolving alert:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Get all devices
   app.get("/api/devices", authenticateToken, async (req, res) => {
     try {
@@ -376,21 +410,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const hardware = data.hardware || data.system_info || {};
       const network = data.network || data.network_info || {};
 
-      // Extract IP address from various possible locations
+      // Extract IP address and MAC addresses from various possible locations
       let ip_address = network.ip_address || network.ip || null;
+      let mac_addresses = [];
 
-      // Try to extract IP from network interfaces if not found directly
-      if (!ip_address && data.network && typeof data.network === 'object') {
-        // Look for IP addresses in network interface objects
+      // Try to extract IP and MAC from network interfaces if not found directly
+      if (data.network && typeof data.network === 'object') {
+        // Look for IP addresses and MAC addresses in network interface objects
         for (const [key, iface] of Object.entries(data.network)) {
           if (typeof iface === 'object' && iface !== null) {
-            if ((iface as any).ip_address) {
-              ip_address = (iface as any).ip_address;
-              break;
+            if (!ip_address) {
+              if ((iface as any).ip_address) {
+                ip_address = (iface as any).ip_address;
+              } else if ((iface as any).ip) {
+                ip_address = (iface as any).ip;
+              }
             }
-            if ((iface as any).ip) {
-              ip_address = (iface as any).ip;
-              break;
+            
+            // Collect MAC addresses
+            if ((iface as any).mac_address) {
+              mac_addresses.push({
+                interface: key,
+                mac: (iface as any).mac_address
+              });
+            } else if ((iface as any).mac) {
+              mac_addresses.push({
+                interface: key,
+                mac: (iface as any).mac
+              });
             }
           }
         }
@@ -565,14 +612,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("Extracted metrics:", { cpu_usage, memory_usage, disk_usage, network_io });
 
-      // Create device report
+      // Create device report with enhanced data
       await storage.createDeviceReport({
         device_id: device.id,
         cpu_usage: cpu_usage?.toString() || null,
         memory_usage: memory_usage?.toString() || null,
         disk_usage: disk_usage?.toString() || null,
         network_io: network_io?.toString() || null,
-        raw_data: JSON.stringify(req.body)
+        raw_data: JSON.stringify({
+          ...req.body,
+          extracted_mac_addresses: mac_addresses,
+          extracted_usb_devices: usbDevices,
+          processed_at: new Date().toISOString()
+        })
       });
 
       // Smart alert system - update existing alerts instead of creating duplicates
@@ -742,8 +794,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get recent tickets for notifications
       try {
-        const { getTickets } = await import("./ticket-storage");
-        const recentTicketsResult = await getTickets(1, 20, { 
+        const ticketStorage = await import("./ticket-storage");
+        const recentTicketsResult = await ticketStorage.getTickets(1, 20, { 
           created_after: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() // Last 24 hours
         });
         recentTickets = recentTicketsResult.data || [];

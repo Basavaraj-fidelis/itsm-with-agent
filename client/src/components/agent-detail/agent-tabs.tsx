@@ -27,7 +27,8 @@ import {
   Settings,
   Terminal,
   Clock,
-  Usb
+  Usb,
+  ChevronDown,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -176,7 +177,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
             'Content-Type': 'application/json'
           }
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           setUsbHistory(data);

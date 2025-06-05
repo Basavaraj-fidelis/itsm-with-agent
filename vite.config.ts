@@ -29,8 +29,18 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
+    host: "0.0.0.0",
+    port: 5173,
     allowedHosts: [
       "e285c015-3d5c-4217-9dc8-cda0ba14b110-00-3qkcu4t17zbhn.sisko.replit.dev",
     ],
+    hmr: {
+      port: 24678,
+      host: "0.0.0.0",
+    },
+    watch: {
+      usePolling: true,
+      interval: 1000,
+    },
   },
 });
