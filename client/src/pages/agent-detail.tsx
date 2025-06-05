@@ -226,14 +226,14 @@ export default function AgentDetail() {
 
       {/* VNC Modal */}
       <Dialog open={showVNCModal} onOpenChange={setShowVNCModal}>
-        <DialogContent className="max-w-6xl max-h-[90vh]">
-          <DialogHeader>
+        <DialogContent className="max-w-[95vw] w-[95vw] max-h-[95vh] h-[95vh] p-0">
+          <DialogHeader className="p-4 pb-2">
             <DialogTitle>Remote Desktop - {agent.hostname}</DialogTitle>
           </DialogHeader>
-          <div className="h-[600px] w-full">
+          <div className="flex-1 p-4 pt-0">
             <iframe
               src={`/vnc?host=${agent.hostname}&port=6080&vncport=5900&embed=true`}
-              className="w-full h-full border-0"
+              className="w-full h-full border-0 rounded"
               title={`VNC connection to ${agent.hostname}`}
             />
           </div>

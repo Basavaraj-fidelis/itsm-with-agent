@@ -114,30 +114,25 @@ export default function Header() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-[#E1DFDD] dark:bg-[#484644]" />
-                <DropdownMenuItem
-                  onClick={() => (window.location.href = "/profile")}
-                  className="text-[#201F1E] dark:text-[#F3F2F1] hover:bg-[#F3F2F1] dark:hover:bg-[#323130]"
-                >
-                  <User className="mr-2 h-4 w-4" />
-                  Profile Settings
+                <DropdownMenuItem asChild>
+                  <a href="/profile" className="text-[#201F1E] dark:text-[#F3F2F1] hover:bg-[#F3F2F1] dark:hover:bg-[#323130] flex items-center">
+                    <User className="mr-2 h-4 w-4" />
+                    Profile Settings
+                  </a>
                 </DropdownMenuItem>
                 {user?.role === "admin" && (
-                  <DropdownMenuItem
-                    onClick={() => (window.location.href = "/settings")}
-                    className="text-[#201F1E] dark:text-[#F3F2F1] hover:bg-[#F3F2F1] dark:hover:bg-[#323130]"
-                  >
-                    <Settings className="mr-2 h-4 w-4" />
-                    System Settings
+                  <DropdownMenuItem asChild>
+                    <a href="/settings" className="text-[#201F1E] dark:text-[#F3F2F1] hover:bg-[#F3F2F1] dark:hover:bg-[#323130] flex items-center">
+                      <Settings className="mr-2 h-4 w-4" />
+                      System Settings
+                    </a>
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem
-                  onClick={() =>
-                    (window.location.href = "/settings?tab=security")
-                  }
-                  className="text-[#201F1E] dark:text-[#F3F2F1] hover:bg-[#F3F2F1] dark:hover:bg-[#323130]"
-                >
-                  <Shield className="mr-2 h-4 w-4" />
-                  Security
+                <DropdownMenuItem asChild>
+                  <a href="/settings?tab=security" className="text-[#201F1E] dark:text-[#F3F2F1] hover:bg-[#F3F2F1] dark:hover:bg-[#323130] flex items-center">
+                    <Shield className="mr-2 h-4 w-4" />
+                    Security
+                  </a>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-[#E1DFDD] dark:bg-[#484644]" />
                 <DropdownMenuItem
