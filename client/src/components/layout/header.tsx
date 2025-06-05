@@ -40,17 +40,22 @@ export default function Header() {
         const response = await api.get("/api/notifications?filter=unread");
         if (response.ok) {
           const notifications = await response.json();
-          setUnreadCount(notifications.length);
+          const count = Array.isArray(notifications) ? notifications.length : 0;
+          setUnreadCount(count);
+        } else {
+          console.warn("Failed to fetch notifications:", response.status);
+          setUnreadCount(0);
         }
       } catch (error) {
         console.error("Error fetching notifications:", error);
+        setUnreadCount(0);
       }
     };
 
     if (user) {
       fetchNotifications();
-      // Refresh every 30 seconds
-      const interval = setInterval(fetchNotifications, 30000);
+      // Refresh every 10 seconds for more responsive updates
+      const interval = setInterval(fetchNotifications, 10000);
       return () => clearInterval(interval);
     }
   }, [user]);
@@ -107,12 +112,14 @@ export default function Header() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="relative">
                 <Bell className="h-5 w-5" />
-                <Badge 
-                  variant="destructive" 
-                  className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-                >
-                  {unreadCount}
-                </Badge>
+                {unreadCount > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                  >
+                    {unreadCount}
+                  </Badge>
+                )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80">
@@ -135,20 +142,27 @@ export default function Header() {
 
               
 
-              <div className="p-4 space-y-2">
-                <div className="text-center">
-                  <span className="text-sm text-neutral-600">
-                    {unreadCount > 0 ? `${unreadCount} unread notifications` : 'No new notifications'}
-                  </span>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full"
-                  onClick={() => window.location.href = '/notifications'}
-                >
-                  View All Notifications
-                </Button>
+              <div className="max-h-80 overflow-y-auto">
+                {unreadCount > 0 ? (
+                  <div className="p-2">
+                    <div className="text-center text-sm text-neutral-600 p-2">
+                      {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => window.location.href = '/notifications'}
+                    >
+                      View All Notifications
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="p-4 text-center">
+                    <Bell className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
+                    <span className="text-sm text-neutral-600">No new notifications</span>
+                  </div>
+                )}
               </div>
 
               <DropdownMenuSeparator />

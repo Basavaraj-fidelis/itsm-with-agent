@@ -85,41 +85,24 @@ export function Sidebar() {
         const token = localStorage.getItem("auth_token");
         if (!token) return;
 
-        // Fetch tickets that need attention based on user role
-        const ticketsResponse = await api.get("/api/tickets");
-        if (ticketsResponse.ok) {
-          const ticketsData = await ticketsResponse.json();
-          const tickets = Array.isArray(ticketsData) ? ticketsData : ticketsData.data || [];
+        // Fetch unread notifications count from the notifications endpoint
+        const notificationsResponse = await api.get("/api/notifications?filter=unread");
+        if (notificationsResponse.ok) {
+          const unreadNotifications = await notificationsResponse.json();
+          const unreadCount = Array.isArray(unreadNotifications) ? unreadNotifications.length : 0;
           
-          // Count tickets that need attention based on user role
+          // Count by type for more granular display
           let ticketCount = 0;
-          if (authUser?.role === 'user') {
-            // Users see their own open tickets
-            ticketCount = tickets.filter(t => 
-              t.requester_email === authUser.email && 
-              !['resolved', 'closed', 'cancelled'].includes(t.status)
-            ).length;
-          } else if (authUser?.role === 'technician') {
-            // Technicians see new/assigned tickets
-            ticketCount = tickets.filter(t => 
-              ['new', 'assigned'].includes(t.status)
-            ).length;
-          } else if (['manager', 'admin'].includes(authUser?.role || '')) {
-            // Managers/admins see critical/high priority tickets
-            ticketCount = tickets.filter(t => 
-              ['critical', 'high'].includes(t.priority) && 
-              !['resolved', 'closed', 'cancelled'].includes(t.status)
-            ).length;
-          }
-
-          // Fetch active alerts count (for technical roles)
           let alertCount = 0;
-          if (['technician', 'manager', 'admin'].includes(authUser?.role || '')) {
-            const alertsResponse = await api.get("/api/alerts");
-            if (alertsResponse.ok) {
-              const alertsData = await alertsResponse.json();
-              alertCount = Array.isArray(alertsData) ? alertsData.length : 0;
-            }
+          
+          if (Array.isArray(unreadNotifications)) {
+            unreadNotifications.forEach(notification => {
+              if (notification.source === 'Service Desk') {
+                ticketCount++;
+              } else if (notification.source === 'System Monitor') {
+                alertCount++;
+              }
+            });
           }
 
           setNotifications({
@@ -130,13 +113,19 @@ export function Sidebar() {
         }
       } catch (error) {
         console.error("Error fetching notifications:", error);
+        // Fallback to zero counts on error
+        setNotifications({
+          tickets: 0,
+          alerts: 0,
+          agents: 0,
+        });
       }
     };
 
     if (authUser) {
       fetchNotifications();
-      // Refresh every 30 seconds
-      const interval = setInterval(fetchNotifications, 30000);
+      // Refresh every 10 seconds for more responsive updates
+      const interval = setInterval(fetchNotifications, 10000);
       return () => clearInterval(interval);
     }
   }, [authUser]);
@@ -396,7 +385,7 @@ export function Sidebar() {
                       <span className="text-sm font-medium truncate">
                         {item.name}
                       </span>
-                      {item.notification && (
+                      {item.notification && item.notification > 0 && (
                         <Badge
                           variant="secondary"
                           className="ml-2 h-5 text-xs bg-red-100 text-red-700 border-red-200"
@@ -425,7 +414,7 @@ export function Sidebar() {
                     className="flex items-center space-x-2"
                   >
                     <span>{item.name}</span>
-                    {item.notification && (
+                    {item.notification && item.notification > 0 && (
                       <Badge
                         variant="secondary"
                         className="h-5 text-xs bg-red-100 text-red-700"

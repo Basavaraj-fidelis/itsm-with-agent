@@ -941,7 +941,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ticketFilters = { priority: ['critical', 'high'] };
       }
       
-      const tickets = await storage.getTickets(ticketFilters);
+      // Get tickets from ticket storage instead of main storage
+      const { getTickets } = await import("./ticket-storage");
+      const tickets = await getTickets(ticketFilters);
       
       // Create notifications for relevant tickets
       tickets.forEach(ticket => {

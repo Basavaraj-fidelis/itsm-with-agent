@@ -34,6 +34,12 @@ export default function Notifications() {
     fetchNotifications();
   }, [filter]);
 
+  // Auto-refresh notifications every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [filter]);
+
   const fetchNotifications = async () => {
     try {
       const token = localStorage.getItem("auth_token");
