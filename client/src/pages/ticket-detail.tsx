@@ -5,6 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle 
+} from "@/components/ui/dialog";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -15,7 +21,11 @@ import {
   MessageSquare,
   Edit,
   Save,
-  X
+  X,
+  Ticket,
+  AlertTriangle,
+  Wrench,
+  RefreshCw
 } from "lucide-react";
 
 const priorityColors = {
@@ -59,8 +69,9 @@ interface TicketData {
 }
 
 export default function TicketDetail() {
-  const { id } = useParams();
-  const [match, params, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+  const [match, params] = useRoute("/tickets/:id");
+  const id = params?.id;
   const { toast } = useToast();
 
   const [ticket, setTicket] = useState<TicketData | null>(null);
