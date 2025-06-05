@@ -12,6 +12,7 @@ import {
 } from "@shared/ticket-schema";
 import { auditLog } from "@shared/admin-schema";
 import { eq, desc, and, or, like, sql, count } from "drizzle-orm";
+import { userStorage } from "./user-storage";
 
 interface TicketFilters {
   type?: string;
@@ -53,17 +54,30 @@ export class TicketStorage {
   async createTicket(ticketData: Omit<NewTicket, 'ticket_number'>, userEmail?: string): Promise<Ticket> {
     const ticket_number = await this.generateTicketNumber(ticketData.type);
 
+    // Auto-assign to available technician
+    const assignedTechnician = await userStorage.getNextAvailableTechnician();
+    
     const [newTicket] = await db
       .insert(tickets)
       .values({
         ...ticketData,
         ticket_number,
-        status: "new"
+        status: assignedTechnician ? "assigned" : "new",
+        assigned_to: assignedTechnician?.email || null
       })
       .returning();
 
     // Log audit event
     await this.logAudit('ticket', newTicket.id, 'create', undefined, userEmail, null, newTicket);
+
+    // Add auto-assignment comment if assigned
+    if (assignedTechnician) {
+      await this.addComment(newTicket.id, {
+        comment: `Ticket automatically assigned to ${assignedTechnician.email}`,
+        author_email: "system@company.com",
+        is_internal: true
+      });
+    }
 
     return newTicket;
   }
@@ -135,9 +149,20 @@ export class TicketStorage {
     return ticket || null;
   }
 
-  async updateTicket(id: string, updates: Partial<NewTicket>, userEmail?: string): Promise<Ticket | null> {
+  async updateTicket(id: string, updates: Partial<NewTicket>, userEmail?: string, comment?: string): Promise<Ticket | null> {
     // Get old values for audit
     const oldTicket = await this.getTicketById(id);
+    
+    if (!oldTicket) return null;
+
+    // Check if status is changing to resolved, closed, or pending - require comment
+    const statusChangingToFinal = updates.status && 
+      ['resolved', 'closed', 'pending'].includes(updates.status) && 
+      oldTicket.status !== updates.status;
+
+    if (statusChangingToFinal && !comment) {
+      throw new Error(`Comment required when changing status to ${updates.status}`);
+    }
 
     const [updatedTicket] = await db
       .update(tickets)
@@ -151,6 +176,26 @@ export class TicketStorage {
     if (updatedTicket && oldTicket) {
       // Log audit event
       await this.logAudit('ticket', id, 'update', undefined, userEmail, oldTicket, updatedTicket);
+
+      // Add comment for status changes
+      if (updates.status && oldTicket.status !== updates.status) {
+        const statusComment = comment || `Status changed from ${oldTicket.status} to ${updates.status}`;
+        await this.addComment(id, {
+          comment: statusComment,
+          author_email: userEmail || "system@company.com",
+          is_internal: false
+        });
+      }
+
+      // Add comment for reassignment
+      if (updates.assigned_to && oldTicket.assigned_to !== updates.assigned_to) {
+        const assignmentComment = `Ticket reassigned from ${oldTicket.assigned_to || 'Unassigned'} to ${updates.assigned_to}`;
+        await this.addComment(id, {
+          comment: assignmentComment,
+          author_email: userEmail || "system@company.com",
+          is_internal: true
+        });
+      }
     }
 
     return updatedTicket || null;

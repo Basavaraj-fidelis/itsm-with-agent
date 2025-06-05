@@ -11,6 +11,7 @@ import {
   DialogHeader, 
   DialogTitle 
 } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -77,13 +78,46 @@ export default function TicketDetail() {
   const [ticket, setTicket] = useState<TicketData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddCommentDialog, setShowAddCommentDialog] = useState(false);
+  const [showReassignDialog, setShowReassignDialog] = useState(false);
+  const [showStatusChangeDialog, setShowStatusChangeDialog] = useState(false);
   const [newCommentText, setNewCommentText] = useState("");
+  const [statusChangeComment, setStatusChangeComment] = useState("");
+  const [selectedTechnician, setSelectedTechnician] = useState("");
+  const [pendingStatusChange, setPendingStatusChange] = useState("");
+  const [technicians, setTechnicians] = useState<any[]>([]);
+  const [comments, setComments] = useState<any[]>([]);
 
   useEffect(() => {
     if (id) {
       fetchTicket(id);
+      fetchTechnicians();
+      fetchComments(id);
     }
   }, [id]);
+
+  const fetchTechnicians = async () => {
+    try {
+      const response = await api.get('/api/users/technicians');
+      if (response.ok) {
+        const technicianData = await response.json();
+        setTechnicians(technicianData);
+      }
+    } catch (error) {
+      console.error('Error fetching technicians:', error);
+    }
+  };
+
+  const fetchComments = async (ticketId: string) => {
+    try {
+      const response = await api.get(`/api/tickets/${ticketId}/comments`);
+      if (response.ok) {
+        const commentsData = await response.json();
+        setComments(commentsData);
+      }
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+    }
+  };
 
   const fetchTicket = async (ticketId: string) => {
     setLoading(true);
@@ -111,21 +145,77 @@ export default function TicketDetail() {
   const handleUpdateTicketStatus = async (newStatus: string) => {
     if (!ticket) return;
 
+    // Require comment for certain status changes
+    if (['resolved', 'closed', 'pending'].includes(newStatus)) {
+      setPendingStatusChange(newStatus);
+      setShowStatusChangeDialog(true);
+      return;
+    }
+
+    // For other status changes, proceed directly
+    await updateTicketStatus(newStatus, '');
+  };
+
+  const updateTicketStatus = async (newStatus: string, comment: string) => {
+    if (!ticket) return;
+
     try {
-      const response = await api.put(`/api/tickets/${ticket.id}`, { status: newStatus });
+      const updateData: any = { status: newStatus };
+      if (comment.trim()) {
+        updateData.comment = comment.trim();
+      }
+
+      const response = await api.put(`/api/tickets/${ticket.id}`, updateData);
+      
       if (response.ok) {
         const updatedTicket = await response.json();
         setTicket(updatedTicket);
+        fetchComments(ticket.id); // Refresh comments
         toast({
           title: "Success",
           description: `Ticket status updated to ${newStatus.replace('_', ' ')}`
         });
+        setShowStatusChangeDialog(false);
+        setStatusChangeComment('');
+        setPendingStatusChange('');
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update status');
       }
     } catch (error) {
       console.error('Error updating ticket:', error);
       toast({
         title: "Error",
-        description: "Failed to update ticket status",
+        description: error instanceof Error ? error.message : "Failed to update ticket status",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleReassignTicket = async () => {
+    if (!ticket || !selectedTechnician) return;
+
+    try {
+      const response = await api.put(`/api/tickets/${ticket.id}`, { 
+        assigned_to: selectedTechnician 
+      });
+      
+      if (response.ok) {
+        const updatedTicket = await response.json();
+        setTicket(updatedTicket);
+        fetchComments(ticket.id); // Refresh comments to show reassignment
+        toast({
+          title: "Success",
+          description: "Ticket reassigned successfully"
+        });
+        setShowReassignDialog(false);
+        setSelectedTechnician('');
+      }
+    } catch (error) {
+      console.error('Error reassigning ticket:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reassign ticket",
         variant: "destructive"
       });
     }
@@ -322,6 +412,10 @@ export default function TicketDetail() {
 
         <div className="flex space-x-2">
           {renderWorkflowActions(ticket)}
+          <Button variant="outline" size="sm" onClick={() => setShowReassignDialog(true)}>
+            <User className="w-4 h-4 mr-2" />
+            Reassign
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setShowAddCommentDialog(true)}>
             <MessageSquare className="w-4 h-4 mr-2" />
             Add Comment
@@ -449,6 +543,52 @@ export default function TicketDetail() {
         </Card>
       </div>
 
+      {/* Comments Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Comments & Activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {comments.length === 0 ? (
+              <p className="text-neutral-500 dark:text-neutral-400 text-center py-4">
+                No comments yet
+              </p>
+            ) : (
+              comments.map((comment) => (
+                <div 
+                  key={comment.id} 
+                  className={`p-4 rounded-lg border ${
+                    comment.is_internal 
+                      ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800' 
+                      : 'bg-gray-50 border-gray-200 dark:bg-gray-800 dark:border-gray-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <span className="font-medium text-sm">
+                        {comment.author_email}
+                      </span>
+                      {comment.is_internal && (
+                        <Badge variant="secondary" className="text-xs">
+                          Internal
+                        </Badge>
+                      )}
+                    </div>
+                    <span className="text-xs text-neutral-500">
+                      {formatDate(comment.created_at)}
+                    </span>
+                  </div>
+                  <p className="text-sm text-neutral-700 dark:text-neutral-300">
+                    {comment.comment}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Add Comment Dialog */}
       <Dialog open={showAddCommentDialog} onOpenChange={setShowAddCommentDialog}>
         <DialogContent className="max-w-lg">
@@ -477,6 +617,87 @@ export default function TicketDetail() {
               </Button>
               <Button onClick={handleAddComment}>
                 Add Comment
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reassign Dialog */}
+      <Dialog open={showReassignDialog} onOpenChange={setShowReassignDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Reassign Ticket</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="technician">Assign to Technician *</Label>
+              <Select value={selectedTechnician} onValueChange={setSelectedTechnician}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a technician" />
+                </SelectTrigger>
+                <SelectContent>
+                  {technicians.map((tech) => (
+                    <SelectItem key={tech.id} value={tech.email}>
+                      {tech.name} ({tech.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => {
+                setShowReassignDialog(false);
+                setSelectedTechnician("");
+              }}>
+                Cancel
+              </Button>
+              <Button onClick={handleReassignTicket} disabled={!selectedTechnician}>
+                Reassign
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Status Change Comment Dialog */}
+      <Dialog open={showStatusChangeDialog} onOpenChange={setShowStatusChangeDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Status Change Reason</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <p className="text-sm text-neutral-600 dark:text-neutral-400">
+              Please provide a reason for changing the status to "{pendingStatusChange.replace('_', ' ')}":
+            </p>
+            
+            <div>
+              <Label htmlFor="status-comment">Reason *</Label>
+              <Textarea
+                id="status-comment"
+                value={statusChangeComment}
+                onChange={(e) => setStatusChangeComment(e.target.value)}
+                placeholder="Enter reason for status change..."
+                rows={3}
+              />
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => {
+                setShowStatusChangeDialog(false);
+                setStatusChangeComment("");
+                setPendingStatusChange("");
+              }}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => updateTicketStatus(pendingStatusChange, statusChangeComment)}
+                disabled={!statusChangeComment.trim()}
+              >
+                Update Status
               </Button>
             </div>
           </div>

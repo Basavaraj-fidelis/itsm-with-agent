@@ -234,9 +234,14 @@ export default function Tickets() {
     }
   };
 
-  const handleUpdateTicketStatus = async (ticketId: string, newStatus: string) => {
+  const handleUpdateTicketStatus = async (ticketId: string, newStatus: string, comment?: string) => {
     try {
-      const response = await api.put(`/api/tickets/${ticketId}`, { status: newStatus });
+      const updateData: any = { status: newStatus };
+      if (comment && comment.trim()) {
+        updateData.comment = comment.trim();
+      }
+
+      const response = await api.put(`/api/tickets/${ticketId}`, updateData);
 
       if (response.ok) {
         const updatedTicket = await response.json();
@@ -250,12 +255,15 @@ export default function Tickets() {
           title: "Success",
           description: `Ticket status updated to ${newStatus.replace('_', ' ')}`
         });
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update status');
       }
     } catch (error) {
       console.error('Error updating ticket:', error);
       toast({
         title: "Error",
-        description: "Failed to update ticket status",
+        description: error instanceof Error ? error.message : "Failed to update ticket status",
         variant: "destructive"
       });
     }

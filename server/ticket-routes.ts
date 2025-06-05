@@ -20,11 +20,12 @@ const updateTicketSchema = z.object({
   description: z.string().min(1).optional(),
   priority: z.enum(["low", "medium", "high", "critical"]).optional(),
   status: z.enum(["new", "assigned", "in_progress", "pending", "resolved", "closed", "cancelled"]).optional(),
-  assigned_to: z.string().optional(),
+  assigned_to: z.string().email().optional(),
   category: z.string().optional(),
   impact: z.enum(["low", "medium", "high", "critical"]).optional(),
   urgency: z.enum(["low", "medium", "high", "critical"]).optional(),
-  due_date: z.string().datetime().optional()
+  due_date: z.string().datetime().optional(),
+  comment: z.string().optional() // Required for certain status changes
 });
 
 export function registerTicketRoutes(app: Express) {
@@ -94,7 +95,16 @@ export function registerTicketRoutes(app: Express) {
   app.put("/api/tickets/:id", async (req, res) => {
     try {
       const validatedData = updateTicketSchema.parse(req.body);
-      const ticket = await ticketStorage.updateTicket(req.params.id, validatedData);
+      const { comment, ...ticketUpdates } = validatedData;
+      const userEmail = req.headers['user-email'] as string || 'admin@company.com';
+      
+      const ticket = await ticketStorage.updateTicket(
+        req.params.id, 
+        ticketUpdates, 
+        userEmail,
+        comment
+      );
+      
       if (!ticket) {
         return res.status(404).json({ error: "Ticket not found" });
       }
@@ -102,6 +112,9 @@ export function registerTicketRoutes(app: Express) {
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      if (error instanceof Error && error.message.includes('Comment required')) {
+        return res.status(400).json({ error: error.message });
       }
       console.error("Error updating ticket:", error);
       res.status(500).json({ error: "Failed to update ticket" });
@@ -175,3 +188,14 @@ export function registerTicketRoutes(app: Express) {
     }
   });
 }
+  // Get available technicians for assignment
+  app.get("/api/users/technicians", async (req, res) => {
+    try {
+      const { userStorage } = await import("./user-storage");
+      const technicians = await userStorage.getActiveTechnicians();
+      res.json(technicians);
+    } catch (error) {
+      console.error("Error fetching technicians:", error);
+      res.status(500).json({ error: "Failed to fetch technicians" });
+    }
+  });
