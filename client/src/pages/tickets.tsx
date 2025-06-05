@@ -92,6 +92,9 @@ export default function Tickets() {
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [showNewTicketDialog, setShowNewTicketDialog] = useState(false);
   const [showTicketDetailsDialog, setShowTicketDetailsDialog] = useState(false);
+  const [showEditTicketDialog, setShowEditTicketDialog] = useState(false);
+  const [showAddCommentDialog, setShowAddCommentDialog] = useState(false);
+  const [newCommentText, setNewCommentText] = useState("");
   const [newTicketData, setNewTicketData] = useState<NewTicketFormData>({
     type: "request",
     title: "",
@@ -170,8 +173,19 @@ export default function Tickets() {
     fetchTickets(1);
   }, [selectedType, selectedStatus, selectedPriority, searchTerm]);
 
-  // Filter tickets based on current filters
-  const filteredTickets = tickets;
+  // Filter and sort tickets - active tickets first, then by updated_at desc
+  const filteredTickets = tickets.sort((a, b) => {
+    // First sort by status priority (active statuses first)
+    const activeStatuses = ['new', 'assigned', 'in_progress', 'pending'];
+    const aIsActive = activeStatuses.includes(a.status);
+    const bIsActive = activeStatuses.includes(b.status);
+    
+    if (aIsActive && !bIsActive) return -1;
+    if (!aIsActive && bIsActive) return 1;
+    
+    // Then sort by updated_at (most recent first)
+    return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+  });
 
   const handleCreateTicket = async () => {
     if (!newTicketData.title || !newTicketData.description || !newTicketData.requester_email) {
@@ -242,6 +256,83 @@ export default function Tickets() {
       toast({
         title: "Error",
         description: "Failed to update ticket status",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleEditTicket = () => {
+    if (selectedTicket) {
+      setNewTicketData({
+        type: selectedTicket.type,
+        title: selectedTicket.title,
+        description: selectedTicket.description,
+        priority: selectedTicket.priority,
+        requester_email: selectedTicket.requester_email,
+        category: selectedTicket.category || ""
+      });
+      setShowEditTicketDialog(true);
+    }
+  };
+
+  const handleUpdateTicket = async () => {
+    if (!selectedTicket) return;
+
+    try {
+      const response = await api.put(`/api/tickets/${selectedTicket.id}`, newTicketData);
+      
+      if (response.ok) {
+        const updatedTicket = await response.json();
+        setTickets(prev => prev.map(ticket => 
+          ticket.id === selectedTicket.id ? updatedTicket : ticket
+        ));
+        setSelectedTicket(updatedTicket);
+        setShowEditTicketDialog(false);
+        toast({
+          title: "Success",
+          description: "Ticket updated successfully"
+        });
+      }
+    } catch (error) {
+      console.error('Error updating ticket:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update ticket",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!selectedTicket || !newCommentText.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a comment",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const response = await api.post(`/api/tickets/${selectedTicket.id}/comments`, {
+        comment: newCommentText,
+        author_email: "admin@company.com", // You might want to get this from auth context
+        is_internal: false
+      });
+
+      if (response.ok) {
+        setNewCommentText("");
+        setShowAddCommentDialog(false);
+        toast({
+          title: "Success",
+          description: "Comment added successfully"
+        });
+      }
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add comment",
         variant: "destructive"
       });
     }
@@ -971,10 +1062,10 @@ export default function Tickets() {
                 </div>
                 <div className="flex space-x-2">
                   {renderWorkflowActions(selectedTicket)}
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={handleEditTicket}>
                     Edit
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => setShowAddCommentDialog(true)}>
                     Add Comment
                   </Button>
                 </div>
@@ -1041,6 +1132,117 @@ export default function Tickets() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Ticket Dialog */}
+      <Dialog open={showEditTicketDialog} onOpenChange={setShowEditTicketDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Ticket</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-type">Type *</Label>
+                <Select value={newTicketData.type} onValueChange={(value) => 
+                  setNewTicketData(prev => ({ ...prev, type: value }))
+                }>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="request">Service Request</SelectItem>
+                    <SelectItem value="incident">Incident</SelectItem>
+                    <SelectItem value="problem">Problem</SelectItem>
+                    <SelectItem value="change">Change Request</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="edit-priority">Priority *</Label>
+                <Select value={newTicketData.priority} onValueChange={(value) =>
+                  setNewTicketData(prev => ({ ...prev, priority: value }))
+                }>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="critical">Critical</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="edit-title">Title *</Label>
+              <Input
+                id="edit-title"
+                value={newTicketData.title}
+                onChange={(e) => setNewTicketData(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Brief description of the request"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="edit-description">Description *</Label>
+              <Textarea
+                id="edit-description"
+                value={newTicketData.description}
+                onChange={(e) => setNewTicketData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Detailed description of the request"
+                rows={4}
+              />
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setShowEditTicketDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateTicket} disabled={loading}>
+                {loading ? "Updating..." : "Update Ticket"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Comment Dialog */}
+      <Dialog open={showAddCommentDialog} onOpenChange={setShowAddCommentDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add Comment</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="comment">Comment *</Label>
+              <Textarea
+                id="comment"
+                value={newCommentText}
+                onChange={(e) => setNewCommentText(e.target.value)}
+                placeholder="Enter your comment..."
+                rows={4}
+              />
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => {
+                setShowAddCommentDialog(false);
+                setNewCommentText("");
+              }}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddComment} disabled={loading}>
+                {loading ? "Adding..." : "Add Comment"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
