@@ -187,7 +187,7 @@ export function registerTicketRoutes(app: Express) {
       res.status(500).json({ error: "Failed to export tickets" });
     }
   });
-}
+
   // Get available technicians for assignment
   app.get("/api/users/technicians", async (req, res) => {
     try {
@@ -199,3 +199,4 @@ export function registerTicketRoutes(app: Express) {
       res.status(500).json({ error: "Failed to fetch technicians" });
     }
   });
+}
