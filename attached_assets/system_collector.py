@@ -686,7 +686,7 @@ class SystemCollector:
             return []
     
     def _get_software_info(self):
-        """Get installed software information"""
+        """Get installed software information (excluding default OS applications)"""
         try:
             software = []
             
@@ -703,11 +703,16 @@ class SystemCollector:
                             if line.strip() and ',' in line:
                                 parts = line.split(',')
                                 if len(parts) >= 4 and parts[1].strip():
-                                    software.append({
-                                        'name': parts[1].strip(),
-                                        'version': parts[3].strip(),
-                                        'vendor': parts[2].strip()
-                                    })
+                                    name = parts[1].strip()
+                                    vendor = parts[2].strip()
+                                    
+                                    # Filter out default Windows components and system software
+                                    if not self._is_default_windows_software(name, vendor):
+                                        software.append({
+                                            'name': name,
+                                            'version': parts[3].strip(),
+                                            'vendor': vendor
+                                        })
                 
                 except Exception:
                     pass
@@ -726,11 +731,15 @@ class SystemCollector:
                                 if line.startswith('ii'):
                                     parts = line.split()
                                     if len(parts) >= 3:
-                                        software.append({
-                                            'name': parts[1],
-                                            'version': parts[2],
-                                            'vendor': 'debian'
-                                        })
+                                        name = parts[1]
+                                        
+                                        # Filter out default Linux system packages
+                                        if not self._is_default_linux_software(name):
+                                            software.append({
+                                                'name': name,
+                                                'version': parts[2],
+                                                'vendor': 'debian'
+                                            })
                     
                     elif os.path.exists('/usr/bin/rpm'):
                         # RedHat/CentOS/Fedora
@@ -743,11 +752,15 @@ class SystemCollector:
                                 if '|' in line:
                                     parts = line.split('|')
                                     if len(parts) >= 3:
-                                        software.append({
-                                            'name': parts[0],
-                                            'version': parts[1],
-                                            'vendor': parts[2]
-                                        })
+                                        name = parts[0]
+                                        
+                                        # Filter out default Linux system packages
+                                        if not self._is_default_linux_software(name):
+                                            software.append({
+                                                'name': name,
+                                                'version': parts[1],
+                                                'vendor': parts[2]
+                                            })
                 
                 except Exception:
                     pass
@@ -757,6 +770,70 @@ class SystemCollector:
         except Exception as e:
             self.logger.error(f"Error getting software info: {e}")
             return []
+    
+    def _is_default_windows_software(self, name, vendor):
+        """Check if software is a default Windows component"""
+        name_lower = name.lower()
+        vendor_lower = vendor.lower()
+        
+        # Microsoft system components and built-in apps
+        if 'microsoft' in vendor_lower:
+            microsoft_defaults = [
+                'windows', 'microsoft edge', 'internet explorer', 'windows defender',
+                'windows media', 'microsoft store', 'xbox', 'cortana', 'onedrive',
+                'windows security', 'windows update', 'microsoft.net', '.net framework',
+                'visual c++', 'directx', 'windows sdk', 'microsoft visual c++',
+                'windows runtime', 'microsoft silverlight', 'windows installer',
+                'windows powershell', 'windows subsystem', 'microsoft help viewer'
+            ]
+            
+            for default in microsoft_defaults:
+                if default in name_lower:
+                    return True
+        
+        # Other common system software to exclude
+        system_software = [
+            'intel', 'amd', 'nvidia', 'realtek', 'broadcom', 'qualcomm',
+            'driver', 'codec', 'runtime', 'redistributable', 'framework',
+            'windows', 'system', 'update', 'security', 'defender'
+        ]
+        
+        for sys_soft in system_software:
+            if sys_soft in name_lower and any(x in vendor_lower for x in ['intel', 'amd', 'nvidia', 'realtek', 'microsoft']):
+                return True
+        
+        return False
+    
+    def _is_default_linux_software(self, name):
+        """Check if software is a default Linux system package"""
+        name_lower = name.lower()
+        
+        # Common system packages and libraries to exclude
+        system_packages = [
+            'lib', 'glib', 'gtk', 'gnome', 'kde', 'systemd', 'dbus', 'udev',
+            'kernel', 'linux-', 'ubuntu-', 'debian-', 'fedora-', 'centos-',
+            'base-', 'essential', 'core', 'common', 'utils', 'tools',
+            'driver', 'firmware', 'mesa', 'x11', 'xorg', 'wayland',
+            'pulse', 'alsa', 'network-manager', 'bluetooth', 'wireless',
+            'gstreamer', 'fontconfig', 'cairo', 'pango', 'atk', 'gdk',
+            'cups', 'avahi', 'packagekit', 'appstream', 'apt', 'dpkg',
+            'rpm', 'yum', 'dnf', 'zypper', 'snap', 'flatpak'
+        ]
+        
+        # Check if package name starts with or contains system identifiers
+        for sys_pkg in system_packages:
+            if name_lower.startswith(sys_pkg) or sys_pkg in name_lower:
+                return True
+        
+        # Exclude development libraries and headers
+        if name_lower.endswith('-dev') or name_lower.endswith('-devel') or '-dev-' in name_lower:
+            return True
+        
+        # Exclude documentation packages
+        if name_lower.endswith('-doc') or name_lower.endswith('-docs') or '-doc-' in name_lower:
+            return True
+        
+        return False
     
     def _get_running_processes(self):
         """Get running processes information"""
