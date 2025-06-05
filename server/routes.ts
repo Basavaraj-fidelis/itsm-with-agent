@@ -5,6 +5,14 @@ import { registerTicketRoutes } from "./ticket-routes";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 // Removed validation schema import - using flexible data parsing
+import { schema } from "@shared/schema";
+import { userSchema } from "@shared/user-schema";
+import { adminSchema } from "@shared/admin-schema";
+import { knowledgeSchema } from "@shared/knowledge-schema";
+import { ticketSchema } from "@shared/ticket-schema";
+import userStorage from './user-storage';
+import knowledgeStorage from './knowledge-storage';
+import ticketStorage from './ticket-storage';
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
@@ -253,7 +261,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/alerts", authenticateToken, async (req, res) => {
     try {
       const alerts = await storage.getActiveAlerts();
-      
+
       // Enhance alerts with device hostname
       const enhancedAlerts = await Promise.all(
         alerts.map(async (alert) => {
@@ -426,7 +434,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 ip_address = (iface as any).ip;
               }
             }
-            
+
             // Collect MAC addresses
             if ((iface as any).mac_address) {
               mac_addresses.push({
@@ -783,68 +791,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 // Notifications endpoint
-  app.get("/api/notifications", async (req, res) => {
+  app.get('/api/notifications', async (req, res) => {
     try {
-      const filter = req.query.filter as string;
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'No token provided' });
+      }
 
-      const alerts = await storage.getActiveAlerts();
+      const token = authHeader.substring(7);
 
-      const notifications = [];
-      let recentTickets = [];
-
-      // Get recent tickets for notifications
       try {
-        const ticketStorage = await import("./ticket-storage");
-        const recentTicketsResult = await ticketStorage.getTickets(1, 20, { 
-          created_after: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() // Last 24 hours
-        });
-        recentTickets = recentTicketsResult.data || [];
-      } catch (error) {
-        console.error("Error fetching tickets for notifications:", error);
-        recentTickets = [];
+        const decoded = jwt.verify(token, JWT_SECRET) as any;
+        const userId = decoded.id;
+
+        // Get tickets from database for notifications
+        const { db } = await import("./db");
+        const { desc } = await import("drizzle-orm");
+        const tickets = await db
+          .select()
+          .from(ticketSchema.tickets)
+          .orderBy(desc(ticketSchema.tickets.updated_at));
+
+        const userTickets = tickets.filter(ticket => 
+          ticket.assigned_to === userId || ticket.requester_email === decoded.email
+        );
+
+        // Create notifications for recent ticket updates
+        const notifications = userTickets
+          .filter(ticket => {
+            const updatedAt = new Date(ticket.updated_at);
+            const now = new Date();
+            const diffHours = (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60);
+            return diffHours <= 24; // Only show notifications for tickets updated in last 24 hours
+          })
+          .map(ticket => ({
+            id: ticket.id,
+            type: 'ticket_update',
+            title: `Ticket ${ticket.ticket_number} updated`,
+            message: `${ticket.title} - Status: ${ticket.status}`,
+            timestamp: ticket.updated_at,
+            read: false
+          }));
+
+        res.json(notifications);
+      } catch (jwtError) {
+        return res.status(401).json({ error: 'Invalid token' });
       }
-
-      // Add ticket notifications
-      recentTickets.forEach(ticket => {
-        notifications.push({
-          id: `ticket-${ticket.id}`,
-          title: "New Ticket",
-          message: `Ticket #${ticket.ticket_number}: ${ticket.title}`,
-          type: "info",
-          read: false,
-          created_at: ticket.created_at,
-          source: 'Service Desk'
-        });
-      });
-
-      // Add system alert notifications
-      alerts.forEach(alert => {
-        notifications.push({
-          id: `alert-${alert.id}`,
-          title: "System Alert",
-          message: alert.message,
-          type: alert.severity === 'critical' ? 'error' : 'warning',
-          read: false,
-          created_at: alert.created_at,
-          source: 'System Monitor'
-        });
-      });
-
-      // Sort by creation date (newest first)
-      notifications.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-      // Apply filter
-      let filteredNotifications = notifications;
-      if (filter === 'unread') {
-        filteredNotifications = notifications.filter(n => !n.read);
-      } else if (filter === 'read') {
-        filteredNotifications = notifications.filter(n => n.read);
-      }
-
-      res.json(filteredNotifications);
     } catch (error) {
-      console.error("Error fetching notifications:", error);
-      res.status(500).json({ message: "Internal server error" });
+      console.error('Error fetching tickets for notifications:', error);
+      res.json([]); // Return empty array on error to prevent client issues
     }
   });
 
