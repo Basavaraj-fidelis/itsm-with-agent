@@ -226,6 +226,48 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
   const processInfo = rawData.processes || rawData.running_processes || [];
   const softwareInfo = rawData.installed_software || rawData.software || [];
   const hardwareInfo = rawData.hardware || {};
+
+  // Hardware details
+  const cpuInfo = hardwareInfo.cpu || {};
+  const memoryInfo = hardwareInfo.memory || {};
+  const systemHardware = hardwareInfo.system || {};
+
+  // Extract manufacturer and model with fallbacks
+  const manufacturer =
+    systemHardware.manufacturer ||
+    rawData.manufacturer ||
+    rawData.system_info?.manufacturer ||
+    rawData.hardware?.manufacturer ||
+    "Unknown";
+
+  const model =
+    systemHardware.model ||
+    rawData.model ||
+    rawData.system_info?.model ||
+    rawData.hardware?.model ||
+    "Unknown";
+
+  // Extract MAC addresses from network interfaces
+  const getMacAddresses = () => {
+    const macAddresses = [];
+    const networkData = rawData.network || {};
+
+    // Check for interfaces array
+    if (networkData.interfaces && Array.isArray(networkData.interfaces)) {
+      networkData.interfaces.forEach((iface: any) => {
+        if (iface.addresses && Array.isArray(iface.addresses)) {
+          iface.addresses.forEach((addr: any) => {
+            if (addr.family && addr.family.includes('AF_PACKET') && addr.address && addr.address !== '00:00:00:00:00:00') {
+              macAddresses.push(`${iface.name}: ${addr.address}`);
+            }
+          });
+        }
+      });
+    }
+
+    return macAddresses.length > 0 ? macAddresses.join(', ') : 'Not available';
+  };
+
   const usbDevices = rawData.usb_devices || hardwareInfo.usb_devices || [];
 
   // Helper function to convert bytes to GB
@@ -282,11 +324,6 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
     rawData.platform_info?.architecture ||
     "64bit";
 
-  // Hardware details
-  const cpuInfo = hardwareInfo.cpu || {};
-  const memoryInfo = hardwareInfo.memory || {};
-  const systemHardware = hardwareInfo.system || {};
-
   const processor =
     rawData.hardware?.cpu?.model ||
     cpuInfo.model ||
@@ -323,18 +360,6 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
     : rawData.available_memory || rawData.memory_available || "Unknown";
   const usedMemory = memoryInfo.used ? bytesToGB(memoryInfo.used) : "Unknown";
 
-  const manufacturer =
-    rawData.hardware?.system?.manufacturer ||
-    systemHardware.manufacturer ||
-    rawData.manufacturer ||
-    rawData.system_info?.manufacturer ||
-    "MSI";
-  const model =
-    rawData.hardware?.system?.model ||
-    systemHardware.model ||
-    rawData.model ||
-    rawData.system_info?.model ||
-    "MS-7C75";
   const serialNumber =
     rawData.hardware?.system?.serial_number ||
     systemHardware.serial_number ||
@@ -798,7 +823,8 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                   <span className="text-neutral-600">Max Frequency:</span>
                   <span className="font-medium">{maxFreq}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className<replit_final_file>
+<div className="flex justify-between">
                   <span className="text-neutral-600">Architecture:</span>
                   <span className="font-medium">
                     {architecture !== "Unknown" ? architecture : "N/A"}
@@ -873,9 +899,19 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                   <span className="font-medium">{model}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-neutral-600">Serial Number:</span>
-                  <span className="font-medium">{serialNumber}</span>
+                  <span className="text-neutral-600">MAC Address:</span>
+                  <span className="font-medium font-mono text-xs">
+                    {getMacAddresses()}
+                  </span>
                 </div>
+                {systemHardware.serial_number && (
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Serial Number:</span>
+                    <span className="font-medium font-mono text-xs">
+                      {systemHardware.serial_number}
+                    </span>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
