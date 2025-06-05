@@ -64,66 +64,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email and password required" });
       }
 
-      // Get user by email
-      const users = await storage.getUsers({ search: email });
-      const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-
       console.log(`Login attempt for: ${email}`);
-      console.log(`Found ${users.length} users in search`);
-      console.log(`User found:`, user ? `Yes (${user.email})` : 'No');
+
+      let user = null;
+      let isValidPassword = false;
+
+      // First, try to find user in the database (Drizzle ORM system)
+      try {
+        const { db } = await import("./db");
+        const { users } = await import("../shared/user-schema");
+        const { eq } = await import("drizzle-orm");
+        
+        const dbUsers = await db.select().from(users).where(eq(users.email, email.toLowerCase()));
+        
+        if (dbUsers.length > 0) {
+          user = dbUsers[0];
+          console.log(`Found user in database: ${user.email}`);
+          
+          // Check if user is active
+          if (!user.is_active) {
+            return res.status(403).json({ message: "Account is suspended" });
+          }
+
+          // Verify password
+          if (user.password_hash) {
+            isValidPassword = await bcrypt.compare(password, user.password_hash);
+            console.log(`Database user password check: ${isValidPassword}`);
+          }
+
+          if (isValidPassword) {
+            // Update last login
+            await db.update(users)
+              .set({ last_login: new Date() })
+              .where(eq(users.id, user.id));
+          }
+        }
+      } catch (dbError) {
+        console.log("Database lookup failed, trying file storage:", dbError.message);
+      }
+
+      // If not found in database, try file-based storage system
+      if (!user || !isValidPassword) {
+        const storageUsers = await storage.getUsers({ search: email });
+        const storageUser = storageUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+
+        if (storageUser) {
+          user = storageUser;
+          console.log(`Found user in file storage: ${user.email}`);
+          
+          // Check if user is active
+          if (!user.is_active) {
+            return res.status(403).json({ message: "Account is suspended" });
+          }
+
+          // Demo credentials for testing
+          const demoCredentials = {
+            "admin@company.com": "admin123",
+            "tech@company.com": "tech123", 
+            "manager@company.com": "demo123",
+            "user@company.com": "demo123"
+          };
+
+          // First check if it's a demo account with plain text password
+          if (demoCredentials[email.toLowerCase()] === password) {
+            console.log(`Demo credentials match for ${email}`);
+            isValidPassword = true;
+
+            // Update user with properly hashed password for security
+            const hashedPassword = await bcrypt.hash(password, 10);
+            await storage.updateUser(user.id, { password_hash: hashedPassword });
+            console.log(`Updated demo user ${email} with hashed password`);
+          } 
+          // Then try bcrypt comparison for properly hashed passwords
+          else if (user.password_hash) {
+            console.log(`Trying bcrypt comparison for ${email}`);
+            isValidPassword = await bcrypt.compare(password, user.password_hash);
+            console.log(`File storage password check: ${isValidPassword}`);
+          }
+
+          if (isValidPassword) {
+            // Update last login
+            await storage.updateUser(user.id, { last_login: new Date() });
+          }
+        }
+      }
 
       if (!user) {
         console.log(`User not found for email: ${email}`);
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      // Check if user is active
-      if (!user.is_active) {
-        return res.status(403).json({ message: "Account is suspended" });
-      }
-
-      // Check password - handle both hashed and demo passwords
-      let isValidPassword = false;
-
-      console.log(`Checking password for user: ${user.email}`);
-      console.log(`User has password_hash: ${!!user.password_hash}`);
-
-      try {
-        // Demo credentials for testing
-        const demoCredentials = {
-          "admin@company.com": "admin123",
-          "tech@company.com": "tech123", 
-          "manager@company.com": "demo123",
-          "user@company.com": "demo123"
-        };
-
-        // First check if it's a demo account with plain text password
-        if (demoCredentials[email.toLowerCase()] === password) {
-          console.log(`Demo credentials match for ${email}`);
-          isValidPassword = true;
-
-          // Update user with properly hashed password for security
-          const hashedPassword = await bcrypt.hash(password, 10);
-          await storage.updateUser(user.id, { password_hash: hashedPassword });
-          console.log(`Updated demo user ${email} with hashed password`);
-        } 
-        // Then try bcrypt comparison for properly hashed passwords
-        else if (user.password_hash) {
-          console.log(`Trying bcrypt comparison for ${email}`);
-          isValidPassword = await bcrypt.compare(password, user.password_hash);
-          console.log(`Bcrypt result: ${isValidPassword}`);
-        }
-      } catch (error) {
-        console.error("Password verification error:", error);
-        isValidPassword = false;
-      }
-
       if (!isValidPassword) {
+        console.log(`Invalid password for user: ${email}`);
         return res.status(401).json({ message: "Invalid credentials" });
       }
-
-      // Update last login
-      await storage.updateUser(user.id, { last_login: new Date() });
 
       // Generate JWT token
       const token = jwt.sign(
@@ -955,11 +989,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/notifications/mark-all-read", authenticateToken, async (req, res) => {
+  app.post("/api/notifications/mark-all-read", authenticateToken, async (req: any, res) => {
     try {
-      // In a real implementation, you'd update all notifications for the user
-      // For now, we'll just return success
-      res.json({ message: "All notifications marked as read" });
+      const userId = req.user.id;
+      
+      // In a real implementation, you'd update all notifications for the user in database
+      // For now, we'll just return success with a more detailed response
+      console.log(`Marking all notifications as read for user: ${userId}`);
+      
+      res.json({ 
+        message: "All notifications marked as read",
+        success: true,
+        markedCount: 0 // Would be actual count in real implementation
+      });
     } catch (error) {
       console.error("Error marking all notifications as read:", error);
       res.status(500).json({ message: "Internal server error" });
