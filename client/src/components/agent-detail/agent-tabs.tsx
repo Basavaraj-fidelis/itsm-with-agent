@@ -250,6 +250,12 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
   // Extract MAC addresses from network interfaces
   const getMacAddresses = () => {
     const macAddresses = [];
+    
+    // First check for primary_mac in raw data
+    if (rawData.primary_mac) {
+      return rawData.primary_mac;
+    }
+    
     const networkData = rawData.network || {};
 
     // Check for interfaces array
@@ -925,16 +931,32 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              
-                  {usbHistory.length > 0 ? (
-                  <div className="space-y-3">
-                    {usbHistory.map((device: any, index) => (
+              {usbHistory.length > 0 ? (
+                <div className="space-y-3">
+                  {/* Sort devices: connected first, then by last seen */}
+                  {usbHistory
+                    .sort((a: any, b: any) => {
+                      // First sort by connection status (connected devices first)
+                      if (a.is_connected && !b.is_connected) return -1;
+                      if (!a.is_connected && b.is_connected) return 1;
+                      // Then sort by last seen (most recent first)
+                      return new Date(b.last_seen).getTime() - new Date(a.last_seen).getTime();
+                    })
+                    .map((device: any, index) => (
                       <div key={device.id || index} className="p-3 border rounded-lg bg-neutral-50 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <h4 className="font-medium text-neutral-900 dark:text-neutral-100 mb-1">
-                              {device.description || device.name || `USB Device ${index + 1}`}
-                            </h4>
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-medium text-neutral-900 dark:text-neutral-100">
+                                {device.description || device.name || `USB Device ${index + 1}`}
+                              </h4>
+                              {device.is_connected && (
+                                <div className="flex items-center gap-1">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                  <span className="text-xs text-green-600 dark:text-green-400">Live</span>
+                                </div>
+                              )}
+                            </div>
 
                             {device.vendor_id && device.product_id && (
                               <div className="text-neutral-600 dark:text-neutral-400 text-sm mb-1">
@@ -944,64 +966,68 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                             )}
 
                             {device.manufacturer && (
-                              <div className="text-neutral-600 dark:text-neutral-400">
+                              <div className="text-neutral-600 dark:text-neutral-400 text-sm">
                                 <span className="font-medium">Manufacturer:</span> {device.manufacturer}
                               </div>
                             )}
 
                             {device.serial_number && (
-                              <div className="text-neutral-600 dark:text-neutral-400">
+                              <div className="text-neutral-600 dark:text-neutral-400 text-sm">
                                 <span className="font-medium">Serial:</span> {device.serial_number}
                               </div>
                             )}
 
                             {device.device_class && (
-                              <div className="text-neutral-600 dark:text-neutral-400">
+                              <div className="text-neutral-600 dark:text-neutral-400 text-sm">
                                 <span className="font-medium">Class:</span> {device.device_class}
                               </div>
                             )}
 
                             {device.location && (
-                              <div className="text-neutral-600 dark:text-neutral-400">
+                              <div className="text-neutral-600 dark:text-neutral-400 text-sm">
                                 <span className="font-medium">Location:</span> {device.location}
                               </div>
                             )}
 
                             {device.speed && (
-                              <div className="text-neutral-600 dark:text-neutral-400">
+                              <div className="text-neutral-600 dark:text-neutral-400 text-sm">
                                 <span className="font-medium">Speed:</span> {device.speed}
                               </div>
                             )}
-
                           </div>
-                          <div className={`shrink-0 px-2 py-1 rounded-full text-xs ${
-                            device.is_connected 
-                              ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
-                              : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
-                          }`}>
-                            {device.is_connected ? 'Connected' : 'Disconnected'}
+                          
+                          <div className="flex flex-col items-end gap-2">
+                            <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              device.is_connected 
+                                ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
+                                : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
+                            }`}>
+                              {device.is_connected ? 'Connected' : 'Disconnected'}
+                            </div>
+                            
+                            <div className="text-xs text-neutral-500 dark:text-neutral-400 text-right">
+                              <div className="font-medium">Last Seen</div>
+                              <div>{formatDistanceToNow(new Date(device.last_seen), { addSuffix: true })}</div>
+                            </div>
                           </div>
                         </div>
 
-                        <div className="mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-600 text-xs text-neutral-500 dark:text-neutral-400 flex justify-between">
+                        <div className="mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-600 text-xs text-neutral-500 dark:text-neutral-400">
                           <div>
-                            <span className="font-medium">First Seen:</span> {formatDistanceToNow(new Date(device.first_seen), { addSuffix: true })}
-                          </div>
-                          <div>
-                            <span className="font-medium">Last Seen:</span> {formatDistanceToNow(new Date(device.last_seen), { addSuffix: true })}
+                            <span className="font-medium">First Detected:</span> {formatDistanceToNow(new Date(device.first_seen), { addSuffix: true })}
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-6">
-                    <Usb className="w-12 h-12 mx-auto text-neutral-400 mb-2" />
-                    <p className="text-neutral-500 italic">No USB devices have been detected</p>
-                    <p className="text-xs text-neutral-400 mt-1">USB devices will appear here when connected</p>
-                  </div>
-                )}
-            
+                    ))
+                  }
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <Usb className="w-12 h-12 mx-auto text-neutral-400 mb-2" />
+                  <p className="text-neutral-500 italic">No USB devices have been detected</p>
+                  <p className="text-xs text-neutral-400 mt-1">USB devices will appear here when connected</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
