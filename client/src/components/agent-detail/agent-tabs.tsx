@@ -1034,7 +1034,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                             )}
                           </div>
                           <div className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
-                            Live
+                            Active
                           </div>
                         </div>
                       </div>
@@ -1119,9 +1119,9 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                             <div className={`px-2 py-1 rounded-full text-xs font-medium ${
                               device.is_connected 
                                 ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
-                                : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
+                                : 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200'
                             }`}>
-                              {device.is_connected ? 'Connected' : 'Disconnected'}
+                              {device.is_connected ? 'Active' : `Inactive`}
                             </div>
                             
                             <div className="text-xs text-neutral-500 dark:text-neutral-400 text-right">

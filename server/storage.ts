@@ -2374,8 +2374,9 @@ smartphones
       const { eq, and } = await import("drizzle-orm");
 
       // First, mark all existing devices for this device as disconnected
+      // Only update last_seen for devices that are actually changing from connected to disconnected
       await db.update(usb_devices)
-        .set({ is_connected: false, last_seen: new Date() })
+        .set({ is_connected: false })
         .where(eq(usb_devices.device_id, deviceId));
 
       // Process each USB device from the current report
