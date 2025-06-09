@@ -83,6 +83,45 @@ export const api = {
     }
   },
 
+  async getPerformanceInsights(deviceId: string): Promise<any> {
+    try {
+      const response = await apiClient.get(`/api/performance/insights/${deviceId}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch performance insights: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Performance insights fetch failed:', error);
+      return null;
+    }
+  },
+
+  async getPerformancePredictions(deviceId: string): Promise<any[]> {
+    try {
+      const response = await apiClient.get(`/api/performance/predictions/${deviceId}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch performance predictions: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Performance predictions fetch failed:', error);
+      return [];
+    }
+  },
+
+  async getVulnerabilities(deviceId: string): Promise<any[]> {
+    try {
+      const response = await apiClient.get(`/api/security/vulnerabilities/${deviceId}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch vulnerabilities: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Vulnerabilities fetch failed:', error);
+      return [];
+    }
+  },
+
   async getDevice(id: string): Promise<Device> {
     const response = await apiClient.get(`/api/devices/${id}`);
     return response.json();

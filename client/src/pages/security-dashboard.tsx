@@ -23,20 +23,14 @@ export default function SecurityDashboard() {
 
   const { data: devices, isLoading: devicesLoading, isError: devicesError } = useQuery({
     queryKey: ["devices"],
-    queryFn: async () => {
-      const response = await api.get("/api/devices");
-      if (!response.ok) {
-        throw new Error(`Failed to fetch devices: ${response.status}`);
-      }
-      return response.json();
-    },
+    queryFn: () => api.getDevices(),
     retry: 1,
     refetchOnWindowFocus: false
   });
 
   const { data: vulnerabilities, isError: vulnerabilitiesError } = useQuery({
     queryKey: ["vulnerabilities", selectedDevice],
-    queryFn: () => api.get(`/api/security/vulnerabilities/${selectedDevice}`).then(res => res.data),
+    queryFn: () => api.getVulnerabilities(selectedDevice),
     enabled: !!selectedDevice,
     retry: 1
   });
