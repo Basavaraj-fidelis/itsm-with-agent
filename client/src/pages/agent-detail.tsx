@@ -361,7 +361,6 @@ export default function AgentDetail() {
           </div>
         </DialogContent>
       </Dialog>
-      </old_str>
     </div>
   );
 }
