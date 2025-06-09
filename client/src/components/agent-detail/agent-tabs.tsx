@@ -193,7 +193,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
 
     if (agent.id) {
       fetchUSBHistory();
-      
+
       // Also log USB devices found in raw data for debugging
       const currentUSB = getUSBDevices();
       console.log('USB devices in raw data:', currentUSB);
@@ -258,21 +258,21 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
   // Extract MAC addresses from network interfaces
   const getMacAddresses = () => {
     const macAddresses = [];
-    
+
     // First check for primary_mac in raw data (top level)
     if (rawData.primary_mac) {
       return rawData.primary_mac;
     }
-    
+
     // Check in various nested locations
     if (rawData.network?.primary_mac) {
       return rawData.network.primary_mac;
     }
-    
+
     if (rawData.hardware?.primary_mac) {
       return rawData.hardware.primary_mac;
     }
-    
+
     if (rawData.system_info?.primary_mac) {
       return rawData.system_info.primary_mac;
     }
@@ -547,9 +547,9 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                         rawData.system_info?.current_user ||
                         rawData.os_info?.current_user ||
                         rawData.hardware?.current_user;
-                      
+
                       console.log("Agent detail user found:", user, "for agent:", agent.hostname);
-                      
+
                       // Filter out system accounts and invalid values
                       if (!user || 
                           user.endsWith('$') || 
@@ -1019,7 +1019,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              
+
 
               {/* Show USB device history with proper status display */}
               {usbHistory.length > 0 ? (
@@ -1032,7 +1032,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                       ({usbHistory.filter(d => d.is_connected).length} currently connected, {usbHistory.length} total tracked)
                     </span>
                   </h4>
-                  
+
                   {/* Sort devices: connected first, then by last seen */}
                   {usbHistory
                     .sort((a: any, b: any) => {
@@ -1045,7 +1045,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                     .map((device: any, index) => {
                       const timeSinceLastSeen = formatDistanceToNow(new Date(device.last_seen), { addSuffix: true });
                       const isRecentlyActive = new Date().getTime() - new Date(device.last_seen).getTime() < 5 * 60 * 1000; // 5 minutes
-                      
+
                       return (
                         <div key={device.id || index} className={`p-3 border rounded-lg ${
                           device.is_connected && isRecentlyActive
@@ -1105,7 +1105,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                                 </div>
                               )}
                             </div>
-                            
+
                             <div className="flex flex-col items-end gap-2">
                               <div className={`px-2 py-1 rounded-full text-xs font-medium ${
                                 device.is_connected && isRecentlyActive
@@ -1117,7 +1117,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                                 {device.is_connected && isRecentlyActive ? 'Active Now' : 
                                  device.is_connected ? 'Connected' : 'Inactive'}
                               </div>
-                              
+
                               <div className="text-xs text-neutral-500 dark:text-neutral-400 text-right">
                                 <div className="font-medium">
                                   {device.is_connected && isRecentlyActive ? 'Last Report' : 'Last Seen'}
@@ -1773,7 +1773,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                 {(() => {
                   const updateInfo = rawData.extracted_update_info || {};
                   const securityInfo = rawData.extracted_security_info || {};
-                  
+
                   return (
                     <div className="space-y-4">
                       {/* Last Boot Time */}
@@ -1856,7 +1856,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                 {(() => {
                   const updateInfo = rawData.extracted_update_info || {};
                   const recentUpdates = updateInfo.recent_updates || [];
-                  
+
                   if (Array.isArray(recentUpdates) && recentUpdates.length > 0) {
                     return (
                       <div className="space-y-3">
@@ -1914,7 +1914,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {(() => {
                   const securityInfo = rawData.extracted_security_info || {};
-                  
+
                   return (
                     <>
                       <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
@@ -1953,7 +1953,4 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
             </CardContent>
           </Card>
         </div>
-      </TabsContent></old_str>
-    </Tabs>
-  );
-}
+      </TabsContent>
