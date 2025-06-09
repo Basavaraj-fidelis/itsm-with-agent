@@ -2381,9 +2381,25 @@ smartphones
 
       // Process each USB device from the current report
       for (const device of usbDevices) {
+        // Extract vendor_id and product_id from device_id if not directly available
+        let vendor_id = device.vendor_id;
+        let product_id = device.product_id;
+        let serial_number = device.serial_number;
+
+        // Parse Windows-style device ID: USB\VID_0408&PID_5425\0001
+        if (!vendor_id && !product_id && device.device_id) {
+          const vidMatch = device.device_id.match(/VID_([0-9A-Fa-f]+)/);
+          const pidMatch = device.device_id.match(/PID_([0-9A-Fa-f]+)/);
+          const serialMatch = device.device_id.match(/\\([^\\]+)$/);
+          
+          if (vidMatch) vendor_id = vidMatch[1];
+          if (pidMatch) product_id = pidMatch[1];
+          if (serialMatch && !serial_number) serial_number = serialMatch[1];
+        }
+
         // Create a unique identifier for the device (prefer vendor_id:product_id combo or serial)
-        const deviceIdentifier = device.vendor_id && device.product_id 
-          ? `${device.vendor_id}:${device.product_id}:${device.serial_number || 'no-serial'}`
+        const deviceIdentifier = vendor_id && product_id 
+          ? `${vendor_id}:${product_id}:${serial_number || 'no-serial'}`
           : device.device_id || device.serial_number || `unknown-${Date.now()}`;
 
         // Check if this device already exists
@@ -2401,10 +2417,10 @@ smartphones
           await db.update(usb_devices)
             .set({
               description: device.description || device.name,
-              vendor_id: device.vendor_id,
-              product_id: device.product_id,
+              vendor_id: vendor_id,
+              product_id: product_id,
               manufacturer: device.manufacturer,
-              serial_number: device.serial_number,
+              serial_number: serial_number,
               device_class: device.device_class || device.class,
               location: device.location,
               speed: device.speed,
@@ -2419,10 +2435,10 @@ smartphones
             device_id: deviceId,
             device_identifier: deviceIdentifier,
             description: device.description || device.name,
-            vendor_id: device.vendor_id,
-            product_id: device.product_id,
+            vendor_id: vendor_id,
+            product_id: product_id,
             manufacturer: device.manufacturer,
-            serial_number: device.serial_number,
+            serial_number: serial_number,
             device_class: device.device_class || device.class,
             location: device.location,
             speed: device.speed,
