@@ -150,7 +150,7 @@ export default function Tickets() {
     setLoading(true);
     try {
       console.log("Fetching tickets...");
-      
+
       const params = new URLSearchParams({
         page: page.toString(),
         limit: "100", // Increased limit to show more tickets
@@ -167,7 +167,7 @@ export default function Tickets() {
         params.append("search", searchTerm.trim());
 
       console.log("API URL:", `/api/tickets?${params}`);
-      
+
       const response = await fetch(`/api/tickets?${params}`, {
         method: 'GET',
         headers: {
@@ -828,7 +828,7 @@ export default function Tickets() {
 
   const renderStatusCards = () => {
     const statusCounts = getStatusCountsByType();
-    
+
     return (
       <div className="space-y-6">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
@@ -838,7 +838,7 @@ export default function Tickets() {
           {Object.entries(statusCounts).map(([type, data]) => {
             const IconComponent = data.icon;
             const totalForType = Object.values(data.statuses).reduce((sum: number, count: number) => sum + count, 0);
-            
+
             return (
               <Card key={type} className={`border-l-4 border-l-${data.color}-500`}>
                 <CardHeader className="pb-3">
@@ -855,7 +855,7 @@ export default function Tickets() {
                     {['new', 'assigned', 'in_progress', 'pending', 'resolved', 'closed'].map(status => {
                       const count = data.statuses[status] || 0;
                       if (count === 0) return null;
-                      
+
                       return (
                         <div key={status} className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
@@ -892,7 +892,7 @@ export default function Tickets() {
                         </div>
                       );
                     })}
-                    
+
                     {totalForType === 0 && (
                       <p className="text-sm text-gray-500 dark:text-gray-400 italic">
                         No tickets found
@@ -1253,12 +1253,12 @@ export default function Tickets() {
   const renderTypeSpecificStatusCards = (ticketType: string) => {
     const typeData = getStatusCountsByType();
     const data = typeData[ticketType];
-    
+
     if (!data) return null;
-    
+
     const IconComponent = data.icon;
     const totalForType = Object.values(data.statuses).reduce((sum: number, count: number) => sum + count, 0);
-    
+
     return (
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
@@ -1267,7 +1267,7 @@ export default function Tickets() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {['new', 'assigned', 'in_progress', 'pending', 'resolved', 'closed'].map(status => {
             const count = data.statuses[status] || 0;
-            
+
             return (
               <Card key={status} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => {
                 setSelectedStatus(status);
@@ -1301,7 +1301,7 @@ export default function Tickets() {
             );
           })}
         </div>
-        
+
         {totalForType === 0 && (
           <Card className="border-dashed">
             <CardContent className="p-8 text-center">

@@ -40,7 +40,7 @@ export default function Alerts() {
     try {
       // Get auth token from localStorage
       const token = localStorage.getItem('token');
-      
+
       // Call API to resolve the alert on the server
       const response = await fetch(`/api/alerts/${alertId}/resolve`, {
         method: 'POST',
@@ -54,7 +54,7 @@ export default function Alerts() {
         // Only update local state if API call succeeds
         setResolvedAlerts(prev => [...prev, alertId]);
         console.log(`Alert ${alertId} resolved successfully`);
-        
+
         // Refresh the alerts data
         setTimeout(() => {
           refetch();
@@ -71,10 +71,10 @@ export default function Alerts() {
 
   const handleMarkAllAsRead = async () => {
     if (!alerts) return;
-    
+
     try {
       const token = localStorage.getItem('token');
-      
+
       // Resolve all active alerts
       const promises = alerts
         .filter(alert => alert.is_active && !resolvedAlerts.includes(alert.id))
@@ -87,18 +87,18 @@ export default function Alerts() {
             },
           })
         );
-      
+
       await Promise.all(promises);
-      
+
       // Update local state
       setResolvedAlerts(alerts.map(alert => alert.id));
-      
+
       // Refresh data
       setTimeout(() => {
         refetch();
         queryClient.invalidateQueries({ queryKey: ["/api/alerts"] });
       }, 1000);
-      
+
       console.log('All alerts resolved successfully');
     } catch (error) {
       console.error('Error resolving all alerts:', error);

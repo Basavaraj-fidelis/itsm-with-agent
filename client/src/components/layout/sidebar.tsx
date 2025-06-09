@@ -275,7 +275,7 @@ export function Sidebar() {
             </div>
             {!isCollapsed && (
               <div className="flex-1">
-                <h1 className="text-xl font-bold text-[#201F1E] dark:text-[#F3F2F1] bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <h1 className="text-h4 font-bold text-[#201F1E] dark:text-[#F3F2F1] bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   Nexole ITSM
                 </h1>
                 <div className="flex items-center space-x-2 mt-1">

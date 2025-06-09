@@ -85,7 +85,7 @@ export default function KnowledgeBase() {
   // Check if we're viewing a specific article
   const articleMatch = location.match(/^\/knowledge-base\/(.+)$/);
   const articleId = articleMatch ? articleMatch[1] : null;
-  
+
 
   useEffect(() => {
     if (articleId) {
@@ -138,7 +138,7 @@ export default function KnowledgeBase() {
     try {
       setIsLoading(true);
       const response = await fetch(`/api/knowledge-base/${id}`);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch article: ${response.status}`);
       }
@@ -153,7 +153,7 @@ export default function KnowledgeBase() {
     }
   };
 
-  
+
 
   const categories = [
     "all",
@@ -314,11 +314,7 @@ export default function KnowledgeBase() {
         </div>
       </div>
 
-      {/* Quick Stats - REMOVED */}
-
       
-
-      {/* Enhanced Search and Filters */}
       <Card className="bg-white dark:bg-gray-800 shadow-sm border">
         <CardContent className="p-6">
           <div className="flex flex-col space-y-4">
@@ -396,7 +392,7 @@ export default function KnowledgeBase() {
               </div>
             )}
 
-            {/* Popular Tags */}
+            
             <div className="flex items-center space-x-2">
               <Label className="text-sm font-medium">Popular Tags:</Label>
               <div className="flex flex-wrap gap-1">
@@ -416,7 +412,7 @@ export default function KnowledgeBase() {
         </CardContent>
       </Card>
 
-      {/* Articles Layout */}
+      
       <Tabs defaultValue="grid" className="space-y-4">
         <div className="flex items-center justify-between">
           <TabsList className="grid w-[200px] grid-cols-2">

@@ -83,7 +83,7 @@ export default function Dashboard() {
     const activeTickets = tickets.filter(ticket => 
       !['resolved', 'closed', 'cancelled'].includes(ticket.status)
     );
-    
+
     const distribution = activeTickets.reduce((acc, ticket) => {
       acc[ticket.type] = (acc[ticket.type] || 0) + 1;
       return acc;
@@ -104,7 +104,7 @@ export default function Dashboard() {
     const activeTickets = tickets.filter(ticket => 
       !['resolved', 'closed', 'cancelled'].includes(ticket.status)
     );
-    
+
     const statusDistribution = activeTickets.reduce((acc, ticket) => {
       acc[ticket.status] = (acc[ticket.status] || 0) + 1;
       return acc;

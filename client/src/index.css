@@ -83,6 +83,48 @@
 }
 
 @layer components {
+  /* Typography Classes */
+  .text-h1 {
+    @apply text-3xl font-bold leading-tight tracking-tight;
+  }
+  
+  .text-h2 {
+    @apply text-2xl font-semibold leading-tight tracking-tight;
+  }
+  
+  .text-h3 {
+    @apply text-xl font-semibold leading-snug;
+  }
+  
+  .text-h4 {
+    @apply text-lg font-medium leading-snug;
+  }
+  
+  .text-body-large {
+    @apply text-base font-normal leading-relaxed;
+  }
+  
+  .text-body {
+    @apply text-sm font-normal leading-normal;
+  }
+  
+  .text-body-small {
+    @apply text-xs font-normal leading-normal;
+  }
+  
+  .text-caption {
+    @apply text-xs font-medium leading-tight uppercase tracking-wider;
+  }
+  
+  .text-label {
+    @apply text-sm font-medium leading-normal;
+  }
+  
+  .text-button {
+    @apply text-sm font-medium leading-none;
+  }
+
+  /* ITSM Color Classes */
   .itsm-primary {
     background-color: hsl(var(--itsm-primary));
   }
