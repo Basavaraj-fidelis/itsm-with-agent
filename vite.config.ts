@@ -40,7 +40,7 @@ export default defineConfig(async () => {
       allowedHosts: [
         // This is the specific host Replit is using.
         // You might need to adjust this if the host changes frequently.
-        "b4149b62-9f75-45a2-add2-1844da88ca10-00-2d05vszl2ig1s.pike.replit.dev",
+        "https://ae93378f-52bc-4ac2-8812-296dee9c7a0b-00-360pjqqna7hqg.sisko.replit.dev/",
         ".replit.dev", // A more generic wildcard for Replit domains
       ],
     },
