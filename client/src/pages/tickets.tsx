@@ -742,6 +742,22 @@ export default function Tickets() {
     return filtered;
   };
 
+  const getStatusCountsByType = () => {
+    const typeData = {
+      request: { name: 'Service Requests', icon: Ticket, color: 'green', statuses: {} },
+      incident: { name: 'Incidents', icon: AlertTriangle, color: 'red', statuses: {} },
+      problem: { name: 'Problems', icon: Wrench, color: 'orange', statuses: {} },
+      change: { name: 'Changes', icon: RefreshCw, color: 'blue', statuses: {} }
+    };
+
+    tickets.forEach(ticket => {
+      if (!typeData[ticket.type]) return;
+      typeData[ticket.type].statuses[ticket.status] = (typeData[ticket.type].statuses[ticket.status] || 0) + 1;
+    });
+
+    return typeData;
+  };
+
   const renderQuickStats = () => (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
       <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200">
@@ -809,6 +825,88 @@ export default function Tickets() {
       </Card>
     </div>
   );
+
+  const renderStatusCards = () => {
+    const statusCounts = getStatusCountsByType();
+    
+    return (
+      <div className="space-y-6">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          Ticket Status Overview by Type
+        </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+          {Object.entries(statusCounts).map(([type, data]) => {
+            const IconComponent = data.icon;
+            const totalForType = Object.values(data.statuses).reduce((sum: number, count: number) => sum + count, 0);
+            
+            return (
+              <Card key={type} className={`border-l-4 border-l-${data.color}-500`}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center text-lg">
+                    <IconComponent className={`w-5 h-5 mr-2 text-${data.color}-600`} />
+                    {data.name}
+                  </CardTitle>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Total: {totalForType} tickets
+                  </p>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="space-y-3">
+                    {['new', 'assigned', 'in_progress', 'pending', 'resolved', 'closed'].map(status => {
+                      const count = data.statuses[status] || 0;
+                      if (count === 0) return null;
+                      
+                      return (
+                        <div key={status} className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <div className={`w-2 h-2 rounded-full ${
+                              status === 'new' ? 'bg-blue-500' :
+                              status === 'assigned' ? 'bg-purple-500' :
+                              status === 'in_progress' ? 'bg-yellow-500' :
+                              status === 'pending' ? 'bg-orange-500' :
+                              status === 'resolved' ? 'bg-green-500' :
+                              'bg-gray-500'
+                            }`} />
+                            <span className="text-sm capitalize text-gray-700 dark:text-gray-300">
+                              {status.replace('_', ' ')}
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                              {count}
+                            </span>
+                            <Badge 
+                              variant="outline" 
+                              className={
+                                statusColors[status as keyof typeof statusColors] || "bg-gray-100 text-gray-800"
+                              }
+                              onClick={() => {
+                                setSelectedType(type);
+                                setSelectedStatus(status);
+                              }}
+                              style={{ cursor: 'pointer' }}
+                            >
+                              {Math.round((count / totalForType) * 100)}%
+                            </Badge>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    
+                    {totalForType === 0 && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                        No tickets found
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   const renderTicketTable = () => {
     const filteredTickets = getFilteredTickets();
@@ -1158,6 +1256,7 @@ export default function Tickets() {
         return (
           <>
             {renderQuickStats()}
+            {renderStatusCards()}
             {renderTicketTable()}
           </>
         );
