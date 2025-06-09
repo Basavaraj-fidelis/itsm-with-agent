@@ -4,7 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { MetricCard } from "@/components/agent-detail/metric-card";
 import AgentTabs from "@/components/agent-detail/agent-tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useAgent } from "@/hooks/use-agents";
 import { useState } from "react";
 import {
@@ -31,7 +36,7 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -47,7 +52,10 @@ export default function AgentDetail() {
           <div className="h-8 bg-neutral-200 dark:bg-neutral-700 rounded mb-4"></div>
           <div className="grid grid-cols-4 gap-6 mb-6">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 bg-neutral-200 dark:bg-neutral-700 rounded"></div>
+              <div
+                key={i}
+                className="h-32 bg-neutral-200 dark:bg-neutral-700 rounded"
+              ></div>
             ))}
           </div>
           <div className="h-96 bg-neutral-200 dark:bg-neutral-700 rounded"></div>
@@ -78,28 +86,32 @@ export default function AgentDetail() {
     );
   }
 
-  const cpuUsage = agent.latest_report?.cpu_usage 
-    ? parseFloat(parseFloat(agent.latest_report.cpu_usage).toFixed(2)) 
+  const cpuUsage = agent.latest_report?.cpu_usage
+    ? parseFloat(parseFloat(agent.latest_report.cpu_usage).toFixed(2))
     : 0;
 
-  const memoryUsage = agent.latest_report?.memory_usage 
-    ? parseFloat(parseFloat(agent.latest_report.memory_usage).toFixed(2)) 
+  const memoryUsage = agent.latest_report?.memory_usage
+    ? parseFloat(parseFloat(agent.latest_report.memory_usage).toFixed(2))
     : 0;
 
-  const diskUsage = agent.latest_report?.disk_usage 
-    ? parseFloat(parseFloat(agent.latest_report.disk_usage).toFixed(2)) 
+  const diskUsage = agent.latest_report?.disk_usage
+    ? parseFloat(parseFloat(agent.latest_report.disk_usage).toFixed(2))
     : 0;
 
-  const networkIO = agent.latest_report?.network_io 
-    ? parseInt(agent.latest_report.network_io) 
+  const networkIO = agent.latest_report?.network_io
+    ? parseInt(agent.latest_report.network_io)
     : 0;
-
 
   return (
     <div className="p-6 space-y-6">
       {/* Breadcrumb */}
       <nav className="text-sm text-neutral-600 mb-4">
-        <Link href="/agents" className="hover:text-neutral-900 dark:hover:text-neutral-100">Agents</Link>
+        <Link
+          href="/agents"
+          className="hover:text-neutral-900 dark:hover:text-neutral-100"
+        >
+          Agents
+        </Link>
         <span className="mx-2">/</span>
         <span>{agent.hostname}</span>
       </nav>
@@ -108,9 +120,9 @@ export default function AgentDetail() {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Link href="/agents">
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="flex items-center space-x-2 border-orange-200 text-orange-700 hover:bg-orange-50 hover:border-orange-300 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -129,12 +141,17 @@ export default function AgentDetail() {
               <div className="flex items-center space-x-4 text-sm text-neutral-600">
                 <StatusBadge status={agent.status} />
                 <span>
-                  Last seen {agent.latest_report?.collected_at 
-                    ? formatDistanceToNow(new Date(agent.latest_report.collected_at), { addSuffix: true })
+                  Last seen{" "}
+                  {agent.latest_report?.collected_at
+                    ? formatDistanceToNow(
+                        new Date(agent.latest_report.collected_at),
+                        { addSuffix: true },
+                      )
                     : agent.last_seen
-                    ? formatDistanceToNow(new Date(agent.last_seen), { addSuffix: true })
-                    : 'never'
-                  }
+                      ? formatDistanceToNow(new Date(agent.last_seen), {
+                          addSuffix: true,
+                        })
+                      : "never"}
                 </span>
               </div>
             </div>
@@ -142,9 +159,9 @@ export default function AgentDetail() {
         </div>
 
         <div className="flex items-center space-x-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             className="flex items-center space-x-2"
             onClick={() => {
               window.location.reload();
@@ -153,20 +170,22 @@ export default function AgentDetail() {
             <RefreshCw className="w-4 h-4" />
             <span>Refresh</span>
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             className="flex items-center space-x-2"
             onClick={() => {
               const data = {
                 agent: agent,
                 exportedAt: new Date().toISOString(),
               };
-              const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+              const blob = new Blob([JSON.stringify(data, null, 2)], {
+                type: "application/json",
+              });
               const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
+              const a = document.createElement("a");
               a.href = url;
-              a.download = `agent-${agent.hostname}-${new Date().toISOString().split('T')[0]}.json`;
+              a.download = `agent-${agent.hostname}-${new Date().toISOString().split("T")[0]}.json`;
               document.body.appendChild(a);
               a.click();
               document.body.removeChild(a);
@@ -176,9 +195,9 @@ export default function AgentDetail() {
             <Download className="w-4 h-4" />
             <span>Export Data</span>
           </Button>
-          <Button 
-            variant="default" 
-            size="sm" 
+          <Button
+            variant="default"
+            size="sm"
             className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
             onClick={() => setShowVNCModal(true)}
           >
@@ -203,7 +222,9 @@ export default function AgentDetail() {
           value={`${Math.round(memoryUsage)}%`}
           icon={MemoryStick}
           progress={memoryUsage}
-          color={memoryUsage >= 90 ? "red" : memoryUsage >= 70 ? "yellow" : "green"}
+          color={
+            memoryUsage >= 90 ? "red" : memoryUsage >= 70 ? "yellow" : "green"
+          }
         />
 
         <MetricCard
@@ -216,7 +237,11 @@ export default function AgentDetail() {
 
         <MetricCard
           title="Network I/O"
-          value={networkIO > 0 ? `${Math.round(networkIO / 1024 / 1024)} MB/s` : "0 MB/s"}
+          value={
+            networkIO > 0
+              ? `${Math.round(networkIO / 1024 / 1024)} MB/s`
+              : "0 MB/s"
+          }
           icon={Network}
           color="blue"
         />
@@ -235,14 +260,20 @@ export default function AgentDetail() {
                 Remote Desktop - {agent.hostname}
               </DialogTitle>
               <div className="flex items-center gap-2">
-                <Badge variant={agent.status === 'online' ? 'default' : 'destructive'}>
+                <Badge
+                  variant={
+                    agent.status === "online" ? "default" : "destructive"
+                  }
+                >
                   {agent.status}
                 </Badge>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    const iframe = document.querySelector('iframe[title*="VNC"]') as HTMLIFrameElement;
+                    const iframe = document.querySelector(
+                      'iframe[title*="VNC"]',
+                    ) as HTMLIFrameElement;
                     if (iframe) {
                       iframe.src = iframe.src; // Reload iframe
                     }
@@ -255,18 +286,22 @@ export default function AgentDetail() {
             </div>
           </DialogHeader>
           <div className="flex-1 p-4 pt-0 bg-gray-900">
-            {agent.status !== 'online' ? (
+            {agent.status !== "online" ? (
               <div className="flex flex-col items-center justify-center h-full text-white">
                 <XCircle className="w-16 h-16 text-red-400 mb-4" />
                 <h3 className="text-xl font-semibold mb-2">Agent Offline</h3>
                 <p className="text-gray-300 text-center mb-4">
-                  The agent {agent.hostname} is currently offline. Remote desktop connection is not available.
+                  The agent {agent.hostname} is currently offline. Remote
+                  desktop connection is not available.
                 </p>
                 <div className="text-sm text-gray-400">
-                  Last seen: {agent.latest_report?.collected_at 
-                    ? formatDistanceToNow(new Date(agent.latest_report.collected_at), { addSuffix: true })
-                    : 'never'
-                  }
+                  Last seen:{" "}
+                  {agent.latest_report?.collected_at
+                    ? formatDistanceToNow(
+                        new Date(agent.latest_report.collected_at),
+                        { addSuffix: true },
+                      )
+                    : "never"}
                 </div>
               </div>
             ) : (
@@ -276,13 +311,13 @@ export default function AgentDetail() {
                   className="w-full h-full border-0 rounded bg-black"
                   title={`VNC connection to ${agent.hostname}`}
                   onLoad={() => {
-                    console.log('VNC iframe loaded');
+                    console.log("VNC iframe loaded");
                   }}
                   onError={() => {
-                    console.error('VNC iframe failed to load');
+                    console.error("VNC iframe failed to load");
                   }}
                 />
-                
+
                 {/* Connection overlay with instructions */}
                 <div className="absolute top-4 left-4 bg-black/80 text-white p-3 rounded-lg max-w-md">
                   <h4 className="font-semibold mb-2 flex items-center gap-2">
@@ -291,7 +326,7 @@ export default function AgentDetail() {
                   </h4>
                   <div className="text-sm space-y-1">
                     <div>Host: {agent.hostname}</div>
-                    <div>IP: {agent.ip_address || 'Unknown'}</div>
+                    <div>IP: {agent.ip_address || "Unknown"}</div>
                     <div>VNC Port: 5900</div>
                     <div className="text-yellow-300 mt-2">
                       ⚠️ Ensure VNC server is running on the target machine
@@ -308,13 +343,13 @@ export default function AgentDetail() {
                     <div>• Check firewall settings (port 5900)</div>
                     <div>• Verify network connectivity</div>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="mt-2 w-full text-black"
                     onClick={() => {
                       // Open agent management guide
-                      window.open('/knowledge-base', '_blank');
+                      window.open("/knowledge-base", "_blank");
                     }}
                   >
                     <HelpCircle className="w-3 h-3 mr-1" />
@@ -325,7 +360,8 @@ export default function AgentDetail() {
             )}
           </div>
         </DialogContent>
-      </Dialog></old_str>
+      </Dialog>
+      </old_str>
     </div>
   );
 }
