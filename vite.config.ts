@@ -31,17 +31,10 @@ export default defineConfig(async () => {
     server: {
       host: "0.0.0.0",
       port: 5173,
-      allowedHosts: true, // ✅ This is a boolean, not string
-      origin: "*",
-      cors: true,
+      strictPort: true,
       hmr: {
         port: 5174,
         host: "0.0.0.0",
-        clientPort: 443,
-      },
-      watch: {
-        usePolling: true,
-        interval: 1000,
       },
     },
   };

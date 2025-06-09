@@ -968,6 +968,7 @@ export default function Tickets() {
                 <p className="text-lg font-semibold text-red-600">{slaMetrics.slaViolations}</p>
               </div>
             </div>
+          </div>
           </CardContent>
         </Card>
       </Card>
