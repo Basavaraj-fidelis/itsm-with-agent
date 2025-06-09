@@ -51,8 +51,8 @@ class SecurityService {
     if (!activePolicy) return;
 
     for (const device of usbDevices) {
-      const vendorId = this.extractVendorId(device.device_id);
-      const deviceType = this.categorizeUSBDevice(device.description);
+      const vendorId = this.extractVendorId(device.device_id || device.id || "");
+      const deviceType = this.categorizeUSBDevice(device.description || device.name || "");
       
       let isViolation = false;
       let violationReason = "";

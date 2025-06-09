@@ -13,6 +13,9 @@ import { tickets } from "@shared/ticket-schema";
 import userStorage from './user-storage';
 import knowledgeStorage from './knowledge-storage';
 import ticketStorage from './ticket-storage';
+import { securityService } from "./security-service";
+import { performanceService } from "./performance-service";
+import { automationService } from "./automation-service";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
@@ -852,7 +855,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updateHistory = data.update_history || {};
       const windowsUpdates = securityInfo.windows_updates || {};
 
-      // Create device report with enhanced data
+      // Store the report with enhanced data structure
       await storage.createDeviceReport({
         device_id: device.id,
         cpu_usage: cpu_usage?.toString() || null,
@@ -884,6 +887,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           extracted_virtualization: data.virtualization,
           processed_at: new Date().toISOString()
         })
+      });
+
+      // Process data through security service
+      if (usbDevices.length > 0) {
+        await securityService.checkUSBCompliance(device.id, usbDevices);
+      }
+
+      if (data.installed_software) {
+        await securityService.checkSoftwareLicenseCompliance(device.id, data.installed_software);
+      }
+
+      // Process data through performance service
+      await performanceService.updateBaselines(device.id, {
+        cpu_usage,
+        memory_usage,
+        disk_usage
       });
 
       // Smart alert system - update existing alerts instead of creating duplicates
