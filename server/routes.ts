@@ -852,10 +852,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Extract update information - enhanced to handle new structure
       const securityInfo = data.security || {};
-      const updateHistory = data.update_history || {};```text
+      const updateHistory = data.update_history || {};
       const windowsUpdates = securityInfo.windows_updates || {};
 
-      // Store the report with enhanced data structure
+      // Create device report with enhanced data
       await storage.createDeviceReport({
         device_id: device.id,
         cpu_usage: cpu_usage?.toString() || null,
