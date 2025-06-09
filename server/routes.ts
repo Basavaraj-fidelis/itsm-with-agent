@@ -63,6 +63,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("Demo users may already exist, continuing...", error);
   }
 
+  // Initialize enhanced storage tables
+  try {
+    const { enhancedStorage } = await import("./enhanced-storage");
+    await enhancedStorage.initializeEnhancedTables();
+    console.log("Enhanced storage tables initialized successfully");
+  } catch (error) {
+    console.log("Enhanced storage initialization error:", error);
+  }
+
   // Authentication routes
   app.post("/api/auth/login", async (req, res) => {
     try {
