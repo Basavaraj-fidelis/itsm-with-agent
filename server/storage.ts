@@ -2338,14 +2338,37 @@ smartphones
       .where(eq(alerts.id, alertId));
   }
 
+  async getAlertById(alertId: string): Promise<Alert | null> {
+    try {
+      const [alert] = await db
+        .select()
+        .from(alerts)
+        .where(eq(alerts.id, alertId));
+      
+      return alert || null;
+    } catch (error) {
+      console.error("Error fetching alert by ID:", error);
+      return null;
+    }
+  }
+
   async resolveAlert(alertId: string): Promise<void> {
-    await db
+    console.log(`Resolving alert in database: ${alertId}`);
+    
+    const result = await db
       .update(alerts)
       .set({
         is_active: false,
         resolved_at: new Date(),
       })
-      .where(eq(alerts.id, alertId));
+      .where(eq(alerts.id, alertId))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error(`Alert with ID ${alertId} not found`);
+    }
+    
+    console.log(`Alert ${alertId} successfully resolved in database`);
   }
 
   async getUSBDevicesForDevice(deviceId: string): Promise<any[]> {

@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { AlertTriangle, CheckCircle, Clock, RefreshCw, Eye, Monitor, Cpu, MemoryStick, HardDrive, Usb, Shield } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useAlerts } from "@/hooks/use-dashboard";
+import { useQueryClient } from "@tanstack/react-query";
 import { Filter } from "lucide-react";
 
 interface Alert {
@@ -24,9 +25,10 @@ interface Alert {
 }
 
 export default function Alerts() {
-  const { data: alerts, isLoading } = useAlerts();
+  const { data: alerts, isLoading, refetch } = useAlerts();
   const [activeFilter, setActiveFilter] = useState("all");
   const [resolvedAlerts, setResolvedAlerts] = useState<string[]>([]);
+  const queryClient = useQueryClient();
 
   const filteredAlerts = alerts?.filter(alert => {
     if (resolvedAlerts.includes(alert.id)) return false;
@@ -36,28 +38,70 @@ export default function Alerts() {
 
   const handleResolveAlert = async (alertId: string) => {
     try {
+      // Get auth token from localStorage
+      const token = localStorage.getItem('token');
+      
       // Call API to resolve the alert on the server
       const response = await fetch(`/api/alerts/${alertId}/resolve`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
       });
 
       if (response.ok) {
         // Only update local state if API call succeeds
         setResolvedAlerts(prev => [...prev, alertId]);
+        console.log(`Alert ${alertId} resolved successfully`);
+        
+        // Refresh the alerts data
+        setTimeout(() => {
+          refetch();
+          queryClient.invalidateQueries({ queryKey: ["/api/alerts"] });
+        }, 1000);
       } else {
-        console.error('Failed to resolve alert');
+        const errorData = await response.json();
+        console.error('Failed to resolve alert:', errorData.message || 'Unknown error');
       }
     } catch (error) {
       console.error('Error resolving alert:', error);
     }
   };
 
-  const handleMarkAllAsRead = () => {
-    if (alerts) {
+  const handleMarkAllAsRead = async () => {
+    if (!alerts) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Resolve all active alerts
+      const promises = alerts
+        .filter(alert => alert.is_active && !resolvedAlerts.includes(alert.id))
+        .map(alert => 
+          fetch(`/api/alerts/${alert.id}/resolve`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+          })
+        );
+      
+      await Promise.all(promises);
+      
+      // Update local state
       setResolvedAlerts(alerts.map(alert => alert.id));
+      
+      // Refresh data
+      setTimeout(() => {
+        refetch();
+        queryClient.invalidateQueries({ queryKey: ["/api/alerts"] });
+      }, 1000);
+      
+      console.log('All alerts resolved successfully');
+    } catch (error) {
+      console.error('Error resolving all alerts:', error);
     }
   };
 

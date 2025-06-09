@@ -280,14 +280,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get single alert endpoint  
+  app.get("/api/alerts/:id", authenticateToken, async (req, res) => {
+    try {
+      const alertId = req.params.id;
+      console.log(`Fetching alert: ${alertId}`);
+      
+      const alert = await storage.getAlertById(alertId);
+      
+      if (!alert) {
+        return res.status(404).json({ message: "Alert not found" });
+      }
+      
+      res.json(alert);
+    } catch (error) {
+      console.error("Error fetching alert:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Resolve alert endpoint
   app.post("/api/alerts/:id/resolve", authenticateToken, async (req, res) => {
     try {
-      await storage.resolveAlert(req.params.id);
-      res.json({ message: "Alert resolved successfully" });
+      const alertId = req.params.id;
+      console.log(`Attempting to resolve alert: ${alertId}`);
+      
+      await storage.resolveAlert(alertId);
+      console.log(`Alert ${alertId} resolved successfully`);
+      
+      res.json({ 
+        message: "Alert resolved successfully",
+        alertId: alertId,
+        success: true
+      });
     } catch (error) {
       console.error("Error resolving alert:", error);
-      res.status(500).json({ message: "Internal server error" });
+      res.status(500).json({ 
+        message: "Internal server error",
+        error: error.message 
+      });
     }
   });
 
