@@ -15,10 +15,10 @@ import { useLocation } from "wouter";
 
 interface ServiceDeskSidebarProps {
   activeTab: string;
-  onTabChange: (tab: string) => void;
+  setActiveTab: (tab: string) => void;
 }
 
-export default function ServiceDeskSidebar({ activeTab, onTabChange }: ServiceDeskSidebarProps) {
+export default function ServiceDeskSidebar({ activeTab, setActiveTab }: ServiceDeskSidebarProps) {
   const serviceDeskNavigation = [
     {
       id: "overview",
@@ -89,7 +89,7 @@ export default function ServiceDeskSidebar({ activeTab, onTabChange }: ServiceDe
           {serviceDeskNavigation.map((item) => (
             <li key={item.id}>
               <button
-                onClick={() => onTabChange(item.id)}
+                onClick={() => setActiveTab(item.id)}
                 className={cn(
                   "w-full flex items-start space-x-3 p-3 rounded-lg text-left transition-colors",
                   activeTab === item.id

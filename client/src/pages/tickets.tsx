@@ -531,212 +531,16 @@ export default function Tickets() {
     return actions;
   };
 
-  const slaMetrics = getSLAMetrics();
-  const statusDistribution = getStatusDistribution();
-
-  const renderTicketFiltersAndList = (ticketsToShow: TicketData[]) => {
-    const filteredTickets = ticketsToShow.filter((ticket) => {
-      const matchesSearch = ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           ticket.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           ticket.ticket_number.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = selectedStatus === "all" || ticket.status === selectedStatus;
-      const matchesPriority = selectedPriority === "all" || ticket.priority === selectedPriority;
-
-      return matchesSearch && matchesStatus && matchesPriority;
-    });
-
-    return (
-      <>
-        {/* Filters */}
-        <div className="flex flex-wrap gap-4 items-center bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border mb-6">
-          <div className="flex items-center space-x-2">
-            <Search className="w-4 h-4 text-neutral-500" />
-            <Input
-              placeholder="Search tickets..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-64"
-            />
-          </div>
-
-          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="new">New</SelectItem>
-              <SelectItem value="assigned">Assigned</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="resolved">Resolved</SelectItem>
-              <SelectItem value="closed">Closed</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={selectedPriority} onValueChange={setSelectedPriority}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Priority" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Priority</SelectItem>
-              <SelectItem value="low">Low</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="critical">Critical</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Button variant="outline" size="sm">
-            <Download className="w-4 h-4 mr-2" />
-            Export
-          </Button>
-        </div>
-
-        {/* Tickets List */}
-        <div className="space-y-4">
-          {filteredTickets.length === 0 ? (
-            <div className="text-center py-12">
-              <Ticket className="w-16 h-16 text-neutral-400 mx-auto mb-4" />
-              <p className="text-xl font-medium text-neutral-600 mb-2">No tickets found</p>
-              <p className="text-neutral-500">Try adjusting your filters or create a new ticket</p>
-            </div>
-          ) : (
-            filteredTickets.map((ticket) => {
-              const IconComponent = typeIcons[ticket.type as keyof typeof typeIcons];
-              const isOverdue = ticket.due_date && new Date(ticket.due_date) < new Date();
-
-              return (
-                <Card 
-                  key={ticket.id} 
-                  className={cn(
-                    "cursor-pointer hover:shadow-lg transition-all duration-200 border-l-4",
-                    ticket.priority === "critical" ? "border-l-red-500 bg-red-50/50 dark:bg-red-900/10" :
-                    ticket.priority === "high" ? "border-l-orange-500 bg-orange-50/50 dark:bg-orange-900/10" :
-                    ticket.priority === "medium" ? "border-l-yellow-500 bg-yellow-50/50 dark:bg-yellow-900/10" :
-                    "border-l-blue-500 bg-blue-50/50 dark:bg-blue-900/10",
-                    isOverdue && "ring-2 ring-red-200"
-                  )}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setLocation(`/tickets/${ticket.id}`);
-                  }}
-                >
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start space-x-4 flex-1">
-                        <div className={cn(
-                          "p-3 rounded-xl",
-                          ticket.type === 'incident' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
-                          ticket.type === 'problem' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' :
-                          ticket.type === 'change' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
-                          'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
-                        )}>
-                          <IconComponent className="w-5 h-5" />
-                        </div>
-
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <span className="font-mono text-sm font-semibold text-neutral-600 dark:text-neutral-400">
-                              {ticket.ticket_number}
-                            </span>
-                            <Badge 
-                              variant="outline" 
-                              className={priorityColors[ticket.priority as keyof typeof priorityColors]}
-                            >
-                              {ticket.priority.toUpperCase()}
-                            </Badge>
-                            <Badge 
-                              variant="outline"
-                              className={statusColors[ticket.status as keyof typeof statusColors]}
-                            >
-                              {ticket.status.replace('_', ' ').toUpperCase()}
-                            </Badge>
-                            {isOverdue && (
-                              <Badge variant="destructive" className="animate-pulse">
-                                OVERDUE
-                              </Badge>
-                            )}
-                          </div>
-
-                          <h3 className="font-semibold text-lg text-neutral-900 dark:text-neutral-100 mb-2">
-                            {ticket.title}
-                          </h3>
-
-                          <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-3 line-clamp-2">
-                            {ticket.description}
-                          </p>
-
-                          <div className="flex items-center space-x-6 text-xs text-neutral-500 dark:text-neutral-400">
-                            <div className="flex items-center space-x-1">
-                              <User className="w-3 h-3" />
-                              <span>{ticket.requester_email}</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Calendar className="w-3 h-3" />
-                              <span>Created: {formatDate(ticket.created_at)}</span>
-                            </div>
-                            {ticket.assigned_to && (
-                              <div className="flex items-center space-x-1">
-                                <UserCheck className="w-3 h-3" />
-                                <span>Assigned: {ticket.assigned_to}</span>
-                              </div>
-                            )}
-                            {ticket.due_date && (
-                              <div className="flex items-center space-x-1">
-                                <Clock className="w-3 h-3" />
-                                <span className={isOverdue ? "text-red-600 font-medium" : ""}>
-                                  Due: {formatDate(ticket.due_date)}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <Button variant="ghost" size="sm">
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })
-          )}
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center space-x-2 mt-6">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchTickets(currentPage - 1)}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </Button>
-              <span className="text-sm text-neutral-600">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchTickets(currentPage + 1)}
-                disabled={currentPage === totalPages}
-              >
-                Next
-              </Button>
-            </div>
-          )}
-        </div>
-      </>
-    );
+  // Calculate ticket metrics
+  const ticketMetrics = {
+    total: tickets.length,
+    open: tickets.filter(t => !["resolved", "closed", "cancelled"].includes(t.status)).length,
+    resolved: tickets.filter(t => ["resolved", "closed"].includes(t.status)).length,
+    critical: tickets.filter(t => t.priority === "critical" && !["resolved", "closed", "cancelled"].includes(t.status)).length
   };
 
-  const totalTickets = tickets.length;
-  const openTickets = tickets.filter(t => !["resolved", "closed", "cancelled"].includes(t.status)).length;
-  const resolvedTickets = tickets.filter(t => ["resolved", "closed"].includes(t.status)).length;
-  const criticalTickets = tickets.filter(t => t.priority === "critical" && !["resolved", "closed", "cancelled"].includes(t.status)).length;
+  const slaMetrics = getSLAMetrics();
+  const statusDistribution = getStatusDistribution();
 
   const getActiveTabTitle = () => {
     switch (activeTab) {
@@ -810,7 +614,7 @@ export default function Tickets() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Total Tickets</p>
-              <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">{totalTickets}</p>
+              <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">{ticketMetrics.total}</p>
             </div>
             <FileText className="h-8 w-8 text-blue-600 dark:text-blue-400" />
           </div>
@@ -1046,119 +850,7 @@ export default function Tickets() {
     );
   };
 
-   const getStatusDistribution = () => {
-    const statusCounts = tickets.reduce((acc, ticket) => {
-      acc[ticket.status] = (acc[ticket.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return statusCounts;
-  };
-
-  const renderWorkflowActions = (ticket: TicketData) => {
-    const actions = [];
-
-    switch (ticket.status) {
-      case "new":
-        actions.push(
-          <Button 
-            key="assign" 
-            variant="default" 
-            size="sm"
-            onClick={() => handleUpdateTicketStatus(ticket.id, "assigned")}
-          >
-            Assign to Self
-          </Button>
-        );
-        actions.push(
-          <Button 
-            key="in_progress" 
-            variant="outline" 
-            size="sm"
-            onClick={() => handleUpdateTicketStatus(ticket.id, "in_progress")}
-          >
-            Mark as In Progress
-          </Button>
-        );
-        break;
-      case "assigned":
-        actions.push(
-          <Button 
-            key="in_progress" 
-            variant="default" 
-            size="sm"
-            onClick={() => handleUpdateTicketStatus(ticket.id, "in_progress")}
-          >
-            Mark as In Progress
-          </Button>
-        );
-        break;
-      case "in_progress":
-        actions.push(
-          <Button 
-            key="pending" 
-            variant="outline" 
-            size="sm"
-            onClick={() => handleUpdateTicketStatus(ticket.id, "pending")}
-          >
-            Mark as Pending
-          </Button>
-        );
-        actions.push(
-          <Button 
-            key="resolved" 
-            variant="default" 
-            size="sm"
-            onClick={() => handleUpdateTicketStatus(ticket.id, "resolved")}
-          >
-            Mark as Resolved
-          </Button>
-        );
-        break;
-      case "pending":
-        actions.push(
-          <Button 
-            key="in_progress" 
-            variant="outline" 
-            size="sm"
-            onClick={() => handleUpdateTicketStatus(ticket.id, "in_progress")}
-          >
-            Mark as In Progress
-          </Button>
-        );
-        break;
-      case "resolved":
-        actions.push(
-          <Button 
-            key="closed" 
-            variant="default" 
-            size="sm"
-            onClick={() => handleUpdateTicketStatus(ticket.id, "closed")}
-          >
-            Close Ticket
-          </Button>
-        );
-        break;
-      default:
-        break;
-    }
-
-    return actions;
-  };
-  const getSLAMetrics = () => {
-    const openTickets = tickets.filter(t => !['resolved', 'closed', 'cancelled'].includes(t.status));
-    const slaViolations = openTickets.filter(t => {
-      if (!t.due_date) return false;
-      return new Date(t.due_date) < new Date();
-    });
-
-    return {
-      totalOpen: openTickets.length,
-      slaViolations: slaViolations.length,
-      slaCompliance: openTickets.length > 0 ? 
-        Math.round(((openTickets.length - slaViolations.length) / openTickets.length) * 100) : 100
-    };
-  };
+   
   const renderAnalytics = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Analytics Charts */}
@@ -1313,14 +1005,14 @@ export default function Tickets() {
             </p>
           </div>
         </div>
-</Card>
-        </div>
-      )}
 
-      {/* New Ticket Dialog */}
-    
-      {/* Edit Ticket Dialog */}
-       {/* Add Comment Dialog */}
+        {/* Main Content */}
+        <div className="flex-1 p-6 overflow-auto">
+          {renderActiveTabContent()}
+        </div>
+      </div>
+
+      {/* Dialogs can be added here when needed */}
     </div>
   );
 }
