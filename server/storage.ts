@@ -945,7 +945,7 @@ netsh int ip reset
 
 ### Overheating While Charging
 - **Clean Vents**: Use compressed air to clear dust from cooling vents
-- **Hard Surface**: Use laptop on hard, flat surface for airflow
+- **Hard Surface**: Use laptop on hard, flat surface forairflow
 - **Reduce Load**: Close intensive programs whilecharging
 - **Contact IT**: If overheating persists, hardware inspection needed
 
@@ -2049,7 +2049,7 @@ ipconfig /flushdns
 4. **Verify**: Enter code from app to complete setup
 
 ### Alternative Methods
-- **Text Messages**: Less secure, use only if app unavailable
+- **Text Messages: Less secure, use only if app unavailable
 - **Phone Calls**: For the next line.
 smartphones
 - **Hardware Tokens**: For high-security accounts
@@ -2328,7 +2328,18 @@ smartphones
     return result[0] || null;
   }
 
-  async updateAlert(alertId: string, updates: Partial<Alert>): Promise<void> {
+  async getRecentDeviceReports(deviceId: string, limit: number = 30) {
+    const result = await db
+      .select()
+      .from(device_reports)
+      .where(eq(device_reports.device_id, deviceId))
+      .orderBy(desc(device_reports.collected_at))
+      .limit(limit);
+
+    return result;
+  }
+
+  async updateAlert(alertId: string, updates: any) {
     await db
       .update(alerts)
       .set({
@@ -2344,7 +2355,7 @@ smartphones
         .select()
         .from(alerts)
         .where(eq(alerts.id, alertId));
-      
+
       return alert || null;
     } catch (error) {
       console.error("Error fetching alert by ID:", error);
@@ -2354,7 +2365,7 @@ smartphones
 
   async resolveAlert(alertId: string): Promise<void> {
     console.log(`Resolving alert in database: ${alertId}`);
-    
+
     const result = await db
       .update(alerts)
       .set({
@@ -2363,11 +2374,11 @@ smartphones
       })
       .where(eq(alerts.id, alertId))
       .returning();
-    
+
     if (result.length === 0) {
       throw new Error(`Alert with ID ${alertId} not found`);
     }
-    
+
     console.log(`Alert ${alertId} successfully resolved in database`);
   }
 
@@ -2414,7 +2425,7 @@ smartphones
           const vidMatch = device.device_id.match(/VID_([0-9A-Fa-f]+)/);
           const pidMatch = device.device_id.match(/PID_([0-9A-Fa-f]+)/);
           const serialMatch = device.device_id.match(/\\([^\\]+)$/);
-          
+
           if (vidMatch) vendor_id = vidMatch[1];
           if (pidMatch) product_id = pidMatch[1];
           if (serialMatch && !serial_number) serial_number = serialMatch[1];

@@ -135,8 +135,8 @@ class PerformanceService {
     const predictions: ResourcePrediction[] = [];
     
     // Get historical data for the last 30 days
-    const reports = await storage.getDeviceReports(deviceId);
-    const recentReports = reports.slice(-30); // Last 30 reports
+    const reports = await storage.getRecentDeviceReports(deviceId, 30);
+    const recentReports = reports; // Already limited to recent reports
     
     if (recentReports.length < 7) {
       return predictions; // Need at least a week of data
@@ -198,7 +198,7 @@ class PerformanceService {
   }
 
   async getApplicationPerformanceInsights(deviceId: string): Promise<any> {
-    const reports = await storage.getDeviceReports(deviceId);
+    const reports = await storage.getRecentDeviceReports(deviceId, 1);
     const recentReport = reports[0];
     
     if (!recentReport?.raw_data) {
