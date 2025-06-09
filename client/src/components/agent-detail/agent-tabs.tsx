@@ -165,15 +165,14 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
   useEffect(() => {
     const fetchUSBHistory = async () => {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          console.warn('No authentication token found');
-          return;
-        }
+        const token = localStorage.getItem('auth_token');
+        console.log('Fetching USB devices for agent:', agent.id, 'with token:', !!token);
 
         const response = await fetch(`/api/devices/${agent.id}/usb-devices`, {
-          headers: {
+          headers: token ? {
             'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          } : {
             'Content-Type': 'application/json'
           }
         });

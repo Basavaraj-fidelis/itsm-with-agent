@@ -2397,6 +2397,8 @@ smartphones
           if (serialMatch && !serial_number) serial_number = serialMatch[1];
         }
 
+        console.log(`Processing USB device: ${device.description}, VID: ${vendor_id}, PID: ${product_id}, Serial: ${serial_number}`);
+
         // Create a unique identifier for the device (prefer vendor_id:product_id combo or serial)
         const deviceIdentifier = vendor_id && product_id 
           ? `${vendor_id}:${product_id}:${serial_number || 'no-serial'}`

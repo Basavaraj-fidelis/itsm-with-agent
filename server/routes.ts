@@ -379,9 +379,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/devices/:id/usb-devices", authenticateToken, async (req, res) => {
+  app.get("/api/devices/:id/usb-devices", async (req, res) => {
     try {
+      console.log(`Fetching USB devices for device: ${req.params.id}`);
       const usbDevices = await storage.getUSBDevicesForDevice(req.params.id);
+      console.log(`Found ${usbDevices.length} USB devices:`, usbDevices);
       res.json(usbDevices);
     } catch (error) {
       console.error("Error fetching USB devices:", error);
