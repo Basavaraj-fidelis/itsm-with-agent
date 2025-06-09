@@ -467,6 +467,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const hardware = data.hardware || data.system_info || {};
       const network = data.network || data.network_info || {};
 
+      // Extract user information - try to find real user, not system accounts
+      let currentUser = null;
+      const possibleUserSources = [
+        data.current_user,
+        data.user,
+        data.username,
+        data.assigned_user,
+        osInfo.current_user,
+        osInfo.user,
+        osInfo.username,
+        systemHealth.current_user,
+        hardware.current_user,
+        data.system_info?.current_user,
+        data.system_info?.user,
+        data.system_info?.username
+      ];
+
+      // Find first valid user that's not a system account
+      for (const user of possibleUserSources) {
+        if (user && 
+            typeof user === 'string' && 
+            !user.endsWith('$') && 
+            user !== 'Unknown' && 
+            user !== 'N/A' &&
+            !user.includes('SYSTEM') &&
+            !user.includes('NETWORK SERVICE') &&
+            !user.includes('LOCAL SERVICE')) {
+          currentUser = user;
+          break;
+        }
+      }
+
+      console.log("Extracted current user:", currentUser, "from hostname:", hostname);
+
       // Extract IP address and MAC addresses from various possible locations
       let ip_address = network.ip_address || network.ip || null;
       let mac_addresses = [];
@@ -508,7 +542,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!device) {
         device = await storage.createDevice({
           hostname: hostname,
-          assigned_user: data.assigned_user || data.user || null,
+          assigned_user: currentUser,
           os_name: osInfo.name || osInfo.platform || osInfo.system || null,
           os_version: osInfo.version || osInfo.release || osInfo.version_info || null,
           ip_address: ip_address,
@@ -517,16 +551,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         console.log("Created new device:", device.id);
       } else {
-        // Update existing device including IP address
+        // Update existing device including IP address and user
         await storage.updateDevice(device.id, {
-          assigned_user: data.assigned_user || data.user || device.assigned_user,
+          assigned_user: currentUser || device.assigned_user,
           os_name: osInfo.name || osInfo.platform || osInfo.system || device.os_name,
           os_version: osInfo.version || osInfo.release || osInfo.version_info || device.os_version,
           ip_address: ip_address || device.ip_address,
           status: "online",
           last_seen: new Date()
         });
-        console.log("Updated existing device:", device.id);
+        console.log("Updated existing device:", device.id, "with user:", currentUser);
       }
 
       // Extract metrics from various possible locations - handle nested objects
@@ -702,6 +736,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...req.body,
           extracted_mac_addresses: mac_addresses,
           extracted_usb_devices: usbDevices,
+          extracted_current_user: currentUser,
           processed_at: new Date().toISOString()
         })
       });

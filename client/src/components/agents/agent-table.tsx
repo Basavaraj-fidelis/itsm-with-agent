@@ -13,22 +13,28 @@ interface AgentTableProps {
 }
 
 const getDeviceIcon = (hostname: string) => {
-    const lowerHostname = hostname.toLowerCase();
-    if (lowerHostname.includes('server') || lowerHostname.includes('srv')) {
-      return Server;
-    } else if (lowerHostname.includes('laptop') || lowerHostname.includes('note')) {
-      return Laptop;
-    } else if (lowerHostname.includes('desktop') || lowerHostname.includes('pc')) {
-      return Monitor;
-    }
-    return Monitor; // Default
-  };
+  const lowerHostname = hostname.toLowerCase();
+  if (lowerHostname.includes("server") || lowerHostname.includes("srv")) {
+    return Server;
+  } else if (
+    lowerHostname.includes("laptop") ||
+    lowerHostname.includes("note")
+  ) {
+    return Laptop;
+  } else if (
+    lowerHostname.includes("desktop") ||
+    lowerHostname.includes("pc")
+  ) {
+    return Monitor;
+  }
+  return Monitor; // Default
+};
 
-  const getProgressBarColor = (value: number) => {
-    if (value >= 90) return "bg-red-500";
-    if (value >= 70) return "bg-yellow-500";
-    return "bg-green-500";
-  };
+const getProgressBarColor = (value: number) => {
+  if (value >= 90) return "bg-red-500";
+  if (value >= 70) return "bg-yellow-500";
+  return "bg-green-500";
+};
 
 export function AgentTable({ agents, isLoading }: AgentTableProps) {
   if (isLoading) {
@@ -40,7 +46,10 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
         <CardContent>
           <div className="animate-pulse space-y-4">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-16 bg-neutral-200 dark:bg-neutral-700 rounded"></div>
+              <div
+                key={i}
+                className="h-16 bg-neutral-200 dark:bg-neutral-700 rounded"
+              ></div>
             ))}
           </div>
         </CardContent>
@@ -52,7 +61,9 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
     <Card>
       <CardHeader>
         <CardTitle>All Agents</CardTitle>
-        <p className="text-sm text-neutral-600">Manage and monitor all connected agents</p>
+        <p className="text-sm text-neutral-600">
+          Manage and monitor all connected agents
+        </p>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
@@ -69,7 +80,46 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                   Assigned User
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                  Active IP
+                  
+                 
+                 
+                 
+                 
+                   
+                   
+                  
+                            
+                          
+                               
+                               
+                               
+                               
+ rawData.username;
+
+                                
+                               ""
+                               
+                              
+                               
+                               
+                               
+                               
+ rawData.username;
+
+                                
+                               ""
+                               
+                              ""
+                               
+                               
+                               
+                               
+                               
+                                 rawData.username;
+
+                                
+                               ""
+                               Active IP
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
                   Status
@@ -117,20 +167,49 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                             {(() => {
                               // Get assigned user from latest report or agent data
                               const latestReport = agent.latest_report;
-                              const rawData = latestReport?.raw_data
-                                ? typeof latestReport.raw_data === "string"
-                                  ? JSON.parse(latestReport.raw_data)
-                                  : latestReport.raw_data
-                                : {};
+                              let rawData = {};
                               
-                              const assignedUser = rawData.assigned_user || agent.assigned_user || rawData.current_user || rawData.user || rawData.username;
+                              try {
+                                rawData = latestReport?.raw_data
+                                  ? typeof latestReport.raw_data === "string"
+                                    ? JSON.parse(latestReport.raw_data)
+                                    : latestReport.raw_data
+                                  : {};
+                              } catch (e) {
+                                console.warn("Failed to parse raw_data:", e);
+                              }
                               
-                              // Filter out system accounts (those ending with $)
-                              if (!assignedUser || assignedUser.endsWith('$') || assignedUser === "Unknown") {
+                              // Try multiple sources for assigned user
+                              const assignedUser = 
+                                rawData.assigned_user || 
+                                agent.assigned_user || 
+                                rawData.current_user || 
+                                rawData.user || 
+                                rawData.username ||
+                                rawData.system_info?.current_user ||
+                                rawData.os_info?.current_user ||
+                                rawData.hardware?.current_user;
+                              
+                              // Filter out system accounts and invalid values
+                              if (!assignedUser || 
+                                  assignedUser.endsWith('$') || 
+                                  assignedUser === "Unknown" ||
+                                  assignedUser === "N/A" ||
+                                  assignedUser.includes("SYSTEM") ||
+                                  assignedUser.includes("NETWORK SERVICE") ||
+                                  assignedUser.includes("LOCAL SERVICE")) {
                                 return "?";
                               }
                               
-                              return assignedUser.charAt(0).toUpperCase();
+                              // Get first letter from username (handle domain\user and email formats)
+                              let username = assignedUser;
+                              if (username.includes('@')) {
+                                username = username.split("@")[0];
+                              } else if (username.includes('\\')) {
+                                username = username.split("\\")[1] || username;
+                              }
+                              
+                              return username.charAt(0).toUpperCase();
                             })()}
                           </span>
                         </div>
@@ -139,40 +218,91 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                             {(() => {
                               // Get assigned user from latest report or agent data
                               const latestReport = agent.latest_report;
-                              const rawData = latestReport?.raw_data
-                                ? typeof latestReport.raw_data === "string"
-                                  ? JSON.parse(latestReport.raw_data)
-                                  : latestReport.raw_data
-                                : {};
+                              let rawData = {};
                               
-                              const assignedUser = rawData.assigned_user || agent.assigned_user || rawData.current_user || rawData.user || rawData.username;
+                              try {
+                                rawData = latestReport?.raw_data
+                                  ? typeof latestReport.raw_data === "string"
+                                    ? JSON.parse(latestReport.raw_data)
+                                    : latestReport.raw_data
+                                  : {};
+                              } catch (e) {
+                                console.warn("Failed to parse raw_data:", e);
+                              }
                               
-                              // Filter out system accounts (those ending with $)
-                              if (!assignedUser || assignedUser.endsWith('$') || assignedUser === "Unknown") {
+                              // Try multiple sources for assigned user
+                              const assignedUser = 
+                                rawData.assigned_user || 
+                                agent.assigned_user || 
+                                rawData.current_user || 
+                                rawData.user || 
+                                rawData.username ||
+                                rawData.system_info?.current_user ||
+                                rawData.os_info?.current_user ||
+                                rawData.hardware?.current_user;
+                              
+                              console.log("Assigned user found:", assignedUser, "for agent:", agent.hostname);
+                              
+                              // Filter out system accounts and invalid values
+                              if (!assignedUser || 
+                                  assignedUser.endsWith('$') || 
+                                  assignedUser === "Unknown" ||
+                                  assignedUser === "N/A" ||
+                                  assignedUser.includes("SYSTEM") ||
+                                  assignedUser.includes("NETWORK SERVICE") ||
+                                  assignedUser.includes("LOCAL SERVICE")) {
                                 return "Unassigned";
                               }
                               
-                              // Return username part if it's an email
-                              return assignedUser.includes('@') ? assignedUser.split("@")[0] : assignedUser;
+                              // Return username part if it's an email or domain\user format
+                              if (assignedUser.includes('@')) {
+                                return assignedUser.split("@")[0];
+                              } else if (assignedUser.includes('\\')) {
+                                return assignedUser.split("\\")[1] || assignedUser;
+                              }
+                              
+                              return assignedUser;
                             })()}
                           </div>
                           <div className="text-sm text-neutral-500">
                             {(() => {
                               // Get assigned user from latest report or agent data
                               const latestReport = agent.latest_report;
-                              const rawData = latestReport?.raw_data
-                                ? typeof latestReport.raw_data === "string"
-                                  ? JSON.parse(latestReport.raw_data)
-                                  : latestReport.raw_data
-                                : {};
+                              let rawData = {};
                               
-                              const assignedUser = rawData.assigned_user || agent.assigned_user || rawData.current_user || rawData.user || rawData.username;
-                              
-                              // Filter out system accounts (those ending with $)
-                              if (!assignedUser || assignedUser.endsWith('$') || assignedUser === "Unknown") {
-                                return "No user assigned";
+                              try {
+                                rawData = latestReport?.raw_data
+                                  ? typeof latestReport.raw_data === "string"
+                                    ? JSON.parse(latestReport.raw_data)
+                                    : latestReport.raw_data
+                                  : {};
+                              } catch (e) {
+                                console.warn("Failed to parse raw_data:", e);
                               }
                               
+                              // Try multiple sources for assigned user
+                              const assignedUser = 
+                                rawData.assigned_user || 
+                                agent.assigned_user || 
+                                rawData.current_user || 
+                                rawData.user || 
+                                rawData.username ||
+                                rawData.system_info?.current_user ||
+                                rawData.os_info?.current_user ||
+                                rawData.hardware?.current_user;
+                              
+                              // Filter out system accounts and invalid values
+                              if (!assignedUser || 
+                                  assignedUser.endsWith('$') || 
+                                  assignedUser === "Unknown" ||
+                                  assignedUser === "N/A" ||
+                                  assignedUser.includes("SYSTEM") ||
+                                  assignedUser.includes("NETWORK SERVICE") ||
+                                  assignedUser.includes("LOCAL SERVICE")
+                              ) {
+                                return "No user assigned";
+                              }
+
                               return assignedUser;
                             })()}
                           </div>
@@ -192,7 +322,10 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
 
                           // Function to get Ethernet IP
                           const getEthernetIP = () => {
-                            const interfaces = rawData.network?.interfaces || agent.network?.interfaces || [];
+                            const interfaces =
+                              rawData.network?.interfaces ||
+                              agent.network?.interfaces ||
+                              [];
                             for (const iface of interfaces) {
                               const name = iface.name?.toLowerCase() || "";
                               if (
@@ -221,7 +354,10 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
 
                           // Function to get WiFi IP
                           const getWiFiIP = () => {
-                            const interfaces = rawData.network?.interfaces || agent.network?.interfaces || [];
+                            const interfaces =
+                              rawData.network?.interfaces ||
+                              agent.network?.interfaces ||
+                              [];
                             for (const iface of interfaces) {
                               const name = iface.name?.toLowerCase() || "";
                               if (
@@ -249,11 +385,18 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
 
                           // Function to get any active IP
                           const getAnyActiveIP = () => {
-                            const interfaces = rawData.network?.interfaces || agent.network?.interfaces || [];
+                            const interfaces =
+                              rawData.network?.interfaces ||
+                              agent.network?.interfaces ||
+                              [];
                             for (const iface of interfaces) {
                               const name = iface.name?.toLowerCase() || "";
-                              const isVirtual = name.includes("virtual") || name.includes("veth") || name.includes("docker") || name.includes("vmware");
-                              
+                              const isVirtual =
+                                name.includes("virtual") ||
+                                name.includes("veth") ||
+                                name.includes("docker") ||
+                                name.includes("vmware");
+
                               if (!isVirtual && iface.stats?.is_up !== false) {
                                 for (const addr of iface.addresses || []) {
                                   if (
@@ -282,7 +425,9 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                           if (anyIP) return anyIP;
 
                           // Fallback to agent data
-                          return agent.ip_address || rawData.ip_address || "N/A";
+                          return (
+                            agent.ip_address || rawData.ip_address || "N/A"
+                          );
                         })()}
                       </div>
                     </td>
@@ -290,10 +435,11 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                       <StatusBadge status={agent.status} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
-                      {agent.last_seen 
-                        ? formatDistanceToNow(new Date(agent.last_seen), { addSuffix: true })
-                        : "Never"
-                      }
+                      {agent.last_seen
+                        ? formatDistanceToNow(new Date(agent.last_seen), {
+                            addSuffix: true,
+                          })
+                        : "Never"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -309,13 +455,20 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                             <div className="w-16 bg-neutral-200 dark:bg-neutral-700 rounded-full h-2 mr-3">
                               <div
                                 className={`h-2 rounded-full ${getProgressBarColor(cpuUsage)}`}
-                                style={{ width: `${Math.min(100, Math.max(0, cpuUsage))}%` }}
+                                style={{
+                                  width: `${Math.min(100, Math.max(0, cpuUsage))}%`,
+                                }}
                               ></div>
                             </div>
-                            <span className={`text-xs font-medium ${
-                              cpuUsage >= 90 ? "text-red-600" : 
-                              cpuUsage >= 70 ? "text-yellow-600" : "text-green-600"
-                            }`}>
+                            <span
+                              className={`text-xs font-medium ${
+                                cpuUsage >= 90
+                                  ? "text-red-600"
+                                  : cpuUsage >= 70
+                                    ? "text-yellow-600"
+                                    : "text-green-600"
+                              }`}
+                            >
                               {cpuUsage.toFixed(1)}%
                             </span>
                           </div>
@@ -323,16 +476,26 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                             <div className="w-16 bg-neutral-200 dark:bg-neutral-700 rounded-full h-2 mr-3">
                               <div
                                 className={`h-2 rounded-full ${
-                                  memoryUsage >= 90 ? "bg-red-500" : 
-                                  memoryUsage >= 70 ? "bg-yellow-500" : "bg-green-500"
+                                  memoryUsage >= 90
+                                    ? "bg-red-500"
+                                    : memoryUsage >= 70
+                                      ? "bg-yellow-500"
+                                      : "bg-green-500"
                                 }`}
-                                style={{ width: `${Math.min(100, Math.max(0, memoryUsage))}%` }}
+                                style={{
+                                  width: `${Math.min(100, Math.max(0, memoryUsage))}%`,
+                                }}
                               ></div>
                             </div>
-                            <span className={`text-xs font-medium ${
-                              memoryUsage >= 90 ? "text-red-600" : 
-                              memoryUsage >= 70 ? "text-yellow-600" : "text-green-600"
-                            }`}>
+                            <span
+                              className={`text-xs font-medium ${
+                                memoryUsage >= 90
+                                  ? "text-red-600"
+                                  : memoryUsage >= 70
+                                    ? "text-yellow-600"
+                                    : "text-green-600"
+                              }`}
+                            >
                               {memoryUsage.toFixed(1)}%
                             </span>
                           </div>
@@ -363,7 +526,8 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
         {/* Pagination */}
         <div className="bg-white dark:bg-neutral-800 px-4 py-3 flex items-center justify-between border-t border-neutral-200 dark:border-neutral-700 mt-4">
           <div className="text-sm text-neutral-700 dark:text-neutral-300">
-            Showing <span className="font-medium">1</span> to <span className="font-medium">{agents.length}</span> of{" "}
+            Showing <span className="font-medium">1</span> to{" "}
+            <span className="font-medium">{agents.length}</span> of{" "}
             <span className="font-medium">{agents.length}</span> results
           </div>
         </div>

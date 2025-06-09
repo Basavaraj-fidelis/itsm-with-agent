@@ -535,13 +535,30 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                   <span className="text-neutral-600">Assigned User:</span>
                   <span className="font-medium">
                     {(() => {
+                      // Try multiple sources for assigned user
                       const user =
+                        rawData.extracted_current_user ||
                         rawData.assigned_user ||
                         agent.assigned_user ||
                         rawData.current_user ||
                         rawData.user ||
-                        rawData.username;
-                      if (!user || user === "Unknown") return "N/A";
+                        rawData.username ||
+                        rawData.system_info?.current_user ||
+                        rawData.os_info?.current_user ||
+                        rawData.hardware?.current_user;
+                      
+                      console.log("Agent detail user found:", user, "for agent:", agent.hostname);
+                      
+                      // Filter out system accounts and invalid values
+                      if (!user || 
+                          user.endsWith('$') || 
+                          user === "Unknown" ||
+                          user === "N/A" ||
+                          user.includes("SYSTEM") ||
+                          user.includes("NETWORK SERVICE") ||
+                          user.includes("LOCAL SERVICE")) {
+                        return "N/A";
+                      }
 
                       // Handle computer accounts like "DESKTOP-CMM8H3C$" - extract actual user from processes or other sources
                       if (user.endsWith("$")) {
