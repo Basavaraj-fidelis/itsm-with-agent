@@ -3,16 +3,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { 
-  Plus, 
-  Search, 
+import {
+  Plus,
+  Search,
   Filter,
   Ticket,
   AlertTriangle,
@@ -28,21 +39,21 @@ import {
   TrendingUp,
   CheckCircle,
   UserCheck,
-  FileText
+  FileText,
 } from "lucide-react";
 import ServiceDeskWorkflows from "@/components/tickets/service-desk-workflows";
-import { 
-  ResponsiveContainer, 
-  PieChart, 
-  Pie, 
-  Cell, 
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
   Tooltip,
   Legend,
   BarChart,
   Bar,
   XAxis,
   YAxis,
-  CartesianGrid
+  CartesianGrid,
 } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -50,26 +61,30 @@ import ServiceDeskSidebar from "@/components/layout/service-desk-sidebar";
 
 const priorityColors = {
   low: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  medium: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+  medium:
+    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
   high: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
-  critical: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+  critical: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
 };
 
 const statusColors = {
   new: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  assigned: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-  in_progress: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-  pending: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+  assigned:
+    "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+  in_progress:
+    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+  pending:
+    "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
   resolved: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
   closed: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
-  cancelled: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+  cancelled: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
 };
 
 const typeIcons = {
   request: Ticket,
   incident: AlertTriangle,
   problem: Wrench,
-  change: RefreshCw
+  change: RefreshCw,
 };
 
 interface NewTicketFormData {
@@ -102,7 +117,9 @@ export default function Tickets() {
   const [selectedType, setSelectedType] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedPriority, setSelectedPriority] = useState("all");
-  const [viewMode, setViewMode] = useState<"tickets" | "workflows" | "analytics">("tickets");
+  const [viewMode, setViewMode] = useState<
+    "tickets" | "workflows" | "analytics"
+  >("tickets");
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [showNewTicketDialog, setShowNewTicketDialog] = useState(false);
   const [showEditTicketDialog, setShowEditTicketDialog] = useState(false);
@@ -114,7 +131,7 @@ export default function Tickets() {
     description: "",
     priority: "medium",
     requester_email: "",
-    category: ""
+    category: "",
   });
 
   const [tickets, setTickets] = useState<TicketData[]>([]);
@@ -134,14 +151,18 @@ export default function Tickets() {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: "100" // Increased limit to show more tickets
+        limit: "100", // Increased limit to show more tickets
       });
 
       // Only add filter params if they're not "all"
-      if (selectedType && selectedType !== "all") params.append("type", selectedType);
-      if (selectedStatus && selectedStatus !== "all") params.append("status", selectedStatus);
-      if (selectedPriority && selectedPriority !== "all") params.append("priority", selectedPriority);
-      if (searchTerm && searchTerm.trim()) params.append("search", searchTerm.trim());
+      if (selectedType && selectedType !== "all")
+        params.append("type", selectedType);
+      if (selectedStatus && selectedStatus !== "all")
+        params.append("status", selectedStatus);
+      if (selectedPriority && selectedPriority !== "all")
+        params.append("priority", selectedPriority);
+      if (searchTerm && searchTerm.trim())
+        params.append("search", searchTerm.trim());
 
       const response = await api.get(`/api/tickets?${params}`);
 
@@ -171,11 +192,14 @@ export default function Tickets() {
         setTotalPages(1);
       }
     } catch (error) {
-      console.error('Error fetching tickets:', error);
+      console.error("Error fetching tickets:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to fetch tickets. Please check your connection.",
-        variant: "destructive"
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch tickets. Please check your connection.",
+        variant: "destructive",
       });
       setTickets([]);
       setTotalTickets(0);
@@ -189,22 +213,22 @@ export default function Tickets() {
       try {
         await fetchTickets(1);
       } catch (error) {
-        console.error('Error in tickets useEffect:', error);
+        console.error("Error in tickets useEffect:", error);
         toast({
           title: "Error",
           description: "Failed to load tickets. Please refresh the page.",
-          variant: "destructive"
+          variant: "destructive",
         });
       }
     };
-    
+
     loadTickets();
   }, [selectedType, selectedStatus, selectedPriority, searchTerm]);
 
   // Filter and sort tickets - active tickets first, then by updated_at desc
   const filteredTickets = tickets.sort((a, b) => {
     // First sort by status priority (active statuses first)
-    const activeStatuses = ['new', 'assigned', 'in_progress', 'pending'];
+    const activeStatuses = ["new", "assigned", "in_progress", "pending"];
     const aIsActive = activeStatuses.includes(a.status);
     const bIsActive = activeStatuses.includes(b.status);
 
@@ -216,22 +240,26 @@ export default function Tickets() {
   });
 
   const handleCreateTicket = async () => {
-    if (!newTicketData.title || !newTicketData.description || !newTicketData.requester_email) {
+    if (
+      !newTicketData.title ||
+      !newTicketData.description ||
+      !newTicketData.requester_email
+    ) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     setLoading(true);
     try {
-      const response = await api.post('/api/tickets', newTicketData);
+      const response = await api.post("/api/tickets", newTicketData);
 
       if (response.ok) {
         const newTicket = await response.json();
-        setTickets(prev => [newTicket, ...prev]);
+        setTickets((prev) => [newTicket, ...prev]);
         setShowNewTicketDialog(false);
         setNewTicketData({
           type: "request",
@@ -239,30 +267,35 @@ export default function Tickets() {
           description: "",
           priority: "medium",
           requester_email: "",
-          category: ""
+          category: "",
         });
         toast({
           title: "Success",
-          description: `Ticket ${newTicket.ticket_number} created successfully`
+          description: `Ticket ${newTicket.ticket_number} created successfully`,
         });
         fetchTickets(currentPage); // Refresh the list
       } else {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to create ticket');
+        throw new Error(error.error || "Failed to create ticket");
       }
     } catch (error) {
-      console.error('Error creating ticket:', error);
+      console.error("Error creating ticket:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create ticket",
-        variant: "destructive"
+        description:
+          error instanceof Error ? error.message : "Failed to create ticket",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleUpdateTicketStatus = async (ticketId: string, newStatus: string, comment?: string) => {
+  const handleUpdateTicketStatus = async (
+    ticketId: string,
+    newStatus: string,
+    comment?: string,
+  ) => {
     try {
       const updateData: any = { status: newStatus };
       if (comment && comment.trim()) {
@@ -273,26 +306,31 @@ export default function Tickets() {
 
       if (response.ok) {
         const updatedTicket = await response.json();
-        setTickets(prev => prev.map(ticket => 
-          ticket.id === ticketId ? updatedTicket : ticket
-        ));
+        setTickets((prev) =>
+          prev.map((ticket) =>
+            ticket.id === ticketId ? updatedTicket : ticket,
+          ),
+        );
         if (selectedTicket && selectedTicket.id === ticketId) {
           setSelectedTicket(updatedTicket);
         }
         toast({
           title: "Success",
-          description: `Ticket status updated to ${newStatus.replace('_', ' ')}`
+          description: `Ticket status updated to ${newStatus.replace("_", " ")}`,
         });
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update status');
+        throw new Error(errorData.error || "Failed to update status");
       }
     } catch (error) {
-      console.error('Error updating ticket:', error);
+      console.error("Error updating ticket:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update ticket status",
-        variant: "destructive"
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to update ticket status",
+        variant: "destructive",
       });
     }
   };
@@ -305,7 +343,7 @@ export default function Tickets() {
         description: selectedTicket.description,
         priority: selectedTicket.priority,
         requester_email: selectedTicket.requester_email,
-        category: selectedTicket.category || ""
+        category: selectedTicket.category || "",
       });
       setShowEditTicketDialog(true);
     }
@@ -315,26 +353,31 @@ export default function Tickets() {
     if (!selectedTicket) return;
 
     try {
-      const response = await api.put(`/api/tickets/${selectedTicket.id}`, newTicketData);
+      const response = await api.put(
+        `/api/tickets/${selectedTicket.id}`,
+        newTicketData,
+      );
 
       if (response.ok) {
         const updatedTicket = await response.json();
-        setTickets(prev => prev.map(ticket => 
-          ticket.id === selectedTicket.id ? updatedTicket : ticket
-        ));
+        setTickets((prev) =>
+          prev.map((ticket) =>
+            ticket.id === selectedTicket.id ? updatedTicket : ticket,
+          ),
+        );
         setSelectedTicket(updatedTicket);
         setShowEditTicketDialog(false);
         toast({
           title: "Success",
-          description: "Ticket updated successfully"
+          description: "Ticket updated successfully",
         });
       }
     } catch (error) {
-      console.error('Error updating ticket:', error);
+      console.error("Error updating ticket:", error);
       toast({
         title: "Error",
         description: "Failed to update ticket",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -344,94 +387,120 @@ export default function Tickets() {
       toast({
         title: "Validation Error",
         description: "Please enter a comment",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     try {
-      const response = await api.post(`/api/tickets/${selectedTicket.id}/comments`, {
-        comment: newCommentText,
-        author_email: "admin@company.com", // You might want to get this from auth context
-        is_internal: false
-      });
+      const response = await api.post(
+        `/api/tickets/${selectedTicket.id}/comments`,
+        {
+          comment: newCommentText,
+          author_email: "admin@company.com", // You might want to get this from auth context
+          is_internal: false,
+        },
+      );
 
       if (response.ok) {
         setNewCommentText("");
         setShowAddCommentDialog(false);
         toast({
           title: "Success",
-          description: "Comment added successfully"
+          description: "Comment added successfully",
         });
       }
     } catch (error) {
-      console.error('Error adding comment:', error);
+      console.error("Error adding comment:", error);
       toast({
         title: "Error",
         description: "Failed to add comment",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   // Calculate analytics data
   const getTicketsByType = () => {
-    const typeCounts = tickets.reduce((acc, ticket) => {
-      acc[ticket.type] = (acc[ticket.type] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const typeCounts = tickets.reduce(
+      (acc, ticket) => {
+        acc[ticket.type] = (acc[ticket.type] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     return Object.entries(typeCounts).map(([type, count]) => ({
       name: type.charAt(0).toUpperCase() + type.slice(1),
       value: count,
-      color: type === 'incident' ? '#ef4444' : 
-             type === 'problem' ? '#f97316' : 
-             type === 'change' ? '#3b82f6' : '#10b981'
+      color:
+        type === "incident"
+          ? "#ef4444"
+          : type === "problem"
+            ? "#f97316"
+            : type === "change"
+              ? "#3b82f6"
+              : "#10b981",
     }));
   };
 
   const getTicketsByStatus = () => {
-    const statusCounts = tickets.reduce((acc, ticket) => {
-      acc[ticket.status] = (acc[ticket.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const statusCounts = tickets.reduce(
+      (acc, ticket) => {
+        acc[ticket.status] = (acc[ticket.status] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     return Object.entries(statusCounts).map(([status, count]) => ({
-      name: status.replace('_', ' ').split(' ').map(word => 
-        word.charAt(0).toUpperCase() + word.slice(1)
-      ).join(' '),
-      value: count
+      name: status
+        .replace("_", " ")
+        .split(" ")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" "),
+      value: count,
     }));
   };
 
   const getTicketsByPriority = () => {
-    const priorityCounts = tickets.reduce((acc, ticket) => {
-      acc[ticket.priority] = (acc[ticket.priority] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const priorityCounts = tickets.reduce(
+      (acc, ticket) => {
+        acc[ticket.priority] = (acc[ticket.priority] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     return Object.entries(priorityCounts).map(([priority, count]) => ({
       name: priority.charAt(0).toUpperCase() + priority.slice(1),
       value: count,
-      color: priority === 'critical' ? '#ef4444' : 
-             priority === 'high' ? '#f97316' : 
-             priority === 'medium' ? '#eab308' : '#3b82f6'
+      color:
+        priority === "critical"
+          ? "#ef4444"
+          : priority === "high"
+            ? "#f97316"
+            : priority === "medium"
+              ? "#eab308"
+              : "#3b82f6",
     }));
   };
 
   const getSLAMetrics = () => {
-    const openTickets = tickets.filter(t => !['resolved', 'closed', 'cancelled'].includes(t.status));
-    const slaViolations = openTickets.filter(t => {
+    const openTickets = tickets.filter(
+      (t) => !["resolved", "closed", "cancelled"].includes(t.status),
+    );
+    const slaViolations = openTickets.filter((t) => {
       if (!t.due_date) return false;
       return new Date(t.due_date) < new Date();
     });
@@ -439,16 +508,25 @@ export default function Tickets() {
     return {
       totalOpen: openTickets.length,
       slaViolations: slaViolations.length,
-      slaCompliance: openTickets.length > 0 ? 
-        Math.round(((openTickets.length - slaViolations.length) / openTickets.length) * 100) : 100
+      slaCompliance:
+        openTickets.length > 0
+          ? Math.round(
+              ((openTickets.length - slaViolations.length) /
+                openTickets.length) *
+                100,
+            )
+          : 100,
     };
   };
 
-   const getStatusDistribution = () => {
-    const statusCounts = tickets.reduce((acc, ticket) => {
-      acc[ticket.status] = (acc[ticket.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+  const getStatusDistribution = () => {
+    const statusCounts = tickets.reduce(
+      (acc, ticket) => {
+        acc[ticket.status] = (acc[ticket.status] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     return statusCounts;
   };
@@ -459,82 +537,82 @@ export default function Tickets() {
     switch (ticket.status) {
       case "new":
         actions.push(
-          <Button 
-            key="assign" 
-            variant="default" 
+          <Button
+            key="assign"
+            variant="default"
             size="sm"
             onClick={() => handleUpdateTicketStatus(ticket.id, "assigned")}
           >
             Assign to Self
-          </Button>
+          </Button>,
         );
         actions.push(
-          <Button 
-            key="in_progress" 
-            variant="outline" 
+          <Button
+            key="in_progress"
+            variant="outline"
             size="sm"
             onClick={() => handleUpdateTicketStatus(ticket.id, "in_progress")}
           >
             Mark as In Progress
-          </Button>
+          </Button>,
         );
         break;
       case "assigned":
         actions.push(
-          <Button 
-            key="in_progress" 
-            variant="default" 
+          <Button
+            key="in_progress"
+            variant="default"
             size="sm"
             onClick={() => handleUpdateTicketStatus(ticket.id, "in_progress")}
           >
             Mark as In Progress
-          </Button>
+          </Button>,
         );
         break;
       case "in_progress":
         actions.push(
-          <Button 
-            key="pending" 
-            variant="outline" 
+          <Button
+            key="pending"
+            variant="outline"
             size="sm"
             onClick={() => handleUpdateTicketStatus(ticket.id, "pending")}
           >
             Mark as Pending
-          </Button>
+          </Button>,
         );
         actions.push(
-          <Button 
-            key="resolved" 
-            variant="default" 
+          <Button
+            key="resolved"
+            variant="default"
             size="sm"
             onClick={() => handleUpdateTicketStatus(ticket.id, "resolved")}
           >
             Mark as Resolved
-          </Button>
+          </Button>,
         );
         break;
       case "pending":
         actions.push(
-          <Button 
-            key="in_progress" 
-            variant="outline" 
+          <Button
+            key="in_progress"
+            variant="outline"
             size="sm"
             onClick={() => handleUpdateTicketStatus(ticket.id, "in_progress")}
           >
             Mark as In Progress
-          </Button>
+          </Button>,
         );
         break;
       case "resolved":
         actions.push(
-          <Button 
-            key="closed" 
-            variant="default" 
+          <Button
+            key="closed"
+            variant="default"
             size="sm"
             onClick={() => handleUpdateTicketStatus(ticket.id, "closed")}
           >
             Close Ticket
-          </Button>
+          </Button>,
         );
         break;
       default:
@@ -547,9 +625,16 @@ export default function Tickets() {
   // Calculate ticket metrics
   const ticketMetrics = {
     total: tickets.length,
-    open: tickets.filter(t => !["resolved", "closed", "cancelled"].includes(t.status)).length,
-    resolved: tickets.filter(t => ["resolved", "closed"].includes(t.status)).length,
-    critical: tickets.filter(t => t.priority === "critical" && !["resolved", "closed", "cancelled"].includes(t.status)).length
+    open: tickets.filter(
+      (t) => !["resolved", "closed", "cancelled"].includes(t.status),
+    ).length,
+    resolved: tickets.filter((t) => ["resolved", "closed"].includes(t.status))
+      .length,
+    critical: tickets.filter(
+      (t) =>
+        t.priority === "critical" &&
+        !["resolved", "closed", "cancelled"].includes(t.status),
+    ).length,
   };
 
   const slaMetrics = getSLAMetrics();
@@ -557,27 +642,43 @@ export default function Tickets() {
 
   const getActiveTabTitle = () => {
     switch (activeTab) {
-      case "overview": return "Service Desk Overview";
-      case "requests": return "Service Requests";
-      case "incidents": return "Incidents";
-      case "problems": return "Problems";
-      case "changes": return "Changes";
-      case "workflows": return "Workflows";
-      case "analytics": return "Analytics";
-      default: return "Service Desk";
+      case "overview":
+        return "Service Desk Overview";
+      case "requests":
+        return "Service Requests";
+      case "incidents":
+        return "Incidents";
+      case "problems":
+        return "Problems";
+      case "changes":
+        return "Changes";
+      case "workflows":
+        return "Workflows";
+      case "analytics":
+        return "Analytics";
+      default:
+        return "Service Desk";
     }
   };
 
   const getActiveTabDescription = () => {
     switch (activeTab) {
-      case "overview": return "Dashboard and quick actions";
-      case "requests": return "Software, hardware, and access requests";
-      case "incidents": return "Service interruptions and outages";
-      case "problems": return "Root cause analysis and known errors";
-      case "changes": return "Change requests and approvals";
-      case "workflows": return "Process automation and templates";
-      case "analytics": return "Performance metrics and reports";
-      default: return "IT Service Management";
+      case "overview":
+        return "Dashboard and quick actions";
+      case "requests":
+        return "Software, hardware, and access requests";
+      case "incidents":
+        return "Service interruptions and outages";
+      case "problems":
+        return "Root cause analysis and known errors";
+      case "changes":
+        return "Change requests and approvals";
+      case "workflows":
+        return "Process automation and templates";
+      case "analytics":
+        return "Performance metrics and reports";
+      default:
+        return "IT Service Management";
     }
   };
 
@@ -586,35 +687,38 @@ export default function Tickets() {
 
     switch (activeTab) {
       case "requests":
-        filtered = tickets.filter(t => t.type === "request");
+        filtered = tickets.filter((t) => t.type === "request");
         break;
       case "incidents":
-        filtered = tickets.filter(t => t.type === "incident");
+        filtered = tickets.filter((t) => t.type === "incident");
         break;
       case "problems":
-        filtered = tickets.filter(t => t.type === "problem");
+        filtered = tickets.filter((t) => t.type === "problem");
         break;
       case "changes":
-        filtered = tickets.filter(t => t.type === "change");
+        filtered = tickets.filter((t) => t.type === "change");
         break;
       default:
         filtered = tickets;
     }
 
     if (searchTerm) {
-      filtered = filtered.filter(ticket =>
-        ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticket.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticket.ticket_number.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (ticket) =>
+          ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          ticket.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          ticket.ticket_number.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
 
     if (statusFilter !== "all") {
-      filtered = filtered.filter(ticket => ticket.status === statusFilter);
+      filtered = filtered.filter((ticket) => ticket.status === statusFilter);
     }
 
     if (priorityFilter !== "all") {
-      filtered = filtered.filter(ticket => ticket.priority === priorityFilter);
+      filtered = filtered.filter(
+        (ticket) => ticket.priority === priorityFilter,
+      );
     }
 
     return filtered;
@@ -626,8 +730,12 @@ export default function Tickets() {
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Total Tickets</p>
-              <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">{ticketMetrics.total}</p>
+              <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                Total Tickets
+              </p>
+              <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">
+                {ticketMetrics.total}
+              </p>
             </div>
             <FileText className="h-8 w-8 text-blue-600 dark:text-blue-400" />
           </div>
@@ -638,8 +746,12 @@ export default function Tickets() {
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-green-600 dark:text-green-400">Open Tickets</p>
-              <p className="text-3xl font-bold text-green-900 dark:text-green-100">{slaMetrics.totalOpen}</p>
+              <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                Open Tickets
+              </p>
+              <p className="text-3xl font-bold text-green-900 dark:text-green-100">
+                {slaMetrics.totalOpen}
+              </p>
             </div>
             <AlertTriangle className="h-8 w-8 text-green-600 dark:text-green-400" />
           </div>
@@ -650,8 +762,12 @@ export default function Tickets() {
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-orange-600 dark:text-orange-400">SLA Violations</p>
-              <p className="text-3xl font-bold text-orange-900 dark:text-orange-100">{slaMetrics.slaViolations}</p>
+              <p className="text-sm font-medium text-orange-600 dark:text-orange-400">
+                SLA Violations
+              </p>
+              <p className="text-3xl font-bold text-orange-900 dark:text-orange-100">
+                {slaMetrics.slaViolations}
+              </p>
             </div>
             <Clock className="h-8 w-8 text-orange-600 dark:text-orange-400" />
           </div>
@@ -662,8 +778,12 @@ export default function Tickets() {
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-purple-600 dark:text-purple-400">SLA Compliance</p>
-              <p className="text-3xl font-bold text-purple-900 dark:text-purple-100">{slaMetrics.slaCompliance}%</p>
+              <p className="text-sm font-medium text-purple-600 dark:text-purple-400">
+                SLA Compliance
+              </p>
+              <p className="text-3xl font-bold text-purple-900 dark:text-purple-100">
+                {slaMetrics.slaCompliance}%
+              </p>
             </div>
             <CheckCircle className="h-8 w-8 text-purple-600 dark:text-purple-400" />
           </div>
@@ -728,24 +848,33 @@ export default function Tickets() {
           {filteredTickets.length === 0 ? (
             <div className="text-center py-12">
               <Ticket className="w-16 h-16 text-neutral-400 mx-auto mb-4" />
-              <p className="text-xl font-medium text-neutral-600 mb-2">No tickets found</p>
-              <p className="text-neutral-500">Try adjusting your filters or create a new ticket</p>
+              <p className="text-xl font-medium text-neutral-600 mb-2">
+                No tickets found
+              </p>
+              <p className="text-neutral-500">
+                Try adjusting your filters or create a new ticket
+              </p>
             </div>
           ) : (
             filteredTickets.map((ticket) => {
-              const IconComponent = typeIcons[ticket.type as keyof typeof typeIcons];
-              const isOverdue = ticket.due_date && new Date(ticket.due_date) < new Date();
+              const IconComponent =
+                typeIcons[ticket.type as keyof typeof typeIcons];
+              const isOverdue =
+                ticket.due_date && new Date(ticket.due_date) < new Date();
 
               return (
-                <Card 
-                  key={ticket.id} 
+                <Card
+                  key={ticket.id}
                   className={cn(
                     "cursor-pointer hover:shadow-lg transition-all duration-200 border-l-4",
-                    ticket.priority === "critical" ? "border-l-red-500 bg-red-50/50 dark:bg-red-900/10" :
-                    ticket.priority === "high" ? "border-l-orange-500 bg-orange-50/50 dark:bg-orange-900/10" :
-                    ticket.priority === "medium" ? "border-l-yellow-500 bg-yellow-50/50 dark:bg-yellow-900/10" :
-                    "border-l-blue-500 bg-blue-50/50 dark:bg-blue-900/10",
-                    isOverdue && "ring-2 ring-red-200"
+                    ticket.priority === "critical"
+                      ? "border-l-red-500 bg-red-50/50 dark:bg-red-900/10"
+                      : ticket.priority === "high"
+                        ? "border-l-orange-500 bg-orange-50/50 dark:bg-orange-900/10"
+                        : ticket.priority === "medium"
+                          ? "border-l-yellow-500 bg-yellow-50/50 dark:bg-yellow-900/10"
+                          : "border-l-blue-500 bg-blue-50/50 dark:bg-blue-900/10",
+                    isOverdue && "ring-2 ring-red-200",
                   )}
                   onClick={(e) => {
                     e.preventDefault();
@@ -755,13 +884,18 @@ export default function Tickets() {
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start space-x-4 flex-1">
-                        <div className={cn(
-                          "p-3 rounded-xl",
-                          ticket.type === 'incident' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
-                          ticket.type === 'problem' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' :
-                          ticket.type === 'change' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
-                          'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
-                        )}>
+                        <div
+                          className={cn(
+                            "p-3 rounded-xl",
+                            ticket.type === "incident"
+                              ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                              : ticket.type === "problem"
+                                ? "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400"
+                                : ticket.type === "change"
+                                  ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                                  : "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",
+                          )}
+                        >
                           <IconComponent className="w-5 h-5" />
                         </div>
 
@@ -770,20 +904,31 @@ export default function Tickets() {
                             <span className="font-mono text-sm font-semibold text-neutral-600 dark:text-neutral-400">
                               {ticket.ticket_number}
                             </span>
-                            <Badge 
-                              variant="outline" 
-                              className={priorityColors[ticket.priority as keyof typeof priorityColors]}
+                            <Badge
+                              variant="outline"
+                              className={
+                                priorityColors[
+                                  ticket.priority as keyof typeof priorityColors
+                                ]
+                              }
                             >
                               {ticket.priority.toUpperCase()}
                             </Badge>
-                            <Badge 
+                            <Badge
                               variant="outline"
-                              className={statusColors[ticket.status as keyof typeof statusColors]}
+                              className={
+                                statusColors[
+                                  ticket.status as keyof typeof statusColors
+                                ]
+                              }
                             >
-                              {ticket.status.replace('_', ' ').toUpperCase()}
+                              {ticket.status.replace("_", " ").toUpperCase()}
                             </Badge>
                             {isOverdue && (
-                              <Badge variant="destructive" className="animate-pulse">
+                              <Badge
+                                variant="destructive"
+                                className="animate-pulse"
+                              >
                                 OVERDUE
                               </Badge>
                             )}
@@ -804,7 +949,9 @@ export default function Tickets() {
                             </div>
                             <div className="flex items-center space-x-1">
                               <Calendar className="w-3 h-3" />
-                              <span>Created: {formatDate(ticket.created_at)}</span>
+                              <span>
+                                Created: {formatDate(ticket.created_at)}
+                              </span>
                             </div>
                             {ticket.assigned_to && (
                               <div className="flex items-center space-x-1">
@@ -815,7 +962,11 @@ export default function Tickets() {
                             {ticket.due_date && (
                               <div className="flex items-center space-x-1">
                                 <Clock className="w-3 h-3" />
-                                <span className={isOverdue ? "text-red-600 font-medium" : ""}>
+                                <span
+                                  className={
+                                    isOverdue ? "text-red-600 font-medium" : ""
+                                  }
+                                >
                                   Due: {formatDate(ticket.due_date)}
                                 </span>
                               </div>
@@ -863,7 +1014,6 @@ export default function Tickets() {
     );
   };
 
-   
   const renderAnalytics = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Analytics Charts */}
@@ -883,7 +1033,9 @@ export default function Tickets() {
                 paddingAngle={5}
                 dataKey="value"
                 labelLine={false}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                label={({ name, percent }) =>
+                  `${name} ${(percent * 100).toFixed(0)}%`
+                }
               >
                 {getTicketsByType().map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
@@ -928,14 +1080,16 @@ export default function Tickets() {
                 outerRadius={120}
                 paddingAngle={5}
                 dataKey="value"
-                 labelLine={false}
-                 label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                labelLine={false}
+                label={({ name, percent }) =>
+                  `${name} ${(percent * 100).toFixed(0)}%`
+                }
               >
                 {getTicketsByPriority().map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
-               <Legend layout="vertical" align="right" verticalAlign="middle" />
+              <Legend layout="vertical" align="right" verticalAlign="middle" />
               <Tooltip />
             </PieChart>
           </ResponsiveContainer>
@@ -950,27 +1104,32 @@ export default function Tickets() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Compliance Rate</span>
-              <span className="text-2xl font-bold text-green-600">{slaMetrics.slaCompliance}%</span>
+              <span className="text-2xl font-bold text-green-600">
+                {slaMetrics.slaCompliance}%
+              </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-green-600 h-2 rounded-full" 
+              <div
+                className="bg-green-600 h-2 rounded-full"
                 style={{ width: `${slaMetrics.slaCompliance}%` }}
               ></div>
             </div>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-gray-600">On Time</p>
-                <p className="text-lg font-semibold">{slaMetrics.totalOpen - slaMetrics.slaViolations}</p>
+                <p className="text-lg font-semibold">
+                  {slaMetrics.totalOpen - slaMetrics.slaViolations}
+                </p>
               </div>
               <div>
                 <p className="text-gray-600">Violations</p>
-                <p className="text-lg font-semibold text-red-600">{slaMetrics.slaViolations}</p>
+                <p className="text-lg font-semibold text-red-600">
+                  {slaMetrics.slaViolations}
+                </p>
               </div>
             </div>
           </div>
-          </CardContent>
-        </Card>
+        </CardContent>
       </Card>
     </div>
   );
@@ -1034,7 +1193,12 @@ export default function Tickets() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="type">Type</Label>
-                <Select value={newTicketData.type} onValueChange={(value) => setNewTicketData({...newTicketData, type: value})}>
+                <Select
+                  value={newTicketData.type}
+                  onValueChange={(value) =>
+                    setNewTicketData({ ...newTicketData, type: value })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -1048,7 +1212,12 @@ export default function Tickets() {
               </div>
               <div>
                 <Label htmlFor="priority">Priority</Label>
-                <Select value={newTicketData.priority} onValueChange={(value) => setNewTicketData({...newTicketData, priority: value})}>
+                <Select
+                  value={newTicketData.priority}
+                  onValueChange={(value) =>
+                    setNewTicketData({ ...newTicketData, priority: value })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -1065,7 +1234,9 @@ export default function Tickets() {
               <Label htmlFor="title">Title</Label>
               <Input
                 value={newTicketData.title}
-                onChange={(e) => setNewTicketData({...newTicketData, title: e.target.value})}
+                onChange={(e) =>
+                  setNewTicketData({ ...newTicketData, title: e.target.value })
+                }
                 placeholder="Brief description of the issue or request"
               />
             </div>
@@ -1073,7 +1244,12 @@ export default function Tickets() {
               <Label htmlFor="requester_email">Requester Email</Label>
               <Input
                 value={newTicketData.requester_email}
-                onChange={(e) => setNewTicketData({...newTicketData, requester_email: e.target.value})}
+                onChange={(e) =>
+                  setNewTicketData({
+                    ...newTicketData,
+                    requester_email: e.target.value,
+                  })
+                }
                 placeholder="user@company.com"
                 type="email"
               />
@@ -1082,7 +1258,12 @@ export default function Tickets() {
               <Label htmlFor="category">Category</Label>
               <Input
                 value={newTicketData.category}
-                onChange={(e) => setNewTicketData({...newTicketData, category: e.target.value})}
+                onChange={(e) =>
+                  setNewTicketData({
+                    ...newTicketData,
+                    category: e.target.value,
+                  })
+                }
                 placeholder="e.g., Hardware, Software, Network"
               />
             </div>
@@ -1090,13 +1271,21 @@ export default function Tickets() {
               <Label htmlFor="description">Description</Label>
               <Textarea
                 value={newTicketData.description}
-                onChange={(e) => setNewTicketData({...newTicketData, description: e.target.value})}
+                onChange={(e) =>
+                  setNewTicketData({
+                    ...newTicketData,
+                    description: e.target.value,
+                  })
+                }
                 placeholder="Detailed description of the issue or request"
                 rows={4}
               />
             </div>
             <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setShowNewTicketDialog(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setShowNewTicketDialog(false)}
+              >
                 Cancel
               </Button>
               <Button onClick={handleCreateTicket} disabled={loading}>
@@ -1108,7 +1297,10 @@ export default function Tickets() {
       </Dialog>
 
       {/* Edit Ticket Dialog */}
-      <Dialog open={showEditTicketDialog} onOpenChange={setShowEditTicketDialog}>
+      <Dialog
+        open={showEditTicketDialog}
+        onOpenChange={setShowEditTicketDialog}
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Edit Ticket</DialogTitle>
@@ -1117,7 +1309,12 @@ export default function Tickets() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="type">Type</Label>
-                <Select value={newTicketData.type} onValueChange={(value) => setNewTicketData({...newTicketData, type: value})}>
+                <Select
+                  value={newTicketData.type}
+                  onValueChange={(value) =>
+                    setNewTicketData({ ...newTicketData, type: value })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -1131,7 +1328,12 @@ export default function Tickets() {
               </div>
               <div>
                 <Label htmlFor="priority">Priority</Label>
-                <Select value={newTicketData.priority} onValueChange={(value) => setNewTicketData({...newTicketData, priority: value})}>
+                <Select
+                  value={newTicketData.priority}
+                  onValueChange={(value) =>
+                    setNewTicketData({ ...newTicketData, priority: value })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -1148,7 +1350,9 @@ export default function Tickets() {
               <Label htmlFor="title">Title</Label>
               <Input
                 value={newTicketData.title}
-                onChange={(e) => setNewTicketData({...newTicketData, title: e.target.value})}
+                onChange={(e) =>
+                  setNewTicketData({ ...newTicketData, title: e.target.value })
+                }
                 placeholder="Brief description of the issue or request"
               />
             </div>
@@ -1156,7 +1360,12 @@ export default function Tickets() {
               <Label htmlFor="requester_email">Requester Email</Label>
               <Input
                 value={newTicketData.requester_email}
-                onChange={(e) => setNewTicketData({...newTicketData, requester_email: e.target.value})}
+                onChange={(e) =>
+                  setNewTicketData({
+                    ...newTicketData,
+                    requester_email: e.target.value,
+                  })
+                }
                 placeholder="user@company.com"
                 type="email"
               />
@@ -1165,7 +1374,12 @@ export default function Tickets() {
               <Label htmlFor="category">Category</Label>
               <Input
                 value={newTicketData.category}
-                onChange={(e) => setNewTicketData({...newTicketData, category: e.target.value})}
+                onChange={(e) =>
+                  setNewTicketData({
+                    ...newTicketData,
+                    category: e.target.value,
+                  })
+                }
                 placeholder="e.g., Hardware, Software, Network"
               />
             </div>
@@ -1173,13 +1387,21 @@ export default function Tickets() {
               <Label htmlFor="description">Description</Label>
               <Textarea
                 value={newTicketData.description}
-                onChange={(e) => setNewTicketData({...newTicketData, description: e.target.value})}
+                onChange={(e) =>
+                  setNewTicketData({
+                    ...newTicketData,
+                    description: e.target.value,
+                  })
+                }
                 placeholder="Detailed description of the issue or request"
                 rows={4}
               />
             </div>
             <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setShowEditTicketDialog(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setShowEditTicketDialog(false)}
+              >
                 Cancel
               </Button>
               <Button onClick={handleUpdateTicket} disabled={loading}>
@@ -1191,7 +1413,10 @@ export default function Tickets() {
       </Dialog>
 
       {/* Add Comment Dialog */}
-      <Dialog open={showAddCommentDialog} onOpenChange={setShowAddCommentDialog}>
+      <Dialog
+        open={showAddCommentDialog}
+        onOpenChange={setShowAddCommentDialog}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add Comment</DialogTitle>
@@ -1207,12 +1432,13 @@ export default function Tickets() {
               />
             </div>
             <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setShowAddCommentDialog(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setShowAddCommentDialog(false)}
+              >
                 Cancel
               </Button>
-              <Button onClick={handleAddComment}>
-                Add Comment
-              </Button>
+              <Button onClick={handleAddComment}>Add Comment</Button>
             </div>
           </div>
         </DialogContent>

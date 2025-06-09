@@ -36,6 +36,13 @@ export default defineConfig(async () => {
         port: 5174,
         host: "0.0.0.0",
       },
+      // ADD THIS SECTION:
+      allowedHosts: [
+        // This is the specific host Replit is using.
+        // You might need to adjust this if the host changes frequently.
+        "b4149b62-9f75-45a2-add2-1844da88ca10-00-2d05vszl2ig1s.pike.replit.dev",
+        ".replit.dev", // A more generic wildcard for Replit domains
+      ],
     },
   };
 });
