@@ -1,0 +1,50 @@
+✅ Server started successfully on port 5000
+11:24:16 AM [express] serving on port 5000
+🌐 Server accessible at http://0.0.0.0:5000
+11:24:23 AM [vite] Pre-transform error: Transform failed with 3 errors:
+/home/runner/workspace/client/src/pages/performance-analytics.tsx:80:161: ERROR: The character ">" is not valid inside a JSX element
+/home/runner/workspace/client/src/pages/performance-analytics.tsx:93:161: ERROR: The character ">" is not valid inside a JSX element
+/home/runner/workspace/client/src/pages/performance-analytics.tsx:106:162: ERROR: The character ">" is not valid inside a JSX element
+11:24:24 AM [vite] Internal server error: Transform failed with 3 errors:
+/home/runner/workspace/client/src/pages/performance-analytics.tsx:80:161: ERROR: The character ">" is not valid inside a JSX element
+/home/runner/workspace/client/src/pages/performance-analytics.tsx:93:161: ERROR: The character ">" is not valid inside a JSX element
+/home/runner/workspace/client/src/pages/performance-analytics.tsx:106:162: ERROR: The character ">" is not valid inside a JSX element
+  Plugin: vite:esbuild
+  File: /home/runner/workspace/client/src/pages/performance-analytics.tsx:61:57
+  
+  The character ">" is not valid inside a JSX element
+  78 |                {devices?.filter((d: any) => d.latest_report?.cpu_usage > 80).length || 0}
+  79 |              </div>
+  80 |              <p data-replit-metadata="client/src/pages/performance-analytics.tsx:80:12" data-component-name="p" className="text-xs text-muted-foreground">Devices > 80% CPU</p>
+     |                                                                                                                                                                   ^
+  81 |            </CardContent>
+  82 |          </Card>
+  
+  The character ">" is not valid inside a JSX element
+  91 |                {devices?.filter((d: any) => d.latest_report?.memory_usage > 85).length || 0}
+  92 |              </div>
+  93 |              <p data-replit-metadata="client/src/pages/performance-analytics.tsx:93:12" data-component-name="p" className="text-xs text-muted-foreground">Devices > 85% RAM</p>
+     |                                                                                                                                                                   ^
+  94 |            </CardContent>
+  95 |          </Card>
+  
+  The character ">" is not valid inside a JSX element
+  104|                {devices?.filter((d: any) => d.latest_report?.disk_usage > 90).length || 0}
+  105|              </div>
+  106|              <p data-replit-metadata="client/src/pages/performance-analytics.tsx:106:12" data-component-name="p" className="text-xs text-muted-foreground">Devices > 90% disk</p>
+     |                                                                                                                                                                    ^
+  107|            </CardContent>
+  108|          </Card>
+  
+      at failureErrorWithLog (/home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:1472:15)
+      at /home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:755:50
+      at responseCallbacks.<computed> (/home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:622:9)
+      at handleIncomingPacket (/home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:677:12)
+      at Socket.readFromStdout (/home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:600:7)
+      at Socket.emit (node:events:518:28)
+      at addChunk (node:internal/streams/readable:561:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+      at Readable.push (node:internal/streams/readable:392:5)
+      at Pipe.onStreamRead (node:internal/stream_base_commons:191:23)
+11:24:25 AM [express] GET /api/notifications 304 in 138ms :: []
+Received report data: {
