@@ -18,13 +18,13 @@ import getpass
 
 class SystemCollector:
     """Collects comprehensive system information"""
-    
+
     def __init__(self):
         self.logger = logging.getLogger('SystemCollector')
         self.is_windows = platform.system().lower() == 'windows'
         self.is_linux = platform.system().lower() == 'linux'
         self.is_macos = platform.system().lower() == 'darwin'
-    
+
     def collect_all(self):
         """Collect all available system information"""
         info = {
@@ -42,9 +42,9 @@ class SystemCollector:
             'security': self._get_security_info(),
             'assigned_user': self._get_current_user()
         }
-        
+
         return info
-    
+
     def _get_hostname(self):
         """Get system hostname"""
         try:
@@ -52,7 +52,7 @@ class SystemCollector:
         except Exception as e:
             self.logger.error(f"Error getting hostname: {e}")
             return "unknown"
-    
+
     def _get_os_info(self):
         """Get operating system information"""
         try:
@@ -67,7 +67,7 @@ class SystemCollector:
                 'boot_time': datetime.fromtimestamp(psutil.boot_time()).isoformat(),
                 'uptime_seconds': int(psutil.time.time() - psutil.boot_time())
             }
-            
+
             # Get additional OS-specific information
             if self.is_windows:
                 info.update(self._get_windows_os_info())
@@ -75,17 +75,17 @@ class SystemCollector:
                 info.update(self._get_linux_os_info())
             elif self.is_macos:
                 info.update(self._get_macos_os_info())
-            
+
             return info
         except Exception as e:
             self.logger.error(f"Error getting OS info: {e}")
             return {}
-    
+
     def _get_windows_os_info(self):
         """Get Windows-specific OS information"""
         try:
             info = {}
-            
+
             # Get Windows version info from registry
             try:
                 import winreg
@@ -105,7 +105,7 @@ class SystemCollector:
                         pass
             except Exception as e:
                 self.logger.warning(f"Registry access failed: {e}")
-            
+
             # Alternative method using systeminfo command
             if not info:
                 try:
@@ -118,7 +118,7 @@ class SystemCollector:
                                 info['os_version'] = line.split(':', 1)[1].strip()
                 except Exception as e:
                     self.logger.warning(f"systeminfo command failed: {e}")
-            
+
             # Get last update time with better error handling
             try:
                 result = subprocess.run(['wmic', 'qfe', 'get', 'InstalledOn', '/format:csv'], 
@@ -138,17 +138,17 @@ class SystemCollector:
                         info['last_update'] = max(dates)
             except Exception as e:
                 self.logger.warning(f"Update info collection failed: {e}")
-            
+
             return info
         except Exception as e:
             self.logger.error(f"Error getting Windows OS info: {e}")
             return {}
-    
+
     def _get_linux_os_info(self):
         """Get Linux-specific OS information"""
         try:
             info = {}
-            
+
             # Try to read /etc/os-release
             try:
                 with open('/etc/os-release', 'r') as f:
@@ -158,13 +158,13 @@ class SystemCollector:
                             info[key.lower()] = value.strip('"')
             except Exception:
                 pass
-            
+
             # Get kernel version
             try:
                 info['kernel_version'] = platform.uname().release
             except Exception:
                 pass
-            
+
             # Get last update time (package manager dependent)
             try:
                 # Try apt (Debian/Ubuntu)
@@ -177,7 +177,7 @@ class SystemCollector:
                             if line.startswith('Start-Date:'):
                                 info['last_update'] = line.split(':', 1)[1].strip()
                                 break
-                
+
                 # Try yum/dnf (RedHat/CentOS/Fedora)
                 elif os.path.exists('/var/log/yum.log') or os.path.exists('/var/log/dnf.log'):
                     log_file = '/var/log/dnf.log' if os.path.exists('/var/log/dnf.log') else '/var/log/yum.log'
@@ -189,17 +189,17 @@ class SystemCollector:
                             info['last_update'] = lines[-1].split()[0:2]  # Date and time
             except Exception:
                 pass
-            
+
             return info
         except Exception as e:
             self.logger.error(f"Error getting Linux OS info: {e}")
             return {}
-    
+
     def _get_macos_os_info(self):
         """Get macOS-specific OS information"""
         try:
             info = {}
-            
+
             # Get macOS version
             try:
                 result = subprocess.run(['sw_vers'], capture_output=True, text=True, timeout=10)
@@ -210,27 +210,27 @@ class SystemCollector:
                             info[key.strip().lower().replace(' ', '_')] = value.strip()
             except Exception:
                 pass
-            
+
             return info
         except Exception as e:
             self.logger.error(f"Error getting macOS info: {e}")
             return {}
-    
+
     def _get_network_info(self):
         """Get network interface information"""
         try:
             interfaces = []
-            
+
             # Get public IP
             public_ip = self._get_public_ip()
-            
+
             # Get interface information
             for interface_name, addresses in psutil.net_if_addrs().items():
                 interface_info = {
                     'name': interface_name,
                     'addresses': []
                 }
-                
+
                 for addr in addresses:
                     addr_info = {
                         'family': addr.family.name if hasattr(addr.family, 'name') else str(addr.family),
@@ -239,7 +239,7 @@ class SystemCollector:
                         'broadcast': addr.broadcast
                     }
                     interface_info['addresses'].append(addr_info)
-                
+
                 # Get interface statistics
                 try:
                     stats = psutil.net_if_stats()[interface_name]
@@ -251,9 +251,9 @@ class SystemCollector:
                     }
                 except Exception:
                     pass
-                
+
                 interfaces.append(interface_info)
-            
+
             return {
                 'public_ip': public_ip,
                 'interfaces': interfaces,
@@ -262,7 +262,7 @@ class SystemCollector:
         except Exception as e:
             self.logger.error(f"Error getting network info: {e}")
             return {}
-    
+
     def _get_public_ip(self):
         """Get public IP address"""
         try:
@@ -272,7 +272,7 @@ class SystemCollector:
                 'https://icanhazip.com',
                 'https://checkip.amazonaws.com'
             ]
-            
+
             for service in services:
                 try:
                     response = requests.get(service, timeout=10)
@@ -280,11 +280,11 @@ class SystemCollector:
                         return response.text.strip()
                 except Exception:
                     continue
-            
+
             return "unknown"
         except Exception:
             return "unknown"
-    
+
     def _get_network_io_counters(self):
         """Get network I/O statistics"""
         try:
@@ -301,7 +301,7 @@ class SystemCollector:
             }
         except Exception:
             return {}
-    
+
     def _get_hardware_info(self):
         """Get hardware information"""
         try:
@@ -314,7 +314,7 @@ class SystemCollector:
         except Exception as e:
             self.logger.error(f"Error getting hardware info: {e}")
             return {}
-    
+
     def _get_cpu_info(self):
         """Get CPU information"""
         try:
@@ -326,7 +326,7 @@ class SystemCollector:
                 'usage_percent': psutil.cpu_percent(interval=1),
                 'load_average': list(os.getloadavg()) if hasattr(os, 'getloadavg') else None
             }
-            
+
             # Get CPU model information
             if self.is_windows:
                 try:
@@ -345,18 +345,18 @@ class SystemCollector:
                                 break
                 except Exception:
                     pass
-            
+
             return info
         except Exception as e:
             self.logger.error(f"Error getting CPU info: {e}")
             return {}
-    
+
     def _get_memory_info(self):
         """Get memory information"""
         try:
             memory = psutil.virtual_memory()
             swap = psutil.swap_memory()
-            
+
             return {
                 'total': memory.total,
                 'available': memory.available,
@@ -369,15 +369,15 @@ class SystemCollector:
         except Exception as e:
             self.logger.error(f"Error getting memory info: {e}")
             return {}
-    
+
     def _get_system_hardware_info(self):
         """Get system hardware information (manufacturer, model, serial)"""
         try:
             info = {}
-            
+
             if self.is_windows:
                 # Try multiple methods for hardware info
-                
+
                 # Method 1: WMI computersystem with better parsing
                 try:
                     # Try CSV format first as it's more reliable
@@ -385,7 +385,7 @@ class SystemCollector:
                         'wmic', 'computersystem', 'get', 
                         'Manufacturer,Model', '/format:csv'
                     ], capture_output=True, text=True, timeout=60, shell=True)
-                    
+
                     if result.returncode == 0 and result.stdout.strip():
                         lines = [line.strip() for line in result.stdout.strip().split('\n') if line.strip() and ',' in line]
                         for line in lines[1:]:  # Skip header
@@ -399,7 +399,7 @@ class SystemCollector:
                                     if model and model.lower() not in ['n/a', '', 'null']:
                                         info['model'] = model
                                     break
-                    
+
                     # Alternative method using registry if WMI fails
                     if not info:
                         try:
@@ -420,14 +420,14 @@ class SystemCollector:
                                     pass
                         except Exception as e:
                             self.logger.warning(f"Registry BIOS query failed: {e}")
-                    
+
                     # If still no info, try WMI with different format
                     if not info:
                         result = subprocess.run([
                             'wmic', 'computersystem', 'get', 
                             'Manufacturer,Model,TotalPhysicalMemory', '/format:csv'
                         ], capture_output=True, text=True, timeout=60, shell=True)
-                        
+
                         if result.returncode == 0:
                             lines = [line for line in result.stdout.strip().split('\n') if line.strip()]
                             if len(lines) > 1:
@@ -443,13 +443,13 @@ class SystemCollector:
                                             break
                 except Exception as e:
                     self.logger.warning(f"WMI computersystem query failed: {e}")
-                
+
                 # Method 2: WMI BIOS for serial
                 try:
                     result = subprocess.run([
                         'wmic', 'bios', 'get', 'SerialNumber', '/format:csv'
                     ], capture_output=True, text=True, timeout=60)
-                    
+
                     if result.returncode == 0:
                         lines = [line for line in result.stdout.strip().split('\n') if line.strip()]
                         if len(lines) > 1:
@@ -461,7 +461,7 @@ class SystemCollector:
                                         break
                 except Exception as e:
                     self.logger.warning(f"WMI BIOS query failed: {e}")
-                
+
                 # Method 3: Alternative using systeminfo if WMI fails
                 if not info:
                     try:
@@ -474,7 +474,7 @@ class SystemCollector:
                                     info['model'] = line.split(':', 1)[1].strip()
                     except Exception as e:
                         self.logger.warning(f"systeminfo fallback failed: {e}")
-                
+
                 # Method 4: Registry fallback
                 if not info:
                     try:
@@ -491,18 +491,18 @@ class SystemCollector:
                                 pass
                     except Exception as e:
                         self.logger.warning(f"Registry BIOS query failed: {e}")
-            
+
             elif self.is_linux:
                 try:
                     # Try dmidecode for system information
                     if os.path.exists('/usr/sbin/dmidecode') or os.path.exists('/sbin/dmidecode'):
                         dmidecode_cmd = 'dmidecode' if os.path.exists('/usr/sbin/dmidecode') else '/sbin/dmidecode'
-                        
+
                         # Get system information
                         result = subprocess.run([
                             'sudo', dmidecode_cmd, '-t', 'system'
                         ], capture_output=True, text=True, timeout=30)
-                        
+
                         if result.returncode == 0:
                             for line in result.stdout.split('\n'):
                                 line = line.strip()
@@ -512,7 +512,7 @@ class SystemCollector:
                                     info['model'] = line.split(':', 1)[1].strip()
                                 elif line.startswith('Serial Number:'):
                                     info['serial_number'] = line.split(':', 1)[1].strip()
-                    
+
                     # Fallback: try /sys/class/dmi/id/
                     if not info:
                         dmi_paths = {
@@ -520,34 +520,34 @@ class SystemCollector:
                             'model': '/sys/class/dmi/id/product_name',
                             'serial_number': '/sys/class/dmi/id/product_serial'
                         }
-                        
+
                         for key, path in dmi_paths.items():
                             try:
                                 with open(path, 'r') as f:
                                     info[key] = f.read().strip()
                             except Exception:
                                 pass
-                
+
                 except Exception:
                     pass
-            
+
             return info
         except Exception as e:
             self.logger.error(f"Error getting system hardware info: {e}", exc_info=True)
             return {}
-    
+
     def _get_storage_info(self):
         """Get storage/disk information"""
         try:
             disks = []
-            
+
             # Get disk partitions
             try:
                 partitions = psutil.disk_partitions()
             except Exception as e:
                 self.logger.warning(f"Failed to get disk partitions: {e}")
                 partitions = []
-            
+
             for partition in partitions:
                 try:
                     disk_info = {
@@ -555,13 +555,13 @@ class SystemCollector:
                         'mountpoint': partition.mountpoint,
                         'filesystem': partition.fstype or 'unknown'
                     }
-                    
+
                     # Get disk usage - be more careful about access issues
                     try:
                         # Skip problematic mount points on Windows
                         if self.is_windows and partition.mountpoint in ['A:\\', 'B:\\']:
                             continue
-                        
+
                         usage = psutil.disk_usage(partition.mountpoint)
                         if usage.total > 0:  # Only include drives with actual size
                             disk_info.update({
@@ -584,7 +584,7 @@ class SystemCollector:
                     except Exception as e:
                         self.logger.warning(f"Error getting disk usage for {partition.mountpoint}: {e}")
                         continue
-                    
+
                     # Get disk I/O statistics
                     try:
                         io_counters = psutil.disk_io_counters(perdisk=True)
@@ -595,7 +595,7 @@ class SystemCollector:
                                 partition.device.replace(':', ''),
                                 partition.device.split('\\')[-1] if '\\' in partition.device else partition.device
                             ]
-                            
+
                             for device_name in device_variants:
                                 if device_name in io_counters:
                                     io = io_counters[device_name]
@@ -610,13 +610,13 @@ class SystemCollector:
                                     break
                     except Exception as e:
                         self.logger.debug(f"Could not get I/O stats for {partition.device}: {e}")
-                    
+
                     disks.append(disk_info)
-                
+
                 except Exception as e:
                     self.logger.debug(f"Error processing partition {partition}: {e}")
                     continue
-            
+
             # If no disks found, at least try to get system drive info
             if not disks and self.is_windows:
                 try:
@@ -635,7 +635,7 @@ class SystemCollector:
                     })
                 except Exception as e:
                     self.logger.warning(f"Could not get system drive info: {e}")
-            
+
             return {
                 'disks': disks,
                 'smart_data': self._get_smart_data()
@@ -643,60 +643,60 @@ class SystemCollector:
         except Exception as e:
             self.logger.error(f"Error getting storage info: {e}", exc_info=True)
             return {'disks': [], 'smart_data': []}
-    
+
     def _get_smart_data(self):
         """Get SMART disk health data where available"""
         try:
             smart_data = []
-            
+
             if self.is_linux and os.path.exists('/usr/sbin/smartctl'):
                 try:
                     # Get list of drives
                     result = subprocess.run([
                         'sudo', '/usr/sbin/smartctl', '--scan'
                     ], capture_output=True, text=True, timeout=30)
-                    
+
                     if result.returncode == 0:
                         for line in result.stdout.split('\n'):
                             if line.strip() and '/dev/' in line:
                                 device = line.split()[0]
-                                
+
                                 # Get SMART health status
                                 health_result = subprocess.run([
                                     'sudo', '/usr/sbin/smartctl', '-H', device
                                 ], capture_output=True, text=True, timeout=30)
-                                
+
                                 if health_result.returncode == 0:
                                     health_status = 'unknown'
                                     for health_line in health_result.stdout.split('\n'):
                                         if 'SMART overall-health' in health_line:
                                             health_status = health_line.split(':')[1].strip()
                                             break
-                                    
+
                                     smart_data.append({
                                         'device': device,
                                         'health_status': health_status
                                     })
-                
+
                 except Exception:
                     pass
-            
+
             return smart_data
         except Exception:
             return []
-    
+
     def _get_software_info(self):
         """Get installed software information (excluding default OS applications)"""
         try:
             software = []
-            
+
             if self.is_windows:
                 try:
                     # Use WMI to get installed programs
                     result = subprocess.run([
                         'wmic', 'product', 'get', 'Name,Version,Vendor', '/format:csv'
                     ], capture_output=True, text=True, timeout=60)
-                    
+
                     if result.returncode == 0:
                         lines = result.stdout.strip().split('\n')[1:]  # Skip header
                         for line in lines:
@@ -705,7 +705,7 @@ class SystemCollector:
                                 if len(parts) >= 4 and parts[1].strip():
                                     name = parts[1].strip()
                                     vendor = parts[2].strip()
-                                    
+
                                     # Filter out default Windows components and system software
                                     if not self._is_default_windows_software(name, vendor):
                                         software.append({
@@ -713,10 +713,10 @@ class SystemCollector:
                                             'version': parts[3].strip(),
                                             'vendor': vendor
                                         })
-                
+
                 except Exception:
                     pass
-            
+
             elif self.is_linux:
                 try:
                     # Try different package managers
@@ -725,14 +725,14 @@ class SystemCollector:
                         result = subprocess.run([
                             'dpkg', '-l'
                         ], capture_output=True, text=True, timeout=60)
-                        
+
                         if result.returncode == 0:
                             for line in result.stdout.split('\n'):
                                 if line.startswith('ii'):
                                     parts = line.split()
                                     if len(parts) >= 3:
                                         name = parts[1]
-                                        
+
                                         # Filter out default Linux system packages
                                         if not self._is_default_linux_software(name):
                                             software.append({
@@ -740,20 +740,20 @@ class SystemCollector:
                                                 'version': parts[2],
                                                 'vendor': 'debian'
                                             })
-                    
+
                     elif os.path.exists('/usr/bin/rpm'):
                         # RedHat/CentOS/Fedora
                         result = subprocess.run([
                             'rpm', '-qa', '--queryformat', '%{NAME}|%{VERSION}|%{VENDOR}\n'
                         ], capture_output=True, text=True, timeout=60)
-                        
+
                         if result.returncode == 0:
                             for line in result.stdout.split('\n'):
                                 if '|' in line:
                                     parts = line.split('|')
                                     if len(parts) >= 3:
                                         name = parts[0]
-                                        
+
                                         # Filter out default Linux system packages
                                         if not self._is_default_linux_software(name):
                                             software.append({
@@ -761,21 +761,21 @@ class SystemCollector:
                                                 'version': parts[1],
                                                 'vendor': parts[2]
                                             })
-                
+
                 except Exception:
                     pass
-            
+
             # Limit to top 50 packages to avoid overwhelming the API
             return software[:50]
         except Exception as e:
             self.logger.error(f"Error getting software info: {e}")
             return []
-    
+
     def _is_default_windows_software(self, name, vendor):
         """Check if software is a default Windows component"""
         name_lower = name.lower()
         vendor_lower = vendor.lower()
-        
+
         # Microsoft system components and built-in apps
         if 'microsoft' in vendor_lower:
             microsoft_defaults = [
@@ -786,28 +786,28 @@ class SystemCollector:
                 'windows runtime', 'microsoft silverlight', 'windows installer',
                 'windows powershell', 'windows subsystem', 'microsoft help viewer'
             ]
-            
+
             for default in microsoft_defaults:
                 if default in name_lower:
                     return True
-        
+
         # Other common system software to exclude
         system_software = [
             'intel', 'amd', 'nvidia', 'realtek', 'broadcom', 'qualcomm',
             'driver', 'codec', 'runtime', 'redistributable', 'framework',
             'windows', 'system', 'update', 'security', 'defender'
         ]
-        
+
         for sys_soft in system_software:
             if sys_soft in name_lower and any(x in vendor_lower for x in ['intel', 'amd', 'nvidia', 'realtek', 'microsoft']):
                 return True
-        
+
         return False
-    
+
     def _is_default_linux_software(self, name):
         """Check if software is a default Linux system package"""
         name_lower = name.lower()
-        
+
         # Common system packages and libraries to exclude
         system_packages = [
             'lib', 'glib', 'gtk', 'gnome', 'kde', 'systemd', 'dbus', 'udev',
@@ -819,27 +819,27 @@ class SystemCollector:
             'cups', 'avahi', 'packagekit', 'appstream', 'apt', 'dpkg',
             'rpm', 'yum', 'dnf', 'zypper', 'snap', 'flatpak'
         ]
-        
+
         # Check if package name starts with or contains system identifiers
         for sys_pkg in system_packages:
             if name_lower.startswith(sys_pkg) or sys_pkg in name_lower:
                 return True
-        
+
         # Exclude development libraries and headers
         if name_lower.endswith('-dev') or name_lower.endswith('-devel') or '-dev-' in name_lower:
             return True
-        
+
         # Exclude documentation packages
         if name_lower.endswith('-doc') or name_lower.endswith('-docs') or '-doc-' in name_lower:
             return True
-        
+
         return False
-    
+
     def _get_running_processes(self):
         """Get running processes information"""
         try:
             processes = []
-            
+
             for proc in psutil.process_iter(['pid', 'name', 'username', 'cpu_percent', 'memory_percent', 'create_time']):
                 try:
                     proc_info = proc.info
@@ -853,276 +853,3 @@ class SystemCollector:
                     })
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     continue
-            
-            # Sort by CPU usage and limit to top 20
-            processes.sort(key=lambda x: x['cpu_percent'] or 0, reverse=True)
-            return processes[:20]
-        except Exception as e:
-            self.logger.error(f"Error getting process info: {e}")
-            return []
-    
-    def _get_usb_devices(self):
-        """Get connected USB devices"""
-        try:
-            usb_devices = []
-            
-            if self.is_linux:
-                try:
-                    if os.path.exists('/usr/bin/lsusb'):
-                        result = subprocess.run(['lsusb'], capture_output=True, text=True, timeout=30)
-                        if result.returncode == 0:
-                            for line in result.stdout.split('\n'):
-                                if line.strip():
-                                    usb_devices.append({'description': line.strip()})
-                except Exception:
-                    pass
-            
-            elif self.is_windows:
-                try:
-                    result = subprocess.run([
-                        'wmic', 'path', 'Win32_USBDevice', 'get', 'Description,DeviceID', '/format:csv'
-                    ], capture_output=True, text=True, timeout=30)
-                    
-                    if result.returncode == 0:
-                        lines = result.stdout.strip().split('\n')[1:]  # Skip header
-                        for line in lines:
-                            if line.strip() and ',' in line:
-                                parts = line.split(',')
-                                if len(parts) >= 3 and parts[1].strip():
-                                    usb_devices.append({
-                                        'description': parts[1].strip(),
-                                        'device_id': parts[2].strip()
-                                    })
-                except Exception:
-                    pass
-            
-            return usb_devices
-        except Exception as e:
-            self.logger.error(f"Error getting USB devices: {e}")
-            return []
-    
-    def _get_virtualization_info(self):
-        """Detect if running in a virtual machine"""
-        try:
-            vm_info = {
-                'is_virtual': False,
-                'hypervisor': 'unknown',
-                'detection_methods': []
-            }
-            
-            # Check various VM detection methods
-            if self.is_linux:
-                # Check /proc/cpuinfo for hypervisor flag
-                try:
-                    with open('/proc/cpuinfo', 'r') as f:
-                        content = f.read()
-                        if 'hypervisor' in content:
-                            vm_info['is_virtual'] = True
-                            vm_info['detection_methods'].append('cpuinfo_hypervisor_flag')
-                except Exception:
-                    pass
-                
-                # Check DMI information
-                try:
-                    dmi_files = [
-                        '/sys/class/dmi/id/sys_vendor',
-                        '/sys/class/dmi/id/product_name',
-                        '/sys/class/dmi/id/board_vendor'
-                    ]
-                    
-                    for dmi_file in dmi_files:
-                        if os.path.exists(dmi_file):
-                            with open(dmi_file, 'r') as f:
-                                content = f.read().lower()
-                                if 'vmware' in content:
-                                    vm_info['is_virtual'] = True
-                                    vm_info['hypervisor'] = 'vmware'
-                                    vm_info['detection_methods'].append('dmi_vmware')
-                                elif 'virtualbox' in content:
-                                    vm_info['is_virtual'] = True
-                                    vm_info['hypervisor'] = 'virtualbox'
-                                    vm_info['detection_methods'].append('dmi_virtualbox')
-                                elif 'kvm' in content or 'qemu' in content:
-                                    vm_info['is_virtual'] = True
-                                    vm_info['hypervisor'] = 'kvm'
-                                    vm_info['detection_methods'].append('dmi_kvm')
-                                elif 'microsoft' in content:
-                                    vm_info['is_virtual'] = True
-                                    vm_info['hypervisor'] = 'hyper-v'
-                                    vm_info['detection_methods'].append('dmi_hyperv')
-                except Exception:
-                    pass
-            
-            elif self.is_windows:
-                try:
-                    # Check WMI for VM detection
-                    result = subprocess.run([
-                        'wmic', 'computersystem', 'get', 'Model,Manufacturer', '/format:csv'
-                    ], capture_output=True, text=True, timeout=30)
-                    
-                    if result.returncode == 0:
-                        content = result.stdout.lower()
-                        if 'vmware' in content:
-                            vm_info['is_virtual'] = True
-                            vm_info['hypervisor'] = 'vmware'
-                            vm_info['detection_methods'].append('wmi_vmware')
-                        elif 'virtualbox' in content:
-                            vm_info['is_virtual'] = True
-                            vm_info['hypervisor'] = 'virtualbox'
-                            vm_info['detection_methods'].append('wmi_virtualbox')
-                        elif 'microsoft corporation' in content and 'virtual' in content:
-                            vm_info['is_virtual'] = True
-                            vm_info['hypervisor'] = 'hyper-v'
-                            vm_info['detection_methods'].append('wmi_hyperv')
-                except Exception:
-                    pass
-            
-            return vm_info
-        except Exception as e:
-            self.logger.error(f"Error detecting virtualization: {e}")
-            return {'is_virtual': False, 'hypervisor': 'unknown', 'detection_methods': []}
-    
-    def _get_system_health(self):
-        """Get system health and performance metrics"""
-        try:
-            return {
-                'cpu_temperature': self._get_cpu_temperature(),
-                'disk_health': self._get_disk_health_summary(),
-                'memory_pressure': self._get_memory_pressure(),
-                'system_load': self._get_system_load()
-            }
-        except Exception as e:
-            self.logger.error(f"Error getting system health: {e}")
-            return {}
-           
-            
-    def _get_current_user(self):
-        """Get the current logged-in user"""
-        try:
-            return getpass.getuser()
-        except Exception as e:
-            self.logger.warning(f"Failed to get current user: {e}")
-            return "unknown"
-             
-             
-    def _get_cpu_temperature(self):
-        """Get CPU temperature if available"""
-        try:
-            if hasattr(psutil, 'sensors_temperatures'):
-                temps = psutil.sensors_temperatures()
-                if temps:
-                    for name, entries in temps.items():
-                        if 'cpu' in name.lower() or 'core' in name.lower():
-                            return [{'label': entry.label, 'current': entry.current} for entry in entries]
-            return None
-        except Exception:
-            return None
-    
-    def _get_disk_health_summary(self):
-        """Get disk health summary"""
-        try:
-            # This is a simplified version; full SMART data is in storage section
-            return {
-                'status': 'healthy',  # Would need more sophisticated checking
-                'note': 'Basic disk health check - see storage section for SMART data'
-            }
-        except Exception:
-            return None
-    
-    def _get_memory_pressure(self):
-        """Get memory pressure indicators"""
-        try:
-            memory = psutil.virtual_memory()
-            return {
-                'pressure_level': 'high' if memory.percent > 90 else 'medium' if memory.percent > 75 else 'low',
-                'usage_percent': memory.percent
-            }
-        except Exception:
-            return None
-    
-    def _get_system_load(self):
-        """Get system load averages"""
-        try:
-            if hasattr(os, 'getloadavg'):
-                load1, load5, load15 = os.getloadavg()
-                return {
-                    'load_1min': load1,
-                    'load_5min': load5,
-                    'load_15min': load15
-                }
-            return None
-        except Exception:
-            return None
-    
-    def _get_security_info(self):
-        """Get security-related information"""
-        try:
-            info = {
-                'firewall_status': self._get_firewall_status(),
-                'antivirus_status': self._get_antivirus_status(),
-                'last_scan': self._get_last_security_scan()
-            }
-            return info
-        except Exception as e:
-            self.logger.error(f"Error getting security info: {e}")
-            return {}
-    
-    def _get_firewall_status(self):
-        """Get firewall status"""
-        try:
-            if self.is_windows:
-                result = subprocess.run([
-                    'netsh', 'advfirewall', 'show', 'allprofiles', 'state'
-                ], capture_output=True, text=True, timeout=30)
-                
-                if result.returncode == 0:
-                    return 'enabled' if 'ON' in result.stdout else 'disabled'
-            
-            elif self.is_linux:
-                # Check various Linux firewalls
-                if os.path.exists('/usr/sbin/ufw'):
-                    result = subprocess.run(['ufw', 'status'], capture_output=True, text=True, timeout=30)
-                    if result.returncode == 0:
-                        return 'enabled' if 'active' in result.stdout.lower() else 'disabled'
-                
-                elif os.path.exists('/usr/sbin/iptables'):
-                    result = subprocess.run(['iptables', '-L'], capture_output=True, text=True, timeout=30)
-                    if result.returncode == 0:
-                        # Simple check for rules
-                        return 'enabled' if len(result.stdout.split('\n')) > 10 else 'disabled'
-            
-            return 'unknown'
-        except Exception:
-            return 'unknown'
-    
-    def _get_antivirus_status(self):
-        """Get antivirus status"""
-        try:
-            if self.is_windows:
-                # Check Windows Defender status
-                result = subprocess.run([
-                    'powershell', '-Command', 'Get-MpComputerStatus | Select-Object AntivirusEnabled'
-                ], capture_output=True, text=True, timeout=30)
-                
-                if result.returncode == 0:
-                    return 'enabled' if 'True' in result.stdout else 'disabled'
-            
-            return 'unknown'
-        except Exception:
-            return 'unknown'
-    
-    def _get_last_security_scan(self):
-        """Get last security scan information"""
-        try:
-            if self.is_windows:
-                # Check Windows Defender last scan
-                result = subprocess.run([
-                    'powershell', '-Command', 'Get-MpComputerStatus | Select-Object QuickScanStartTime,FullScanStartTime'
-                ], capture_output=True, text=True, timeout=30)
-                
-                if result.returncode == 0:
-                    return result.stdout.strip()
-            
-            return 'unknown'
-        except Exception:
-            return 'unknown'

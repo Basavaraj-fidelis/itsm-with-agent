@@ -826,6 +826,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Final USB devices for storage:", usbDevices);
 
+      // Extract update information
+      const securityInfo = data.security || {};
+      const updateHistory = data.update_history || {};
+      const windowsUpdates = securityInfo.windows_updates || {};
+      
       // Create device report with enhanced data
       await storage.createDeviceReport({
         device_id: device.id,
@@ -839,6 +844,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           extracted_usb_devices: usbDevices,
           extracted_current_user: currentUser,
           extracted_ip_address: ip_address,
+          extracted_update_info: {
+            last_boot_time: updateHistory.last_boot_time,
+            system_uptime_hours: updateHistory.system_uptime_hours,
+            pending_reboot: updateHistory.pending_reboot,
+            last_update_check: windowsUpdates.last_update_check,
+            recent_updates: windowsUpdates.recent_updates
+          },
           processed_at: new Date().toISOString()
         })
       });
