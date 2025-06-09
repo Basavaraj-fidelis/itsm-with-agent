@@ -80,46 +80,7 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                   Assigned User
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                  
-                 
-                 
-                 
-                 
-                   
-                   
-                  
-                            
-                          
-                               
-                               
-                               
-                               
- rawData.username;
-
-                                
-                               ""
-                               
-                              
-                               
-                               
-                               
-                               
- rawData.username;
-
-                                
-                               ""
-                               
-                              ""
-                               
-                               
-                               
-                               
-                               
-                                 rawData.username;
-
-                                
-                               ""
-                               Active IP
+                  IP Address
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
                   Status
@@ -141,11 +102,18 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
             <tbody className="bg-white dark:bg-neutral-800 divide-y divide-neutral-200 dark:divide-neutral-700">
               {agents.map((agent) => {
                 const DeviceIcon = getDeviceIcon(agent.hostname);
-                const cpuUsage = agent.latest_report?.cpu_usage ? parseFloat(agent.latest_report.cpu_usage) : 0;
-                const memoryUsage = agent.latest_report?.memory_usage ? parseFloat(agent.latest_report.memory_usage) : 0;
+                const cpuUsage = agent.latest_report?.cpu_usage
+                  ? parseFloat(agent.latest_report.cpu_usage)
+                  : 0;
+                const memoryUsage = agent.latest_report?.memory_usage
+                  ? parseFloat(agent.latest_report.memory_usage)
+                  : 0;
 
                 return (
-                  <tr key={agent.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-700">
+                  <tr
+                    key={agent.id}
+                    className="hover:bg-neutral-50 dark:hover:bg-neutral-700"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <Checkbox />
                     </td>
@@ -156,7 +124,9 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                           <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                             {agent.hostname}
                           </div>
-                          <div className="text-sm text-neutral-500">{agent.ip_address}</div>
+                          <div className="text-sm text-neutral-500">
+                            {agent.ip_address}
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -167,49 +137,29 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                             {(() => {
                               // Get assigned user from latest report or agent data
                               const latestReport = agent.latest_report;
-                              let rawData = {};
-                              
-                              try {
-                                rawData = latestReport?.raw_data
-                                  ? typeof latestReport.raw_data === "string"
-                                    ? JSON.parse(latestReport.raw_data)
-                                    : latestReport.raw_data
-                                  : {};
-                              } catch (e) {
-                                console.warn("Failed to parse raw_data:", e);
-                              }
-                              
-                              // Try multiple sources for assigned user
-                              const assignedUser = 
-                                rawData.assigned_user || 
-                                agent.assigned_user || 
-                                rawData.current_user || 
-                                rawData.user || 
-                                rawData.username ||
-                                rawData.system_info?.current_user ||
-                                rawData.os_info?.current_user ||
-                                rawData.hardware?.current_user;
-                              
-                              // Filter out system accounts and invalid values
-                              if (!assignedUser || 
-                                  assignedUser.endsWith('$') || 
-                                  assignedUser === "Unknown" ||
-                                  assignedUser === "N/A" ||
-                                  assignedUser.includes("SYSTEM") ||
-                                  assignedUser.includes("NETWORK SERVICE") ||
-                                  assignedUser.includes("LOCAL SERVICE")) {
+                              const rawData = latestReport?.raw_data
+                                ? typeof latestReport.raw_data === "string"
+                                  ? JSON.parse(latestReport.raw_data)
+                                  : latestReport.raw_data
+                                : {};
+
+                              const assignedUser =
+                                rawData.assigned_user ||
+                                agent.assigned_user ||
+                                rawData.current_user ||
+                                rawData.user ||
+                                rawData.username;
+
+                              // Filter out system accounts (those ending with $)
+                              if (
+                                !assignedUser ||
+                                assignedUser.endsWith("$") ||
+                                assignedUser === "Unknown"
+                              ) {
                                 return "?";
                               }
-                              
-                              // Get first letter from username (handle domain\user and email formats)
-                              let username = assignedUser;
-                              if (username.includes('@')) {
-                                username = username.split("@")[0];
-                              } else if (username.includes('\\')) {
-                                username = username.split("\\")[1] || username;
-                              }
-                              
-                              return username.charAt(0).toUpperCase();
+
+                              return assignedUser.charAt(0).toUpperCase();
                             })()}
                           </span>
                         </div>
@@ -218,87 +168,56 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                             {(() => {
                               // Get assigned user from latest report or agent data
                               const latestReport = agent.latest_report;
-                              let rawData = {};
-                              
-                              try {
-                                rawData = latestReport?.raw_data
-                                  ? typeof latestReport.raw_data === "string"
-                                    ? JSON.parse(latestReport.raw_data)
-                                    : latestReport.raw_data
-                                  : {};
-                              } catch (e) {
-                                console.warn("Failed to parse raw_data:", e);
-                              }
-                              
-                              // Try multiple sources for assigned user
-                              const assignedUser = 
-                                rawData.assigned_user || 
-                                agent.assigned_user || 
-                                rawData.current_user || 
-                                rawData.user || 
-                                rawData.username ||
-                                rawData.system_info?.current_user ||
-                                rawData.os_info?.current_user ||
-                                rawData.hardware?.current_user;
-                              
-                              console.log("Assigned user found:", assignedUser, "for agent:", agent.hostname);
-                              
-                              // Filter out system accounts and invalid values
-                              if (!assignedUser || 
-                                  assignedUser.endsWith('$') || 
-                                  assignedUser === "Unknown" ||
-                                  assignedUser === "N/A" ||
-                                  assignedUser.includes("SYSTEM") ||
-                                  assignedUser.includes("NETWORK SERVICE") ||
-                                  assignedUser.includes("LOCAL SERVICE")) {
+                              const rawData = latestReport?.raw_data
+                                ? typeof latestReport.raw_data === "string"
+                                  ? JSON.parse(latestReport.raw_data)
+                                  : latestReport.raw_data
+                                : {};
+
+                              const assignedUser =
+                                rawData.assigned_user ||
+                                agent.assigned_user ||
+                                rawData.current_user ||
+                                rawData.user ||
+                                rawData.username;
+
+                              // Filter out system accounts (those ending with $)
+                              if (
+                                !assignedUser ||
+                                assignedUser.endsWith("$") ||
+                                assignedUser === "Unknown"
+                              ) {
                                 return "Unassigned";
                               }
-                              
-                              // Return username part if it's an email or domain\user format
-                              if (assignedUser.includes('@')) {
-                                return assignedUser.split("@")[0];
-                              } else if (assignedUser.includes('\\')) {
-                                return assignedUser.split("\\")[1] || assignedUser;
-                              }
-                              
-                              return assignedUser;
+
+                              // Return username part if it's an email
+                              return assignedUser.includes("@")
+                                ? assignedUser.split("@")[0]
+                                : assignedUser;
                             })()}
                           </div>
                           <div className="text-sm text-neutral-500">
                             {(() => {
                               // Get assigned user from latest report or agent data
                               const latestReport = agent.latest_report;
-                              let rawData = {};
-                              
-                              try {
-                                rawData = latestReport?.raw_data
-                                  ? typeof latestReport.raw_data === "string"
-                                    ? JSON.parse(latestReport.raw_data)
-                                    : latestReport.raw_data
-                                  : {};
-                              } catch (e) {
-                                console.warn("Failed to parse raw_data:", e);
-                              }
-                              
-                              // Try multiple sources for assigned user
-                              const assignedUser = 
-                                rawData.assigned_user || 
-                                agent.assigned_user || 
-                                rawData.current_user || 
-                                rawData.user || 
-                                rawData.username ||
-                                rawData.system_info?.current_user ||
-                                rawData.os_info?.current_user ||
-                                rawData.hardware?.current_user;
-                              
-                              // Filter out system accounts and invalid values
-                              if (!assignedUser || 
-                                  assignedUser.endsWith('$') || 
-                                  assignedUser === "Unknown" ||
-                                  assignedUser === "N/A" ||
-                                  assignedUser.includes("SYSTEM") ||
-                                  assignedUser.includes("NETWORK SERVICE") ||
-                                  assignedUser.includes("LOCAL SERVICE")
+                              const rawData = latestReport?.raw_data
+                                ? typeof latestReport.raw_data === "string"
+                                  ? JSON.parse(latestReport.raw_data)
+                                  : latestReport.raw_data
+                                : {};
+
+                              const assignedUser =
+                                rawData.assigned_user ||
+                                agent.assigned_user ||
+                                rawData.current_user ||
+                                rawData.user ||
+                                rawData.username;
+
+                              // Filter out system accounts (those ending with $)
+                              if (
+                                !assignedUser ||
+                                assignedUser.endsWith("$") ||
+                                assignedUser === "Unknown"
                               ) {
                                 return "No user assigned";
                               }
