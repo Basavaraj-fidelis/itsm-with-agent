@@ -28,12 +28,9 @@ export default function SecurityDashboard() {
 
   const { data: vulnerabilities, isError: vulnerabilitiesError } = useQuery({
     queryKey: ["vulnerabilities", selectedDevice],
-    queryFn: () => selectedDevice ? api.get(`/api/security/vulnerabilities/${selectedDevice}`).then(res => res.data) : [],
+    queryFn: () => api.get(`/api/security/vulnerabilities/${selectedDevice}`).then(res => res.data),
     enabled: !!selectedDevice,
-    retry: 1,
-    onError: (error) => {
-      console.error("Error fetching vulnerabilities:", error);
-    }
+    retry: 1
   });
 
   const { data: alerts, isError: alertsError } = useQuery({

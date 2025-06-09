@@ -28,22 +28,16 @@ export default function PerformanceAnalytics() {
 
   const { data: insights, isError: insightsError } = useQuery({
     queryKey: ["performance-insights", selectedDevice],
-    queryFn: () => selectedDevice ? api.get(`/api/performance/insights/${selectedDevice}`).then(res => res.data) : null,
+    queryFn: () => api.get(`/api/performance/insights/${selectedDevice}`).then(res => res.data),
     enabled: !!selectedDevice,
-    retry: 1,
-    onError: (error) => {
-      console.error("Error fetching performance insights:", error);
-    }
+    retry: 1
   });
 
   const { data: predictions, isError: predictionsError } = useQuery({
     queryKey: ["performance-predictions", selectedDevice],
-    queryFn: () => selectedDevice ? api.get(`/api/performance/predictions/${selectedDevice}`).then(res => res.data) : [],
+    queryFn: () => api.get(`/api/performance/predictions/${selectedDevice}`).then(res => res.data),
     enabled: !!selectedDevice,
-    retry: 1,
-    onError: (error) => {
-      console.error("Error fetching performance predictions:", error);
-    }
+    retry: 1
   });
 
   return (

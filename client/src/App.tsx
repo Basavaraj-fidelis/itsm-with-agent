@@ -23,7 +23,6 @@ import Reports from "@/pages/reports";
 import NotFound from "@/pages/not-found";
 import VNCPage from "@/pages/vnc";
 import SecurityDashboard from "@/pages/security-dashboard";
-import AutomationCenter from "@/pages/automation-center";
 import PerformanceAnalytics from "@/pages/performance-analytics";
 
 // Layout
@@ -216,13 +215,7 @@ export default function App() {
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>
-            <Route path="/automation">
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <AutomationCenter />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
+
             <Route path="/performance">
               <ProtectedRoute>
                 <AuthenticatedLayout>
