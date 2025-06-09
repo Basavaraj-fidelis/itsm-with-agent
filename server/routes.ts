@@ -285,13 +285,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const alertId = req.params.id;
       console.log(`Fetching alert: ${alertId}`);
-      
+
       const alert = await storage.getAlertById(alertId);
-      
+
       if (!alert) {
         return res.status(404).json({ message: "Alert not found" });
       }
-      
+
       res.json(alert);
     } catch (error) {
       console.error("Error fetching alert:", error);
@@ -304,7 +304,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const alertId = req.params.id;
       console.log(`Attempting to resolve alert: ${alertId}`);
-      
+
       // Check if alert exists first
       const alert = await storage.getAlertById(alertId);
       if (!alert) {
@@ -313,17 +313,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           alertId: alertId 
         });
       }
-      
+
       if (!alert.is_active) {
         return res.status(400).json({ 
           message: "Alert is already resolved",
           alertId: alertId 
         });
       }
-      
+
       await storage.resolveAlert(alertId);
       console.log(`Alert ${alertId} resolved successfully`);
-      
+
       res.json({ 
         message: "Alert resolved successfully",
         alertId: alertId,
@@ -469,7 +469,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Extract user information - try to find real user, not system accounts
       let currentUser = null;
-      
+
       // First try to extract from processes (most reliable)
       if (data.processes && Array.isArray(data.processes)) {
         const userProcesses = data.processes.filter(process => {
@@ -548,7 +548,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (data.network?.interfaces && Array.isArray(data.network.interfaces)) {
         for (const iface of data.network.interfaces) {
           const name = iface.name?.toLowerCase() || '';
-          
+
           // Prioritize Ethernet interfaces
           if ((name.includes('eth') || name.includes('ethernet') || name.includes('enet')) && 
               !name.includes('veth') && !name.includes('virtual') &&
@@ -592,7 +592,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const name = iface.name?.toLowerCase() || '';
             const isVirtual = name.includes('virtual') || name.includes('veth') || 
                             name.includes('docker') || name.includes('vmware');
-            
+
             if (!isVirtual && iface.stats?.is_up !== false) {
               for (const addr of iface.addresses || []) {
                 if (addr.family === 'AF_INET' && 
@@ -617,7 +617,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               mac: iface.mac_address
             });
           }
-          
+
           // Also check in addresses array for compatibility
           for (const addr of iface.addresses || []) {
             if (addr.family?.includes('AF_LINK') || addr.family?.includes('AF_PACKET')) {
@@ -818,7 +818,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // USB device detection and tracking - check multiple possible locations
       let usbDevices = [];
-      
+
       // Check various possible locations for USB device data
       const possibleUSBLocations = [
         data.usb_devices,
@@ -827,7 +827,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         data.devices?.usb,
         data.usb
       ];
-      
+
       for (const location of possibleUSBLocations) {
         if (location && Array.isArray(location) && location.length > 0) {
           usbDevices = location;
@@ -835,14 +835,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           break;
         }
       }
-      
+
       console.log("Final USB devices for storage:", usbDevices);
 
       // Extract update information - enhanced to handle new structure
       const securityInfo = data.security || {};
       const updateHistory = data.update_history || {};
       const windowsUpdates = securityInfo.windows_updates || {};
-      
+
       // Create device report with enhanced data
       await storage.createDeviceReport({
         device_id: device.id,
@@ -1129,6 +1129,184 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register ticket routes
   registerTicketRoutes(app);
+
+  // Security & Compliance Endpoints
+  app.get("/api/security/vulnerabilities/:deviceId", authenticateToken, async (req, res) => {
+    try {
+      const { securityService } = await import("./security-service");
+      const reports = await storage.getDeviceReports(req.params.deviceId);
+
+      if (reports.length === 0) {
+        return res.json([]);
+      }
+
+      const latestReport = reports[0];
+      const rawData = JSON.parse(latestReport.raw_data || "{}");
+      const installedSoftware = rawData.installed_software || rawData.software || [];
+
+      const vulnerabilities = await securityService.checkVulnerabilities(req.params.deviceId, installedSoftware);
+      res.json(vulnerabilities);
+    } catch (error) {
+      console.error("Error fetching vulnerabilities:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/performance/insights/:deviceId", authenticateToken, async (req, res) => {
+    try {
+      const { performanceService } = await import("./performance-service");
+      const insights = await performanceService.getApplicationPerformanceInsights(req.params.deviceId);
+      res.json(insights);
+    } catch (error) {
+      console.error("Error fetching performance insights:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/performance/predictions/:deviceId", authenticateToken, async (req, res) => {
+    try {
+      const { performanceService } = await import("./performance-service");
+      const predictions = await performanceService.generateResourcePredictions(req.params.deviceId);
+      res.json(predictions);
+    } catch (error) {
+      console.error("Error fetching resource predictions:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Automation & Orchestration Endpoints
+  app.get("/api/automation/software-packages", authenticateToken, async (req, res) => {
+    try {
+      const { automationService } = await import("./automation-service");
+      const packages = automationService.getSoftwarePackages();
+      res.json(packages);
+    } catch (error) {
+      console.error("Error fetching software packages:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/automation/deploy-software", authenticateToken, requireRole(['admin', 'manager']), async (req, res) => {
+    try {
+      const { device_ids, package_id, scheduled_time } = req.body;
+
+      if (!device_ids || !package_id) {
+        return res.status(400).json({ message: "device_ids and package_id are required" });
+      }
+
+      const { automationService } = await import("./automation-service");
+      const scheduledTime = scheduled_time ? new Date(scheduled_time) : new Date();
+
+      const deploymentIds = await automationService.scheduleDeployment(
+        device_ids, 
+        package_id, 
+        scheduledTime
+      );
+
+      res.json({ 
+        deployment_ids: deploymentIds,
+        message: "Software deployment scheduled",
+        target_devices: device_ids.length,
+        scheduled_time: scheduledTime
+      });
+    } catch (error) {
+      console.error("Error scheduling software deployment:", error);
+      res.status(500).json({ message: error.message || "Internal server error" });
+    }
+  });
+
+  app.get("/api/automation/deployment/:deploymentId", authenticateToken, async (req, res) => {
+    try {
+      const { automationService } = await import("./automation-service");
+      const deployment = await automationService.getDeploymentStatus(req.params.deploymentId);
+
+      if (!deployment) {
+        return res.status(404).json({ message: "Deployment not found" });
+      }
+
+      res.json(deployment);
+    } catch (error) {
+      console.error("Error fetching deployment status:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/automation/remediation/:deviceId", authenticateToken, async (req, res) => {
+    try {
+      const { issue_type, remediation_action } = req.body;
+      const deviceId = req.params.deviceId;
+
+      // Log remediation action
+      await storage.createAlert({
+        device_id: deviceId,
+        category: "automation",
+        severity: "info",
+        message: `Automated remediation initiated: ${issue_type}`,
+        metadata: {
+          issue_type: issue_type,
+          remediation_action: remediation_action,
+          initiated_by: req.user.email,
+          automation_type: "remediation",
+          status: "in_progress"
+        },
+        is_active: true
+      });
+
+      res.json({ 
+        message: "Remediation initiated",
+        remediation_id: Date.now().toString(),
+        status: "in_progress"
+      });
+    } catch (error) {
+      console.error("Error initiating remediation:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/automation/deployments", authenticateToken, async (req, res) => {
+    try {
+      const alerts = await storage.getActiveAlerts();
+      const deployments = alerts.filter(alert => 
+        alert.category === "automation" && 
+        alert.metadata?.automation_type === "software_deployment"
+      );
+
+      res.json(deployments);
+    } catch (error) {
+      console.error("Error fetching deployments:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Network Discovery Endpoint
+  app.get("/api/network/topology", authenticateToken, async (req, res) => {
+    try {
+      const devices = await storage.getDevices();
+      const topology = {
+        nodes: devices.map(device => ({
+          id: device.id,
+          hostname: device.hostname,
+          ip_address: device.ip_address,
+          status: device.status,
+          os_name: device.os_name,
+          assigned_user: device.assigned_user
+        })),
+        edges: [], // Would be populated by network scanning
+        subnets: [], // Would be detected from IP addresses
+        last_scan: new Date()
+      };
+
+      res.json(topology);
+    } catch (error) {
+      console.error("Error fetching network topology:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Health check
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "ok", timestamp: new Date() });
+  });
 
   const httpServer = createServer(app);
   return httpServer;
