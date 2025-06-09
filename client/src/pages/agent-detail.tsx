@@ -1,6 +1,7 @@
 import { Link, useParams } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { MetricCard } from "@/components/agent-detail/metric-card";
 import AgentTabs from "@/components/agent-detail/agent-tabs";
@@ -22,6 +23,8 @@ import {
   Cpu,
   Download,
   HardDrive,
+  HelpCircle,
+  Info,
   Memory,
   MemoryStick,
   Monitor,
