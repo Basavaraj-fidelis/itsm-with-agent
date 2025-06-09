@@ -1371,12 +1371,36 @@ export default function Tickets() {
         {/* Header */}
         <div className="bg-white dark:bg-gray-800 shadow-md p-4">
           <div className="container mx-auto">
-            <h1 className="text-2xl font-semibold text-gray-800 dark:text-white">
-              {getActiveTabTitle()}
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              {getActiveTabDescription()}
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-semibold text-gray-800 dark:text-white">
+                  {getActiveTabTitle()}
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400">
+                  {getActiveTabDescription()}
+                </p>
+              </div>
+              <div className="flex items-center space-x-3">
+                <Button
+                  variant={activeTab === "workflows" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setActiveTab("workflows")}
+                  className="flex items-center space-x-2"
+                >
+                  <Workflow className="w-4 h-4" />
+                  <span>Workflows</span>
+                </Button>
+                <Button
+                  variant={activeTab === "analytics" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setActiveTab("analytics")}
+                  className="flex items-center space-x-2"
+                >
+                  <TrendingUp className="w-4 h-4" />
+                  <span>Analytics</span>
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
 

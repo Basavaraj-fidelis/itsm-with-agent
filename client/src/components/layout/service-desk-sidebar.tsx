@@ -7,9 +7,7 @@ import {
   AlertTriangle, 
   Bug, 
   RefreshCw,
-  BarChart3,
-  Settings,
-  Workflow
+  Settings
 } from "lucide-react";
 import { useLocation } from "wouter";
 
@@ -49,18 +47,6 @@ export default function ServiceDeskSidebar({ activeTab, setActiveTab }: ServiceD
       name: "Changes",
       icon: RefreshCw,
       description: "Change requests and approvals"
-    },
-    {
-      id: "workflows",
-      name: "Workflows",
-      icon: Workflow,
-      description: "Process automation and templates"
-    },
-    {
-      id: "analytics",
-      name: "Analytics",
-      icon: BarChart3,
-      description: "Performance metrics and reports"
     }
   ];
 
