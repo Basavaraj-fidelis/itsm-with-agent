@@ -114,18 +114,67 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                       <div className="flex items-center">
                         <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mr-3">
                           <span className="text-blue-600 dark:text-blue-300 text-sm font-medium">
-                            {agent.assigned_user && !agent.assigned_user.includes('$') ? agent.assigned_user.charAt(0).toUpperCase() : "?"}
+                            {(() => {
+                              // Get assigned user from latest report or agent data
+                              const latestReport = agent.latest_report;
+                              const rawData = latestReport?.raw_data
+                                ? typeof latestReport.raw_data === "string"
+                                  ? JSON.parse(latestReport.raw_data)
+                                  : latestReport.raw_data
+                                : {};
+                              
+                              const assignedUser = rawData.assigned_user || agent.assigned_user || rawData.current_user || rawData.user || rawData.username;
+                              
+                              // Filter out system accounts (those ending with $)
+                              if (!assignedUser || assignedUser.endsWith('$') || assignedUser === "Unknown") {
+                                return "?";
+                              }
+                              
+                              return assignedUser.charAt(0).toUpperCase();
+                            })()}
                           </span>
                         </div>
                         <div>
                           <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                            {agent.assigned_user && !agent.assigned_user.includes('$') 
-                              ? (agent.assigned_user.includes('@') ? agent.assigned_user.split("@")[0] : agent.assigned_user)
-                              : "Unassigned"
-                            }
+                            {(() => {
+                              // Get assigned user from latest report or agent data
+                              const latestReport = agent.latest_report;
+                              const rawData = latestReport?.raw_data
+                                ? typeof latestReport.raw_data === "string"
+                                  ? JSON.parse(latestReport.raw_data)
+                                  : latestReport.raw_data
+                                : {};
+                              
+                              const assignedUser = rawData.assigned_user || agent.assigned_user || rawData.current_user || rawData.user || rawData.username;
+                              
+                              // Filter out system accounts (those ending with $)
+                              if (!assignedUser || assignedUser.endsWith('$') || assignedUser === "Unknown") {
+                                return "Unassigned";
+                              }
+                              
+                              // Return username part if it's an email
+                              return assignedUser.includes('@') ? assignedUser.split("@")[0] : assignedUser;
+                            })()}
                           </div>
                           <div className="text-sm text-neutral-500">
-                            {agent.assigned_user && !agent.assigned_user.includes('$') ? agent.assigned_user : "No user assigned"}
+                            {(() => {
+                              // Get assigned user from latest report or agent data
+                              const latestReport = agent.latest_report;
+                              const rawData = latestReport?.raw_data
+                                ? typeof latestReport.raw_data === "string"
+                                  ? JSON.parse(latestReport.raw_data)
+                                  : latestReport.raw_data
+                                : {};
+                              
+                              const assignedUser = rawData.assigned_user || agent.assigned_user || rawData.current_user || rawData.user || rawData.username;
+                              
+                              // Filter out system accounts (those ending with $)
+                              if (!assignedUser || assignedUser.endsWith('$') || assignedUser === "Unknown") {
+                                return "No user assigned";
+                              }
+                              
+                              return assignedUser;
+                            })()}
                           </div>
                         </div>
                       </div>
