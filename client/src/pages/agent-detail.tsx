@@ -30,7 +30,8 @@ import {
   Zap,
   TrendingUp,
   TrendingDown,
-  Minus
+  Minus,
+  AlertCircle
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
