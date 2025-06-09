@@ -90,11 +90,11 @@ export function Sidebar() {
         if (notificationsResponse.ok) {
           const unreadNotifications = await notificationsResponse.json();
           const unreadCount = Array.isArray(unreadNotifications) ? unreadNotifications.length : 0;
-          
+
           // Count by type for more granular display
           let ticketCount = 0;
           let alertCount = 0;
-          
+
           if (Array.isArray(unreadNotifications)) {
             unreadNotifications.forEach(notification => {
               if (notification.source === 'Service Desk') {
@@ -470,7 +470,7 @@ export function Sidebar() {
                 </p>
               </div>
             </Link>
-            
+
             <div className="text-center border-t border-[#E1DFDD] dark:border-[#484644] pt-3">
               <p className="text-xs text-[#605E5C] dark:text-[#A19F9D]">
                 © 2024 Nexole ITSM

@@ -824,8 +824,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                   <span className="font-medium">{maxFreq}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-neutral-600">Architecture:</span>
-                  <span className="font-medium">
+                  <span className="text-neutral-600">Architecture:</span>                  <span className="font-medium">
                     {architecture !== "Unknown" ? architecture : "N/A"}
                   </span>
                 </div>
@@ -926,16 +925,56 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3 text-sm">
-                {usbHistory.length > 0 ? (
+              
+                  {usbHistory.length > 0 ? (
                   <div className="space-y-3">
-                    {usbHistory.map((device, index) => (
-                      <div key={index} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-3 bg-neutral-50 dark:bg-neutral-800">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="font-medium text-neutral-900 dark:text-neutral-100">
-                            {device.description || `USB Device ${index + 1}`}
+                    {usbHistory.map((device: any, index) => (
+                      <div key={device.id || index} className="p-3 border rounded-lg bg-neutral-50 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-neutral-900 dark:text-neutral-100 mb-1">
+                              {device.description || device.name || `USB Device ${index + 1}`}
+                            </h4>
+
+                            {device.vendor_id && device.product_id && (
+                              <div className="text-neutral-600 dark:text-neutral-400 text-sm mb-1">
+                                <span className="font-medium">VID:</span> {device.vendor_id} | 
+                                <span className="font-medium ml-2">PID:</span> {device.product_id}
+                              </div>
+                            )}
+
+                            {device.manufacturer && (
+                              <div className="text-neutral-600 dark:text-neutral-400">
+                                <span className="font-medium">Manufacturer:</span> {device.manufacturer}
+                              </div>
+                            )}
+
+                            {device.serial_number && (
+                              <div className="text-neutral-600 dark:text-neutral-400">
+                                <span className="font-medium">Serial:</span> {device.serial_number}
+                              </div>
+                            )}
+
+                            {device.device_class && (
+                              <div className="text-neutral-600 dark:text-neutral-400">
+                                <span className="font-medium">Class:</span> {device.device_class}
+                              </div>
+                            )}
+
+                            {device.location && (
+                              <div className="text-neutral-600 dark:text-neutral-400">
+                                <span className="font-medium">Location:</span> {device.location}
+                              </div>
+                            )}
+
+                            {device.speed && (
+                              <div className="text-neutral-600 dark:text-neutral-400">
+                                <span className="font-medium">Speed:</span> {device.speed}
+                              </div>
+                            )}
+
                           </div>
-                          <div className={`px-2 py-1 rounded-full text-xs ${
+                          <div className={`shrink-0 px-2 py-1 rounded-full text-xs ${
                             device.is_connected 
                               ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
                               : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
@@ -944,52 +983,12 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          {device.vendor_id && (
-                            <div className="text-neutral-600 dark:text-neutral-400">
-                              <span className="font-medium">Vendor ID:</span> {device.vendor_id}
-                            </div>
-                          )}
-                          {device.product_id && (
-                            <div className="text-neutral-600 dark:text-neutral-400">
-                              <span className="font-medium">Product ID:</span> {device.product_id}
-                            </div>
-                          )}
-                          {device.manufacturer && (
-                            <div className="text-neutral-600 dark:text-neutral-400">
-                              <span className="font-medium">Manufacturer:</span> {device.manufacturer}
-                            </div>
-                          )}
-                          {device.serial_number && (
-                            <div className="text-neutral-600 dark:text-neutral-400">
-                              <span className="font-medium">Serial:</span> {device.serial_number}
-                            </div>
-                          )}
-                          {device.device_class && (
-                            <div className="text-neutral-600 dark:text-neutral-400">
-                              <span className="font-medium">Class:</span> {device.device_class}
-                            </div>
-                          )}
-                          {device.location && (
-                            <div className="text-neutral-600 dark:text-neutral-400">
-                              <span className="font-medium">Location:</span> {device.location}
-                            </div>
-                          )}
-                          {device.speed && (
-                            <div className="text-neutral-600 dark:text-neutral-400">
-                              <span className="font-medium">Speed:</span> {device.speed}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-600">
-                          <div className="flex justify-between text-xs text-neutral-500 dark:text-neutral-400">
-                            <div>
-                              <span className="font-medium">First Seen:</span> {formatDistanceToNow(new Date(device.first_seen), { addSuffix: true })}
-                            </div>
-                            <div>
-                              <span className="font-medium">Last Seen:</span> {formatDistanceToNow(new Date(device.last_seen), { addSuffix: true })}
-                            </div>
+                        <div className="mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-600 text-xs text-neutral-500 dark:text-neutral-400 flex justify-between">
+                          <div>
+                            <span className="font-medium">First Seen:</span> {formatDistanceToNow(new Date(device.first_seen), { addSuffix: true })}
+                          </div>
+                          <div>
+                            <span className="font-medium">Last Seen:</span> {formatDistanceToNow(new Date(device.last_seen), { addSuffix: true })}
                           </div>
                         </div>
                       </div>
@@ -1002,7 +1001,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                     <p className="text-xs text-neutral-400 mt-1">USB devices will appear here when connected</p>
                   </div>
                 )}
-              </div>
+            
             </CardContent>
           </Card>
         </div>
