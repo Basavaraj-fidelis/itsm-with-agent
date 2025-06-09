@@ -69,6 +69,9 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                   Assigned User
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                  Active IP
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
@@ -111,15 +114,25 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                       <div className="flex items-center">
                         <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mr-3">
                           <span className="text-blue-600 dark:text-blue-300 text-sm font-medium">
-                            {agent.assigned_user?.charAt(0).toUpperCase() || "?"}
+                            {agent.assigned_user && !agent.assigned_user.includes('$') ? agent.assigned_user.charAt(0).toUpperCase() : "?"}
                           </span>
                         </div>
                         <div>
                           <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                            {agent.assigned_user?.split("@")[0] || "Unassigned"}
+                            {agent.assigned_user && !agent.assigned_user.includes('$') 
+                              ? (agent.assigned_user.includes('@') ? agent.assigned_user.split("@")[0] : agent.assigned_user)
+                              : "Unassigned"
+                            }
                           </div>
-                          <div className="text-sm text-neutral-500">{agent.assigned_user}</div>
+                          <div className="text-sm text-neutral-500">
+                            {agent.assigned_user && !agent.assigned_user.includes('$') ? agent.assigned_user : "No user assigned"}
+                          </div>
                         </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                        {agent.ip_address || "N/A"}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

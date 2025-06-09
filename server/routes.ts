@@ -305,6 +305,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const alertId = req.params.id;
       console.log(`Attempting to resolve alert: ${alertId}`);
       
+      // Check if alert exists first
+      const alert = await storage.getAlertById(alertId);
+      if (!alert) {
+        return res.status(404).json({ 
+          message: "Alert not found",
+          alertId: alertId 
+        });
+      }
+      
+      if (!alert.is_active) {
+        return res.status(400).json({ 
+          message: "Alert is already resolved",
+          alertId: alertId 
+        });
+      }
+      
       await storage.resolveAlert(alertId);
       console.log(`Alert ${alertId} resolved successfully`);
       
