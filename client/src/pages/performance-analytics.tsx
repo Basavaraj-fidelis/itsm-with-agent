@@ -148,42 +148,43 @@ export default function PerformanceAnalytics() {
               )}
               {/* Application Performance Insights */}
               {insights && (
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Top Resource Consumers</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">Top CPU Processes</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        {insights.top_cpu_consumers?.slice(0, 5).map((process: any, index: number) => (
-                          <div key={index} className="flex items-center justify-between text-sm">
-                            <span className="truncate">{process.name}</span>
-                            <span className="text-red-600 font-medium">{process.cpu_percent.toFixed(1)}%</span>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Top Resource Consumers</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-sm">Top CPU Processes</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          {insights.top_cpu_consumers?.slice(0, 5).map((process: any, index: number) => (
+                            <div key={index} className="flex items-center justify-between text-sm">
+                              <span className="truncate">{process.name}</span>
+                              <span className="text-red-600 font-medium">{process.cpu_percent.toFixed(1)}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">Top Memory Processes</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        {insights.top_memory_consumers?.slice(0, 5).map((process: any, index: number) => (
-                          <div key={index} className="flex items-center justify-between text-sm">
-                            <span className="truncate">{process.name}</span>
-                            <span className="text-yellow-600 font-medium">{process.memory_percent.toFixed(1)}%</span>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-sm">Top Memory Processes</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          {insights.top_memory_consumers?.slice(0, 5).map((process: any, index: number) => (
+                            <div key={index} className="flex items-center justify-between text-sm">
+                              <span className="truncate">{process.name}</span>
+                              <span className="text-yellow-600 font-medium">{process.memory_percent.toFixed(1)}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Resource Predictions */}
               {predictions && predictions.length > 0 && (
