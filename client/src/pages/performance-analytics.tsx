@@ -226,37 +226,38 @@ export default function PerformanceAnalytics() {
               )}
 
               {/* System Load Analysis */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">System Load Analysis</h3>
-                <Card>
-                  <CardContent className="pt-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold">{insights.total_processes}</div>
-                        <p className="text-sm text-muted-foreground">Total Processes</p>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-red-600">
-                          {insights.system_load_analysis?.high_cpu_processes || 0}
+              {insights && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">System Load Analysis</h3>
+                  <Card>
+                    <CardContent className="pt-4">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold">{insights.total_processes}</div>
+                          <p className="text-sm text-muted-foreground">Total Processes</p>
                         </div>
-                        <p className="text-sm text-muted-foreground">High CPU Processes</p>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-yellow-600">
-                          {insights.system_load_analysis?.high_memory_processes || 0}
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-red-600">
+                            {insights.system_load_analysis?.high_cpu_processes || 0}
+                          </div>
+                          <p className="text-sm text-muted-foreground">High CPU Processes</p>
                         </div>
-                        <p className="text-sm text-muted-foreground">High Memory Processes</p>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-green-600">
-                          {insights.total_processes - (insights.system_load_analysis?.high_cpu_processes || 0) - (insights.system_load_analysis?.high_memory_processes || 0)}
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-yellow-600">
+                            {insights.system_load_analysis?.high_memory_processes || 0}
+                          </div>
+                          <p className="text-sm text-muted-foreground">High Memory Processes</p>
                         </div>
-                        <p className="text-sm text-muted-foreground">Normal Processes</p>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-green-600">
+                            {insights.total_processes - (insights.system_load_analysis?.high_cpu_processes || 0) - (insights.system_load_analysis?.high_memory_processes || 0)}
+                          </div>
+                          <p className="text-sm text-muted-foreground">Normal Processes</p>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+                    </CardContent>
+                  </Card>
+                </div>
               )}
             </div>
           )}
