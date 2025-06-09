@@ -313,7 +313,7 @@ export default function Dashboard() {
       </div>
 
       {/* Enhanced Metrics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           title="Total Agents"
           value={summary?.total_devices || 0}

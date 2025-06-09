@@ -979,15 +979,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update USB device tracking
       await storage.updateUSBDevices(device.id, usbDevices);
 
-      // Smart ticketing - auto-create tickets for critical issues
-      await this.checkAndCreateSmartTickets(device, {
-        cpu_usage,
-        memory_usage,
-        disk_usage,
-        usbDevices,
-        rawData
-      });
-
       // Check for existing USB alert
       const existingUsbAlert = await storage.getActiveAlertByDeviceAndMetric(device.id, "usb");
 
