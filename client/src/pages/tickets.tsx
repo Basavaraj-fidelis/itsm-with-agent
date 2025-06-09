@@ -1382,6 +1382,13 @@ export default function Tickets() {
               </div>
               <div className="flex items-center space-x-3">
                 <Button
+                  onClick={() => setShowNewTicketDialog(true)}
+                  className="bg-green-600 hover:bg-green-700 text-white flex items-center space-x-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Create Ticket</span>
+                </Button>
+                <Button
                   variant={activeTab === "workflows" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setActiveTab("workflows")}
