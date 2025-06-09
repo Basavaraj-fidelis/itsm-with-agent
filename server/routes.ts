@@ -620,8 +620,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("Extracted metrics:", { cpu_usage, memory_usage, disk_usage, network_io });
 
-      // USB device detection and tracking
-      const usbDevices = data.usb_devices || data.hardware?.usb_devices || [];
+      // USB device detection and tracking - check multiple possible locations
+      let usbDevices = [];
+      
+      // Check various possible locations for USB device data
+      const possibleUSBLocations = [
+        data.usb_devices,
+        data.hardware?.usb_devices,
+        data.system_info?.usb_devices,
+        data.devices?.usb,
+        data.usb
+      ];
+      
+      for (const location of possibleUSBLocations) {
+        if (location && Array.isArray(location) && location.length > 0) {
+          usbDevices = location;
+          console.log(`Found USB devices in location:`, location);
+          break;
+        }
+      }
+      
+      console.log("Final USB devices for storage:", usbDevices);
 
       // Create device report with enhanced data
       await storage.createDeviceReport({

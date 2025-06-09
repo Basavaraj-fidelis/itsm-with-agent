@@ -180,6 +180,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
 
         if (response.ok) {
           const data = await response.json();
+          console.log('USB devices fetched from API:', data);
           setUsbHistory(data);
         } else if (response.status === 403) {
           console.warn('Access forbidden for USB devices endpoint');
@@ -193,6 +194,14 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
 
     if (agent.id) {
       fetchUSBHistory();
+      
+      // Also log USB devices found in raw data for debugging
+      const currentUSB = getUSBDevices();
+      console.log('USB devices in raw data:', currentUSB);
+      console.log('Raw data keys:', Object.keys(rawData));
+      if (rawData.hardware) {
+        console.log('Hardware keys:', Object.keys(rawData.hardware));
+      }
     }
   }, [agent.id]);
 
@@ -251,30 +260,87 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
   const getMacAddresses = () => {
     const macAddresses = [];
     
-    // First check for primary_mac in raw data
+    // First check for primary_mac in raw data (top level)
     if (rawData.primary_mac) {
       return rawData.primary_mac;
     }
     
+    // Check in various nested locations
+    if (rawData.network?.primary_mac) {
+      return rawData.network.primary_mac;
+    }
+    
+    if (rawData.hardware?.primary_mac) {
+      return rawData.hardware.primary_mac;
+    }
+    
+    if (rawData.system_info?.primary_mac) {
+      return rawData.system_info.primary_mac;
+    }
+
     const networkData = rawData.network || {};
 
-    // Check for interfaces array
+    // Check for interfaces array with AF_LINK (MAC addresses)
     if (networkData.interfaces && Array.isArray(networkData.interfaces)) {
       networkData.interfaces.forEach((iface: any) => {
         if (iface.addresses && Array.isArray(iface.addresses)) {
           iface.addresses.forEach((addr: any) => {
-            if (addr.family && addr.family.includes('AF_PACKET') && addr.address && addr.address !== '00:00:00:00:00:00') {
+            // Look for AF_LINK addresses which contain MAC addresses
+            if (addr.family && (addr.family.includes('AF_LINK') || addr.family.includes('AF_PACKET')) && addr.address && addr.address !== '00:00:00:00:00:00') {
               macAddresses.push(`${iface.name}: ${addr.address}`);
             }
           });
         }
+        // Also check for direct mac property on interface
+        if (iface.mac && iface.mac !== '00:00:00:00:00:00') {
+          macAddresses.push(`${iface.name}: ${iface.mac}`);
+        }
       });
     }
 
-    return macAddresses.length > 0 ? macAddresses.join(', ') : 'Not available';
+    // If we found MAC addresses from interfaces, return them
+    if (macAddresses.length > 0) {
+      return macAddresses.join(', ');
+    }
+
+    // Fallback to any MAC address fields
+    const possibleMacFields = [
+      rawData.mac_address,
+      rawData.hardware?.mac_address,
+      rawData.network?.mac_address,
+      rawData.system_info?.mac_address
+    ];
+
+    for (const mac of possibleMacFields) {
+      if (mac && mac !== '00:00:00:00:00:00') {
+        return mac;
+      }
+    }
+
+    return 'Not available';
   };
 
-  const usbDevices = rawData.usb_devices || hardwareInfo.usb_devices || [];
+  // Extract USB devices from various possible locations in the raw data
+  const getUSBDevices = () => {
+    // Check multiple possible locations for USB device data
+    const possibleLocations = [
+      rawData.usb_devices,
+      rawData.hardware?.usb_devices,
+      rawData.system_info?.usb_devices,
+      rawData.devices?.usb,
+      hardwareInfo.usb_devices
+    ];
+
+    for (const location of possibleLocations) {
+      if (location && Array.isArray(location) && location.length > 0) {
+        return location;
+      }
+    }
+
+    return [];
+  };
+
+  const usbDevices = getUSBDevices();
 
   // Helper function to convert bytes to GB
   const bytesToGB = (bytes: number) => {
@@ -926,11 +992,64 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                 <Usb className="w-5 h-5" />
                 <span>USB Devices</span>
                 <span className="text-sm text-neutral-500">
-                  ({usbHistory.filter(d => d.is_connected).length} connected, {usbHistory.length} total)
+                  ({usbHistory.filter(d => d.is_connected).length} connected, {usbHistory.length} total history)
+                  {usbDevices.length > 0 && (
+                    <span className="text-green-600 ml-2">
+                      | {usbDevices.length} current
+                    </span>
+                  )}
                 </span>
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {/* Show current USB devices from raw data first */}
+              {usbDevices.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="font-medium text-sm text-green-700 mb-3 flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    Currently Connected (from latest report)
+                  </h4>
+                  <div className="space-y-3">
+                    {usbDevices.map((device: any, index) => (
+                      <div key={index} className="p-3 border rounded-lg bg-green-50 border-green-200">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h5 className="font-medium text-green-900">
+                              {device.description || device.name || device.product_name || `USB Device ${index + 1}`}
+                            </h5>
+                            {device.vendor_id && device.product_id && (
+                              <div className="text-green-700 text-sm mt-1">
+                                VID: {device.vendor_id} | PID: {device.product_id}
+                              </div>
+                            )}
+                            {device.manufacturer && (
+                              <div className="text-green-600 text-sm">
+                                Manufacturer: {device.manufacturer}
+                              </div>
+                            )}
+                            {device.device_class && (
+                              <div className="text-green-600 text-sm">
+                                Class: {device.device_class}
+                              </div>
+                            )}
+                          </div>
+                          <div className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                            Live
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {usbHistory.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-green-200">
+                      <h4 className="font-medium text-sm text-gray-700 mb-3">USB Device History</h4>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Show historical USB devices */}
               {usbHistory.length > 0 ? (
                 <div className="space-y-3">
                   {/* Sort devices: connected first, then by last seen */}
@@ -1024,8 +1143,23 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
               ) : (
                 <div className="text-center py-6">
                   <Usb className="w-12 h-12 mx-auto text-neutral-400 mb-2" />
-                  <p className="text-neutral-500 italic">No USB devices have been detected</p>
-                  <p className="text-xs text-neutral-400 mt-1">USB devices will appear here when connected</p>
+                  <p className="text-neutral-500 italic">
+                    {usbDevices.length === 0 ? 'No USB devices have been detected' : 'No USB device history available'}
+                  </p>
+                  <p className="text-xs text-neutral-400 mt-1">
+                    {usbDevices.length === 0 
+                      ? 'USB devices will appear here when connected' 
+                      : 'Historical data will appear as devices are connected/disconnected'}
+                  </p>
+                  {/* Debug info */}
+                  <details className="mt-4 text-left">
+                    <summary className="text-xs text-gray-500 cursor-pointer">Debug Info</summary>
+                    <div className="text-xs text-gray-600 mt-2 font-mono bg-gray-100 p-2 rounded">
+                      <div>Raw USB devices: {JSON.stringify(usbDevices)}</div>
+                      <div>History count: {usbHistory.length}</div>
+                      <div>Primary MAC: {rawData.primary_mac || 'not found'}</div>
+                    </div>
+                  </details>
                 </div>
               )}
             </CardContent>
