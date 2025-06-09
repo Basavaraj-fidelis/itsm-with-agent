@@ -132,7 +132,109 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                        {agent.ip_address || "N/A"}
+                        {(() => {
+                          // Try to get IP from latest report raw data first
+                          const latestReport = agent.latest_report;
+                          const rawData = latestReport?.raw_data
+                            ? typeof latestReport.raw_data === "string"
+                              ? JSON.parse(latestReport.raw_data)
+                              : latestReport.raw_data
+                            : {};
+
+                          // Function to get Ethernet IP
+                          const getEthernetIP = () => {
+                            const interfaces = rawData.network?.interfaces || agent.network?.interfaces || [];
+                            for (const iface of interfaces) {
+                              const name = iface.name?.toLowerCase() || "";
+                              if (
+                                (name.includes("eth") ||
+                                  name.includes("ethernet") ||
+                                  name.includes("enet") ||
+                                  name.includes("local area connection")) &&
+                                !name.includes("veth") &&
+                                !name.includes("virtual") &&
+                                iface.stats?.is_up !== false
+                              ) {
+                                for (const addr of iface.addresses || []) {
+                                  if (
+                                    addr.family === "AF_INET" &&
+                                    !addr.address.startsWith("127.") &&
+                                    !addr.address.startsWith("169.254.") &&
+                                    addr.address !== "0.0.0.0"
+                                  ) {
+                                    return addr.address;
+                                  }
+                                }
+                              }
+                            }
+                            return null;
+                          };
+
+                          // Function to get WiFi IP
+                          const getWiFiIP = () => {
+                            const interfaces = rawData.network?.interfaces || agent.network?.interfaces || [];
+                            for (const iface of interfaces) {
+                              const name = iface.name?.toLowerCase() || "";
+                              if (
+                                (name.includes("wifi") ||
+                                  name.includes("wlan") ||
+                                  name.includes("wireless") ||
+                                  name.includes("wi-fi") ||
+                                  name.includes("802.11")) &&
+                                iface.stats?.is_up !== false
+                              ) {
+                                for (const addr of iface.addresses || []) {
+                                  if (
+                                    addr.family === "AF_INET" &&
+                                    !addr.address.startsWith("127.") &&
+                                    !addr.address.startsWith("169.254.") &&
+                                    addr.address !== "0.0.0.0"
+                                  ) {
+                                    return addr.address;
+                                  }
+                                }
+                              }
+                            }
+                            return null;
+                          };
+
+                          // Function to get any active IP
+                          const getAnyActiveIP = () => {
+                            const interfaces = rawData.network?.interfaces || agent.network?.interfaces || [];
+                            for (const iface of interfaces) {
+                              const name = iface.name?.toLowerCase() || "";
+                              const isVirtual = name.includes("virtual") || name.includes("veth") || name.includes("docker") || name.includes("vmware");
+                              
+                              if (!isVirtual && iface.stats?.is_up !== false) {
+                                for (const addr of iface.addresses || []) {
+                                  if (
+                                    addr.family === "AF_INET" &&
+                                    addr.address &&
+                                    !addr.address.startsWith("127.") &&
+                                    !addr.address.startsWith("169.254.") &&
+                                    addr.address !== "0.0.0.0"
+                                  ) {
+                                    return addr.address;
+                                  }
+                                }
+                              }
+                            }
+                            return null;
+                          };
+
+                          // Try to get IP in order of preference: Ethernet -> WiFi -> Any Active -> Fallback
+                          const ethernetIP = getEthernetIP();
+                          if (ethernetIP) return ethernetIP;
+
+                          const wifiIP = getWiFiIP();
+                          if (wifiIP) return wifiIP;
+
+                          const anyIP = getAnyActiveIP();
+                          if (anyIP) return anyIP;
+
+                          // Fallback to agent data
+                          return agent.ip_address || rawData.ip_address || "N/A";
+                        })()}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
