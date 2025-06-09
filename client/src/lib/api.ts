@@ -145,7 +145,7 @@ async function get(url: string) {
   return apiRequest(url, { method: "GET" });
 }
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const BASE_URL = import.meta.env.VITE_API_URL || '';
 
 class ApiClient {
   private baseURL: string;
@@ -177,16 +177,17 @@ class ApiClient {
       };
     }
 
+    console.log(`API Request: ${url}`, config);
+
     try {
       const response = await fetch(url, config);
 
-      // Handle network errors
-      if (!response.ok && response.status >= 500) {
-        throw new Error(`Server error: ${response.status} ${response.statusText}`);
-      }
+      console.log(`API Response: ${response.status} ${response.statusText}`);
 
+      // Don't throw for client errors, let the caller handle them
       return response;
     } catch (error) {
+      console.error('API Request failed:', error);
       // Handle network connection errors
       if (error instanceof TypeError && error.message.includes('fetch')) {
         throw new Error('Network connection failed. Please check your internet connection.');

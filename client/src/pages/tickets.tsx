@@ -149,6 +149,8 @@ export default function Tickets() {
   const fetchTickets = async (page = 1) => {
     setLoading(true);
     try {
+      console.log("Fetching tickets...");
+      
       const params = new URLSearchParams({
         page: page.toString(),
         limit: "100", // Increased limit to show more tickets
@@ -164,28 +166,44 @@ export default function Tickets() {
       if (searchTerm && searchTerm.trim())
         params.append("search", searchTerm.trim());
 
-      const response = await api.get(`/api/tickets?${params}`);
+      console.log("API URL:", `/api/tickets?${params}`);
+      
+      const response = await fetch(`/api/tickets?${params}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log("Response status:", response.status);
+      console.log("Response ok:", response.ok);
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error("Response error:", errorText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
       }
 
       const data = await response.json();
+      console.log("Received data:", data);
 
       // Handle both array and paginated response formats
       if (Array.isArray(data)) {
+        console.log("Data is array, setting tickets:", data.length);
         setTickets(data);
         setTotalTickets(data.length);
         setCurrentPage(1);
         setTotalPages(1);
       } else if (data.data) {
         // Paginated response
+        console.log("Data is paginated, setting tickets:", data.data?.length || 0);
         setTickets(data.data || []);
         setTotalTickets(data.total || 0);
         setCurrentPage(data.page || 1);
         setTotalPages(data.totalPages || 1);
       } else {
         // Direct ticket array response
+        console.log("Data is direct object, setting tickets:", Object.keys(data).length);
         setTickets(data || []);
         setTotalTickets((data || []).length);
         setCurrentPage(1);

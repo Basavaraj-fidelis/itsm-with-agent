@@ -32,6 +32,9 @@ export function registerTicketRoutes(app: Express) {
   // Get all tickets with pagination and filters
   app.get("/api/tickets", async (req, res) => {
     try {
+      console.log("GET /api/tickets - Request received");
+      console.log("Query parameters:", req.query);
+      
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
       const type = req.query.type as string;
@@ -46,7 +49,11 @@ export function registerTicketRoutes(app: Express) {
         search: search && search.trim() !== "" ? search.trim() : undefined
       };
 
+      console.log("Applied filters:", filters);
+
       const result = await ticketStorage.getTickets(page, limit, filters);
+      console.log("Tickets fetched successfully:", result.total, "total tickets");
+      
       res.json(result);
     } catch (error) {
       console.error("Error fetching tickets:", error);
