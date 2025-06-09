@@ -842,7 +842,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const securityInfo = data.security || {};
       const updateHistory = data.update_history || {};
       const windowsUpdates = securityInfo.windows_updates || {};
-      const osInfo = data.os_info || {};
       
       // Create device report with enhanced data
       await storage.createDeviceReport({
