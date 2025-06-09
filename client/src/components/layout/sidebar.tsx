@@ -86,20 +86,24 @@ export function Sidebar() {
         if (!token) return;
 
         // Fetch unread notifications count from the notifications endpoint
-        const notificationsResponse = await api.get("/api/notifications?filter=unread");
+        const notificationsResponse = await api.get(
+          "/api/notifications?filter=unread",
+        );
         if (notificationsResponse.ok) {
           const unreadNotifications = await notificationsResponse.json();
-          const unreadCount = Array.isArray(unreadNotifications) ? unreadNotifications.length : 0;
+          const unreadCount = Array.isArray(unreadNotifications)
+            ? unreadNotifications.length
+            : 0;
 
           // Count by type for more granular display
           let ticketCount = 0;
           let alertCount = 0;
 
           if (Array.isArray(unreadNotifications)) {
-            unreadNotifications.forEach(notification => {
-              if (notification.source === 'Service Desk') {
+            unreadNotifications.forEach((notification) => {
+              if (notification.source === "Service Desk") {
                 ticketCount++;
-              } else if (notification.source === 'System Monitor') {
+              } else if (notification.source === "System Monitor") {
                 alertCount++;
               }
             });
@@ -399,9 +403,9 @@ export function Sidebar() {
                     </p>
                   </div>
                 )}
-                {isActive && (
+                {/* {isActive && (
                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-purple-500 rounded-r-full" />
-                )}
+                )} */}
               </Link>
             );
 
@@ -431,7 +435,7 @@ export function Sidebar() {
           })}
 
           {/* Quick Actions */}
-          {!isCollapsed && (
+          {/* {!isCollapsed && (
             <>
               <Separator className="my-4" />
               <div className="space-y-2">
@@ -448,18 +452,18 @@ export function Sidebar() {
                 </Button>
               </div>
             </>
-          )}
+          )} */}
         </nav>
 
         {/* User Profile Section */}
         {!isCollapsed && authUser && (
           <div className="p-4 border-t border-[#E1DFDD] dark:border-[#484644]">
-            <Link
+            {/* <Link
               to="/profile"
               className="flex items-center space-x-3 mb-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#484644] transition-colors cursor-pointer"
             >
               <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-medium text-sm">
-                {authUser.email?.charAt(0).toUpperCase() || 'U'}
+                {authUser.email?.charAt(0).toUpperCase() || "U"}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-[#201F1E] dark:text-[#F3F2F1] truncate">
@@ -469,7 +473,7 @@ export function Sidebar() {
                   {authUser.email}
                 </p>
               </div>
-            </Link>
+            </Link> */}
 
             <div className="text-center border-t border-[#E1DFDD] dark:border-[#484644] pt-3">
               <p className="text-xs text-[#605E5C] dark:text-[#A19F9D]">
@@ -483,7 +487,7 @@ export function Sidebar() {
         )}
 
         {/* Footer for collapsed state */}
-        {isCollapsed && (
+        {/* {isCollapsed && (
           <div className="p-2 border-t border-[#E1DFDD] dark:border-[#484644]">
             {authUser && (
               <Tooltip>
@@ -493,7 +497,7 @@ export function Sidebar() {
                     className="flex justify-center mb-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#484644] transition-colors cursor-pointer"
                   >
                     <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-medium text-xs">
-                      {authUser.email?.charAt(0).toUpperCase() || 'U'}
+                      {authUser.email?.charAt(0).toUpperCase() || "U"}
                     </div>
                   </Link>
                 </TooltipTrigger>
@@ -503,7 +507,7 @@ export function Sidebar() {
               </Tooltip>
             )}
           </div>
-        )}
+        )} */}
       </div>
     </TooltipProvider>
   );
