@@ -1660,7 +1660,8 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                             <div>
                               <span className="text-neutral-600">Process: </span>
-                              <span className="font-medium">
+                              ```
+<span className="font-medium">
                                 {process.name || process.process_name || "N/A"}
                               </span>
                               <p className="text-xs text-neutral-500">
@@ -1954,3 +1955,6 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
           </Card>
         </div>
       </TabsContent>
+    </Tabs>
+  );
+}
