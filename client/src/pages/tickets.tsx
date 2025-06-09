@@ -1250,6 +1250,72 @@ export default function Tickets() {
     </div>
   );
 
+  const renderTypeSpecificStatusCards = (ticketType: string) => {
+    const typeData = getStatusCountsByType();
+    const data = typeData[ticketType];
+    
+    if (!data) return null;
+    
+    const IconComponent = data.icon;
+    const totalForType = Object.values(data.statuses).reduce((sum: number, count: number) => sum + count, 0);
+    
+    return (
+      <div className="mb-6">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          {data.name} Status Overview
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {['new', 'assigned', 'in_progress', 'pending', 'resolved', 'closed'].map(status => {
+            const count = data.statuses[status] || 0;
+            
+            return (
+              <Card key={status} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => {
+                setSelectedStatus(status);
+              }}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className={`w-3 h-3 rounded-full ${
+                      status === 'new' ? 'bg-blue-500' :
+                      status === 'assigned' ? 'bg-purple-500' :
+                      status === 'in_progress' ? 'bg-yellow-500' :
+                      status === 'pending' ? 'bg-orange-500' :
+                      status === 'resolved' ? 'bg-green-500' :
+                      'bg-gray-500'
+                    }`} />
+                    <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                      {count}
+                    </span>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
+                      {status.replace('_', ' ')}
+                    </p>
+                    {totalForType > 0 && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {Math.round((count / totalForType) * 100)}%
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+        
+        {totalForType === 0 && (
+          <Card className="border-dashed">
+            <CardContent className="p-8 text-center">
+              <IconComponent className={`w-12 h-12 mx-auto mb-3 text-${data.color}-400`} />
+              <p className="text-gray-500 dark:text-gray-400">
+                No {data.name.toLowerCase()} found
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    );
+  };
+
   const renderActiveTabContent = () => {
     switch (activeTab) {
       case "overview":
@@ -1261,13 +1327,33 @@ export default function Tickets() {
           </>
         );
       case "requests":
-        return renderTicketTable();
-      case "incident":
-        return renderTicketTable();
-      case "problem":
-        return renderTicketTable();
-      case "change":
-        return renderTicketTable();
+        return (
+          <>
+            {renderTypeSpecificStatusCards('request')}
+            {renderTicketTable()}
+          </>
+        );
+      case "incidents":
+        return (
+          <>
+            {renderTypeSpecificStatusCards('incident')}
+            {renderTicketTable()}
+          </>
+        );
+      case "problems":
+        return (
+          <>
+            {renderTypeSpecificStatusCards('problem')}
+            {renderTicketTable()}
+          </>
+        );
+      case "changes":
+        return (
+          <>
+            {renderTypeSpecificStatusCards('change')}
+            {renderTicketTable()}
+          </>
+        );
       case "workflows":
         return <ServiceDeskWorkflows />;
       case "analytics":
