@@ -58,7 +58,7 @@ export default function PerformanceAnalytics() {
             <div className="text-2xl font-bold text-red-600">
               {devices?.filter((d: any) => d.latest_report?.cpu_usage > 80).length || 0}
             </div>
-            <p className="text-xs text-muted-foreground">Devices > 80% CPU</p>
+            <p className="text-xs text-muted-foreground">Devices &gt; 80% CPU</p>
           </CardContent>
         </Card>
 
@@ -71,7 +71,7 @@ export default function PerformanceAnalytics() {
             <div className="text-2xl font-bold text-yellow-600">
               {devices?.filter((d: any) => d.latest_report?.memory_usage > 85).length || 0}
             </div>
-            <p className="text-xs text-muted-foreground">Devices > 85% RAM</p>
+            <p className="text-xs text-muted-foreground">Devices &gt; 85% RAM</p>
           </CardContent>
         </Card>
 
@@ -84,7 +84,7 @@ export default function PerformanceAnalytics() {
             <div className="text-2xl font-bold text-orange-600">
               {devices?.filter((d: any) => d.latest_report?.disk_usage > 90).length || 0}
             </div>
-            <p className="text-xs text-muted-foreground">Devices > 90% disk</p>
+            <p className="text-xs text-muted-foreground">Devices &gt; 90% disk</p>
           </CardContent>
         </Card>
 
