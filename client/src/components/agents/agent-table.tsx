@@ -135,7 +135,7 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                         <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mr-3">
                           <span className="text-blue-600 dark:text-blue-300 text-sm font-medium">
                             {(() => {
-                              // Get assigned user from latest report or agent data
+                              // Get assigned user from latest report or agent data - prioritize extracted data
                               const latestReport = agent.latest_report;
                               const rawData = latestReport?.raw_data
                                 ? typeof latestReport.raw_data === "string"
@@ -144,17 +144,22 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                                 : {};
 
                               const assignedUser =
-                                rawData.assigned_user ||
+                                rawData.extracted_current_user ||
                                 agent.assigned_user ||
+                                rawData.assigned_user ||
                                 rawData.current_user ||
                                 rawData.user ||
                                 rawData.username;
 
-                              // Filter out system accounts (those ending with $)
+                              // Filter out system accounts and invalid values
                               if (
                                 !assignedUser ||
                                 assignedUser.endsWith("$") ||
-                                assignedUser === "Unknown"
+                                assignedUser === "Unknown" ||
+                                assignedUser === "N/A" ||
+                                assignedUser.includes("SYSTEM") ||
+                                assignedUser.includes("NETWORK SERVICE") ||
+                                assignedUser.includes("LOCAL SERVICE")
                               ) {
                                 return "?";
                               }
@@ -166,7 +171,7 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                         <div>
                           <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                             {(() => {
-                              // Get assigned user from latest report or agent data
+                              // Get assigned user from latest report or agent data - prioritize extracted data
                               const latestReport = agent.latest_report;
                               const rawData = latestReport?.raw_data
                                 ? typeof latestReport.raw_data === "string"
@@ -175,19 +180,29 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                                 : {};
 
                               const assignedUser =
-                                rawData.assigned_user ||
+                                rawData.extracted_current_user ||
                                 agent.assigned_user ||
+                                rawData.assigned_user ||
                                 rawData.current_user ||
                                 rawData.user ||
                                 rawData.username;
 
-                              // Filter out system accounts (those ending with $)
+                              // Filter out system accounts and invalid values
                               if (
                                 !assignedUser ||
                                 assignedUser.endsWith("$") ||
-                                assignedUser === "Unknown"
+                                assignedUser === "Unknown" ||
+                                assignedUser === "N/A" ||
+                                assignedUser.includes("SYSTEM") ||
+                                assignedUser.includes("NETWORK SERVICE") ||
+                                assignedUser.includes("LOCAL SERVICE")
                               ) {
                                 return "Unassigned";
+                              }
+
+                              // Handle domain users like "DOMAIN\user"
+                              if (assignedUser.includes("\\")) {
+                                return assignedUser.split("\\").pop() || assignedUser;
                               }
 
                               // Return username part if it's an email
@@ -198,7 +213,7 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                           </div>
                           <div className="text-sm text-neutral-500">
                             {(() => {
-                              // Get assigned user from latest report or agent data
+                              // Get assigned user from latest report or agent data - prioritize extracted data
                               const latestReport = agent.latest_report;
                               const rawData = latestReport?.raw_data
                                 ? typeof latestReport.raw_data === "string"
@@ -207,17 +222,22 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                                 : {};
 
                               const assignedUser =
-                                rawData.assigned_user ||
+                                rawData.extracted_current_user ||
                                 agent.assigned_user ||
+                                rawData.assigned_user ||
                                 rawData.current_user ||
                                 rawData.user ||
                                 rawData.username;
 
-                              // Filter out system accounts (those ending with $)
+                              // Filter out system accounts and invalid values
                               if (
                                 !assignedUser ||
                                 assignedUser.endsWith("$") ||
-                                assignedUser === "Unknown"
+                                assignedUser === "Unknown" ||
+                                assignedUser === "N/A" ||
+                                assignedUser.includes("SYSTEM") ||
+                                assignedUser.includes("NETWORK SERVICE") ||
+                                assignedUser.includes("LOCAL SERVICE")
                               ) {
                                 return "No user assigned";
                               }
@@ -231,13 +251,23 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                         {(() => {
-                          // Try to get IP from latest report raw data first
+                          // Try to get IP from latest report raw data first - prioritize extracted IP
                           const latestReport = agent.latest_report;
                           const rawData = latestReport?.raw_data
                             ? typeof latestReport.raw_data === "string"
                               ? JSON.parse(latestReport.raw_data)
                               : latestReport.raw_data
                             : {};
+
+                          // First check if we have extracted IP address from server processing
+                          if (rawData.extracted_ip_address) {
+                            return rawData.extracted_ip_address;
+                          }
+
+                          // Check agent database field
+                          if (agent.ip_address && agent.ip_address !== "N/A") {
+                            return agent.ip_address;
+                          }
 
                           // Function to get Ethernet IP
                           const getEthernetIP = () => {
@@ -343,10 +373,8 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                           const anyIP = getAnyActiveIP();
                           if (anyIP) return anyIP;
 
-                          // Fallback to agent data
-                          return (
-                            agent.ip_address || rawData.ip_address || "N/A"
-                          );
+                          // Final fallback
+                          return rawData.ip_address || "N/A";
                         })()}
                       </div>
                     </td>

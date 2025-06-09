@@ -469,72 +469,173 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Extract user information - try to find real user, not system accounts
       let currentUser = null;
-      const possibleUserSources = [
-        data.current_user,
-        data.user,
-        data.username,
-        data.assigned_user,
-        osInfo.current_user,
-        osInfo.user,
-        osInfo.username,
-        systemHealth.current_user,
-        hardware.current_user,
-        data.system_info?.current_user,
-        data.system_info?.user,
-        data.system_info?.username
-      ];
+      
+      // First try to extract from processes (most reliable)
+      if (data.processes && Array.isArray(data.processes)) {
+        const userProcesses = data.processes.filter(process => {
+          const processUser = process.username || process.user;
+          return processUser && 
+                 typeof processUser === 'string' && 
+                 !processUser.includes('NT AUTHORITY') &&
+                 !processUser.includes('SYSTEM') &&
+                 !processUser.includes('LOCAL SERVICE') &&
+                 !processUser.includes('NETWORK SERVICE') &&
+                 !processUser.includes('Window Manager') &&
+                 !processUser.endsWith('$') &&
+                 processUser !== 'Unknown' &&
+                 processUser !== 'N/A';
+        });
 
-      // Find first valid user that's not a system account
-      for (const user of possibleUserSources) {
-        if (user && 
-            typeof user === 'string' && 
-            !user.endsWith('$') && 
-            user !== 'Unknown' && 
-            user !== 'N/A' &&
-            !user.includes('SYSTEM') &&
-            !user.includes('NETWORK SERVICE') &&
-            !user.includes('LOCAL SERVICE')) {
-          currentUser = user;
-          break;
+        if (userProcesses.length > 0) {
+          const processUser = userProcesses[0].username || userProcesses[0].user;
+          if (processUser.includes('\\')) {
+            currentUser = processUser.split('\\').pop();
+          } else {
+            currentUser = processUser;
+          }
         }
       }
 
-      console.log("Extracted current user:", currentUser, "from hostname:", hostname);
+      // If no user found from processes, try other sources
+      if (!currentUser) {
+        const possibleUserSources = [
+          data.current_user,
+          data.user,
+          data.username,
+          data.assigned_user,
+          osInfo.current_user,
+          osInfo.user,
+          osInfo.username,
+          systemHealth.current_user,
+          hardware.current_user,
+          data.system_info?.current_user,
+          data.system_info?.user,
+          data.system_info?.username
+        ];
+
+        // Find first valid user that's not a system account
+        for (const user of possibleUserSources) {
+          if (user && 
+              typeof user === 'string' && 
+              !user.endsWith('$') && 
+              user !== 'Unknown' && 
+              user !== 'N/A' &&
+              !user.includes('SYSTEM') &&
+              !user.includes('NETWORK SERVICE') &&
+              !user.includes('LOCAL SERVICE')) {
+            if (user.includes('\\')) {
+              currentUser = user.split('\\').pop();
+            } else if (user.includes('@')) {
+              currentUser = user.split('@')[0];
+            } else {
+              currentUser = user;
+            }
+            break;
+          }
+        }
+      }
+
+      console.log("Extracted current user:", currentUser, "from hostname:", hostname, "processes count:", data.processes?.length || 0);
 
       // Extract IP address and MAC addresses from various possible locations
       let ip_address = network.ip_address || network.ip || null;
       let mac_addresses = [];
 
-      // Try to extract IP and MAC from network interfaces if not found directly
-      if (data.network && typeof data.network === 'object') {
-        // Look for IP addresses and MAC addresses in network interface objects
-        for (const [key, iface] of Object.entries(data.network)) {
-          if (typeof iface === 'object' && iface !== null) {
-            if (!ip_address) {
-              if ((iface as any).ip_address) {
-                ip_address = (iface as any).ip_address;
-              } else if ((iface as any).ip) {
-                ip_address = (iface as any).ip;
+      // Try to extract IP from network interfaces (most reliable method)
+      if (data.network?.interfaces && Array.isArray(data.network.interfaces)) {
+        for (const iface of data.network.interfaces) {
+          const name = iface.name?.toLowerCase() || '';
+          
+          // Prioritize Ethernet interfaces
+          if ((name.includes('eth') || name.includes('ethernet') || name.includes('enet')) && 
+              !name.includes('veth') && !name.includes('virtual') &&
+              iface.stats?.is_up !== false) {
+            for (const addr of iface.addresses || []) {
+              if (addr.family === 'AF_INET' && 
+                  !addr.address.startsWith('127.') && 
+                  !addr.address.startsWith('169.254.') &&
+                  addr.address !== '0.0.0.0') {
+                ip_address = addr.address;
+                break;
               }
             }
+            if (ip_address) break;
+          }
+        }
 
-            // Collect MAC addresses
-            if ((iface as any).mac_address) {
-              mac_addresses.push({
-                interface: key,
-                mac: (iface as any).mac_address
-              });
-            } else if ((iface as any).mac) {
-              mac_addresses.push({
-                interface: key,
-                mac: (iface as any).mac
-              });
+        // If no Ethernet IP found, try WiFi
+        if (!ip_address) {
+          for (const iface of data.network.interfaces) {
+            const name = iface.name?.toLowerCase() || '';
+            if ((name.includes('wifi') || name.includes('wlan') || name.includes('wireless')) &&
+                iface.stats?.is_up !== false) {
+              for (const addr of iface.addresses || []) {
+                if (addr.family === 'AF_INET' && 
+                    !addr.address.startsWith('127.') && 
+                    !addr.address.startsWith('169.254.') &&
+                    addr.address !== '0.0.0.0') {
+                  ip_address = addr.address;
+                  break;
+                }
+              }
+              if (ip_address) break;
+            }
+          }
+        }
+
+        // If still no IP, get any active non-virtual interface
+        if (!ip_address) {
+          for (const iface of data.network.interfaces) {
+            const name = iface.name?.toLowerCase() || '';
+            const isVirtual = name.includes('virtual') || name.includes('veth') || 
+                            name.includes('docker') || name.includes('vmware');
+            
+            if (!isVirtual && iface.stats?.is_up !== false) {
+              for (const addr of iface.addresses || []) {
+                if (addr.family === 'AF_INET' && 
+                    !addr.address.startsWith('127.') && 
+                    !addr.address.startsWith('169.254.') &&
+                    addr.address !== '0.0.0.0') {
+                  ip_address = addr.address;
+                  break;
+                }
+              }
+              if (ip_address) break;
+            }
+          }
+        }
+
+        // Collect MAC addresses
+        for (const iface of data.network.interfaces) {
+          for (const addr of iface.addresses || []) {
+            if (addr.family?.includes('AF_LINK') || addr.family?.includes('AF_PACKET')) {
+              if (addr.address && addr.address !== '00:00:00:00:00:00') {
+                mac_addresses.push({
+                  interface: iface.name,
+                  mac: addr.address
+                });
+              }
             }
           }
         }
       }
 
-      // Also try from system info or hardware
+      // Try older format network data structure
+      if (!ip_address && data.network && typeof data.network === 'object') {
+        for (const [key, iface] of Object.entries(data.network)) {
+          if (typeof iface === 'object' && iface !== null) {
+            if ((iface as any).ip_address) {
+              ip_address = (iface as any).ip_address;
+              break;
+            } else if ((iface as any).ip) {
+              ip_address = (iface as any).ip;
+              break;
+            }
+          }
+        }
+      }
+
+      // Fallback to other sources
       if (!ip_address) {
         ip_address = data.ip_address || hardware.ip_address || osInfo.ip_address || null;
       }
@@ -549,7 +650,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: "online",
           last_seen: new Date()
         });
-        console.log("Created new device:", device.id);
+        console.log("Created new device:", device.id, "User:", currentUser, "IP:", ip_address);
       } else {
         // Update existing device including IP address and user
         await storage.updateDevice(device.id, {
@@ -560,7 +661,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: "online",
           last_seen: new Date()
         });
-        console.log("Updated existing device:", device.id, "with user:", currentUser);
+        console.log("Updated existing device:", device.id, "User:", currentUser, "IP:", ip_address);
       }
 
       // Extract metrics from various possible locations - handle nested objects
@@ -737,6 +838,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           extracted_mac_addresses: mac_addresses,
           extracted_usb_devices: usbDevices,
           extracted_current_user: currentUser,
+          extracted_ip_address: ip_address,
           processed_at: new Date().toISOString()
         })
       });
