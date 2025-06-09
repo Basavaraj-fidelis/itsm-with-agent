@@ -1336,17 +1336,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ status: "ok", timestamp: new Date() });
   });
 
-  // Security API endpoints
-  app.get("/api/security/vulnerabilities/:deviceId", async (req, res) => {
+  // Security API endpoints - Fixed implementation
+  app.get("/api/security/vulnerabilities/:deviceId", authenticateToken, async (req, res) => {
     try {
       const { deviceId } = req.params;
+      console.log(`Fetching vulnerabilities for device: ${deviceId}`);
+      
       const device = await storage.getDevice(deviceId);
       if (!device) {
+        console.log(`Device not found: ${deviceId}`);
         return res.status(404).json({ error: "Device not found" });
       }
 
       const reports = await storage.getDeviceReports(deviceId);
       if (reports.length === 0) {
+        console.log(`No reports found for device: ${deviceId}`);
         return res.json([]);
       }
 
@@ -1354,66 +1358,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let installedSoftware = [];
 
       if (latestReport.raw_data) {
-        const rawData = JSON.parse(latestReport.raw_data);
-        installedSoftware = rawData.installed_software || [];
+        try {
+          const rawData = JSON.parse(latestReport.raw_data);
+          installedSoftware = rawData.installed_software || [];
+          console.log(`Found ${installedSoftware.length} software packages for vulnerability scan`);
+        } catch (parseError) {
+          console.error("Error parsing raw data:", parseError);
+        }
       }
 
       const vulnerabilities = await securityService.checkVulnerabilities(deviceId, installedSoftware);
+      console.log(`Returning ${vulnerabilities.length} vulnerabilities`);
       res.json(vulnerabilities);
     } catch (error) {
       console.error("Error getting vulnerabilities:", error);
-      res.status(500).json({ error: "Failed to get vulnerabilities" });
+      res.status(500).json({ error: "Failed to get vulnerabilities", message: error.message });
     }
   });
 
-  // Performance API endpoints
-  app.get("/api/performance/insights/:deviceId", async (req, res) => {
+  // Performance API endpoints - Fixed implementation
+  app.get("/api/performance/insights/:deviceId", authenticateToken, async (req, res) => {
     try {
       const { deviceId } = req.params;
+      console.log(`Fetching performance insights for device: ${deviceId}`);
+      
+      const device = await storage.getDevice(deviceId);
+      if (!device) {
+        console.log(`Device not found: ${deviceId}`);
+        return res.status(404).json({ error: "Device not found" });
+      }
+
       const insights = await performanceService.getApplicationPerformanceInsights(deviceId);
+      console.log(`Returning performance insights for device: ${deviceId}`);
       res.json(insights);
     } catch (error) {
       console.error("Error getting performance insights:", error);
-      res.status(500).json({ error: "Failed to get performance insights" });
+      res.status(500).json({ error: "Failed to get performance insights", message: error.message });
     }
   });
 
-  app.get("/api/performance/predictions/:deviceId", async (req, res) => {
+  app.get("/api/performance/predictions/:deviceId", authenticateToken, async (req, res) => {
     try {
       const { deviceId } = req.params;
+      console.log(`Fetching performance predictions for device: ${deviceId}`);
+      
+      const device = await storage.getDevice(deviceId);
+      if (!device) {
+        console.log(`Device not found: ${deviceId}`);
+        return res.status(404).json({ error: "Device not found" });
+      }
+
       const predictions = await performanceService.generateResourcePredictions(deviceId);
+      console.log(`Returning performance predictions for device: ${deviceId}`);
       res.json(predictions);
     } catch (error) {
       console.error("Error getting performance predictions:", error);
-      res.status(500).json({ error: "Failed to get performance predictions" });
+      res.status(500).json({ error: "Failed to get performance predictions", message: error.message });
     }
   });
 
-  // Automation API endpoints
-  app.get("/api/automation/software-packages", (req, res) => {
+  // Automation API endpoints - Fixed implementation
+  app.get("/api/automation/software-packages", authenticateToken, (req, res) => {
     try {
+      console.log("Fetching software packages");
       const packages = automationService.getSoftwarePackages();
+      console.log(`Returning ${packages.length} software packages`);
       res.json(packages);
     } catch (error) {
       console.error("Error getting software packages:", error);
-      res.status(500).json({ error: "Failed to get software packages" });
+      res.status(500).json({ error: "Failed to get software packages", message: error.message });
     }
   });
 
-  app.get("/api/automation/deployments", async (req, res) => {
+  app.get("/api/automation/deployments", authenticateToken, async (req, res) => {
     try {
+      console.log("Fetching automation deployments");
       // Get automation alerts that represent deployments
       const alerts = await storage.getActiveAlerts();
       const deployments = alerts.filter(alert => alert.category === "automation");
+      console.log(`Found ${deployments.length} automation deployments`);
       res.json(deployments);
     } catch (error) {
       console.error("Error getting deployments:", error);
-      res.status(500).json({ error: "Failed to get deployments" });
+      res.status(500).json({ error: "Failed to get deployments", message: error.message });
     }
   });
 
-  app.post("/api/automation/deploy-software", async (req, res) => {
+  app.post("/api/automation/deploy-software", authenticateToken, requireRole(['admin', 'manager']), async (req, res) => {
     try {
+      console.log("Processing software deployment request:", req.body);
       const { device_ids, package_id, scheduled_time } = req.body;
 
       if (!device_ids || !Array.isArray(device_ids) || device_ids.length === 0) {
@@ -1426,14 +1459,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const scheduledDate = scheduled_time ? new Date(scheduled_time) : new Date();
       const deploymentIds = await automationService.scheduleDeployment(device_ids, package_id, scheduledDate);
-
+      
+      console.log(`Deployment scheduled with IDs: ${deploymentIds}`);
       res.json({ 
         message: "Deployment scheduled successfully", 
-        deployment_ids: deploymentIds 
+        deployment_ids: deploymentIds,
+        scheduled_time: scheduledDate
       });
     } catch (error) {
       console.error("Error scheduling deployment:", error);
-      res.status(500).json({ error: error.message || "Failed to schedule deployment" });
+      res.status(500).json({ error: error.message || "Failed to schedule deployment", message: error.message });
     }
   });
 

@@ -26,16 +26,24 @@ export default function PerformanceAnalytics() {
     queryFn: () => api.get("/api/devices").then(res => res.data)
   });
 
-  const { data: insights } = useQuery({
+  const { data: insights, isError: insightsError } = useQuery({
     queryKey: ["performance-insights", selectedDevice],
     queryFn: () => selectedDevice ? api.get(`/api/performance/insights/${selectedDevice}`).then(res => res.data) : null,
-    enabled: !!selectedDevice
+    enabled: !!selectedDevice,
+    retry: 1,
+    onError: (error) => {
+      console.error("Error fetching performance insights:", error);
+    }
   });
 
-  const { data: predictions } = useQuery({
+  const { data: predictions, isError: predictionsError } = useQuery({
     queryKey: ["performance-predictions", selectedDevice],
     queryFn: () => selectedDevice ? api.get(`/api/performance/predictions/${selectedDevice}`).then(res => res.data) : [],
-    enabled: !!selectedDevice
+    enabled: !!selectedDevice,
+    retry: 1,
+    onError: (error) => {
+      console.error("Error fetching performance predictions:", error);
+    }
   });
 
   return (
@@ -130,9 +138,16 @@ export default function PerformanceAnalytics() {
             </Select>
           </div>
 
-          {selectedDevice && insights && (
+          {selectedDevice && (
             <div className="space-y-6">
+              {insightsError && (
+                <div className="flex items-center gap-2 text-red-600 mb-4">
+                  <AlertTriangle className="w-4 h-4" />
+                  <span>Error loading performance data. Please try again.</span>
+                </div>
+              )}
               {/* Application Performance Insights */}
+              {insights && (
               <div>
                 <h3 className="text-lg font-semibold mb-4">Top Resource Consumers</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -241,10 +256,11 @@ export default function PerformanceAnalytics() {
                   </CardContent>
                 </Card>
               </div>
+              )}
             </div>
           )}
 
-          {selectedDevice && !insights && (
+          {selectedDevice && !insights && !insightsError && (
             <div className="text-center py-8 text-muted-foreground">
               <Activity className="w-12 h-12 mx-auto mb-4" />
               <p>No performance data available for this device</p>

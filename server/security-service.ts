@@ -1,4 +1,3 @@
-
 import { storage } from "./storage";
 
 export interface USBPolicyRule {
@@ -53,7 +52,7 @@ class SecurityService {
     for (const device of usbDevices) {
       const vendorId = this.extractVendorId(device.device_id || device.id || "");
       const deviceType = this.categorizeUSBDevice(device.description || device.name || "");
-      
+
       let isViolation = false;
       let violationReason = "";
 
@@ -114,7 +113,7 @@ class SecurityService {
   async checkSoftwareLicenseCompliance(deviceId: string, installedSoftware: any[]): Promise<void> {
     // Check against known licensed software database
     const licensedSoftware = await this.getLicensedSoftwareList();
-    
+
     for (const software of installedSoftware) {
       const licenseInfo = licensedSoftware.find(ls => 
         software.name?.toLowerCase().includes(ls.name.toLowerCase())
@@ -140,8 +139,16 @@ class SecurityService {
   }
 
   async checkVulnerabilities(deviceId: string, installedSoftware: any[]): Promise<VulnerabilityCheck[]> {
+    try {
+      console.log(`Checking vulnerabilities for device ${deviceId} with ${installedSoftware.length} software packages`);
+
+      if (!installedSoftware || installedSoftware.length === 0) {
+        console.log("No software packages to check for vulnerabilities");
+        return [];
+      }
+
     const vulnerabilities: VulnerabilityCheck[] = [];
-    
+
     // Simulated CVE database - in production, integrate with NIST NVD API
     const knownVulnerabilities = [
       {
@@ -165,7 +172,7 @@ class SecurityService {
     for (const software of installedSoftware) {
       const softwareName = software.name?.toLowerCase() || "";
       const version = software.version || "";
-      
+
       const matchingVulns = knownVulnerabilities.filter(vuln =>
         softwareName.includes(vuln.software_pattern) &&
         vuln.version_pattern.test(version)
@@ -205,7 +212,12 @@ class SecurityService {
       }
     }
 
+    console.log(`Found ${vulnerabilities.length} vulnerable packages`);
     return vulnerabilities;
+    } catch (error) {
+      console.error("Error in checkVulnerabilities:", error);
+      return [];
+    }
   }
 
   private async getLicensedSoftwareList() {

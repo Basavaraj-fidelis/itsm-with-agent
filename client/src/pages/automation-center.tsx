@@ -34,14 +34,22 @@ export default function AutomationCenter() {
     queryFn: () => api.get("/api/devices").then(res => res.data)
   });
 
-  const { data: packages } = useQuery({
+  const { data: packages, isError: packagesError } = useQuery({
     queryKey: ["software-packages"],
-    queryFn: () => api.get("/api/automation/software-packages").then(res => res.data)
+    queryFn: () => api.get("/api/automation/software-packages").then(res => res.data),
+    retry: 1,
+    onError: (error) => {
+      console.error("Error fetching software packages:", error);
+    }
   });
 
-  const { data: deployments } = useQuery({
+  const { data: deployments, isError: deploymentsError } = useQuery({
     queryKey: ["deployments"],
-    queryFn: () => api.get("/api/automation/deployments").then(res => res.data)
+    queryFn: () => api.get("/api/automation/deployments").then(res => res.data),
+    retry: 1,
+    onError: (error) => {
+      console.error("Error fetching deployments:", error);
+    }
   });
 
   const deployMutation = useMutation({
@@ -163,6 +171,12 @@ export default function AutomationCenter() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {packagesError && (
+            <div className="flex items-center gap-2 text-red-600 mb-4">
+              <XCircle className="w-4 h-4" />
+              <span>Error loading software packages. Please try again.</span>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="package-select">Software Package</Label>

@@ -26,15 +26,23 @@ export default function SecurityDashboard() {
     queryFn: () => api.get("/api/devices").then(res => res.data)
   });
 
-  const { data: vulnerabilities } = useQuery({
+  const { data: vulnerabilities, isError: vulnerabilitiesError } = useQuery({
     queryKey: ["vulnerabilities", selectedDevice],
     queryFn: () => selectedDevice ? api.get(`/api/security/vulnerabilities/${selectedDevice}`).then(res => res.data) : [],
-    enabled: !!selectedDevice
+    enabled: !!selectedDevice,
+    retry: 1,
+    onError: (error) => {
+      console.error("Error fetching vulnerabilities:", error);
+    }
   });
 
-  const { data: alerts } = useQuery({
+  const { data: alerts, isError: alertsError } = useQuery({
     queryKey: ["security-alerts"],
-    queryFn: () => api.get("/api/alerts").then(res => res.data.filter(alert => alert.category === "security"))
+    queryFn: () => api.get("/api/alerts").then(res => res.data.filter(alert => alert.category === "security")),
+    retry: 1,
+    onError: (error) => {
+      console.error("Error fetching security alerts:", error);
+    }
   });
 
   return (
@@ -129,10 +137,15 @@ export default function SecurityDashboard() {
             </Select>
           </div>
 
-          {selectedDevice && vulnerabilities && (
+          {selectedDevice && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Vulnerability Assessment</h3>
-              {vulnerabilities.length === 0 ? (
+              {vulnerabilitiesError ? (
+                <div className="flex items-center gap-2 text-red-600">
+                  <XCircle className="w-4 h-4" />
+                  <span>Error loading vulnerability data. Please try again.</span>
+                </div>
+              ) : vulnerabilities && vulnerabilities.length === 0 ? (
                 <div className="flex items-center gap-2 text-green-600">
                   <CheckCircle className="w-4 h-4" />
                   <span>No known vulnerabilities detected</span>
