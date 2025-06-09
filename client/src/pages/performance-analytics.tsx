@@ -21,9 +21,11 @@ import { formatDistanceToNow } from "date-fns";
 export default function PerformanceAnalytics() {
   const [selectedDevice, setSelectedDevice] = useState("");
 
-  const { data: devices } = useQuery({
+  const { data: devices, isLoading: devicesLoading, isError: devicesError } = useQuery({
     queryKey: ["devices"],
-    queryFn: () => api.get("/api/devices").then(res => res.data)
+    queryFn: () => api.get("/api/devices").then(res => res.data),
+    retry: 1,
+    refetchOnWindowFocus: false
   });
 
   const { data: insights, isError: insightsError } = useQuery({
@@ -118,9 +120,14 @@ export default function PerformanceAnalytics() {
         </CardHeader>
         <CardContent>
           <div className="mb-4">
-            <Select value={selectedDevice} onValueChange={setSelectedDevice}>
+            <Select value={selectedDevice} onValueChange={setSelectedDevice} disabled={devicesLoading || devicesError}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a device to analyze" />
+                <SelectValue placeholder={
+                  devicesLoading ? "Loading devices..." : 
+                  devicesError ? "Error loading devices" :
+                  devices?.length === 0 ? "No devices available" :
+                  "Select a device to analyze"
+                } />
               </SelectTrigger>
               <SelectContent>
                 {devices?.map((device: any) => (
