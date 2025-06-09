@@ -538,8 +538,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Extracted current user:", currentUser, "from hostname:", hostname, "processes count:", data.processes?.length || 0);
 
       // Extract IP address and MAC addresses from various possible locations
-      let ip_address = network.ip_address || network.ip || null;
+      let ip_address = network.ip_address || network.ip || data.network?.primary_ip || null;
       let mac_addresses = [];
+
+      // Check for primary MAC from new system collector
+      let primary_mac = data.network?.primary_mac || null;
 
       // Try to extract IP from network interfaces (most reliable method)
       if (data.network?.interfaces && Array.isArray(data.network.interfaces)) {
@@ -605,8 +608,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
-        // Collect MAC addresses
+        // Collect MAC addresses - new enhanced method
         for (const iface of data.network.interfaces) {
+          // Check for MAC address in interface object directly
+          if (iface.mac_address && iface.mac_address !== '00:00:00:00:00:00') {
+            mac_addresses.push({
+              interface: iface.name,
+              mac: iface.mac_address
+            });
+          }
+          
+          // Also check in addresses array for compatibility
           for (const addr of iface.addresses || []) {
             if (addr.family?.includes('AF_LINK') || addr.family?.includes('AF_PACKET')) {
               if (addr.address && addr.address !== '00:00:00:00:00:00') {
@@ -826,10 +838,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Final USB devices for storage:", usbDevices);
 
-      // Extract update information
+      // Extract update information - enhanced to handle new structure
       const securityInfo = data.security || {};
       const updateHistory = data.update_history || {};
       const windowsUpdates = securityInfo.windows_updates || {};
+      const osInfo = data.os_info || {};
       
       // Create device report with enhanced data
       await storage.createDeviceReport({
@@ -841,16 +854,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         raw_data: JSON.stringify({
           ...req.body,
           extracted_mac_addresses: mac_addresses,
+          extracted_primary_mac: primary_mac,
           extracted_usb_devices: usbDevices,
           extracted_current_user: currentUser,
           extracted_ip_address: ip_address,
           extracted_update_info: {
-            last_boot_time: updateHistory.last_boot_time,
-            system_uptime_hours: updateHistory.system_uptime_hours,
+            last_boot_time: updateHistory.last_boot_time || osInfo.boot_time,
+            system_uptime_hours: updateHistory.system_uptime_hours || (osInfo.uptime_seconds ? Math.floor(osInfo.uptime_seconds / 3600) : null),
             pending_reboot: updateHistory.pending_reboot,
             last_update_check: windowsUpdates.last_update_check,
-            recent_updates: windowsUpdates.recent_updates
+            recent_updates: windowsUpdates.recent_updates,
+            last_update: osInfo.last_update,
+            windows_build: osInfo.build_number,
+            windows_version: osInfo.display_version || osInfo.product_name
           },
+          extracted_security_info: {
+            firewall_status: securityInfo.firewall_status,
+            antivirus_status: securityInfo.antivirus_status,
+            last_scan: securityInfo.last_scan
+          },
+          extracted_virtualization: data.virtualization,
           processed_at: new Date().toISOString()
         })
       });
