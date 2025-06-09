@@ -455,13 +455,14 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
 
   return (
     <Tabs defaultValue="overview" className="w-full">
-      <TabsList className="grid w-full grid-cols-6">
+      <TabsList className="grid w-full grid-cols-7">
         <TabsTrigger value="overview">Overview</TabsTrigger>
         <TabsTrigger value="hardware">Hardware</TabsTrigger>
         <TabsTrigger value="network">Network</TabsTrigger>
         <TabsTrigger value="storage">Storage</TabsTrigger>
         <TabsTrigger value="processes">Processes</TabsTrigger>
         <TabsTrigger value="software">Software</TabsTrigger>
+        <TabsTrigger value="updates">Updates</TabsTrigger>
       </TabsList>
 
       <TabsContent value="overview" className="space-y-6">
@@ -1756,6 +1757,203 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
           </CardContent>
         </Card>
       </TabsContent>
+
+      <TabsContent value="updates" className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* System Update Status */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Download className="w-5 h-5" />
+                <span>System Update Status</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {(() => {
+                  const updateInfo = rawData.extracted_update_info || {};
+                  const securityInfo = rawData.extracted_security_info || {};
+                  
+                  return (
+                    <div className="space-y-4">
+                      {/* Last Boot Time */}
+                      <div className="flex justify-between items-center p-3 border rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <Clock className="w-4 h-4 text-blue-600" />
+                          <span className="font-medium">Last Boot Time</span>
+                        </div>
+                        <span className="text-sm">
+                          {updateInfo.last_boot_time 
+                            ? new Date(updateInfo.last_boot_time).toLocaleString()
+                            : "Unknown"}
+                        </span>
+                      </div>
+
+                      {/* System Uptime */}
+                      <div className="flex justify-between items-center p-3 border rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <Activity className="w-4 h-4 text-green-600" />
+                          <span className="font-medium">System Uptime</span>
+                        </div>
+                        <span className="text-sm">
+                          {updateInfo.system_uptime_hours !== null 
+                            ? `${updateInfo.system_uptime_hours} hours`
+                            : "Unknown"}
+                        </span>
+                      </div>
+
+                      {/* Pending Reboot */}
+                      <div className="flex justify-between items-center p-3 border rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <RefreshCw className="w-4 h-4 text-orange-600" />
+                          <span className="font-medium">Pending Reboot</span>
+                        </div>
+                        <Badge variant={updateInfo.pending_reboot ? "destructive" : "default"}>
+                          {updateInfo.pending_reboot ? "Required" : "Not Required"}
+                        </Badge>
+                      </div>
+
+                      {/* Windows Version */}
+                      <div className="flex justify-between items-center p-3 border rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <Monitor className="w-4 h-4 text-purple-600" />
+                          <span className="font-medium">Windows Version</span>
+                        </div>
+                        <span className="text-sm">
+                          {updateInfo.windows_version || updateInfo.windows_build || "Unknown"}
+                        </span>
+                      </div>
+
+                      {/* Last Update Check */}
+                      <div className="flex justify-between items-center p-3 border rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle className="w-4 h-4 text-cyan-600" />
+                          <span className="font-medium">Last Update Check</span>
+                        </div>
+                        <span className="text-sm">
+                          {updateInfo.last_update_check 
+                            ? new Date(updateInfo.last_update_check).toLocaleString()
+                            : "Unknown"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Updates */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Download className="w-5 h-5" />
+                <span>Recent Updates</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {(() => {
+                  const updateInfo = rawData.extracted_update_info || {};
+                  const recentUpdates = updateInfo.recent_updates || [];
+                  
+                  if (Array.isArray(recentUpdates) && recentUpdates.length > 0) {
+                    return (
+                      <div className="space-y-3">
+                        {recentUpdates.slice(0, 10).map((update, index) => (
+                          <div key={index} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-3">
+                            <div className="flex justify-between items-start mb-2">
+                              <h4 className="font-medium text-sm text-neutral-900 dark:text-neutral-100">
+                                {update.title || update.name || `Update ${index + 1}`}
+                              </h4>
+                              <Badge variant="outline" className="text-xs">
+                                {update.status || "Installed"}
+                              </Badge>
+                            </div>
+                            <div className="text-xs text-neutral-600 space-y-1">
+                              {update.kb_number && (
+                                <div><span className="font-medium">KB:</span> {update.kb_number}</div>
+                              )}
+                              {update.install_date && (
+                                <div><span className="font-medium">Installed:</span> {new Date(update.install_date).toLocaleDateString()}</div>
+                              )}
+                              {update.size && (
+                                <div><span className="font-medium">Size:</span> {update.size}</div>
+                              )}
+                              {update.description && (
+                                <div className="text-neutral-500 mt-2">{update.description}</div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <div className="text-center py-8 text-neutral-500">
+                        <Download className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
+                        <p>No recent updates data available</p>
+                        <p className="text-xs mt-1">Update information will appear here when collected by the agent</p>
+                      </div>
+                    );
+                  }
+                })()}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Security Update Status */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Shield className="w-5 h-5" />
+                <span>Security Status</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {(() => {
+                  const securityInfo = rawData.extracted_security_info || {};
+                  
+                  return (
+                    <>
+                      <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Shield className="h-4 w-4 text-blue-600" />
+                          <h4 className="font-medium text-blue-900">Firewall Status</h4>
+                        </div>
+                        <p className="text-lg font-mono text-blue-800">
+                          {securityInfo.firewall_status || "Unknown"}
+                        </p>
+                      </div>
+
+                      <div className="p-4 border rounded-lg bg-green-50 border-green-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Shield className="h-4 w-4 text-green-600" />
+                          <h4 className="font-medium text-green-900">Antivirus Status</h4>
+                        </div>
+                        <p className="text-lg font-mono text-green-800">
+                          {securityInfo.antivirus_status || "Unknown"}
+                        </p>
+                      </div>
+
+                      <div className="p-4 border rounded-lg bg-purple-50 border-purple-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Clock className="h-4 w-4 text-purple-600" />
+                          <h4 className="font-medium text-purple-900">Last Security Scan</h4>
+                        </div>
+                        <p className="text-sm font-mono text-purple-800">
+                          {securityInfo.last_scan || "Unknown"}
+                        </p>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </TabsContent></old_str>
     </Tabs>
   );
 }
