@@ -11,6 +11,7 @@ import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useRoute } from "wouter";
+import WorkflowManager from "@/components/tickets/workflow-manager";
 import {
   ArrowLeft,
   Calendar,
@@ -706,6 +707,36 @@ export default function TicketDetail() {
   const IconComponent = typeIcons[ticket.type as keyof typeof typeIcons];
   const isOverdue = ticket.due_date && new Date(ticket.due_date) < new Date();
 
+  const handleWorkflowStatusChange = async (newStatus: string, workflowStep: number, stageName: string) => {
+    if (!ticket) return;
+
+    try {
+      const updateData = { 
+        status: newStatus,
+        workflow_step: workflowStep,
+        workflow_stage: stageName,
+        comment: `Workflow advanced to step ${workflowStep}: ${stageName}`
+      };
+
+      const response = await api.put(`/api/tickets/${ticket.id}`, updateData);
+
+      if (response.ok) {
+        fetchTicket(ticket.id);
+        fetchComments(ticket.id);
+        toast({
+          title: "Workflow Advanced",
+          description: `Ticket moved to: ${stageName}`
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to advance workflow",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -737,6 +768,12 @@ export default function TicketDetail() {
           </Button>
         </div>
       </div>
+
+      {/* Workflow Manager */}
+      {ticket && <WorkflowManager 
+        ticket={ticket}
+        onStatusChange={handleWorkflowStatusChange}
+      />}
 
       {/* Ticket Header */}
       <Card className={`border-l-4 ${

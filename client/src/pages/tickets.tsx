@@ -271,8 +271,26 @@ export default function Tickets() {
       return;
     }
 
+    // Validate workflow-specific fields
+    if (newTicketData.type === "change" && !newTicketData.change_type) {
+      toast({
+        title: "Validation Error",
+        description: "Change type is required for change requests",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
+      // Set initial status based on workflow
+      // const ticketData = {
+      //   ...newTicketData,
+      //   status: getInitialStatus(newTicketData.type),
+      //   workflow_step: 1,
+      //   workflow_stage: getInitialStage(newTicketData.type)
+      // };
+
       const response = await api.post("/api/tickets", newTicketData);
 
       if (response.ok) {
@@ -1362,6 +1380,35 @@ export default function Tickets() {
         return renderTicketTable();
     }
   };
+    const getInitialStatus = (type: string) => {
+    switch (type) {
+      case "request":
+        return "new"; // Request Submitted
+      case "incident":
+        return "new"; // Incident Reported
+      case "problem":
+        return "new"; // Problem Identification
+      case "change":
+        return "pending"; // Change Request
+      default:
+        return "new";
+    }
+  };
+
+  const getInitialStage = (type: string) => {
+    switch (type) {
+      case "request":
+        return "Request Submitted";
+      case "incident":
+        return "Incident Reported";
+      case "problem":
+        return "Problem Identification";
+      case "change":
+        return "Change Request";
+      default:
+        return "Submitted";
+    }
+  };
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
       <ServiceDeskSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -1515,6 +1562,105 @@ export default function Tickets() {
                 rows={4}
               />
             </div>
+                 <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="impact">Impact</Label>
+                      <Select
+                        value={newTicketData.impact}
+                        onValueChange={(value) => setNewTicketData({ ...newTicketData, impact: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select impact" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="critical">Critical</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="urgency">Urgency</Label>
+                      <Select
+                        value={newTicketData.urgency}
+                        onValueChange={(value) => setNewTicketData({ ...newTicketData, urgency: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select urgency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="critical">Critical</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Change Management Specific Fields */}
+                  {newTicketData.type === "change" && (
+                    <div className="space-y-4 border-t pt-4">
+                      <h4 className="font-medium text-sm text-muted-foreground">Change Management Details</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="change_type">Change Type *</Label>
+                          <Select
+                            value={newTicketData.change_type}
+                            onValueChange={(value) => setNewTicketData({ ...newTicketData, change_type: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select change type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="standard">Standard</SelectItem>
+                              <SelectItem value="normal">Normal</SelectItem>
+                              <SelectItem value="emergency">Emergency</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="risk_level">Risk Level</Label>
+                          <Select
+                            value={newTicketData.risk_level}
+                            onValueChange={(value) => setNewTicketData({ ...newTicketData, risk_level: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select risk level" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="low">Low</SelectItem>
+                              <SelectItem value="medium">Medium</SelectItem>
+                              <SelectItem value="high">High</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Problem Management Specific Fields */}
+                  {newTicketData.type === "problem" && (
+                    <div className="space-y-4 border-t pt-4">
+                      <h4 className="font-medium text-sm text-muted-foreground">Problem Management Details</h4>
+                      <div>
+                        <Label htmlFor="known_error">Known Error</Label>
+                        <Select
+                          value={newTicketData.known_error ? "true" : "false"}
+                          onValueChange={(value) => setNewTicketData({ ...newTicketData, known_error: value === "true" })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Is this a known error?" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="false">No</SelectItem>
+                            <SelectItem value="true">Yes</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
             <div className="flex justify-end space-x-2">
               <Button
                 variant="outline"

@@ -56,7 +56,7 @@ export class TicketStorage {
 
     // Auto-assign to available technician
     const assignedTechnician = await userStorage.getNextAvailableTechnician();
-    
+
     const [newTicket] = await db
       .insert(tickets)
       .values({
@@ -149,56 +149,69 @@ export class TicketStorage {
     return ticket || null;
   }
 
-  async updateTicket(id: string, updates: Partial<NewTicket>, userEmail?: string, comment?: string): Promise<Ticket | null> {
-    // Get old values for audit
-    const oldTicket = await this.getTicketById(id);
-    
-    if (!oldTicket) return null;
+  async updateTicket(
+    id: string, 
+    updates: Partial<Ticket>, 
+    userEmail: string = 'admin@company.com',
+    comment?: string
+  ): Promise<Ticket | null> {
+    try {
+      // Check if comment is required for certain status changes
+      if (updates.status && ['resolved', 'closed', 'cancelled'].includes(updates.status) && !comment) {
+        throw new Error('Comment required when resolving, closing, or cancelling tickets');
+      }
 
-    // Check if status is changing to resolved, closed, or pending - require comment
-    const statusChangingToFinal = updates.status && 
-      ['resolved', 'closed', 'pending'].includes(updates.status) && 
-      oldTicket.status !== updates.status;
+      // Set resolved_at timestamp when status changes to resolved
+      if (updates.status === 'resolved' && !updates.resolved_at) {
+        updates.resolved_at = new Date();
+      }
 
-    if (statusChangingToFinal && !comment) {
-      throw new Error(`Comment required when changing status to ${updates.status}`);
-    }
+      // Set closed_at timestamp when status changes to closed
+      if (updates.status === 'closed' && !updates.closed_at) {
+        updates.closed_at = new Date();
+      }
 
-    const [updatedTicket] = await db
-      .update(tickets)
-      .set({
-        ...updates,
-        updated_at: new Date()
-      })
-      .where(eq(tickets.id, id))
-      .returning();
+      // Update workflow stage in custom fields if provided
+      if (updates.workflow_step || updates.workflow_stage) {
+        const currentTicket = await this.getTicketById(id);
+        if (currentTicket) {
+          const customFields = currentTicket.custom_fields || {};
+          if (updates.workflow_step) {
+            customFields.workflow_step = updates.workflow_step;
+          }
+          if (updates.workflow_stage) {
+            customFields.workflow_stage = updates.workflow_stage;
+          }
+          updates.custom_fields = customFields;
+        }
+      }
 
-    if (updatedTicket && oldTicket) {
-      // Log audit event
-      await this.logAudit('ticket', id, 'update', undefined, userEmail, oldTicket, updatedTicket);
+      updates.updated_at = new Date();
 
-      // Add comment for status changes
-      if (updates.status && oldTicket.status !== updates.status) {
-        const statusComment = comment || `Status changed from ${oldTicket.status} to ${updates.status}`;
+      const [updatedTicket] = await db
+        .update(tickets)
+        .set(updates)
+        .where(eq(tickets.id, id))
+        .returning();
+
+      if (!updatedTicket) {
+        return null;
+      }
+
+      // Add comment if provided
+      if (comment) {
         await this.addComment(id, {
-          comment: statusComment,
-          author_email: userEmail || "system@company.com",
+          comment,
+          author_email: userEmail,
           is_internal: false
         });
       }
 
-      // Add comment for reassignment
-      if (updates.assigned_to && oldTicket.assigned_to !== updates.assigned_to) {
-        const assignmentComment = `Ticket reassigned from ${oldTicket.assigned_to || 'Unassigned'} to ${updates.assigned_to}`;
-        await this.addComment(id, {
-          comment: assignmentComment,
-          author_email: userEmail || "system@company.com",
-          is_internal: true
-        });
-      }
+      return updatedTicket;
+    } catch (error) {
+      console.error('Error updating ticket:', error);
+      throw error;
     }
-
-    return updatedTicket || null;
   }
 
   async deleteTicket(id: string): Promise<boolean> {
@@ -370,7 +383,7 @@ export class TicketStorage {
   ) {
     try {
       const changes = this.calculateChanges(oldValues, newValues);
-      
+
       await db.insert(auditLog).values({
         entity_type: entityType,
         entity_id: entityId,
