@@ -185,7 +185,20 @@ export default function Tickets() {
   };
 
   useEffect(() => {
-    fetchTickets(1);
+    const loadTickets = async () => {
+      try {
+        await fetchTickets(1);
+      } catch (error) {
+        console.error('Error in tickets useEffect:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load tickets. Please refresh the page.",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    loadTickets();
   }, [selectedType, selectedStatus, selectedPriority, searchTerm]);
 
   // Filter and sort tickets - active tickets first, then by updated_at desc
@@ -986,8 +999,6 @@ export default function Tickets() {
         return renderTicketTable();
     }
   };
-  const slaMetrics = getSLAMetrics();
-  const statusDistribution = getStatusDistribution();
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
       <ServiceDeskSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -1012,7 +1023,210 @@ export default function Tickets() {
         </div>
       </div>
 
-      {/* Dialogs can be added here when needed */}
+      {/* Create Ticket Dialog */}
+      <Dialog open={showNewTicketDialog} onOpenChange={setShowNewTicketDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Create New Ticket</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="type">Type</Label>
+                <Select value={newTicketData.type} onValueChange={(value) => setNewTicketData({...newTicketData, type: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="request">Service Request</SelectItem>
+                    <SelectItem value="incident">Incident</SelectItem>
+                    <SelectItem value="problem">Problem</SelectItem>
+                    <SelectItem value="change">Change</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="priority">Priority</Label>
+                <Select value={newTicketData.priority} onValueChange={(value) => setNewTicketData({...newTicketData, priority: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="critical">Critical</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="title">Title</Label>
+              <Input
+                value={newTicketData.title}
+                onChange={(e) => setNewTicketData({...newTicketData, title: e.target.value})}
+                placeholder="Brief description of the issue or request"
+              />
+            </div>
+            <div>
+              <Label htmlFor="requester_email">Requester Email</Label>
+              <Input
+                value={newTicketData.requester_email}
+                onChange={(e) => setNewTicketData({...newTicketData, requester_email: e.target.value})}
+                placeholder="user@company.com"
+                type="email"
+              />
+            </div>
+            <div>
+              <Label htmlFor="category">Category</Label>
+              <Input
+                value={newTicketData.category}
+                onChange={(e) => setNewTicketData({...newTicketData, category: e.target.value})}
+                placeholder="e.g., Hardware, Software, Network"
+              />
+            </div>
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                value={newTicketData.description}
+                onChange={(e) => setNewTicketData({...newTicketData, description: e.target.value})}
+                placeholder="Detailed description of the issue or request"
+                rows={4}
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setShowNewTicketDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateTicket} disabled={loading}>
+                {loading ? "Creating..." : "Create Ticket"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Ticket Dialog */}
+      <Dialog open={showEditTicketDialog} onOpenChange={setShowEditTicketDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Ticket</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="type">Type</Label>
+                <Select value={newTicketData.type} onValueChange={(value) => setNewTicketData({...newTicketData, type: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="request">Service Request</SelectItem>
+                    <SelectItem value="incident">Incident</SelectItem>
+                    <SelectItem value="problem">Problem</SelectItem>
+                    <SelectItem value="change">Change</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="priority">Priority</Label>
+                <Select value={newTicketData.priority} onValueChange={(value) => setNewTicketData({...newTicketData, priority: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="critical">Critical</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="title">Title</Label>
+              <Input
+                value={newTicketData.title}
+                onChange={(e) => setNewTicketData({...newTicketData, title: e.target.value})}
+                placeholder="Brief description of the issue or request"
+              />
+            </div>
+            <div>
+              <Label htmlFor="requester_email">Requester Email</Label>
+              <Input
+                value={newTicketData.requester_email}
+                onChange={(e) => setNewTicketData({...newTicketData, requester_email: e.target.value})}
+                placeholder="user@company.com"
+                type="email"
+              />
+            </div>
+            <div>
+              <Label htmlFor="category">Category</Label>
+              <Input
+                value={newTicketData.category}
+                onChange={(e) => setNewTicketData({...newTicketData, category: e.target.value})}
+                placeholder="e.g., Hardware, Software, Network"
+              />
+            </div>
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                value={newTicketData.description}
+                onChange={(e) => setNewTicketData({...newTicketData, description: e.target.value})}
+                placeholder="Detailed description of the issue or request"
+                rows={4}
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setShowEditTicketDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateTicket} disabled={loading}>
+                {loading ? "Updating..." : "Update Ticket"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Comment Dialog */}
+      <Dialog open={showAddCommentDialog} onOpenChange={setShowAddCommentDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Comment</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="comment">Comment</Label>
+              <Textarea
+                value={newCommentText}
+                onChange={(e) => setNewCommentText(e.target.value)}
+                placeholder="Enter your comment..."
+                rows={4}
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setShowAddCommentDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddComment}>
+                Add Comment
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Floating Action Button */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <Button
+          onClick={() => setShowNewTicketDialog(true)}
+          size="lg"
+          className="rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-all duration-200 bg-green-600 hover:bg-green-700"
+        >
+          <Plus className="w-6 h-6" />
+        </Button>
+      </div>
     </div>
   );
 }

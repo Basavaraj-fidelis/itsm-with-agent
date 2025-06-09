@@ -31,11 +31,8 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     port: 5173,
-    allowedHosts: [
-      "68296863-0132-4339-ae8b-17fed8347cd1-00-14qc85cdnmycz.sisko.replit.dev",
-    ],
     hmr: {
-      port: 24678,
+      port: 5174,
       host: "0.0.0.0",
     },
     watch: {

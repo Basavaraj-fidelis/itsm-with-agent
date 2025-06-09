@@ -145,45 +145,51 @@ async function get(url: string) {
   return apiRequest(url, { method: "GET" });
 }
 
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 class ApiClient {
   private baseURL: string;
 
   constructor() {
-    // Use relative URLs for Replit to avoid localhost issues
-    this.baseURL = '';
+    this.baseURL = BASE_URL;
   }
 
-  private async request(url: string, options: RequestInit = {}): Promise<Response> {
-    const token = localStorage.getItem('auth_token');
+  private async request(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<Response> {
+    const url = `${this.baseURL}${endpoint}`;
 
     const config: RequestInit = {
-      ...options,
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
         ...options.headers,
       },
+      ...options,
     };
 
+    // Add auth token if it exists
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      config.headers = {
+        ...config.headers,
+        'Authorization': `Bearer ${token}`,
+      };
+    }
+
     try {
-      const response = await fetch(`${this.baseURL}${url}`, config);
+      const response = await fetch(url, config);
 
-      if (response.status === 401) {
-        localStorage.removeItem('auth_token');
-        window.location.href = '/login';
-        throw new Error('Unauthorized');
-      }
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Unknown error');
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      // Handle network errors
+      if (!response.ok && response.status >= 500) {
+        throw new Error(`Server error: ${response.status} ${response.statusText}`);
       }
 
       return response;
     } catch (error) {
-      console.error('API request failed:', error);
+      // Handle network connection errors
       if (error instanceof TypeError && error.message.includes('fetch')) {
-        throw new Error('Network connection failed. Please check your connection.');
+        throw new Error('Network connection failed. Please check your internet connection.');
       }
       throw error;
     }
