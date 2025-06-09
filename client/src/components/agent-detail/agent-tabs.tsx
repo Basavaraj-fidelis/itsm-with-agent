@@ -1002,56 +1002,20 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {/* Show current USB devices from raw data first */}
-              {usbDevices.length > 0 && (
-                <div className="mb-6">
-                  <h4 className="font-medium text-sm text-green-700 mb-3 flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    Currently Connected (from latest report)
-                  </h4>
-                  <div className="space-y-3">
-                    {usbDevices.map((device: any, index) => (
-                      <div key={index} className="p-3 border rounded-lg bg-green-50 border-green-200">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h5 className="font-medium text-green-900">
-                              {device.description || device.name || device.product_name || `USB Device ${index + 1}`}
-                            </h5>
-                            {device.vendor_id && device.product_id && (
-                              <div className="text-green-700 text-sm mt-1">
-                                VID: {device.vendor_id} | PID: {device.product_id}
-                              </div>
-                            )}
-                            {device.manufacturer && (
-                              <div className="text-green-600 text-sm">
-                                Manufacturer: {device.manufacturer}
-                              </div>
-                            )}
-                            {device.device_class && (
-                              <div className="text-green-600 text-sm">
-                                Class: {device.device_class}
-                              </div>
-                            )}
-                          </div>
-                          <div className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
-                            Active
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {usbHistory.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-green-200">
-                      <h4 className="font-medium text-sm text-gray-700 mb-3">USB Device History</h4>
-                    </div>
-                  )}
-                </div>
-              )}
+              
 
-              {/* Show historical USB devices */}
+              {/* Show USB device history with proper status display */}
               {usbHistory.length > 0 ? (
                 <div className="space-y-3">
+                  {/* Add header for clarity */}
+                  <h4 className="font-medium text-sm text-gray-700 mb-3 flex items-center gap-2">
+                    <Usb className="w-4 h-4" />
+                    USB Device Activity
+                    <span className="text-xs text-gray-500">
+                      ({usbHistory.filter(d => d.is_connected).length} currently connected, {usbHistory.length} total tracked)
+                    </span>
+                  </h4>
+                  
                   {/* Sort devices: connected first, then by last seen */}
                   {usbHistory
                     .sort((a: any, b: any) => {
@@ -1061,103 +1025,115 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                       // Then sort by last seen (most recent first)
                       return new Date(b.last_seen).getTime() - new Date(a.last_seen).getTime();
                     })
-                    .map((device: any, index) => (
-                      <div key={device.id || index} className="p-3 border rounded-lg bg-neutral-50 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-medium text-neutral-900 dark:text-neutral-100">
-                                {device.description || device.name || `USB Device ${index + 1}`}
-                              </h4>
-                              {device.is_connected && (
-                                <div className="flex items-center gap-1">
-                                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                  <span className="text-xs text-green-600 dark:text-green-400">Live</span>
+                    .map((device: any, index) => {
+                      const timeSinceLastSeen = formatDistanceToNow(new Date(device.last_seen), { addSuffix: true });
+                      const isRecentlyActive = new Date().getTime() - new Date(device.last_seen).getTime() < 5 * 60 * 1000; // 5 minutes
+                      
+                      return (
+                        <div key={device.id || index} className={`p-3 border rounded-lg ${
+                          device.is_connected && isRecentlyActive
+                            ? 'bg-green-50 border-green-200' 
+                            : device.is_connected 
+                            ? 'bg-blue-50 border-blue-200'
+                            : 'bg-neutral-50 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700'
+                        }`}>
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="font-medium text-neutral-900 dark:text-neutral-100">
+                                  {device.description || device.name || `USB Device ${index + 1}`}
+                                </h4>
+                                {device.is_connected && isRecentlyActive && (
+                                  <div className="flex items-center gap-1">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                    <span className="text-xs text-green-600 dark:text-green-400">Currently Active</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {device.vendor_id && device.product_id && (
+                                <div className="text-neutral-600 dark:text-neutral-400 text-sm mb-1">
+                                  <span className="font-medium">VID:</span> {device.vendor_id} | 
+                                  <span className="font-medium ml-2">PID:</span> {device.product_id}
+                                </div>
+                              )}
+
+                              {device.manufacturer && (
+                                <div className="text-neutral-600 dark:text-neutral-400 text-sm">
+                                  <span className="font-medium">Manufacturer:</span> {device.manufacturer}
+                                </div>
+                              )}
+
+                              {device.serial_number && (
+                                <div className="text-neutral-600 dark:text-neutral-400 text-sm">
+                                  <span className="font-medium">Serial:</span> {device.serial_number}
+                                </div>
+                              )}
+
+                              {device.device_class && (
+                                <div className="text-neutral-600 dark:text-neutral-400 text-sm">
+                                  <span className="font-medium">Class:</span> {device.device_class}
+                                </div>
+                              )}
+
+                              {device.location && (
+                                <div className="text-neutral-600 dark:text-neutral-400 text-sm">
+                                  <span className="font-medium">Location:</span> {device.location}
+                                </div>
+                              )}
+
+                              {device.speed && (
+                                <div className="text-neutral-600 dark:text-neutral-400 text-sm">
+                                  <span className="font-medium">Speed:</span> {device.speed}
                                 </div>
                               )}
                             </div>
-
-                            {device.vendor_id && device.product_id && (
-                              <div className="text-neutral-600 dark:text-neutral-400 text-sm mb-1">
-                                <span className="font-medium">VID:</span> {device.vendor_id} | 
-                                <span className="font-medium ml-2">PID:</span> {device.product_id}
-                              </div>
-                            )}
-
-                            {device.manufacturer && (
-                              <div className="text-neutral-600 dark:text-neutral-400 text-sm">
-                                <span className="font-medium">Manufacturer:</span> {device.manufacturer}
-                              </div>
-                            )}
-
-                            {device.serial_number && (
-                              <div className="text-neutral-600 dark:text-neutral-400 text-sm">
-                                <span className="font-medium">Serial:</span> {device.serial_number}
-                              </div>
-                            )}
-
-                            {device.device_class && (
-                              <div className="text-neutral-600 dark:text-neutral-400 text-sm">
-                                <span className="font-medium">Class:</span> {device.device_class}
-                              </div>
-                            )}
-
-                            {device.location && (
-                              <div className="text-neutral-600 dark:text-neutral-400 text-sm">
-                                <span className="font-medium">Location:</span> {device.location}
-                              </div>
-                            )}
-
-                            {device.speed && (
-                              <div className="text-neutral-600 dark:text-neutral-400 text-sm">
-                                <span className="font-medium">Speed:</span> {device.speed}
-                              </div>
-                            )}
-                          </div>
-                          
-                          <div className="flex flex-col items-end gap-2">
-                            <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              device.is_connected 
-                                ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
-                                : 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200'
-                            }`}>
-                              {device.is_connected ? 'Active' : `Inactive`}
-                            </div>
                             
-                            <div className="text-xs text-neutral-500 dark:text-neutral-400 text-right">
-                              <div className="font-medium">Last Seen</div>
-                              <div>{formatDistanceToNow(new Date(device.last_seen), { addSuffix: true })}</div>
+                            <div className="flex flex-col items-end gap-2">
+                              <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                device.is_connected && isRecentlyActive
+                                  ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
+                                  : device.is_connected 
+                                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+                                  : 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200'
+                              }`}>
+                                {device.is_connected && isRecentlyActive ? 'Active Now' : 
+                                 device.is_connected ? 'Connected' : 'Inactive'}
+                              </div>
+                              
+                              <div className="text-xs text-neutral-500 dark:text-neutral-400 text-right">
+                                <div className="font-medium">
+                                  {device.is_connected && isRecentlyActive ? 'Last Report' : 'Last Seen'}
+                                </div>
+                                <div>{timeSinceLastSeen}</div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-600 text-xs text-neutral-500 dark:text-neutral-400">
+                            <div>
+                              <span className="font-medium">First Detected:</span> {formatDistanceToNow(new Date(device.first_seen), { addSuffix: true })}
                             </div>
                           </div>
                         </div>
-
-                        <div className="mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-600 text-xs text-neutral-500 dark:text-neutral-400">
-                          <div>
-                            <span className="font-medium">First Detected:</span> {formatDistanceToNow(new Date(device.first_seen), { addSuffix: true })}
-                          </div>
-                        </div>
-                      </div>
-                    ))
+                      );
+                    })
                   }
                 </div>
               ) : (
                 <div className="text-center py-6">
                   <Usb className="w-12 h-12 mx-auto text-neutral-400 mb-2" />
-                  <p className="text-neutral-500 italic">
-                    {usbDevices.length === 0 ? 'No USB devices have been detected' : 'No USB device history available'}
-                  </p>
+                  <p className="text-neutral-500 italic">No USB devices have been detected</p>
                   <p className="text-xs text-neutral-400 mt-1">
-                    {usbDevices.length === 0 
-                      ? 'USB devices will appear here when connected' 
-                      : 'Historical data will appear as devices are connected/disconnected'}
+                    USB devices will appear here when connected and tracked over time
                   </p>
-                  {/* Debug info */}
+                  {/* Debug info for troubleshooting */}
                   <details className="mt-4 text-left">
                     <summary className="text-xs text-gray-500 cursor-pointer">Debug Info</summary>
                     <div className="text-xs text-gray-600 mt-2 font-mono bg-gray-100 p-2 rounded">
-                      <div>Raw USB devices: {JSON.stringify(usbDevices)}</div>
-                      <div>History count: {usbHistory.length}</div>
-                      <div>Primary MAC: {rawData.primary_mac || 'not found'}</div>
+                      <div>Raw USB devices in report: {usbDevices.length}</div>
+                      <div>Database history count: {usbHistory.length}</div>
+                      <div>Agent ID: {agent.id}</div>
                     </div>
                   </details>
                 </div>
