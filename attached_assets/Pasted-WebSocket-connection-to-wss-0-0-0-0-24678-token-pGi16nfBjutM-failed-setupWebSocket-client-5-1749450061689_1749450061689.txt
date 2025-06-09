@@ -1,0 +1,68 @@
+WebSocket connection to 'wss://0.0.0.0:24678/?token=pGi16nfBjutM' failed: 
+setupWebSocket @ client:536
+client:560 [vite] server connection lost. Polling for restart...
+0.0.0.0:24678/:1 
+            
+            
+           Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+tickets.tsx:1 Failed to load module script: Expected a JavaScript-or-Wasm module script but the server responded with a MIME type of "text/html". Strict MIME type checking is enforced for module scripts per HTML spec.
+0.0.0.0:24678/:1 
+            
+            
+           Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+0.0.0.0:24678/:1 
+            
+            
+           Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+0.0.0.0:24678/:1 
+            
+            
+           Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+client:736 
+            
+            
+           GET https://0.0.0.0:24678/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+client:736 
+            
+            
+           GET https://0.0.0.0:24678/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+client:736 
+            
+            
+           GET https://0.0.0.0:24678/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+client:736 
+            
+            
+           GET https://0.0.0.0:24678/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+client:736 
+            
+            
+           GET https://0.0.0.0:24678/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+client:736 
+            
+            
+           GET https://0.0.0.0:24678/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+client:736 
+            
+            
+           GET https://0.0.0.0:24678/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+client:736 
+            
+            
+           GET https://0.0.0.0:24678/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
