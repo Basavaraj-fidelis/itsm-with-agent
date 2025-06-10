@@ -31,7 +31,7 @@ const authenticateToken = async (req: any, res: any, next: any) => {
   try {
     const decoded: any = jwt.verify(token, JWT_SECRET);
     console.log("Decoded token:", decoded);
-    
+
     // Try to get user from database first
     try {
       const { pool } = await import("./db");
@@ -42,7 +42,7 @@ const authenticateToken = async (req: any, res: any, next: any) => {
 
       if (result.rows.length > 0) {
         const user = result.rows[0];
-        
+
         // Build name from available fields
         let displayName = '';
         if (user.first_name || user.last_name) {
@@ -52,7 +52,7 @@ const authenticateToken = async (req: any, res: any, next: any) => {
         } else {
           displayName = user.email.split('@')[0];
         }
-        
+
         user.name = displayName;
 
         if (!user.is_active) {
@@ -130,21 +130,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         // Try database query using raw SQL - use only columns that definitely exist
         const { pool } = await import("./db");
-        
+
         // First check what columns exist in the users table
         const columnsResult = await pool.query(`
           SELECT column_name 
           FROM information_schema.columns 
           WHERE table_name = 'users' AND table_schema = 'public'
         `);
-        
+
         const availableColumns = columnsResult.rows.map(row => row.column_name);
         console.log("Available columns in users table:", availableColumns);
 
         // Build query with only available columns
         let selectColumns = ['id', 'email', 'role'];
         let optionalColumns = ['password_hash', 'is_active', 'is_locked', 'last_login', 'phone', 'location', 'first_name', 'last_name', 'username', 'name'];
-        
+
         optionalColumns.forEach(col => {
           if (availableColumns.includes(col)) {
             selectColumns.push(col);
@@ -204,7 +204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Return user data without password
         const { password_hash, ...userWithoutPassword } = user;
-        
+
         // Build name from available fields
         let displayName = '';
         if (user.name) {
@@ -216,7 +216,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else {
           displayName = user.email.split('@')[0];
         }
-        
+
         userWithoutPassword.name = displayName;
 
         console.log("Login successful for:", email);
@@ -228,7 +228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       } catch (dbError) {
         console.log("Database lookup failed, trying file storage:", dbError.message);
-        
+
         // Fallback to file storage for demo users
         try {
           const demoUsers = await storage.getUsers({ search: email });
@@ -246,7 +246,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Generate JWT token
           const token = jwt.sign(
-            { userId: user.id, id: user.id, email: user.email, role: user.role },
+            { userId: user.id, id: user.email, role: user.role },
             JWT_SECRET,
             { expiresIn: '24h' }
           );
@@ -853,7 +853,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 totalSpace += disk.usage.total;
                 usedSpace += disk.usage.used;
               } else {
-                const usage = extractNumericValue(disk.usage_percent) || extractNumericValue(disk.percent);
+                ```python
+const usage = extractNumericValue(disk.usage_percent) || extractNumericValue(disk.percent);
                 if (usage !== null) {
                   storageUsages.push(usage);
                 }
@@ -1681,6 +1682,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error scheduling deployment:", error);
       res.status(500).json({ error: error.message || "Failed to schedule deployment", message: error.message });
+    }
+  });
+
+  // Get all users
+  app.get("/api/users", authenticateToken, async (req, res) => {
+    try {
+      console.log("Fetching users from database...");
+
+      // Try database first
+      try {
+        const { pool } = await import("./db");
+        const result = await pool.query(`
+          SELECT 
+            id, email, name, role, department, phone, is_active, 
+            created_at, updated_at, first_name, last_name, username
+          FROM users 
+          WHERE is_active = true
+          ORDER BY name, email;
+        `);
+
+        const users = result.rows.map(user => ({
+          ...user,
+          // Ensure name field is populated
+          name: user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.email.split('@')[0]
+        }));
+
+        console.log(`Found ${users.length} users in database`);
+        return res.json(users);
+      } catch (dbError) {
+        console.log("Database query failed, trying storage fallback:", dbError.message);
+      }
+
+      // Fallback to file storage
+      const users = await storage.getUsers();
+      console.log(`Found ${users.length} users in file storage`);
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users", error: error.message });
     }
   });
 
