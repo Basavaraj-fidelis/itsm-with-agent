@@ -853,8 +853,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 totalSpace += disk.usage.total;
                 usedSpace += disk.usage.used;
               } else {
-                ```python
-const usage = extractNumericValue(disk.usage_percent) || extractNumericValue(disk.percent);
+                const usage = extractNumericValue(disk.usage_percent) || extractNumericValue(disk.percent);
                 if (usage !== null) {
                   storageUsages.push(usage);
                 }
