@@ -1,3 +1,4 @@
+
 import { pgTable, text, timestamp, uuid, varchar, boolean, integer, json } from "drizzle-orm/pg-core";
 
 // User roles enum
@@ -9,6 +10,7 @@ export const users = pgTable("users", {
   username: varchar("username", { length: 100 }).unique().notNull(),
   first_name: varchar("first_name", { length: 100 }),
   last_name: varchar("last_name", { length: 100 }),
+  password_hash: text("password_hash").notNull(),
   role: varchar("role", { length: 50 }).notNull().default("end_user"),
   department_id: uuid("department_id"),
   manager_id: uuid("manager_id"),
@@ -43,26 +45,23 @@ export const departments = pgTable("departments", {
   updated_at: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// User sessions table
+export const userSessions = pgTable("user_sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  user_id: uuid("user_id").notNull().references(() => users.id),
+  token: text("token").notNull().unique(),
+  expires_at: timestamp("expires_at").notNull(),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+});
+
 // User activity tracking
 export const userActivity = pgTable("user_activity", {
   id: uuid("id").primaryKey().defaultRandom(),
-  user_id: uuid("user_id").notNull(),
+  user_id: uuid("user_id").notNull().references(() => users.id),
   activity_type: varchar("activity_type", { length: 50 }).notNull(), // login, logout, password_change, etc.
   description: text("description"),
   ip_address: varchar("ip_address", { length: 45 }),
   user_agent: text("user_agent"),
   metadata: json("metadata").$type<Record<string, any>>().default({}),
-  created_at: timestamp("created_at").defaultNow().notNull(),
-});
-
-// User sessions for better security
-export const userSessions = pgTable("user_sessions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  user_id: uuid("user_id").notNull(),
-  session_token: varchar("session_token", { length: 255 }).unique().notNull(),
-  ip_address: varchar("ip_address", { length: 45 }),
-  user_agent: text("user_agent"),
-  expires_at: timestamp("expires_at").notNull(),
-  is_active: boolean("is_active").default(true),
   created_at: timestamp("created_at").defaultNow().notNull(),
 });
