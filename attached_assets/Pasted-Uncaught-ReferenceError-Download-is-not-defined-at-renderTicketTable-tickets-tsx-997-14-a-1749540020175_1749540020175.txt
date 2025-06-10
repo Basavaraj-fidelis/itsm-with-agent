@@ -1,0 +1,40 @@
+Uncaught ReferenceError: Download is not defined
+    at renderTicketTable (tickets.tsx:997:14)
+    at renderActiveTabContent (tickets.tsx:1367:14)
+    at Tickets (tickets.tsx:1486:12)
+    at renderWithHooks (react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (react-dom.development.js:20103:13)
+    at beginWork (react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback2 (react-dom.development.js:4164:14)
+    at Object.invokeGuardedCallbackDev (react-dom.development.js:4213:16)
+    at invokeGuardedCallback (react-dom.development.js:4277:31)
+    at beginWork$1 (react-dom.development.js:27490:7)
+react-dom.development.js:18704  The above error occurred in the <Tickets> component:
+
+    at Tickets (https://7ff01a2c-7f9d-406b-8635-de0853359f42-00-156ffp1gpbk8i.pike.replit.dev/src/pages/tickets.tsx:96:39)
+    at main
+    at div
+    at div
+    at AuthenticatedLayout (https://7ff01a2c-7f9d-406b-8635-de0853359f42-00-156ffp1gpbk8i.pike.replit.dev/src/App.tsx:53:32)
+    at ProtectedRoute (https://7ff01a2c-7f9d-406b-8635-de0853359f42-00-156ffp1gpbk8i.pike.replit.dev/src/components/auth/protected-route.tsx:76:3)
+    at Route (https://7ff01a2c-7f9d-406b-8635-de0853359f42-00-156ffp1gpbk8i.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=390105e9:206:16)
+    at Switch (https://7ff01a2c-7f9d-406b-8635-de0853359f42-00-156ffp1gpbk8i.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=390105e9:262:17)
+    at Router (https://7ff01a2c-7f9d-406b-8635-de0853359f42-00-156ffp1gpbk8i.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=390105e9:161:17)
+    at AuthProvider (https://7ff01a2c-7f9d-406b-8635-de0853359f42-00-156ffp1gpbk8i.pike.replit.dev/src/components/auth/protected-route.tsx:36:32)
+    at QueryClientProvider (https://7ff01a2c-7f9d-406b-8635-de0853359f42-00-156ffp1gpbk8i.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=390105e9:2923:3)
+    at App (https://7ff01a2c-7f9d-406b-8635-de0853359f42-00-156ffp1gpbk8i.pike.replit.dev/src/App.tsx:85:49)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ react-dom.development.js:18704
+react-dom.development.js:12056  Uncaught ReferenceError: Download is not defined
+    at renderTicketTable (tickets.tsx:997:14)
+    at renderActiveTabContent (tickets.tsx:1367:14)
+    at Tickets (tickets.tsx:1486:12)
+    at renderWithHooks (react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (react-dom.development.js:20103:13)
+    at beginWork (react-dom.development.js:21626:16)
+    at beginWork$1 (react-dom.development.js:27465:14)
+    at performUnitOfWork (react-dom.development.js:26596:12)
+    at workLoopSync (react-dom.development.js:26505:5)
+    at renderRootSync (react-dom.development.js:26473:7)
