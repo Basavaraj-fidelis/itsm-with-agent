@@ -125,9 +125,6 @@ export default function Settings() {
     const newSettings = { ...settings, [key]: value };
     setSettings(newSettings);
     setHasChanges(true);
-
-    // Auto-save to localStorage
-    localStorage.setItem("itsm-settings", JSON.stringify(newSettings));
   };
 
   const saveSettings = async () => {
@@ -2198,18 +2195,17 @@ export default function Settings() {
           </div>
           {renderContent()}
 
-          {/* Save Button */}
-          {hasChanges && (
-            <div className="flex justify-end pt-4 border-t border-neutral-200 dark:border-neutral-700">
-              <Button
-                onClick={saveSettings}
-                className="flex items-center space-x-2"
-              >
-                <Save className="w-4 h-4" />
-                <span>Save Changes</span>
-              </Button>
-            </div>
-          )}
+          {/* Save Button - Always show */}
+          <div className="flex justify-end pt-4 border-t border-neutral-200 dark:border-neutral-700">
+            <Button
+              onClick={saveSettings}
+              className="flex items-center space-x-2"
+              variant={hasChanges ? "default" : "outline"}
+            >
+              <Save className="w-4 h-4" />
+              <span>{hasChanges ? "Save Changes" : "Settings Saved"}</span>
+            </Button>
+          </div>
         </div>
       </div>
     </div>

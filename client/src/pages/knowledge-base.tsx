@@ -178,8 +178,7 @@ export default function KnowledgeBase() {
 
   const handleArticleClick = (article: any) => {
     console.log("Opening article:", article);
-    setSelectedArticle(article);
-    setShowArticleDialog(true);
+    setLocation(`/knowledge-base/${article.id}`);
   };
 
   const handleBackToList = () => {

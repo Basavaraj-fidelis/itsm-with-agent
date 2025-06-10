@@ -26,7 +26,7 @@ export default function Reports() {
 
   const handleGenerateReport = async () => {
     try {
-      const response = await fetch('/api/reports/generate', {
+      const response = await fetch('/api/analytics/generate-report', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -64,7 +64,7 @@ export default function Reports() {
 
   const handleDownloadReport = async (reportName: string) => {
     try {
-      const response = await fetch('/api/reports/download', {
+      const response = await fetch('/api/analytics/download-report', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
