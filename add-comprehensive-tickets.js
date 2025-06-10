@@ -1,4 +1,3 @@
-
 import pg from 'pg';
 const { Pool } = pg;
 
@@ -41,9 +40,9 @@ const sampleTickets = [
     category: 'Email System',
     impact: 'critical',
     urgency: 'critical',
-    status: 'assigned',
-    assigned_to: 'chetan.n@fidelisgroup.in',
-    assigned_group: 'Technical Team'
+    status: 'new',
+    assigned_to: null,
+    assigned_group: null
   },
   {
     type: 'incident', 
@@ -74,9 +73,9 @@ const sampleTickets = [
     category: 'Hardware',
     impact: 'high',
     urgency: 'high',
-    status: 'in_progress',
-    assigned_to: 'basavaraj.h@fidelisgroup.in',
-    assigned_group: 'Technical Team'
+    status: 'new',
+    assigned_to: null,
+    assigned_group: null
   },
 
   // SERVICE REQUEST TICKETS  
@@ -114,7 +113,7 @@ const sampleTickets = [
     category: 'User Onboarding',
     impact: 'low',
     urgency: 'medium', 
-    status: 'new',
+    status: 'assigned',
     assigned_to: 'sridhara.s@fidelisgroup.in',
     assigned_group: 'Management Team'
   },
@@ -271,13 +270,13 @@ Phase 4: Production deployment and monitoring`,
 async function generateTicketNumber(type) {
   const year = new Date().getFullYear();
   const prefix = type.toUpperCase().substring(0, 3);
-  
+
   const result = await pool.query(`
     SELECT COUNT(*) as count 
     FROM tickets 
     WHERE type = $1 AND EXTRACT(YEAR FROM created_at) = $2
   `, [type, year]);
-  
+
   const nextNumber = (parseInt(result.rows[0].count) || 0) + 1;
   return `${prefix}-${year}-${nextNumber.toString().padStart(4, '0')}`;
 }
@@ -285,10 +284,10 @@ async function generateTicketNumber(type) {
 async function addComprehensiveTickets() {
   try {
     console.log("🎫 Creating comprehensive tickets with assignments...\n");
-    
+
     for (const ticket of sampleTickets) {
       const ticketNumber = await generateTicketNumber(ticket.type);
-      
+
       const insertQuery = `
         INSERT INTO tickets (
           ticket_number, type, title, description, priority, status,
@@ -300,7 +299,7 @@ async function addComprehensiveTickets() {
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
         RETURNING id, ticket_number, title, type, assigned_to, assigned_group;
       `;
-      
+
       const values = [
         ticketNumber,
         ticket.type,
@@ -328,10 +327,10 @@ async function addComprehensiveTickets() {
         ticket.priority === 'critical' ? 480 : ticket.priority === 'high' ? 1440 : 2880, // Resolution time in minutes
         false
       ];
-      
+
       const result = await pool.query(insertQuery, values);
       const created = result.rows[0];
-      
+
       console.log(`✅ Created ${ticket.type.toUpperCase()} ticket: ${created.ticket_number}`);
       console.log(`   📋 ${created.title}`);
       if (created.assigned_to) {
@@ -339,9 +338,9 @@ async function addComprehensiveTickets() {
       }
       console.log('');
     }
-    
+
     console.log("📊 Ticket creation summary:");
-    
+
     // Show tickets by type
     const typeResult = await pool.query(`
       SELECT type, COUNT(*) as count 
@@ -349,7 +348,7 @@ async function addComprehensiveTickets() {
       GROUP BY type 
       ORDER BY type;
     `);
-    
+
     console.log("\n📈 Tickets by type:");
     typeResult.rows.forEach(row => {
       console.log(`  ${row.type}: ${row.count} tickets`);
@@ -365,7 +364,7 @@ async function addComprehensiveTickets() {
       GROUP BY assigned_group, assigned_to
       ORDER BY assigned_group, assigned_to;
     `);
-    
+
     console.log("\n👥 Tickets by assignment:");
     assignmentResult.rows.forEach(row => {
       console.log(`  ${row.group_name} - ${row.assigned_user}: ${row.count} tickets`);
@@ -384,14 +383,14 @@ async function addComprehensiveTickets() {
           WHEN 'low' THEN 4 
         END;
     `);
-    
+
     console.log("\n🚨 Tickets by priority:");
     priorityResult.rows.forEach(row => {
       console.log(`  ${row.priority}: ${row.count} tickets`);
     });
-    
+
     console.log("\n🎉 Comprehensive tickets created successfully!");
-    
+
   } catch (error) {
     console.error("❌ Error creating tickets:", error);
   } finally {

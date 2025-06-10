@@ -81,6 +81,7 @@ export default function KnowledgeBase() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+  const [showArticleDialog, setShowArticleDialog] = useState(false); // Added dialog state
 
   // Check if we're viewing a specific article
   const articleMatch = location.match(/^\/knowledge-base\/([^-]+)/);
@@ -175,8 +176,10 @@ export default function KnowledgeBase() {
     });
   };
 
-  const handleArticleClick = (article: Article) => {
-    setLocation(`/knowledge-base/${article.id}`);
+  const handleArticleClick = (article: any) => {
+    console.log("Opening article:", article);
+    setSelectedArticle(article);
+    setShowArticleDialog(true);
   };
 
   const handleBackToList = () => {
@@ -313,7 +316,7 @@ export default function KnowledgeBase() {
         </div>
       </div>
 
-      
+
       <Card className="bg-white dark:bg-gray-800 shadow-sm border">
         <CardContent className="p-6">
           <div className="flex flex-col space-y-4">
@@ -391,7 +394,7 @@ export default function KnowledgeBase() {
               </div>
             )}
 
-            
+
             <div className="flex items-center space-x-2">
               <Label className="text-sm font-medium">Popular Tags:</Label>
               <div className="flex flex-wrap gap-1">
@@ -411,7 +414,7 @@ export default function KnowledgeBase() {
         </CardContent>
       </Card>
 
-      
+
       <Tabs defaultValue="grid" className="space-y-4">
         <div className="flex items-center justify-between">
           <TabsList className="grid w-[200px] grid-cols-2">
@@ -550,6 +553,47 @@ export default function KnowledgeBase() {
           ))}
         </TabsContent>
       </Tabs>
+
+      {/* Article Detail Dialog */}
+      {selectedArticle && (
+        <Dialog open={showArticleDialog} onOpenChange={() => setShowArticleDialog(false)}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold">
+                {selectedArticle.title}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-4 text-sm text-gray-600">
+                <span>Category: {selectedArticle.category}</span>
+                <span>Author: {selectedArticle.author_email}</span>
+                <span>Views: {selectedArticle.views || 0}</span>
+                <span>Helpful: {selectedArticle.helpful_votes || 0}</span>
+              </div>
+              <div className="prose max-w-none">
+                <div dangerouslySetInnerHTML={{ 
+                  __html: selectedArticle.content.replace(/\n/g, '<br/>') 
+                }} />
+              </div>
+              <div className="flex justify-between items-center pt-4 border-t">
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {}}
+                  >
+                    <ThumbsUp className="w-4 h-4 mr-2" />
+                    Helpful ({selectedArticle.helpful_votes || 0})
+                  </Button>
+                </div>
+                <Button onClick={() => setShowArticleDialog(false)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

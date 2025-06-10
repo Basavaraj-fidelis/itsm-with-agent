@@ -990,31 +990,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           currentSeverity = "critical";
           currentThreshold = thresholds.critical;
           if (metric === "cpu") {
-            message = `Critical CPU usage detected (${value.toFixed(1)}%) - Bottleneck detected`;
+            message = `Critical CPU usage: ${value.toFixed(1)}% - Immediate attention required`;
           } else if (metric === "memory") {
-            message = `Critical memory usage detected (${value.toFixed(1)}%) - Risk of crash`;
+            message = `Critical memory usage: ${value.toFixed(1)}% - System at risk`;
           } else if (metric === "disk") {
-            message = `Critical disk usage detected (${value.toFixed(1)}%) - Immediate attention required`;
+            message = `Critical disk usage: ${value.toFixed(1)}% - Storage full`;
           }
         } else if (value >= thresholds.high) {
           currentSeverity = "high";
           currentThreshold = thresholds.high;
           if (metric === "cpu") {
-            message = `High CPU usage detected (${value.toFixed(1)}%) - System stressed`;
+            message = `High CPU usage: ${value.toFixed(1)}% - Performance degraded`;
           } else if (metric === "memory") {
-            message = `High memory usage detected (${value.toFixed(1)}%) - App slowness likely`;
+            message = `High memory usage: ${value.toFixed(1)}% - Monitor closely`;
           } else if (metric === "disk") {
-            message = `High disk usage detected (${value.toFixed(1)}%) - Needs cleanup soon`;
+            message = `High disk usage: ${value.toFixed(1)}% - Cleanup needed`;
           }
         } else if (value >= thresholds.warning) {
           currentSeverity = "warning";
           currentThreshold = thresholds.warning;
           if (metric === "cpu") {
-            message = `CPU usage spike detected (${value.toFixed(1)}%) - Spikes are fine`;
+            message = `CPU usage elevated: ${value.toFixed(1)}% - Monitor`;
           } else if (metric === "memory") {
-            message = `Memory usage spike detected (${value.toFixed(1)}%) - Temporary spike`;
+            message = `Memory usage elevated: ${value.toFixed(1)}% - Monitor`;
           } else if (metric === "disk") {
-            message = `Disk usage warning (${value.toFixed(1)}%) - Normal usage spike`;
+            message = `Disk usage elevated: ${value.toFixed(1)}% - Monitor`;
           }
         }
 
@@ -1024,17 +1024,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (currentSeverity) {
           // Should have an alert
           if (existingAlert) {
-            // Update existing alert
-            await storage.updateAlert(existingAlert.id, {
-              severity: currentSeverity,
-              message: message,
-              metadata: { 
-                [metric + "_usage"]: value, 
-                threshold: currentThreshold, 
-                metric: metric,
-                last_updated: new Date().toISOString()
-              }
-            });
+            // Only update if severity changed or value changed significantly (>2%)
+            const lastValue = existingAlert.metadata?.[metric + "_usage"] || 0;
+            const valueChange = Math.abs(value - lastValue);
+            
+            if (existingAlert.severity !== currentSeverity || valueChange > 2) {
+              await storage.updateAlert(existingAlert.id, {
+                severity: currentSeverity,
+                message: message,
+                metadata: { 
+                  [metric + "_usage"]: value, 
+                  threshold: currentThreshold, 
+                  metric: metric,
+                  last_updated: new Date().toISOString(),
+                  previous_value: lastValue,
+                  value_change: valueChange
+                }
+              });
+              console.log(`Updated ${metric} alert for device ${device.hostname}: ${currentSeverity} (${value.toFixed(1)}%)`);
+            }
           } else {
             // Create new alert
             await storage.createAlert({
@@ -1046,16 +1054,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 [metric + "_usage"]: value, 
                 threshold: currentThreshold, 
                 metric: metric,
-                last_updated: new Date().toISOString()
+                created_at: new Date().toISOString()
               },
               is_active: true
             });
+            console.log(`Created new ${metric} alert for device ${device.hostname}: ${currentSeverity} (${value.toFixed(1)}%)`);
           }
         } else {
           // Value is below warning threshold
           if (existingAlert) {
             // Resolve existing alert
             await storage.resolveAlert(existingAlert.id);
+            console.log(`Resolved ${metric} alert for device ${device.hostname}: value back to normal (${value.toFixed(1)}%)`);
           }
         }
       };
@@ -1401,7 +1411,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Reports API endpoints
-  app.post("/api/reports/generate", authenticateToken, async (req, res) => {
+  app.post("/api/reports/generate", authenticateToken, async (req: any, res) => {
     try {
       const { type, period, format } = req.body;
 

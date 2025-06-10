@@ -125,25 +125,50 @@ export default function Users() {
   }, []);
 
   const fetchUsers = async () => {
+    setLoading(true);
     try {
-      const response = await fetch("/api/users", {
+      console.log('Fetching users...');
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch('/api/users', {
+        method: 'GET',
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Response error:', errorText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('Users data received:', data);
+
+      if (Array.isArray(data)) {
         setUsers(data);
+        console.log(`Loaded ${data.length} users successfully`);
       } else {
-        throw new Error("Failed to fetch users");
+        console.error('Invalid data format received:', data);
+        throw new Error('Invalid data format received from server');
       }
     } catch (error) {
+      console.error('Error fetching users:', error);
       toast({
-        title: "Error",
-        description: "Failed to load users.",
-        variant: "destructive",
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to load users',
+        variant: 'destructive',
       });
+      setUsers([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
