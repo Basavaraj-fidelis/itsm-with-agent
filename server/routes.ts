@@ -76,108 +76,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Authentication routes
+  // Authentication
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { email, password } = req.body;
 
       if (!email || !password) {
-        return res.status(400).json({ message: "Email and password required" });
+        return res.status(400).json({ message: "Email and password are required" });
       }
 
-      console.log(`Login attempt for: ${email}`);
+      // Check database for user
+      const { db } = await import("./db");
+      const { eq } = await import("drizzle-orm");
+      const { users } = await import("../shared/user-schema");
 
-      let user = null;
-      let isValidPassword = false;
+      const userResult = await db.select().from(users).where(eq(users.email, email));
 
-      // First, try to find user in the database (Drizzle ORM system)
-      try {
-        const { db } = await import("./db");
-        const { users } = await import("../shared/user-schema");
-        const { eq } = await import("drizzle-orm");
-
-        const dbUsers = await db.select().from(users).where(eq(users.email, email.toLowerCase()));
-
-        if (dbUsers.length > 0) {
-          user = dbUsers[0];
-          console.log(`Found user in database: ${user.email}`);
-
-          // Check if user is active
-          if (!user.is_active) {
-            return res.status(403).json({ message: "Account is suspended" });
-          }
-
-          // Verify password
-          if (user.password_hash) {
-            isValidPassword = await bcrypt.compare(password, user.password_hash);
-            console.log(`Database user password check: ${isValidPassword}`);
-          }
-
-          if (isValidPassword) {
-            // Update last login
-            await db.update(users)
-              .set({ last_login: new Date() })
-              .where(eq(users.id, user.id));
-          }
-        }
-      } catch (dbError) {
-        console.log("Database lookup failed, trying file storage:", dbError.message);
-      }
-
-      // If not found in database, try file-based storage system
-      if (!user || !isValidPassword) {
-        const storageUsers = await storage.getUsers({ search: email });
-        const storageUser = storageUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-
-        if (storageUser) {
-          user = storageUser;
-          console.log(`Found user in file storage: ${user.email}`);
-
-          // Check if user is active
-          if (!user.is_active) {
-            return res.status(403).json({ message: "Account is suspended" });
-          }
-
-          // Demo credentials for testing
-          const demoCredentials = {
-            "admin@company.com": "admin123",
-            "tech@company.com": "tech123", 
-            "manager@company.com": "demo123",
-            "user@company.com": "demo123"
-          };
-
-          // First check if it's a demo account with plain text password
-          if (demoCredentials[email.toLowerCase()] === password) {
-            console.log(`Demo credentials match for ${email}`);
-            isValidPassword = true;
-
-            // Update user with properly hashed password for security
-            const hashedPassword = await bcrypt.hash(password, 10);
-            await storage.updateUser(user.id, { password_hash: hashedPassword });
-            console.log(`Updated demo user ${email} with hashed password`);
-          } 
-          // Then try bcrypt comparison for properly hashed passwords
-          else if (user.password_hash) {
-            console.log(`Trying bcrypt comparison for ${email}`);
-            isValidPassword = await bcrypt.compare(password, user.password_hash);
-            console.log(`File storage password check: ${isValidPassword}`);
-          }
-
-          if (isValidPassword) {
-            // Update last login
-            await storage.updateUser(user.id, { last_login: new Date() });
-          }
-        }
-      }
-
-      if (!user) {
-        console.log(`User not found for email: ${email}`);
+      if (userResult.length === 0) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
+
+      const user = userResult[0];
+
+      // Check if user is locked
+      if (user.is_locked) {
+        return res.status(401).json({ message: "Account is locked. Contact administrator." });
+      }
+
+      // Verify password
+      const isValidPassword = await bcrypt.compare(password, user.password_hash);
 
       if (!isValidPassword) {
-        console.log(`Invalid password for user: ${email}`);
         return res.status(401).json({ message: "Invalid credentials" });
       }
+
+      // Update last login
+      await db.update(users).set({ last_login: new Date() }).where(eq(users.id, user.id));
 
       // Generate JWT token
       const token = jwt.sign(
@@ -187,9 +121,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       // Return user data without password
-      const { password_hash, ...userWithoutPassword } = user as any;
+      const { password_hash, ...userWithoutPassword } = user;
 
       res.json({
+        message: "Login successful",
         token,
         user: userWithoutPassword
       });
@@ -1338,7 +1273,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Generate report data based on type and period
       let reportData = {};
-      
+
       switch (type) {
         case "performance":
           const devices = await storage.getDevices();
@@ -1437,7 +1372,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Content-Type', contentType);
       res.setHeader('Content-Disposition', `attachment; filename="report.${format}"`);
       res.send(fileContent);
-      
+
     } catch (error) {
       console.error("Error generating report:", error);
       res.status(500).json({ error: "Failed to generate report" });
@@ -1467,7 +1402,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Content-Type', contentType);
       res.setHeader('Content-Disposition', `attachment; filename="${reportName.toLowerCase().replace(/\s+/g, "-")}.${format}"`);
       res.send(fileContent);
-      
+
     } catch (error) {
       console.error("Error downloading report:", error);
       res.status(500).json({ error: "Failed to download report" });
@@ -1484,7 +1419,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { deviceId } = req.params;
       console.log(`Fetching vulnerabilities for device: ${deviceId}`);
-      
+
       const device = await storage.getDevice(deviceId);
       if (!device) {
         console.log(`Device not found: ${deviceId}`);
@@ -1524,7 +1459,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { deviceId } = req.params;
       console.log(`Fetching performance insights for device: ${deviceId}`);
-      
+
       const device = await storage.getDevice(deviceId);
       if (!device) {
         console.log(`Device not found: ${deviceId}`);
@@ -1544,7 +1479,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { deviceId } = req.params;
       console.log(`Fetching performance predictions for device: ${deviceId}`);
-      
+
       const device = await storage.getDevice(deviceId);
       if (!device) {
         console.log(`Device not found: ${deviceId}`);
@@ -1602,7 +1537,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const scheduledDate = scheduled_time ? new Date(scheduled_time) : new Date();
       const deploymentIds = await automationService.scheduleDeployment(device_ids, package_id, scheduledDate);
-      
+
       console.log(`Deployment scheduled with IDs: ${deploymentIds}`);
       res.json({ 
         message: "Deployment scheduled successfully", 

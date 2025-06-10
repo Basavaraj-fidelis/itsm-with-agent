@@ -68,11 +68,17 @@ import {
 interface User {
   id: string;
   email: string;
+  username: string;
   name: string;
+  first_name?: string;
+  last_name?: string;
   role: string;
   department?: string;
   phone?: string;
+  job_title?: string;
+  location?: string;
   is_active: boolean;
+  is_locked?: boolean;
   created_at: string;
   last_login?: string;
 }

@@ -1,8 +1,6 @@
 
 import { Router } from "express";
 import { db } from "./db";
-import { users, userSessions } from "../shared/user-schema";
-import { eq } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
 const router = Router();
@@ -10,19 +8,21 @@ const router = Router();
 // Get all users
 router.get("/", async (req, res) => {
   try {
-    const allUsers = await db.select({
-      id: users.id,
-      email: users.email,
-      name: users.name,
-      role: users.role,
-      department: users.department,
-      phone: users.phone,
-      is_active: users.is_active,
-      created_at: users.created_at,
-      last_login: users.last_login
-    }).from(users);
+    const result = await db.query(`
+      SELECT 
+        id, email, username, first_name, last_name, role,
+        phone, job_title, location, is_active, is_locked,
+        created_at, last_login
+      FROM users 
+      ORDER BY created_at DESC
+    `);
     
-    res.json(allUsers);
+    const users = result.rows.map(user => ({
+      ...user,
+      name: `${user.first_name || ''} ${user.last_name || ''}`.trim()
+    }));
+    
+    res.json(users);
   } catch (error) {
     console.error("Error fetching users:", error);
     res.status(500).json({ message: "Failed to fetch users" });
@@ -32,23 +32,23 @@ router.get("/", async (req, res) => {
 // Get user by ID
 router.get("/:id", async (req, res) => {
   try {
-    const user = await db.select({
-      id: users.id,
-      email: users.email,
-      name: users.name,
-      role: users.role,
-      department: users.department,
-      phone: users.phone,
-      is_active: users.is_active,
-      created_at: users.created_at,
-      last_login: users.last_login
-    }).from(users).where(eq(users.id, req.params.id));
+    const result = await db.query(`
+      SELECT 
+        id, email, username, first_name, last_name, role,
+        phone, job_title, location, is_active, is_locked,
+        created_at, last_login
+      FROM users 
+      WHERE id = $1
+    `, [req.params.id]);
     
-    if (user.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(404).json({ message: "User not found" });
     }
     
-    res.json(user[0]);
+    const user = result.rows[0];
+    user.name = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+    
+    res.json(user);
   } catch (error) {
     console.error("Error fetching user:", error);
     res.status(500).json({ message: "Failed to fetch user" });
@@ -64,36 +64,48 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "Password is required" });
     }
     
+    // Parse name into first and last name
+    const nameParts = (name || '').trim().split(' ');
+    const first_name = nameParts[0] || '';
+    const last_name = nameParts.slice(1).join(' ') || '';
+    const username = email.split('@')[0]; // Generate username from email
+    
     // Check if user already exists
-    const existingUser = await db.select().from(users).where(eq(users.email, email.toLowerCase()));
-    if (existingUser.length > 0) {
-      return res.status(400).json({ message: "User with this email already exists" });
+    const existingUser = await db.query(`
+      SELECT id FROM users WHERE email = $1 OR username = $2
+    `, [email.toLowerCase(), username]);
+    
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ message: "User with this email or username already exists" });
     }
     
     // Hash the password
     const saltRounds = 10;
     const password_hash = await bcrypt.hash(password, saltRounds);
     
-    const newUser = await db.insert(users).values({
-      email: email.toLowerCase(),
-      name,
-      role: role || "user",
+    const result = await db.query(`
+      INSERT INTO users (
+        email, username, first_name, last_name, role, 
+        password_hash, phone, location, is_active
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING id, email, username, first_name, last_name, role, phone, location, is_active, created_at
+    `, [
+      email.toLowerCase(),
+      username,
+      first_name,
+      last_name,
+      role || "end_user",
       password_hash,
-      department,
       phone,
-      is_active: true
-    }).returning({
-      id: users.id,
-      email: users.email,
-      name: users.name,
-      role: users.role,
-      department: users.department,
-      phone: users.phone,
-      is_active: users.is_active,
-      created_at: users.created_at
-    });
+      department,
+      true
+    ]);
     
-    res.status(201).json(newUser[0]);
+    const newUser = result.rows[0];
+    newUser.name = `${newUser.first_name || ''} ${newUser.last_name || ''}`.trim();
+    newUser.department = department;
+    
+    res.status(201).json(newUser);
   } catch (error) {
     console.error("Error creating user:", error);
     res.status(500).json({ message: "Failed to create user" });
@@ -103,49 +115,61 @@ router.post("/", async (req, res) => {
 // Update user
 router.put("/:id", async (req, res) => {
   try {
-    const { email, name, role, department, phone, is_active } = req.body;
+    const { email, name, role, department, phone, is_active, password } = req.body;
     
-    const updatedUser = await db.update(users)
-      .set({
-        email,
-        name,
-        role,
-        department,
-        phone,
-        is_active,
-        updated_at: new Date()
-      })
-      .where(eq(users.id, req.params.id))
-      .returning({
-        id: users.id,
-        email: users.email,
-        name: users.name,
-        role: users.role,
-        department: users.department,
-        phone: users.phone,
-        is_active: users.is_active,
-        created_at: users.created_at
-      });
+    // Parse name into first and last name
+    const nameParts = (name || '').trim().split(' ');
+    const first_name = nameParts[0] || '';
+    const last_name = nameParts.slice(1).join(' ') || '';
     
-    if (updatedUser.length === 0) {
+    let updateQuery = `
+      UPDATE users 
+      SET email = $1, first_name = $2, last_name = $3, role = $4, 
+          phone = $5, location = $6, is_active = $7, updated_at = NOW()
+    `;
+    let values = [email, first_name, last_name, role, phone, department, is_active];
+    
+    // If password is provided, update it too
+    if (password) {
+      const saltRounds = 10;
+      const password_hash = await bcrypt.hash(password, saltRounds);
+      updateQuery += `, password_hash = $8 WHERE id = $9`;
+      values.push(password_hash, req.params.id);
+    } else {
+      updateQuery += ` WHERE id = $8`;
+      values.push(req.params.id);
+    }
+    
+    updateQuery += ` RETURNING id, email, username, first_name, last_name, role, phone, location, is_active, created_at`;
+    
+    const result = await db.query(updateQuery, values);
+    
+    if (result.rows.length === 0) {
       return res.status(404).json({ message: "User not found" });
     }
     
-    res.json(updatedUser[0]);
+    const updatedUser = result.rows[0];
+    updatedUser.name = `${updatedUser.first_name || ''} ${updatedUser.last_name || ''}`.trim();
+    updatedUser.department = department;
+    
+    res.json(updatedUser);
   } catch (error) {
     console.error("Error updating user:", error);
     res.status(500).json({ message: "Failed to update user" });
   }
 });
 
-// Delete user
+// Delete user (soft delete)
 router.delete("/:id", async (req, res) => {
   try {
-    const deletedUser = await db.delete(users)
-      .where(eq(users.id, req.params.id))
-      .returning({ id: users.id });
+    const result = await db.query(`
+      UPDATE users 
+      SET is_active = false, updated_at = NOW() 
+      WHERE id = $1 
+      RETURNING id
+    `, [req.params.id]);
     
-    if (deletedUser.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(404).json({ message: "User not found" });
     }
     

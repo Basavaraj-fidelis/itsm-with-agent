@@ -5,13 +5,11 @@
   "license": "MIT",
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
-
     "test": "mocha test-service-desk.js --timeout 10000",
     "test:performance": "mocha test-service-desk-performance.js --timeout 30000",
     "test:frontend": "vitest run test-service-desk-frontend.js",
     "test:database": "mocha test-database-integration.js --timeout 10000",
     "test:all": "node run-all-tests.js",
-
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
