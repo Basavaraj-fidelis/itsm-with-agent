@@ -25,21 +25,26 @@ import {
   Plus,
   Search,
   Filter,
-  Ticket,
-  AlertTriangle,
-  Wrench,
-  RefreshCw,
+  Calendar,
   Clock,
   User,
-  Calendar,
-  MoreVertical,
-  X,
-  Download,
-  Workflow,
-  TrendingUp,
+  AlertTriangle,
   CheckCircle,
-  UserCheck,
+  XCircle,
+  Wrench,
+  RefreshCw,
+  Ticket,
+  BarChart3,
+  TrendingUp,
+  Activity,
+  MessageSquare,
   FileText,
+  Target,
+  Zap,
+  GitBranch,
+  ChevronUp,
+  ChevronDown,
+  Settings
 } from "lucide-react";
 import ServiceDeskWorkflows from "@/components/tickets/service-desk-workflows";
 import {
@@ -110,6 +115,11 @@ interface TicketData {
   updated_at: string;
   due_date?: string;
   category?: string;
+  sla_policy?: string;
+  sla_breached?: boolean;
+  sla_response_time?: number;
+  sla_resolution_time?: number;
+  workflow_step?: number;
 }
 
 export default function Tickets() {
@@ -144,6 +154,7 @@ export default function Tickets() {
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [location, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("overview");
+  const [expandedTickets, setExpandedTickets] = useState<string[]>([]);
 
   // Fetch tickets from API
   const fetchTickets = async (page = 1) => {
@@ -929,6 +940,16 @@ export default function Tickets() {
   const renderTicketTable = () => {
     const filteredTickets = getFilteredTickets();
 
+    const toggleWorkflow = (ticketId: string) => {
+      setExpandedTickets(prev => {
+        if (prev.includes(ticketId)) {
+          return prev.filter(id => id !== ticketId);
+        } else {
+          return [...prev, ticketId];
+        }
+      });
+    };
+
     return (
       <>
         {/* Filters */}
@@ -995,6 +1016,7 @@ export default function Tickets() {
                 typeIcons[ticket.type as keyof typeof typeIcons];
               const isOverdue =
                 ticket.due_date && new Date(ticket.due_date) < new Date();
+              const isExpanded = expandedTickets.includes(ticket.id);
 
               return (
                 <Card
@@ -1016,103 +1038,103 @@ export default function Tickets() {
                   }}
                 >
                   <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start space-x-4 flex-1">
-                        <div
-                          className={cn(
-                            "p-3 rounded-xl",
-                            ticket.type === "incident"
-                              ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
-                              : ticket.type === "problem"
-                                ? "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400"
-                                : ticket.type === "change"
-                                  ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
-                                  : "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",
-                          )}
-                        >
-                          <IconComponent className="w-5 h-5" />
-                        </div>
-
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <span className="font-mono text-sm font-semibold text-neutral-600 dark:text-neutral-400">
-                              {ticket.ticket_number}
-                            </span>
-                            <Badge
-                              variant="outline"
-                              className={
-                                priorityColors[
-                                  ticket.priority as keyof typeof priorityColors
-                                ]
-                              }
-                            >
-                              {ticket.priority.toUpperCase()}
-                            </Badge>
-                            <Badge
-                              variant="outline"
-                              className={
-                                statusColors[
-                                  ticket.status as keyof typeof statusColors
-                                ]
-                              }
-                            >
-                              {ticket.status.replace("_", " ").toUpperCase()}
-                            </Badge>
-                            {isOverdue && (
-                              <Badge
-                                variant="destructive"
-                                className="animate-pulse"
-                              >
-                                OVERDUE
-                              </Badge>
-                            )}
-                          </div>
-
-                          <h3 className="font-semibold text-lg text-neutral-900 dark:text-neutral-100 mb-2">
-                            {ticket.title}
-                          </h3>
-
-                          <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-3 line-clamp-2">
-                            {ticket.description}
-                          </p>
-
-                          <div className="flex items-center space-x-6 text-xs text-neutral-500 dark:text-neutral-400">
-                            <div className="flex items-center space-x-1">
-                              <User className="w-3 h-3" />
-                              <span>{ticket.requester_email}</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Calendar className="w-3 h-3" />
-                              <span>
-                                Created: {formatDate(ticket.created_at)}
-                              </span>
-                            </div>
-                            {ticket.assigned_to && (
-                              <div className="flex items-center space-x-1">
-                                <UserCheck className="w-3 h-3" />
-                                <span>Assigned: {ticket.assigned_to}</span>
-                              </div>
-                            )}
-                            {ticket.due_date && (
-                              <div className="flex items-center space-x-1">
-                                <Clock className="w-3 h-3" />
-                                <span
-                                  className={
-                                    isOverdue ? "text-red-600 font-medium" : ""
-                                  }
-                                >
-                                  Due: {formatDate(ticket.due_date)}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Badge className={priorityColors[ticket.priority as keyof typeof priorityColors]}>
+                          {ticket.priority.toUpperCase()}
+                        </Badge>
+                        <Badge className={statusColors[ticket.status as keyof typeof statusColors]}>
+                          {ticket.status.replace('_', ' ').toUpperCase()}
+                        </Badge>
+                        {ticket.sla_breached && (
+                          <Badge variant="destructive" className="animate-pulse">
+                            SLA BREACHED
+                          </Badge>
+                        )}
                       </div>
+                      <h3 className="font-semibold text-lg text-neutral-900 dark:text-neutral-100">
+                        {ticket.title}
+                      </h3>
+                      <p className="text-sm text-neutral-600 dark:text-neutral-400 line-clamp-2">
+                        {ticket.description}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className={`p-2 rounded-lg ${
+                        ticket.type === 'incident' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
+                        ticket.type === 'problem' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' :
+                        ticket.type === 'change' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
+                        'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                      }`}>
+                        <IconComponent className="w-5 h-5" />
+                      </div>
+                    </div>
+                  </div>
+                  {/* SLA Information */}
+                  <div className="py-2 border-b border-gray-100 dark:border-gray-800">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-neutral-500">SLA: {ticket.sla_policy || 'Standard'}</span>
+                      <span className={`font-medium ${ticket.sla_breached ? 'text-red-600' : 'text-green-600'}`}>
+                        {ticket.sla_breached ? 'Breached' : 'Within SLA'}
+                      </span>
+                    </div>
+                    {ticket.sla_response_time && (
+                      <div className="text-xs text-neutral-400 mt-1">
+                        Response: {Math.floor(ticket.sla_response_time / 60)}h {ticket.sla_response_time % 60}m
+                        {ticket.sla_resolution_time && ` • Resolution: ${Math.floor(ticket.sla_resolution_time / 60)}h ${ticket.sla_resolution_time % 60}m`}
+                      </div>
+                    )}
+                  </div>
 
-                      <Button variant="ghost" size="sm">
-                        <MoreVertical className="w-4 h-4" />
+                  {/* Workflow Section */}
+                  <div className="py-2 border-b border-gray-100 dark:border-gray-800">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center space-x-2">
+                        <Settings className="w-4 h-4 text-neutral-400" />
+                        <span className="text-sm font-medium text-neutral-600 dark:text-neutral-300">
+                          Workflow: Step {ticket.workflow_step || 1}
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleWorkflow(ticket.id)}
+                        className="h-6 w-6 p-0"
+                      >
+                        {isExpanded ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
                       </Button>
                     </div>
+
+                    {isExpanded && (
+                      <div className="mt-2 space-y-1">
+                        {renderWorkflowActions(ticket).map((action, index) => (
+                          <div key={index} className="flex justify-start">
+                            {action}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-between items-center pt-4">
+                    <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                      {ticket.requester_email} • {new Date(ticket.created_at).toLocaleDateString()}
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedTicket(ticket)}
+                      >
+                        View Details
+                      </Button>
+                    </div>
+                  </div>
                   </CardContent>
                 </Card>
               );

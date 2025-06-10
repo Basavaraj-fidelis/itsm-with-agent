@@ -19,12 +19,49 @@ router.get("/", async (req, res) => {
     };
 
     const result = await storage.getKBArticles(page, limit, filters);
+    
+    // If search is provided, sort by relevance
+    if (filters.search && result.data) {
+      const searchTerms = filters.search.toLowerCase().split(' ');
+      
+      result.data.sort((a, b) => {
+        const aRelevance = calculateRelevanceScore(a, searchTerms);
+        const bRelevance = calculateRelevanceScore(b, searchTerms);
+        return bRelevance - aRelevance;
+      });
+    }
+    
     res.json(result.data);
   } catch (error) {
     console.error("Error fetching KB articles:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
+function calculateRelevanceScore(article: any, searchTerms: string[]): number {
+  const titleText = article.title.toLowerCase();
+  const contentText = article.content.toLowerCase();
+  const categoryText = (article.category || '').toLowerCase();
+  
+  let score = 0;
+  
+  searchTerms.forEach(term => {
+    if (term.length > 2) {
+      // Title matches are worth more
+      if (titleText.includes(term)) score += 10;
+      // Category matches are worth medium
+      if (categoryText.includes(term)) score += 5;
+      // Content matches are worth less
+      if (contentText.includes(term)) score += 2;
+    }
+  });
+  
+  // Boost by helpful votes and views
+  score += (article.helpful_votes || 0) * 0.5;
+  score += (article.views || 0) * 0.1;
+  
+  return score;
+}
 
 // Get article by ID
 router.get("/:id", async (req, res) => {

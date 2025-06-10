@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useRoute } from "wouter";
 import WorkflowManager from "@/components/tickets/workflow-manager";
+import RelatedArticles from "@/components/tickets/related-articles";
 import {
   ArrowLeft,
   Calendar,
@@ -909,6 +910,9 @@ export default function TicketDetail() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Related Knowledge Base Articles */}
+        <RelatedArticles ticket={ticket} />
       </div>
 
       {/* Dialogs */}
