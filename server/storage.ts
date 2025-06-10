@@ -2542,6 +2542,291 @@ smartphones
     }
   }
 
+  // User management methods for database storage
+  async getUsers(filters: { search?: string; role?: string } = {}): Promise<any[]> {
+    try {
+      const { pool } = await import("./db");
+      let query = `
+        SELECT 
+          id, email, name, role, department, phone, is_active, 
+          created_at, updated_at, first_name, last_name, username
+        FROM users 
+        WHERE is_active = true
+      `;
+      const params: any[] = [];
+      let paramCount = 0;
+
+      if (filters.search) {
+        paramCount++;
+        query += ` AND (name ILIKE $${paramCount} OR email ILIKE $${paramCount})`;
+        params.push(`%${filters.search}%`);
+      }
+
+      if (filters.role && filters.role !== 'all') {
+        paramCount++;
+        query += ` AND role = $${paramCount}`;
+        params.push(filters.role);
+      }
+
+      query += ` ORDER BY name, email`;
+
+      const result = await pool.query(query, params);
+      
+      return result.rows.map((user) => ({
+        ...user,
+        // Ensure name field is populated
+        name: user.name || 
+              `${user.first_name || ""} ${user.last_name || ""}`.trim() || 
+              user.username || 
+              user.email.split("@")[0],
+      }));
+    } catch (error) {
+      console.error("Error fetching users from database:", error);
+      return [];
+    }
+  }
+
+  async getUserById(id: string): Promise<any | null> {
+    try {
+      const { pool } = await import("./db");
+      const result = await pool.query(`
+        SELECT 
+          id, email, name, role, department, phone, is_active, 
+          created_at, updated_at, first_name, last_name, username
+        FROM users 
+        WHERE id = $1
+      `, [id]);
+
+      if (result.rows.length === 0) return null;
+
+      const user = result.rows[0];
+      return {
+        ...user,
+        name: user.name || 
+              `${user.first_name || ""} ${user.last_name || ""}`.trim() || 
+              user.username || 
+              user.email.split("@")[0],
+      };
+    } catch (error) {
+      console.error("Error fetching user by ID:", error);
+      return null;
+    }
+  }
+
+  async createUser(data: any): Promise<any> {
+    try {
+      const { pool } = await import("./db");
+      const result = await pool.query(`
+        INSERT INTO users (name, email, password_hash, role, department, phone, is_active)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING id, name, email, role, department, phone, is_active, created_at, updated_at
+      `, [
+        data.name,
+        data.email,
+        data.password_hash,
+        data.role || 'user',
+        data.department || '',
+        data.phone || '',
+        data.is_active !== undefined ? data.is_active : true
+      ]);
+
+      return result.rows[0];
+    } catch (error) {
+      console.error("Error creating user:", error);
+      throw error;
+    }
+  }
+
+  async updateUser(id: string, updates: any): Promise<any | null> {
+    try {
+      const { pool } = await import("./db");
+      
+      const setClause = [];
+      const params = [];
+      let paramCount = 0;
+
+      Object.keys(updates).forEach(key => {
+        if (updates[key] !== undefined) {
+          paramCount++;
+          setClause.push(`${key} = $${paramCount}`);
+          params.push(updates[key]);
+        }
+      });
+
+      if (setClause.length === 0) return null;
+
+      paramCount++;
+      setClause.push(`updated_at = $${paramCount}`);
+      params.push(new Date());
+
+      paramCount++;
+      params.push(id);
+
+      const query = `
+        UPDATE users 
+        SET ${setClause.join(', ')}
+        WHERE id = $${paramCount}
+        RETURNING id, name, email, role, department, phone, is_active, created_at, updated_at
+      `;
+
+      const result = await pool.query(query, params);
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error("Error updating user:", error);
+      return null;
+    }
+  }
+
+  async deleteUser(id: string): Promise<boolean> {
+    try {
+      const { pool } = await import("./db");
+      const result = await pool.query(`
+        UPDATE users SET is_active = false WHERE id = $1
+      `, [id]);
+      
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      return false;
+    }
+  }
+
+  // Knowledge Base methods for database storage
+  async getKBArticles(page: number = 1, limit: number = 20, filters: any = {}) {
+    try {
+      const { pool } = await import("./db");
+      const offset = (page - 1) * limit;
+      
+      let query = `
+        SELECT 
+          id, title, content, author_email, category, tags, 
+          created_at, updated_at, views, helpful_votes, status
+        FROM knowledge_base
+        WHERE 1=1
+      `;
+      const params: any[] = [];
+      let paramCount = 0;
+
+      if (filters.category && filters.category !== 'all') {
+        paramCount++;
+        query += ` AND category = $${paramCount}`;
+        params.push(filters.category);
+      }
+
+      if (filters.search && filters.search.trim()) {
+        paramCount++;
+        query += ` AND (title ILIKE $${paramCount} OR content ILIKE $${paramCount})`;
+        params.push(`%${filters.search.trim()}%`);
+      }
+
+      if (filters.status) {
+        paramCount++;
+        query += ` AND status = $${paramCount}`;
+        params.push(filters.status);
+      }
+
+      // Count total
+      const countQuery = query.replace(/SELECT.*FROM/, 'SELECT COUNT(*) as total FROM');
+      const countResult = await pool.query(countQuery, params);
+      const total = parseInt(countResult.rows[0].total);
+
+      // Add ordering and pagination
+      query += ` ORDER BY created_at DESC LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;
+      params.push(limit, offset);
+
+      const result = await pool.query(query, params);
+      
+      const articles = result.rows.map(article => ({
+        ...article,
+        tags: typeof article.tags === 'string' ? JSON.parse(article.tags || '[]') : (article.tags || [])
+      }));
+
+      console.log(`Returning ${articles.length} KB articles from database`);
+      
+      return {
+        data: articles,
+        total,
+        page,
+        limit
+      };
+    } catch (error) {
+      console.error("Error loading KB articles from database:", error);
+      return { data: [], total: 0, page, limit };
+    }
+  }
+
+  async getKBArticle(id: string) {
+    try {
+      const { pool } = await import("./db");
+      const result = await pool.query(`
+        SELECT 
+          id, title, content, author_email, category, tags, 
+          created_at, updated_at, views, helpful_votes, status
+        FROM knowledge_base 
+        WHERE id = $1
+      `, [id]);
+
+      if (result.rows.length > 0) {
+        const article = result.rows[0];
+        // Parse tags if they're stored as JSON
+        if (typeof article.tags === 'string') {
+          try {
+            article.tags = JSON.parse(article.tags);
+          } catch {
+            article.tags = [];
+          }
+        }
+        return article;
+      }
+      return null;
+    } catch (error) {
+      console.error("Database query failed for single article:", error);
+      return null;
+    }
+  }
+
+  async createAlert(alert: InsertAlert): Promise<Alert> {
+    const [newAlert] = await db
+      .insert(alerts)
+      .values({
+        ...alert,
+        triggered_at: new Date(),
+      })
+      .returning();
+    return newAlert;
+  }
+
+  async getDashboardSummary(): Promise<{
+    total_devices: number;
+    online_devices: number;
+    offline_devices: number;
+    active_alerts: number;
+  }> {
+    const allDevices = await this.getDevices();
+    const activeAlerts = await this.getActiveAlerts();
+
+    // Update offline status for devices that haven't been seen for 5+ minutes
+    const now = new Date();
+    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+
+    for (const device of allDevices) {
+      const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
+      if (lastSeen && lastSeen < fiveMinutesAgo && device.status === "online") {
+        await this.updateDevice(device.id, { status: "offline" });
+      }
+    }
+
+    // Refetch devices after status updates
+    const updatedDevices = await this.getDevices();
+
+    return {
+      total_devices: updatedDevices.length,
+      online_devices: updatedDevices.filter((device) => device.status === "online").length,
+      offline_devices: updatedDevices.filter((device) => device.status === "offline").length,
+      active_alerts: activeAlerts.length,
+    };
+  }
+
   // Database connection instance
   private db = db;
 }

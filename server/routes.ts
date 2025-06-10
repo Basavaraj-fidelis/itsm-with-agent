@@ -1106,15 +1106,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Process data through security service
-      if (usbDevices.length > 0) {
-        await securityService.checkUSBCompliance(device.id, usbDevices);
-      }
+      try {
+        if (usbDevices.length > 0) {
+          await securityService.checkUSBCompliance(device.id, usbDevices);
+        }
 
-      if (data.installed_software) {
-        await securityService.checkSoftwareLicenseCompliance(
-          device.id,
-          data.installed_software,
-        );
+        if (data.installed_software) {
+          await securityService.checkSoftwareLicenseCompliance(
+            device.id,
+            data.installed_software,
+          );
+        }
+      } catch (securityError) {
+        console.warn("Security service processing failed:", securityError);
       }
 
       // Process data through performance service
@@ -2223,7 +2227,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: (req.query.status as string) || "published",
       };
 
+      console.log("Fetching KB articles with filters:", filters);
       const result = await storage.getKBArticles(page, limit, filters);
+      console.log(`Returning ${result.data.length} articles`);
       res.json(result.data);
     } catch (error) {
       console.error("Error fetching KB articles:", error);

@@ -119,58 +119,67 @@ export default function Users() {
     phone: "",
     password: "",
   });
+  const [selectedRole, setSelectedRole] = useState('all');
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [searchTerm, selectedRole]);
 
   const fetchUsers = async () => {
-    setLoading(true);
     try {
-      console.log('Fetching users...');
+      setIsLoading(true);
+      console.log("Fetching users from API...");
 
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No authentication token found');
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (searchTerm.trim()) {
+        params.append('search', searchTerm.trim());
+      }
+      if (selectedRole && selectedRole !== 'all') {
+        params.append('role', selectedRole);
       }
 
-      const response = await fetch('/api/users', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const queryString = params.toString();
+      const url = `/api/users${queryString ? `?${queryString}` : ''}`;
 
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Response error:', errorText);
-        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+        console.error("API Error:", response.status, errorText);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('Users data received:', data);
+      console.log("Received users data:", data);
 
-      if (Array.isArray(data)) {
-        setUsers(data);
-        console.log(`Loaded ${data.length} users successfully`);
-      } else {
-        console.error('Invalid data format received:', data);
-        throw new Error('Invalid data format received from server');
-      }
+      // Ensure we have an array and each user has required fields
+      const validUsers = (Array.isArray(data) ? data : []).map(user => ({
+        ...user,
+        name: user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.email?.split('@')[0] || 'Unknown',
+        role: user.role || 'user',
+        department: user.department || 'N/A',
+        phone: user.phone || 'N/A',
+        is_active: user.is_active !== undefined ? user.is_active : true
+      }));
+
+      setUsers(validUsers);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error("Failed to fetch users:", error);
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to load users',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to load users. Please try again.",
+        variant: "destructive",
       });
-      setUsers([]); // Set empty array on error
+      setUsers([]);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
