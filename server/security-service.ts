@@ -36,11 +36,11 @@ class SecurityService {
     {
       id: "default-usb-policy",
       name: "Default USB Security Policy",
-      allowed_vendor_ids: ["046d", "413c", "045e"], // Logitech, Dell, Microsoft
+      allowed_vendor_ids: ["046d", "413c", "045e", "0408"], // Logitech, Dell, Microsoft, USB Composite Device
       blocked_vendor_ids: ["1234", "5678"], // Known malicious vendors
-      allowed_device_types: ["keyboard", "mouse", "webcam"],
+      allowed_device_types: ["keyboard", "mouse", "webcam", "composite"],
       blocked_device_types: ["mass_storage", "wireless_adapter"],
-      require_approval: true,
+      require_approval: false,
       is_active: true
     }
   ];
@@ -107,6 +107,7 @@ class SecurityService {
     if (desc.includes("webcam") || desc.includes("camera")) return "webcam";
     if (desc.includes("wireless") || desc.includes("wifi")) return "wireless_adapter";
     if (desc.includes("audio") || desc.includes("speaker")) return "audio";
+    if (desc.includes("composite")) return "composite";
     return "unknown";
   }
 
