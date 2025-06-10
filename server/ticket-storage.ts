@@ -168,9 +168,31 @@ export class TicketStorage {
     comment?: string
   ): Promise<Ticket | null> {
     try {
+      // Get current ticket to check assignment
+      const currentTicket = await this.getTicketById(id);
+      if (!currentTicket) {
+        throw new Error('Ticket not found');
+      }
+
       // Check if comment is required for certain status changes
       if (updates.status && ['resolved', 'closed', 'cancelled'].includes(updates.status) && !comment) {
         throw new Error('Comment required when resolving, closing, or cancelling tickets');
+      }
+
+      // Validate assignment for status changes that require it
+      if (updates.status) {
+        const statusesRequiringAssignment = ['in_progress', 'pending', 'resolved'];
+        if (statusesRequiringAssignment.includes(updates.status)) {
+          const assignedTo = updates.assigned_to || currentTicket.assigned_to;
+          if (!assignedTo) {
+            throw new Error(`Ticket must be assigned before moving to ${updates.status} status`);
+          }
+        }
+      }
+
+      // Auto-assign when status changes to 'assigned' without explicit assignment
+      if (updates.status === 'assigned' && !updates.assigned_to && !currentTicket.assigned_to) {
+        updates.assigned_to = userEmail;
       }
 
       // Set resolved_at timestamp when status changes to resolved

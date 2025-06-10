@@ -593,16 +593,19 @@ export default function Tickets() {
             Assign to Self
           </Button>,
         );
-        actions.push(
-          <Button
-            key="in_progress"
-            variant="outline"
-            size="sm"
-            onClick={() => handleUpdateTicketStatus(ticket.id, "in_progress")}
-          >
-            Mark as In Progress
-          </Button>,
-        );
+        // Only show in_progress if ticket will be assigned
+        if (ticket.assigned_to) {
+          actions.push(
+            <Button
+              key="in_progress"
+              variant="outline"
+              size="sm"
+              onClick={() => handleUpdateTicketStatus(ticket.id, "in_progress")}
+            >
+              Mark as In Progress
+            </Button>,
+          );
+        }
         break;
       case "assigned":
         actions.push(
@@ -617,26 +620,29 @@ export default function Tickets() {
         );
         break;
       case "in_progress":
-        actions.push(
-          <Button
-            key="pending"
-            variant="outline"
-            size="sm"
-            onClick={() => handleUpdateTicketStatus(ticket.id, "pending")}
-          >
-            Mark as Pending
-          </Button>,
-        );
-        actions.push(
-          <Button
-            key="resolved"
-            variant="default"
-            size="sm"
-            onClick={() => handleUpdateTicketStatus(ticket.id, "resolved")}
-          >
-            Mark as Resolved
-          </Button>,
-        );
+        // Only show these actions if ticket is assigned
+        if (ticket.assigned_to) {
+          actions.push(
+            <Button
+              key="pending"
+              variant="outline"
+              size="sm"
+              onClick={() => handleUpdateTicketStatus(ticket.id, "pending")}
+            >
+              Mark as Pending
+            </Button>,
+          );
+          actions.push(
+            <Button
+              key="resolved"
+              variant="default"
+              size="sm"
+              onClick={() => handleUpdateTicketStatus(ticket.id, "resolved")}
+            >
+              Mark as Resolved
+            </Button>,
+          );
+        }
         break;
       case "pending":
         actions.push(
