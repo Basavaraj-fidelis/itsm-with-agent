@@ -852,6 +852,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (disk.usage && disk.usage.total && disk.usage.used) {
                 totalSpace += disk.usage.total;
                 usedSpace += disk.usage.used;
+```text
               } else {
                 const usage = extractNumericValue(disk.usage_percent) || extractNumericValue(disk.percent);
                 if (usage !== null) {
@@ -1732,7 +1733,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch users", error: error.message });
     }
   });
-  
+
   // Analytics endpoints
   app.post('/api/analytics/generate-report', authenticateToken, async (req, res) => {
     try {
@@ -1783,7 +1784,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: 'Failed to download report' });
     }
   });
-  
+
     // Security Alert generation and duplicate alert suppression
   const generateSecurityAlert = async (deviceId: string, alertType: string, severity: string, message: string) => {
     try {
@@ -1806,7 +1807,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Skipping duplicate ${alertType} alert for device ${deviceName} (last alert: ${existingAlert.rows[0].created_at})`);
         return;
       }
-      
+
       // Create a new alert in database
        await pool.query(`
         INSERT INTO alerts (device_id, type, category, severity, message, is_active, created_at, updated_at)
@@ -1818,7 +1819,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error generating security alert:', error);
     }
   };
-  
+
+  // Knowledge Base Routes (publicly accessible)
+    app.get("/api/knowledge-base", async (req, res) => {
+      try {
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 20;
+        const filters = {
+          category: req.query.category as string,
+          search: req.query.search as string,
+          status: (req.query.status as string) || "published"
+        };
+
+        const result = await storage.getKBArticles(page, limit, filters);
+        res.json(result.data);
+      } catch (error) {
+        console.error("Error fetching KB articles:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+
+    // Get individual knowledge base article
+    app.get("/api/knowledge-base/:id", async (req, res) => {
+      try {
+        console.log(`Fetching KB article with ID: ${req.params.id}`);
+
+        const article = await storage.getKBArticle(req.params.id);
+
+        if (!article) {
+          return res.status(404).json({ message: "Article not found" });
+        }
+
+        // Increment view count
+        try {
+          await storage.incrementArticleViews(req.params.id);
+        } catch (viewError) {
+          console.warn("Failed to increment article views:", viewError);
+        }
+
+        res.json(article);
+      } catch (error) {
+        console.error("Error fetching KB article:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
 
   const httpServer = createServer(app);
   return httpServer;

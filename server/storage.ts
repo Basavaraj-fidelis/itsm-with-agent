@@ -2493,458 +2493,51 @@ smartphones
   }
 
   // Knowledge Base methods - Database storage
-  async getKBArticles(page: number = 1, limit: number = 20, filters: any = {}) {
+  async getKBArticle(id) {
     try {
-      console.log("Fetching KB articles from database with filters:", filters);
+      // Try database first
+      const { pool } = await import("./db");
+      const result = await pool.query(`
+        SELECT 
+          id, title, content, author_email, category, tags, 
+          created_at, updated_at, views, helpful_votes, status
+        FROM knowledge_base 
+        WHERE id = $1
+      `, [id]);
 
-      let query = db.select().from(knowledgeBase);
-
-      // Apply filters
-      const whereConditions = [];
-
-      if (filters.category) {
-        whereConditions.push(
-          sql`${knowledgeBase.category} ILIKE ${"%" + filters.category + "%"}`,
-        );
+      if (result.rows.length > 0) {
+        const article = result.rows[0];
+        // Parse tags if they're stored as JSON
+        if (typeof article.tags === 'string') {
+          try {
+            article.tags = JSON.parse(article.tags);
+          } catch {
+            article.tags = [];
+          }
+        }
+        return article;
       }
-
-      if (filters.search) {
-        whereConditions.push(
-          sql`(${knowledgeBase.title} ILIKE ${"%" + filters.search + "%"} OR ${knowledgeBase.content} ILIKE ${"%" + filters.search + "%"})`,
-        );
-      }
-
-      if (filters.status) {
-        whereConditions.push(eq(knowledgeBase.status, filters.status));
-      }
-
-      if (whereConditions.length > 0) {
-        query = query.where(
-          whereConditions.length === 1
-            ? whereConditions[0]
-            : and(...whereConditions),
-        );
-      }
-
-      // Get total count
-      const countResult = await db
-        .select({ count: count() })
-        .from(knowledgeBase);
-      const total = countResult[0].count;
-
-      // Apply pagination and ordering
-      const articles = await query
-        .orderBy(desc(knowledgeBase.created_at))
-        .limit(limit)
-        .offset((page - 1) * limit);
-
-      console.log(`Returning ${articles.length} articles from database`);
-
-      return {
-        data: articles,
-        total,
-        page,
-        limit,
-      };
-    } catch (error) {
-      console.error("Error loading KB articles from database:", error);
-      return { data: [], total: 0, page, limit };
+    } catch (dbError) {
+      console.log("Database query failed for single article:", dbError.message);
     }
+
+    // Fallback to file storage
+    if (!this.knowledgeBase) {
+      await this.loadKnowledgeBase();
+    }
+
+    return this.knowledgeBase.find(article => article.id === id) || null;
   }
 
-  async getKBArticleById(id: string) {
+  async incrementArticleViews(id) {
     try {
-      const articles = await db
-        .select()
-        .from(knowledgeBase)
-        .where(eq(knowledgeBase.id, id));
-      return articles[0] || null;
+      const { pool } = await import("./db");
+      await pool.query(`
+        UPDATE knowledge_base 
+        SET views = COALESCE(views, 0) + 1 
+        WHERE id = $1
+      `, [id]);
     } catch (error) {
-      console.error("Error loading KB article from database:", error);
-      return null;
+      console.warn("Failed to increment article views in database:", error);
     }
   }
-
-  async createKBArticle(data: any) {
-    try {
-      const newArticle = await db
-        .insert(knowledgeBase)
-        .values({
-          title: data.title,
-          content: data.content || "",
-          category: data.category || "General",
-          tags: data.tags || [],
-          author_email: data.author_email || "system@company.com",
-          status: data.status || "draft",
-          views: 0,
-          helpful_votes: 0,
-        })
-        .returning();
-
-      return newArticle[0];
-    } catch (error) {
-      console.error("Error creating KB article in database:", error);
-      throw error;
-    }
-  }
-
-  async updateKBArticle(id: string, data: any) {
-    try {
-      const updatedArticles = await db
-        .update(knowledgeBase)
-        .set({
-          title: data.title,
-          content: data.content,
-          category: data.category,
-          tags: data.tags,
-          status: data.status,
-          updated_at: new Date(),
-        })
-        .where(eq(knowledgeBase.id, id))
-        .returning();
-
-      return updatedArticles[0] || null;
-    } catch (error) {
-      console.error("Error updating KB article in database:", error);
-      throw error;
-    }
-  }
-
-  async deleteKBArticle(id: string) {
-    try {
-      const deletedArticles = await db
-        .delete(knowledgeBase)
-        .where(eq(knowledgeBase.id, id))
-        .returning();
-
-      return deletedArticles.length > 0;
-    } catch (error) {
-      console.error("Error deleting KB article from database:", error);
-      return false;
-    }
-  }
-
-  // Alert Management methods
-  async createAlert(data: any) {
-    const { alerts } = await import("@shared/schema");
-
-    const [alert] = await db.insert(alerts).values(data).returning();
-
-    return alert;
-  }
-
-  async getAlerts() {
-    const { alerts } = await import("@shared/schema");
-
-    return await db.select().from(alerts).orderBy(alerts.created_at);
-  }
-
-  // User Management methods
-  async getUsers(filters: { search?: string; role?: string } = {}) {
-    const { users } = await import("@shared/user-schema");
-    const { and, or, like } = await import("drizzle-orm");
-
-    const conditions = [];
-
-    if (filters.search) {
-      conditions.push(
-        or(
-          like(users.name, `%${filters.search}%`),
-          like(users.email, `%${filters.search}%`),
-        ),
-      );
-    }
-
-    if (filters.role && filters.role !== "all") {
-      conditions.push(eq(users.role, filters.role));
-    }
-
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-    const result = await db
-      .select({
-        id: users.id,
-        email: users.email,
-        name: users.name,
-        role: users.role,
-        department: users.department,
-        phone: users.phone,
-        is_active: users.is_active,
-        last_login: users.last_login,
-        created_at: users.created_at,
-      })
-      .from(users)
-      .where(whereClause)
-      .orderBy(users.created_at);
-
-    return result;
-  }
-
-  async getUserById(id: string) {
-    const { users } = await import("@shared/user-schema");
-
-    const [user] = await db
-      .select({
-        id: users.id,
-        email: users.email,
-        name: users.name,
-        role: users.role,
-        department: users.department,
-        phone: users.phone,
-        is_active: users.is_active,
-        last_login: users.last_login,
-        created_at: users.created_at,
-      })
-      .from(users)
-      .where(eq(users.id, id));
-
-    return user || null;
-  }
-
-  async createUser(data: any) {
-    const { users } = await import("@shared/user-schema");
-    const bcrypt = await import("bcrypt");
-
-    // Hash password
-    const password_hash = await bcrypt.hash(data.password, 10);
-
-    const [user] = await db
-      .insert(users)
-      .values({
-        ...data,
-        password_hash,
-        password: undefined, // Remove plain password
-      })
-      .returning({
-        id: users.id,
-        email: users.email,
-        name: users.name,
-        role: users.role,
-        department: users.department,
-        phone: users.phone,
-        is_active: users.is_active,
-        created_at: users.created_at,
-      });
-
-    return user;
-  }
-
-  async updateUser(id: string, updates: any) {
-    const { users } = await import("@shared/user-schema");
-
-    // Remove password from updates if not provided
-    const updateData = { ...updates };
-    if (updateData.password) {
-      const bcrypt = await import("bcrypt");
-      updateData.password_hash = await bcrypt.hash(updateData.password, 10);
-      delete updateData.password;
-    }
-
-    const [updatedUser] = await db
-      .update(users)
-      .set({
-        ...updateData,
-        updated_at: new Date(),
-      })
-      .where(eq(users.id, id))
-      .returning({
-        id: users.id,
-        email: users.email,
-        name: users.name,
-        role: users.role,
-        department: users.department,
-        phone: users.phone,
-        is_active: users.is_active,
-        created_at: users.created_at,
-      });
-
-    return updatedUser || null;
-  }
-
-  async deleteUser(id: string) {
-    const { users } = await import("@shared/user-schema");
-
-    const result = await db.delete(users).where(eq(users.id, id));
-
-    return result.rowCount > 0;
-  }
-  // Dashboard summary
-  async getDashboardSummary() {
-    const { devices, alerts } = await import("@shared/schema");
-    const { eq } = await import("drizzle-orm");
-
-    const allDevices = await db.select().from(devices);
-    const activeAlerts = await db
-      .select()
-      .from(alerts)
-      .where(eq(alerts.is_active, true));
-
-    // Update offline status for devices that haven't been seen for 5+ minutes
-    const now = new Date();
-    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
-
-    for (const device of allDevices) {
-      const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
-      if (lastSeen && lastSeen < fiveMinutesAgo && device.status === "online") {
-        await db
-          .update(devices)
-          .set({ status: "offline" })
-          .where(eq(devices.id, device.id));
-        device.status = "offline";
-      }
-    }
-
-    const onlineDevices = allDevices.filter(
-      (device) => device.status === "online",
-    ).length;
-    const offlineDevices = allDevices.filter(
-      (device) => device.status === "offline",
-    ).length;
-
-    return {
-      total_devices: allDevices.length,
-      online_devices: onlineDevices,
-      offline_devices: offlineDevices,
-      active_alerts: activeAlerts.length,
-    };
-  }
-
-  // Audit logging functionality
-  async logAudit(
-    entityType: string,
-    entityId: string,
-    action: string,
-    userId?: string,
-    userEmail?: string,
-    oldValues?: any,
-    newValues?: any,
-    ipAddress?: string,
-    userAgent?: string
-  ) {
-    try {
-      const changes = this.calculateChanges(oldValues, newValues);
-
-      await db.insert(auditLog).values({
-        entity_type: entityType,
-        entity_id: entityId,
-        action: action,
-        user_id: userId || null,
-        user_email: userEmail || null,
-        old_values: oldValues ? JSON.stringify(oldValues) : null,
-        new_values: newValues ? JSON.stringify(newValues) : null,
-        changes: changes ? JSON.stringify(changes) : null,
-        ip_address: ipAddress || null,
-        user_agent: userAgent || null
-      });
-    } catch (error) {
-      console.error("Error logging audit event:", error);
-      // Don't throw - audit logging shouldn't break main functionality
-    }
-  }
-
-  private calculateChanges(oldValues: any, newValues: any): any {
-    if (!oldValues || !newValues) return null;
-
-    const changes: any = {};
-    const allKeys = new Set([...Object.keys(oldValues), ...Object.keys(newValues)]);
-
-    for (const key of allKeys) {
-      if (oldValues[key] !== newValues[key]) {
-        changes[key] = {
-          from: oldValues[key],
-          to: newValues[key]
-        };
-      }
-    }
-
-    return Object.keys(changes).length > 0 ? changes : null;
-  }
-
-  async getAuditLog(page: number = 1, limit: number = 50, filters: {
-    entityType?: string;
-    entityId?: string;
-    userId?: string;
-    action?: string;
-    startDate?: Date;
-    endDate?: Date;
-  } = {}) {
-    const offset = (page - 1) * limit;
-    const conditions = [];
-
-    if (filters.entityType) {
-      conditions.push(eq(auditLog.entity_type, filters.entityType));
-    }
-    if (filters.entityId) {
-      conditions.push(eq(auditLog.entity_id, filters.entityId));
-    }
-    if (filters.userId) {
-      conditions.push(eq(auditLog.user_id, filters.userId));
-    }
-    if (filters.action) {
-      conditions.push(eq(auditLog.action, filters.action));
-    }
-    if (filters.startDate) {
-      conditions.push(sql`${auditLog.timestamp} >= ${filters.startDate}`);
-    }
-    if (filters.endDate) {
-      conditions.push(sql`${auditLog.timestamp} <= ${filters.endDate}`);
-    }
-
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-    const [{ total }] = await db
-      .select({ total: count() })
-      .from(auditLog)
-      .where(whereClause);
-
-    const data = await db
-      .select()
-      .from(auditLog)
-      .where(whereClause)
-      .orderBy(desc(auditLog.timestamp))
-      .limit(limit)
-      .offset(offset);
-
-    return {
-      data,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit)
-    };
-  }
-
-  // Export functionality
-  async exportDevicesCSV(): Promise<string> {
-    const devices = await this.getDevices();
-
-    const headers = [
-      'Hostname',
-      'Assigned User',
-      'OS Name',
-      'OS Version',
-      'IP Address',
-      'Status',
-      'Last Seen',
-      'Created At'
-    ];
-
-    const csvRows = [
-      headers.join(','),
-      ...devices.map(device => [
-        device.hostname,
-        device.assigned_user || '',
-        device.os_name || '',
-        device.os_version || '',
-        device.ip_address || '',
-        device.status || '',
-        device.last_seen?.toISOString() || '',
-        device.created_at?.toISOString() || ''
-      ].join(','))
-    ];
-
-    return csvRows.join('\n');
-  }
-}
-
-export const storage = new DatabaseStorage();

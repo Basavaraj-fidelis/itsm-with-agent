@@ -81,7 +81,7 @@ export default function KnowledgeBase() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
-  const [showArticleDialog, setShowArticleDialog] = useState(false); // Added dialog state
+  const [showArticleDialog, setShowArticleDialog] = useState(false);
 
   // Check if we're viewing a specific article
   const articleMatch = location.match(/^\/knowledge-base\/([^-]+)/);
@@ -178,7 +178,9 @@ export default function KnowledgeBase() {
 
   const handleArticleClick = (article: any) => {
     console.log("Opening article:", article);
-    setLocation(`/knowledge-base/${article.id}`);
+    // For now, show in dialog until routing is fixed
+    setSelectedArticle(article);
+    setShowArticleDialog(true);
   };
 
   const handleBackToList = () => {
