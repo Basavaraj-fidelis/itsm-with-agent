@@ -1331,6 +1331,149 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Reports API endpoints
+  app.post("/api/reports/generate", authenticateToken, async (req, res) => {
+    try {
+      const { type, period, format } = req.body;
+
+      // Generate report data based on type and period
+      let reportData = {};
+      
+      switch (type) {
+        case "performance":
+          const devices = await storage.getDevices();
+          const performanceData = await Promise.all(
+            devices.map(async (device) => {
+              const reports = await storage.getDeviceReports(device.id);
+              const latestReport = reports[0];
+              return {
+                hostname: device.hostname,
+                cpu_usage: latestReport?.cpu_usage || "0",
+                memory_usage: latestReport?.memory_usage || "0",
+                disk_usage: latestReport?.disk_usage || "0",
+                status: device.status
+              };
+            })
+          );
+          reportData = {
+            title: "Performance Summary Report",
+            period: period,
+            generated_at: new Date().toISOString(),
+            devices: performanceData
+          };
+          break;
+
+        case "availability":
+          const allDevices = await storage.getDevices();
+          const onlineDevices = allDevices.filter(d => d.status === "online");
+          reportData = {
+            title: "Availability Report",
+            period: period,
+            generated_at: new Date().toISOString(),
+            total_devices: allDevices.length,
+            online_devices: onlineDevices.length,
+            availability_percentage: ((onlineDevices.length / allDevices.length) * 100).toFixed(2)
+          };
+          break;
+
+        case "alerts":
+          const alerts = await storage.getActiveAlerts();
+          reportData = {
+            title: "Alert History Report",
+            period: period,
+            generated_at: new Date().toISOString(),
+            total_alerts: alerts.length,
+            alerts: alerts.slice(0, 100) // Limit to 100 recent alerts
+          };
+          break;
+
+        case "inventory":
+          const inventoryDevices = await storage.getDevices();
+          reportData = {
+            title: "System Inventory Report",
+            period: period,
+            generated_at: new Date().toISOString(),
+            devices: inventoryDevices.map(d => ({
+              hostname: d.hostname,
+              os_name: d.os_name,
+              os_version: d.os_version,
+              assigned_user: d.assigned_user,
+              status: d.status,
+              last_seen: d.last_seen
+            }))
+          };
+          break;
+
+        default:
+          return res.status(400).json({ error: "Invalid report type" });
+      }
+
+      // Generate appropriate file format
+      let contentType = "application/json";
+      let fileContent = JSON.stringify(reportData, null, 2);
+
+      if (format === "csv") {
+        contentType = "text/csv";
+        // Convert to CSV format (simplified)
+        if (reportData.devices) {
+          const headers = Object.keys(reportData.devices[0] || {}).join(",");
+          const rows = reportData.devices.map(device => 
+            Object.values(device).map(v => `"${v}"`).join(",")
+          ).join("\n");
+          fileContent = headers + "\n" + rows;
+        }
+      } else if (format === "excel") {
+        contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        // For now, return CSV content with Excel content type
+        if (reportData.devices) {
+          const headers = Object.keys(reportData.devices[0] || {}).join(",");
+          const rows = reportData.devices.map(device => 
+            Object.values(device).map(v => `"${v}"`).join(",")
+          ).join("\n");
+          fileContent = headers + "\n" + rows;
+        }
+      }
+
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="report.${format}"`);
+      res.send(fileContent);
+      
+    } catch (error) {
+      console.error("Error generating report:", error);
+      res.status(500).json({ error: "Failed to generate report" });
+    }
+  });
+
+  app.post("/api/reports/download", authenticateToken, async (req, res) => {
+    try {
+      const { reportName, format } = req.body;
+
+      // Mock report download - in real implementation, you'd fetch from storage
+      const reportData = {
+        title: reportName,
+        generated_at: new Date().toISOString(),
+        content: "This is a sample report content for demonstration purposes."
+      };
+
+      let contentType = "application/pdf";
+      let fileContent = JSON.stringify(reportData, null, 2);
+
+      if (format === "pdf") {
+        contentType = "application/pdf";
+        // For now, return JSON content - in real implementation, generate PDF
+        fileContent = `PDF Report: ${reportName}\nGenerated: ${reportData.generated_at}\n\n${reportData.content}`;
+      }
+
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${reportName.toLowerCase().replace(/\s+/g, "-")}.${format}"`);
+      res.send(fileContent);
+      
+    } catch (error) {
+      console.error("Error downloading report:", error);
+      res.status(500).json({ error: "Failed to download report" });
+    }
+  });
+
   // Health check
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date() });

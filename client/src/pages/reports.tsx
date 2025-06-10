@@ -24,52 +24,77 @@ export default function Reports() {
   const [timePeriod, setTimePeriod] = useState("7d");
   const [format, setFormat] = useState("pdf");
 
-  const handleGenerateReport = () => {
-    const reportData = {
-      type: reportType,
-      period: timePeriod,
-      format: format,
-      generatedAt: new Date().toISOString(),
-      agents: agents || [],
-    };
+  const handleGenerateReport = async () => {
+    try {
+      const response = await fetch('/api/reports/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          type: reportType,
+          period: timePeriod,
+          format: format
+        })
+      });
 
-    const filename = `${reportType}-report-${timePeriod}-${new Date().toISOString().split("T")[0]}.json`;
+      if (!response.ok) {
+        throw new Error('Failed to generate report');
+      }
 
-    const blob = new Blob([JSON.stringify(reportData, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+      const blob = await response.blob();
+      const filename = `${reportType}-report-${timePeriod}-${new Date().toISOString().split("T")[0]}.${format}`;
 
-    alert(
-      `Generated ${reportType} report for ${timePeriod} in ${format} format!`,
-    );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      alert(`Generated ${reportType} report for ${timePeriod} in ${format} format!`);
+    } catch (error) {
+      console.error('Error generating report:', error);
+      alert('Failed to generate report. Please try again.');
+    }
   };
 
-  const handleDownloadReport = (reportName: string) => {
-    const mockReportData = {
-      reportName,
-      downloadedAt: new Date().toISOString(),
-      data: "Mock report data would be here in a real implementation",
-    };
+  const handleDownloadReport = async (reportName: string) => {
+    try {
+      const response = await fetch('/api/reports/download', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          reportName: reportName,
+          format: 'pdf'
+        })
+      });
 
-    const blob = new Blob([JSON.stringify(mockReportData, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${reportName.toLowerCase().replace(/\s+/g, "-")}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+      if (!response.ok) {
+        throw new Error('Failed to download report');
+      }
+
+      const blob = await response.blob();
+      const filename = `${reportName.toLowerCase().replace(/\s+/g, "-")}.pdf`;
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading report:', error);
+      alert('Failed to download report. Please try again.');
+    }
   };
 
   return (
