@@ -113,11 +113,14 @@ export const api = {
     try {
       const response = await apiClient.get(`/api/security/vulnerabilities/${deviceId}`);
       if (!response.ok) {
-        throw new Error(`Failed to fetch vulnerabilities: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch vulnerabilities: ${response.status} ${errorText}`);
       }
-      return await response.json();
+      const data = await response.json();
+      console.log('Vulnerabilities data:', data);
+      return data;
     } catch (error) {
-      console.error('Vulnerabilities fetch failed:', error);
+      console.error('Vulnerability API error:', error);
       return [];
     }
   },
@@ -256,6 +259,11 @@ class ApiClient {
   async delete(url: string): Promise<Response> {
     return this.request(url, { method: 'DELETE' });
   }
+}
+
+function getAuthHeaders() {
+  const token = localStorage.getItem('auth_token');
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
 }
 
 // Create and export a singleton instance

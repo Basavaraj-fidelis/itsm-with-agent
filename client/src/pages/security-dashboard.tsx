@@ -28,11 +28,14 @@ export default function SecurityDashboard() {
     refetchOnWindowFocus: false
   });
 
-  const { data: vulnerabilities, isError: vulnerabilitiesError } = useQuery({
+  const { data: vulnerabilities, isError: vulnerabilitiesError, isLoading: vulnerabilitiesLoading } = useQuery({
     queryKey: ["vulnerabilities", selectedDevice],
     queryFn: () => api.getVulnerabilities(selectedDevice),
     enabled: !!selectedDevice,
-    retry: 1
+    retry: 1,
+    onError: (error) => {
+      console.error("Error fetching vulnerabilities:", error);
+    }
   });
 
   const { data: alerts, isError: alertsError } = useQuery({
@@ -144,17 +147,25 @@ export default function SecurityDashboard() {
           {selectedDevice && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Vulnerability Assessment</h3>
-              {vulnerabilitiesError ? (
+              {vulnerabilitiesLoading ? (
+                <div className="flex items-center gap-2 text-blue-600">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  <span>Scanning for vulnerabilities...</span>
+                </div>
+              ) : vulnerabilitiesError ? (
                 <div className="flex items-center gap-2 text-red-600">
                   <XCircle className="w-4 h-4" />
                   <span>Error loading vulnerability data. Please try again.</span>
+                  <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+                    Retry
+                  </Button>
                 </div>
               ) : vulnerabilities && vulnerabilities.length === 0 ? (
                 <div className="flex items-center gap-2 text-green-600">
                   <CheckCircle className="w-4 h-4" />
                   <span>No known vulnerabilities detected</span>
                 </div>
-              ) : (
+              ) : vulnerabilities && vulnerabilities.length > 0 ? (
                 <div className="space-y-3">
                   {vulnerabilities.map((vuln: any, index: number) => (
                     <Card key={index} className="border-l-4 border-l-red-500">
@@ -182,6 +193,11 @@ export default function SecurityDashboard() {
                       </CardContent>
                     </Card>
                   ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Bug className="w-12 h-12 mx-auto mb-4" />
+                  <p>Select a device to view vulnerability assessment</p>
                 </div>
               )}
             </div>

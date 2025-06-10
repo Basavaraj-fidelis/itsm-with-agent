@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, Monitor, Wifi, ArrowLeft } from "lucide-react";
+import { AlertCircle, Monitor, Wifi, ArrowLeft, Package, FileText, Server, AlertTriangle } from "lucide-react";
 
 export default function VNCPage() {
   const vncRef = useRef<HTMLDivElement>(null);
@@ -154,6 +154,7 @@ export default function VNCPage() {
 
   const urlParams = new URLSearchParams(window.location.search);
   const host = urlParams.get('host') || 'localhost';
+  const deviceName = urlParams.get('deviceName') || 'Remote Device';
 
   const handleReconnect = () => {
     setConnectionStatus('connecting');
@@ -206,82 +207,128 @@ export default function VNCPage() {
   }
 
   return (
-    <div className="h-screen bg-black flex flex-col overflow-hidden">
-      {/* Compact Header */}
-      <div className="bg-gray-800 border-b border-gray-700 px-4 py-2 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => window.history.back()}
-              className="text-gray-300 hover:text-white hover:bg-gray-700"
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Back
-            </Button>
-            <div className="h-4 w-px bg-gray-600" />
-            <h1 className="text-sm font-medium text-white truncate">
-              {host}
-            </h1>
+    <div className="h-screen bg-black flex">
+      {/* Left Sidebar - Compact */}
+      <div className="w-64 bg-gray-800 text-white flex flex-col">
+        {/* Connection Info */}
+        <div className="p-4 border-b border-gray-700">
+          <div className="flex items-center gap-2 mb-3">
+            <Monitor className="w-4 h-4" />
+            <h2 className="font-semibold">Connection Info</h2>
           </div>
-          <div className="flex items-center space-x-2">
-            <div className={`h-2 w-2 rounded-full ${
-              connectionStatus === 'connected' ? 'bg-green-500' :
-              connectionStatus === 'connecting' ? 'bg-yellow-500 animate-pulse' :
-              connectionStatus === 'error' ? 'bg-red-500' : 'bg-gray-500'
-            }`}></div>
-            <span className="text-xs text-gray-400 capitalize">{connectionStatus}</span>
-            {connectionStatus !== 'connected' && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleReconnect}
-                className="text-gray-300 hover:text-white hover:bg-gray-700 text-xs px-2 py-1"
-              >
-                Retry
-              </Button>
-            )}
+          <div className="space-y-1 text-xs">
+            <div className="flex justify-between">
+              <span className="text-gray-400">Host:</span>
+              <span className="font-mono">{deviceName}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-400">IP:</span>
+              <span className="font-mono">192.168.1.119</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-400">Port:</span>
+              <span className="font-mono">5900</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-400">Status:</span>
+              <span className="text-green-400 font-medium">Connected</span>
+            </div>
           </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="p-4 border-b border-gray-700">
+          <h3 className="font-semibold mb-3 text-sm">Quick Actions</h3>
+          <div className="space-y-2">
+            <button className="w-full text-left p-2 bg-blue-600 rounded text-sm hover:bg-blue-700 transition-colors">
+              💻 Take Screenshot
+            </button>
+            <button className="w-full text-left p-2 bg-gray-700 rounded text-sm hover:bg-gray-600 transition-colors">
+              🔄 Restart Remote Machine
+            </button>
+            <button className="w-full text-left p-2 bg-gray-700 rounded text-sm hover:bg-gray-600 transition-colors">
+              📁 File Transfer
+            </button>
+          </div>
+        </div>
+
+        {/* Service Desk */}
+        <div className="p-4 border-b border-gray-700">
+          <h3 className="font-semibold mb-3 text-sm flex items-center gap-2">
+            <Package className="w-4 h-4" />
+            Service Desk
+          </h3>
+          <div className="space-y-2">
+            <button className="w-full text-left p-2 bg-gray-700 rounded text-xs hover:bg-gray-600 transition-colors">
+              📋 Monitor tickets and requests
+            </button>
+          </div>
+        </div>
+
+        {/* Help Articles */}
+        <div className="p-4 border-b border-gray-700">
+          <h3 className="font-semibold mb-3 text-sm">Help Articles</h3>
+          <div className="space-y-1">
+            <button className="w-full text-left p-2 text-xs text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors">
+              📖 Documentation and guides
+            </button>
+          </div>
+        </div>
+
+        {/* System Alerts */}
+        <div className="p-4 flex-1">
+          <h3 className="font-semibold mb-3 text-sm flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4" />
+            System Alerts
+          </h3>
+          <div className="space-y-1">
+            <button className="w-full text-left p-2 text-xs text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors">
+              🔔 Active system notifications
+            </button>
+          </div>
+        </div>
+
+        {/* Troubleshooting */}
+        <div className="p-4 bg-gray-900 border-t border-gray-700">
+          <h4 className="font-medium mb-2 text-sm">Troubleshooting</h4>
+          <div className="text-xs text-gray-400 space-y-1">
+            <p>• Check VNC server on target machine</p>
+            <p>• Verify network connectivity</p>
+            <p>• Check firewall port 5900</p>
+          </div>
+          <button className="w-full mt-2 p-1 bg-yellow-600 text-white rounded text-xs hover:bg-yellow-700">
+            🛠️ Setup Guide
+          </button>
         </div>
       </div>
 
-      {/* Full Screen VNC Display */}
-      <div className="flex-1 relative overflow-hidden">
-        {connectionStatus === 'connecting' && (
-          <div className="absolute inset-0 bg-gray-900 flex items-center justify-center z-10">
-            <div className="text-center text-white">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-3"></div>
-              <p className="text-sm font-medium">Establishing connection...</p>
-              <p className="text-xs text-gray-400 mt-1">Connecting to {host}</p>
+      <div className="flex-1 bg-gray-900 relative overflow-hidden">
+        {/* VNC Viewer Area - Full screen optimized */}
+        <div className="w-full h-full relative">
+          <div className="absolute inset-4 bg-gray-800 border border-gray-600 shadow-2xl rounded-lg overflow-hidden">
+            {/* VNC Canvas would go here */}
+            <div className="w-full h-full bg-gradient-to-br from-blue-900 to-gray-900 flex items-center justify-center">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-400 mx-auto mb-6"></div>
+                <p className="text-white text-xl font-medium">Establishing connection...</p>
+                <p className="text-blue-300 mt-3">Connecting to {deviceName}</p>
+                <div className="mt-6 bg-black/20 backdrop-blur-sm rounded-lg p-4 max-w-md mx-auto">
+                  <p className="text-sm text-gray-300">• Initializing remote desktop session</p>
+                  <p className="text-sm text-gray-300">• Authenticating with target machine</p>
+                  <p className="text-sm text-gray-300">• Establishing secure tunnel</p>
+                </div>
+              </div>
             </div>
           </div>
-        )}
 
-        <div 
-          ref={vncRef}
-          className="w-full h-full bg-black"
-          style={{ 
-            width: '100%', 
-            height: '100%',
-            position: 'absolute',
-            top: 0,
-            left: 0
-          }}
-        />
-
-        {connectionStatus === 'disconnected' && (
-          <div className="absolute inset-0 bg-gray-900 flex items-center justify-center z-10">
-            <div className="text-center text-white">
-              <Wifi className="w-8 h-8 text-gray-400 mx-auto mb-3" />
-              <p className="text-sm font-medium">Connection Lost</p>
-              <p className="text-xs text-gray-400 mt-1">The remote desktop connection was terminated</p>
-              <Button onClick={handleReconnect} className="mt-3 text-xs px-3 py-1">
-                Reconnect
-              </Button>
+          {/* Connection Status Bar */}
+          <div className="absolute top-4 right-4 bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2">
+            <div className="flex items-center gap-2 text-white">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-sm">Connected</span>
             </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
