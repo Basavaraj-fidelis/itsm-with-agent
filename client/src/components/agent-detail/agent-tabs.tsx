@@ -140,7 +140,11 @@ const getAllIPs = (agent: any) => {
   for (const iface of interfaces) {
     // Skip virtual and loopback interfaces for main IP detection
     const name = iface.name?.toLowerCase() || "";
-    const isVirtual = name.includes("virtual") || name.includes("veth") || name.includes("docker") || name.includes("vmware");
+    const isVirtual =
+      name.includes("virtual") ||
+      name.includes("veth") ||
+      name.includes("docker") ||
+      name.includes("vmware");
 
     if (!isVirtual && iface.stats?.is_up !== false) {
       for (const addr of iface.addresses || []) {
@@ -167,29 +171,40 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
   useEffect(() => {
     const fetchUSBHistory = async () => {
       try {
-        const token = localStorage.getItem('auth_token');
-        console.log('Fetching USB devices for agent:', agent.id, 'with token:', !!token);
+        const token = localStorage.getItem("auth_token");
+        console.log(
+          "Fetching USB devices for agent:",
+          agent.id,
+          "with token:",
+          !!token,
+        );
 
         const response = await fetch(`/api/devices/${agent.id}/usb-devices`, {
-          headers: token ? {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          } : {
-            'Content-Type': 'application/json'
-          }
+          headers: token
+            ? {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              }
+            : {
+                "Content-Type": "application/json",
+              },
         });
 
         if (response.ok) {
           const data = await response.json();
-          console.log('USB devices fetched from API:', data);
+          console.log("USB devices fetched from API:", data);
           setUsbHistory(data);
         } else if (response.status === 403) {
-          console.warn('Access forbidden for USB devices endpoint');
+          console.warn("Access forbidden for USB devices endpoint");
         } else {
-          console.error('Failed to fetch USB devices:', response.status, response.statusText);
+          console.error(
+            "Failed to fetch USB devices:",
+            response.status,
+            response.statusText,
+          );
         }
       } catch (error) {
-        console.error('Error fetching USB history:', error);
+        console.error("Error fetching USB history:", error);
       }
     };
 
@@ -198,10 +213,10 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
 
       // Also log USB devices found in raw data for debugging
       const currentUSB = getUSBDevices();
-      console.log('USB devices in raw data:', currentUSB);
-      console.log('Raw data keys:', Object.keys(rawData));
+      console.log("USB devices in raw data:", currentUSB);
+      console.log("Raw data keys:", Object.keys(rawData));
       if (rawData.hardware) {
-        console.log('Hardware keys:', Object.keys(rawData.hardware));
+        console.log("Hardware keys:", Object.keys(rawData.hardware));
       }
     }
   }, [agent.id]);
@@ -287,13 +302,19 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
         if (iface.addresses && Array.isArray(iface.addresses)) {
           iface.addresses.forEach((addr: any) => {
             // Look for AF_LINK addresses which contain MAC addresses
-            if (addr.family && (addr.family.includes('AF_LINK') || addr.family.includes('AF_PACKET')) && addr.address && addr.address !== '00:00:00:00:00:00') {
+            if (
+              addr.family &&
+              (addr.family.includes("AF_LINK") ||
+                addr.family.includes("AF_PACKET")) &&
+              addr.address &&
+              addr.address !== "00:00:00:00:00:00"
+            ) {
               macAddresses.push(`${iface.name}: ${addr.address}`);
             }
           });
         }
         // Also check for direct mac property on interface
-        if (iface.mac && iface.mac !== '00:00:00:00:00:00') {
+        if (iface.mac && iface.mac !== "00:00:00:00:00:00") {
           macAddresses.push(`${iface.name}: ${iface.mac}`);
         }
       });
@@ -301,7 +322,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
 
     // If we found MAC addresses from interfaces, return them
     if (macAddresses.length > 0) {
-      return macAddresses.join(', ');
+      return macAddresses.join(", ");
     }
 
     // Fallback to any MAC address fields
@@ -309,16 +330,16 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
       rawData.mac_address,
       rawData.hardware?.mac_address,
       rawData.network?.mac_address,
-      rawData.system_info?.mac_address
+      rawData.system_info?.mac_address,
     ];
 
     for (const mac of possibleMacFields) {
-      if (mac && mac !== '00:00:00:00:00:00') {
+      if (mac && mac !== "00:00:00:00:00:00") {
         return mac;
       }
     }
 
-    return 'Not available';
+    return "Not available";
   };
 
   // Extract USB devices from various possible locations in the raw data
@@ -329,7 +350,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
       rawData.hardware?.usb_devices,
       rawData.system_info?.usb_devices,
       rawData.devices?.usb,
-      hardwareInfo.usb_devices
+      hardwareInfo.usb_devices,
     ];
 
     for (const location of possibleLocations) {
@@ -530,7 +551,11 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                       }
 
                       // Fallback to agent data
-                      return agent.ip_address || rawData.ip_address || "Not Available";
+                      return (
+                        agent.ip_address ||
+                        rawData.ip_address ||
+                        "Not Available"
+                      );
                     })()}
                   </span>
                 </div>
@@ -550,16 +575,23 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                         rawData.os_info?.current_user ||
                         rawData.hardware?.current_user;
 
-                      console.log("Agent detail user found:", user, "for agent:", agent.hostname);
+                      console.log(
+                        "Agent detail user found:",
+                        user,
+                        "for agent:",
+                        agent.hostname,
+                      );
 
                       // Filter out system accounts and invalid values
-                      if (!user || 
-                          user.endsWith('$') || 
-                          user === "Unknown" ||
-                          user === "N/A" ||
-                          user.includes("SYSTEM") ||
-                          user.includes("NETWORK SERVICE") ||
-                          user.includes("LOCAL SERVICE")) {
+                      if (
+                        !user ||
+                        user.endsWith("$") ||
+                        user === "Unknown" ||
+                        user === "N/A" ||
+                        user.includes("SYSTEM") ||
+                        user.includes("NETWORK SERVICE") ||
+                        user.includes("LOCAL SERVICE")
+                      ) {
                         return "N/A";
                       }
 
@@ -743,53 +775,162 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
           <CardContent>
             <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm h-96 overflow-y-auto">
               <div className="space-y-1">
-                <div className="text-green-300"># ITSM Agent - {agent.hostname} - Live System Data</div>
-                <div className="text-yellow-400">Last Updated: {latestReport?.collected_at ? new Date(latestReport.collected_at).toLocaleString() : 'N/A'}</div>
-                <div>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
+                <div className="text-green-300">
+                  # ITSM Agent - {agent.hostname} - Live System Data
+                </div>
+                <div className="text-yellow-400">
+                  Last Updated:{" "}
+                  {latestReport?.collected_at
+                    ? new Date(latestReport.collected_at).toLocaleString()
+                    : "N/A"}
+                </div>
+                <div>
+                  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                </div>
 
                 <div className="mt-4">
                   <div className="text-blue-400">SYSTEM STATUS:</div>
-                  <div>Status: <span className={agent.status === 'online' ? 'text-green-400' : 'text-red-400'}>{agent.status.toUpperCase()}</span></div>
-                  <div>OS: {rawData.os_info?.name || rawData.os_info?.platform || agent.os_name || 'Windows 10'} {rawData.os_info?.version || rawData.os_info?.release || agent.os_version || ''}</div>
-                  <div>Architecture: {rawData.os_info?.architecture || rawData.architecture || rawData.hardware?.system?.architecture || '64bit'}</div>
-                  <div>Assigned User: {(() => {
-                    const user = rawData.assigned_user || agent.assigned_user || rawData.current_user || rawData.user || rawData.username;
-                    if (!user || user === "Unknown") return "N/A";
-                    if (user.endsWith("$")) {
-                      // Look for actual user in processes data
-                      const processes = rawData.processes || [];
-                      for (const process of processes) {
-                        const processUser = process.username;
-                        if (processUser && processUser.includes("\\") && !processUser.includes("NT AUTHORITY") && !processUser.includes("Window Manager")) {
-                          const actualUser = processUser.split("\\").pop();
-                          if (actualUser && !actualUser.endsWith("$") && actualUser !== "SYSTEM") {
-                            return actualUser;
+                  <div>
+                    Status:{" "}
+                    <span
+                      className={
+                        agent.status === "online"
+                          ? "text-green-400"
+                          : "text-red-400"
+                      }
+                    >
+                      {agent.status.toUpperCase()}
+                    </span>
+                  </div>
+                  <div>
+                    OS:{" "}
+                    {rawData.os_info?.name ||
+                      rawData.os_info?.platform ||
+                      agent.os_name ||
+                      "Windows 10"}{" "}
+                    {rawData.os_info?.version ||
+                      rawData.os_info?.release ||
+                      agent.os_version ||
+                      ""}
+                  </div>
+                  <div>
+                    Architecture:{" "}
+                    {rawData.os_info?.architecture ||
+                      rawData.architecture ||
+                      rawData.hardware?.system?.architecture ||
+                      "64bit"}
+                  </div>
+                  <div>
+                    Assigned User:{" "}
+                    {(() => {
+                      const user =
+                        rawData.assigned_user ||
+                        agent.assigned_user ||
+                        rawData.current_user ||
+                        rawData.user ||
+                        rawData.username;
+                      if (!user || user === "Unknown") return "N/A";
+                      if (user.endsWith("$")) {
+                        // Look for actual user in processes data
+                        const processes = rawData.processes || [];
+                        for (const process of processes) {
+                          const processUser = process.username;
+                          if (
+                            processUser &&
+                            processUser.includes("\\") &&
+                            !processUser.includes("NT AUTHORITY") &&
+                            !processUser.includes("Window Manager")
+                          ) {
+                            const actualUser = processUser.split("\\").pop();
+                            if (
+                              actualUser &&
+                              !actualUser.endsWith("$") &&
+                              actualUser !== "SYSTEM"
+                            ) {
+                              return actualUser;
+                            }
                           }
                         }
+                        return "Computer Account";
                       }
-                      return "Computer Account";
-                    }
-                    if (user.includes("\\")) return user.split("\\").pop() || user;
-                    if (user.includes("@")) return user.split("@")[0];
-                    return user;
-                  })()}</div>
+                      if (user.includes("\\"))
+                        return user.split("\\").pop() || user;
+                      if (user.includes("@")) return user.split("@")[0];
+                      return user;
+                    })()}
+                  </div>
                 </div>
 
                 <div className="mt-4">
                   <div className="text-blue-400">PERFORMANCE METRICS:</div>
-                  <div>CPU Usage: <span className="text-yellow-400">{latestReport?.cpu_usage ? parseFloat(latestReport.cpu_usage).toFixed(2) : '0.00'}%</span></div>
-                  <div>Memory Usage: <span className="text-yellow-400">{latestReport?.memory_usage ? parseFloat(latestReport.memory_usage).toFixed(2) : '0.00'}%</span></div>
-                  <div>Disk Usage: <span className="text-yellow-400">{latestReport?.disk_usage ? parseFloat(latestReport.disk_usage).toFixed(2) : '0.00'}%</span></div>
-                  <div>Network I/O: <span className="text-yellow-400">{latestReport?.network_io ? (parseInt(latestReport.network_io) / 1024 / 1024).toFixed(2) : '0.00'} MB</span></div>
+                  <div>
+                    CPU Usage:{" "}
+                    <span className="text-yellow-400">
+                      {latestReport?.cpu_usage
+                        ? parseFloat(latestReport.cpu_usage).toFixed(2)
+                        : "0.00"}
+                      %
+                    </span>
+                  </div>
+                  <div>
+                    Memory Usage:{" "}
+                    <span className="text-yellow-400">
+                      {latestReport?.memory_usage
+                        ? parseFloat(latestReport.memory_usage).toFixed(2)
+                        : "0.00"}
+                      %
+                    </span>
+                  </div>
+                  <div>
+                    Disk Usage:{" "}
+                    <span className="text-yellow-400">
+                      {latestReport?.disk_usage
+                        ? parseFloat(latestReport.disk_usage).toFixed(2)
+                        : "0.00"}
+                      %
+                    </span>
+                  </div>
+                  <div>
+                    Network I/O:{" "}
+                    <span className="text-yellow-400">
+                      {latestReport?.network_io
+                        ? (
+                            parseInt(latestReport.network_io) /
+                            1024 /
+                            1024
+                          ).toFixed(2)
+                        : "0.00"}{" "}
+                      MB
+                    </span>
+                  </div>
                 </div>
 
                 <div className="mt-4">
                   <div className="text-blue-400">SYSTEM HEALTH:</div>
                   {rawData.system_health ? (
                     <>
-                      <div>Disk Health: <span className="text-green-400">{rawData.system_health.disk_health?.status || 'Unknown'}</span></div>
-                      <div>Memory Pressure: <span className="text-yellow-400">{rawData.system_health.memory_pressure?.pressure_level || 'Unknown'}</span></div>
-                      <div>Memory Usage: <span className="text-yellow-400">{rawData.system_health.memory_pressure?.usage_percent || 0}%</span></div>
+                      <div>
+                        Disk Health:{" "}
+                        <span className="text-green-400">
+                          {rawData.system_health.disk_health?.status ||
+                            "Unknown"}
+                        </span>
+                      </div>
+                      <div>
+                        Memory Pressure:{" "}
+                        <span className="text-yellow-400">
+                          {rawData.system_health.memory_pressure
+                            ?.pressure_level || "Unknown"}
+                        </span>
+                      </div>
+                      <div>
+                        Memory Usage:{" "}
+                        <span className="text-yellow-400">
+                          {rawData.system_health.memory_pressure
+                            ?.usage_percent || 0}
+                          %
+                        </span>
+                      </div>
                     </>
                   ) : (
                     <div>No health data available</div>
@@ -800,9 +941,24 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                   <div className="text-blue-400">SECURITY STATUS:</div>
                   {rawData.security ? (
                     <>
-                      <div>Firewall: <span className="text-green-400">{rawData.security.firewall_status || 'Unknown'}</span></div>
-                      <div>Antivirus: <span className="text-green-400">{rawData.security.antivirus_status || 'Unknown'}</span></div>
-                      <div>Last Scan: <span className="text-yellow-400">{rawData.security.last_scan || 'Unknown'}</span></div>
+                      <div>
+                        Firewall:{" "}
+                        <span className="text-green-400">
+                          {rawData.security.firewall_status || "Unknown"}
+                        </span>
+                      </div>
+                      <div>
+                        Antivirus:{" "}
+                        <span className="text-green-400">
+                          {rawData.security.antivirus_status || "Unknown"}
+                        </span>
+                      </div>
+                      <div>
+                        Last Scan:{" "}
+                        <span className="text-yellow-400">
+                          {rawData.security.last_scan || "Unknown"}
+                        </span>
+                      </div>
                     </>
                   ) : (
                     <div>No security data available</div>
@@ -813,12 +969,21 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                   <div className="text-blue-400">TOP PROCESSES (by CPU):</div>
                   {rawData.processes && rawData.processes.length > 0 ? (
                     rawData.processes
-                      .filter(process => process.cpu_percent > 1)
+                      .filter((process) => process.cpu_percent > 1)
                       .sort((a, b) => b.cpu_percent - a.cpu_percent)
                       .slice(0, 10)
                       .map((process, index) => (
                         <div key={index}>
-                          PID {process.pid}: <span className="text-cyan-400">{process.name}</span> - CPU: <span className="text-yellow-400">{process.cpu_percent.toFixed(1)}%</span> RAM: <span className="text-yellow-400">{process.memory_percent.toFixed(1)}%</span>
+                          PID {process.pid}:{" "}
+                          <span className="text-cyan-400">{process.name}</span>{" "}
+                          - CPU:{" "}
+                          <span className="text-yellow-400">
+                            {process.cpu_percent.toFixed(1)}%
+                          </span>{" "}
+                          RAM:{" "}
+                          <span className="text-yellow-400">
+                            {process.memory_percent.toFixed(1)}%
+                          </span>
                         </div>
                       ))
                   ) : (
@@ -827,41 +992,55 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                 </div>
 
                 <div className="mt-4">
-                  <div className="text-blue-400">INSTALLED SOFTWARE (Sample):</div>
+                  <div className="text-blue-400">
+                    INSTALLED SOFTWARE (Sample):
+                  </div>
                   {rawData.software && rawData.software.length > 0 ? (
                     rawData.software.slice(0, 5).map((software, index) => (
                       <div key={index}>
-                        <span className="text-cyan-400">{software.name}</span> v{software.version} - <span className="text-gray-400">{software.vendor}</span>
+                        <span className="text-cyan-400">{software.name}</span> v
+                        {software.version} -{" "}
+                        <span className="text-gray-400">{software.vendor}</span>
                       </div>
                     ))
                   ) : (
-                    <div><div>No software data available</div>
+                    <div>No software data available</div>
                   )}
                 </div>
 
                 <div className="mt-4">
                   <div className="text-blue-400">NETWORK INFO:</div>
                   {(() => {
-                    const interfaces = rawData.network?.interfaces || agent.network?.interfaces || [];
-                    const activeInterfaces = interfaces.filter(iface => 
-                      iface.stats?.is_up && 
-                      iface.addresses && 
-                      iface.addresses.some(addr => 
-                        addr.family === "AF_INET" && 
-                        !addr.address.startsWith("127.") && 
-                        !addr.address.startsWith("169.254.")
-                      )
+                    const interfaces =
+                      rawData.network?.interfaces ||
+                      agent.network?.interfaces ||
+                      [];
+                    const activeInterfaces = interfaces.filter(
+                      (iface) =>
+                        iface.stats?.is_up &&
+                        iface.addresses &&
+                        iface.addresses.some(
+                          (addr) =>
+                            addr.family === "AF_INET" &&
+                            !addr.address.startsWith("127.") &&
+                            !addr.address.startsWith("169.254."),
+                        ),
                     );
                     return activeInterfaces.length > 0 ? (
                       activeInterfaces.slice(0, 3).map((iface, index) => {
-                        const ipAddr = iface.addresses.find(addr => 
-                          addr.family === "AF_INET" && 
-                          !addr.address.startsWith("127.") && 
-                          !addr.address.startsWith("169.254.")
+                        const ipAddr = iface.addresses.find(
+                          (addr) =>
+                            addr.family === "AF_INET" &&
+                            !addr.address.startsWith("127.") &&
+                            !addr.address.startsWith("169.254."),
                         );
                         return (
                           <div key={index}>
-                            {iface.name}: <span className="text-green-400">Active</span> - IP: <span className="text-yellow-400">{ipAddr?.address || 'N/A'}</span>
+                            {iface.name}:{" "}
+                            <span className="text-green-400">Active</span> - IP:{" "}
+                            <span className="text-yellow-400">
+                              {ipAddr?.address || "N/A"}
+                            </span>
                           </div>
                         );
                       })
@@ -874,13 +1053,13 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                 <div className="mt-4 text-gray-500">
                   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                 </div>
-                <div className="text-green-300">$ Agent monitoring active...</div>
+                <div className="text-green-300">
+                  $ Agent monitoring active...
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
-
-
       </TabsContent>
 
       <TabsContent value="hardware" className="space-y-6">
@@ -915,7 +1094,8 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                   <span className="font-medium">{maxFreq}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-neutral-600">Architecture:</span>                  <span className="font-medium">
+                  <span className="text-neutral-600">Architecture:</span>{" "}
+                  <span className="font-medium">
                     {architecture !== "Unknown" ? architecture : "N/A"}
                   </span>
                 </div>
@@ -1011,7 +1191,8 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                 <Usb className="w-5 h-5" />
                 <span>USB Devices</span>
                 <span className="text-sm text-neutral-500">
-                  ({usbHistory.filter(d => d.is_connected).length} connected, {usbHistory.length} total history)
+                  ({usbHistory.filter((d) => d.is_connected).length} connected,{" "}
+                  {usbHistory.length} total history)
                   {usbDevices.length > 0 && (
                     <span className="text-green-600 ml-2">
                       | {usbDevices.length} current
@@ -1021,8 +1202,6 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-
-
               {/* Show USB device history with proper status display */}
               {usbHistory.length > 0 ? (
                 <div className="space-y-3">
@@ -1031,7 +1210,8 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                     <Usb className="w-4 h-4" />
                     USB Device Activity
                     <span className="text-xs text-gray-500">
-                      ({usbHistory.filter(d => d.is_connected).length} currently connected, {usbHistory.length} total tracked)
+                      ({usbHistory.filter((d) => d.is_connected).length}{" "}
+                      currently connected, {usbHistory.length} total tracked)
                     </span>
                   </h4>
 
@@ -1042,87 +1222,119 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                       if (a.is_connected && !b.is_connected) return -1;
                       if (!a.is_connected && b.is_connected) return 1;
                       // Then sort by last seen (most recent first)
-                      return new Date(b.last_seen).getTime() - new Date(a.last_seen).getTime();
+                      return (
+                        new Date(b.last_seen).getTime() -
+                        new Date(a.last_seen).getTime()
+                      );
                     })
                     .map((device: any, index) => {
-                      const timeSinceLastSeen = formatDistanceToNow(new Date(device.last_seen), { addSuffix: true });
-                      const isRecentlyActive = new Date().getTime() - new Date(device.last_seen).getTime() < 5 * 60 * 1000; // 5 minutes
+                      const timeSinceLastSeen = formatDistanceToNow(
+                        new Date(device.last_seen),
+                        { addSuffix: true },
+                      );
+                      const isRecentlyActive =
+                        new Date().getTime() -
+                          new Date(device.last_seen).getTime() <
+                        5 * 60 * 1000; // 5 minutes
 
                       return (
-                        <div key={device.id || index} className={`p-3 border rounded-lg ${
-                          device.is_connected && isRecentlyActive
-                            ? 'bg-green-50 border-green-200' 
-                            : device.is_connected 
-                            ? 'bg-blue-50 border-blue-200'
-                            : 'bg-neutral-50 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700'
-                        }`}>
+                        <div
+                          key={device.id || index}
+                          className={`p-3 border rounded-lg ${
+                            device.is_connected && isRecentlyActive
+                              ? "bg-green-50 border-green-200"
+                              : device.is_connected
+                                ? "bg-blue-50 border-blue-200"
+                                : "bg-neutral-50 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700"
+                          }`}
+                        >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
                                 <h4 className="font-medium text-neutral-900 dark:text-neutral-100">
-                                  {device.description || device.name || `USB Device ${index + 1}`}
+                                  {device.description ||
+                                    device.name ||
+                                    `USB Device ${index + 1}`}
                                 </h4>
                                 {device.is_connected && isRecentlyActive && (
                                   <div className="flex items-center gap-1">
                                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                    <span className="text-xs text-green-600 dark:text-green-400">Currently Active</span>
+                                    <span className="text-xs text-green-600 dark:text-green-400">
+                                      Currently Active
+                                    </span>
                                   </div>
                                 )}
                               </div>
 
                               {device.vendor_id && device.product_id && (
                                 <div className="text-neutral-600 dark:text-neutral-400 text-sm mb-1">
-                                  <span className="font-medium">VID:</span> {device.vendor_id} | 
-                                  <span className="font-medium ml-2">PID:</span> {device.product_id}
+                                  <span className="font-medium">VID:</span>{" "}
+                                  {device.vendor_id} |
+                                  <span className="font-medium ml-2">PID:</span>{" "}
+                                  {device.product_id}
                                 </div>
                               )}
 
                               {device.manufacturer && (
                                 <div className="text-neutral-600 dark:text-neutral-400 text-sm">
-                                  <span className="font-medium">Manufacturer:</span> {device.manufacturer}
+                                  <span className="font-medium">
+                                    Manufacturer:
+                                  </span>{" "}
+                                  {device.manufacturer}
                                 </div>
                               )}
 
                               {device.serial_number && (
                                 <div className="text-neutral-600 dark:text-neutral-400 text-sm">
-                                  <span className="font-medium">Serial:</span> {device.serial_number}
+                                  <span className="font-medium">Serial:</span>{" "}
+                                  {device.serial_number}
                                 </div>
                               )}
 
                               {device.device_class && (
                                 <div className="text-neutral-600 dark:text-neutral-400 text-sm">
-                                  <span className="font-medium">Class:</span> {device.device_class}
+                                  <span className="font-medium">Class:</span>{" "}
+                                  {device.device_class}
                                 </div>
                               )}
 
                               {device.location && (
                                 <div className="text-neutral-600 dark:text-neutral-400 text-sm">
-                                  <span className="font-medium">Location:</span> {device.location}
+                                  <span className="font-medium">Location:</span>{" "}
+                                  {device.location}
                                 </div>
                               )}
 
                               {device.speed && (
                                 <div className="text-neutral-600 dark:text-neutral-400 text-sm">
-                                  <span className="font-medium">Speed:</span> {device.speed}
+                                  <span className="font-medium">Speed:</span>{" "}
+                                  {device.speed}
                                 </div>
                               )}
                             </div>
 
                             <div className="flex flex-col items-end gap-2">
-                              <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                device.is_connected && isRecentlyActive
-                                  ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
-                                  : device.is_connected 
-                                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
-                                  : 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200'
-                              }`}>
-                                {device.is_connected && isRecentlyActive ? 'Active Now' : 
-                                 device.is_connected ? 'Connected' : 'Inactive'}
+                              <div
+                                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  device.is_connected && isRecentlyActive
+                                    ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+                                    : device.is_connected
+                                      ? "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
+                                      : "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200"
+                                }`}
+                              >
+                                {device.is_connected && isRecentlyActive
+                                  ? "Active Now"
+                                  : device.is_connected
+                                    ? "Connected"
+                                    : "Inactive"}
                               </div>
 
                               <div className="text-xs text-neutral-500 dark:text-neutral-400 text-right">
                                 <div className="font-medium">
-                                  {device.is_connected && isRecentlyActive ? 'Last Report' : 'Last Seen'}
+                                  {device.is_connected && isRecentlyActive
+                                    ? "Last Report"
+                                    : "Last Seen"}
                                 </div>
                                 <div>{timeSinceLastSeen}</div>
                               </div>
@@ -1131,24 +1343,34 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
 
                           <div className="mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-600 text-xs text-neutral-500 dark:text-neutral-400">
                             <div>
-                              <span className="font-medium">First Detected:</span> {formatDistanceToNow(new Date(device.first_seen), { addSuffix: true })}
+                              <span className="font-medium">
+                                First Detected:
+                              </span>{" "}
+                              {formatDistanceToNow(
+                                new Date(device.first_seen),
+                                { addSuffix: true },
+                              )}
                             </div>
                           </div>
                         </div>
                       );
-                    })
-                  }
+                    })}
                 </div>
               ) : (
                 <div className="text-center py-6">
                   <Usb className="w-12 h-12 mx-auto text-neutral-400 mb-2" />
-                  <p className="text-neutral-500 italic">No USB devices have been detected</p>
+                  <p className="text-neutral-500 italic">
+                    No USB devices have been detected
+                  </p>
                   <p className="text-xs text-neutral-400 mt-1">
-                    USB devices will appear here when connected and tracked over time
+                    USB devices will appear here when connected and tracked over
+                    time
                   </p>
                   {/* Debug info for troubleshooting */}
                   <details className="mt-4 text-left">
-                    <summary className="text-xs text-gray-500 cursor-pointer">Debug Info</summary>
+                    <summary className="text-xs text-gray-500 cursor-pointer">
+                      Debug Info
+                    </summary>
                     <div className="text-xs text-gray-600 mt-2 font-mono bg-gray-100 p-2 rounded">
                       <div>Raw USB devices in report: {usbDevices.length}</div>
                       <div>Database history count: {usbHistory.length}</div>
@@ -1310,14 +1532,16 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                       [];
 
                     // Filter to show only active interfaces with IP addresses
-                    const activeInterfaces = interfaces.filter(iface => 
-                      iface.stats?.is_up && 
-                      iface.addresses && 
-                      iface.addresses.some(addr => 
-                        addr.family === "AF_INET" && 
-                        !addr.address.startsWith("127.") && 
-                        !addr.address.startsWith("169.254.")
-                      )
+                    const activeInterfaces = interfaces.filter(
+                      (iface) =>
+                        iface.stats?.is_up &&
+                        iface.addresses &&
+                        iface.addresses.some(
+                          (addr) =>
+                            addr.family === "AF_INET" &&
+                            !addr.address.startsWith("127.") &&
+                            !addr.address.startsWith("169.254."),
+                        ),
                     );
 
                     return activeInterfaces;
@@ -1651,8 +1875,15 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                 {Array.isArray(processInfo) && processInfo.length > 0 ? (
                   <div className="space-y-3">
                     {processInfo
-                      .filter(process => (process.cpu_percent || process.cpu_usage || 0) > 0.1)
-                      .sort((a, b) => (b.cpu_percent || b.cpu_usage || 0) - (a.cpu_percent || a.cpu_usage || 0))
+                      .filter(
+                        (process) =>
+                          (process.cpu_percent || process.cpu_usage || 0) > 0.1,
+                      )
+                      .sort(
+                        (a, b) =>
+                          (b.cpu_percent || b.cpu_usage || 0) -
+                          (a.cpu_percent || a.cpu_usage || 0),
+                      )
                       .slice(0, 10)
                       .map((process, index) => (
                         <div
@@ -1661,21 +1892,28 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                         >
                           <div className="grid grid-cols-1 md:grid-cols-3gap-3 text-sm">
                             <div>
-                              <span className="text-neutral-600">Process: </span>
+                              <span className="text-neutral-600">
+                                Process:{" "}
+                              </span>
                               <span className="font-medium">
                                 {process.name || process.process_name || "N/A"}
                               </span>
                               <p className="text-xs text-neutral-500">
-                                PID: {process.pid || process.process_id || "N/A"}
+                                PID:{" "}
+                                {process.pid || process.process_id || "N/A"}
                               </p>
                             </div>
                             <div>
                               <span className="text-neutral-600">CPU: </span>
                               <span
                                 className={`font-medium ${
-                                  (process.cpu_percent || process.cpu_usage || 0) >= 10
+                                  (process.cpu_percent ||
+                                    process.cpu_usage ||
+                                    0) >= 10
                                     ? "text-red-600"
-                                    : (process.cpu_percent || process.cpu_usage || 0) >= 5
+                                    : (process.cpu_percent ||
+                                          process.cpu_usage ||
+                                          0) >= 5
                                       ? "text-yellow-600"
                                       : "text-green-600"
                                 }`}
@@ -1760,123 +1998,160 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
         </Card>
       </TabsContent>
 
-      
+      <TabsContent value="updates" className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>System Update Status</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span>Last Boot Time</span>
+              <span className="text-muted-foreground">
+                {rawData?.extracted_update_info?.last_boot_time
+                  ? format(
+                      new Date(rawData.extracted_update_info.last_boot_time),
+                      "PPpp",
+                    )
+                  : "5/22/2025, 6:39:47 PM"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>System Uptime</span>
+              <span className="text-muted-foreground">
+                {rawData?.extracted_update_info?.system_uptime_hours
+                  ? `${rawData.extracted_update_info.system_uptime_hours} hours`
+                  : "449 hours"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Pending Reboot</span>
+              <Badge
+                variant={
+                  rawData?.extracted_update_info?.pending_reboot
+                    ? "destructive"
+                    : "default"
+                }
+              >
+                {rawData?.extracted_update_info?.pending_reboot
+                  ? "Required"
+                  : "Not Required"}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Windows Version</span>
+              <span className="text-muted-foreground">
+                {rawData?.extracted_update_info?.windows_version ||
+                  rawData?.os_info?.display_version ||
+                  rawData?.os_info?.product_name ||
+                  "24H2"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Last Update Check</span>
+              <span className="text-muted-foreground">
+                {rawData?.extracted_update_info?.last_update_check || "Unknown"}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
 
-<TabsContent value="updates" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>System Update Status</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span>Last Boot Time</span>
-                <span className="text-muted-foreground">
-                  {rawData?.extracted_update_info?.last_boot_time ? 
-                    format(new Date(rawData.extracted_update_info.last_boot_time), 'PPpp') : 
-                    '5/22/2025, 6:39:47 PM'
+        <Card>
+          <CardHeader>
+            <CardTitle>Security Status</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 border rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Shield className="w-4 h-4 text-blue-500" />
+                  <span className="font-medium">Firewall Status</span>
+                </div>
+                <Badge
+                  variant={
+                    rawData?.extracted_security_info?.firewall_status ===
+                    "enabled"
+                      ? "default"
+                      : "destructive"
                   }
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>System Uptime</span>
-                <span className="text-muted-foreground">
-                  {rawData?.extracted_update_info?.system_uptime_hours ? 
-                    `${rawData.extracted_update_info.system_uptime_hours} hours` : 
-                    '449 hours'
-                  }
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Pending Reboot</span>
-                <Badge variant={rawData?.extracted_update_info?.pending_reboot ? "destructive" : "default"}>
-                  {rawData?.extracted_update_info?.pending_reboot ? "Required" : "Not Required"}
+                >
+                  {rawData?.extracted_security_info?.firewall_status ||
+                    "enabled"}
                 </Badge>
               </div>
-              <div className="flex items-center justify-between">
-                <span>Windows Version</span>
-                <span className="text-muted-foreground">
-                  {rawData?.extracted_update_info?.windows_version || 
-                   rawData?.os_info?.display_version || 
-                   rawData?.os_info?.product_name || 
-                   '24H2'
+              <div className="p-4 border rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Shield className="w-4 h-4 text-green-500" />
+                  <span className="font-medium">Antivirus Status</span>
+                </div>
+                <Badge
+                  variant={
+                    rawData?.extracted_security_info?.antivirus_status ===
+                    "enabled"
+                      ? "default"
+                      : "destructive"
                   }
-                </span>
+                >
+                  {rawData?.extracted_security_info?.antivirus_status ||
+                    "enabled"}
+                </Badge>
               </div>
-              <div className="flex items-center justify-between">
-                <span>Last Update Check</span>
-                <span className="text-muted-foreground">
-                  {rawData?.extracted_update_info?.last_update_check || 'Unknown'}
-                </span>
+              <div className="p-4 border rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Download className="w-4 h-4 text-purple-500" />
+                  <span className="font-medium">Last Security Scan</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {rawData?.extracted_security_info?.last_scan ||
+                    "QuickScanStartTime: 6/9/2025 1:31:02 PM"}
+                </p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Security Status</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Shield className="w-4 h-4 text-blue-500" />
-                    <span className="font-medium">Firewall Status</span>
-                  </div>
-                  <Badge variant={rawData?.extracted_security_info?.firewall_status === 'enabled' ? "default" : "destructive"}>
-                    {rawData?.extracted_security_info?.firewall_status || 'enabled'}
-                  </Badge>
-                </div>
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Shield className="w-4 h-4 text-green-500" />
-                    <span className="font-medium">Antivirus Status</span>
-                  </div>
-                  <Badge variant={rawData?.extracted_security_info?.antivirus_status === 'enabled' ? "default" : "destructive"}>
-                    {rawData?.extracted_security_info?.antivirus_status || 'enabled'}
-                  </Badge>
-                </div>
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Download className="w-4 h-4 text-purple-500" />
-                    <span className="font-medium">Last Security Scan</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {rawData?.extracted_security_info?.last_scan || 'QuickScanStartTime: 6/9/2025 1:31:02 PM'}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Updates</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {rawData?.extracted_update_info?.recent_updates && rawData.extracted_update_info.recent_updates.length > 0 ? (
-                <div className="space-y-3">
-                  {rawData.extracted_update_info.recent_updates.map((update: any, index: number) => (
-                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Updates</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {rawData?.extracted_update_info?.recent_updates &&
+            rawData.extracted_update_info.recent_updates.length > 0 ? (
+              <div className="space-y-3">
+                {rawData.extracted_update_info.recent_updates.map(
+                  (update: any, index: number) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 border rounded-lg"
+                    >
                       <div>
-                        <p className="font-medium">{update.title || update.name}</p>
+                        <p className="font-medium">
+                          {update.title || update.name}
+                        </p>
                         <p className="text-sm text-muted-foreground">
-                          Installed: {update.installed_date ? format(new Date(update.installed_date), 'PPp') : 'Unknown'}
+                          Installed:{" "}
+                          {update.installed_date
+                            ? format(new Date(update.installed_date), "PPp")
+                            : "Unknown"}
                         </p>
                       </div>
-                      <Badge variant="outline">{update.type || 'Update'}</Badge>
+                      <Badge variant="outline">{update.type || "Update"}</Badge>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Download className="w-12 h-12 mx-auto mb-4" />
-                  <p>No recent updates data available</p>
-                  <p className="text-sm">Update information will appear here when collected by the agent</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                  ),
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Download className="w-12 h-12 mx-auto mb-4" />
+                <p>No recent updates data available</p>
+                <p className="text-sm">
+                  Update information will appear here when collected by the
+                  agent
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </TabsContent>
     </Tabs>
   );
 }
