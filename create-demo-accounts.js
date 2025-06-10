@@ -15,7 +15,7 @@ const pool = new Pool({
 const demoAccounts = [
   {
     email: "admin@company.com",
-    password: "Admin123!",
+    password: "admin123", // Changed to match what's expected on login page
     username: "admin",
     first_name: "System",
     last_name: "Administrator",
@@ -102,7 +102,7 @@ async function createDemoAccounts() {
         
         await pool.query(`
           INSERT INTO users (
-            email, username, first_name, last_name, password_hash, 
+            email, username, first_name, last_name, password_hash,
             role, job_title, location, is_active
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         `, [
@@ -125,7 +125,7 @@ async function createDemoAccounts() {
     console.log("┌─────────────────────────┬──────────────┬─────────────────┐");
     console.log("│ Email                   │ Password     │ Role            │");
     console.log("├─────────────────────────┼──────────────┼─────────────────┤");
-    console.log("│ admin@company.com       │ Admin123!    │ Administrator   │");
+    console.log("│ admin@company.com       │ admin123     │ Administrator   │");
     console.log("│ tech@company.com        │ tech123      │ Technician      │");
     console.log("│ manager@company.com     │ demo123      │ Manager         │");
     console.log("│ user@company.com        │ demo123      │ End User        │");
@@ -143,11 +143,16 @@ async function createDemoAccounts() {
           WHEN 'technician' THEN 3 
           WHEN 'end_user' THEN 4 
         END
-    `, ['admin@company.com', 'tech@company.com', 'manager@company.com', 'user@company.com']);
+    `, [
+      'admin@company.com',
+      'tech@company.com', 
+      'manager@company.com',
+      'user@company.com'
+    ]);
     
-    console.log("\n📋 Account verification:");
+    console.log("\n📋 Verified accounts in database:");
     verifyResult.rows.forEach(user => {
-      console.log(`  ✓ ${user.email} - ${user.role} - Active: ${user.is_active}`);
+      console.log(`  ✓ ${user.email} (${user.role}) - Active: ${user.is_active}`);
     });
     
   } catch (error) {
