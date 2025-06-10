@@ -10,22 +10,23 @@ import { userSchema } from "@shared/user-schema";
 import { adminSchema } from "@shared/admin-schema";
 import { knowledgeSchema } from "@shared/knowledge-schema";
 import { tickets } from "@shared/ticket-schema";
-import userStorage from './user-storage';
-import knowledgeStorage from './knowledge-storage';
-import ticketStorage from './ticket-storage';
+import userStorage from "./user-storage";
+import knowledgeStorage from "./knowledge-storage";
+import ticketStorage from "./ticket-storage";
 import { securityService } from "./security-service";
 import { performanceService } from "./performance-service";
 import { automationService } from "./automation-service";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+const JWT_SECRET =
+  process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
 // Auth middleware
 const authenticateToken = async (req: any, res: any, next: any) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
 
   if (!token) {
-    return res.status(401).json({ message: 'Access token required' });
+    return res.status(401).json({ message: "Access token required" });
   }
 
   try {
@@ -35,52 +36,59 @@ const authenticateToken = async (req: any, res: any, next: any) => {
     // Try to get user from database first
     try {
       const { pool } = await import("./db");
-      const result = await pool.query(`
+      const result = await pool.query(
+        `
         SELECT id, email, role, first_name, last_name, username, is_active, phone, location 
         FROM users WHERE id = $1
-      `, [decoded.userId || decoded.id]);
+      `,
+        [decoded.userId || decoded.id],
+      );
 
       if (result.rows.length > 0) {
         const user = result.rows[0];
 
         // Build name from available fields
-        let displayName = '';
+        let displayName = "";
         if (user.first_name || user.last_name) {
-          displayName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+          displayName =
+            `${user.first_name || ""} ${user.last_name || ""}`.trim();
         } else if (user.username) {
           displayName = user.username;
         } else {
-          displayName = user.email.split('@')[0];
+          displayName = user.email.split("@")[0];
         }
 
         user.name = displayName;
 
         if (!user.is_active) {
-          return res.status(403).json({ message: 'User account is inactive' });
+          return res.status(403).json({ message: "User account is inactive" });
         }
 
         req.user = user;
         return next();
       }
     } catch (dbError) {
-      console.log("Database lookup failed, trying file storage:", dbError.message);
+      console.log(
+        "Database lookup failed, trying file storage:",
+        dbError.message,
+      );
     }
 
     // Fallback to file storage
     const user = await storage.getUserById(decoded.userId || decoded.id);
     if (!user) {
-      return res.status(403).json({ message: 'User not found' });
+      return res.status(403).json({ message: "User not found" });
     }
 
     if (user.is_active === false) {
-      return res.status(403).json({ message: 'User account is inactive' });
+      return res.status(403).json({ message: "User account is inactive" });
     }
 
     req.user = user;
     next();
   } catch (error) {
     console.error("Token verification error:", error);
-    return res.status(403).json({ message: 'Invalid token' });
+    return res.status(403).json({ message: "Invalid token" });
   }
 };
 
@@ -90,10 +98,10 @@ const requireRole = (roles: string | string[]) => {
     const userRole = req.user?.role;
     const allowedRoles = Array.isArray(roles) ? roles : [roles];
 
-    if (userRole === 'admin' || allowedRoles.includes(userRole)) {
+    if (userRole === "admin" || allowedRoles.includes(userRole)) {
       next();
     } else {
-      res.status(403).json({ message: 'Insufficient permissions' });
+      res.status(403).json({ message: "Insufficient permissions" });
     }
   };
 };
@@ -124,7 +132,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Login attempt for:", email);
 
       if (!email || !password) {
-        return res.status(400).json({ message: "Email and password are required" });
+        return res
+          .status(400)
+          .json({ message: "Email and password are required" });
       }
 
       try {
@@ -138,20 +148,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
           WHERE table_name = 'users' AND table_schema = 'public'
         `);
 
-        const availableColumns = columnsResult.rows.map(row => row.column_name);
+        const availableColumns = columnsResult.rows.map(
+          (row) => row.column_name,
+        );
         console.log("Available columns in users table:", availableColumns);
 
         // Build query with only available columns
-        let selectColumns = ['id', 'email', 'role'];
-        let optionalColumns = ['password_hash', 'is_active', 'is_locked', 'last_login', 'phone', 'location', 'first_name', 'last_name', 'username', 'name'];
+        let selectColumns = ["id", "email", "role"];
+        let optionalColumns = [
+          "password_hash",
+          "is_active",
+          "is_locked",
+          "last_login",
+          "phone",
+          "location",
+          "first_name",
+          "last_name",
+          "username",
+          "name",
+        ];
 
-        optionalColumns.forEach(col => {
+        optionalColumns.forEach((col) => {
           if (availableColumns.includes(col)) {
             selectColumns.push(col);
           }
         });
 
-        const query = `SELECT ${selectColumns.join(', ')} FROM users WHERE email = $1`;
+        const query = `SELECT ${selectColumns.join(", ")} FROM users WHERE email = $1`;
         console.log("Executing query:", query);
 
         const result = await pool.query(query, [email.toLowerCase()]);
@@ -167,54 +190,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Check if user is locked (if column exists)
         if (user.is_locked) {
-          return res.status(401).json({ message: "Account is locked. Contact administrator." });
+          return res
+            .status(401)
+            .json({ message: "Account is locked. Contact administrator." });
         }
 
         // Check if user is active (if column exists)
         if (user.is_active === false) {
-          return res.status(401).json({ message: "Account is inactive. Contact administrator." });
+          return res
+            .status(401)
+            .json({ message: "Account is inactive. Contact administrator." });
         }
 
         // Verify password if password_hash exists
         if (user.password_hash) {
-          const isValidPassword = await bcrypt.compare(password, user.password_hash);
+          const isValidPassword = await bcrypt.compare(
+            password,
+            user.password_hash,
+          );
           if (!isValidPassword) {
             console.log("Invalid password for user:", email);
             return res.status(401).json({ message: "Invalid credentials" });
           }
         } else {
           // No password hash stored, check against default passwords
-          const validPasswords = ["Admin123!", "Tech123!", "Manager123!", "User123!"];
+          const validPasswords = [
+            "Admin123!",
+            "Tech123!",
+            "Manager123!",
+            "User123!",
+          ];
           if (!validPasswords.includes(password)) {
             return res.status(401).json({ message: "Invalid credentials" });
           }
         }
 
         // Update last login if column exists
-        if (availableColumns.includes('last_login')) {
-          await pool.query(`UPDATE users SET last_login = NOW() WHERE id = $1`, [user.id]);
+        if (availableColumns.includes("last_login")) {
+          await pool.query(
+            `UPDATE users SET last_login = NOW() WHERE id = $1`,
+            [user.id],
+          );
         }
 
         // Generate JWT token
         const token = jwt.sign(
           { userId: user.id, id: user.id, email: user.email, role: user.role },
           JWT_SECRET,
-          { expiresIn: '24h' }
+          { expiresIn: "24h" },
         );
 
         // Return user data without password
         const { password_hash, ...userWithoutPassword } = user;
 
         // Build name from available fields
-        let displayName = '';
+        let displayName = "";
         if (user.name) {
           displayName = user.name;
         } else if (user.first_name || user.last_name) {
-          displayName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+          displayName =
+            `${user.first_name || ""} ${user.last_name || ""}`.trim();
         } else if (user.username) {
           displayName = user.username;
         } else {
-          displayName = user.email.split('@')[0];
+          displayName = user.email.split("@")[0];
         }
 
         userWithoutPassword.name = displayName;
@@ -223,23 +262,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.json({
           message: "Login successful",
           token,
-          user: userWithoutPassword
+          user: userWithoutPassword,
         });
-
       } catch (dbError) {
-        console.log("Database lookup failed, trying file storage:", dbError.message);
+        console.log(
+          "Database lookup failed, trying file storage:",
+          dbError.message,
+        );
 
         // Fallback to file storage for demo users
         try {
           const demoUsers = await storage.getUsers({ search: email });
-          const user = demoUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+          const user = demoUsers.find(
+            (u) => u.email.toLowerCase() === email.toLowerCase(),
+          );
 
           if (!user) {
             return res.status(401).json({ message: "Invalid credentials" });
           }
 
           // For demo users, check simple password
-          const validPasswords = ["Admin123!", "Tech123!", "Manager123!", "User123!"];
+          const validPasswords = [
+            "Admin123!",
+            "Tech123!",
+            "Manager123!",
+            "User123!",
+          ];
           if (!validPasswords.includes(password)) {
             return res.status(401).json({ message: "Invalid credentials" });
           }
@@ -248,14 +296,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const token = jwt.sign(
             { userId: user.id, id: user.email, role: user.role },
             JWT_SECRET,
-            { expiresIn: '24h' }
+            { expiresIn: "24h" },
           );
 
           console.log("File storage login successful for:", email);
           res.json({
             message: "Login successful",
             token,
-            user: user
+            user: user,
           });
         } catch (fileError) {
           console.error("File storage also failed:", fileError);
@@ -273,12 +321,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { name, email, password, role, department, phone } = req.body;
 
       if (!name || !email || !password) {
-        return res.status(400).json({ message: "Name, email and password required" });
+        return res
+          .status(400)
+          .json({ message: "Name, email and password required" });
       }
 
       // Check if user already exists
       const existingUsers = await storage.getUsers({ search: email });
-      if (existingUsers.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+      if (
+        existingUsers.some((u) => u.email.toLowerCase() === email.toLowerCase())
+      ) {
         return res.status(400).json({ message: "Email already exists" });
       }
 
@@ -290,10 +342,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         name,
         email: email.toLowerCase(),
         password_hash,
-        role: role || 'user',
-        department: department || '',
-        phone: phone || '',
-        is_active: true
+        role: role || "user",
+        department: department || "",
+        phone: phone || "",
+        is_active: true,
       });
 
       // Return user data without password
@@ -301,7 +353,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.status(201).json({
         message: "Account created successfully",
-        user: userWithoutPassword
+        user: userWithoutPassword,
       });
     } catch (error) {
       console.error("Signup error:", error);
@@ -349,9 +401,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const device = await storage.getDevice(alert.device_id);
           return {
             ...alert,
-            device_hostname: device?.hostname || 'Unknown Device'
+            device_hostname: device?.hostname || "Unknown Device",
           };
-        })
+        }),
       );
 
       res.json(enhancedAlerts);
@@ -361,7 +413,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get single alert endpoint  
+  // Get single alert endpoint
   app.get("/api/alerts/:id", authenticateToken, async (req, res) => {
     try {
       const alertId = req.params.id;
@@ -389,32 +441,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if alert exists first
       const alert = await storage.getAlertById(alertId);
       if (!alert) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           message: "Alert not found",
-          alertId: alertId 
+          alertId: alertId,
         });
       }
 
       if (!alert.is_active) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           message: "Alert is already resolved",
-          alertId: alertId 
+          alertId: alertId,
         });
       }
 
       await storage.resolveAlert(alertId);
       console.log(`Alert ${alertId} resolved successfully`);
 
-      res.json({ 
+      res.json({
         message: "Alert resolved successfully",
         alertId: alertId,
-        success: true
+        success: true,
       });
     } catch (error) {
       console.error("Error resolving alert:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Internal server error",
-        error: error.message 
+        error: error.message,
       });
     }
   });
@@ -435,7 +487,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
 
           let currentStatus = device.status;
-          if (lastSeen && lastSeen < fiveMinutesAgo && device.status === "online") {
+          if (
+            lastSeen &&
+            lastSeen < fiveMinutesAgo &&
+            device.status === "online"
+          ) {
             // Mark device as offline but don't delete data
             await storage.updateDevice(device.id, { status: "offline" });
             currentStatus = "offline";
@@ -444,15 +500,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return {
             ...device,
             status: currentStatus,
-            latest_report: latestReport ? {
-              cpu_usage: latestReport.cpu_usage,
-              memory_usage: latestReport.memory_usage,
-              disk_usage: latestReport.disk_usage,
-              network_io: latestReport.network_io,
-              collected_at: latestReport.collected_at
-            } : null
+            latest_report: latestReport
+              ? {
+                  cpu_usage: latestReport.cpu_usage,
+                  memory_usage: latestReport.memory_usage,
+                  disk_usage: latestReport.disk_usage,
+                  network_io: latestReport.network_io,
+                  collected_at: latestReport.collected_at,
+                }
+              : null,
           };
-        })
+        }),
       );
 
       res.json(devicesWithReports);
@@ -479,14 +537,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const latestReport = await storage.getLatestDeviceReport(device.id);
       const deviceWithReport = {
         ...device,
-        latest_report: latestReport ? {
-          cpu_usage: latestReport.cpu_usage,
-          memory_usage: latestReport.memory_usage,
-          disk_usage: latestReport.disk_usage,
-          network_io: latestReport.network_io,
-          collected_at: latestReport.collected_at,
-          raw_data: latestReport.raw_data
-        } : null
+        latest_report: latestReport
+          ? {
+              cpu_usage: latestReport.cpu_usage,
+              memory_usage: latestReport.memory_usage,
+              disk_usage: latestReport.disk_usage,
+              network_io: latestReport.network_io,
+              collected_at: latestReport.collected_at,
+              raw_data: latestReport.raw_data,
+            }
+          : null,
       };
 
       res.json(deviceWithReport);
@@ -528,9 +588,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const data = req.body;
 
       // Extract hostname from various possible locations
-      const hostname = data.hostname || data.system_info?.hostname || 
-                      data.os_info?.hostname || data.hardware?.hostname || 
-                      data.network?.hostname;
+      const hostname =
+        data.hostname ||
+        data.system_info?.hostname ||
+        data.os_info?.hostname ||
+        data.hardware?.hostname ||
+        data.network?.hostname;
 
       if (!hostname) {
         console.log("No hostname found in data:", Object.keys(data));
@@ -543,8 +606,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let device = await storage.getDeviceByHostname(hostname);
 
       // Extract data from various possible locations - be very flexible
-      const osInfo = data.os_info || data.system_info || data.hardware?.os || {};
-      const systemHealth = data.system_health || data.health || data.metrics || {};
+      const osInfo =
+        data.os_info || data.system_info || data.hardware?.os || {};
+      const systemHealth =
+        data.system_health || data.health || data.metrics || {};
       const hardware = data.hardware || data.system_info || {};
       const network = data.network || data.network_info || {};
 
@@ -553,24 +618,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // First try to extract from processes (most reliable)
       if (data.processes && Array.isArray(data.processes)) {
-        const userProcesses = data.processes.filter(process => {
+        const userProcesses = data.processes.filter((process) => {
           const processUser = process.username || process.user;
-          return processUser && 
-                 typeof processUser === 'string' && 
-                 !processUser.includes('NT AUTHORITY') &&
-                 !processUser.includes('SYSTEM') &&
-                 !processUser.includes('LOCAL SERVICE') &&
-                 !processUser.includes('NETWORK SERVICE') &&
-                 !processUser.includes('Window Manager') &&
-                 !processUser.endsWith('$') &&
-                 processUser !== 'Unknown' &&
-                 processUser !== 'N/A';
+          return (
+            processUser &&
+            typeof processUser === "string" &&
+            !processUser.includes("NT AUTHORITY") &&
+            !processUser.includes("SYSTEM") &&
+            !processUser.includes("LOCAL SERVICE") &&
+            !processUser.includes("NETWORK SERVICE") &&
+            !processUser.includes("Window Manager") &&
+            !processUser.endsWith("$") &&
+            processUser !== "Unknown" &&
+            processUser !== "N/A"
+          );
         });
 
         if (userProcesses.length > 0) {
-          const processUser = userProcesses[0].username || userProcesses[0].user;
-          if (processUser.includes('\\')) {
-            currentUser = processUser.split('\\').pop();
+          const processUser =
+            userProcesses[0].username || userProcesses[0].user;
+          if (processUser.includes("\\")) {
+            currentUser = processUser.split("\\").pop();
           } else {
             currentUser = processUser;
           }
@@ -591,23 +659,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           hardware.current_user,
           data.system_info?.current_user,
           data.system_info?.user,
-          data.system_info?.username
+          data.system_info?.username,
         ];
 
         // Find first valid user that's not a system account
         for (const user of possibleUserSources) {
-          if (user && 
-              typeof user === 'string' && 
-              !user.endsWith('$') && 
-              user !== 'Unknown' && 
-              user !== 'N/A' &&
-              !user.includes('SYSTEM') &&
-              !user.includes('NETWORK SERVICE') &&
-              !user.includes('LOCAL SERVICE')) {
-            if (user.includes('\\')) {
-              currentUser = user.split('\\').pop();
-            } else if (user.includes('@')) {
-              currentUser = user.split('@')[0];
+          if (
+            user &&
+            typeof user === "string" &&
+            !user.endsWith("$") &&
+            user !== "Unknown" &&
+            user !== "N/A" &&
+            !user.includes("SYSTEM") &&
+            !user.includes("NETWORK SERVICE") &&
+            !user.includes("LOCAL SERVICE")
+          ) {
+            if (user.includes("\\")) {
+              currentUser = user.split("\\").pop();
+            } else if (user.includes("@")) {
+              currentUser = user.split("@")[0];
             } else {
               currentUser = user;
             }
@@ -616,10 +686,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      console.log("Extracted current user:", currentUser, "from hostname:", hostname, "processes count:", data.processes?.length || 0);
+      console.log(
+        "Extracted current user:",
+        currentUser,
+        "from hostname:",
+        hostname,
+        "processes count:",
+        data.processes?.length || 0,
+      );
 
       // Extract IP address and MAC addresses from various possible locations
-      let ip_address = network.ip_address || network.ip || data.network?.primary_ip || null;
+      let ip_address =
+        network.ip_address || network.ip || data.network?.primary_ip || null;
       let mac_addresses = [];
 
       // Check for primary MAC from new system collector
@@ -628,17 +706,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Try to extract IP from network interfaces (most reliable method)
       if (data.network?.interfaces && Array.isArray(data.network.interfaces)) {
         for (const iface of data.network.interfaces) {
-          const name = iface.name?.toLowerCase() || '';
+          const name = iface.name?.toLowerCase() || "";
 
           // Prioritize Ethernet interfaces
-          if ((name.includes('eth') || name.includes('ethernet') || name.includes('enet')) && 
-              !name.includes('veth') && !name.includes('virtual') &&
-              iface.stats?.is_up !== false) {
+          if (
+            (name.includes("eth") ||
+              name.includes("ethernet") ||
+              name.includes("enet")) &&
+            !name.includes("veth") &&
+            !name.includes("virtual") &&
+            iface.stats?.is_up !== false
+          ) {
             for (const addr of iface.addresses || []) {
-              if (addr.family === 'AF_INET' && 
-                  !addr.address.startsWith('127.') && 
-                  !addr.address.startsWith('169.254.') &&
-                  addr.address !== '0.0.0.0') {
+              if (
+                addr.family === "AF_INET" &&
+                !addr.address.startsWith("127.") &&
+                !addr.address.startsWith("169.254.") &&
+                addr.address !== "0.0.0.0"
+              ) {
                 ip_address = addr.address;
                 break;
               }
@@ -650,14 +735,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // If no Ethernet IP found, try WiFi
         if (!ip_address) {
           for (const iface of data.network.interfaces) {
-            const name = iface.name?.toLowerCase() || '';
-            if ((name.includes('wifi') || name.includes('wlan') || name.includes('wireless')) &&
-                iface.stats?.is_up !== false) {
+            const name = iface.name?.toLowerCase() || "";
+            if (
+              (name.includes("wifi") ||
+                name.includes("wlan") ||
+                name.includes("wireless")) &&
+              iface.stats?.is_up !== false
+            ) {
               for (const addr of iface.addresses || []) {
-                if (addr.family === 'AF_INET' && 
-                    !addr.address.startsWith('127.') && 
-                    !addr.address.startsWith('169.254.') &&
-                    addr.address !== '0.0.0.0') {
+                if (
+                  addr.family === "AF_INET" &&
+                  !addr.address.startsWith("127.") &&
+                  !addr.address.startsWith("169.254.") &&
+                  addr.address !== "0.0.0.0"
+                ) {
                   ip_address = addr.address;
                   break;
                 }
@@ -670,16 +761,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // If still no IP, get any active non-virtual interface
         if (!ip_address) {
           for (const iface of data.network.interfaces) {
-            const name = iface.name?.toLowerCase() || '';
-            const isVirtual = name.includes('virtual') || name.includes('veth') || 
-                            name.includes('docker') || name.includes('vmware');
+            const name = iface.name?.toLowerCase() || "";
+            const isVirtual =
+              name.includes("virtual") ||
+              name.includes("veth") ||
+              name.includes("docker") ||
+              name.includes("vmware");
 
             if (!isVirtual && iface.stats?.is_up !== false) {
               for (const addr of iface.addresses || []) {
-                if (addr.family === 'AF_INET' && 
-                    !addr.address.startsWith('127.') && 
-                    !addr.address.startsWith('169.254.') &&
-                    addr.address !== '0.0.0.0') {
+                if (
+                  addr.family === "AF_INET" &&
+                  !addr.address.startsWith("127.") &&
+                  !addr.address.startsWith("169.254.") &&
+                  addr.address !== "0.0.0.0"
+                ) {
                   ip_address = addr.address;
                   break;
                 }
@@ -692,20 +788,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Collect MAC addresses - new enhanced method
         for (const iface of data.network.interfaces) {
           // Check for MAC address in interface object directly
-          if (iface.mac_address && iface.mac_address !== '00:00:00:00:00:00') {
+          if (iface.mac_address && iface.mac_address !== "00:00:00:00:00:00") {
             mac_addresses.push({
               interface: iface.name,
-              mac: iface.mac_address
+              mac: iface.mac_address,
             });
           }
 
           // Also check in addresses array for compatibility
           for (const addr of iface.addresses || []) {
-            if (addr.family?.includes('AF_LINK') || addr.family?.includes('AF_PACKET')) {
-              if (addr.address && addr.address !== '00:00:00:00:00:00') {
+            if (
+              addr.family?.includes("AF_LINK") ||
+              addr.family?.includes("AF_PACKET")
+            ) {
+              if (addr.address && addr.address !== "00:00:00:00:00:00") {
                 mac_addresses.push({
                   interface: iface.name,
-                  mac: addr.address
+                  mac: addr.address,
                 });
               }
             }
@@ -714,9 +813,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Try older format network data structure
-      if (!ip_address && data.network && typeof data.network === 'object') {
+      if (!ip_address && data.network && typeof data.network === "object") {
         for (const [key, iface] of Object.entries(data.network)) {
-          if (typeof iface === 'object' && iface !== null) {
+          if (typeof iface === "object" && iface !== null) {
             if ((iface as any).ip_address) {
               ip_address = (iface as any).ip_address;
               break;
@@ -730,7 +829,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Fallback to other sources
       if (!ip_address) {
-        ip_address = data.ip_address || hardware.ip_address || osInfo.ip_address || null;
+        ip_address =
+          data.ip_address || hardware.ip_address || osInfo.ip_address || null;
       }
 
       if (!device) {
@@ -738,23 +838,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
           hostname: hostname,
           assigned_user: currentUser,
           os_name: osInfo.name || osInfo.platform || osInfo.system || null,
-          os_version: osInfo.version || osInfo.release || osInfo.version_info || null,
+          os_version:
+            osInfo.version || osInfo.release || osInfo.version_info || null,
           ip_address: ip_address,
           status: "online",
-          last_seen: new Date()
+          last_seen: new Date(),
         });
-        console.log("Created new device:", device.id, "User:", currentUser, "IP:", ip_address);
+        console.log(
+          "Created new device:",
+          device.id,
+          "User:",
+          currentUser,
+          "IP:",
+          ip_address,
+        );
       } else {
         // Update existing device including IP address and user
         await storage.updateDevice(device.id, {
           assigned_user: currentUser || device.assigned_user,
-          os_name: osInfo.name || osInfo.platform || osInfo.system || device.os_name,
-          os_version: osInfo.version || osInfo.release || osInfo.version_info || device.os_version,
+          os_name:
+            osInfo.name || osInfo.platform || osInfo.system || device.os_name,
+          os_version:
+            osInfo.version ||
+            osInfo.release ||
+            osInfo.version_info ||
+            device.os_version,
           ip_address: ip_address || device.ip_address,
           status: "online",
-          last_seen: new Date()
+          last_seen: new Date(),
         });
-        console.log("Updated existing device:", device.id, "User:", currentUser, "IP:", ip_address);
+        console.log(
+          "Updated existing device:",
+          device.id,
+          "User:",
+          currentUser,
+          "IP:",
+          ip_address,
+        );
       }
 
       // Extract metrics from various possible locations - handle nested objects
@@ -766,50 +886,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Try multiple possible field names and structures, extract numeric values
       const extractNumericValue = (value) => {
         if (value === null || value === undefined) return null;
-        if (typeof value === 'number') return value;
-        if (typeof value === 'string') {
+        if (typeof value === "number") return value;
+        if (typeof value === "string") {
           const parsed = parseFloat(value);
           return isNaN(parsed) ? null : parsed;
         }
-        if (typeof value === 'object') {
+        if (typeof value === "object") {
           // Handle nested objects like { usage_percent: 8.7 }
-          return value.usage_percent || value.percent || value.percentage || null;
+          return (
+            value.usage_percent || value.percent || value.percentage || null
+          );
         }
         return null;
       };
 
       // CPU usage extraction
-      cpu_usage = extractNumericValue(systemHealth.cpu_percent) || 
-                 extractNumericValue(systemHealth.cpu_usage) ||
-                 extractNumericValue(hardware.cpu_percent) || 
-                 extractNumericValue(hardware.cpu) ||
-                 extractNumericValue(data.cpu_percent) || 
-                 extractNumericValue(data.cpu_usage) ||
-                 extractNumericValue(data.cpu_info?.usage_percent) ||
-                 extractNumericValue(data.metrics?.cpu_usage) ||
-                 null;
+      cpu_usage =
+        extractNumericValue(systemHealth.cpu_percent) ||
+        extractNumericValue(systemHealth.cpu_usage) ||
+        extractNumericValue(hardware.cpu_percent) ||
+        extractNumericValue(hardware.cpu) ||
+        extractNumericValue(data.cpu_percent) ||
+        extractNumericValue(data.cpu_usage) ||
+        extractNumericValue(data.cpu_info?.usage_percent) ||
+        extractNumericValue(data.metrics?.cpu_usage) ||
+        null;
 
-      // Memory usage extraction  
-      memory_usage = extractNumericValue(systemHealth.memory_percent) || 
-                    extractNumericValue(systemHealth.memory_usage) ||
-                    extractNumericValue(hardware.memory_percent) || 
-                    extractNumericValue(hardware.memory) ||
-                    extractNumericValue(data.memory_percent) || 
-                    extractNumericValue(data.memory_usage) ||
-                    extractNumericValue(data.memory_info?.percentage) ||
-                    extractNumericValue(data.metrics?.memory_usage) ||
-                    null;
+      // Memory usage extraction
+      memory_usage =
+        extractNumericValue(systemHealth.memory_percent) ||
+        extractNumericValue(systemHealth.memory_usage) ||
+        extractNumericValue(hardware.memory_percent) ||
+        extractNumericValue(hardware.memory) ||
+        extractNumericValue(data.memory_percent) ||
+        extractNumericValue(data.memory_usage) ||
+        extractNumericValue(data.memory_info?.percentage) ||
+        extractNumericValue(data.metrics?.memory_usage) ||
+        null;
 
       // Disk usage extraction - check storage array for disk usage
-      disk_usage = extractNumericValue(systemHealth.disk_percent) || 
-                  extractNumericValue(systemHealth.disk_usage) ||
-                  extractNumericValue(hardware.disk_percent) || 
-                  extractNumericValue(hardware.disk) ||
-                  extractNumericValue(data.disk_percent) || 
-                  extractNumericValue(data.disk_usage) ||
-                  extractNumericValue(data.disk_info?.usage_percent) ||
-                  extractNumericValue(data.metrics?.disk_usage) ||
-                  null;
+      disk_usage =
+        extractNumericValue(systemHealth.disk_percent) ||
+        extractNumericValue(systemHealth.disk_usage) ||
+        extractNumericValue(hardware.disk_percent) ||
+        extractNumericValue(hardware.disk) ||
+        extractNumericValue(data.disk_percent) ||
+        extractNumericValue(data.disk_usage) ||
+        extractNumericValue(data.disk_info?.usage_percent) ||
+        extractNumericValue(data.metrics?.disk_usage) ||
+        null;
 
       // If no direct disk usage found, try to extract from storage array or object
       if (disk_usage === null && data.storage) {
@@ -819,28 +944,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (Array.isArray(data.storage)) {
           // Handle array format - calculate combined usage
-          data.storage.forEach(disk => {
+          data.storage.forEach((disk) => {
             if (disk.usage && disk.usage.total && disk.usage.used) {
               totalSpace += disk.usage.total;
               usedSpace += disk.usage.used;
             } else {
               // Fallback to percentage if detailed usage not available
-              const usage = extractNumericValue(disk.usage_percent) || extractNumericValue(disk.percent);
+              const usage =
+                extractNumericValue(disk.usage_percent) ||
+                extractNumericValue(disk.percent);
               if (usage !== null) {
                 storageUsages.push(usage);
               }
             }
           });
-        } else if (typeof data.storage === 'object') {
+        } else if (typeof data.storage === "object") {
           // Handle object format like { "C:": { percent: 45.2, ... } }
           if (data.storage.disks && Array.isArray(data.storage.disks)) {
             // Handle nested disks array
-            data.storage.disks.forEach(disk => {
+            data.storage.disks.forEach((disk) => {
               if (disk.usage && disk.usage.total && disk.usage.used) {
                 totalSpace += disk.usage.total;
                 usedSpace += disk.usage.used;
               } else {
-                const usage = extractNumericValue(disk.usage_percent) || extractNumericValue(disk.percent);
+                const usage =
+                  extractNumericValue(disk.usage_percent) ||
+                  extractNumericValue(disk.percent);
                 if (usage !== null) {
                   storageUsages.push(usage);
                 }
@@ -852,9 +981,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (disk.usage && disk.usage.total && disk.usage.used) {
                 totalSpace += disk.usage.total;
                 usedSpace += disk.usage.used;
-```text
               } else {
-                const usage = extractNumericValue(disk.usage_percent) || extractNumericValue(disk.percent);
+                const usage =
+                  extractNumericValue(disk.usage_percent) ||
+                  extractNumericValue(disk.percent);
                 if (usage !== null) {
                   storageUsages.push(usage);
                 }
@@ -868,26 +998,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
           disk_usage = (usedSpace / totalSpace) * 100;
         } else if (storageUsages.length > 0) {
           // Fallback to average of all disk usage percentages
-          disk_usage = storageUsages.reduce((sum, usage) => sum + usage, 0) / storageUsages.length;
+          disk_usage =
+            storageUsages.reduce((sum, usage) => sum + usage, 0) /
+            storageUsages.length;
         }
       }
 
       // Network I/O extraction
-      network_io = extractNumericValue(systemHealth.network_bytes) || 
-                  extractNumericValue(systemHealth.network_io) ||
-                  extractNumericValue(network.bytes) || 
-                  extractNumericValue(network.io) ||
-                  extractNumericValue(data.network_bytes) || 
-                  extractNumericValue(data.network_io) ||
-                  extractNumericValue(data.network_info?.bytes_sent) ||
-                  extractNumericValue(data.metrics?.network_io) ||
-                  null;
+      network_io =
+        extractNumericValue(systemHealth.network_bytes) ||
+        extractNumericValue(systemHealth.network_io) ||
+        extractNumericValue(network.bytes) ||
+        extractNumericValue(network.io) ||
+        extractNumericValue(data.network_bytes) ||
+        extractNumericValue(data.network_io) ||
+        extractNumericValue(data.network_info?.bytes_sent) ||
+        extractNumericValue(data.metrics?.network_io) ||
+        null;
 
       // If no direct network I/O found, try to calculate from network interfaces
-      if (network_io === null && data.network && typeof data.network === 'object') {
+      if (
+        network_io === null &&
+        data.network &&
+        typeof data.network === "object"
+      ) {
         let totalBytes = 0;
         Object.values(data.network).forEach((iface: any) => {
-          if (typeof iface === 'object' && iface.bytes_sent !== undefined) {
+          if (typeof iface === "object" && iface.bytes_sent !== undefined) {
             totalBytes += (iface.bytes_sent || 0) + (iface.bytes_recv || 0);
           }
         });
@@ -896,7 +1033,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      console.log("Extracted metrics:", { cpu_usage, memory_usage, disk_usage, network_io });
+      console.log("Extracted metrics:", {
+        cpu_usage,
+        memory_usage,
+        disk_usage,
+        network_io,
+      });
 
       // USB device detection and tracking - check multiple possible locations
       let usbDevices = [];
@@ -907,7 +1049,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         data.hardware?.usb_devices,
         data.system_info?.usb_devices,
         data.devices?.usb,
-        data.usb
+        data.usb,
       ];
 
       for (const location of possibleUSBLocations) {
@@ -941,22 +1083,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           extracted_ip_address: ip_address,
           extracted_update_info: {
             last_boot_time: updateHistory.last_boot_time || osInfo.boot_time,
-            system_uptime_hours: updateHistory.system_uptime_hours || (osInfo.uptime_seconds ? Math.floor(osInfo.uptime_seconds / 3600) : null),
+            system_uptime_hours:
+              updateHistory.system_uptime_hours ||
+              (osInfo.uptime_seconds
+                ? Math.floor(osInfo.uptime_seconds / 3600)
+                : null),
             pending_reboot: updateHistory.pending_reboot,
             last_update_check: windowsUpdates.last_update_check,
             recent_updates: windowsUpdates.recent_updates,
             last_update: osInfo.last_update,
             windows_build: osInfo.build_number,
-            windows_version: osInfo.display_version || osInfo.product_name
+            windows_version: osInfo.display_version || osInfo.product_name,
           },
           extracted_security_info: {
             firewall_status: securityInfo.firewall_status,
             antivirus_status: securityInfo.antivirus_status,
-            last_scan: securityInfo.last_scan
+            last_scan: securityInfo.last_scan,
           },
           extracted_virtualization: data.virtualization,
-          processed_at: new Date().toISOString()
-        })
+          processed_at: new Date().toISOString(),
+        }),
       });
 
       // Process data through security service
@@ -965,22 +1111,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (data.installed_software) {
-        await securityService.checkSoftwareLicenseCompliance(device.id, data.installed_software);
+        await securityService.checkSoftwareLicenseCompliance(
+          device.id,
+          data.installed_software,
+        );
       }
 
       // Process data through performance service
       await performanceService.updateBaselines(device.id, {
         cpu_usage,
         memory_usage,
-        disk_usage
+        disk_usage,
       });
 
       // Smart alert system - update existing alerts instead of creating duplicates
       const checkAndManageAlert = async (
-        metric: string, 
-        value: number, 
+        metric: string,
+        value: number,
         thresholds: { critical: number; high: number; warning: number },
-        category: string
+        category: string,
       ) => {
         // Determine current severity
         let currentSeverity = null;
@@ -1020,7 +1169,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Check for existing active alert for this metric
-        const existingAlert = await storage.getActiveAlertByDeviceAndMetric(device.id, metric);
+        const existingAlert = await storage.getActiveAlertByDeviceAndMetric(
+          device.id,
+          metric,
+        );
 
         if (currentSeverity) {
           // Should have an alert
@@ -1033,16 +1185,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
               await storage.updateAlert(existingAlert.id, {
                 severity: currentSeverity,
                 message: message,
-                metadata: { 
-                  [metric + "_usage"]: value, 
-                  threshold: currentThreshold, 
+                metadata: {
+                  [metric + "_usage"]: value,
+                  threshold: currentThreshold,
                   metric: metric,
                   last_updated: new Date().toISOString(),
                   previous_value: lastValue,
-                  value_change: valueChange
-                }
+                  value_change: valueChange,
+                },
               });
-              console.log(`Updated ${metric} alert for device ${device.hostname}: ${currentSeverity} (${value.toFixed(1)}%)`);
+              console.log(
+                `Updated ${metric} alert for device ${device.hostname}: ${currentSeverity} (${value.toFixed(1)}%)`,
+              );
             }
           } else {
             // Create new alert
@@ -1051,44 +1205,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
               category: category,
               severity: currentSeverity,
               message: message,
-              metadata: { 
-                [metric + "_usage"]: value, 
-                threshold: currentThreshold, 
+              metadata: {
+                [metric + "_usage"]: value,
+                threshold: currentThreshold,
                 metric: metric,
-                created_at: new Date().toISOString()
+                created_at: new Date().toISOString(),
               },
-              is_active: true
+              is_active: true,
             });
-            console.log(`Created new ${metric} alert for device ${device.hostname}: ${currentSeverity} (${value.toFixed(1)}%)`);
+            console.log(
+              `Created new ${metric} alert for device ${device.hostname}: ${currentSeverity} (${value.toFixed(1)}%)`,
+            );
           }
         } else {
           // Value is below warning threshold
           if (existingAlert) {
             // Resolve existing alert
             await storage.resolveAlert(existingAlert.id);
-            console.log(`Resolved ${metric} alert for device ${device.hostname}: value back to normal (${value.toFixed(1)}%)`);
+            console.log(
+              `Resolved ${metric} alert for device ${device.hostname}: value back to normal (${value.toFixed(1)}%)`,
+            );
           }
         }
       };
 
       // Process alerts for each metric
       if (cpu_usage !== null && cpu_usage !== undefined) {
-        await checkAndManageAlert("cpu", cpu_usage, { critical: 95, high: 85, warning: 75 }, "performance");
+        await checkAndManageAlert(
+          "cpu",
+          cpu_usage,
+          { critical: 95, high: 85, warning: 75 },
+          "performance",
+        );
       }
 
       if (memory_usage !== null && memory_usage !== undefined) {
-        await checkAndManageAlert("memory", memory_usage, { critical: 95, high: 85, warning: 75 }, "performance");
+        await checkAndManageAlert(
+          "memory",
+          memory_usage,
+          { critical: 95, high: 85, warning: 75 },
+          "performance",
+        );
       }
 
       if (disk_usage !== null && disk_usage !== undefined) {
-        await checkAndManageAlert("disk", disk_usage, { critical: 95, high: 85, warning: 75 }, "storage");
+        await checkAndManageAlert(
+          "disk",
+          disk_usage,
+          { critical: 95, high: 85, warning: 75 },
+          "storage",
+        );
       }
 
       // Update USB device tracking
       await storage.updateUSBDevices(device.id, usbDevices);
 
       // Check for existing USB alert
-      const existingUsbAlert = await storage.getActiveAlertByDeviceAndMetric(device.id, "usb");
+      const existingUsbAlert = await storage.getActiveAlertByDeviceAndMetric(
+        device.id,
+        "usb",
+      );
 
       if (usbDevices && Array.isArray(usbDevices) && usbDevices.length > 0) {
         const message = `USB device(s) detected - ${usbDevices.length} device(s) connected`;
@@ -1098,12 +1274,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await storage.updateAlert(existingUsbAlert.id, {
             severity: "info",
             message: message,
-            metadata: { 
-              usb_count: usbDevices.length, 
+            metadata: {
+              usb_count: usbDevices.length,
               devices: usbDevices.slice(0, 3), // First 3 devices for reference
               metric: "usb",
-              last_updated: new Date().toISOString()
-            }
+              last_updated: new Date().toISOString(),
+            },
           });
         } else {
           // Create new USB alert
@@ -1112,12 +1288,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             category: "security",
             severity: "info",
             message: message,
-            metadata: { 
-              usb_count: usbDevices.length, 
+            metadata: {
+              usb_count: usbDevices.length,
               devices: usbDevices.slice(0, 3), // First 3 devices for reference
-              metric: "usb"
+              metric: "usb",
             },
-            is_active: true
+            is_active: true,
           });
         }
       } else {
@@ -1131,18 +1307,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error processing report:", error);
       if (error instanceof Error && error.name === "ZodError") {
-        return res.status(400).json({ message: "Invalid request data", errors: error });
+        return res
+          .status(400)
+          .json({ message: "Invalid request data", errors: error });
       }
       res.status(500).json({ message: "Internal server error" });
     }
   });
 
-// Notifications endpoint
-  app.get('/api/notifications', async (req, res) => {
+  // Notifications endpoint
+  app.get("/api/notifications", async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'No token provided' });
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "No token provided" });
       }
 
       const token = authHeader.substring(7);
@@ -1159,68 +1337,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .from(tickets)
           .orderBy(desc(tickets.updated_at));
 
-        const userTickets = ticketsList.filter(ticket => 
-          ticket.assigned_to === userId || ticket.requester_email === decoded.email
+        const userTickets = ticketsList.filter(
+          (ticket) =>
+            ticket.assigned_to === userId ||
+            ticket.requester_email === decoded.email,
         );
 
         // Create notifications for recent ticket updates
         const notifications = userTickets
-          .filter(ticket => {
+          .filter((ticket) => {
             const updatedAt = new Date(ticket.updated_at);
             const now = new Date();
-            const diffHours = (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60);
+            const diffHours =
+              (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60);
             return diffHours <= 24; // Only show notifications for tickets updated in last 24 hours
           })
-          .map(ticket => ({
+          .map((ticket) => ({
             id: ticket.id,
-            type: 'ticket_update',
+            type: "ticket_update",
             title: `Ticket ${ticket.ticket_number} updated`,
             message: `${ticket.title} - Status: ${ticket.status}`,
             timestamp: ticket.updated_at,
-            read: false
+            read: false,
           }));
 
         res.json(notifications);
       } catch (jwtError) {
-        return res.status(401).json({ error: 'Invalid token' });
+        return res.status(401).json({ error: "Invalid token" });
       }
     } catch (error) {
-      console.error('Error fetching tickets for notifications:', error);
+      console.error("Error fetching tickets for notifications:", error);
       res.json([]); // Return empty array on error to prevent client issues
     }
   });
 
-  app.post("/api/notifications/:id/read", authenticateToken, async (req, res) => {
-    try {
-      const notificationId = req.params.id;
+  app.post(
+    "/api/notifications/:id/read",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const notificationId = req.params.id;
 
-      // In a real implementation, you'd store read status in database
-      // For now, we'll just return success
-      res.json({ message: "Notification marked as read" });
-    } catch (error) {
-      console.error("Error marking notification as read:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
+        // In a real implementation, you'd store read status in database
+        // For now, we'll just return success
+        res.json({ message: "Notification marked as read" });
+      } catch (error) {
+        console.error("Error marking notification as read:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    },
+  );
 
-  app.post("/api/notifications/mark-all-read", authenticateToken, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
+  app.post(
+    "/api/notifications/mark-all-read",
+    authenticateToken,
+    async (req: any, res) => {
+      try {
+        const userId = req.user.id;
 
-      // In a real implementation, you'd update all notifications for the user in database
-      // For now, we'll just return success with a more detailed response
-      console.log(`Marking all notifications as read for user: ${userId}`);
+        // In a real implementation, you'd update all notifications for the user in database
+        // For now, we'll just return success with a more detailed response
+        console.log(`Marking all notifications as read for user: ${userId}`);
 
-      res.json({ 
-        message: "All notifications marked as read",
-        success: true,
-        markedCount: 0 // Would be actual count in real implementation
-      });
-    } catch (error) {
-      console.error("Error marking all notifications as read:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
+        res.json({
+          message: "All notifications marked as read",
+          success: true,
+          markedCount: 0, // Would be actual count in real implementation
+        });
+      } catch (error) {
+        console.error("Error marking all notifications as read:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    },
+  );
 
   app.delete("/api/notifications/:id", authenticateToken, async (req, res) => {
     try {
@@ -1239,169 +1428,221 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerTicketRoutes(app);
 
   // Security & Compliance Endpoints
-  app.get("/api/security/vulnerabilities/:deviceId", authenticateToken, async (req, res) => {
-    try {
-      const { securityService } = await import("./security-service");
-      const reports = await storage.getDeviceReports(req.params.deviceId);
+  app.get(
+    "/api/security/vulnerabilities/:deviceId",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const { securityService } = await import("./security-service");
+        const reports = await storage.getDeviceReports(req.params.deviceId);
 
-      if (reports.length === 0) {
-        return res.json([]);
+        if (reports.length === 0) {
+          return res.json([]);
+        }
+
+        const latestReport = reports[0];
+        const rawData = JSON.parse(latestReport.raw_data || "{}");
+        const installedSoftware =
+          rawData.installed_software || rawData.software || [];
+
+        const vulnerabilities = await securityService.checkVulnerabilities(
+          req.params.deviceId,
+          installedSoftware,
+        );
+        res.json(vulnerabilities);
+      } catch (error) {
+        console.error("Error fetching vulnerabilities:", error);
+        res.status(500).json({ message: "Internal server error" });
       }
+    },
+  );
 
-      const latestReport = reports[0];
-      const rawData = JSON.parse(latestReport.raw_data || "{}");
-      const installedSoftware = rawData.installed_software || rawData.software || [];
+  app.get(
+    "/api/performance/insights/:deviceId",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const { performanceService } = await import("./performance-service");
+        const insights =
+          await performanceService.getApplicationPerformanceInsights(
+            req.params.deviceId,
+          );
+        res.json(insights);
+      } catch (error) {
+        console.error("Error fetching performance insights:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    },
+  );
 
-      const vulnerabilities = await securityService.checkVulnerabilities(req.params.deviceId, installedSoftware);
-      res.json(vulnerabilities);
-    } catch (error) {
-      console.error("Error fetching vulnerabilities:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.get("/api/performance/insights/:deviceId", authenticateToken, async (req, res) => {
-    try {
-      const { performanceService } = await import("./performance-service");
-      const insights = await performanceService.getApplicationPerformanceInsights(req.params.deviceId);
-      res.json(insights);
-    } catch (error) {
-      console.error("Error fetching performance insights:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.get("/api/performance/predictions/:deviceId", authenticateToken, async (req, res) => {
-    try {
-      const { performanceService } = await import("./performance-service");
-      const predictions = await performanceService.generateResourcePredictions(req.params.deviceId);
-      res.json(predictions);
-    } catch (error) {
-      console.error("Error fetching resource predictions:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
+  app.get(
+    "/api/performance/predictions/:deviceId",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const { performanceService } = await import("./performance-service");
+        const predictions =
+          await performanceService.generateResourcePredictions(
+            req.params.deviceId,
+          );
+        res.json(predictions);
+      } catch (error) {
+        console.error("Error fetching resource predictions:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    },
+  );
 
   // Automation & Orchestration Endpoints
-  app.get("/api/automation/software-packages", authenticateToken, async (req, res) => {
-    try {
-      const { automationService } = await import("./automation-service");
-      const packages = automationService.getSoftwarePackages();
-      res.json(packages);
-    } catch (error) {
-      console.error("Error fetching software packages:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.post("/api/automation/deploy-software", authenticateToken, requireRole(['admin', 'manager']), async (req, res) => {
-    try {
-      const { device_ids, package_id, scheduled_time } = req.body;
-
-      if (!device_ids || !package_id) {
-        return res.status(400).json({ message: "device_ids and package_id are required" });
+  app.get(
+    "/api/automation/software-packages",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const { automationService } = await import("./automation-service");
+        const packages = automationService.getSoftwarePackages();
+        res.json(packages);
+      } catch (error) {
+        console.error("Error fetching software packages:", error);
+        res.status(500).json({ message: "Internal server error" });
       }
+    },
+  );
 
-      const { automationService } = await import("./automation-service");
-      const scheduledTime = scheduled_time ? new Date(scheduled_time) : new Date();
+  app.post(
+    "/api/automation/deploy-software",
+    authenticateToken,
+    requireRole(["admin", "manager"]),
+    async (req, res) => {
+      try {
+        const { device_ids, package_id, scheduled_time } = req.body;
 
-      const deploymentIds = await automationService.scheduleDeployment(
-        device_ids, 
-        package_id, 
-        scheduledTime
-      );
+        if (!device_ids || !package_id) {
+          return res
+            .status(400)
+            .json({ message: "device_ids and package_id are required" });
+        }
 
-      res.json({ 
-        deployment_ids: deploymentIds,
-        message: "Software deployment scheduled",
-        target_devices: device_ids.length,
-        scheduled_time: scheduledTime
-      });
-    } catch (error) {
-      console.error("Error scheduling software deployment:", error);
-      res.status(500).json({ message: error.message || "Internal server error" });
-    }
-  });
+        const { automationService } = await import("./automation-service");
+        const scheduledTime = scheduled_time
+          ? new Date(scheduled_time)
+          : new Date();
 
-  app.get("/api/automation/deployment/:deploymentId", authenticateToken, async (req, res) => {
-    try {
-      const { automationService } = await import("./automation-service");
-      const deployment = await automationService.getDeploymentStatus(req.params.deploymentId);
+        const deploymentIds = await automationService.scheduleDeployment(
+          device_ids,
+          package_id,
+          scheduledTime,
+        );
 
-      if (!deployment) {
-        return res.status(404).json({ message: "Deployment not found" });
+        res.json({
+          deployment_ids: deploymentIds,
+          message: "Software deployment scheduled",
+          target_devices: device_ids.length,
+          scheduled_time: scheduledTime,
+        });
+      } catch (error) {
+        console.error("Error scheduling software deployment:", error);
+        res
+          .status(500)
+          .json({ message: error.message || "Internal server error" });
       }
+    },
+  );
 
-      res.json(deployment);
-    } catch (error) {
-      console.error("Error fetching deployment status:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
+  app.get(
+    "/api/automation/deployment/:deploymentId",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const { automationService } = await import("./automation-service");
+        const deployment = await automationService.getDeploymentStatus(
+          req.params.deploymentId,
+        );
 
-  app.post("/api/automation/remediation/:deviceId", authenticateToken, async (req, res) => {
-    try {
-      const { issue_type, remediation_action } = req.body;
-      const deviceId = req.params.deviceId;
+        if (!deployment) {
+          return res.status(404).json({ message: "Deployment not found" });
+        }
 
-      // Log remediation action
-      await storage.createAlert({
-        device_id: deviceId,
-        category: "automation",
-        severity: "info",
-        message: `Automated remediation initiated: ${issue_type}`,
-        metadata: {
-          issue_type: issue_type,
-          remediation_action: remediation_action,
-          initiated_by: req.user.email,
-          automation_type: "remediation",
-          status: "in_progress"
-        },
-        is_active: true
-      });
+        res.json(deployment);
+      } catch (error) {
+        console.error("Error fetching deployment status:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    },
+  );
 
-      res.json({ 
-        message: "Remediation initiated",
-        remediation_id: Date.now().toString(),
-        status: "in_progress"
-      });
-    } catch (error) {
-      console.error("Error initiating remediation:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
+  app.post(
+    "/api/automation/remediation/:deviceId",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const { issue_type, remediation_action } = req.body;
+        const deviceId = req.params.deviceId;
 
-  app.get("/api/automation/deployments", authenticateToken, async (req, res) => {
-    try {
-      const alerts = await storage.getActiveAlerts();
-      const deployments = alerts.filter(alert => 
-        alert.category === "automation" && 
-        alert.metadata?.automation_type === "software_deployment"
-      );
+        // Log remediation action
+        await storage.createAlert({
+          device_id: deviceId,
+          category: "automation",
+          severity: "info",
+          message: `Automated remediation initiated: ${issue_type}`,
+          metadata: {
+            issue_type: issue_type,
+            remediation_action: remediation_action,
+            initiated_by: req.user.email,
+            automation_type: "remediation",
+            status: "in_progress",
+          },
+          is_active: true,
+        });
 
-      res.json(deployments);
-    } catch (error) {
-      console.error("Error fetching deployments:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
+        res.json({
+          message: "Remediation initiated",
+          remediation_id: Date.now().toString(),
+          status: "in_progress",
+        });
+      } catch (error) {
+        console.error("Error initiating remediation:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    },
+  );
+
+  app.get(
+    "/api/automation/deployments",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const alerts = await storage.getActiveAlerts();
+        const deployments = alerts.filter(
+          (alert) =>
+            alert.category === "automation" &&
+            alert.metadata?.automation_type === "software_deployment",
+        );
+
+        res.json(deployments);
+      } catch (error) {
+        console.error("Error fetching deployments:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    },
+  );
 
   // Network Discovery Endpoint
   app.get("/api/network/topology", authenticateToken, async (req, res) => {
     try {
       const devices = await storage.getDevices();
       const topology = {
-        nodes: devices.map(device => ({
+        nodes: devices.map((device) => ({
           id: device.id,
           hostname: device.hostname,
           ip_address: device.ip_address,
           status: device.status,
           os_name: device.os_name,
-          assigned_user: device.assigned_user
+          assigned_user: device.assigned_user,
         })),
         edges: [], // Would be populated by network scanning
         subnets: [], // Would be detected from IP addresses
-        last_scan: new Date()
+        last_scan: new Date(),
       };
 
       res.json(topology);
@@ -1412,117 +1653,137 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Reports API endpoints
-  app.post("/api/reports/generate", authenticateToken, async (req: any, res) => {
-    try {
-      const { type, period, format } = req.body;
+  app.post(
+    "/api/reports/generate",
+    authenticateToken,
+    async (req: any, res) => {
+      try {
+        const { type, period, format } = req.body;
 
-      // Generate report data based on type and period
-      let reportData = {};
+        // Generate report data based on type and period
+        let reportData = {};
 
-      switch (type) {
-        case "performance":
-          const devices = await storage.getDevices();
-          const performanceData = await Promise.all(
-            devices.map(async (device) => {
-              const reports = await storage.getDeviceReports(device.id);
-              const latestReport = reports[0];
-              return {
-                hostname: device.hostname,
-                cpu_usage: latestReport?.cpu_usage || "0",
-                memory_usage: latestReport?.memory_usage || "0",
-                disk_usage: latestReport?.disk_usage || "0",
-                status: device.status
-              };
-            })
-          );
-          reportData = {
-            title: "Performance Summary Report",
-            period: period,
-            generated_at: new Date().toISOString(),
-            devices: performanceData
-          };
-          break;
+        switch (type) {
+          case "performance":
+            const devices = await storage.getDevices();
+            const performanceData = await Promise.all(
+              devices.map(async (device) => {
+                const reports = await storage.getDeviceReports(device.id);
+                const latestReport = reports[0];
+                return {
+                  hostname: device.hostname,
+                  cpu_usage: latestReport?.cpu_usage || "0",
+                  memory_usage: latestReport?.memory_usage || "0",
+                  disk_usage: latestReport?.disk_usage || "0",
+                  status: device.status,
+                };
+              }),
+            );
+            reportData = {
+              title: "Performance Summary Report",
+              period: period,
+              generated_at: new Date().toISOString(),
+              devices: performanceData,
+            };
+            break;
 
-        case "availability":
-          const allDevices = await storage.getDevices();
-          const onlineDevices = allDevices.filter(d => d.status === "online");
-          reportData = {
-            title: "Availability Report",
-            period: period,
-            generated_at: new Date().toISOString(),
-            total_devices: allDevices.length,
-            online_devices: onlineDevices.length,
-            availability_percentage: ((onlineDevices.length / allDevices.length) * 100).toFixed(2)
-          };
-          break;
+          case "availability":
+            const allDevices = await storage.getDevices();
+            const onlineDevices = allDevices.filter(
+              (d) => d.status === "online",
+            );
+            reportData = {
+              title: "Availability Report",
+              period: period,
+              generated_at: new Date().toISOString(),
+              total_devices: allDevices.length,
+              online_devices: onlineDevices.length,
+              availability_percentage: (
+                (onlineDevices.length / allDevices.length) *
+                100
+              ).toFixed(2),
+            };
+            break;
 
-        case "alerts":
-          const alerts = await storage.getActiveAlerts();
-          reportData = {
-            title: "Alert History Report",
-            period: period,
-            generated_at: new Date().toISOString(),
-            total_alerts: alerts.length,
-            alerts: alerts.slice(0, 100) // Limit to 100 recent alerts
-          };
-          break;
+          case "alerts":
+            const alerts = await storage.getActiveAlerts();
+            reportData = {
+              title: "Alert History Report",
+              period: period,
+              generated_at: new Date().toISOString(),
+              total_alerts: alerts.length,
+              alerts: alerts.slice(0, 100), // Limit to 100 recent alerts
+            };
+            break;
 
-        case "inventory":
-          const inventoryDevices = await storage.getDevices();
-          reportData = {
-            title: "System Inventory Report",
-            period: period,
-            generated_at: new Date().toISOString(),
-            devices: inventoryDevices.map(d => ({
-              hostname: d.hostname,
-              os_name: d.os_name,
-              os_version: d.os_version,
-              assigned_user: d.assigned_user,
-              status: d.status,
-              last_seen: d.last_seen
-            }))
-          };
-          break;
+          case "inventory":
+            const inventoryDevices = await storage.getDevices();
+            reportData = {
+              title: "System Inventory Report",
+              period: period,
+              generated_at: new Date().toISOString(),
+              devices: inventoryDevices.map((d) => ({
+                hostname: d.hostname,
+                os_name: d.os_name,
+                os_version: d.os_version,
+                assigned_user: d.assigned_user,
+                status: d.status,
+                last_seen: d.last_seen,
+              })),
+            };
+            break;
 
-        default:
-          return res.status(400).json({ error: "Invalid report type" });
-      }
-
-      // Generate appropriate file format
-      let contentType = "application/json";
-      let fileContent = JSON.stringify(reportData, null, 2);
-
-      if (format === "csv") {
-        contentType = "text/csv";
-        // Convert to CSV format (simplified)
-        if (reportData.devices) {
-          const headers = Object.keys(reportData.devices[0] || {}).join(",");
-          const rows = reportData.devices.map(device => 
-            Object.values(device).map(v => `"${v}"`).join(",")
-          ).join("\n");
-          fileContent = headers + "\n" + rows;
+          default:
+            return res.status(400).json({ error: "Invalid report type" });
         }
-      } else if (format === "excel") {
-        contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-        // For now, return CSV content with Excel content type
-        if (reportData.devices) {
-          const headers = Object.keys(reportData.devices[0] || {}).join(",");
-          const rows = reportData.devices.map(device => 
-            Object.values(device).map(v => `"${v}"`).join(",")
-          ).join("\n");
-          fileContent = headers + "\n" + rows;
+
+        // Generate appropriate file format
+        let contentType = "application/json";
+        let fileContent = JSON.stringify(reportData, null, 2);
+
+        if (format === "csv") {
+          contentType = "text/csv";
+          // Convert to CSV format (simplified)
+          if (reportData.devices) {
+            const headers = Object.keys(reportData.devices[0] || {}).join(",");
+            const rows = reportData.devices
+              .map((device) =>
+                Object.values(device)
+                  .map((v) => `"${v}"`)
+                  .join(","),
+              )
+              .join("\n");
+            fileContent = headers + "\n" + rows;
+          }
+        } else if (format === "excel") {
+          contentType =
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+          // For now, return CSV content with Excel content type
+          if (reportData.devices) {
+            const headers = Object.keys(reportData.devices[0] || {}).join(",");
+            const rows = reportData.devices
+              .map((device) =>
+                Object.values(device)
+                  .map((v) => `"${v}"`)
+                  .join(","),
+              )
+              .join("\n");
+            fileContent = headers + "\n" + rows;
+          }
         }
+
+        res.setHeader("Content-Type", contentType);
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="report.${format}"`,
+        );
+        res.send(fileContent);
+      } catch (error) {
+        console.error("Error generating report:", error);
+        res.status(500).json({ error: "Failed to generate report" });
       }
-
-      res.setHeader('Content-Type', contentType);
-      res.setHeader('Content-Disposition', `attachment; filename="report.${format}"`);
-      res.send(fileContent);
-
-    } catch (error) {
-      console.error("Error generating report:", error);
-      res.status(500).json({ error: "Failed to generate report" });
-    }
-  });
+    },
+  );
 
   app.post("/api/reports/download", authenticateToken, async (req, res) => {
     try {
@@ -1532,7 +1793,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const reportData = {
         title: reportName,
         generated_at: new Date().toISOString(),
-        content: "This is a sample report content for demonstration purposes."
+        content: "This is a sample report content for demonstration purposes.",
       };
 
       let contentType = "application/pdf";
@@ -1544,10 +1805,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileContent = `PDF Report: ${reportName}\nGenerated: ${reportData.generated_at}\n\n${reportData.content}`;
       }
 
-      res.setHeader('Content-Type', contentType);
-      res.setHeader('Content-Disposition', `attachment; filename="${reportName.toLowerCase().replace(/\s+/g, "-")}.${format}"`);
+      res.setHeader("Content-Type", contentType);
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${reportName.toLowerCase().replace(/\s+/g, "-")}.${format}"`,
+      );
       res.send(fileContent);
-
     } catch (error) {
       console.error("Error downloading report:", error);
       res.status(500).json({ error: "Failed to download report" });
@@ -1560,140 +1823,217 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Security API endpoints - Fixed implementation
-  app.get("/api/security/vulnerabilities/:deviceId", authenticateToken, async (req, res) => {
-    try {
-      const { deviceId } = req.params;
-      console.log(`Fetching vulnerabilities for device: ${deviceId}`);
+  app.get(
+    "/api/security/vulnerabilities/:deviceId",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const { deviceId } = req.params;
+        console.log(`Fetching vulnerabilities for device: ${deviceId}`);
 
-      const device = await storage.getDevice(deviceId);
-      if (!device) {
-        console.log(`Device not found: ${deviceId}`);
-        return res.status(404).json({ error: "Device not found" });
-      }
-
-      const reports = await storage.getDeviceReports(deviceId);
-      if (reports.length === 0) {
-        console.log(`No reports found for device: ${deviceId}`);
-        return res.json([]);
-      }
-
-      const latestReport = reports[0];
-      let installedSoftware = [];
-
-      if (latestReport.raw_data) {
-        try {
-          const rawData = JSON.parse(latestReport.raw_data);
-          installedSoftware = rawData.installed_software || [];
-          console.log(`Found ${installedSoftware.length} software packages for vulnerability scan`);
-        } catch (parseError) {
-          console.error("Error parsing raw data:", parseError);
+        const device = await storage.getDevice(deviceId);
+        if (!device) {
+          console.log(`Device not found: ${deviceId}`);
+          return res.status(404).json({ error: "Device not found" });
         }
-      }
 
-      const vulnerabilities = await securityService.checkVulnerabilities(deviceId, installedSoftware);
-      console.log(`Returning ${vulnerabilities.length} vulnerabilities`);
-      res.json(vulnerabilities);
-    } catch (error) {
-      console.error("Error getting vulnerabilities:", error);
-      res.status(500).json({ error: "Failed to get vulnerabilities", message: error.message });
-    }
-  });
+        const reports = await storage.getDeviceReports(deviceId);
+        if (reports.length === 0) {
+          console.log(`No reports found for device: ${deviceId}`);
+          return res.json([]);
+        }
+
+        const latestReport = reports[0];
+        let installedSoftware = [];
+
+        if (latestReport.raw_data) {
+          try {
+            const rawData = JSON.parse(latestReport.raw_data);
+            installedSoftware = rawData.installed_software || [];
+            console.log(
+              `Found ${installedSoftware.length} software packages for vulnerability scan`,
+            );
+          } catch (parseError) {
+            console.error("Error parsing raw data:", parseError);
+          }
+        }
+
+        const vulnerabilities = await securityService.checkVulnerabilities(
+          deviceId,
+          installedSoftware,
+        );
+        console.log(`Returning ${vulnerabilities.length} vulnerabilities`);
+        res.json(vulnerabilities);
+      } catch (error) {
+        console.error("Error getting vulnerabilities:", error);
+        res
+          .status(500)
+          .json({
+            error: "Failed to get vulnerabilities",
+            message: error.message,
+          });
+      }
+    },
+  );
 
   // Performance API endpoints - Fixed implementation
-  app.get("/api/performance/insights/:deviceId", authenticateToken, async (req, res) => {
-    try {
-      const { deviceId } = req.params;
-      console.log(`Fetching performance insights for device: ${deviceId}`);
+  app.get(
+    "/api/performance/insights/:deviceId",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const { deviceId } = req.params;
+        console.log(`Fetching performance insights for device: ${deviceId}`);
 
-      const device = await storage.getDevice(deviceId);
-      if (!device) {
-        console.log(`Device not found: ${deviceId}`);
-        return res.status(404).json({ error: "Device not found" });
+        const device = await storage.getDevice(deviceId);
+        if (!device) {
+          console.log(`Device not found: ${deviceId}`);
+          return res.status(404).json({ error: "Device not found" });
+        }
+
+        const insights =
+          await performanceService.getApplicationPerformanceInsights(deviceId);
+        console.log(`Returning performance insights for device: ${deviceId}`);
+        res.json(insights);
+      } catch (error) {
+        console.error("Error getting performance insights:", error);
+        res
+          .status(500)
+          .json({
+            error: "Failed to get performance insights",
+            message: error.message,
+          });
       }
+    },
+  );
 
-      const insights = await performanceService.getApplicationPerformanceInsights(deviceId);
-      console.log(`Returning performance insights for device: ${deviceId}`);
-      res.json(insights);
-    } catch (error) {
-      console.error("Error getting performance insights:", error);
-      res.status(500).json({ error: "Failed to get performance insights", message: error.message });
-    }
-  });
+  app.get(
+    "/api/performance/predictions/:deviceId",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const { deviceId } = req.params;
+        console.log(`Fetching performance predictions for device: ${deviceId}`);
 
-  app.get("/api/performance/predictions/:deviceId", authenticateToken, async (req, res) => {
-    try {
-      const { deviceId } = req.params;
-      console.log(`Fetching performance predictions for device: ${deviceId}`);
+        const device = await storage.getDevice(deviceId);
+        if (!device) {
+          console.log(`Device not found: ${deviceId}`);
+          return res.status(404).json({ error: "Device not found" });
+        }
 
-      const device = await storage.getDevice(deviceId);
-      if (!device) {
-        console.log(`Device not found: ${deviceId}`);
-        return res.status(404).json({ error: "Device not found" });
+        const predictions =
+          await performanceService.generateResourcePredictions(deviceId);
+        console.log(
+          `Returning performance predictions for device: ${deviceId}`,
+        );
+        res.json(predictions);
+      } catch (error) {
+        console.error("Error getting performance predictions:", error);
+        res
+          .status(500)
+          .json({
+            error: "Failed to get performance predictions",
+            message: error.message,
+          });
       }
-
-      const predictions = await performanceService.generateResourcePredictions(deviceId);
-      console.log(`Returning performance predictions for device: ${deviceId}`);
-      res.json(predictions);
-    } catch (error) {
-      console.error("Error getting performance predictions:", error);
-      res.status(500).json({ error: "Failed to get performance predictions", message: error.message });
-    }
-  });
+    },
+  );
 
   // Automation API endpoints - Fixed implementation
-  app.get("/api/automation/software-packages", authenticateToken, (req, res) => {
-    try {
-      console.log("Fetching software packages");
-      const packages = automationService.getSoftwarePackages();
-      console.log(`Returning ${packages.length} software packages`);
-      res.json(packages);
-    } catch (error) {
-      console.error("Error getting software packages:", error);
-      res.status(500).json({ error: "Failed to get software packages", message: error.message });
-    }
-  });
-
-  app.get("/api/automation/deployments", authenticateToken, async (req, res) => {
-    try {
-      console.log("Fetching automation deployments");
-      // Get automation alerts that represent deployments
-      const alerts = await storage.getActiveAlerts();
-      const deployments = alerts.filter(alert => alert.category === "automation");
-      console.log(`Found ${deployments.length} automation deployments`);
-      res.json(deployments);
-    } catch (error) {
-      console.error("Error getting deployments:", error);
-      res.status(500).json({ error: "Failed to get deployments", message: error.message });
-    }
-  });
-
-  app.post("/api/automation/deploy-software", authenticateToken, requireRole(['admin', 'manager']), async (req, res) => {
-    try {
-      console.log("Processing software deployment request:", req.body);
-      const { device_ids, package_id, scheduled_time } = req.body;
-
-      if (!device_ids || !Array.isArray(device_ids) || device_ids.length === 0) {
-        return res.status(400).json({ error: "device_ids is required and must be a non-empty array" });
+  app.get(
+    "/api/automation/software-packages",
+    authenticateToken,
+    (req, res) => {
+      try {
+        console.log("Fetching software packages");
+        const packages = automationService.getSoftwarePackages();
+        console.log(`Returning ${packages.length} software packages`);
+        res.json(packages);
+      } catch (error) {
+        console.error("Error getting software packages:", error);
+        res
+          .status(500)
+          .json({
+            error: "Failed to get software packages",
+            message: error.message,
+          });
       }
+    },
+  );
 
-      if (!package_id) {
-        return res.status(400).json({ error: "package_id is required" });
+  app.get(
+    "/api/automation/deployments",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        console.log("Fetching automation deployments");
+        // Get automation alerts that represent deployments
+        const alerts = await storage.getActiveAlerts();
+        const deployments = alerts.filter(
+          (alert) => alert.category === "automation",
+        );
+        console.log(`Found ${deployments.length} automation deployments`);
+        res.json(deployments);
+      } catch (error) {
+        console.error("Error getting deployments:", error);
+        res
+          .status(500)
+          .json({ error: "Failed to get deployments", message: error.message });
       }
+    },
+  );
 
-      const scheduledDate = scheduled_time ? new Date(scheduled_time) : new Date();
-      const deploymentIds = await automationService.scheduleDeployment(device_ids, package_id, scheduledDate);
+  app.post(
+    "/api/automation/deploy-software",
+    authenticateToken,
+    requireRole(["admin", "manager"]),
+    async (req, res) => {
+      try {
+        console.log("Processing software deployment request:", req.body);
+        const { device_ids, package_id, scheduled_time } = req.body;
 
-      console.log(`Deployment scheduled with IDs: ${deploymentIds}`);
-      res.json({ 
-        message: "Deployment scheduled successfully", 
-        deployment_ids: deploymentIds,
-        scheduled_time: scheduledDate
-      });
-    } catch (error) {
-      console.error("Error scheduling deployment:", error);
-      res.status(500).json({ error: error.message || "Failed to schedule deployment", message: error.message });
-    }
-  });
+        if (
+          !device_ids ||
+          !Array.isArray(device_ids) ||
+          device_ids.length === 0
+        ) {
+          return res
+            .status(400)
+            .json({
+              error: "device_ids is required and must be a non-empty array",
+            });
+        }
+
+        if (!package_id) {
+          return res.status(400).json({ error: "package_id is required" });
+        }
+
+        const scheduledDate = scheduled_time
+          ? new Date(scheduled_time)
+          : new Date();
+        const deploymentIds = await automationService.scheduleDeployment(
+          device_ids,
+          package_id,
+          scheduledDate,
+        );
+
+        console.log(`Deployment scheduled with IDs: ${deploymentIds}`);
+        res.json({
+          message: "Deployment scheduled successfully",
+          deployment_ids: deploymentIds,
+          scheduled_time: scheduledDate,
+        });
+      } catch (error) {
+        console.error("Error scheduling deployment:", error);
+        res
+          .status(500)
+          .json({
+            error: error.message || "Failed to schedule deployment",
+            message: error.message,
+          });
+      }
+    },
+  );
 
   // Get all users
   app.get("/api/users", authenticateToken, async (req, res) => {
@@ -1712,16 +2052,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ORDER BY name, email;
         `);
 
-        const users = result.rows.map(user => ({
+        const users = result.rows.map((user) => ({
           ...user,
           // Ensure name field is populated
-          name: user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.email.split('@')[0]
+          name:
+            user.name ||
+            `${user.first_name || ""} ${user.last_name || ""}`.trim() ||
+            user.username ||
+            user.email.split("@")[0],
         }));
 
         console.log(`Found ${users.length} users in database`);
         return res.json(users);
       } catch (dbError) {
-        console.log("Database query failed, trying storage fallback:", dbError.message);
+        console.log(
+          "Database query failed, trying storage fallback:",
+          dbError.message,
+        );
       }
 
       // Fallback to file storage
@@ -1730,139 +2077,184 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(users);
     } catch (error) {
       console.error("Error fetching users:", error);
-      res.status(500).json({ message: "Failed to fetch users", error: error.message });
+      res
+        .status(500)
+        .json({ message: "Failed to fetch users", error: error.message });
     }
   });
 
   // Analytics endpoints
-  app.post('/api/analytics/generate-report', authenticateToken, async (req, res) => {
-    try {
-      const { type, period, format } = req.body;
+  app.post(
+    "/api/analytics/generate-report",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const { type, period, format } = req.body;
 
-      // Mock report generation - replace with actual implementation
-      const reportData = {
-        type,
-        period,
-        generatedAt: new Date().toISOString(),
-        data: {
-          summary: `${type} report for ${period}`,
-          metrics: {
-            totalTickets: 150,
-            resolvedTickets: 120,
-            avgResolutionTime: '4.2 hours'
-          }
+        // Mock report generation - replace with actual implementation
+        const reportData = {
+          type,
+          period,
+          generatedAt: new Date().toISOString(),
+          data: {
+            summary: `${type} report for ${period}`,
+            metrics: {
+              totalTickets: 150,
+              resolvedTickets: 120,
+              avgResolutionTime: "4.2 hours",
+            },
+          },
+        };
+
+        if (format === "pdf") {
+          res.setHeader("Content-Type", "application/pdf");
+          res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="${type}-report.pdf"`,
+          );
+          res.send(
+            Buffer.from(`PDF Report: ${JSON.stringify(reportData, null, 2)}`),
+          );
+        } else if (format === "csv") {
+          res.setHeader("Content-Type", "text/csv");
+          res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="${type}-report.csv"`,
+          );
+          res.send(
+            `Type,Period,Generated\n${type},${period},${reportData.generatedAt}`,
+          );
+        } else {
+          res.json(reportData);
         }
-      };
-
-      if (format === 'pdf') {
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="${type}-report.pdf"`);
-        res.send(Buffer.from(`PDF Report: ${JSON.stringify(reportData, null, 2)}`));
-      } else if (format === 'csv') {
-        res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', `attachment; filename="${type}-report.csv"`);
-        res.send(`Type,Period,Generated\n${type},${period},${reportData.generatedAt}`);
-      } else {
-        res.json(reportData);
+      } catch (error) {
+        console.error("Error generating report:", error);
+        res.status(500).json({ error: "Failed to generate report" });
       }
-    } catch (error) {
-      console.error('Error generating report:', error);
-      res.status(500).json({ error: 'Failed to generate report' });
-    }
-  });
+    },
+  );
 
-  app.post('/api/analytics/download-report', authenticateToken, async (req, res) => {
-    try {
-      const { reportName, format } = req.body;
+  app.post(
+    "/api/analytics/download-report",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const { reportName, format } = req.body;
 
-      // Mock report download
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="${reportName.replace(/\s+/g, '-')}.pdf"`);
-      res.send(Buffer.from(`Downloaded Report: ${reportName}`));
-    } catch (error) {
-      console.error('Error downloading report:', error);
-      res.status(500).json({ error: 'Failed to download report' });
-    }
-  });
+        // Mock report download
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="${reportName.replace(/\s+/g, "-")}.pdf"`,
+        );
+        res.send(Buffer.from(`Downloaded Report: ${reportName}`));
+      } catch (error) {
+        console.error("Error downloading report:", error);
+        res.status(500).json({ error: "Failed to download report" });
+      }
+    },
+  );
 
-    // Security Alert generation and duplicate alert suppression
-  const generateSecurityAlert = async (deviceId: string, alertType: string, severity: string, message: string) => {
+  // Security Alert generation and duplicate alert suppression
+  const generateSecurityAlert = async (
+    deviceId: string,
+    alertType: string,
+    severity: string,
+    message: string,
+  ) => {
     try {
       // Get device name for alert message
       const device = await storage.getDevice(deviceId);
-      const deviceName = device?.hostname || 'Unknown Device';
+      const deviceName = device?.hostname || "Unknown Device";
 
       // Check for existing alert of same type for this device (more comprehensive check)
       const { pool } = await import("./db");
-      const existingAlert = await pool.query(`
+      const existingAlert = await pool.query(
+        `
         SELECT id, created_at FROM alerts 
         WHERE device_id = $1 AND type = $2 AND is_active = true
         AND message = $3
         AND created_at > NOW() - INTERVAL '5 minutes'
         ORDER BY created_at DESC 
         LIMIT 1
-      `, [deviceId, alertType, message]);
+      `,
+        [deviceId, alertType, message],
+      );
 
       if (existingAlert.rows.length > 0) {
-        console.log(`Skipping duplicate ${alertType} alert for device ${deviceName} (last alert: ${existingAlert.rows[0].created_at})`);
+        console.log(
+          `Skipping duplicate ${alertType} alert for device ${deviceName} (last alert: ${existingAlert.rows[0].created_at})`,
+        );
         return;
       }
 
       // Create a new alert in database
-       await pool.query(`
+      await pool.query(
+        `
         INSERT INTO alerts (device_id, type, category, severity, message, is_active, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      `, [deviceId, alertType, 'security', severity, message, true, new Date(), new Date()]);
+      `,
+        [
+          deviceId,
+          alertType,
+          "security",
+          severity,
+          message,
+          true,
+          new Date(),
+          new Date(),
+        ],
+      );
 
       console.log(`Generated new ${alertType} alert for device ${deviceName}`);
     } catch (error) {
-      console.error('Error generating security alert:', error);
+      console.error("Error generating security alert:", error);
     }
   };
 
   // Knowledge Base Routes (publicly accessible)
-    app.get("/api/knowledge-base", async (req, res) => {
-      try {
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 20;
-        const filters = {
-          category: req.query.category as string,
-          search: req.query.search as string,
-          status: (req.query.status as string) || "published"
-        };
+  app.get("/api/knowledge-base", async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const filters = {
+        category: req.query.category as string,
+        search: req.query.search as string,
+        status: (req.query.status as string) || "published",
+      };
 
-        const result = await storage.getKBArticles(page, limit, filters);
-        res.json(result.data);
-      } catch (error) {
-        console.error("Error fetching KB articles:", error);
-        res.status(500).json({ message: "Internal server error" });
+      const result = await storage.getKBArticles(page, limit, filters);
+      res.json(result.data);
+    } catch (error) {
+      console.error("Error fetching KB articles:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get individual knowledge base article
+  app.get("/api/knowledge-base/:id", async (req, res) => {
+    try {
+      console.log(`Fetching KB article with ID: ${req.params.id}`);
+
+      const article = await storage.getKBArticle(req.params.id);
+
+      if (!article) {
+        return res.status(404).json({ message: "Article not found" });
       }
-    });
 
-    // Get individual knowledge base article
-    app.get("/api/knowledge-base/:id", async (req, res) => {
+      // Increment view count
       try {
-        console.log(`Fetching KB article with ID: ${req.params.id}`);
-
-        const article = await storage.getKBArticle(req.params.id);
-
-        if (!article) {
-          return res.status(404).json({ message: "Article not found" });
-        }
-
-        // Increment view count
-        try {
-          await storage.incrementArticleViews(req.params.id);
-        } catch (viewError) {
-          console.warn("Failed to increment article views:", viewError);
-        }
-
-        res.json(article);
-      } catch (error) {
-        console.error("Error fetching KB article:", error);
-        res.status(500).json({ message: "Internal server error" });
+        await storage.incrementArticleViews(req.params.id);
+      } catch (viewError) {
+        console.warn("Failed to increment article views:", viewError);
       }
-    });
+
+      res.json(article);
+    } catch (error) {
+      console.error("Error fetching KB article:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
