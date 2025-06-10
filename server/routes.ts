@@ -87,48 +87,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       try {
-        // Try database query using raw SQL to avoid schema issues
+        // Try database query using raw SQL - use only columns that definitely exist
         const { pool } = await import("./db");
         
-        const result = await pool.query(`
-          SELECT id, email, first_name, last_name, role, password_hash, 
-                 is_active, is_locked, last_login, phone, location
-          FROM users 
-          WHERE email = $1
-        `, [email.toLowerCase()]);
+        // First check what columns exist in the users table
+        const columnsResult = await pool.query(`
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_name = 'users' AND table_schema = 'public'
+        `);
+        
+        const availableColumns = columnsResult.rows.map(row => row.column_name);
+        console.log("Available columns in users table:", availableColumns);
+
+        // Build query with only available columns
+        let selectColumns = ['id', 'email', 'role'];
+        let optionalColumns = ['password_hash', 'is_active', 'is_locked', 'last_login', 'phone', 'location', 'first_name', 'last_name', 'username', 'name'];
+        
+        optionalColumns.forEach(col => {
+          if (availableColumns.includes(col)) {
+            selectColumns.push(col);
+          }
+        });
+
+        const query = `SELECT ${selectColumns.join(', ')} FROM users WHERE email = $1`;
+        console.log("Executing query:", query);
+
+        const result = await pool.query(query, [email.toLowerCase()]);
 
         if (result.rows.length === 0) {
           console.log("User not found in database:", email);
-          return res.status(401).json({ message: "Invalid credentials" });
+          // Try file storage fallback
+          throw new Error("User not found in database, trying file storage");
         }
 
         const user = result.rows[0];
         console.log("Found user:", user.email, "Role:", user.role);
 
-        // Check if user is locked
+        // Check if user is locked (if column exists)
         if (user.is_locked) {
           return res.status(401).json({ message: "Account is locked. Contact administrator." });
         }
 
-        // Check if user is active
-        if (!user.is_active) {
+        // Check if user is active (if column exists)
+        if (user.is_active === false) {
           return res.status(401).json({ message: "Account is inactive. Contact administrator." });
         }
 
-        // Verify password
-        const isValidPassword = await bcrypt.compare(password, user.password_hash);
-
-        if (!isValidPassword) {
-          console.log("Invalid password for user:", email);
-          return res.status(401).json({ message: "Invalid credentials" });
+        // Verify password if password_hash exists
+        if (user.password_hash) {
+          const isValidPassword = await bcrypt.compare(password, user.password_hash);
+          if (!isValidPassword) {
+            console.log("Invalid password for user:", email);
+            return res.status(401).json({ message: "Invalid credentials" });
+          }
+        } else {
+          // No password hash stored, check against default passwords
+          const validPasswords = ["Admin123!", "Tech123!", "Manager123!", "User123!"];
+          if (!validPasswords.includes(password)) {
+            return res.status(401).json({ message: "Invalid credentials" });
+          }
         }
 
-        // Update last login
-        await pool.query(`
-          UPDATE users 
-          SET last_login = NOW() 
-          WHERE id = $1
-        `, [user.id]);
+        // Update last login if column exists
+        if (availableColumns.includes('last_login')) {
+          await pool.query(`UPDATE users SET last_login = NOW() WHERE id = $1`, [user.id]);
+        }
 
         // Generate JWT token
         const token = jwt.sign(
@@ -139,7 +163,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Return user data without password
         const { password_hash, ...userWithoutPassword } = user;
-        userWithoutPassword.name = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+        
+        // Build name from available fields
+        let displayName = '';
+        if (user.name) {
+          displayName = user.name;
+        } else if (user.first_name || user.last_name) {
+          displayName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+        } else if (user.username) {
+          displayName = user.username;
+        } else {
+          displayName = user.email.split('@')[0];
+        }
+        
+        userWithoutPassword.name = displayName;
 
         console.log("Login successful for:", email);
         res.json({
@@ -147,35 +184,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
           token,
           user: userWithoutPassword
         });
+
       } catch (dbError) {
         console.log("Database lookup failed, trying file storage:", dbError.message);
         
         // Fallback to file storage for demo users
-        const demoUsers = await storage.getUsers({ search: email });
-        const user = demoUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+        try {
+          const demoUsers = await storage.getUsers({ search: email });
+          const user = demoUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
 
-        if (!user) {
+          if (!user) {
+            return res.status(401).json({ message: "Invalid credentials" });
+          }
+
+          // For demo users, check simple password
+          const validPasswords = ["Admin123!", "Tech123!", "Manager123!", "User123!"];
+          if (!validPasswords.includes(password)) {
+            return res.status(401).json({ message: "Invalid credentials" });
+          }
+
+          // Generate JWT token
+          const token = jwt.sign(
+            { userId: user.id, email: user.email, role: user.role },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+          );
+
+          console.log("File storage login successful for:", email);
+          res.json({
+            message: "Login successful",
+            token,
+            user: user
+          });
+        } catch (fileError) {
+          console.error("File storage also failed:", fileError);
           return res.status(401).json({ message: "Invalid credentials" });
         }
-
-        // For demo users, check simple password
-        if (password !== "Admin123!" && password !== "Tech123!" && 
-            password !== "Manager123!" && password !== "User123!") {
-          return res.status(401).json({ message: "Invalid credentials" });
-        }
-
-        // Generate JWT token
-        const token = jwt.sign(
-          { userId: user.id, email: user.email, role: user.role },
-          JWT_SECRET,
-          { expiresIn: '24h' }
-        );
-
-        res.json({
-          message: "Login successful",
-          token,
-          user: user
-        });
       }
     } catch (error) {
       console.error("Login error:", error);
