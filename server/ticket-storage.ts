@@ -57,13 +57,25 @@ export class TicketStorage {
     // Auto-assign to available technician
     const assignedTechnician = await userStorage.getNextAvailableTechnician();
 
+    // Calculate SLA due dates based on priority and type
+    const slaTargets = this.calculateSLATargets(ticketData.priority, ticketData.type);
+    const now = new Date();
+    const slaResponseDue = new Date(now.getTime() + (slaTargets.responseTime * 60 * 1000));
+    const slaResolutionDue = new Date(now.getTime() + (slaTargets.resolutionTime * 60 * 1000));
+
     const [newTicket] = await db
       .insert(tickets)
       .values({
         ...ticketData,
         ticket_number,
         status: assignedTechnician ? "assigned" : "new",
-        assigned_to: assignedTechnician?.email || null
+        assigned_to: assignedTechnician?.email || null,
+        sla_policy: slaTargets.policy,
+        sla_response_time: slaTargets.responseTime,
+        sla_resolution_time: slaTargets.resolutionTime,
+        sla_response_due: slaResponseDue,
+        sla_resolution_due: slaResolutionDue,
+        due_date: slaResolutionDue
       })
       .returning();
 
@@ -399,6 +411,38 @@ export class TicketStorage {
     } catch (error) {
       console.error("Error logging audit event:", error);
     }
+  }
+
+  private calculateSLATargets(priority: string, type: string): { 
+    policy: string, 
+    responseTime: number, 
+    resolutionTime: number 
+  } {
+    // SLA targets in minutes based on priority and type
+    const slaMatrix = {
+      critical: { 
+        responseTime: 15, 
+        resolutionTime: type === 'incident' ? 240 : 480,
+        policy: 'P1 - Critical' 
+      },
+      high: { 
+        responseTime: 60, 
+        resolutionTime: type === 'incident' ? 480 : 1440,
+        policy: 'P2 - High' 
+      },
+      medium: { 
+        responseTime: 240, 
+        resolutionTime: type === 'incident' ? 1440 : 2880,
+        policy: 'P3 - Medium' 
+      },
+      low: { 
+        responseTime: 480, 
+        resolutionTime: type === 'incident' ? 2880 : 5760,
+        policy: 'P4 - Low' 
+      }
+    };
+
+    return slaMatrix[priority as keyof typeof slaMatrix] || slaMatrix.medium;
   }
 
   private calculateChanges(oldValues: any, newValues: any): any {

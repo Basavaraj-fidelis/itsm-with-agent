@@ -125,9 +125,14 @@ export default function Dashboard() {
     let dueToday = 0;
 
     tickets.forEach(ticket => {
+      // Skip resolved/closed tickets for SLA calculation
+      if (['resolved', 'closed', 'cancelled'].includes(ticket.status)) {
+        return;
+      }
+
       // Check both sla_resolution_due and due_date fields
       const dueDate = ticket.sla_resolution_due || ticket.due_date;
-      if (dueDate && !['resolved', 'closed', 'cancelled'].includes(ticket.status)) {
+      if (dueDate) {
         const dueDateObj = new Date(dueDate);
         const timeDiff = dueDateObj.getTime() - now.getTime();
         const hoursDiff = timeDiff / (1000 * 3600);
