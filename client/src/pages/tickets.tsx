@@ -1043,6 +1043,16 @@ export default function Tickets() {
                   <div className="flex justify-between items-start mb-4">
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2">
+                        <Badge className={
+                          ticket.type === 'incident' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                          ticket.type === 'problem' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
+                          ticket.type === 'change' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                          'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                        }>
+                          {ticket.type === 'incident' ? 'INC' :
+                           ticket.type === 'problem' ? 'PRO' :
+                           ticket.type === 'change' ? 'CHA' : 'SR'}
+                        </Badge>
                         <Badge className={priorityColors[ticket.priority as keyof typeof priorityColors]}>
                           {ticket.priority.toUpperCase()}
                         </Badge>
@@ -1089,49 +1099,32 @@ export default function Tickets() {
                     )}
                   </div>
 
-                  {/* Workflow Section */}
+                  {/* Ticket Details */}
                   <div className="py-2 border-b border-gray-100 dark:border-gray-800">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center space-x-2">
-                        <Settings className="w-4 h-4 text-neutral-400" />
-                        <span className="text-sm font-medium text-neutral-600 dark:text-neutral-300">
-                          Workflow: Step {ticket.workflow_step || 1}
-                        </span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleWorkflow(ticket.id)}
-                        className="h-6 w-6 p-0"
-                      >
-                        {isExpanded ? (
-                          <ChevronUp className="w-4 h-4" />
-                        ) : (
-                          <ChevronDown className="w-4 h-4" />
-                        )}
-                      </Button>
+                    <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                      #{ticket.ticket_number} • {ticket.category && `${ticket.category} • `}
+                      Created: {new Date(ticket.created_at).toLocaleDateString()}
+                      {ticket.assigned_to && ` • Assigned to: ${ticket.assigned_to}`}
                     </div>
-
-                    {isExpanded && (
-                      <div className="mt-2 space-y-1">
-                        {renderWorkflowActions(ticket).map((action, index) => (
-                          <div key={index} className="flex justify-start">
-                            {action}
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
                   <div className="flex justify-between items-center pt-4">
                     <div className="text-sm text-neutral-500 dark:text-neutral-400">
-                      {ticket.requester_email} • {new Date(ticket.created_at).toLocaleDateString()}
+                      Requester: {ticket.requester_email}
                     </div>
                     <div className="flex space-x-2">
+                      {renderWorkflowActions(ticket).slice(0, 1).map((action, index) => (
+                        <div key={index}>
+                          {action}
+                        </div>
+                      ))}
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setSelectedTicket(ticket)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedTicket(ticket);
+                        }}
                       >
                         View Details
                       </Button>

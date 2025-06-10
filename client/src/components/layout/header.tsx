@@ -66,7 +66,15 @@ export default function Header() {
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            {/* Page title removed to avoid duplication with sidebar */}
+            <div className="flex items-center space-x-3">
+              <div className="bg-blue-600 text-white rounded-lg p-2">
+                <Shield className="h-6 w-6" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-gray-900 dark:text-white">Nexus ITSM</h1>
+                <p className="text-xs text-gray-500 dark:text-gray-400">IT Service Management</p>
+              </div>
+            </div>
           </div>
 
           {/* Right side actions */}
