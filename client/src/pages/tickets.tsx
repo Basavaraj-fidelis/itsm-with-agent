@@ -44,7 +44,8 @@ import {
   GitBranch,
   ChevronUp,
   ChevronDown,
-  Settings
+  Settings,
+  Workflow
 } from "lucide-react";
 import ServiceDeskWorkflows from "@/components/tickets/service-desk-workflows";
 import {
