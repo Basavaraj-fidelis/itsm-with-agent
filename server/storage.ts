@@ -2541,3 +2541,10 @@ smartphones
       console.warn("Failed to increment article views in database:", error);
     }
   }
+
+  // Database connection instance
+  private db = db;
+}
+
+// Create and export storage instance
+export const storage = new DatabaseStorage();
