@@ -341,11 +341,15 @@ export default function Dashboard() {
 
         <MetricCard
           title="Alerts"
-          value={summary?.active_alerts || 0}
+          value={alerts?.length || 0}
           icon={AlertTriangle}
           change={{
-            value: "3",
-            type: "decrease",
+            value: alerts?.filter(alert => {
+              const yesterday = new Date();
+              yesterday.setDate(yesterday.getDate() - 1);
+              return new Date(alert.triggered_at) >= yesterday;
+            }).length?.toString() || "0",
+            type: "increase",
             label: "since yesterday",
           }}
           color="red"
