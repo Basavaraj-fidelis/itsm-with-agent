@@ -68,13 +68,11 @@ export default function Header() {
           <div className="flex items-center">
             <div className="flex items-center space-x-3">
               <div className="flex items-center justify-center rounded-lg p-1">
-                <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M50 10L70 30H30L50 10Z" fill="#FF6B35"/>
-                  <path d="M50 90L30 70H70L50 90Z" fill="#FF6B35"/>
-                  <path d="M10 50L30 30V70L10 50Z" fill="#1E3A8A"/>
-                  <path d="M90 50L70 70V30L90 50Z" fill="#1E3A8A"/>
-                  <circle cx="50" cy="50" r="15" fill="#1E3A8A"/>
-                </svg>
+                <img 
+                    src="/attached_assets/Nexole_1749541287659.png" 
+                    alt="Nexole" 
+                    className="h-8 w-auto"
+                  />
               </div>
               <div>
                 <h1 className="text-lg font-bold text-gray-900 dark:text-white">Nexole ITSM</h1>

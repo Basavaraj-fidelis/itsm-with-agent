@@ -83,7 +83,7 @@ export default function KnowledgeBase() {
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
 
   // Check if we're viewing a specific article
-  const articleMatch = location.match(/^\/knowledge-base\/(.+)$/);
+  const articleMatch = location.match(/^\/knowledge-base\/([^-]+)/);
   const articleId = articleMatch ? articleMatch[1] : null;
 
 
@@ -176,8 +176,7 @@ export default function KnowledgeBase() {
   };
 
   const handleArticleClick = (article: Article) => {
-    const slug = article.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    setLocation(`/knowledge-base/${article.id}-${slug}`);
+    setLocation(`/knowledge-base/${article.id}`);
   };
 
   const handleBackToList = () => {
