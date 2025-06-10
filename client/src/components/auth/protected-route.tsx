@@ -80,14 +80,25 @@ export function ProtectedRoute({
         throw new Error("No token found");
       }
       
-      const response = await apiRequest("GET", "/api/auth/verify");
-      if (!response.ok) {
+      try {
+        const response = await apiRequest("GET", "/api/auth/verify");
+        if (!response.ok) {
+          console.error("Auth verification failed:", response.status, response.statusText);
+          // Clear invalid token
+          localStorage.removeItem("auth_token");
+          localStorage.removeItem("user");
+          throw new Error(`Authentication failed: ${response.status}`);
+        }
+        const userData = await response.json();
+        console.log("Auth verification successful:", userData);
+        return userData;
+      } catch (fetchError) {
+        console.error("Auth verification network error:", fetchError);
         // Clear invalid token
         localStorage.removeItem("auth_token");
         localStorage.removeItem("user");
-        throw new Error("Authentication failed");
+        throw fetchError;
       }
-      return response.json();
     },
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
