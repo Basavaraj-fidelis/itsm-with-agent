@@ -954,7 +954,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 extractNumericValue(disk.usage_percent) ||
                 extractNumericValue(disk.percent);
               if (usage !== null) {
-                storageUsages.push(usage);
+                ```text
+storageUsages.push(usage);
               }
             }
           });
@@ -1925,7 +1926,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ error: "Device not found" });
         }
 
-        const predictions =
+        const        predictions =
           await performanceService.generateResourcePredictions(deviceId);
         console.log(
           `Returning performance predictions for device: ${deviceId}`,
@@ -2040,52 +2041,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
 
   // Get all users
-  app.get("/api/users", authenticateToken, async (req, res) => {
-    try {
-      console.log("Fetching users from database...");
+  app.get("/api/users", async (req, res) => {
+  try {
+    console.log("GET /api/users - Fetching users from database");
 
-      // Try database first
-      try {
-        const { pool } = await import("./db");
-        const result = await pool.query(`
-          SELECT 
-            id, email, name, role, department, phone, is_active, 
-            created_at, updated_at, first_name, last_name, username
-          FROM users 
-          WHERE is_active = true
-          ORDER BY name, email;
-        `);
+    const { search, role } = req.query;
+    console.log("Query params:", { search, role });
 
-        const users = result.rows.map((user) => ({
-          ...user,
-          // Ensure name field is populated
-          name:
-            user.name ||
-            `${user.first_name || ""} ${user.last_name || ""}`.trim() ||
-            user.username ||
-            user.email.split("@")[0],
-        }));
+    // Initialize demo users if they don't exist
+    await storage.initializeDemoUsers();
 
-        console.log(`Found ${users.length} users in database`);
-        return res.json(users);
-      } catch (dbError) {
-        console.log(
-          "Database query failed, trying storage fallback:",
-          dbError.message,
-        );
-      }
+    const filters = {};
+    if (search) filters.search = search as string;
+    if (role && role !== 'all') filters.role = role as string;
 
-      // Fallback to file storage
-      const users = await storage.getUsers();
-      console.log(`Found ${users.length} users in file storage`);
-      res.json(users);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      res
-        .status(500)
-        .json({ message: "Failed to fetch users", error: error.message });
+    console.log("Calling storage.getUsers with filters:", filters);
+    const users = await storage.getUsers(filters);
+    console.log(`Found ${users.length} users:`, users.map(u => ({ id: u.id, email: u.email, name: u.name })));
+
+    res.json(users);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({ message: "Failed to fetch users", error: error.message });
+  }
+});
+
+app.get("/api/users/:id", async (req, res) => {
+  try {
+    console.log("GET /api/users/:id - Fetching user:", req.params.id);
+    const user = await storage.getUserById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
-  });
+    res.json(user);
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    res.status(500).json({ message: "Failed to fetch user" });
+  }
+});
+
+app.post("/api/users", async (req, res) => {
+  try {
+    console.log("POST /api/users - Creating user:", req.body);
+    const { name, email, password, role, department, phone } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "Name, email, and password are required" });
+    }
+
+    // Hash password
+    const bcrypt = await import("bcrypt");
+    const password_hash = await bcrypt.hash(password, 10);
+
+    const userData = {
+      name,
+      email: email.toLowerCase(),
+      password_hash,
+      role: role || 'user',
+      department: department || '',
+      phone: phone || '',
+      is_active: true
+    };
+
+    const newUser = await storage.createUser(userData);
+    console.log("Created user:", newUser);
+    res.status(201).json(newUser);
+  } catch (error) {
+    console.error("Error creating user:", error);
+    res.status(500).json({ message: "Failed to create user", error: error.message });
+  }
+});
+
+app.put("/api/users/:id", async (req, res) => {
+  try {
+    console.log("PUT /api/users/:id - Updating user:", req.params.id, req.body);
+    const { name, email, password, role, department, phone, is_active } = req.body;
+
+    const updates: any = {
+      name,
+      email: email?.toLowerCase(),
+      role,
+      department,
+      phone,
+      is_active
+    };
+
+    // Hash password if provided
+    if (password) {
+      const bcrypt = await import("bcrypt");
+      updates.password_hash = await bcrypt.hash(password, 10);
+    }
+
+    // Remove undefined values
+    Object.keys(updates).forEach(key => {
+      if (updates[key] === undefined) {
+        delete updates[key];
+      }
+    });
+
+    const updatedUser = await storage.updateUser(req.params.id, updates);
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    console.log("Updated user:", updatedUser);
+    res.json(updatedUser);
+  } catch (error) {
+    console.error("Error updating user:", error);
+    res.status(500).json({ message: "Failed to update user", error: error.message });
+  }
+});
+
+app.delete("/api/users/:id", async (req, res) => {
+  try {
+    console.log("DELETE /api/users/:id - Deleting user:", req.params.id);
+    const success = await storage.deleteUser(req.params.id);
+    if (!success) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    console.log("User deleted successfully");
+    res.json({ message: "User deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    res.status(500).json({ message: "Failed to delete user", error: error.message });
+  }
+});
 
   // Analytics endpoints
   app.post(
@@ -2219,12 +2299,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Knowledge Base Routes (publicly accessible)
   app.get("/api/knowledge-base", async (req, res) => {
     try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 20;
+      const page = parseInt(req.query as any.page) || 1;
+      const limit = parseInt(req.query as any.limit) || 20;
       const filters = {
-        category: req.query.category as string,
-        search: req.query.search as string,
-        status: (req.query.status as string) || "published",
+        category: req.query as any.category,
+        search: req.query as any.search,
+        status: (req.query as any.status) || "published",
       };
 
       console.log("Fetching KB articles with filters:", filters);

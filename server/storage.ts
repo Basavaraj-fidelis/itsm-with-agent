@@ -464,80 +464,231 @@ export class MemStorage implements IStorage {
 export class DatabaseStorage implements IStorage {
   // Initialize demo users if they don't exist
   async initializeDemoUsers() {
-    // Ensure knowledge base table exists
     try {
-      await this.db.execute(sql`
-        CREATE TABLE IF NOT EXISTS knowledge_base (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          title TEXT NOT NULL,
-          content TEXT NOT NULL,
-          category VARCHAR(100),
-          tags JSON DEFAULT '[]'::json,
-          author_email VARCHAR(255) NOT NULL,
-          status VARCHAR(20) DEFAULT 'draft',
-          views INTEGER DEFAULT 0,
-          helpful_votes INTEGER DEFAULT 0,
-          created_at TIMESTAMP DEFAULT NOW() NOT NULL,
-          updated_at TIMESTAMP DEFAULT NOW() NOT NULL
-        )
-      `);
+      console.log("Initializing demo users...");
+      
+      // First ensure the users table exists with proper schema
+      try {
+        const { pool } = await import("./db");
+        
+        // Create users table if it doesn't exist
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS users (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            email VARCHAR(255) UNIQUE NOT NULL,
+            username VARCHAR(100),
+            name VARCHAR(255),
+            first_name VARCHAR(100),
+            last_name VARCHAR(100),
+            password_hash TEXT NOT NULL,
+            role VARCHAR(50) DEFAULT 'user',
+            department VARCHAR(100),
+            phone VARCHAR(50),
+            job_title VARCHAR(100),
+            location VARCHAR(100),
+            is_active BOOLEAN DEFAULT true,
+            is_locked BOOLEAN DEFAULT false,
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+          )
+        `);
+        
+        console.log("Users table ensured");
+        
+        // Check if demo users already exist
+        const existingCheck = await pool.query(`
+          SELECT COUNT(*) as count FROM users WHERE email = $1
+        `, ['admin@company.com']);
+        
+        if (parseInt(existingCheck.rows[0].count) > 0) {
+          console.log("Demo users already exist, skipping initialization");
+          return;
+        }
+        
+        console.log("Creating demo users...");
+        const bcrypt = await import("bcrypt");
+
+        const demoUsers = [
+          {
+            email: "admin@company.com",
+            username: "admin",
+            name: "System Administrator",
+            first_name: "System",
+            last_name: "Administrator", 
+            password_hash: await bcrypt.hash("admin123", 10),
+            role: "admin",
+            department: "IT",
+            phone: "+1-555-0101",
+            job_title: "System Administrator",
+            location: "HQ",
+            is_active: true,
+          },
+          {
+            email: "manager@company.com",
+            username: "manager",
+            name: "IT Manager",
+            first_name: "IT",
+            last_name: "Manager",
+            password_hash: await bcrypt.hash("demo123", 10),
+            role: "manager",
+            department: "IT",
+            phone: "+1-555-0102",
+            job_title: "IT Manager",
+            location: "HQ",
+            is_active: true,
+          },
+          {
+            email: "tech@company.com",
+            username: "tech",
+            name: "Senior Technician",
+            first_name: "Senior",
+            last_name: "Technician",
+            password_hash: await bcrypt.hash("tech123", 10),
+            role: "technician",
+            department: "IT Support",
+            phone: "+1-555-0103",
+            job_title: "Senior Technician",
+            location: "HQ",
+            is_active: true,
+          },
+          {
+            email: "user@company.com",
+            username: "enduser",
+            name: "End User",
+            first_name: "End",
+            last_name: "User",
+            password_hash: await bcrypt.hash("demo123", 10),
+            role: "user",
+            department: "Sales",
+            phone: "+1-555-0104",
+            job_title: "Sales Representative",
+            location: "Branch Office",
+            is_active: true,
+          },
+        ];
+
+        for (const user of demoUsers) {
+          await pool.query(`
+            INSERT INTO users (
+              email, username, name, first_name, last_name, password_hash, 
+              role, department, phone, job_title, location, is_active
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+          `, [
+            user.email, user.username, user.name, user.first_name, user.last_name,
+            user.password_hash, user.role, user.department, user.phone, 
+            user.job_title, user.location, user.is_active
+          ]);
+        }
+        
+        console.log("Demo users created successfully");
+        
+      } catch (dbError) {
+        console.error("Database operation failed:", dbError);
+        console.log("Using in-memory storage for demo users");
+        
+        // Fallback to in-memory storage
+        if (!this.users) {
+          this.users = new Map();
+        }
+        
+        // Check if users already exist in memory
+        const existingUser = Array.from(this.users.values()).find(u => u.email === 'admin@company.com');
+        if (existingUser) {
+          console.log("Demo users already exist in memory");
+          return;
+        }
+        
+        const bcrypt = await import("bcrypt");
+        
+        const memoryUsers = [
+          {
+            id: '1',
+            email: "admin@company.com",
+            username: "admin",
+            name: "System Administrator",
+            password_hash: await bcrypt.hash("admin123", 10),
+            role: "admin",
+            department: "IT",
+            phone: "+1-555-0101",
+            is_active: true,
+            created_at: new Date(),
+            updated_at: new Date(),
+          },
+          {
+            id: '2',
+            email: "manager@company.com", 
+            username: "manager",
+            name: "IT Manager",
+            password_hash: await bcrypt.hash("demo123", 10),
+            role: "manager",
+            department: "IT",
+            phone: "+1-555-0102",
+            is_active: true,
+            created_at: new Date(),
+            updated_at: new Date(),
+          },
+          {
+            id: '3',
+            email: "tech@company.com",
+            username: "tech", 
+            name: "Senior Technician",
+            password_hash: await bcrypt.hash("tech123", 10),
+            role: "technician",
+            department: "IT Support",
+            phone: "+1-555-0103",
+            is_active: true,
+            created_at: new Date(),
+            updated_at: new Date(),
+          },
+          {
+            id: '4',
+            email: "user@company.com",
+            username: "enduser",
+            name: "End User", 
+            password_hash: await bcrypt.hash("demo123", 10),
+            role: "user",
+            department: "Sales",
+            phone: "+1-555-0104",
+            is_active: true,
+            created_at: new Date(),
+            updated_at: new Date(),
+          },
+        ];
+        
+        memoryUsers.forEach(user => {
+          this.users.set(user.id, user);
+        });
+        
+        console.log("Demo users created in memory");
+      }
+      
+      // Ensure knowledge base table exists
+      try {
+        await this.db.execute(sql`
+          CREATE TABLE IF NOT EXISTS knowledge_base (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            category VARCHAR(100),
+            tags JSON DEFAULT '[]'::json,
+            author_email VARCHAR(255) NOT NULL,
+            status VARCHAR(20) DEFAULT 'draft',
+            views INTEGER DEFAULT 0,
+            helpful_votes INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+          )
+        `);
+      } catch (error) {
+        console.log("Knowledge base table may already exist");
+      }
+
+      // Initialize sample knowledge base articles
+      await this.initializeSampleKBArticles();
+      
     } catch (error) {
-      console.log("Knowledge base table may already exist");
+      console.error("Error initializing demo users:", error);
     }
-
-    // Check if demo users already exist
-    const existingUsers = await this.getUsers({ search: "admin@company.com" });
-    if (existingUsers.length > 0) {
-      console.log("Demo users already exist, skipping initialization");
-    } else {
-      const { users } = await import("@shared/user-schema");
-      const bcrypt = await import("bcrypt");
-
-      const demoUsers = [
-        {
-          email: "admin@company.com",
-          name: "System Administrator",
-          password_hash: await bcrypt.hash("admin123", 10),
-          role: "admin",
-          department: "IT",
-          phone: "+1-555-0101",
-          is_active: true,
-        },
-        {
-          email: "manager@company.com",
-          name: "IT Manager",
-          password_hash: await bcrypt.hash("demo123", 10),
-          role: "manager",
-          department: "IT",
-          phone: "+1-555-0102",
-          is_active: true,
-        },
-        {
-          email: "tech@company.com",
-          name: "Senior Technician",
-          password_hash: await bcrypt.hash("tech123", 10),
-          role: "technician",
-          department: "IT Support",
-          phone: "+1-555-0103",
-          is_active: true,
-        },
-        {
-          email: "user@company.com",
-          name: "End User",
-          password_hash: await bcrypt.hash("demo123", 10),
-          role: "user",
-          department: "Sales",
-          phone: "+1-555-0104",
-          is_active: true,
-        },
-      ];
-
-      await db.insert(users).values(demoUsers);
-      console.log("Demo users created successfully");
-    }
-
-    // Initialize sample knowledge base articles
-    await this.initializeSampleKBArticles();
   }
 
   async initializeSampleKBArticles() {
@@ -2545,43 +2696,120 @@ smartphones
   // User management methods for database storage
   async getUsers(filters: { search?: string; role?: string } = {}): Promise<any[]> {
     try {
-      const { pool } = await import("./db");
-      let query = `
-        SELECT 
-          id, email, name, role, department, phone, is_active, 
-          created_at, updated_at, first_name, last_name, username
-        FROM users 
-        WHERE is_active = true
-      `;
-      const params: any[] = [];
-      let paramCount = 0;
-
-      if (filters.search) {
-        paramCount++;
-        query += ` AND (name ILIKE $${paramCount} OR email ILIKE $${paramCount})`;
-        params.push(`%${filters.search}%`);
-      }
-
-      if (filters.role && filters.role !== 'all') {
-        paramCount++;
-        query += ` AND role = $${paramCount}`;
-        params.push(filters.role);
-      }
-
-      query += ` ORDER BY name, email`;
-
-      const result = await pool.query(query, params);
+      console.log("DatabaseStorage.getUsers called with filters:", filters);
       
-      return result.rows.map((user) => ({
-        ...user,
-        // Ensure name field is populated
-        name: user.name || 
-              `${user.first_name || ""} ${user.last_name || ""}`.trim() || 
-              user.username || 
-              user.email.split("@")[0],
-      }));
+      // Try database first
+      try {
+        const { pool } = await import("./db");
+        
+        // First, let's check if the users table exists and what columns it has
+        const tableCheck = await pool.query(`
+          SELECT column_name, data_type 
+          FROM information_schema.columns 
+          WHERE table_name = 'users' 
+          ORDER BY ordinal_position
+        `);
+        
+        console.log("Users table columns:", tableCheck.rows);
+        
+        // Build query based on available columns
+        let query = `
+          SELECT 
+            id, email, 
+            COALESCE(name, CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')), username, split_part(email, '@', 1)) as name,
+            COALESCE(role, 'user') as role, 
+            COALESCE(department, location, '') as department, 
+            COALESCE(phone, '') as phone, 
+            COALESCE(is_active, true) as is_active, 
+            created_at, updated_at
+        `;
+        
+        // Add optional columns if they exist
+        const columnNames = tableCheck.rows.map(row => row.column_name);
+        if (columnNames.includes('first_name')) query += `, first_name`;
+        if (columnNames.includes('last_name')) query += `, last_name`;
+        if (columnNames.includes('username')) query += `, username`;
+        if (columnNames.includes('job_title')) query += `, job_title`;
+        if (columnNames.includes('location')) query += `, location`;
+        
+        query += ` FROM users WHERE COALESCE(is_active, true) = true`;
+        
+        const params: any[] = [];
+        let paramCount = 0;
+
+        if (filters.search) {
+          paramCount++;
+          query += ` AND (
+            COALESCE(name, '') ILIKE $${paramCount} OR 
+            email ILIKE $${paramCount} OR
+            COALESCE(first_name, '') ILIKE $${paramCount} OR
+            COALESCE(last_name, '') ILIKE $${paramCount} OR
+            COALESCE(username, '') ILIKE $${paramCount}
+          )`;
+          params.push(`%${filters.search}%`);
+        }
+
+        if (filters.role && filters.role !== 'all') {
+          paramCount++;
+          query += ` AND COALESCE(role, 'user') = $${paramCount}`;
+          params.push(filters.role);
+        }
+
+        query += ` ORDER BY email`;
+
+        console.log("Executing query:", query);
+        console.log("With params:", params);
+        
+        const result = await pool.query(query, params);
+        console.log(`Database returned ${result.rows.length} users`);
+        
+        const users = result.rows.map((user) => ({
+          ...user,
+          // Ensure consistent field names
+          name: user.name || 
+                `${user.first_name || ""} ${user.last_name || ""}`.trim() || 
+                user.username || 
+                user.email?.split("@")[0] || 
+                "Unknown User",
+          department: user.department || user.location || "",
+          phone: user.phone || "",
+          role: user.role || "user"
+        }));
+        
+        console.log("Processed users:", users.map(u => ({ id: u.id, email: u.email, name: u.name, role: u.role })));
+        return users;
+        
+      } catch (dbError) {
+        console.error("Database query failed:", dbError);
+        console.log("Falling back to in-memory storage");
+        
+        // Fallback to in-memory storage
+        const memUsers = Array.from(this.users?.values() || []);
+        let users = memUsers.filter(user => user.is_active !== false);
+
+        if (filters.search) {
+          const search = filters.search.toLowerCase();
+          users = users.filter(
+            (user) =>
+              (user.name || "").toLowerCase().includes(search) ||
+              (user.email || "").toLowerCase().includes(search),
+          );
+        }
+
+        if (filters.role && filters.role !== "all") {
+          users = users.filter((user) => user.role === filters.role);
+        }
+
+        return users.map((user) => {
+          const { password_hash, ...userWithoutPassword } = user;
+          return {
+            ...userWithoutPassword,
+            name: user.name || user.email?.split("@")[0] || "Unknown User"
+          };
+        });
+      }
     } catch (error) {
-      console.error("Error fetching users from database:", error);
+      console.error("Error in getUsers:", error);
       return [];
     }
   }
