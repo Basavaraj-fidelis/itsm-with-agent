@@ -75,15 +75,30 @@ export function ProtectedRoute({
   const { data: user, isLoading, error } = useQuery({
     queryKey: ["auth"],
     queryFn: async () => {
+      const token = localStorage.getItem("auth_token");
+      if (!token) {
+        throw new Error("No token found");
+      }
+      
       const response = await apiRequest("GET", "/api/auth/verify");
       if (!response.ok) {
+        // Clear invalid token
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user");
         throw new Error("Authentication failed");
       }
       return response.json();
     },
     retry: false,
-    staleTime: 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!localStorage.getItem("auth_token"), // Only run if token exists
   });
+
+  // Check for token first
+  const token = localStorage.getItem("auth_token");
+  if (!token) {
+    return <Redirect to={fallbackPath} />;
+  }
 
   if (isLoading) {
     return (
@@ -96,7 +111,10 @@ export function ProtectedRoute({
     );
   }
 
-  if (!user) {
+  if (error || !user) {
+    // Clear storage and redirect
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("user");
     return <Redirect to={fallbackPath} />;
   }
 

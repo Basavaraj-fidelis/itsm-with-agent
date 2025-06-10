@@ -50,11 +50,13 @@ export default function Login() {
 
         toast({
           title: "Login successful",
-          description: `Welcome back, ${data.user.name}`
+          description: `Welcome back, ${data.user.name || data.user.email}`
         });
 
-        // Redirect to dashboard for all users
-        window.location.href = "/dashboard";
+        // Force page reload to ensure fresh state
+        setTimeout(() => {
+          window.location.href = "/dashboard";
+        }, 100);
       } else {
         const error = await response.json();
         toast({

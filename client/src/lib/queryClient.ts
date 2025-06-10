@@ -8,37 +8,39 @@ async function throwIfResNotOk(res: Response) {
 }
 
 export async function apiRequest(
-  method: "GET" | "POST" | "PUT" | "DELETE",
+  method: string,
   url: string,
-  body?: any
+  data?: any
 ): Promise<Response> {
-  const token = localStorage.getItem('auth_token');
+  const token = localStorage.getItem("auth_token");
 
   const config: RequestInit = {
     method,
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { "Authorization": `Bearer ${token}` } : {})
+      ...(token && { Authorization: `Bearer ${token}` }),
     },
   };
 
-  if (body) {
-    config.body = JSON.stringify(body);
+  if (data && method !== "GET") {
+    config.body = JSON.stringify(data);
   }
 
-  const response = await fetch(url, config);
+  try {
+    const response = await fetch(url, config);
 
-  if (!response.ok) {
-    // Handle 401 errors by redirecting to login
-    if (response.status === 401) {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+    // Only clear auth on 401 for auth endpoints, not all endpoints
+    if (!response.ok && response.status === 401 && url.includes('/auth/')) {
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("user");
+      window.location.href = "/login";
     }
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
 
-  return response;
+    return response;
+  } catch (error) {
+    console.error('API request failed:', error);
+    throw error;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
