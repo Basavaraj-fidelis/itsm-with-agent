@@ -45,10 +45,8 @@ import {
   ChevronUp,
   ChevronDown,
   Settings,
-  Workflow,
   Download
 } from "lucide-react";
-import ServiceDeskWorkflows from "@/components/tickets/service-desk-workflows";
 import {
   ResponsiveContainer,
   PieChart,
@@ -701,8 +699,6 @@ export default function Tickets() {
         return "Problems";
       case "changes":
         return "Changes";
-      case "workflows":
-        return "Workflows";
       case "analytics":
         return "Analytics";
       default:
@@ -722,8 +718,6 @@ export default function Tickets() {
         return "Root cause analysis and known errors";
       case "changes":
         return "Change requests and approvals";
-      case "workflows":
-        return "Process automation and templates";
       case "analytics":
         return "Performance metrics and reports";
       default:
@@ -1389,8 +1383,6 @@ export default function Tickets() {
             {renderTicketTable()}
           </>
         );
-      case "workflows":
-        return <ServiceDeskWorkflows />;
       case "analytics":
         return renderAnalytics();
       default:
@@ -1452,15 +1444,7 @@ export default function Tickets() {
                   <Plus className="w-4 h-4" />
                   <span>Create Ticket</span>
                 </Button>
-                <Button
-                  variant={activeTab === "workflows" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setActiveTab("workflows")}
-                  className="flex items-center space-x-2"
-                >
-                  <Workflow className="w-4 h-4" />
-                  <span>Workflows</span>
-                </Button>
+                
                 <Button
                   variant={activeTab === "analytics" ? "default" : "outline"}
                   size="sm"
