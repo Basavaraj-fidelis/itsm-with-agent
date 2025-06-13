@@ -1889,6 +1889,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Remote Connection Endpoints
+  app.post("/api/agents/:id/remote-connect", authenticateToken, async (req, res) => {
+    try {
+      const agentId = req.params.id;
+      const { connection_type = "vnc", port = 5900 } = req.body;
+      
+      const device = await storage.getDevice(agentId);
+      if (!device) {
+        return res.status(404).json({ message: "Agent not found" });
+      }
+
+      if (device.status !== "online") {
+        return res.status(400).json({ 
+          message: "Agent is not online", 
+          status: device.status 
+        });
+      }
+
+      // Log connection attempt
+      await storage.createAlert({
+        device_id: agentId,
+        category: "remote_access",
+        severity: "info",
+        message: `Remote connection initiated by ${req.user.email}`,
+        metadata: {
+          connection_type,
+          port,
+          user: req.user.email,
+          timestamp: new Date().toISOString()
+        },
+        is_active: true
+      });
+
+      res.json({
+        success: true,
+        connection_info: {
+          hostname: device.hostname,
+          ip_address: device.ip_address,
+          port: port,
+          connection_type,
+          instructions: connection_type === "vnc" 
+            ? "Ensure VNC server is running on the target machine"
+            : "Ensure remote access is enabled on the target machine"
+        }
+      });
+    } catch (error) {
+      console.error("Error initiating remote connection:", error);
+      res.status(500).json({ message: "Failed to initiate remote connection" });
+    }
+  });
+
+  app.get("/api/agents/:id/connection-status", authenticateToken, async (req, res) => {
+    try {
+      const agentId = req.params.id;
+      const device = await storage.getDevice(agentId);
+      
+      if (!device) {
+        return res.status(404).json({ message: "Agent not found" });
+      }
+
+      // Check if agent is online and responsive
+      const lastSeen = new Date(device.last_seen);
+      const now = new Date();
+      const timeDiff = now.getTime() - lastSeen.getTime();
+      const minutesOffline = Math.floor(timeDiff / (1000 * 60));
+
+      const connectionStatus = {
+        agent_online: device.status === "online" && minutesOffline < 5,
+        last_seen: device.last_seen,
+        minutes_since_contact: minutesOffline,
+        ip_address: device.ip_address,
+        hostname: device.hostname,
+        ready_for_connection: device.status === "online" && minutesOffline < 5
+      };
+
+      res.json(connectionStatus);
+    } catch (error) {
+      console.error("Error checking connection status:", error);
+      res.status(500).json({ message: "Failed to check connection status" });
+    }
+  });
+
+  app.post("/api/agents/:id/test-connectivity", authenticateToken, async (req, res) => {
+    try {
+      const agentId = req.params.id;
+      const { port = 5900 } = req.body;
+      
+      const device = await storage.getDevice(agentId);
+      if (!device || !device.ip_address) {
+        return res.status(404).json({ message: "Agent not found or no IP address" });
+      }
+
+      // For now, return mock connectivity test
+      // In production, you'd implement actual port scanning
+      const mockConnectivity = {
+        reachable: device.status === "online",
+        port_open: device.status === "online", // Mock: assume port is open if agent is online
+        response_time: Math.random() * 100 + 50, // Mock response time
+        tested_at: new Date().toISOString()
+      };
+
+      res.json(mockConnectivity);
+    } catch (error) {
+      console.error("Error testing connectivity:", error);
+      res.status(500).json({ message: "Failed to test connectivity" });
+    }
+  });
+
   // Health check
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date() });

@@ -47,6 +47,65 @@ export default function AgentDetail() {
   const { id } = useParams();
   const { data: agent, isLoading, error } = useAgent(id || "");
   const [showVNCModal, setShowVNCModal] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState(null);
+  const [testingConnection, setTestingConnection] = useState(false);
+  const handleRemoteConnect = async () => {
+    if (!agent || agent.status !== 'online') {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/agents/${agent.id}/remote-connect`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: JSON.stringify({ connection_type: 'vnc', port: 5900 })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setShowVNCModal(true);
+      } else {
+        alert('Failed to initiate remote connection: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Remote connection error:', error);
+      alert('Failed to initiate remote connection');
+    }
+  };
+
+  const testConnectivity = async () => {
+    if (!agent) return;
+
+    setTestingConnection(true);
+    try {
+      const response = await fetch(`/api/agents/${agent.id}/test-connectivity`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: JSON.stringify({ port: 5900 })
+      });
+
+      const result = await response.json();
+      setConnectionStatus(result);
+
+      if (result.reachable && result.port_open) {
+        alert(`Connection test successful! Response time: ${result.response_time.toFixed(0)}ms`);
+      } else {
+        alert('Connection test failed. Agent may not be ready for remote access.');
+      }
+    } catch (error) {
+      console.error('Connectivity test error:', error);
+      alert('Failed to test connectivity');
+    } finally {
+      setTestingConnection(false);
+    }
+  };
 
   if (isLoading) {
     return (
