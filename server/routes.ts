@@ -1128,7 +1128,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         disk_usage,
       });
 
-      // Smart alert system - update existing alerts instead of creating duplicates
+      // Enhanced alert system with better deduplication and consolidation
       const checkAndManageAlert = async (
         metric: string,
         value: number,
@@ -1164,7 +1164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           currentSeverity = "warning";
           currentThreshold = thresholds.warning;
           if (metric === "cpu") {
-            message = `CPU usage elevated: ${value.toFixed(1)}% - Monitor`;
+            message = `Memory usage elevated: ${value.toFixed(1)}% - Monitor`;
           } else if (metric === "memory") {
             message = `Memory usage elevated: ${value.toFixed(1)}% - Monitor`;
           } else if (metric === "disk") {
@@ -1172,7 +1172,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
-        // Check for existing active alert for this metric
+        // Check for existing active alert for this metric and device
         const existingAlert = await storage.getActiveAlertByDeviceAndMetric(
           device.id,
           metric,
@@ -1181,45 +1181,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (currentSeverity) {
           // Should have an alert
           if (existingAlert) {
-            // Only update if severity changed or value changed significantly (>2%)
+            // Get the last reported value
             const lastValue = existingAlert.metadata?.[metric + "_usage"] || 0;
             const valueChange = Math.abs(value - lastValue);
+            const timeSinceLastUpdate = new Date().getTime() - new Date(existingAlert.metadata?.last_updated || existingAlert.triggered_at).getTime();
+            const minutesSinceUpdate = timeSinceLastUpdate / (1000 * 60);
 
-            if (existingAlert.severity !== currentSeverity || valueChange > 2) {
+            // Only update if:
+            // 1. Severity changed, OR
+            // 2. Value changed significantly (>3%), OR  
+            // 3. It's been more than 30 minutes since last update (to prevent stale alerts)
+            const shouldUpdate = 
+              existingAlert.severity !== currentSeverity || 
+              valueChange > 3 || 
+              minutesSinceUpdate > 30;
+
+            if (shouldUpdate) {
               await storage.updateAlert(existingAlert.id, {
+                severity: currentSeverity,
+                message: message,
+                triggered_at: new Date(), // Update timestamp to current
+                metadata: {
+                  ...existingAlert.metadata,
+                  [metric + "_usage"]: value,
+                  threshold: currentThreshold,
+                  metric: metric,
+                  last_updated: new Date().toISOString(),
+                  previous_value: lastValue,
+                  value_change: valueChange.toFixed(1),
+                  update_reason: existingAlert.severity !== currentSeverity ? 'severity_change' : 
+                                valueChange > 3 ? 'significant_change' : 'periodic_update'
+                },
+              });
+              console.log(
+                `Updated ${metric} alert for device ${device.hostname}: ${currentSeverity} (${value.toFixed(1)}%) - Previous: ${lastValue.toFixed(1)}%`,
+              );
+            } else {
+              // Just log that we're skipping the update
+              console.log(
+                `Skipping ${metric} alert update for device ${device.hostname}: minimal change (${value.toFixed(1)}% vs ${lastValue.toFixed(1)}%)`,
+              );
+            }
+          } else {
+            // Create new alert only if no recent similar alert exists
+            try {
+              // Check for any recently resolved alerts of the same type to prevent rapid cycling
+              const { pool } = await import("./db");
+              const recentResolvedAlert = await pool.query(
+                `SELECT id FROM alerts 
+                 WHERE device_id = $1 AND category = $2 
+                 AND metadata->>'metric' = $3
+                 AND resolved_at > NOW() - INTERVAL '10 minutes'
+                 ORDER BY resolved_at DESC LIMIT 1`,
+                [device.id, category, metric]
+              );
+
+              if (recentResolvedAlert.rows.length === 0) {
+                await storage.createAlert({
+                  device_id: device.id,
+                  category: category,
+                  severity: currentSeverity,
+                  message: message,
+                  metadata: {
+                    [metric + "_usage"]: value,
+                    threshold: currentThreshold,
+                    metric: metric,
+                    created_at: new Date().toISOString(),
+                    initial_detection: true,
+                  },
+                  is_active: true,
+                });
+                console.log(
+                  `Created new ${metric} alert for device ${device.hostname}: ${currentSeverity} (${value.toFixed(1)}%)`,
+                );
+              } else {
+                console.log(
+                  `Skipping new ${metric} alert for device ${device.hostname}: recently resolved similar alert exists`,
+                );
+              }
+            } catch (dbError) {
+              // Fallback to storage method if database query fails
+              await storage.createAlert({
+                device_id: device.id,
+                category: category,
                 severity: currentSeverity,
                 message: message,
                 metadata: {
                   [metric + "_usage"]: value,
                   threshold: currentThreshold,
                   metric: metric,
-                  last_updated: new Date().toISOString(),
-                  previous_value: lastValue,
-                  value_change: valueChange,
+                  created_at: new Date().toISOString(),
                 },
+                is_active: true,
               });
               console.log(
-                `Updated ${metric} alert for device ${device.hostname}: ${currentSeverity} (${value.toFixed(1)}%)`,
+                `Created new ${metric} alert for device ${device.hostname}: ${currentSeverity} (${value.toFixed(1)}%)`,
               );
             }
-          } else {
-            // Create new alert
-            await storage.createAlert({
-              device_id: device.id,
-              category: category,
-              severity: currentSeverity,
-              message: message,
-              metadata: {
-                [metric + "_usage"]: value,
-                threshold: currentThreshold,
-                metric: metric,
-                created_at: new Date().toISOString(),
-              },
-              is_active: true,
-            });
-            console.log(
-              `Created new ${metric} alert for device ${device.hostname}: ${currentSeverity} (${value.toFixed(1)}%)`,
-            );
           }
         } else {
           // Value is below warning threshold
@@ -1259,6 +1317,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           { critical: 95, high: 85, warning: 75 },
           "storage",
         );
+      }
+
+      // Clean up any duplicate alerts for this device before processing new ones
+      try {
+        const { pool } = await import("./db");
+        
+        // Find and resolve duplicate alerts (same device, same metric, same severity)
+        await pool.query(`
+          UPDATE alerts 
+          SET is_active = false, resolved_at = NOW()
+          WHERE id IN (
+            SELECT id FROM (
+              SELECT id, ROW_NUMBER() OVER (
+                PARTITION BY device_id, metadata->>'metric', severity 
+                ORDER BY triggered_at DESC
+              ) as rn
+              FROM alerts 
+              WHERE device_id = $1 AND is_active = true
+            ) t 
+            WHERE t.rn > 1
+          )
+        `, [device.id]);
+        
+        console.log(`Cleaned up duplicate alerts for device ${device.hostname}`);
+      } catch (cleanupError) {
+        console.warn("Failed to cleanup duplicate alerts:", cleanupError);
       }
 
       // Update USB device tracking
