@@ -1,6 +1,6 @@
-
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
+import { userRoutes } from "./user-routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { createTicketTables } from "./migrate-tickets";
 
@@ -49,6 +49,9 @@ app.use((req, res, next) => {
     await createAdminTables();
 
     const server = await registerRoutes(app);
+
+    // Register enhanced user routes
+    app.use("/api/users", userRoutes);
 
     // Import storage after it's available
     const { storage } = await import("./storage");
@@ -113,33 +116,7 @@ app.use((req, res, next) => {
     });
 
     // User Management Routes
-    app.get("/api/users", authenticateToken, requireRole(['admin', 'manager']), async (req, res) => {
-      try {
-        // Import user routes functionality
-        const { userRoutes } = await import("./user-routes");
-
-        // Get all users (filtering can be added later)
-        const { db } = await import("./db");
-        const { users } = await import("../shared/user-schema");
-
-        const allUsers = await db.select({
-          id: users.id,
-          email: users.email,
-          name: users.name,
-          role: users.role,
-          department: users.department,
-          phone: users.phone,
-          is_active: users.is_active,
-          created_at: users.created_at,
-          last_login: users.last_login
-        }).from(users);
-
-        res.json(allUsers);
-      } catch (error) {
-        console.error("Error fetching users:", error);
-        res.status(500).json({ message: "Internal server error" });
-      }
-    });
+    // The original user routes have been removed, as the userRoutes middleware from user-routes.ts is now used.
 
     // Ticket Management Routes
     app.get("/api/tickets", async (req, res) => {

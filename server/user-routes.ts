@@ -1,3 +1,10 @@
+` tags, preserving the original indentation and structure.
+
+```
+Applying changes to replace db.query with pool.query throughout the file.
+```
+
+<replit_final_file>
 import { Router } from "express";
 import { db } from "./db";
 import bcrypt from "bcrypt";
@@ -116,7 +123,7 @@ router.get("/", async (req, res) => {
 // Get user by ID
 router.get("/:id", async (req, res) => {
   try {
-    const result = await db.query(`
+    const result = await pool.query(`
       SELECT 
         id, email, username, first_name, last_name, role,
         phone, job_title, location, is_active, is_locked,
@@ -167,7 +174,7 @@ router.post("/", async (req, res) => {
     const saltRounds = 10;
     const password_hash = await bcrypt.hash(password, saltRounds);
 
-    const result = await db.query(`
+    const result = await pool.query(`
       INSERT INTO users (
         email, username, first_name, last_name, role, 
         password_hash, phone, location, is_active
@@ -226,7 +233,7 @@ router.put("/:id", async (req, res) => {
 
     updateQuery += ` RETURNING id, email, username, first_name, last_name, role, phone, location, is_active, created_at`;
 
-    const result = await db.query(updateQuery, values);
+    const result = await pool.query(updateQuery, values);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ message: "User not found" });
@@ -246,7 +253,7 @@ router.put("/:id", async (req, res) => {
 // Delete user (soft delete)
 router.delete("/:id", async (req, res) => {
   try {
-    const result = await db.query(`
+    const result = await pool.query(`
       UPDATE users 
       SET is_active = false, updated_at = NOW() 
       WHERE id = $1 
