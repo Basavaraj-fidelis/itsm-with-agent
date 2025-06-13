@@ -2747,7 +2747,7 @@ smartphones
 
         console.log("Users table columns:", tableCheck.rows);
 
-        // Build query based on available columns
+        // Build query with proper WHERE clause structure
         let query = `
           SELECT 
             id, email, 
@@ -2760,8 +2760,7 @@ smartphones
             first_name, last_name, username, job_title, location, employee_id, manager_id,
             last_login, is_locked, failed_login_attempts
           FROM users 
-          WHERE COALESCE(is_active, true) = true 
-          ORDER BY email
+          WHERE COALESCE(is_active, true) = true
         `;
 
         const params: any[] = [];
@@ -2770,10 +2769,9 @@ smartphones
         if (filters.search) {
           paramCount++;
           query += ` AND (
-            COALESCE(name, '') ILIKE $${paramCount} OR 
-            email ILIKE $${paramCount} OR
-            COALESCE(first_name, '') ILIKE $${paramCount} OR
+            COALESCE(first_name, '') ILIKE $${paramCount} OR 
             COALESCE(last_name, '') ILIKE $${paramCount} OR
+            email ILIKE $${paramCount} OR
             COALESCE(username, '') ILIKE $${paramCount}
           )`;
           params.push(`%${filters.search}%`);
@@ -2784,6 +2782,8 @@ smartphones
           query += ` AND COALESCE(role, 'user') = $${paramCount}`;
           params.push(filters.role);
         }
+
+        query += ` ORDER BY email`;
 
         console.log("Executing query:", query);
         console.log("With params:", params);
@@ -2884,24 +2884,44 @@ smartphones
   async createUser(data: any): Promise<any> {
     try {
       const { pool } = await import("./db");
+      
+      // Parse name into first and last name
+      const nameParts = (data.name || '').trim().split(' ');
+      const first_name = nameParts[0] || '';
+      const last_name = nameParts.slice(1).join(' ') || '';
+      const username = data.email?.split('@')[0] || '';
+      
       const result = await pool.query(
         `
-        INSERT INTO users (name, email, password_hash, role, department, phone, is_active)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-        RETURNING id, name, email, role, department, phone, is_active, created_at, updated_at
+        INSERT INTO users (
+          first_name, last_name, username, email, password_hash, role, 
+          department, phone, employee_id, job_title, is_active
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        RETURNING 
+          id, email, username, first_name, last_name, role, department, 
+          phone, employee_id, job_title, is_active, created_at, updated_at
       `,
         [
-          data.name,
+          first_name,
+          last_name,
+          username,
           data.email,
           data.password_hash,
-          data.role || "user",
+          data.role || "end_user",
           data.department || "",
           data.phone || "",
+          data.employee_id || "",
+          data.job_title || "",
           data.is_active !== undefined ? data.is_active : true,
         ],
       );
 
-      return result.rows[0];
+      const user = result.rows[0];
+      // Add computed name field for consistency
+      user.name = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.email?.split('@')[0];
+      
+      return user;
     } catch (error) {
       console.error("Error creating user:", error);
       throw error;
