@@ -26,7 +26,7 @@ let query = `
     created_at, updated_at, last_login, last_password_change,
     manager_id, preferences, permissions
   FROM users
-  `;
+`;
 
 
     const conditions = [];
@@ -124,7 +124,7 @@ let query = `
 // Get user by ID
 router.get("/:id", async (req, res) => {
   try {
-    const result = await pool.query(`
+    const result = await db.query(`
       SELECT 
         id, email, username, first_name, last_name, role,
         phone, job_title, location, is_active, is_locked,
@@ -175,7 +175,7 @@ router.post("/", async (req, res) => {
     const saltRounds = 10;
     const password_hash = await bcrypt.hash(password, saltRounds);
 
-    const result = await pool.query(`
+    const result = await db.query(`
       INSERT INTO users (
         email, username, first_name, last_name, role, 
         password_hash, phone, location, is_active
@@ -234,7 +234,7 @@ router.put("/:id", async (req, res) => {
 
     updateQuery += ` RETURNING id, email, username, first_name, last_name, role, phone, location, is_active, created_at`;
 
-    const result = await pool.query(updateQuery, values);
+    const result = await db.query(updateQuery, values);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ message: "User not found" });
@@ -254,7 +254,7 @@ router.put("/:id", async (req, res) => {
 // Delete user (soft delete)
 router.delete("/:id", async (req, res) => {
   try {
-    const result = await pool.query(`
+    const result = await db.query(`
       UPDATE users 
       SET is_active = false, updated_at = NOW() 
       WHERE id = $1 
