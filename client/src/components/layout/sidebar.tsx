@@ -137,6 +137,8 @@ export function Sidebar() {
     }
   }, [authUser]);
 
+  const isAdmin = authUser?.role === 'admin';
+
   // Define navigation with colored icons based on user role
   const getNavigation = () => {
     const baseNavigation = [
@@ -282,8 +284,9 @@ export function Sidebar() {
             </div>
             {!isCollapsed && (
               <div className="flex-1">
+                {/* Removed Nexole ITSM branding */}
                 <h1 className="text-h4 font-bold text-[#201F1E] dark:text-[#F3F2F1] bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  Nexole ITSM
+                  ITSM
                 </h1>
                 <div className="flex items-center space-x-2 mt-1">
                   <p className="text-xs text-[#605E5C] dark:text-[#A19F9D]">

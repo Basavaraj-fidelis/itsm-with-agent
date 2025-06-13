@@ -66,6 +66,7 @@ export default function Header() {
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
+            {/* Logo and Title */}
             <div className="flex items-center space-x-3">
               <div className="flex items-center justify-center rounded-lg p-1">
                 <img 
@@ -75,8 +76,8 @@ export default function Header() {
                   />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-gray-900 dark:text-white">Nexole ITSM</h1>
-                <p className="text-xs text-gray-500 dark:text-gray-400">IT Service Management</p>
+                <h1 className="text-lg font-bold text-gray-900 dark:text-white">IT Service Management Dashboard</h1>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Real-time system overview and monitoring</p>
               </div>
             </div>
           </div>
