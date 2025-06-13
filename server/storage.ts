@@ -2993,7 +2993,7 @@ smartphones
         params.push(filters.category);
       }
 
-      if (filters.search && filters.search.trim()) {
+      if (filters.search && typeof filters.search === 'string' && filters.search.trim()) {
         paramCount++;
         query += ` AND (title ILIKE $${paramCount} OR content ILIKE $${paramCount})`;
         params.push(`%${filters.search.trim()}%`);

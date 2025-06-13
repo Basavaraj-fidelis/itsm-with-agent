@@ -2127,18 +2127,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Knowledge Base Routes (publicly accessible)
   app.get("/api/knowledge-base", async (req, res) => {
     try {
-      const page = parseInt(req.query as any.page) || 1;
-      const limit = parseInt(req.query as any.limit) || 20;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
       const filters = {
-        category: req.query as any.category,
-        search: req.query as any.search,
-        status: (req.query as any.status) || "published",
+        category: req.query.category as string,
+        search: req.query.search as string,
+        status: (req.query.status as string) || "published",
       };
 
       console.log("Fetching KB articles with filters:", filters);
       const result = await storage.getKBArticles(page, limit, filters);
-      console.log(`Returning ${result.data.length} articles`);
-      res.json(result.data);
+      console.log(`Returning ${result.data?.length || result.length} articles`);
+      
+      // Handle both result.data and direct result array
+      const articles = result.data || result;
+      res.json(articles);
     } catch (error) {
       console.error("Error fetching KB articles:", error);
       res.status(500).json({ message: "Internal server error" });
