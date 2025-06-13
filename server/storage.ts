@@ -2019,7 +2019,7 @@ Contact your manager for approval before submitting requests.`,
 
 **For persistent issues**: Submit IT ticket with printer model and error details`,
 
-          category: "Hardware",
+          category: "Hardware",```typescript
           tags: ["printer", "troubleshooting", "drivers", "network"],
           author_email: "support@company.com",
           status: "published",
@@ -2750,23 +2750,18 @@ smartphones
         let query = `
           SELECT 
             id, email, 
-            COALESCE(name, CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')), username, split_part(email, '@', 1)) as name,
+            CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) as name,
             COALESCE(role, 'user') as role, 
             COALESCE(department, location, '') as department, 
             COALESCE(phone, '') as phone, 
             COALESCE(is_active, true) as is_active, 
-            created_at, updated_at
+            created_at, updated_at,
+            first_name, last_name, username, job_title, location, employee_id, manager_id,
+            last_login, is_locked, failed_login_attempts
+          FROM users 
+          WHERE COALESCE(is_active, true) = true 
+          ORDER BY email
         `;
-
-        // Add optional columns if they exist
-        const columnNames = tableCheck.rows.map((row) => row.column_name);
-        if (columnNames.includes("first_name")) query += `, first_name`;
-        if (columnNames.includes("last_name")) query += `, last_name`;
-        if (columnNames.includes("username")) query += `, username`;
-        if (columnNames.includes("job_title")) query += `, job_title`;
-        if (columnNames.includes("location")) query += `, location`;
-
-        query += ` FROM users WHERE COALESCE(is_active, true) = true`;
 
         const params: any[] = [];
         let paramCount = 0;

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
   Users as UsersIcon,
   Plus,
   Search,
@@ -63,6 +70,17 @@ import {
   UserCheck,
   UserX,
   Calendar,
+  AlertTriangle,
+  Key,
+  Clock,
+  Filter,
+  Download,
+  RefreshCw,
+  Settings,
+  Lock,
+  Unlock,
+  BadgeCheck,
+  Activity,
 } from "lucide-react";
 
 interface User {
@@ -77,36 +95,64 @@ interface User {
   phone?: string;
   job_title?: string;
   location?: string;
+  employee_id?: string;
+  manager_id?: string;
   is_active: boolean;
   is_locked?: boolean;
+  failed_login_attempts?: number;
   created_at: string;
   last_login?: string;
+  last_password_change?: string;
+  status?: string;
+  security_status?: string;
+  permissions?: string[];
+  preferences?: Record<string, any>;
+}
+
+interface UserStats {
+  total: number;
+  active: number;
+  inactive: number;
+  locked: number;
+  admins: number;
+  technicians: number;
+  managers: number;
+  end_users: number;
 }
 
 const roles = [
-  { value: "admin", label: "Administrator", description: "Full system access" },
-  { value: "manager", label: "Manager", description: "Team oversight and reporting" },
-  { value: "technician", label: "Technician", description: "Ticket management and resolution" },
-  { value: "user", label: "End User", description: "Submit and view own tickets" },
+  { value: "admin", label: "Administrator", description: "Full system access", color: "bg-red-100 text-red-800" },
+  { value: "manager", label: "Manager", description: "Team oversight and reporting", color: "bg-blue-100 text-blue-800" },
+  { value: "technician", label: "Technician", description: "Ticket management and resolution", color: "bg-green-100 text-green-800" },
+  { value: "user", label: "End User", description: "Submit and view own tickets", color: "bg-gray-100 text-gray-800" },
 ];
 
 const departments = [
   "IT",
-  "Human Resources",
+  "Human Resources", 
   "Finance",
   "Marketing",
   "Sales",
   "Operations",
   "Engineering",
   "Support",
+  "Legal",
+  "Facilities",
 ];
 
 export default function Users() {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
+  const [stats, setStats] = useState<UserStats>({
+    total: 0, active: 0, inactive: 0, locked: 0,
+    admins: 0, technicians: 0, managers: 0, end_users: 0
+  });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedRole, setSelectedRole] = useState('all');
+  const [selectedDepartment, setSelectedDepartment] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -118,27 +164,26 @@ export default function Users() {
     department: "",
     phone: "",
     password: "",
+    employee_id: "",
+    job_title: "",
   });
-  const [selectedRole, setSelectedRole] = useState('all');
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
     fetchUsers();
-  }, [searchTerm, selectedRole]);
+  }, [searchTerm, selectedRole, selectedDepartment, selectedStatus]);
 
   const fetchUsers = async () => {
     try {
       setIsLoading(true);
-      console.log("Fetching users from API...");
+      console.log("Fetching users with enhanced filters...");
 
-      // Build query parameters
       const params = new URLSearchParams();
-      if (searchTerm.trim()) {
-        params.append('search', searchTerm.trim());
-      }
-      if (selectedRole && selectedRole !== 'all') {
-        params.append('role', selectedRole);
-      }
+      if (searchTerm.trim()) params.append('search', searchTerm.trim());
+      if (selectedRole && selectedRole !== 'all') params.append('role', selectedRole);
+      if (selectedDepartment && selectedDepartment !== 'all') params.append('department', selectedDepartment);
+      if (selectedStatus && selectedStatus !== 'all') params.append('status', selectedStatus);
 
       const queryString = params.toString();
       const url = `/api/users${queryString ? `?${queryString}` : ''}`;
@@ -151,25 +196,18 @@ export default function Users() {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("API Error:", response.status, errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
-      console.log("Received users data:", data);
+      const result = await response.json();
+      console.log("Enhanced users data received:", result);
 
-      // Ensure we have an array and each user has required fields
-      const validUsers = (Array.isArray(data) ? data : []).map(user => ({
-        ...user,
-        name: user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.email?.split('@')[0] || 'Unknown',
-        role: user.role || 'user',
-        department: user.department || 'N/A',
-        phone: user.phone || 'N/A',
-        is_active: user.is_active !== undefined ? user.is_active : true
-      }));
-
-      setUsers(validUsers);
+      const userData = result.data || result || [];
+      setUsers(Array.isArray(userData) ? userData : []);
+      
+      // Calculate stats
+      calculateStats(userData);
+      
     } catch (error) {
       console.error("Failed to fetch users:", error);
       toast({
@@ -180,11 +218,27 @@ export default function Users() {
       setUsers([]);
     } finally {
       setIsLoading(false);
+      setLoading(false);
     }
+  };
+
+  const calculateStats = (userData: User[]) => {
+    const newStats = {
+      total: userData.length,
+      active: userData.filter(u => u.is_active && !u.is_locked).length,
+      inactive: userData.filter(u => !u.is_active).length,
+      locked: userData.filter(u => u.is_locked).length,
+      admins: userData.filter(u => u.role === 'admin').length,
+      technicians: userData.filter(u => u.role === 'technician').length,
+      managers: userData.filter(u => u.role === 'manager').length,
+      end_users: userData.filter(u => u.role === 'user').length,
+    };
+    setStats(newStats);
   };
 
   const createUser = async () => {
     try {
+      setIsLoading(true);
       const response = await fetch("/api/users", {
         method: "POST",
         headers: {
@@ -196,7 +250,7 @@ export default function Users() {
 
       if (response.ok) {
         const newUser = await response.json();
-        setUsers((prev) => [...prev, newUser]);
+        await fetchUsers(); // Refresh the list
         setIsCreateDialogOpen(false);
         resetForm();
         toast({
@@ -213,6 +267,8 @@ export default function Users() {
         description: error instanceof Error ? error.message : "Failed to create user.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -220,6 +276,7 @@ export default function Users() {
     if (!selectedUser) return;
 
     try {
+      setIsLoading(true);
       const updateData = { ...formData };
       if (!updateData.password) {
         delete updateData.password;
@@ -235,10 +292,7 @@ export default function Users() {
       });
 
       if (response.ok) {
-        const updatedUser = await response.json();
-        setUsers((prev) =>
-          prev.map((user) => (user.id === selectedUser.id ? updatedUser : user))
-        );
+        await fetchUsers(); // Refresh the list
         setIsEditDialogOpen(false);
         setSelectedUser(null);
         resetForm();
@@ -256,6 +310,8 @@ export default function Users() {
         description: error instanceof Error ? error.message : "Failed to update user.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -263,6 +319,7 @@ export default function Users() {
     if (!selectedUser) return;
 
     try {
+      setIsLoading(true);
       const response = await fetch(`/api/users/${selectedUser.id}`, {
         method: "DELETE",
         headers: {
@@ -271,7 +328,7 @@ export default function Users() {
       });
 
       if (response.ok) {
-        setUsers((prev) => prev.filter((user) => user.id !== selectedUser.id));
+        await fetchUsers(); // Refresh the list
         setIsDeleteDialogOpen(false);
         setSelectedUser(null);
         toast({
@@ -287,11 +344,14 @@ export default function Users() {
         description: "Failed to delete user.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const toggleUserStatus = async (user: User) => {
     try {
+      setIsLoading(true);
       const response = await fetch(`/api/users/${user.id}`, {
         method: "PUT",
         headers: {
@@ -302,13 +362,10 @@ export default function Users() {
       });
 
       if (response.ok) {
-        const updatedUser = await response.json();
-        setUsers((prev) =>
-          prev.map((u) => (u.id === user.id ? updatedUser : u))
-        );
+        await fetchUsers(); // Refresh the list
         toast({
           title: "User Status Updated",
-          description: `User has been ${updatedUser.is_active ? "activated" : "deactivated"}.`,
+          description: `User has been ${!user.is_active ? "activated" : "deactivated"}.`,
         });
       }
     } catch (error) {
@@ -317,6 +374,38 @@ export default function Users() {
         description: "Failed to update user status.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleUserLock = async (user: User) => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/users/${user.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ ...user, is_locked: !user.is_locked }),
+      });
+
+      if (response.ok) {
+        await fetchUsers(); // Refresh the list
+        toast({
+          title: "User Lock Status Updated",
+          description: `User has been ${!user.is_locked ? "locked" : "unlocked"}.`,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update user lock status.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -328,6 +417,8 @@ export default function Users() {
       department: "",
       phone: "",
       password: "",
+      employee_id: "",
+      job_title: "",
     });
   };
 
@@ -340,6 +431,8 @@ export default function Users() {
       department: user.department || "",
       phone: user.phone || "",
       password: "",
+      employee_id: user.employee_id || "",
+      job_title: user.job_title || "",
     });
     setIsEditDialogOpen(true);
   };
@@ -359,31 +452,35 @@ export default function Users() {
   };
 
   const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case "admin":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
-      case "manager":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
-      case "technician":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
-    }
+    const roleConfig = roles.find(r => r.value === role);
+    return roleConfig?.color || "bg-gray-100 text-gray-800";
   };
 
-  const filteredUsers = users.filter(
-    (user) =>
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (user.department && user.department.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const getStatusBadge = (user: User) => {
+    if (user.is_locked) {
+      return <Badge variant="destructive"><Lock className="w-3 h-3 mr-1" />Locked</Badge>;
+    }
+    if (!user.is_active) {
+      return <Badge variant="secondary"><UserX className="w-3 h-3 mr-1" />Inactive</Badge>;
+    }
+    return <Badge variant="default"><UserCheck className="w-3 h-3 mr-1" />Active</Badge>;
+  };
 
-  const formatDate = (dateString: string) => {
+  const getSecurityIndicator = (user: User) => {
+    if (user.failed_login_attempts && user.failed_login_attempts > 0) {
+      return <AlertTriangle className="w-4 h-4 text-orange-500" />;
+    }
+    return null;
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "Never";
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
     });
   };
 
@@ -411,286 +508,495 @@ export default function Users() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-semibold text-[#201F1E] dark:text-[#F3F2F1] mb-2">User Directory</h1>
+          <h1 className="text-2xl font-semibold text-[#201F1E] dark:text-[#F3F2F1] mb-2">
+            User Management
+          </h1>
           <p className="text-neutral-600">
-            Manage user accounts, roles, and permissions
+            Comprehensive user administration for ITSM platform
           </p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center">
-              <Plus className="w-4 h-4 mr-2" />
-              Add User
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Create New User</DialogTitle>
-              <DialogDescription>
-                Add a new user to the system. They will receive login credentials via email.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">
-                  Name
-                </Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="email" className="text-right">
-                  Email
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="password" className="text-right">
-                  Password
-                </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="role" className="text-right">
-                  Role
-                </Label>
-                <Select
-                  value={formData.role}
-                  onValueChange={(value) => setFormData({ ...formData, role: value })}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roles.map((role) => (
-                      <SelectItem key={role.value} value={role.value}>
-                        <div>
-                          <div className="font-medium">{role.label}</div>
-                          <div className="text-xs text-neutral-500">{role.description}</div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="department" className="text-right">
-                  Department
-                </Label>
-                <Select
-                  value={formData.department}
-                  onValueChange={(value) => setFormData({ ...formData, department: value })}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept} value={dept}>
-                        {dept}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="phone" className="text-right">
-                  Phone
-                </Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="col-span-3"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                Cancel
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={fetchUsers} disabled={isLoading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="flex items-center">
+                <Plus className="w-4 h-4 mr-2" />
+                Add User
               </Button>
-              <Button onClick={createUser}>Create User</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Create New User</DialogTitle>
+                <DialogDescription>
+                  Add a new user to the ITSM system with appropriate role and permissions.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">Full Name</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="col-span-3"
+                    placeholder="John Doe"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="email" className="text-right">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="col-span-3"
+                    placeholder="john.doe@company.com"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="employee_id" className="text-right">Employee ID</Label>
+                  <Input
+                    id="employee_id"
+                    value={formData.employee_id}
+                    onChange={(e) => setFormData({ ...formData, employee_id: e.target.value })}
+                    className="col-span-3"
+                    placeholder="EMP001"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="job_title" className="text-right">Job Title</Label>
+                  <Input
+                    id="job_title"
+                    value={formData.job_title}
+                    onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
+                    className="col-span-3"
+                    placeholder="IT Technician"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="password" className="text-right">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="col-span-3"
+                    placeholder="Temporary password"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="role" className="text-right">Role</Label>
+                  <Select
+                    value={formData.role}
+                    onValueChange={(value) => setFormData({ ...formData, role: value })}
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roles.map((role) => (
+                        <SelectItem key={role.value} value={role.value}>
+                          <div>
+                            <div className="font-medium">{role.label}</div>
+                            <div className="text-xs text-neutral-500">{role.description}</div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="department" className="text-right">Department</Label>
+                  <Select
+                    value={formData.department}
+                    onValueChange={(value) => setFormData({ ...formData, department: value })}
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept} value={dept}>
+                          {dept}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="phone" className="text-right">Phone</Label>
+                  <Input
+                    id="phone"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="col-span-3"
+                    placeholder="+1 (555) 123-4567"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={createUser} disabled={isLoading}>
+                  {isLoading ? "Creating..." : "Create User"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      {/* Search and Stats */}
-      <div className="flex justify-between items-center">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-4 h-4" />
-          <Input
-            placeholder="Search users..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 w-64"
-          />
-        </div>
-        <div className="flex space-x-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
-              {users.length}
-            </div>
-            <div className="text-xs text-neutral-500">Total Users</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">
-              {users.filter((u) => u.is_active).length}
-            </div>
-            <div className="text-xs text-neutral-500">Active</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-red-600">
-              {users.filter((u) => !u.is_active).length}
-            </div>
-            <div className="text-xs text-neutral-500">Inactive</div>
-          </div>
-        </div>
-      </div>
+      {/* Enhanced Stats and Filters */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+        </TabsList>
 
-      {/* Users Table */}
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-[#0078D4] text-white text-sm">
-                          {getUserInitials(user.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium">{user.name}</div>
-                        <div className="text-sm text-neutral-500">{user.email}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getRoleBadgeColor(user.role)}>
-                      <Shield className="w-3 h-3 mr-1" />
-                      {user.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {user.department && (
-                      <div className="flex items-center">
-                        <Building className="w-4 h-4 mr-1 text-neutral-400" />
-                        {user.department}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="flex items-center text-sm">
-                        <Mail className="w-3 h-3 mr-1 text-neutral-400" />
-                        {user.email}
-                      </div>
-                      {user.phone && (
-                        <div className="flex items-center text-sm">
-                          <Phone className="w-3 h-3 mr-1 text-neutral-400" />
-                          {user.phone}
+        <TabsContent value="overview" className="space-y-6">
+          {/* Statistics Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+            <Card className="p-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
+                <div className="text-xs text-neutral-500">Total Users</div>
+              </div>
+            </Card>
+            <Card className="p-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">{stats.active}</div>
+                <div className="text-xs text-neutral-500">Active</div>
+              </div>
+            </Card>
+            <Card className="p-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-600">{stats.inactive}</div>
+                <div className="text-xs text-neutral-500">Inactive</div>
+              </div>
+            </Card>
+            <Card className="p-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">{stats.locked}</div>
+                <div className="text-xs text-neutral-500">Locked</div>
+              </div>
+            </Card>
+            <Card className="p-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">{stats.admins}</div>
+                <div className="text-xs text-neutral-500">Admins</div>
+              </div>
+            </Card>
+            <Card className="p-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{stats.managers}</div>
+                <div className="text-xs text-neutral-500">Managers</div>
+              </div>
+            </Card>
+            <Card className="p-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">{stats.technicians}</div>
+                <div className="text-xs text-neutral-500">Technicians</div>
+              </div>
+            </Card>
+            <Card className="p-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-600">{stats.end_users}</div>
+                <div className="text-xs text-neutral-500">End Users</div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Enhanced Filters */}
+          <Card className="p-4">
+            <div className="flex flex-wrap gap-4 items-center">
+              <div className="flex-1 min-w-[200px]">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-4 h-4" />
+                  <Input
+                    placeholder="Search users by name, email, or employee ID..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <Select value={selectedRole} onValueChange={setSelectedRole}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  {roles.map((role) => (
+                    <SelectItem key={role.value} value={role.value}>
+                      {role.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Departments</SelectItem>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept} value={dept}>
+                      {dept}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </Card>
+
+          {/* Enhanced Users Table */}
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Role & Department</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Security</TableHead>
+                    <TableHead>Last Activity</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        <div className="flex items-center justify-center">
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          Loading users...
                         </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={user.is_active ? "default" : "secondary"}>
-                      {user.is_active ? (
-                        <>
-                          <UserCheck className="w-3 h-3 mr-1" />
-                          Active
-                        </>
-                      ) : (
-                        <>
-                          <UserX className="w-3 h-3 mr-1" />
-                          Inactive
-                        </>
-                      )}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center text-sm">
-                      <Calendar className="w-3 h-3 mr-1 text-neutral-400" />
-                      {formatDate(user.created_at)}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => openEditDialog(user)}>
-                          <Edit className="w-4 h-4 mr-2" />
-                          Edit User
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => toggleUserStatus(user)}>
-                          {user.is_active ? (
-                            <>
-                              <UserX className="w-4 h-4 mr-2" />
-                              Deactivate
-                            </>
-                          ) : (
-                            <>
-                              <UserCheck className="w-4 h-4 mr-2" />
-                              Activate
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => openDeleteDialog(user)}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete User
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                      </TableCell>
+                    </TableRow>
+                  ) : users.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        <div className="text-neutral-500">
+                          <UsersIcon className="w-8 h-8 mx-auto mb-2" />
+                          No users found
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    users.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell>
+                          <div className="flex items-center space-x-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className="bg-[#0078D4] text-white text-sm">
+                                {getUserInitials(user.name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-medium">{user.name}</div>
+                              <div className="text-sm text-neutral-500">{user.email}</div>
+                              {user.employee_id && (
+                                <div className="text-xs text-neutral-400">ID: {user.employee_id}</div>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <Badge className={getRoleBadgeColor(user.role)}>
+                              <Shield className="w-3 h-3 mr-1" />
+                              {roles.find(r => r.value === user.role)?.label || user.role}
+                            </Badge>
+                            {user.department && (
+                              <div className="flex items-center text-sm">
+                                <Building className="w-3 h-3 mr-1 text-neutral-400" />
+                                {user.department}
+                              </div>
+                            )}
+                            {user.job_title && (
+                              <div className="text-xs text-neutral-500">{user.job_title}</div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="flex items-center text-sm">
+                              <Mail className="w-3 h-3 mr-1 text-neutral-400" />
+                              {user.email}
+                            </div>
+                            {user.phone && (
+                              <div className="flex items-center text-sm">
+                                <Phone className="w-3 h-3 mr-1 text-neutral-400" />
+                                {user.phone}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(user)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            {getSecurityIndicator(user)}
+                            {user.failed_login_attempts && user.failed_login_attempts > 0 && (
+                              <span className="text-xs text-orange-600">
+                                {user.failed_login_attempts} failed attempts
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <div className="flex items-center">
+                              <Clock className="w-3 h-3 mr-1 text-neutral-400" />
+                              {formatDate(user.last_login)}
+                            </div>
+                            <div className="text-xs text-neutral-500">
+                              Created: {formatDate(user.created_at)}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>User Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => openEditDialog(user)}>
+                                <Edit className="w-4 h-4 mr-2" />
+                                Edit User
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => toggleUserStatus(user)}>
+                                {user.is_active ? (
+                                  <>
+                                    <UserX className="w-4 h-4 mr-2" />
+                                    Deactivate
+                                  </>
+                                ) : (
+                                  <>
+                                    <UserCheck className="w-4 h-4 mr-2" />
+                                    Activate
+                                  </>
+                                )}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => toggleUserLock(user)}>
+                                {user.is_locked ? (
+                                  <>
+                                    <Unlock className="w-4 h-4 mr-2" />
+                                    Unlock Account
+                                  </>
+                                ) : (
+                                  <>
+                                    <Lock className="w-4 h-4 mr-2" />
+                                    Lock Account
+                                  </>
+                                )}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => openDeleteDialog(user)}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete User
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="analytics" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Role Distribution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {roles.map((role) => {
+                    const count = users.filter(u => u.role === role.value).length;
+                    const percentage = users.length > 0 ? (count / users.length) * 100 : 0;
+                    return (
+                      <div key={role.value} className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <div className={`w-3 h-3 rounded-full ${role.color.split(' ')[0]}`}></div>
+                          <span className="text-sm font-medium">{role.label}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-20 bg-gray-200 rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full ${role.color.split(' ')[0]}`}
+                              style={{ width: `${percentage}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-sm text-gray-600 w-8">{count}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Department Distribution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {departments.map((dept) => {
+                    const count = users.filter(u => u.department === dept).length;
+                    const percentage = users.length > 0 ? (count / users.length) * 100 : 0;
+                    if (count === 0) return null;
+                    return (
+                      <div key={dept} className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{dept}</span>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-20 bg-gray-200 rounded-full h-2">
+                            <div
+                              className="h-2 rounded-full bg-blue-500"
+                              style={{ width: `${percentage}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-sm text-gray-600 w-8">{count}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Edit User Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
             <DialogDescription>
@@ -699,9 +1005,7 @@ export default function Users() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-name" className="text-right">
-                Name
-              </Label>
+              <Label htmlFor="edit-name" className="text-right">Full Name</Label>
               <Input
                 id="edit-name"
                 value={formData.name}
@@ -710,9 +1014,7 @@ export default function Users() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-email" className="text-right">
-                Email
-              </Label>
+              <Label htmlFor="edit-email" className="text-right">Email</Label>
               <Input
                 id="edit-email"
                 type="email"
@@ -722,9 +1024,25 @@ export default function Users() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-password" className="text-right">
-                Password
-              </Label>
+              <Label htmlFor="edit-employee_id" className="text-right">Employee ID</Label>
+              <Input
+                id="edit-employee_id"
+                value={formData.employee_id}
+                onChange={(e) => setFormData({ ...formData, employee_id: e.target.value })}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-job_title" className="text-right">Job Title</Label>
+              <Input
+                id="edit-job_title"
+                value={formData.job_title}
+                onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-password" className="text-right">Password</Label>
               <Input
                 id="edit-password"
                 type="password"
@@ -735,9 +1053,7 @@ export default function Users() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-role" className="text-right">
-                Role
-              </Label>
+              <Label htmlFor="edit-role" className="text-right">Role</Label>
               <Select
                 value={formData.role}
                 onValueChange={(value) => setFormData({ ...formData, role: value })}
@@ -758,9 +1074,7 @@ export default function Users() {
               </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-department" className="text-right">
-                Department
-              </Label>
+              <Label htmlFor="edit-department" className="text-right">Department</Label>
               <Select
                 value={formData.department}
                 onValueChange={(value) => setFormData({ ...formData, department: value })}
@@ -778,9 +1092,7 @@ export default function Users() {
               </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-phone" className="text-right">
-                Phone
-              </Label>
+              <Label htmlFor="edit-phone" className="text-right">Phone</Label>
               <Input
                 id="edit-phone"
                 value={formData.phone}
@@ -793,7 +1105,9 @@ export default function Users() {
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={updateUser}>Update User</Button>
+            <Button onClick={updateUser} disabled={isLoading}>
+              {isLoading ? "Updating..." : "Update User"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -813,8 +1127,9 @@ export default function Users() {
             <AlertDialogAction
               onClick={deleteUser}
               className="bg-red-600 hover:bg-red-700"
+              disabled={isLoading}
             >
-              Delete User
+              {isLoading ? "Deleting..." : "Delete User"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

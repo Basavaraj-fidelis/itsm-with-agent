@@ -5,27 +5,112 @@ import bcrypt from "bcrypt";
 
 const router = Router();
 
-// Get all users
+// Get all users with enhanced ITSM fields
 router.get("/", async (req, res) => {
   try {
-    const result = await db.query(`
+    const { search, role, department, status, page = 1, limit = 50 } = req.query;
+    
+    console.log("GET /api/users - Enhanced query with filters:", { search, role, department, status });
+    
+    let query = `
       SELECT 
         id, email, username, first_name, last_name, role,
-        phone, job_title, location, is_active, is_locked,
-        created_at, last_login
+        phone, job_title, location, employee_id, department,
+        is_active, is_locked, failed_login_attempts,
+        created_at, updated_at, last_login, last_password_change,
+        manager_id, preferences, permissions
       FROM users 
-      ORDER BY created_at DESC
-    `);
+    `;
+    
+    const conditions = [];
+    const params = [];
+    let paramCount = 0;
+    
+    // Apply filters
+    if (search) {
+      paramCount++;
+      conditions.push(`(
+        LOWER(first_name) LIKE LOWER($${paramCount}) OR 
+        LOWER(last_name) LIKE LOWER($${paramCount}) OR 
+        LOWER(email) LIKE LOWER($${paramCount}) OR 
+        LOWER(username) LIKE LOWER($${paramCount}) OR
+        LOWER(employee_id) LIKE LOWER($${paramCount})
+      )`);
+      params.push(`%${search}%`);
+    }
+    
+    if (role && role !== 'all') {
+      paramCount++;
+      conditions.push(`role = $${paramCount}`);
+      params.push(role);
+    }
+    
+    if (department && department !== 'all') {
+      paramCount++;
+      conditions.push(`department = $${paramCount}`);
+      params.push(department);
+    }
+    
+    if (status === 'active') {
+      conditions.push('is_active = true AND is_locked = false');
+    } else if (status === 'inactive') {
+      conditions.push('is_active = false OR is_locked = true');
+    }
+    
+    if (conditions.length > 0) {
+      query += ` WHERE ${conditions.join(' AND ')}`;
+    }
+    
+    query += ` ORDER BY created_at DESC`;
+    
+    // Add pagination
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    paramCount++;
+    query += ` LIMIT $${paramCount}`;
+    params.push(parseInt(limit));
+    paramCount++;
+    query += ` OFFSET $${paramCount}`;
+    params.push(offset);
+    
+    console.log("Executing enhanced user query:", query);
+    console.log("With parameters:", params);
+    
+    const result = await db.query(query, params);
+    
+    // Get total count for pagination
+    let countQuery = `SELECT COUNT(*) as total FROM users`;
+    if (conditions.length > 0) {
+      countQuery += ` WHERE ${conditions.join(' AND ')}`;
+    }
+    
+    const countResult = await db.query(countQuery, params.slice(0, -2)); // Remove limit and offset params
+    const total = parseInt(countResult.rows[0]?.total || 0);
     
     const users = result.rows.map(user => ({
       ...user,
-      name: `${user.first_name || ''} ${user.last_name || ''}`.trim()
+      name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.email?.split('@')[0],
+      department: user.department || user.location || 'N/A',
+      status: user.is_active && !user.is_locked ? 'active' : 'inactive',
+      security_status: user.failed_login_attempts > 0 ? 'warning' : 'normal'
     }));
     
-    res.json(users);
+    console.log(`Enhanced users query returned ${users.length} users out of ${total} total`);
+    
+    res.json({
+      data: users,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        totalPages: Math.ceil(total / parseInt(limit))
+      }
+    });
   } catch (error) {
     console.error("Error fetching users:", error);
-    res.status(500).json({ message: "Failed to fetch users" });
+    res.status(500).json({ 
+      message: "Failed to fetch users",
+      error: error.message 
+    });
   }
 });
 
