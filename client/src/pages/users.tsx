@@ -125,6 +125,7 @@ const roles = [
   { value: "manager", label: "Manager", description: "Team oversight and reporting", color: "bg-blue-100 text-blue-800" },
   { value: "technician", label: "Technician", description: "Ticket management and resolution", color: "bg-green-100 text-green-800" },
   { value: "user", label: "End User", description: "Submit and view own tickets", color: "bg-gray-100 text-gray-800" },
+  { value: "end_user", label: "End User", description: "Submit and view own tickets", color: "bg-gray-100 text-gray-800" },
 ];
 
 const departments = [
@@ -231,7 +232,7 @@ export default function Users() {
       admins: userData.filter(u => u.role === 'admin').length,
       technicians: userData.filter(u => u.role === 'technician').length,
       managers: userData.filter(u => u.role === 'manager').length,
-      end_users: userData.filter(u => u.role === 'user').length,
+      end_users: userData.filter(u => u.role === 'user' || u.role === 'end_user').length,
     };
     setStats(newStats);
   };
@@ -245,7 +246,10 @@ export default function Users() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          role: formData.role === 'user' ? 'end_user' : formData.role
+        }),
       });
 
       if (response.ok) {
@@ -822,10 +826,10 @@ export default function Users() {
                               <Shield className="w-3 h-3 mr-1" />
                               {roles.find(r => r.value === user.role)?.label || user.role}
                             </Badge>
-                            {user.department && (
+                            {(user.department || user.location) && (
                               <div className="flex items-center text-sm">
                                 <Building className="w-3 h-3 mr-1 text-neutral-400" />
-                                {user.department}
+                                {user.department || user.location || 'Not Set'}
                               </div>
                             )}
                             {user.job_title && (
@@ -937,8 +941,13 @@ export default function Users() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {roles.map((role) => {
-                    const count = users.filter(u => u.role === role.value).length;
+                  {roles.filter((role, index, self) => 
+                    self.findIndex(r => r.label === role.label) === index
+                  ).map((role) => {
+                    const count = users.filter(u => 
+                      u.role === role.value || 
+                      (role.value === 'end_user' && u.role === 'user')
+                    ).length;
                     const percentage = users.length > 0 ? (count / users.length) * 100 : 0;
                     return (
                       <div key={role.value} className="flex items-center justify-between">
@@ -969,7 +978,9 @@ export default function Users() {
               <CardContent>
                 <div className="space-y-3">
                   {departments.map((dept) => {
-                    const count = users.filter(u => u.department === dept).length;
+                    const count = users.filter(u => 
+                      u.department === dept || u.location === dept
+                    ).length;
                     const percentage = users.length > 0 ? (count / users.length) * 100 : 0;
                     if (count === 0) return null;
                     return (

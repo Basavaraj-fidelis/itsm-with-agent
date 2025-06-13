@@ -167,9 +167,9 @@ router.post("/", async (req, res) => {
     const result = await db.query(`
       INSERT INTO users (
         email, username, first_name, last_name, role, 
-        password_hash, phone, location, is_active
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      RETURNING id, email, username, first_name, last_name, role, phone, location, is_active, created_at
+        password_hash, phone, location, department, is_active
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING id, email, username, first_name, last_name, role, phone, location, department, is_active, created_at
     `, [
       email.toLowerCase(),
       username,
@@ -178,6 +178,7 @@ router.post("/", async (req, res) => {
       role || "end_user",
       password_hash,
       phone,
+      department,
       department,
       true
     ]);
@@ -206,22 +207,22 @@ router.put("/:id", async (req, res) => {
     let updateQuery = `
       UPDATE users 
       SET email = $1, first_name = $2, last_name = $3, role = $4, 
-          phone = $5, location = $6, is_active = $7, updated_at = NOW()
+          phone = $5, location = $6, department = $7, is_active = $8, updated_at = NOW()
     `;
-    let values = [email, first_name, last_name, role, phone, department, is_active];
+    let values = [email, first_name, last_name, role, phone, department, department, is_active];
 
     // If password is provided, update it too
     if (password) {
       const saltRounds = 10;
       const password_hash = await bcrypt.hash(password, saltRounds);
-      updateQuery += `, password_hash = $8 WHERE id = $9`;
+      updateQuery += `, password_hash = $9 WHERE id = $10`;
       values.push(password_hash, req.params.id);
     } else {
-      updateQuery += ` WHERE id = $8`;
+      updateQuery += ` WHERE id = $9`;
       values.push(req.params.id);
     }
 
-    updateQuery += ` RETURNING id, email, username, first_name, last_name, role, phone, location, is_active, created_at`;
+    updateQuery += ` RETURNING id, email, username, first_name, last_name, role, phone, location, department, is_active, created_at`;
 
     const result = await db.query(updateQuery, values);
 
