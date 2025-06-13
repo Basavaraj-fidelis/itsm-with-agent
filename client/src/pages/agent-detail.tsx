@@ -40,6 +40,7 @@ import {
   TrendingDown,
   Minus,
   AlertCircle,
+  X,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -49,6 +50,8 @@ export default function AgentDetail() {
   const [showVNCModal, setShowVNCModal] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState(null);
   const [testingConnection, setTestingConnection] = useState(false);
+  const [showConnectionInfo, setShowConnectionInfo] = useState(true);
+  const [showTroubleshooting, setShowTroubleshooting] = useState(true);
   const handleRemoteConnect = async () => {
     if (!agent || agent.status !== 'online') {
       return;
@@ -381,43 +384,57 @@ export default function AgentDetail() {
                 />
 
                 {/* Connection overlay with instructions */}
-                <div className="absolute top-4 left-4 bg-black/80 text-white p-3 rounded-lg max-w-md">
-                  <h4 className="font-semibold mb-2 flex items-center gap-2">
-                    <Info className="w-4 h-4" />
-                    Connection Info
-                  </h4>
-                  <div className="text-sm space-y-1">
-                    <div>Host: {agent.hostname}</div>
-                    <div>IP: {agent.ip_address || "Unknown"}</div>
-                    <div>VNC Port: 5900</div>
-                    <div className="text-yellow-300 mt-2">
-                      ⚠️ Ensure VNC server is running on the target machine
+                {showConnectionInfo && (
+                  <div className="absolute top-4 left-4 bg-black/80 text-white p-3 rounded-lg max-w-md">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="font-semibold flex items-center gap-2">
+                        <Info className="w-4 h-4" />
+                        Connection Info
+                      </h4>
+                      <Button variant="ghost" size="icon" onClick={() => setShowConnectionInfo(false)}>
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <div className="text-sm space-y-1">
+                      <div>Host: {agent.hostname}</div>
+                      <div>IP: {agent.ip_address || "Unknown"}</div>
+                      <div>VNC Port: 5900</div>
+                      <div className="text-yellow-300 mt-2">
+                        ⚠️ Ensure VNC server is running on the target machine
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Troubleshooting panel */}
-                <div className="absolute top-4 right-4 bg-black/80 text-white p-3 rounded-lg max-w-sm">
-                  <h4 className="font-semibold mb-2">Troubleshooting</h4>
-                  <div className="text-xs space-y-1">
-                    <div>• Install VNC server on target machine</div>
-                    <div>• Configure VNC to accept connections</div>
-                    <div>• Check firewall settings (port 5900)</div>
-                    <div>• Verify network connectivity</div>
+                {showTroubleshooting && (
+                  <div className="absolute top-4 right-4 bg-black/80 text-white p-3 rounded-lg max-w-sm">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="font-semibold">Troubleshooting</h4>
+                      <Button variant="ghost" size="icon" onClick={() => setShowTroubleshooting(false)}>
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <div className="text-xs space-y-1">
+                      <div>• Install VNC server on target machine</div>
+                      <div>• Configure VNC to accept connections</div>
+                      <div>• Check firewall settings (port 5900)</div>
+                      <div>• Verify network connectivity</div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 w-full text-black"
+                      onClick={() => {
+                        // Open agent management guide
+                        window.open("/knowledge-base", "_blank");
+                      }}
+                    >
+                      <HelpCircle className="w-3 h-3 mr-1" />
+                      Setup Guide
+                    </Button>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-2 w-full text-black"
-                    onClick={() => {
-                      // Open agent management guide
-                      window.open("/knowledge-base", "_blank");
-                    }}
-                  >
-                    <HelpCircle className="w-3 h-3 mr-1" />
-                    Setup Guide
-                  </Button>
-                </div>
+                )}
               </div>
             )}
           </div>

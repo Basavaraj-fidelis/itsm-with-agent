@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, Monitor, Wifi, ArrowLeft, Package, FileText, Server, AlertTriangle } from "lucide-react";
+import { AlertCircle, Monitor, Wifi, ArrowLeft, Package, FileText, Server, AlertTriangle, Info, HelpCircle, X } from "lucide-react";
 
 export default function VNCPage() {
   const vncRef = useRef<HTMLDivElement>(null);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [showConnectionInfo, setShowConnectionInfo] = useState(true);
+  const [showTroubleshooting, setShowTroubleshooting] = useState(true);
 
   useEffect(() => {
     // Parse URL parameters
@@ -14,6 +16,7 @@ export default function VNCPage() {
     const host = urlParams.get('host') || 'localhost';
     const port = urlParams.get('port') || '6080'; // NoVNC web port, not VNC port
     const vncPort = urlParams.get('vncport') || '5900';
+    const deviceName = urlParams.get('deviceName') || 'Remote Device';
 
     let rfb: any = null;
 
@@ -25,7 +28,7 @@ export default function VNCPage() {
           await loadScript('https://cdn.jsdelivr.net/npm/@novnc/novnc@1.4.0/core/rfb.js');
         }
 
-        initializeVNC();
+        initializeVNC(host, port, vncPort, deviceName);
       } catch (error) {
         console.error('Failed to load NoVNC:', error);
         setConnectionStatus('error');
@@ -43,7 +46,7 @@ export default function VNCPage() {
       });
     };
 
-    const initializeVNC = () => {
+    const initializeVNC = (host: string, port: string, vncPort: string, deviceName: string) => {
       if (vncRef.current && (window as any).RFB) {
         const RFB = (window as any).RFB;
 
@@ -211,30 +214,60 @@ export default function VNCPage() {
       {/* Left Sidebar - Compact */}
       <div className="w-64 bg-gray-800 text-white flex flex-col">
         {/* Connection Info */}
-        <div className="p-4 border-b border-gray-700">
-          <div className="flex items-center gap-2 mb-3">
-            <Monitor className="w-4 h-4" />
-            <h2 className="font-semibold">Connection Info</h2>
+        {showConnectionInfo && (
+          <div className="p-4 border-b border-gray-700">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Monitor className="w-4 h-4" />
+                <h2 className="font-semibold">Connection Info</h2>
+              </div>
+              <Button variant="ghost" size="icon" className="h-6 w-6 p-0" onClick={() => setShowConnectionInfo(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="space-y-1 text-xs">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Host:</span>
+                <span className="font-mono">{deviceName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">IP:</span>
+                <span className="font-mono">192.168.1.119</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Port:</span>
+                <span className="font-mono">5900</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Status:</span>
+                <span className="text-green-400 font-medium">Connected</span>
+              </div>
+            </div>
           </div>
-          <div className="space-y-1 text-xs">
-            <div className="flex justify-between">
-              <span className="text-gray-400">Host:</span>
-              <span className="font-mono">{deviceName}</span>
+        )}
+
+        {/* Troubleshooting */}
+        {showTroubleshooting && (
+          <div className="p-4 bg-gray-900 border-t border-gray-700">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-medium text-sm flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                Troubleshooting
+              </h4>
+              <Button variant="ghost" size="icon" className="h-6 w-6 p-0" onClick={() => setShowTroubleshooting(false)}>
+                <X className="h-4 w-4" />
+              </Button>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">IP:</span>
-              <span className="font-mono">192.168.1.119</span>
+            <div className="text-xs text-gray-400 space-y-1">
+              <p>• Check VNC server on target machine</p>
+              <p>• Verify network connectivity</p>
+              <p>• Check firewall port 5900</p>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Port:</span>
-              <span className="font-mono">5900</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Status:</span>
-              <span className="text-green-400 font-medium">Connected</span>
-            </div>
+            <Button className="w-full mt-2 p-1 bg-yellow-600 text-white rounded text-xs hover:bg-yellow-700">
+              🛠️ Setup Guide
+            </Button>
           </div>
-        </div>
+        )}
 
         {/* Quick Actions */}
         <div className="p-4 border-b border-gray-700">
@@ -288,24 +321,37 @@ export default function VNCPage() {
           </div>
         </div>
 
-        {/* Troubleshooting */}
-        <div className="p-4 bg-gray-900 border-t border-gray-700">
-          <h4 className="font-medium mb-2 text-sm">Troubleshooting</h4>
-          <div className="text-xs text-gray-400 space-y-1">
-            <p>• Check VNC server on target machine</p>
-            <p>• Verify network connectivity</p>
-            <p>• Check firewall port 5900</p>
+          {/* Toggle buttons for overlays when hidden */}
+          <div className="p-4 flex items-center justify-around">
+            {!showConnectionInfo && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowConnectionInfo(true)}
+                className="bg-gray-700 text-white hover:bg-gray-600"
+              >
+                <Info className="w-4 h-4 mr-1" />
+                Info
+              </Button>
+            )}
+            {!showTroubleshooting && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowTroubleshooting(true)}
+                className="bg-gray-700 text-white hover:bg-gray-600"
+              >
+                <HelpCircle className="w-4 h-4 mr-1" />
+                Help
+              </Button>
+            )}
           </div>
-          <button className="w-full mt-2 p-1 bg-yellow-600 text-white rounded text-xs hover:bg-yellow-700">
-            🛠️ Setup Guide
-          </button>
-        </div>
       </div>
 
       <div className="flex-1 bg-gray-900 relative overflow-hidden">
         {/* VNC Viewer Area - Full screen optimized */}
         <div className="w-full h-full relative">
-          <div className="absolute inset-4 bg-gray-800 border border-gray-600 shadow-2xl rounded-lg overflow-hidden">
+          <div className="absolute inset-0 bg-gray-800 border border-gray-600 shadow-2xl rounded-lg overflow-hidden">
             {/* VNC Canvas would go here */}
             <div className="w-full h-full bg-gradient-to-br from-blue-900 to-gray-900 flex items-center justify-center">
               <div className="text-center">
