@@ -232,7 +232,7 @@ export default function Users() {
       admins: userData.filter(u => u.role === 'admin').length,
       technicians: userData.filter(u => u.role === 'technician').length,
       managers: userData.filter(u => u.role === 'manager').length,
-      end_users: userData.filter(u => u.role === 'user' || u.role === 'end_user').length,
+      end_users: userData.filter(u => u.role === 'end_user' || u.role === 'user').length,
     };
     setStats(newStats);
   };
@@ -946,6 +946,7 @@ export default function Users() {
                   ).map((role) => {
                     const count = users.filter(u => 
                       u.role === role.value || 
+                      (role.value === 'user' && u.role === 'end_user') ||
                       (role.value === 'end_user' && u.role === 'user')
                     ).length;
                     const percentage = users.length > 0 ? (count / users.length) * 100 : 0;
