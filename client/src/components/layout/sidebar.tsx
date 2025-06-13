@@ -233,26 +233,6 @@ export function Sidebar() {
         activeColor: "bg-gray-50 border-gray-200 text-gray-700",
         description: "System configuration",
       },
-      {
-        name: "Security & Compliance",
-        href: "/security",
-        icon: Shield,
-        current: location === "/security",
-        roles: ["admin"],
-        iconColor: "text-gray-500",
-        activeColor: "bg-gray-50 border-gray-200 text-gray-700",
-        description: "Security and compliance settings",
-      },
-      {
-        name: "Performance Analytics",
-        href: "/performance",
-        icon: TrendingUp,
-        current: location === "/performance",
-        roles: ["admin"],
-        iconColor: "text-gray-500",
-        activeColor: "bg-gray-50 border-gray-200 text-gray-700",
-        description: "System performance analysis",
-      },
     ];
 
     const allNavigation = [
@@ -537,3 +517,4 @@ export function Sidebar() {
 }
 
 export default Sidebar;
+```

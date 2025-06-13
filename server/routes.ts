@@ -953,6 +953,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const usage =
                 extractNumericValue(disk.usage_percent) ||
                 extractNumericValue(disk.percent);
+```text
               if (usage !== null) {
                 storageUsages.push(usage);
               }
@@ -1431,72 +1432,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register ticket routes
   registerTicketRoutes(app);
 
-  // Security & Compliance Endpoints
-  app.get(
-    "/api/security/vulnerabilities/:deviceId",
-    authenticateToken,
-    async (req, res) => {
-      try {
-        const { securityService } = await import("./security-service");
-        const reports = await storage.getDeviceReports(req.params.deviceId);
-
-        if (reports.length === 0) {
-          return res.json([]);
-        }
-
-        const latestReport = reports[0];
-        const rawData = JSON.parse(latestReport.raw_data || "{}");
-        const installedSoftware =
-          rawData.installed_software || rawData.software || [];
-
-        const vulnerabilities = await securityService.checkVulnerabilities(
-          req.params.deviceId,
-          installedSoftware,
-        );
-        res.json(vulnerabilities);
-      } catch (error) {
-        console.error("Error fetching vulnerabilities:", error);
-        res.status(500).json({ message: "Internal server error" });
-      }
-    },
-  );
-
-  app.get(
-    "/api/performance/insights/:deviceId",
-    authenticateToken,
-    async (req, res) => {
-      try {
-        const { performanceService } = await import("./performance-service");
-        const insights =
-          await performanceService.getApplicationPerformanceInsights(
-            req.params.deviceId,
-          );
-        res.json(insights);
-      } catch (error) {
-        console.error("Error fetching performance insights:", error);
-        res.status(500).json({ message: "Internal server error" });
-      }
-    },
-  );
-
-  app.get(
-    "/api/performance/predictions/:deviceId",
-    authenticateToken,
-    async (req, res) => {
-      try {
-        const { performanceService } = await import("./performance-service");
-        const predictions =
-          await performanceService.generateResourcePredictions(
-            req.params.deviceId,
-          );
-        res.json(predictions);
-      } catch (error) {
-        console.error("Error fetching resource predictions:", error);
-        res.status(500).json({ message: "Internal server error" });
-      }
-    },
-  );
-
   // Automation & Orchestration Endpoints
   app.get(
     "/api/automation/software-packages",
@@ -1825,117 +1760,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date() });
   });
-
-  // Security API endpoints - Fixed implementation
-  app.get(
-    "/api/security/vulnerabilities/:deviceId",
-    authenticateToken,
-    async (req, res) => {
-      try {
-        const { deviceId } = req.params;
-        console.log(`Fetching vulnerabilities for device: ${deviceId}`);
-
-        const device = await storage.getDevice(deviceId);
-        if (!device) {
-          console.log(`Device not found: ${deviceId}`);
-          return res.status(404).json({ error: "Device not found" });
-        }
-
-        const reports = await storage.getDeviceReports(deviceId);
-        if (reports.length === 0) {
-          console.log(`No reports found for device: ${deviceId}`);
-          return res.json([]);
-        }
-
-        const latestReport = reports[0];
-        let installedSoftware = [];
-
-        if (latestReport.raw_data) {
-          try {
-            const rawData = JSON.parse(latestReport.raw_data);
-            installedSoftware = rawData.installed_software || [];
-            console.log(
-              `Found ${installedSoftware.length} software packages for vulnerability scan`,
-            );
-          } catch (parseError) {
-            console.error("Error parsing raw data:", parseError);
-          }
-        }
-
-        const vulnerabilities = await securityService.checkVulnerabilities(
-          deviceId,
-          installedSoftware,
-        );
-        console.log(`Returning ${vulnerabilities.length} vulnerabilities`);
-        res.json(vulnerabilities);
-      } catch (error) {
-        console.error("Error getting vulnerabilities:", error);
-        res.status(500).json({
-          error: "Failed to get vulnerabilities",
-          message: error.message,
-        });
-      }
-    },
-  );
-
-  // Performance API endpoints - Fixed implementation
-  app.get(
-    "/api/performance/insights/:deviceId",
-    authenticateToken,
-    async (req, res) => {
-      try {
-        const { deviceId } = req.params;
-        console.log(`Fetching performance insights for device: ${deviceId}`);
-
-        const device = await storage.getDevice(deviceId);
-        if (!device) {
-          console.log(`Device not found: ${deviceId}`);
-          return res.status(404).json({ error: "Device not found" });
-        }
-
-        const insights =
-          await performanceService.getApplicationPerformanceInsights(deviceId);
-        console.log(`Returning performance insights for device: ${deviceId}`);
-        res.json(insights);
-      } catch (error) {
-        console.error("Error getting performance insights:", error);
-        res.status(500).json({
-          error: "Failed to get performance insights",
-          message: error.message,
-        });
-      }
-    },
-  );
-
-  app.get(
-    "/api/performance/predictions/:deviceId",
-    authenticateToken,
-    async (req, res) => {
-      try {
-        const { deviceId } = req.params;
-        console.log(`Fetching performance predictions for device: ${deviceId}`);
-
-        const device = await storage.getDevice(deviceId);
-        if (!device) {
-          console.log(`Device not found: ${deviceId}`);
-          return res.status(404).json({ error: "Device not found" });
-        }
-
-        const predictions =
-          await performanceService.generateResourcePredictions(deviceId);
-        console.log(
-          `Returning performance predictions for device: ${deviceId}`,
-        );
-        res.json(predictions);
-      } catch (error) {
-        console.error("Error getting performance predictions:", error);
-        res.status(500).json({
-          error: "Failed to get performance predictions",
-          message: error.message,
-        });
-      }
-    },
-  );
 
   // Automation API endpoints - Fixed implementation
   app.get(

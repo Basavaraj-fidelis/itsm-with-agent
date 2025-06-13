@@ -18,7 +18,7 @@ import {
   knowledgeBase,
 } from "@shared/ticket-schema";
 import { auditLog } from "@shared/admin-schema";
-import { eq, desc, gte, and, sql, or, like, count } from "drizzle-orm";
+import { eq, desc, gte, and, sql, or, like, count, sql } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
@@ -2018,7 +2018,8 @@ Contact your manager for approval before submitting requests.`,
 4. Start Print Spooler service
 
 **For persistent issues**: Submit IT ticket with printer model and error details`,
-          category: "Hardware",
+          ```text
+ category: "Hardware",
           tags: ["printer", "troubleshooting", "drivers", "network"],
           author_email: "support@company.com",
           status: "published",
@@ -3046,7 +3047,8 @@ smartphones
   //     const result = await pool.query(`
   //       SELECT
   //         id, title, content, author_email, category, tags,
-  //         created_at, updated_at, views, helpful_votes, status
+  //         created_at, updated_at,```text
+ views, helpful_votes, status
   //       FROM knowledge_base
   //       WHERE id = $1
   //     `, [id]);
@@ -3114,6 +3116,76 @@ smartphones
       ).length,
       active_alerts: activeAlerts.length,
     };
+  }
+
+  async resolveAlert(alertId: string): Promise<void> {
+    try {
+      await db
+        .update(alerts)
+        .set({
+          is_active: false,
+          resolved_at: new Date(),
+        })
+        .where(eq(alerts.id, alertId));
+    } catch (error) {
+      console.error("Database update failed, trying file storage:", error);
+      const alert = this.alerts.get(alertId);
+      if (alert) {
+        alert.is_active = false;
+        alert.resolved_at = new Date();
+        this.alerts.set(alertId, alert);
+      }
+    }
+  }
+
+  async getActiveAlertByDeviceAndMetric(deviceId: string, metric: string): Promise<Alert | null> {
+    try {
+      const [existingAlert] = await db
+        .select()
+        .from(alerts)
+        .where(
+          and(
+            eq(alerts.device_id, deviceId),
+            eq(alerts.is_active, true),
+            sql`metadata->>'metric' = ${metric}`
+          )
+        )
+        .limit(1);
+
+      return existingAlert || null;
+    } catch (error) {
+      console.error("Database query failed, trying file storage:", error);
+      // Fallback to file storage
+      for (const [id, alert] of this.alerts.entries()) {
+        if (
+          alert.device_id === deviceId &&
+          alert.is_active &&
+          alert.metadata?.metric === metric
+        ) {
+          return alert;
+        }
+      }
+      return null;
+    }
+  }
+
+  async updateAlert(alertId: string, updates: Partial<Alert>): Promise<void> {
+    try {
+      await db
+        .update(alerts)
+        .set({
+          ...updates,
+          triggered_at: new Date(), // Update timestamp when alert is updated
+        })
+        .where(eq(alerts.id, alertId));
+    } catch (error) {
+      console.error("Database update failed, trying file storage:", error);
+      const alert = this.alerts.get(alertId);
+      if (alert) {
+        Object.assign(alert, updates);
+        this.alerts.set(alertId, alert);
+      }
+    }
   }
 
   // Database connection instance
