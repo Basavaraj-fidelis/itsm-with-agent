@@ -953,7 +953,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const usage =
                 extractNumericValue(disk.usage_percent) ||
                 extractNumericValue(disk.percent);
-```text
               if (usage !== null) {
                 storageUsages.push(usage);
               }

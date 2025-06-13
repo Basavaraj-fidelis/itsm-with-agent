@@ -2018,8 +2018,8 @@ Contact your manager for approval before submitting requests.`,
 4. Start Print Spooler service
 
 **For persistent issues**: Submit IT ticket with printer model and error details`,
-          ```text
- category: "Hardware",
+
+          category: "Hardware",
           tags: ["printer", "troubleshooting", "drivers", "network"],
           author_email: "support@company.com",
           status: "published",
@@ -3047,8 +3047,7 @@ smartphones
   //     const result = await pool.query(`
   //       SELECT
   //         id, title, content, author_email, category, tags,
-  //         created_at, updated_at,```text
- views, helpful_votes, status
+  //         created_at, updated_at, views, helpful_votes, status
   //       FROM knowledge_base
   //       WHERE id = $1
   //     `, [id]);
@@ -3138,7 +3137,10 @@ smartphones
     }
   }
 
-  async getActiveAlertByDeviceAndMetric(deviceId: string, metric: string): Promise<Alert | null> {
+  async getActiveAlertByDeviceAndMetric(
+    deviceId: string,
+    metric: string,
+  ): Promise<Alert | null> {
     try {
       const [existingAlert] = await db
         .select()
@@ -3147,8 +3149,8 @@ smartphones
           and(
             eq(alerts.device_id, deviceId),
             eq(alerts.is_active, true),
-            sql`metadata->>'metric' = ${metric}`
-          )
+            sql`metadata->>'metric' = ${metric}`,
+          ),
         )
         .limit(1);
 
