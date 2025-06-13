@@ -1877,7 +1877,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                     {processInfo
                       .filter(
                         (process) =>
-                          (process.cpu_percent || process.cpu_usage || 0) > 0.1,
+                          (process.cpu_percent || process.cpu_usage || 0) >= 0,
                       )
                       .sort(
                         (a, b) =>
@@ -1886,10 +1886,58 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                       )
                       .slice(0, 10)
                       .map((process, index) => (
-                        <div
-                          key={index}
-                          className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-3"
-                        >
+                        ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-neutral-500">
+                    <Cpu className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
+                    <p>No CPU process data available</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                            <div>
+                              <span className="text-neutral-600">Process: </span>
+                              <span className="font-medium">
+                                {process.name || process.process_name || "N/A"}
+                              </span>
+                              <p className="text-xs text-neutral-500">
+                                PID: {process.pid || process.process_id || "N/A"}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-neutral-600">CPU: </span>
+                              <span
+                                className={`font-medium ${
+                                  (process.cpu_percent ||
+                                    process.cpu_usage ||
+                                    0) >= 10
+                                    ? "text-red-600"
+                                    : (process.cpu_percent ||
+                                          process.cpu_usage ||
+                                          0) >= 5
+                                      ? "text-yellow-600"
+                                      : "text-green-600"
+                                }`}
+                              >
+                                {(
+                                  process.cpu_percent ||
+                                  process.cpu_usage ||
+                                  0
+                                ).toFixed(1)}
+                                %
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-neutral-600">User: </span>
+                              <span className="font-medium text-xs">
+                                {process.username || process.user || "N/A"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                           <div className="grid grid-cols-1 md:grid-cols-3gap-3 text-sm">
                             <div>
                               <span className="text-neutral-600">
