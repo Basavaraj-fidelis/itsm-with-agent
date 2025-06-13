@@ -2018,8 +2018,7 @@ Contact your manager for approval before submitting requests.`,
 4. Start Print Spooler service
 
 **For persistent issues**: Submit IT ticket with printer model and error details`,
-
-          category: "Hardware",```typescript
+          category: "Hardware",
           tags: ["printer", "troubleshooting", "drivers", "network"],
           author_email: "support@company.com",
           status: "published",
@@ -2039,14 +2038,14 @@ Contact your manager for approval before submitting requests.`,
 - Move closer to router
 
 ### 2. Windows WiFi Issues
-\`\`\`
+
 # Reset network settings (Run as Administrator)
 netsh winsock reset
 netsh int ip reset
 ipconfig /release
 ipconfig /renew
 ipconfig /flushdns
-\`\`\`
+
 
 ### 3. Check Network Status
 - Verify if others have same issue
