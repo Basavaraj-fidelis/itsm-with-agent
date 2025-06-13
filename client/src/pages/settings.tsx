@@ -506,13 +506,153 @@ export default function Settings() {
     </div>
   );
 
+  const downloadAgent = (platform: string) => {
+    // Create a blob with the appropriate agent files
+    const agentFiles = {
+      windows: {
+        filename: 'itsm-agent-windows.zip',
+        files: [
+          'itsm_agent.py',
+          'system_collector.py', 
+          'api_client.py',
+          'service_wrapper.py',
+          'config.ini',
+          'install_windows.py',
+          'fix_windows_service.py'
+        ]
+      },
+      linux: {
+        filename: 'itsm-agent-linux.tar.gz',
+        files: [
+          'itsm_agent.py',
+          'system_collector.py',
+          'api_client.py', 
+          'service_wrapper.py',
+          'config.ini'
+        ]
+      },
+      macos: {
+        filename: 'itsm-agent-macos.tar.gz',
+        files: [
+          'itsm_agent.py',
+          'system_collector.py',
+          'api_client.py',
+          'service_wrapper.py', 
+          'config.ini'
+        ]
+      }
+    };
+
+    const selectedAgent = agentFiles[platform as keyof typeof agentFiles];
+    
+    // Create download link
+    const link = document.createElement('a');
+    link.href = `/api/download/agent/${platform}`;
+    link.download = selectedAgent.filename;
+    link.click();
+    
+    toast({
+      title: "Download Started",
+      description: `ITSM Agent for ${platform} is downloading...`,
+    });
+  };
+
   const renderAgentSettings = () => (
     <div className="space-y-6">
+      {/* Agent Download Section */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Server className="h-5 w-5" />
-            Agent Management
+            Agent Download
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Download the ITSM agent for your target systems. The agent collects system information and enables remote management capabilities.
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="border rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                    <Monitor className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <h3 className="font-medium">Windows</h3>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Includes Windows service installer and management tools
+                </p>
+                <Button 
+                  onClick={() => downloadAgent('windows')}
+                  className="w-full"
+                  size="sm"
+                >
+                  Download Windows Agent
+                </Button>
+              </div>
+              
+              <div className="border rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-orange-100 rounded flex items-center justify-center">
+                    <Monitor className="h-4 w-4 text-orange-600" />
+                  </div>
+                  <h3 className="font-medium">Linux</h3>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Cross-platform agent with systemd integration
+                </p>
+                <Button 
+                  onClick={() => downloadAgent('linux')}
+                  className="w-full"
+                  size="sm"
+                  variant="outline"
+                >
+                  Download Linux Agent
+                </Button>
+              </div>
+              
+              <div className="border rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
+                    <Monitor className="h-4 w-4 text-gray-600" />
+                  </div>
+                  <h3 className="font-medium">macOS</h3>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Compatible with macOS systems and launchd
+                </p>
+                <Button 
+                  onClick={() => downloadAgent('macos')}
+                  className="w-full"
+                  size="sm"
+                  variant="outline"
+                >
+                  Download macOS Agent
+                </Button>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Installation Instructions</h4>
+              <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                <li>• Extract the downloaded archive to target system</li>
+                <li>• Configure API endpoint in config.ini</li>
+                <li>• Run installation script with administrator privileges</li>
+                <li>• Agent will automatically register with ITSM server</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Agent Configuration Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <SettingsIcon className="h-5 w-5" />
+            Agent Configuration
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">

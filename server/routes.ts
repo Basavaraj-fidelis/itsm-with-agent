@@ -1372,7 +1372,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Clean up any duplicate alerts for this device before processing new ones
       try {
         const { pool } = await import("./db");
-        
+
         // Find and resolve duplicate alerts (same device, same metric, same severity)
         await pool.query(`
           UPDATE alerts 
@@ -1389,7 +1389,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             WHERE t.rn > 1
           )
         `, [device.id]);
-        
+
         console.log(`Cleaned up duplicate alerts for device ${device.hostname}`);
       } catch (cleanupError) {
         console.warn("Failed to cleanup duplicate alerts:", cleanupError);
@@ -1893,8 +1893,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/agents/:id/remote-connect", authenticateToken, async (req, res) => {
     try {
       const agentId = req.params.id;
-      const { connection_type = "vnc", port = 5900 } = req.body;
-      
+      const { connection_type = "vnc", port = 5900 }const { body;
+
       const device = await storage.getDevice(agentId);
       if (!device) {
         return res.status(404).json({ message: "Agent not found" });
@@ -1944,7 +1944,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const agentId = req.params.id;
       const device = await storage.getDevice(agentId);
-      
+
       if (!device) {
         return res.status(404).json({ message: "Agent not found" });
       }
@@ -1975,7 +1975,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const agentId = req.params.id;
       const { port = 5900 } = req.body;
-      
+
       const device = await storage.getDevice(agentId);
       if (!device || !device.ip_address) {
         return res.status(404).json({ message: "Agent not found or no IP address" });
@@ -2380,7 +2380,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Fetching KB articles with filters:", filters);
       const result = await storage.getKBArticles(page, limit, filters);
       console.log(`Returning ${result.data?.length || result.length} articles`);
-      
+
       // Handle both result.data and direct result array
       const articles = result.data || result;
       res.json(articles);
@@ -2415,6 +2415,148 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Agent download endpoint
+  app.get('/api/download/agent/:platform', authenticateToken, (req, res) => {
+    const { platform } = req.params;
+  
+    const agentFiles = {
+      windows: [
+        'itsm_agent.py',
+        'system_collector.py',
+        'api_client.py', 
+        'service_wrapper.py',
+        'config.ini',
+        'install_windows.py',
+        'fix_windows_service.py'
+      ],
+      linux: [
+        'itsm_agent.py',
+        'system_collector.py',
+        'api_client.py',
+        'service_wrapper.py', 
+        'config.ini'
+      ],
+      macos: [
+        'itsm_agent.py',
+        'system_collector.py',
+        'api_client.py',
+        'service_wrapper.py',
+        'config.ini'
+      ]
+    };
+  
+    if (!agentFiles[platform as keyof typeof agentFiles]) {
+      return res.status(400).json({ error: 'Invalid platform' });
+    }
+  
+    const files = agentFiles[platform as keyof typeof agentFiles];
+    const filename = `itsm-agent-${platform}.zip`;
+  
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  
+    const archive = archiver('zip', { zlib: { level: 9 } });
+  
+    archive.on('error', (err) => {
+      console.error('Archive error:', err);
+      res.status(500).json({ error: 'Failed to create archive' });
+    });
+  
+    archive.pipe(res);
+  
+    // Add agent files from attached_assets directory
+    const assetsPath = path.join(process.cwd(), 'attached_assets');
+  
+    files.forEach(file => {
+      const filePath = path.join(assetsPath, file);
+      if (fs.existsSync(filePath)) {
+        archive.file(filePath, { name: file });
+      } else {
+        console.warn(`Agent file not found: ${file}`);
+      }
+    });
+  
+    // Add installation instructions
+    const instructions = `# ITSM Agent Installation Instructions
+  
+  ## ${platform.charAt(0).toUpperCase() + platform.slice(1)} Installation
+  
+  ### Prerequisites
+  - Python 3.7 or higher
+  - Administrator/root privileges
+  
+  ### Installation Steps
+  1. Extract this archive to your target directory
+  2. Edit config.ini and set your ITSM server URL and authentication token
+  3. Run the installation script:
+  
+  ${platform === 'windows' ? 
+    '   python install_windows.py' : 
+    '   sudo python3 itsm_agent.py install'
+  }
+  
+  4. Start the service:
+  ${platform === 'windows' ? 
+    '   python itsm_agent.py start' : 
+    '   sudo systemctl start itsm-agent'
+  }
+  
+  ### Configuration
+  Edit config.ini before installation:
+  - api.base_url: Your ITSM server URL
+  - api.auth_token: Authentication token from admin panel
+  - agent.collection_interval: Data collection frequency (seconds)
+  
+  ### Support
+  For technical support, contact your system administrator.
+  `;
+  
+    archive.append(instructions, { name: 'README.md' });
+    archive.finalize();
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
+import express from 'express';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import multer from 'multer';
+import { z } from 'zod';
+import db from './db';
+import { authenticateToken } from './auth-middleware';
+import path from 'path';
+import fs from 'fs';
+import archiver from 'archiver';
+
+const router = express.Router();
+
+// Configure multer for file uploads
+const storageConfig = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/'); // Store uploaded files in the 'uploads' directory
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + '-' + file.originalname);
+  },
+});
+
+const upload = multer({ storage: storageConfig });
+
+// User Schema
+const userSchema = z.object({
+  name: z.string().min(3).max(50),
+  email: z.string().email(),
+  password: z.string().min(8),
+  role: z.enum(['admin', 'manager', 'user']).default('user'),
+  department: z.string().optional(),
+  phone: z.string().optional(),
+  is_active: z.boolean().default(true),
+});
+
+// Health check endpoint
+router.get('/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+export default router;
