@@ -165,10 +165,11 @@ export default function Settings() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <SettingsIcon className="h-5 w-5" />
-            Organization Settings
+            Basic Configuration
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
+          {/* Essential Settings Only */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="orgName">Organization Name</Label>
@@ -179,7 +180,7 @@ export default function Settings() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="orgEmail">Organization Email</Label>
+              <Label htmlFor="orgEmail">Admin Email</Label>
               <Input
                 id="orgEmail"
                 type="email"
@@ -188,193 +189,75 @@ export default function Settings() {
                 placeholder="admin@company.com"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="orgAddress">Organization Address</Label>
-              <Input
-                id="orgAddress"
-                value={settings.orgAddress || ""}
-                onChange={(e) => updateSetting('orgAddress', e.target.value)}
-                placeholder="123 Business St, City, State"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="orgPhone">Organization Phone</Label>
-              <Input
-                id="orgPhone"
-                value={settings.orgPhone || ""}
-                onChange={(e) => updateSetting('orgPhone', e.target.value)}
-                placeholder="+1 (555) 123-4567"
-              />
-            </div>
           </div>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Regional Settings
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="timezone">Timezone</Label>
-              <Select
-                value={settings.timezone}
-                onValueChange={(value) => updateSetting("timezone", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="utc">UTC</SelectItem>
-                  <SelectItem value="est">Eastern Time (EST)</SelectItem>
-                  <SelectItem value="cst">Central Time (CST)</SelectItem>
-                  <SelectItem value="mst">Mountain Time (MST)</SelectItem>
-                  <SelectItem value="pst">Pacific Time (PST)</SelectItem>
-                  <SelectItem value="cet">Central European Time</SelectItem>
-                  <SelectItem value="ist">Indian Standard Time (IST)</SelectItem>
-                  <SelectItem value="jst">Japan Standard Time (JST)</SelectItem>
-                  <SelectItem value="aest">Australian Eastern Time</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="dateFormat">Date Format</Label>
-              <Select
-                value={settings.dateFormat || "mm/dd/yyyy"}
-                onValueChange={(value) => updateSetting("dateFormat", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="mm/dd/yyyy">MM/DD/YYYY</SelectItem>
-                  <SelectItem value="dd/mm/yyyy">DD/MM/YYYY</SelectItem>
-                  <SelectItem value="yyyy-mm-dd">YYYY-MM-DD</SelectItem>
-                  <SelectItem value="dd-mm-yyyy">DD-MM-YYYY</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="timeFormat">Time Format</Label>
-              <Select
-                value={settings.timeFormat || "12"}
-                onValueChange={(value) => updateSetting("timeFormat", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="12">12 Hour (AM/PM)</SelectItem>
-                  <SelectItem value="24">24 Hour</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="language">Language</Label>
-              <Select
-                value={settings.language || "en"}
-                onValueChange={(value) => updateSetting("language", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="es">Spanish</SelectItem>
-                  <SelectItem value="fr">French</SelectItem>
-                  <SelectItem value="de">German</SelectItem>
-                  <SelectItem value="it">Italian</SelectItem>
-                  <SelectItem value="pt">Portuguese</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Eye className="h-5 w-5" />
-            Interface Settings
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          {/* Interface Preferences */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Dark Mode</Label>
-                <p className="text-sm text-muted-foreground">
-                  Enable dark theme for the interface
-                </p>
+            <h3 className="text-lg font-medium">Interface</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Dark Mode</Label>
+                  <p className="text-sm text-muted-foreground">Enable dark theme</p>
+                </div>
+                <Switch
+                  checked={darkMode}
+                  onCheckedChange={setDarkMode}
+                />
               </div>
-              <Switch
-                checked={darkMode}
-                onCheckedChange={setDarkMode}
-              />
-            </div>
 
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Auto-refresh Dashboard</Label>
-                <p className="text-sm text-muted-foreground">
-                  Automatically refresh data every 30 seconds
-                </p>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Auto-refresh</Label>
+                  <p className="text-sm text-muted-foreground">Refresh data automatically</p>
+                </div>
+                <Switch
+                  checked={settings.autoRefresh}
+                  onCheckedChange={(checked) => updateSetting('autoRefresh', checked)}
+                />
               </div>
-              <Switch
-                checked={settings.autoRefresh}
-                onCheckedChange={(checked) => updateSetting('autoRefresh', checked)}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Compact View</Label>
-                <p className="text-sm text-muted-foreground">
-                  Use compact layout for better screen utilization
-                </p>
-              </div>
-              <Switch
-                checked={settings.compactView || false}
-                onCheckedChange={(checked) => updateSetting('compactView', checked)}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Show Tooltips</Label>
-                <p className="text-sm text-muted-foreground">
-                  Display helpful tooltips throughout the interface
-                </p>
-              </div>
-              <Switch
-                checked={settings.showTooltips !== false}
-                onCheckedChange={(checked) => updateSetting('showTooltips', checked)}
-              />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="refreshInterval">Dashboard Refresh Interval</Label>
-            <Select
-              value={settings.refreshInterval || "30"}
-              onValueChange={(value) => updateSetting("refreshInterval", value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="15">15 seconds</SelectItem>
-                <SelectItem value="30">30 seconds</SelectItem>
-                <SelectItem value="60">1 minute</SelectItem>
-                <SelectItem value="300">5 minutes</SelectItem>
-                <SelectItem value="disabled">Disabled</SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Regional Settings */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Regional Settings</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="timezone">Timezone</Label>
+                <Select
+                  value={settings.timezone}
+                  onValueChange={(value) => updateSetting("timezone", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="utc">UTC</SelectItem>
+                    <SelectItem value="est">Eastern Time</SelectItem>
+                    <SelectItem value="cst">Central Time</SelectItem>
+                    <SelectItem value="pst">Pacific Time</SelectItem>
+                    <SelectItem value="ist">Indian Standard Time</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dateFormat">Date Format</Label>
+                <Select
+                  value={settings.dateFormat || "mm/dd/yyyy"}
+                  onValueChange={(value) => updateSetting("dateFormat", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mm/dd/yyyy">MM/DD/YYYY</SelectItem>
+                    <SelectItem value="dd/mm/yyyy">DD/MM/YYYY</SelectItem>
+                    <SelectItem value="yyyy-mm-dd">YYYY-MM-DD</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
