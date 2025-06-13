@@ -2019,7 +2019,7 @@ Contact your manager for approval before submitting requests.`,
 3. Delete files in C:\\Windows\\System32\\spool\\PRINTERS
 4. Start Print Spooler service
 
-**For persistent issues**: Submit IT ticket with printer model and error details`,
+**For persistent issues**:Submit IT ticket with printer model and error details`,
           category: "Hardware",
           tags: ["printer", "troubleshooting", "drivers", "network"],
           author_email: "support@company.com",
@@ -2785,7 +2785,7 @@ smartphones
           params.push(filters.role);
         }
 
-        query += ` ORDER BY email`;
+        
 
         console.log("Executing query:", query);
         console.log("With params:", params);
@@ -3062,7 +3062,7 @@ smartphones
     const activeAlerts = await this.getActiveAlerts();
 
     // Update offline status for devices that haven't been seen for 5+ minutes
-    const now = new Date();
+    const now is new Date();
     const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
 
     for (const device of allDevices) {
