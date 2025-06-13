@@ -60,12 +60,31 @@ export default function Alerts() {
           refetch();
           queryClient.invalidateQueries({ queryKey: ["/api/alerts"] });
         }, 1000);
+        // Optionally show success message
+        toast({
+          title: "Alert Resolved",
+          description: "The alert has been resolved successfully.",
+        });
       } else {
-        const errorData = await response.json();
-        console.error('Failed to resolve alert:', errorData.message || 'Unknown error');
+        const errorText = await response.text();
+        console.error('Failed to resolve alert:', response.status, errorText);
+
+        // Show error message
+        toast({
+          title: "Error",
+          description: `Failed to resolve alert: ${response.status}`,
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Error resolving alert:', error);
+
+      // Show error message
+      toast({
+        title: "Error",
+        description: "An error occurred while resolving the alert.",
+        variant: "destructive",
+      });
     }
   };
 

@@ -139,18 +139,15 @@ export const api = {
     try {
       const response = await apiClient.get("/api/alerts");
       if (!response.ok) {
-        console.error(`Alerts API returned ${response.status}`);
-        return [];
+        const errorText = await response.text();
+        throw new Error(`Alerts API error ${response.status}: ${errorText}`);
       }
-      const text = await response.text();
-      try {
-        return JSON.parse(text);
-      } catch (parseError) {
-        console.error('Alerts response is not valid JSON:', text.substring(0, 100));
-        return [];
-      }
+      
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error('Alerts fetch failed:', error);
+      // Return empty array instead of throwing to prevent unhandled rejections
       return [];
     }
   },
