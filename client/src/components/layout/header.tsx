@@ -11,116 +11,123 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/components/auth/protected-route";
-import { Moon, Sun } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
-import { api } from "@/lib/api";
+import { useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-const pageNames: Record<string, string> = {
-  "/": "Dashboard",
-  "/dashboard": "Dashboard",
-  "/agents": "Agents",
-  "/alerts": "Alerts",
-  "/reports": "Reports",
-  "/settings": "Settings",
-};
-
 export default function Header() {
-  const [location, navigate] = useLocation();
   const { user, logout } = useAuth();
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [location] = useLocation();
 
-  useEffect(() => {
-    const theme = localStorage.getItem("theme");
-    setIsDarkMode(theme === "dark");
-  }, []);
-
-  const toggleDarkMode = () => {
-    const newTheme = isDarkMode ? "light" : "dark";
-    setIsDarkMode(!isDarkMode);
-    localStorage.setItem("theme", newTheme);
-    document.documentElement.classList.toggle("dark", !isDarkMode);
+  const getUserInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2);
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
+  const getRoleBadgeColor = (role: string) => {
+    switch (role) {
+      case "admin":
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+      case "manager":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+      case "technician":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+    }
   };
-
-  const currentPageName = pageNames[location] || "Page";
 
   return (
     <header className="bg-white dark:bg-[#201F1E] shadow-sm border-b border-[#F3F2F1] dark:border-[#323130]">
       <div className="px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Page Title */}
-          <div className="flex items-center">
-            <h1 className="text-xl font-semibold text-[#201F1E] dark:text-[#F3F2F1]">
-              {currentPageName}
-            </h1>
-          </div>
-
-          {/* User Profile Section */}
+        <div className="flex items-center justify-end h-16">
+          {/* Right: User Dropdown */}
           <div className="flex items-center space-x-4">
-            {/* Dark Mode Toggle */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleDarkMode}
-              className="hover:bg-[#F3F2F1] dark:hover:bg-[#323130]"
-            >
-              {isDarkMode ? (
-                <Sun className="h-4 w-4" />
-              ) : (
-                <Moon className="h-4 w-4" />
-              )}
-            </Button>
-
-            {/* User Dropdown */}
-            {user && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center space-x-2 hover:bg-[#F3F2F1] dark:hover:bg-[#323130]">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-[#0078D4] text-white text-sm">
-                        {user.name?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col items-start text-left">
-                      <span className="text-sm font-medium text-[#201F1E] dark:text-[#F3F2F1]">
-                        {user.name || user.email}
-                      </span>
-                      <span className="text-xs text-[#605E5C] dark:text-[#A19F9D]">
-                        {user.role && (
-                          <Badge variant="outline" className="text-xs">
-                            <Shield className="w-3 h-3 mr-1" />
-                            {user.role}
-                          </Badge>
-                        )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="h-10 px-3 hover:bg-[#F3F2F1] dark:hover:bg-[#323130] text-[#201F1E] dark:text-[#F3F2F1] flex items-center"
+                >
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-[#0078D4] text-white text-sm">
+                      {user ? getUserInitials(user.name) : "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="ml-3 text-left hidden md:block">
+                    <div className="text-sm font-medium">
+                      {user?.name || "User"}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColor(user?.role || "user")}`}
+                      >
+                        {user?.role || "user"}
                       </span>
                     </div>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate("/profile")}>
+                  </div>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="w-56 bg-white dark:bg-[#201F1E] border-[#E1DFDD] dark:border-[#484644]"
+                align="end"
+              >
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium text-[#201F1E] dark:text-[#F3F2F1]">
+                      {user?.name}
+                    </p>
+                    <p className="text-xs text-[#605E5C]">{user?.email}</p>
+                    {user?.department && (
+                      <p className="text-xs text-[#605E5C]">
+                        {user.department} Department
+                      </p>
+                    )}
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-[#E1DFDD] dark:bg-[#484644]" />
+                <DropdownMenuItem asChild>
+                  <a
+                    href="/profile"
+                    className="text-[#201F1E] dark:text-[#F3F2F1] hover:bg-[#F3F2F1] dark:hover:bg-[#323130] flex items-center"
+                  >
                     <User className="mr-2 h-4 w-4" />
-                    Profile
+                    Profile Settings
+                  </a>
+                </DropdownMenuItem>
+                {user?.role === "admin" && (
+                  <DropdownMenuItem asChild>
+                    <a
+                      href="/settings"
+                      className="text-[#201F1E] dark:text-[#F3F2F1] hover:bg-[#F3F2F1] dark:hover:bg-[#323130] flex items-center"
+                    >
+                      <Settings className="mr-2 h-4 w-4" />
+                      System Settings
+                    </a>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/settings")}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Log out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+                )}
+                <DropdownMenuItem asChild>
+                  <a
+                    href="/settings?tab=security"
+                    className="text-[#201F1E] dark:text-[#F3F2F1] hover:bg-[#F3F2F1] dark:hover:bg-[#323130] flex items-center"
+                  >
+                    <Shield className="mr-2 h-4 w-4" />
+                    Security
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-[#E1DFDD] dark:bg-[#484644]" />
+                <DropdownMenuItem
+                  onClick={logout}
+                  className="text-red-600 hover:bg-[#F3F2F1] dark:hover:bg-[#323130]"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
