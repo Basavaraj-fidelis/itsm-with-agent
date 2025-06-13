@@ -466,11 +466,11 @@ export class DatabaseStorage implements IStorage {
   async initializeDemoUsers() {
     try {
       console.log("Initializing demo users...");
-      
+
       // First ensure the users table exists with proper schema
       try {
         const { pool } = await import("./db");
-        
+
         // Create users table if it doesn't exist
         await pool.query(`
           CREATE TABLE IF NOT EXISTS users (
@@ -492,19 +492,22 @@ export class DatabaseStorage implements IStorage {
             updated_at TIMESTAMP DEFAULT NOW()
           )
         `);
-        
+
         console.log("Users table ensured");
-        
+
         // Check if demo users already exist
-        const existingCheck = await pool.query(`
+        const existingCheck = await pool.query(
+          `
           SELECT COUNT(*) as count FROM users WHERE email = $1
-        `, ['admin@company.com']);
-        
+        `,
+          ["admin@company.com"],
+        );
+
         if (parseInt(existingCheck.rows[0].count) > 0) {
           console.log("Demo users already exist, skipping initialization");
           return;
         }
-        
+
         console.log("Creating demo users...");
         const bcrypt = await import("bcrypt");
 
@@ -514,7 +517,7 @@ export class DatabaseStorage implements IStorage {
             username: "admin",
             name: "System Administrator",
             first_name: "System",
-            last_name: "Administrator", 
+            last_name: "Administrator",
             password_hash: await bcrypt.hash("admin123", 10),
             role: "admin",
             department: "IT",
@@ -568,41 +571,54 @@ export class DatabaseStorage implements IStorage {
         ];
 
         for (const user of demoUsers) {
-          await pool.query(`
+          await pool.query(
+            `
             INSERT INTO users (
               email, username, name, first_name, last_name, password_hash, 
               role, department, phone, job_title, location, is_active
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-          `, [
-            user.email, user.username, user.name, user.first_name, user.last_name,
-            user.password_hash, user.role, user.department, user.phone, 
-            user.job_title, user.location, user.is_active
-          ]);
+          `,
+            [
+              user.email,
+              user.username,
+              user.name,
+              user.first_name,
+              user.last_name,
+              user.password_hash,
+              user.role,
+              user.department,
+              user.phone,
+              user.job_title,
+              user.location,
+              user.is_active,
+            ],
+          );
         }
-        
+
         console.log("Demo users created successfully");
-        
       } catch (dbError) {
         console.error("Database operation failed:", dbError);
         console.log("Using in-memory storage for demo users");
-        
+
         // Fallback to in-memory storage
         if (!this.users) {
           this.users = new Map();
         }
-        
+
         // Check if users already exist in memory
-        const existingUser = Array.from(this.users.values()).find(u => u.email === 'admin@company.com');
+        const existingUser = Array.from(this.users.values()).find(
+          (u) => u.email === "admin@company.com",
+        );
         if (existingUser) {
           console.log("Demo users already exist in memory");
           return;
         }
-        
+
         const bcrypt = await import("bcrypt");
-        
+
         const memoryUsers = [
           {
-            id: '1',
+            id: "1",
             email: "admin@company.com",
             username: "admin",
             name: "System Administrator",
@@ -615,8 +631,8 @@ export class DatabaseStorage implements IStorage {
             updated_at: new Date(),
           },
           {
-            id: '2',
-            email: "manager@company.com", 
+            id: "2",
+            email: "manager@company.com",
             username: "manager",
             name: "IT Manager",
             password_hash: await bcrypt.hash("demo123", 10),
@@ -628,9 +644,9 @@ export class DatabaseStorage implements IStorage {
             updated_at: new Date(),
           },
           {
-            id: '3',
+            id: "3",
             email: "tech@company.com",
-            username: "tech", 
+            username: "tech",
             name: "Senior Technician",
             password_hash: await bcrypt.hash("tech123", 10),
             role: "technician",
@@ -641,10 +657,10 @@ export class DatabaseStorage implements IStorage {
             updated_at: new Date(),
           },
           {
-            id: '4',
+            id: "4",
             email: "user@company.com",
             username: "enduser",
-            name: "End User", 
+            name: "End User",
             password_hash: await bcrypt.hash("demo123", 10),
             role: "user",
             department: "Sales",
@@ -654,14 +670,14 @@ export class DatabaseStorage implements IStorage {
             updated_at: new Date(),
           },
         ];
-        
-        memoryUsers.forEach(user => {
+
+        memoryUsers.forEach((user) => {
           this.users.set(user.id, user);
         });
-        
+
         console.log("Demo users created in memory");
       }
-      
+
       // Ensure knowledge base table exists
       try {
         await this.db.execute(sql`
@@ -685,7 +701,6 @@ export class DatabaseStorage implements IStorage {
 
       // Initialize sample knowledge base articles
       await this.initializeSampleKBArticles();
-      
     } catch (error) {
       console.error("Error initializing demo users:", error);
     }
@@ -2560,7 +2575,8 @@ smartphones
 
       // First, mark all existing devices for this device as disconnected
       // Only update last_seen for devices that are actually changing from connected to disconnected
-      await db.update(usb_devices)
+      await db
+        .update(usb_devices)
         .set({ is_connected: false })
         .where(eq(usb_devices.device_id, deviceId));
 
@@ -2582,26 +2598,33 @@ smartphones
           if (serialMatch && !serial_number) serial_number = serialMatch[1];
         }
 
-        console.log(`Processing USB device: ${device.description}, VID: ${vendor_id}, PID: ${product_id}, Serial: ${serial_number}`);
+        console.log(
+          `Processing USB device: ${device.description}, VID: ${vendor_id}, PID: ${product_id}, Serial: ${serial_number}`,
+        );
 
         // Create a unique identifier for the device (prefer vendor_id:product_id combo or serial)
-        const deviceIdentifier = vendor_id && product_id 
-          ? `${vendor_id}:${product_id}:${serial_number || 'no-serial'}`
-          : device.device_id || device.serial_number || `unknown-${Date.now()}`;
+        const deviceIdentifier =
+          vendor_id && product_id
+            ? `${vendor_id}:${product_id}:${serial_number || "no-serial"}`
+            : device.device_id ||
+              device.serial_number ||
+              `unknown-${Date.now()}`;
 
         // Check if this device already exists
-        const existingDevices = await db.select()
+        const existingDevices = await db
+          .select()
           .from(usb_devices)
           .where(
             and(
               eq(usb_devices.device_id, deviceId),
-              eq(usb_devices.device_identifier, deviceIdentifier)
-            )
+              eq(usb_devices.device_identifier, deviceIdentifier),
+            ),
           );
 
         if (existingDevices.length > 0) {
           // Update existing device - mark as connected and update last seen
-          await db.update(usb_devices)
+          await db
+            .update(usb_devices)
             .set({
               description: device.description || device.name,
               vendor_id: vendor_id,
@@ -2613,7 +2636,7 @@ smartphones
               speed: device.speed,
               last_seen: new Date(),
               is_connected: true,
-              raw_data: device
+              raw_data: device,
             })
             .where(eq(usb_devices.id, existingDevices[0].id));
         } else {
@@ -2632,12 +2655,14 @@ smartphones
             first_seen: new Date(),
             last_seen: new Date(),
             is_connected: true,
-            raw_data: device
+            raw_data: device,
           });
         }
       }
 
-      console.log(`Updated USB devices for device ${deviceId}: ${usbDevices.length} devices processed`);
+      console.log(
+        `Updated USB devices for device ${deviceId}: ${usbDevices.length} devices processed`,
+      );
     } catch (error) {
       console.error("Error updating USB devices:", error);
     }
@@ -2648,18 +2673,21 @@ smartphones
     try {
       // Try database first
       const { pool } = await import("./db");
-      const result = await pool.query(`
+      const result = await pool.query(
+        `
         SELECT 
           id, title, content, author_email, category, tags, 
           created_at, updated_at, views, helpful_votes, status
         FROM knowledge_base 
         WHERE id = $1
-      `, [id]);
+      `,
+        [id],
+      );
 
       if (result.rows.length > 0) {
         const article = result.rows[0];
         // Parse tags if they're stored as JSON
-        if (typeof article.tags === 'string') {
+        if (typeof article.tags === "string") {
           try {
             article.tags = JSON.parse(article.tags);
           } catch {
@@ -2677,31 +2705,36 @@ smartphones
       await this.loadKnowledgeBase();
     }
 
-    return this.knowledgeBase.find(article => article.id === id) || null;
+    return this.knowledgeBase.find((article) => article.id === id) || null;
   }
 
   async incrementArticleViews(id) {
     try {
       const { pool } = await import("./db");
-      await pool.query(`
+      await pool.query(
+        `
         UPDATE knowledge_base 
         SET views = COALESCE(views, 0) + 1 
         WHERE id = $1
-      `, [id]);
+      `,
+        [id],
+      );
     } catch (error) {
       console.warn("Failed to increment article views in database:", error);
     }
   }
 
   // User management methods for database storage
-  async getUsers(filters: { search?: string; role?: string } = {}): Promise<any[]> {
+  async getUsers(
+    filters: { search?: string; role?: string } = {},
+  ): Promise<any[]> {
     try {
       console.log("DatabaseStorage.getUsers called with filters:", filters);
-      
+
       // Try database first
       try {
         const { pool } = await import("./db");
-        
+
         // First, let's check if the users table exists and what columns it has
         const tableCheck = await pool.query(`
           SELECT column_name, data_type 
@@ -2709,9 +2742,9 @@ smartphones
           WHERE table_name = 'users' 
           ORDER BY ordinal_position
         `);
-        
+
         console.log("Users table columns:", tableCheck.rows);
-        
+
         // Build query based on available columns
         let query = `
           SELECT 
@@ -2723,17 +2756,17 @@ smartphones
             COALESCE(is_active, true) as is_active, 
             created_at, updated_at
         `;
-        
+
         // Add optional columns if they exist
-        const columnNames = tableCheck.rows.map(row => row.column_name);
-        if (columnNames.includes('first_name')) query += `, first_name`;
-        if (columnNames.includes('last_name')) query += `, last_name`;
-        if (columnNames.includes('username')) query += `, username`;
-        if (columnNames.includes('job_title')) query += `, job_title`;
-        if (columnNames.includes('location')) query += `, location`;
-        
+        const columnNames = tableCheck.rows.map((row) => row.column_name);
+        if (columnNames.includes("first_name")) query += `, first_name`;
+        if (columnNames.includes("last_name")) query += `, last_name`;
+        if (columnNames.includes("username")) query += `, username`;
+        if (columnNames.includes("job_title")) query += `, job_title`;
+        if (columnNames.includes("location")) query += `, location`;
+
         query += ` FROM users WHERE COALESCE(is_active, true) = true`;
-        
+
         const params: any[] = [];
         let paramCount = 0;
 
@@ -2749,7 +2782,7 @@ smartphones
           params.push(`%${filters.search}%`);
         }
 
-        if (filters.role && filters.role !== 'all') {
+        if (filters.role && filters.role !== "all") {
           paramCount++;
           query += ` AND COALESCE(role, 'user') = $${paramCount}`;
           params.push(filters.role);
@@ -2759,33 +2792,41 @@ smartphones
 
         console.log("Executing query:", query);
         console.log("With params:", params);
-        
+
         const result = await pool.query(query, params);
         console.log(`Database returned ${result.rows.length} users`);
-        
+
         const users = result.rows.map((user) => ({
           ...user,
           // Ensure consistent field names
-          name: user.name || 
-                `${user.first_name || ""} ${user.last_name || ""}`.trim() || 
-                user.username || 
-                user.email?.split("@")[0] || 
-                "Unknown User",
+          name:
+            user.name ||
+            `${user.first_name || ""} ${user.last_name || ""}`.trim() ||
+            user.username ||
+            user.email?.split("@")[0] ||
+            "Unknown User",
           department: user.department || user.location || "",
           phone: user.phone || "",
-          role: user.role || "user"
+          role: user.role || "user",
         }));
-        
-        console.log("Processed users:", users.map(u => ({ id: u.id, email: u.email, name: u.name, role: u.role })));
+
+        console.log(
+          "Processed users:",
+          users.map((u) => ({
+            id: u.id,
+            email: u.email,
+            name: u.name,
+            role: u.role,
+          })),
+        );
         return users;
-        
       } catch (dbError) {
         console.error("Database query failed:", dbError);
         console.log("Falling back to in-memory storage");
-        
+
         // Fallback to in-memory storage
         const memUsers = Array.from(this.users?.values() || []);
-        let users = memUsers.filter(user => user.is_active !== false);
+        let users = memUsers.filter((user) => user.is_active !== false);
 
         if (filters.search) {
           const search = filters.search.toLowerCase();
@@ -2804,7 +2845,7 @@ smartphones
           const { password_hash, ...userWithoutPassword } = user;
           return {
             ...userWithoutPassword,
-            name: user.name || user.email?.split("@")[0] || "Unknown User"
+            name: user.name || user.email?.split("@")[0] || "Unknown User",
           };
         });
       }
@@ -2817,23 +2858,27 @@ smartphones
   async getUserById(id: string): Promise<any | null> {
     try {
       const { pool } = await import("./db");
-      const result = await pool.query(`
+      const result = await pool.query(
+        `
         SELECT 
           id, email, name, role, department, phone, is_active, 
           created_at, updated_at, first_name, last_name, username
         FROM users 
         WHERE id = $1
-      `, [id]);
+      `,
+        [id],
+      );
 
       if (result.rows.length === 0) return null;
 
       const user = result.rows[0];
       return {
         ...user,
-        name: user.name || 
-              `${user.first_name || ""} ${user.last_name || ""}`.trim() || 
-              user.username || 
-              user.email.split("@")[0],
+        name:
+          user.name ||
+          `${user.first_name || ""} ${user.last_name || ""}`.trim() ||
+          user.username ||
+          user.email.split("@")[0],
       };
     } catch (error) {
       console.error("Error fetching user by ID:", error);
@@ -2844,19 +2889,22 @@ smartphones
   async createUser(data: any): Promise<any> {
     try {
       const { pool } = await import("./db");
-      const result = await pool.query(`
+      const result = await pool.query(
+        `
         INSERT INTO users (name, email, password_hash, role, department, phone, is_active)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING id, name, email, role, department, phone, is_active, created_at, updated_at
-      `, [
-        data.name,
-        data.email,
-        data.password_hash,
-        data.role || 'user',
-        data.department || '',
-        data.phone || '',
-        data.is_active !== undefined ? data.is_active : true
-      ]);
+      `,
+        [
+          data.name,
+          data.email,
+          data.password_hash,
+          data.role || "user",
+          data.department || "",
+          data.phone || "",
+          data.is_active !== undefined ? data.is_active : true,
+        ],
+      );
 
       return result.rows[0];
     } catch (error) {
@@ -2868,12 +2916,12 @@ smartphones
   async updateUser(id: string, updates: any): Promise<any | null> {
     try {
       const { pool } = await import("./db");
-      
+
       const setClause = [];
       const params = [];
       let paramCount = 0;
 
-      Object.keys(updates).forEach(key => {
+      Object.keys(updates).forEach((key) => {
         if (updates[key] !== undefined) {
           paramCount++;
           setClause.push(`${key} = $${paramCount}`);
@@ -2892,7 +2940,7 @@ smartphones
 
       const query = `
         UPDATE users 
-        SET ${setClause.join(', ')}
+        SET ${setClause.join(", ")}
         WHERE id = $${paramCount}
         RETURNING id, name, email, role, department, phone, is_active, created_at, updated_at
       `;
@@ -2908,10 +2956,13 @@ smartphones
   async deleteUser(id: string): Promise<boolean> {
     try {
       const { pool } = await import("./db");
-      const result = await pool.query(`
+      const result = await pool.query(
+        `
         UPDATE users SET is_active = false WHERE id = $1
-      `, [id]);
-      
+      `,
+        [id],
+      );
+
       return result.rowCount > 0;
     } catch (error) {
       console.error("Error deleting user:", error);
@@ -2924,7 +2975,7 @@ smartphones
     try {
       const { pool } = await import("./db");
       const offset = (page - 1) * limit;
-      
+
       let query = `
         SELECT 
           id, title, content, author_email, category, tags, 
@@ -2935,7 +2986,7 @@ smartphones
       const params: any[] = [];
       let paramCount = 0;
 
-      if (filters.category && filters.category !== 'all') {
+      if (filters.category && filters.category !== "all") {
         paramCount++;
         query += ` AND category = $${paramCount}`;
         params.push(filters.category);
@@ -2954,7 +3005,10 @@ smartphones
       }
 
       // Count total
-      const countQuery = query.replace(/SELECT.*FROM/, 'SELECT COUNT(*) as total FROM');
+      const countQuery = query.replace(
+        /SELECT.*FROM/,
+        "SELECT COUNT(*) as total FROM",
+      );
       const countResult = await pool.query(countQuery, params);
       const total = parseInt(countResult.rows[0].total);
 
@@ -2963,19 +3017,22 @@ smartphones
       params.push(limit, offset);
 
       const result = await pool.query(query, params);
-      
-      const articles = result.rows.map(article => ({
+
+      const articles = result.rows.map((article) => ({
         ...article,
-        tags: typeof article.tags === 'string' ? JSON.parse(article.tags || '[]') : (article.tags || [])
+        tags:
+          typeof article.tags === "string"
+            ? JSON.parse(article.tags || "[]")
+            : article.tags || [],
       }));
 
       console.log(`Returning ${articles.length} KB articles from database`);
-      
+
       return {
         data: articles,
         total,
         page,
-        limit
+        limit,
       };
     } catch (error) {
       console.error("Error loading KB articles from database:", error);
@@ -2983,35 +3040,35 @@ smartphones
     }
   }
 
-  async getKBArticle(id: string) {
-    try {
-      const { pool } = await import("./db");
-      const result = await pool.query(`
-        SELECT 
-          id, title, content, author_email, category, tags, 
-          created_at, updated_at, views, helpful_votes, status
-        FROM knowledge_base 
-        WHERE id = $1
-      `, [id]);
+  // async getKBArticle(id: string) {
+  //   try {
+  //     const { pool } = await import("./db");
+  //     const result = await pool.query(`
+  //       SELECT
+  //         id, title, content, author_email, category, tags,
+  //         created_at, updated_at, views, helpful_votes, status
+  //       FROM knowledge_base
+  //       WHERE id = $1
+  //     `, [id]);
 
-      if (result.rows.length > 0) {
-        const article = result.rows[0];
-        // Parse tags if they're stored as JSON
-        if (typeof article.tags === 'string') {
-          try {
-            article.tags = JSON.parse(article.tags);
-          } catch {
-            article.tags = [];
-          }
-        }
-        return article;
-      }
-      return null;
-    } catch (error) {
-      console.error("Database query failed for single article:", error);
-      return null;
-    }
-  }
+  //     if (result.rows.length > 0) {
+  //       const article = result.rows[0];
+  //       // Parse tags if they're stored as JSON
+  //       if (typeof article.tags === 'string') {
+  //         try {
+  //           article.tags = JSON.parse(article.tags);
+  //         } catch {
+  //           article.tags = [];
+  //         }
+  //       }
+  //       return article;
+  //     }
+  //     return null;
+  //   } catch (error) {
+  //     console.error("Database query failed for single article:", error);
+  //     return null;
+  //   }
+  // }
 
   async createAlert(alert: InsertAlert): Promise<Alert> {
     const [newAlert] = await db
@@ -3049,8 +3106,12 @@ smartphones
 
     return {
       total_devices: updatedDevices.length,
-      online_devices: updatedDevices.filter((device) => device.status === "online").length,
-      offline_devices: updatedDevices.filter((device) => device.status === "offline").length,
+      online_devices: updatedDevices.filter(
+        (device) => device.status === "online",
+      ).length,
+      offline_devices: updatedDevices.filter(
+        (device) => device.status === "offline",
+      ).length,
       active_alerts: activeAlerts.length,
     };
   }
