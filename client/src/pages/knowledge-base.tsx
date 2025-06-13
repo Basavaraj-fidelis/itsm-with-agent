@@ -118,15 +118,26 @@ export default function KnowledgeBase() {
         status: 'published' 
       });
 
-      const response = await fetch(`/api/knowledge-base?${params.toString()}`);
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`/api/knowledge-base?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          console.warn('Authentication required for KB articles');
+          setArticles([]);
+          return;
+        }
         throw new Error(`Failed to fetch articles: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log(`Received ${data.length} articles for category: ${selectedCategory}`);
-      setArticles(data);
+      console.log(`Received ${Array.isArray(data) ? data.length : 0} articles for category: ${selectedCategory}`);
+      setArticles(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error fetching articles:', err);
       setArticles([]);
@@ -138,7 +149,13 @@ export default function KnowledgeBase() {
   const fetchSingleArticle = async (id: string) => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/knowledge-base/${id}`);
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`/api/knowledge-base/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to fetch article: ${response.status}`);

@@ -3,12 +3,32 @@ import { db } from "./db";
 import { knowledgeBase } from "@shared/ticket-schema";
 import { eq, like, desc } from "drizzle-orm";
 import { TicketStorage } from "./ticket-storage";
+import jwt from "jsonwebtoken";
 
 const router = Router();
 const storage = new TicketStorage();
 
+// Authentication middleware
+const authenticateToken = (req: any, res: any, next: any) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ message: 'Access token required' });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key', (err: any, decoded: any) => {
+    if (err) {
+      console.error('Token verification error:', err);
+      return res.status(403).json({ message: 'Invalid token' });
+    }
+    req.user = decoded;
+    next();
+  });
+};
+
 // Get all articles
-router.get("/", async (req, res) => {
+router.get("/", authenticateToken, async (req, res) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
@@ -64,7 +84,7 @@ function calculateRelevanceScore(article: any, searchTerms: string[]): number {
 }
 
 // Get article by ID
-router.get("/:id", async (req, res) => {
+router.get("/:id", authenticateToken, async (req, res) => {
   try {
     const article = await storage.getKBArticleById(req.params.id);
     if (!article) {
@@ -78,7 +98,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // Create new article
-router.post("/", async (req, res) => {
+router.post("/", authenticateToken, async (req, res) => {
   try {
     const { title, content, category } = req.body;
     const newArticle = {
