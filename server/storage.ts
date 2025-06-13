@@ -462,6 +462,8 @@ export class MemStorage implements IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  private users?: Map<string, any>;
+
   // Initialize demo users if they don't exist
   async initializeDemoUsers() {
     try {
@@ -606,7 +608,7 @@ export class DatabaseStorage implements IStorage {
         }
 
         // Check if users already exist in memory
-        const existingUser = Array.from(this.users.values()).find(
+        const existingUser = Array.from(this.users?.values() || []).find(
           (u) => u.email === "admin@company.com",
         );
         if (existingUser) {
