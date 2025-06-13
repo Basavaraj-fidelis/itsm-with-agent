@@ -1,10 +1,3 @@
-` tags, preserving the original indentation and structure.
-
-
-Applying changes to replace db.query with pool.query throughout the file.
-
-
-<replit_final_file>
 import { Router } from "express";
 import { db } from "./db";
 import bcrypt from "bcrypt";
@@ -18,7 +11,7 @@ router.get("/", async (req, res) => {
 
     console.log("GET /api/users - Enhanced query with filters:", { search, role, department, status });
 
-let query = `
+    let query = `
       SELECT 
         id, email, username, first_name, last_name, role,
         phone, job_title, location, employee_id, department,
@@ -28,11 +21,10 @@ let query = `
       FROM users
     `;
 
-    const conditions = [];
-    const params = [];
+    const conditions: string[] = [];
+    const params: any[] = [];
     let paramCount = 0;
 
-    // Apply filters
     if (search) {
       paramCount++;
       conditions.push(`(
@@ -69,11 +61,10 @@ let query = `
 
     query += ` ORDER BY created_at DESC`;
 
-    // Add pagination
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
     paramCount++;
     query += ` LIMIT $${paramCount}`;
-    params.push(parseInt(limit));
+    params.push(parseInt(limit as string));
     paramCount++;
     query += ` OFFSET $${paramCount}`;
     params.push(offset);
@@ -83,13 +74,12 @@ let query = `
 
     const result = await db.query(query, params);
 
-    // Get total count for pagination
     let countQuery = `SELECT COUNT(*) as total FROM users`;
     if (conditions.length > 0) {
       countQuery += ` WHERE ${conditions.join(' AND ')}`;
     }
 
-    const countResult = await db.query(countQuery, params.slice(0, -2)); // Remove limit and offset params
+    const countResult = await db.query(countQuery, params.slice(0, -2));
     const total = parseInt(countResult.rows[0]?.total || 0);
 
     const users = result.rows.map(user => ({
@@ -105,13 +95,13 @@ let query = `
     res.json({
       data: users,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: parseInt(page as string),
+        limit: parseInt(limit as string),
         total,
-        totalPages: Math.ceil(total / parseInt(limit))
+        totalPages: Math.ceil(total / parseInt(limit as string))
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching users:", error);
     res.status(500).json({ 
       message: "Failed to fetch users",
@@ -140,7 +130,7 @@ router.get("/:id", async (req, res) => {
     user.name = `${user.first_name || ''} ${user.last_name || ''}`.trim();
 
     res.json(user);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching user:", error);
     res.status(500).json({ message: "Failed to fetch user" });
   }
@@ -197,7 +187,7 @@ router.post("/", async (req, res) => {
     newUser.department = department;
 
     res.status(201).json(newUser);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating user:", error);
     res.status(500).json({ message: "Failed to create user" });
   }
@@ -244,7 +234,7 @@ router.put("/:id", async (req, res) => {
     updatedUser.department = department;
 
     res.json(updatedUser);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error updating user:", error);
     res.status(500).json({ message: "Failed to update user" });
   }
@@ -265,7 +255,7 @@ router.delete("/:id", async (req, res) => {
     }
 
     res.json({ message: "User deleted successfully" });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error deleting user:", error);
     res.status(500).json({ message: "Failed to delete user" });
   }
@@ -284,22 +274,30 @@ router.post("/change-password", async (req, res) => {
     const token = authHeader.substring(7);
 
     // Get user from session
-    const session = await db.select({
-      user_id: userSessions.user_id
-    }).from(userSessions).where(eq(userSessions.token, token));
+    const session = await db.query(`
+      SELECT 
+        user_id, token
+      FROM user_sessions
+      WHERE token = $1
+    `, [token]);
 
-    if (session.length === 0) {
+    if (session.rows.length === 0) {
       return res.status(401).json({ message: "Invalid session" });
     }
 
-    const user = await db.select().from(users).where(eq(users.id, session[0].user_id));
+    const user = await db.query(`
+      SELECT 
+        id, password_hash
+      FROM users
+      WHERE id = $1
+    `, [session.rows[0].user_id]);
 
-    if (user.length === 0) {
+    if (user.rows.length === 0) {
       return res.status(404).json({ message: "User not found" });
     }
 
     // Verify current password
-    const isValidPassword = await bcrypt.compare(currentPassword, user[0].password_hash);
+    const isValidPassword = await bcrypt.compare(currentPassword, user.rows[0].password_hash);
 
     if (!isValidPassword) {
       return res.status(400).json({ message: "Current password is incorrect" });
@@ -310,15 +308,14 @@ router.post("/change-password", async (req, res) => {
     const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
 
     // Update password
-    await db.update(users)
-      .set({ 
-        password_hash: newPasswordHash,
-        updated_at: new Date()
-      })
-      .where(eq(users.id, user[0].id));
+    await db.query(`
+      UPDATE users
+      SET password_hash = $1, updated_at = NOW()
+      WHERE id = $2
+    `, [newPasswordHash, user.rows[0].id]);
 
     res.json({ message: "Password changed successfully" });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error changing password:", error);
     res.status(500).json({ message: "Failed to change password" });
   }
