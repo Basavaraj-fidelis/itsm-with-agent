@@ -237,19 +237,28 @@ export function Sidebar() {
       },
     ];
 
-    const allNavigation = [
+    const mainNavigation = [
       ...baseNavigation,
       ...techNavigation,
       ...managerNavigation,
-      ...adminNavigation,
     ];
 
+    const bottomNavigation = adminNavigation;
+
     // Filter navigation based on user role
-    return allNavigation.filter(
+    const filteredMainNavigation = mainNavigation.filter(
       (item) =>
         authUser?.role === "admin" ||
         item.roles.includes(authUser?.role || "user"),
     );
+
+    const filteredBottomNavigation = bottomNavigation.filter(
+      (item) =>
+        authUser?.role === "admin" ||
+        item.roles.includes(authUser?.role || "user"),
+    );
+
+    return { main: filteredMainNavigation, bottom: filteredBottomNavigation };
   };
 
   const navigation = getNavigation();
@@ -356,7 +365,7 @@ export function Sidebar() {
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navigation.map((item, index) => {
+          {navigation.main.map((item, index) => {
             const isActive = item.current;
             const NavItem = (
               <Link
@@ -460,6 +469,87 @@ export function Sidebar() {
             </>
           )} */}
         </nav>
+
+        {/* Bottom Navigation - Admin Panel */}
+        {navigation.bottom.length > 0 && (
+          <div className="px-3 py-2 border-t border-[#E1DFDD] dark:border-[#484644]">
+            {navigation.bottom.map((item, index) => {
+              const isActive = item.current;
+              const NavItem = (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={cn(
+                    "group flex items-center space-x-3 py-3 px-3 rounded-xl font-medium transition-all duration-200 relative",
+                    isActive
+                      ? `${item.activeColor} shadow-sm border`
+                      : "text-[#201F1E] dark:text-[#F3F2F1] hover:bg-gray-100 dark:hover:bg-[#484644] hover:scale-[1.02]",
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "relative flex items-center justify-center",
+                      isActive && "transform scale-110",
+                    )}
+                  >
+                    <item.icon
+                      className={cn(
+                        "w-5 h-5 transition-all duration-200",
+                        isActive
+                          ? item.iconColor.replace("text-", "text-")
+                          : `${item.iconColor} group-hover:scale-110`,
+                      )}
+                    />
+                  </div>
+                  {!isCollapsed && (
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium truncate">
+                          {item.name}
+                        </span>
+                        {item.notification && item.notification > 0 && (
+                          <Badge
+                            variant="secondary"
+                            className="ml-2 h-5 text-xs bg-red-100 text-red-700 border-red-200"
+                          >
+                            {item.notification}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                        {item.description}
+                      </p>
+                    </div>
+                  )}
+                </Link>
+              );
+
+              if (isCollapsed) {
+                return (
+                  <Tooltip key={item.name}>
+                    <TooltipTrigger asChild>{NavItem}</TooltipTrigger>
+                    <TooltipContent
+                      side="right"
+                      className="flex items-center space-x-2"
+                    >
+                      <span>{item.name}</span>
+                      {item.notification && item.notification > 0 && (
+                        <Badge
+                          variant="secondary"
+                          className="h-5 text-xs bg-red-100 text-red-700"
+                        >
+                          {item.notification}
+                        </Badge>
+                      )}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              }
+
+              return NavItem;
+            })}
+          </div>
+        )}
 
         {/* User Profile Section */}
         {!isCollapsed && authUser && (
