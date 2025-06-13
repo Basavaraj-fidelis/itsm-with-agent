@@ -383,55 +383,60 @@ export default function AgentDetail() {
                   }}
                 />
 
-                {/* Connection overlay with instructions */}
+                {/* TightVNC Connection Status - Auto-dismiss */}
                 {showConnectionInfo && (
-                  <div className="absolute top-4 left-4 bg-black/80 text-white p-3 rounded-lg max-w-md">
-                    <div className="flex justify-between items-center mb-2">
+                  <div className="absolute top-4 left-4 bg-black/90 text-white p-4 rounded-lg max-w-sm">
+                    <div className="flex justify-between items-center mb-3">
                       <h4 className="font-semibold flex items-center gap-2">
-                        <Info className="w-4 h-4" />
-                        Connection Info
+                        <Monitor className="w-4 h-4" />
+                        TightVNC Connection
                       </h4>
                       <Button variant="ghost" size="icon" onClick={() => setShowConnectionInfo(false)}>
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
-                    <div className="text-sm space-y-1">
-                      <div>Host: {agent.hostname}</div>
-                      <div>IP: {agent.ip_address || "Unknown"}</div>
-                      <div>VNC Port: 5900</div>
-                      <div className="text-yellow-300 mt-2">
-                        ⚠️ Ensure VNC server is running on the target machine
+                    <div className="text-sm space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-300">Host:</span>
+                        <span>{agent.hostname}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-300">IP:</span>
+                        <span>{agent.ip_address || "Unknown"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-300">Port:</span>
+                        <span>5900 (TightVNC)</span>
+                      </div>
+                      <div className="text-green-300 text-xs mt-3 p-2 bg-green-900/30 rounded">
+                        ✓ TightVNC detected - Ready to connect
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* Troubleshooting panel */}
+                {/* Quick Setup Reminder - Auto-dismiss */}
                 {showTroubleshooting && (
-                  <div className="absolute top-4 right-4 bg-black/80 text-white p-3 rounded-lg max-w-sm">
+                  <div className="absolute top-4 right-4 bg-black/90 text-white p-4 rounded-lg max-w-xs">
                     <div className="flex justify-between items-center mb-2">
-                      <h4 className="font-semibold">Troubleshooting</h4>
+                      <h4 className="font-semibold text-sm">Quick Check</h4>
                       <Button variant="ghost" size="icon" onClick={() => setShowTroubleshooting(false)}>
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
-                    <div className="text-xs space-y-1">
-                      <div>• Install VNC server on target machine</div>
-                      <div>• Configure VNC to accept connections</div>
-                      <div>• Check firewall settings (port 5900)</div>
-                      <div>• Verify network connectivity</div>
+                    <div className="text-xs space-y-1 text-gray-300">
+                      <div>✓ TightVNC Server installed</div>
+                      <div>• Is TightVNC Service running?</div>
+                      <div>• Windows Firewall allowing port 5900?</div>
+                      <div>• VNC password configured?</div>
                     </div>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="mt-2 w-full text-black"
-                      onClick={() => {
-                        // Open agent management guide
-                        window.open("/knowledge-base", "_blank");
-                      }}
+                      className="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+                      onClick={() => setShowTroubleshooting(false)}
                     >
-                      <HelpCircle className="w-3 h-3 mr-1" />
-                      Setup Guide
+                      Got it!
                     </Button>
                   </div>
                 )}

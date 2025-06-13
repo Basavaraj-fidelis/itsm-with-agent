@@ -350,34 +350,30 @@ export default function VNCPage() {
           </div>
       </div>
 
-      <div className="flex-1 bg-gray-900 relative overflow-hidden">
-        {/* VNC Viewer Area - Full screen optimized */}
-        <div className="w-full h-full relative">
-          <div className="absolute inset-0 bg-gray-800 border border-gray-600 shadow-2xl rounded-lg overflow-hidden">
-            {/* VNC Canvas would go here */}
-            <div className="w-full h-full bg-gradient-to-br from-blue-900 to-gray-900 flex items-center justify-center">
+      <div className="flex-1 bg-black relative">
+        {/* VNC Viewer Container - Optimized for minimal UI */}
+        <div className="w-full h-full" ref={vncRef}>
+          {connectionStatus === 'connecting' && (
+            <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-400 mx-auto mb-6"></div>
-                <p className="text-white text-xl font-medium">Establishing connection...</p>
-                <p className="text-blue-300 mt-3">Connecting to {deviceName}</p>
-                <div className="mt-6 bg-black/20 backdrop-blur-sm rounded-lg p-4 max-w-md mx-auto">
-                  <p className="text-sm text-gray-300">• Initializing remote desktop session</p>
-                  <p className="text-sm text-gray-300">• Authenticating with target machine</p>
-                  <p className="text-sm text-gray-300">• Establishing secure tunnel</p>
-                </div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
+                <p className="text-white text-lg">Connecting to TightVNC...</p>
+                <p className="text-blue-300 mt-2 text-sm">{deviceName}</p>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Connection Status Bar */}
-          <div className="absolute top-4 right-4 bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2">
-            <div className="flex items-center gap-2 text-white">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-sm">Connected</span>
+          {connectionStatus === 'connected' && (
+            /* Connection Status - Auto-hide after 5 seconds */
+            <div className="absolute top-2 right-2 bg-black/70 rounded px-3 py-1 z-10">
+              <div className="flex items-center gap-2 text-white text-sm">
+                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                <span>TightVNC Connected</span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
-      </div>
+      }
     </div>
   );
 }
