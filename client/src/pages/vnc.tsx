@@ -59,7 +59,9 @@ export default function VNCPage() {
             `ws://${host}:${port}/websockify`,
             `ws://${host}:6080/websockify`,
             `ws://${host}:8080/websockify`,
-            `wss://${host}:${port}/websockify`
+            `wss://${host}:${port}/websockify`,
+            `wss://${host}:6080/websockify`,
+            `wss://${host}:8080/websockify`
           ];
 
           let attemptCount = 0;
