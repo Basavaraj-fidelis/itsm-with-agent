@@ -2785,8 +2785,6 @@ smartphones
           params.push(filters.role);
         }
 
-        
-
         console.log("Executing query:", query);
         console.log("With params:", params);
 
@@ -3062,7 +3060,7 @@ smartphones
     const activeAlerts = await this.getActiveAlerts();
 
     // Update offline status for devices that haven't been seen for 5+ minutes
-    const now is new Date();
+    const now = new Date();
     const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
 
     for (const device of allDevices) {
