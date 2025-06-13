@@ -1,22 +1,36 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, Monitor, Wifi, ArrowLeft, Package, FileText, Server, AlertTriangle, Info, HelpCircle, X } from "lucide-react";
+import {
+  AlertCircle,
+  Monitor,
+  Wifi,
+  ArrowLeft,
+  Package,
+  FileText,
+  Server,
+  AlertTriangle,
+  Info,
+  HelpCircle,
+  X,
+} from "lucide-react";
 
 export default function VNCPage() {
   const vncRef = useRef<HTMLDivElement>(null);
-  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
-  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [connectionStatus, setConnectionStatus] = useState<
+    "connecting" | "connected" | "disconnected" | "error"
+  >("connecting");
+  const [errorMessage, setErrorMessage] = useState<string>("");
   const [showConnectionInfo, setShowConnectionInfo] = useState(true);
   const [showTroubleshooting, setShowTroubleshooting] = useState(true);
 
   useEffect(() => {
     // Parse URL parameters
     const urlParams = new URLSearchParams(window.location.search);
-    const host = urlParams.get('host') || 'localhost';
-    const port = urlParams.get('port') || '6080'; // NoVNC web port, not VNC port
-    const vncPort = urlParams.get('vncport') || '5900';
-    const deviceName = urlParams.get('deviceName') || 'Remote Device';
+    const host = urlParams.get("host") || "localhost";
+    const port = urlParams.get("port") || "6080"; // NoVNC web port, not VNC port
+    const vncPort = urlParams.get("vncport") || "5900";
+    const deviceName = urlParams.get("deviceName") || "Remote Device";
 
     let rfb: any = null;
 
@@ -25,20 +39,22 @@ export default function VNCPage() {
       try {
         // Load NoVNC from CDN
         if (!(window as any).RFB) {
-          await loadScript('https://cdn.jsdelivr.net/npm/@novnc/novnc@1.4.0/core/rfb.js');
+          await loadScript(
+            "https://cdn.jsdelivr.net/npm/@novnc/novnc@1.4.0/core/rfb.js",
+          );
         }
 
         initializeVNC(host, port, vncPort, deviceName);
       } catch (error) {
-        console.error('Failed to load NoVNC:', error);
-        setConnectionStatus('error');
-        setErrorMessage('Failed to load VNC client');
+        console.error("Failed to load NoVNC:", error);
+        setConnectionStatus("error");
+        setErrorMessage("Failed to load VNC client");
       }
     };
 
     const loadScript = (src: string): Promise<void> => {
       return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
+        const script = document.createElement("script");
         script.src = src;
         script.onload = () => resolve();
         script.onerror = reject;
@@ -46,12 +62,17 @@ export default function VNCPage() {
       });
     };
 
-    const initializeVNC = (host: string, port: string, vncPort: string, deviceName: string) => {
+    const initializeVNC = (
+      host: string,
+      port: string,
+      vncPort: string,
+      deviceName: string,
+    ) => {
       if (vncRef.current && (window as any).RFB) {
         const RFB = (window as any).RFB;
 
         // Clear any existing content
-        vncRef.current.innerHTML = '';
+        vncRef.current.innerHTML = "";
 
         try {
           // Try different WebSocket URLs for NoVNC connection
@@ -61,27 +82,31 @@ export default function VNCPage() {
             `ws://${host}:8080/websockify`,
             `wss://${host}:${port}/websockify`,
             `wss://${host}:6080/websockify`,
-            `wss://${host}:8080/websockify`
+            `wss://${host}:8080/websockify`,
           ];
 
           let attemptCount = 0;
 
           const tryConnection = (urlIndex: number) => {
             if (urlIndex >= possibleUrls.length) {
-              setConnectionStatus('error');
-              setErrorMessage('Could not connect to any VNC endpoints. Please ensure NoVNC is properly configured on the target system.');
+              setConnectionStatus("error");
+              setErrorMessage(
+                "Could not connect to any VNC endpoints. Please ensure NoVNC is properly configured on the target system.",
+              );
               return;
             }
 
             const wsUrl = possibleUrls[urlIndex];
-            console.log(`Attempting VNC connection ${urlIndex + 1}/${possibleUrls.length}: ${wsUrl}`);
+            console.log(
+              `Attempting VNC connection ${urlIndex + 1}/${possibleUrls.length}: ${wsUrl}`,
+            );
 
             try {
               // Create RFB connection with better scaling options
               rfb = new RFB(vncRef.current, wsUrl, {
                 credentials: {
-                  username: '',
-                  password: ''
+                  username: "",
+                  password: "",
                 },
                 viewOnly: false,
                 focusOnClick: true,
@@ -89,60 +114,70 @@ export default function VNCPage() {
                 scaleViewport: true,
                 resizeSession: false,
                 showDotCursor: false,
-                background: '#000000'
+                background: "#000000",
               });
 
               // Handle connection events
-              rfb.addEventListener('connect', () => {
-                console.log('VNC connected successfully via:', wsUrl);
-                setConnectionStatus('connected');
+              rfb.addEventListener("connect", () => {
+                console.log("VNC connected successfully via:", wsUrl);
+                setConnectionStatus("connected");
               });
 
-              rfb.addEventListener('disconnect', (e: any) => {
-                console.log('VNC disconnected:', e.detail);
-                if (connectionStatus === 'connecting' && urlIndex + 1 < possibleUrls.length) {
-                  console.log('Trying next connection method...');
+              rfb.addEventListener("disconnect", (e: any) => {
+                console.log("VNC disconnected:", e.detail);
+                if (
+                  connectionStatus === "connecting" &&
+                  urlIndex + 1 < possibleUrls.length
+                ) {
+                  console.log("Trying next connection method...");
                   setTimeout(() => tryConnection(urlIndex + 1), 1000);
                 } else {
-                  setConnectionStatus('disconnected');
-                  setErrorMessage(e.detail.reason || 'Connection lost');
+                  setConnectionStatus("disconnected");
+                  setErrorMessage(e.detail.reason || "Connection lost");
                 }
               });
 
-              rfb.addEventListener('credentialsrequired', () => {
-                const password = prompt('VNC Password (leave blank if none):');
-                rfb.sendCredentials({ password: password || '' });
+              rfb.addEventListener("credentialsrequired", () => {
+                const password = prompt("VNC Password (leave blank if none):");
+                rfb.sendCredentials({ password: password || "" });
               });
 
-              rfb.addEventListener('securityfailure', (e: any) => {
-                console.error('VNC security failure:', e.detail);
+              rfb.addEventListener("securityfailure", (e: any) => {
+                console.error("VNC security failure:", e.detail);
                 if (urlIndex + 1 < possibleUrls.length) {
-                  console.log('Authentication failed, trying next connection method...');
+                  console.log(
+                    "Authentication failed, trying next connection method...",
+                  );
                   setTimeout(() => tryConnection(urlIndex + 1), 1000);
                 } else {
-                  setConnectionStatus('error');
-                  setErrorMessage('Authentication failed on all connection attempts');
+                  setConnectionStatus("error");
+                  setErrorMessage(
+                    "Authentication failed on all connection attempts",
+                  );
                 }
               });
-
             } catch (error) {
-              console.error(`Failed to create VNC connection with ${wsUrl}:`, error);
+              console.error(
+                `Failed to create VNC connection with ${wsUrl}:`,
+                error,
+              );
               if (urlIndex + 1 < possibleUrls.length) {
                 setTimeout(() => tryConnection(urlIndex + 1), 1000);
               } else {
-                setConnectionStatus('error');
-                setErrorMessage('Failed to establish VNC connection with any method');
+                setConnectionStatus("error");
+                setErrorMessage(
+                  "Failed to establish VNC connection with any method",
+                );
               }
             }
           };
 
           // Start connection attempts
           tryConnection(0);
-
         } catch (error) {
-          console.error('Failed to initialize VNC:', error);
-          setConnectionStatus('error');
-          setErrorMessage('Failed to initialize VNC client');
+          console.error("Failed to initialize VNC:", error);
+          setConnectionStatus("error");
+          setErrorMessage("Failed to initialize VNC client");
         }
       }
     };
@@ -158,16 +193,16 @@ export default function VNCPage() {
   }, []);
 
   const urlParams = new URLSearchParams(window.location.search);
-  const host = urlParams.get('host') || 'localhost';
-  const deviceName = urlParams.get('deviceName') || 'Remote Device';
+  const host = urlParams.get("host") || "localhost";
+  const deviceName = urlParams.get("deviceName") || "Remote Device";
 
   const handleReconnect = () => {
-    setConnectionStatus('connecting');
-    setErrorMessage('');
+    setConnectionStatus("connecting");
+    setErrorMessage("");
     window.location.reload();
   };
 
-  if (connectionStatus === 'error') {
+  if (connectionStatus === "error") {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
@@ -189,7 +224,10 @@ export default function VNCPage() {
             <div className="space-y-2 text-xs text-gray-500">
               <p>Possible issues:</p>
               <ul className="list-disc list-inside space-y-1">
-                <li>NoVNC websockify not running on target machine (typically port 6080)</li>
+                <li>
+                  NoVNC websockify not running on target machine (typically port
+                  6080)
+                </li>
                 <li>VNC server not running (typically port 5900)</li>
                 <li>Firewall blocking websocket connection</li>
                 <li>Incorrect host or port settings</li>
@@ -198,7 +236,12 @@ export default function VNCPage() {
               <div className="mt-3 p-2 bg-blue-50 rounded text-blue-700">
                 <p className="font-medium">Setup Instructions:</p>
                 <p>1. Install NoVNC on target machine</p>
-                <p>2. Start websockify: <code className="bg-white px-1 rounded">websockify 6080 localhost:5900</code></p>
+                <p>
+                  2. Start websockify:{" "}
+                  <code className="bg-white px-1 rounded">
+                    websockify 6080 localhost:5900
+                  </code>
+                </p>
                 <p>3. Ensure VNC server is running on port 5900</p>
               </div>
             </div>
@@ -223,7 +266,12 @@ export default function VNCPage() {
                 <Monitor className="w-4 h-4" />
                 <h2 className="font-semibold">Connection Info</h2>
               </div>
-              <Button variant="ghost" size="icon" className="h-6 w-6 p-0" onClick={() => setShowConnectionInfo(false)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 p-0"
+                onClick={() => setShowConnectionInfo(false)}
+              >
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -256,7 +304,12 @@ export default function VNCPage() {
                 <AlertTriangle className="w-4 h-4" />
                 Troubleshooting
               </h4>
-              <Button variant="ghost" size="icon" className="h-6 w-6 p-0" onClick={() => setShowTroubleshooting(false)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 p-0"
+                onClick={() => setShowTroubleshooting(false)}
+              >
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -323,37 +376,37 @@ export default function VNCPage() {
           </div>
         </div>
 
-          {/* Toggle buttons for overlays when hidden */}
-          <div className="p-4 flex items-center justify-around">
-            {!showConnectionInfo && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setShowConnectionInfo(true)}
-                className="bg-gray-700 text-white hover:bg-gray-600"
-              >
-                <Info className="w-4 h-4 mr-1" />
-                Info
-              </Button>
-            )}
-            {!showTroubleshooting && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setShowTroubleshooting(true)}
-                className="bg-gray-700 text-white hover:bg-gray-600"
-              >
-                <HelpCircle className="w-4 h-4 mr-1" />
-                Help
-              </Button>
-            )}
-          </div>
+        {/* Toggle buttons for overlays when hidden */}
+        <div className="p-4 flex items-center justify-around">
+          {!showConnectionInfo && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowConnectionInfo(true)}
+              className="bg-gray-700 text-white hover:bg-gray-600"
+            >
+              <Info className="w-4 h-4 mr-1" />
+              Info
+            </Button>
+          )}
+          {!showTroubleshooting && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowTroubleshooting(true)}
+              className="bg-gray-700 text-white hover:bg-gray-600"
+            >
+              <HelpCircle className="w-4 h-4 mr-1" />
+              Help
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 bg-black relative">
         {/* VNC Viewer Container - Optimized for minimal UI */}
         <div className="w-full h-full" ref={vncRef}>
-          {connectionStatus === 'connecting' && (
+          {connectionStatus === "connecting" && (
             <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
@@ -363,17 +416,19 @@ export default function VNCPage() {
             </div>
           )}
 
-          {connectionStatus === 'connected' && (
-            /* Connection Status - Auto-hide after 5 seconds */
-            <div className="absolute top-2 right-2 bg-black/70 rounded px-3 py-1 z-10">
-              <div className="flex items-center gap-2 text-white text-sm">
-                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                <span>TightVNC Connected</span>
+          {connectionStatus === "connected" && (
+            <>
+              {/* Connection Status - Auto-hide after 5 seconds */}
+              <div className="absolute top-2 right-2 bg-black/70 rounded px-3 py-1 z-10">
+                <div className="flex items-center gap-2 text-white text-sm">
+                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                  <span>TightVNC Connected</span>
+                </div>
               </div>
-            </div>
+            </>
           )}
         </div>
-      }
+      </div>
     </div>
   );
 }
