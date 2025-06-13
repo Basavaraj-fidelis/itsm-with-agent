@@ -21,8 +21,8 @@ export default function VNCPage() {
     "connecting" | "connected" | "disconnected" | "error"
   >("connecting");
   const [errorMessage, setErrorMessage] = useState<string>("");
-  const [showConnectionInfo, setShowConnectionInfo] = useState(true);
-  const [showTroubleshooting, setShowTroubleshooting] = useState(true);
+  const [showConnectionInfo, setShowConnectionInfo] = useState(false);
+  const [showTroubleshooting, setShowTroubleshooting] = useState(false);
 
   useEffect(() => {
     // Parse URL parameters
@@ -258,71 +258,7 @@ export default function VNCPage() {
     <div className="h-screen bg-black flex">
       {/* Left Sidebar - Compact */}
       <div className="w-64 bg-gray-800 text-white flex flex-col">
-        {/* Connection Info */}
-        {showConnectionInfo && (
-          <div className="p-4 border-b border-gray-700">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Monitor className="w-4 h-4" />
-                <h2 className="font-semibold">Connection Info</h2>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 p-0"
-                onClick={() => setShowConnectionInfo(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="space-y-1 text-xs">
-              <div className="flex justify-between">
-                <span className="text-gray-400">Host:</span>
-                <span className="font-mono">{deviceName}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">IP:</span>
-                <span className="font-mono">192.168.1.119</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Port:</span>
-                <span className="font-mono">5900</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Status:</span>
-                <span className="text-green-400 font-medium">Connected</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Troubleshooting */}
-        {showTroubleshooting && (
-          <div className="p-4 bg-gray-900 border-t border-gray-700">
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="font-medium text-sm flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4" />
-                Troubleshooting
-              </h4>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 p-0"
-                onClick={() => setShowTroubleshooting(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="text-xs text-gray-400 space-y-1">
-              <p>• Check VNC server on target machine</p>
-              <p>• Verify network connectivity</p>
-              <p>• Check firewall port 5900</p>
-            </div>
-            <Button className="w-full mt-2 p-1 bg-yellow-600 text-white rounded text-xs hover:bg-yellow-700">
-              🛠️ Setup Guide
-            </Button>
-          </div>
-        )}
+        
 
         {/* Quick Actions */}
         <div className="p-4 border-b border-gray-700">
@@ -376,31 +312,7 @@ export default function VNCPage() {
           </div>
         </div>
 
-        {/* Toggle buttons for overlays when hidden */}
-        <div className="p-4 flex items-center justify-around">
-          {!showConnectionInfo && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setShowConnectionInfo(true)}
-              className="bg-gray-700 text-white hover:bg-gray-600"
-            >
-              <Info className="w-4 h-4 mr-1" />
-              Info
-            </Button>
-          )}
-          {!showTroubleshooting && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setShowTroubleshooting(true)}
-              className="bg-gray-700 text-white hover:bg-gray-600"
-            >
-              <HelpCircle className="w-4 h-4 mr-1" />
-              Help
-            </Button>
-          )}
-        </div>
+        
       </div>
 
       <div className="flex-1 bg-black relative">
