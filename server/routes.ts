@@ -1893,7 +1893,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/agents/:id/remote-connect", authenticateToken, async (req, res) => {
     try {
       const agentId = req.params.id;
-      const { connection_type = "vnc", port = 5900 }const { body;
+      const { connection_type = "vnc", port = 5900 } = req.body;
 
       const device = await storage.getDevice(agentId);
       if (!device) {
