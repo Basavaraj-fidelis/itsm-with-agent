@@ -137,7 +137,7 @@ export function Sidebar() {
     }
   }, [authUser]);
 
-  const isAdmin = authUser?.role === 'admin';
+  const isAdmin = authUser?.role === "admin";
 
   // Define navigation with colored icons based on user role
   const getNavigation = () => {
