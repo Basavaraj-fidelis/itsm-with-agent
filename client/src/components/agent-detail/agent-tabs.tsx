@@ -1886,7 +1886,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                       )
                       .slice(0, 10)
                       .map((process, index) => (
-                        ))}
+                      ))}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-neutral-500">
