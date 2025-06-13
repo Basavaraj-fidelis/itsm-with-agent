@@ -1,8 +1,8 @@
 ` tags, preserving the original indentation and structure.
 
-```
+
 Applying changes to replace db.query with pool.query throughout the file.
-```
+
 
 <replit_final_file>
 import { Router } from "express";
@@ -18,15 +18,16 @@ router.get("/", async (req, res) => {
 
     console.log("GET /api/users - Enhanced query with filters:", { search, role, department, status });
 
-    let query = `
-      SELECT 
-        id, email, username, first_name, last_name, role,
-        phone, job_title, location, employee_id, department,
-        is_active, is_locked, failed_login_attempts,
-        created_at, updated_at, last_login, last_password_change,
-        manager_id, preferences, permissions
-      FROM users 
-    `;
+let query = `
+  SELECT 
+    id, email, username, first_name, last_name, role,
+    phone, job_title, location, employee_id, department,
+    is_active, is_locked, failed_login_attempts,
+    created_at, updated_at, last_login, last_password_change,
+    manager_id, preferences, permissions
+  FROM users
+  `;
+
 
     const conditions = [];
     const params = [];
