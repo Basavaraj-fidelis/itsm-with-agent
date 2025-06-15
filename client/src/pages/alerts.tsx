@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,11 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { AlertTriangle, CheckCircle, Clock, RefreshCw, Eye, Monitor, Cpu, MemoryStick, HardDrive, Usb, Shield } from "lucide-react";
+import { AlertTriangle, CheckCircle, Clock, RefreshCw, Eye, Monitor, Cpu, MemoryStick, HardDrive, Usb, Shield, Ticket, ExternalLink } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useAlerts } from "@/hooks/use-dashboard";
 import { useQueryClient } from "@tanstack/react-query";
 import { Filter } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Alert {
   id: string;
@@ -27,101 +32,138 @@ interface Alert {
 export default function Alerts() {
   const { data: alerts, isLoading, refetch } = useAlerts();
   const [activeFilter, setActiveFilter] = useState("all");
-  const [resolvedAlerts, setResolvedAlerts] = useState<string[]>([]);
+  const [readAlerts, setReadAlerts] = useState<string[]>([]);
+  const [isCreatingTicket, setIsCreatingTicket] = useState(false);
+  const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
+  const [ticketDescription, setTicketDescription] = useState("");
+  const [ticketPriority, setTicketPriority] = useState("high");
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  // Load read alerts from localStorage
+  useEffect(() => {
+    const storedReadAlerts = localStorage.getItem('readAlerts');
+    if (storedReadAlerts) {
+      setReadAlerts(JSON.parse(storedReadAlerts));
+    }
+  }, []);
+
+  // Save read alerts to localStorage
+  useEffect(() => {
+    localStorage.setItem('readAlerts', JSON.stringify(readAlerts));
+  }, [readAlerts]);
 
   const filteredAlerts = alerts?.filter(alert => {
-    if (resolvedAlerts.includes(alert.id)) return false;
+    if (readAlerts.includes(alert.id)) return false;
     if (activeFilter === "all") return true;
     return alert.severity === activeFilter;
   }) || [];
 
-  const handleResolveAlert = async (alertId: string) => {
-    try {
-      // Get auth token from localStorage
-      const token = localStorage.getItem('token');
+  const handleMarkAsRead = (alertId: string) => {
+    setReadAlerts(prev => [...prev, alertId]);
+    toast({
+      title: "Alert Marked as Read",
+      description: "The alert has been marked as read.",
+    });
+  };
 
-      // Call API to resolve the alert on the server
-      const response = await fetch(`/api/alerts/${alertId}/resolve`, {
+  const handleMarkAllAsRead = () => {
+    if (!alerts) return;
+
+    const allActiveAlertIds = alerts
+      .filter(alert => alert.is_active && !readAlerts.includes(alert.id))
+      .map(alert => alert.id);
+
+    setReadAlerts(prev => [...prev, ...allActiveAlertIds]);
+    
+    toast({
+      title: "All Alerts Marked as Read",
+      description: `${allActiveAlertIds.length} alerts marked as read.`,
+    });
+  };
+
+  const handleCreateTicketForAlert = async (alert: Alert) => {
+    setSelectedAlert(alert);
+    
+    // Pre-populate ticket description based on alert
+    const description = `CRITICAL ALERT - Immediate Attention Required
+
+Alert Details:
+- Device: ${alert.device_hostname}
+- Alert Type: ${alert.category.toUpperCase()}
+- Severity: ${alert.severity.toUpperCase()}
+- Message: ${alert.message}
+- Triggered: ${formatDistanceToNow(new Date(alert.triggered_at), { addSuffix: true })}
+
+Technical Details:
+${alert.metadata ? JSON.stringify(alert.metadata, null, 2) : 'No additional metadata available'}
+
+This ticket was automatically created from a critical system alert that requires immediate investigation and resolution.`;
+
+    setTicketDescription(description);
+    setTicketPriority(alert.severity === "critical" ? "critical" : "high");
+  };
+
+  const submitTicket = async () => {
+    if (!selectedAlert) return;
+
+    setIsCreatingTicket(true);
+    try {
+      const token = localStorage.getItem('token');
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+      const ticketData = {
+        type: "incident",
+        title: `CRITICAL ALERT: ${selectedAlert.message}`,
+        description: ticketDescription,
+        priority: ticketPriority,
+        requester_email: user.email || 'admin@company.com',
+        category: `System Alert - ${selectedAlert.category}`,
+        impact: selectedAlert.severity === "critical" ? "high" : "medium",
+        urgency: selectedAlert.severity === "critical" ? "high" : "medium"
+      };
+
+      const response = await fetch('/api/tickets', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
+        body: JSON.stringify(ticketData)
       });
 
       if (response.ok) {
-        // Only update local state if API call succeeds
-        setResolvedAlerts(prev => [...prev, alertId]);
-        console.log(`Alert ${alertId} resolved successfully`);
-
-        // Refresh the alerts data
-        setTimeout(() => {
-          refetch();
-          queryClient.invalidateQueries({ queryKey: ["/api/alerts"] });
-        }, 1000);
-        // Optionally show success message
+        const ticket = await response.json();
         toast({
-          title: "Alert Resolved",
-          description: "The alert has been resolved successfully.",
+          title: "Ticket Created Successfully",
+          description: `Ticket ${ticket.ticket_number} has been created for this alert.`,
         });
+        
+        // Mark alert as read after creating ticket
+        handleMarkAsRead(selectedAlert.id);
+        setSelectedAlert(null);
+        setTicketDescription("");
       } else {
-        const errorText = await response.text();
-        console.error('Failed to resolve alert:', response.status, errorText);
-
-        // Show error message
-        toast({
-          title: "Error",
-          description: `Failed to resolve alert: ${response.status}`,
-          variant: "destructive",
-        });
+        throw new Error('Failed to create ticket');
       }
     } catch (error) {
-      console.error('Error resolving alert:', error);
-
-      // Show error message
+      console.error('Error creating ticket:', error);
       toast({
         title: "Error",
-        description: "An error occurred while resolving the alert.",
+        description: "Failed to create ticket. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsCreatingTicket(false);
     }
   };
 
-  const handleMarkAllAsRead = async () => {
-    if (!alerts) return;
-
-    try {
-      const token = localStorage.getItem('token');
-
-      // Resolve all active alerts
-      const promises = alerts
-        .filter(alert => alert.is_active && !resolvedAlerts.includes(alert.id))
-        .map(alert => 
-          fetch(`/api/alerts/${alert.id}/resolve`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-            },
-          })
-        );
-
-      await Promise.all(promises);
-
-      // Update local state
-      setResolvedAlerts(alerts.map(alert => alert.id));
-
-      // Refresh data
-      setTimeout(() => {
-        refetch();
-        queryClient.invalidateQueries({ queryKey: ["/api/alerts"] });
-      }, 1000);
-
-      console.log('All alerts resolved successfully');
-    } catch (error) {
-      console.error('Error resolving all alerts:', error);
-    }
+  const handleRefresh = () => {
+    refetch();
+    toast({
+      title: "Alerts Refreshed",
+      description: "Alert data has been refreshed.",
+    });
   };
 
   if (isLoading) {
@@ -154,38 +196,46 @@ export default function Alerts() {
               onClick={() => setActiveFilter("all")}
             >
               <Filter className="w-4 h-4 mr-2" />
-              All Alerts
+              All Alerts ({filteredAlerts.length})
             </Button>
             <Button 
               variant={activeFilter === "critical" ? "default" : "ghost"} 
               size="sm"
               onClick={() => setActiveFilter("critical")}
             >
-              Critical
+              Critical ({alerts?.filter(a => a.severity === "critical" && !readAlerts.includes(a.id)).length || 0})
             </Button>
             <Button 
               variant={activeFilter === "high" ? "default" : "ghost"} 
               size="sm"
               onClick={() => setActiveFilter("high")}
             >
-              High
+              High ({alerts?.filter(a => a.severity === "high" && !readAlerts.includes(a.id)).length || 0})
             </Button>
             <Button 
               variant={activeFilter === "warning" ? "default" : "ghost"} 
               size="sm"
               onClick={() => setActiveFilter("warning")}
             >
-              Warning
+              Warning ({alerts?.filter(a => a.severity === "warning" && !readAlerts.includes(a.id)).length || 0})
             </Button>
             <Button 
               variant={activeFilter === "info" ? "default" : "ghost"} 
               size="sm"
               onClick={() => setActiveFilter("info")}
             >
-              Info
+              Info ({alerts?.filter(a => a.severity === "info" && !readAlerts.includes(a.id)).length || 0})
             </Button>
           </div>
-          <Button onClick={handleMarkAllAsRead}>Mark All as Read</Button>
+          <div className="flex items-center space-x-2">
+            <Button onClick={handleRefresh} variant="outline" size="sm">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+            <Button onClick={handleMarkAllAsRead} variant="outline" size="sm">
+              Mark All as Read
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -195,7 +245,7 @@ export default function Alerts() {
           <CardTitle className="flex items-center justify-between">
             <span>Active Alerts</span>
             <span className="text-sm font-normal text-neutral-600">
-              {alerts?.length || 0} total
+              {filteredAlerts.length} unread of {alerts?.length || 0} total
             </span>
           </CardTitle>
         </CardHeader>
@@ -225,7 +275,7 @@ export default function Alerts() {
                           : "text-blue-500"
                         }`} />
                         <StatusBadge status={alert.severity} />
-                        <span className="text-sm text-neutral-600">{alert.category}</span>
+                        <span className="text-sm text-neutral-600 capitalize">{alert.category}</span>
                       </div>
                       <h3 className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-1">
                         {alert.message}
@@ -240,14 +290,81 @@ export default function Alerts() {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
+                      {/* Critical Alert - Show Raise Ticket Button */}
+                      {alert.severity === "critical" && (
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="destructive" 
+                              size="sm"
+                              onClick={() => handleCreateTicketForAlert(alert)}
+                            >
+                              <Ticket className="w-4 h-4 mr-2" />
+                              Raise Ticket
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-2xl">
+                            <DialogHeader>
+                              <DialogTitle className="flex items-center space-x-2">
+                                <Ticket className="w-5 h-5 text-red-500" />
+                                <span>Create Incident Ticket</span>
+                              </DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <Label htmlFor="priority">Priority</Label>
+                                <Select value={ticketPriority} onValueChange={setTicketPriority}>
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="critical">Critical</SelectItem>
+                                    <SelectItem value="high">High</SelectItem>
+                                    <SelectItem value="medium">Medium</SelectItem>
+                                    <SelectItem value="low">Low</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div>
+                                <Label htmlFor="description">Ticket Description</Label>
+                                <Textarea
+                                  id="description"
+                                  value={ticketDescription}
+                                  onChange={(e) => setTicketDescription(e.target.value)}
+                                  rows={10}
+                                  className="mt-1"
+                                />
+                              </div>
+                              <div className="flex justify-end space-x-2">
+                                <Button
+                                  variant="outline"
+                                  onClick={() => setSelectedAlert(null)}
+                                >
+                                  Cancel
+                                </Button>
+                                <Button
+                                  onClick={submitTicket}
+                                  disabled={isCreatingTicket}
+                                >
+                                  {isCreatingTicket ? "Creating..." : "Create Ticket"}
+                                </Button>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                      
+                      {/* Read Button (instead of Resolve) */}
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => handleResolveAlert(alert.id)}
+                        onClick={() => handleMarkAsRead(alert.id)}
                       >
                         <CheckCircle className="w-4 h-4 mr-2" />
-                        Resolve
+                        Read
                       </Button>
+                      
+                      {/* View Details Button */}
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button variant="outline" size="sm">
@@ -341,7 +458,7 @@ export default function Alerts() {
                                       <div className="flex-1">
                                         <p className="text-sm font-medium text-red-900 dark:text-red-100">CPU Usage Alert</p>
                                         <p className="text-sm text-red-700 dark:text-red-300">
-                                          Current usage: <span className="font-mono">{alert.metadata.current_value}%</span>
+                                          Current usage: <span className="font-mono">{alert.metadata.cpu_usage}%</span>
                                           {alert.metadata.threshold && (
                                             <span> (Threshold: {alert.metadata.threshold}%)</span>
                                           )}
@@ -356,7 +473,7 @@ export default function Alerts() {
                                       <div className="flex-1">
                                         <p className="text-sm font-medium text-orange-900 dark:text-orange-100">Memory Usage Alert</p>
                                         <p className="text-sm text-orange-700 dark:text-orange-300">
-                                          Current usage: <span className="font-mono">{alert.metadata.current_value}%</span>
+                                          Current usage: <span className="font-mono">{alert.metadata.memory_usage}%</span>
                                           {alert.metadata.threshold && (
                                             <span> (Threshold: {alert.metadata.threshold}%)</span>
                                           )}
@@ -371,7 +488,7 @@ export default function Alerts() {
                                       <div className="flex-1">
                                         <p className="text-sm font-medium text-purple-900 dark:text-purple-100">Disk Usage Alert</p>
                                         <p className="text-sm text-purple-700 dark:text-purple-300">
-                                          Current usage: <span className="font-mono">{alert.metadata.current_value}%</span>
+                                          Current usage: <span className="font-mono">{alert.metadata.disk_usage}%</span>
                                           {alert.metadata.threshold && (
                                             <span> (Threshold: {alert.metadata.threshold}%)</span>
                                           )}
@@ -470,11 +587,29 @@ export default function Alerts() {
             <div className="text-center py-12">
               <AlertTriangle className="w-16 h-16 text-neutral-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-2">
-                No Alerts
+                No Unread Alerts
               </h3>
               <p className="text-neutral-600">
-                All systems are running smoothly. No active alerts to display.
+                {alerts && alerts.length > 0 
+                  ? "All alerts have been read. Check back later for new alerts."
+                  : "All systems are running smoothly. No active alerts to display."
+                }
               </p>
+              {readAlerts.length > 0 && (
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={() => {
+                    setReadAlerts([]);
+                    toast({
+                      title: "Read alerts cleared",
+                      description: "All previously read alerts are now visible again.",
+                    });
+                  }}
+                >
+                  Show Read Alerts ({readAlerts.length})
+                </Button>
+              )}
             </div>
           )}
         </CardContent>

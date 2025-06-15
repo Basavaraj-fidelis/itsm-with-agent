@@ -54,3 +54,57 @@ export function useAlerts() {
     }
   })
 }
+
+export async function resolveAlert(alertId: string): Promise<boolean> {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`/api/alerts/${alertId}/resolve`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error('Error resolving alert:', error);
+    return false;
+  }
+}
+
+export async function createTicketFromAlert(alert: Alert, description: string, priority: string): Promise<any> {
+  try {
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+    const ticketData = {
+      type: "incident",
+      title: `CRITICAL ALERT: ${alert.message}`,
+      description: description,
+      priority: priority,
+      requester_email: user.email || 'admin@company.com',
+      category: `System Alert - ${alert.category}`,
+      impact: alert.severity === "critical" ? "high" : "medium",
+      urgency: alert.severity === "critical" ? "high" : "medium"
+    };
+
+    const response = await fetch('/api/tickets', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(ticketData)
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to create ticket');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error creating ticket from alert:', error);
+    throw error;
+  }
+}
