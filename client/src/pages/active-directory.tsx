@@ -11,7 +11,7 @@ import {
   Settings,
   CheckCircle,
   AlertCircle,
-  Sync,
+  RefreshCw,
   Search,
   Server,
   Shield,
@@ -165,7 +165,7 @@ export default function ActiveDirectory() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <Sync className="w-5 h-5" />
+            <RefreshCw className="w-5 h-5" />
             <span>User Synchronization</span>
           </CardTitle>
           <p className="text-sm text-muted-foreground">
