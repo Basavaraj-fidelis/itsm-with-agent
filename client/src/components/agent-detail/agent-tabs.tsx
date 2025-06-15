@@ -34,6 +34,8 @@ import {
   AlertCircle,
   X,
   Brain,
+  Terminal,
+  Globe,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
