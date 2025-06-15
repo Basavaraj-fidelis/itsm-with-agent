@@ -22,6 +22,7 @@ import Settings from "@/pages/settings";
 import Reports from "@/pages/reports";
 import NotFound from "@/pages/not-found";
 import VNCPage from "@/pages/vnc";
+import ActiveDirectory from "@/pages/active-directory";
 
 // Layout
 import Sidebar from "@/components/layout/sidebar";
@@ -163,6 +164,14 @@ export default function App() {
               <ProtectedRoute requiredRole={["admin", "manager"]}>
                 <AuthenticatedLayout>
                   <Users />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            </Route>
+
+             <Route path="/active-directory">
+              <ProtectedRoute requiredRole={["admin", "manager"]}>
+                <AuthenticatedLayout>
+                  <ActiveDirectory />
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>

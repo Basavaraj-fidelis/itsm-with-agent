@@ -235,6 +235,16 @@ export function Sidebar() {
         activeColor: "bg-gray-50 border-gray-200 text-gray-700",
         description: "System configuration",
       },
+      {
+        name: "Active Directory",
+        href: "/active-directory",
+        icon: Shield,
+        current: location === "/active-directory",
+        roles: ["admin"],
+        iconColor: "text-gray-500",
+        activeColor: "bg-gray-50 border-gray-200 text-gray-700",
+        description: "Manage Active Directory integration",
+      },
     ];
 
     const mainNavigation = [
