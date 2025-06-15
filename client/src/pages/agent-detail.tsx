@@ -43,15 +43,29 @@ import {
   X,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useEffect } from "react";
 
 export default function AgentDetail() {
   const { id } = useParams();
-  const { data: agent, isLoading, error } = useAgent(id || "");
+  const { data: agent, isLoading, error, refetch } = useAgent(id || "");
   const [showVNCModal, setShowVNCModal] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState(null);
   const [testingConnection, setTestingConnection] = useState(false);
   const [showConnectionInfo, setShowConnectionInfo] = useState(false);
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
+
+  // Auto-refresh every 30 seconds when enabled
+  useEffect(() => {
+    if (!autoRefresh || !agent) return;
+    
+    const interval = setInterval(() => {
+      refetch();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, agent, refetch]);
+
   const handleRemoteConnect = async () => {
     if (!agent || agent.status !== 'online') {
       return;
@@ -67,6 +81,10 @@ export default function AgentDetail() {
         body: JSON.stringify({ connection_type: 'vnc', port: 5900 })
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const result = await response.json();
 
       if (result.success) {
@@ -76,7 +94,7 @@ export default function AgentDetail() {
       }
     } catch (error) {
       console.error('Remote connection error:', error);
-      alert('Failed to initiate remote connection');
+      alert('Failed to initiate remote connection: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
 
@@ -229,11 +247,20 @@ export default function AgentDetail() {
             size="sm"
             className="flex items-center space-x-2"
             onClick={() => {
-              window.location.reload();
+              refetch();
             }}
           >
             <RefreshCw className="w-4 h-4" />
             <span>Refresh</span>
+          </Button>
+          <Button
+            variant={autoRefresh ? "default" : "outline"}
+            size="sm"
+            className="flex items-center space-x-2"
+            onClick={() => setAutoRefresh(!autoRefresh)}
+          >
+            <Activity className="w-4 h-4" />
+            <span>Auto: {autoRefresh ? "ON" : "OFF"}</span>
           </Button>
           <Button
             variant="outline"
@@ -270,6 +297,63 @@ export default function AgentDetail() {
             <span>Connect Remotely</span>
           </Button>
         </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <Button
+          variant="outline"
+          className="flex items-center space-x-2 h-auto p-4"
+          onClick={() => setShowVNCModal(true)}
+        >
+          <Monitor className="w-5 h-5" />
+          <div className="text-left">
+            <div className="font-medium">Remote Desktop</div>
+            <div className="text-xs text-muted-foreground">Connect via VNC</div>
+          </div>
+        </Button>
+        
+        <Button
+          variant="outline"
+          className="flex items-center space-x-2 h-auto p-4"
+          onClick={testConnectivity}
+          disabled={testingConnection}
+        >
+          <Network className="w-5 h-5" />
+          <div className="text-left">
+            <div className="font-medium">Test Connection</div>
+            <div className="text-xs text-muted-foreground">
+              {testingConnection ? "Testing..." : "Ping & Port Check"}
+            </div>
+          </div>
+        </Button>
+
+        <Button
+          variant="outline"
+          className="flex items-center space-x-2 h-auto p-4"
+          onClick={() => {
+            // Create ticket for this agent
+            window.open(`/tickets/new?agent=${agent.id}&hostname=${agent.hostname}`, '_blank');
+          }}
+        >
+          <AlertTriangle className="w-5 h-5" />
+          <div className="text-left">
+            <div className="font-medium">Create Ticket</div>
+            <div className="text-xs text-muted-foreground">Report Issue</div>
+          </div>
+        </Button>
+
+        <Button
+          variant="outline"
+          className="flex items-center space-x-2 h-auto p-4"
+          onClick={() => setShowConnectionInfo(true)}
+        >
+          <Info className="w-5 h-5" />
+          <div className="text-left">
+            <div className="font-medium">Agent Info</div>
+            <div className="text-xs text-muted-foreground">View Details</div>
+          </div>
+        </Button>
       </div>
 
       {/* Quick Metrics */}
