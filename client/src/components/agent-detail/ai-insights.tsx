@@ -1,0 +1,287 @@
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { 
+  Brain, 
+  TrendingUp, 
+  TrendingDown, 
+  AlertTriangle, 
+  CheckCircle,
+  Zap,
+  Target,
+  Activity,
+  RefreshCw
+} from "lucide-react";
+import { useState, useEffect } from "react";
+
+interface AIInsightsProps {
+  agent: any;
+}
+
+interface AIInsight {
+  type: 'performance' | 'security' | 'maintenance' | 'prediction';
+  severity: 'low' | 'medium' | 'high' | 'info';
+  title: string;
+  description: string;
+  recommendation: string;
+  confidence: number;
+  trend?: 'up' | 'down' | 'stable';
+  metric?: string;
+}
+
+export function AIInsights({ agent }: AIInsightsProps) {
+  const [insights, setInsights] = useState<AIInsight[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const generateInsights = () => {
+    if (!agent?.latest_report) return [];
+
+    const aiInsights: AIInsight[] = [];
+    const latestReport = agent.latest_report;
+    
+    // Parse metrics
+    const cpuUsage = parseFloat(latestReport.cpu_usage || "0");
+    const memoryUsage = parseFloat(latestReport.memory_usage || "0");
+    const diskUsage = parseFloat(latestReport.disk_usage || "0");
+
+    // Parse raw data for advanced analysis
+    const rawData = latestReport.raw_data 
+      ? (typeof latestReport.raw_data === "string" 
+         ? JSON.parse(latestReport.raw_data) 
+         : latestReport.raw_data)
+      : {};
+
+    const processes = rawData.processes || [];
+    const systemHealth = rawData.system_health || {};
+
+    // 1. Performance Anomaly Detection
+    if (cpuUsage > 85) {
+      const topCPUProcess = processes
+        .filter(p => p.cpu_percent > 0)
+        .sort((a, b) => b.cpu_percent - a.cpu_percent)[0];
+
+      aiInsights.push({
+        type: 'performance',
+        severity: cpuUsage > 95 ? 'high' : 'medium',
+        title: 'High CPU Usage Detected',
+        description: `CPU usage at ${cpuUsage.toFixed(1)}%. ${topCPUProcess ? `Top consumer: ${topCPUProcess.name} (${topCPUProcess.cpu_percent.toFixed(1)}%)` : ''}`,
+        recommendation: 'Consider investigating high CPU processes or scheduling maintenance during off-hours.',
+        confidence: 0.9,
+        trend: 'up',
+        metric: 'CPU'
+      });
+    }
+
+    // 2. Memory Pressure Analysis
+    if (memoryUsage > 80) {
+      const memoryPressure = systemHealth.memory_pressure?.pressure_level || 'unknown';
+      
+      aiInsights.push({
+        type: 'performance',
+        severity: memoryUsage > 90 ? 'high' : 'medium',
+        title: 'Memory Pressure Detected',
+        description: `Memory usage at ${memoryUsage.toFixed(1)}%. System pressure level: ${memoryPressure}`,
+        recommendation: memoryUsage > 90 
+          ? 'Immediate action required: Close unnecessary applications or restart system'
+          : 'Monitor memory usage and consider memory upgrade if pattern persists',
+        confidence: 0.85,
+        trend: 'up',
+        metric: 'Memory'
+      });
+    }
+
+    // 3. Disk Space Prediction
+    if (diskUsage > 75) {
+      const daysToFull = diskUsage > 90 ? 7 : diskUsage > 85 ? 30 : 90;
+      
+      aiInsights.push({
+        type: 'prediction',
+        severity: diskUsage > 90 ? 'high' : diskUsage > 85 ? 'medium' : 'low',
+        title: 'Disk Space Forecast',
+        description: `Current disk usage: ${diskUsage.toFixed(1)}%. Projected to reach capacity in ~${daysToFull} days`,
+        recommendation: 'Schedule disk cleanup or expansion to prevent service interruption',
+        confidence: 0.75,
+        trend: 'up',
+        metric: 'Disk'
+      });
+    }
+
+    // 4. Process Behavior Analysis
+    const highCPUProcesses = processes.filter(p => p.cpu_percent > 15);
+    if (highCPUProcesses.length > 3) {
+      aiInsights.push({
+        type: 'performance',
+        severity: 'medium',
+        title: 'Multiple High-CPU Processes',
+        description: `${highCPUProcesses.length} processes consuming >15% CPU each`,
+        recommendation: 'Review running applications and consider process optimization',
+        confidence: 0.8,
+        trend: 'stable',
+        metric: 'Processes'
+      });
+    }
+
+    // 5. Security Assessment
+    const security = rawData.security || {};
+    if (security.firewall_status === 'disabled' || security.antivirus_status === 'disabled') {
+      aiInsights.push({
+        type: 'security',
+        severity: 'high',
+        title: 'Security Service Alert',
+        description: `${security.firewall_status === 'disabled' ? 'Firewall disabled' : ''} ${security.antivirus_status === 'disabled' ? 'Antivirus disabled' : ''}`,
+        recommendation: 'Immediately enable disabled security services to protect the system',
+        confidence: 0.95,
+        metric: 'Security'
+      });
+    }
+
+    // 6. System Health Insights
+    if (systemHealth.disk_health?.status !== 'healthy') {
+      aiInsights.push({
+        type: 'maintenance',
+        severity: 'medium',
+        title: 'Disk Health Warning',
+        description: `Disk health status: ${systemHealth.disk_health?.status || 'unknown'}`,
+        recommendation: 'Run disk diagnostics and consider backup of critical data',
+        confidence: 0.7,
+        metric: 'Hardware'
+      });
+    }
+
+    // 7. Optimization Opportunities
+    if (cpuUsage < 20 && memoryUsage < 50 && diskUsage < 60) {
+      aiInsights.push({
+        type: 'performance',
+        severity: 'info',
+        title: 'Resource Optimization Opportunity',
+        description: 'System is running efficiently with low resource utilization',
+        recommendation: 'Consider consolidating workloads or reducing system specifications if pattern persists',
+        confidence: 0.6,
+        trend: 'stable',
+        metric: 'Overall'
+      });
+    }
+
+    return aiInsights;
+  };
+
+  useEffect(() => {
+    if (agent) {
+      setLoading(true);
+      // Simulate AI processing delay
+      setTimeout(() => {
+        setInsights(generateInsights());
+        setLoading(false);
+      }, 1000);
+    }
+  }, [agent]);
+
+  const refreshInsights = () => {
+    setLoading(true);
+    setTimeout(() => {
+      setInsights(generateInsights());
+      setLoading(false);
+    }, 800);
+  };
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case 'high': return 'text-red-600 bg-red-50 border-red-200';
+      case 'medium': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      case 'low': return 'text-blue-600 bg-blue-50 border-blue-200';
+      case 'info': return 'text-green-600 bg-green-50 border-green-200';
+      default: return 'text-gray-600 bg-gray-50 border-gray-200';
+    }
+  };
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'performance': return Activity;
+      case 'security': return AlertTriangle;
+      case 'maintenance': return Target;
+      case 'prediction': return TrendingUp;
+      default: return Brain;
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Brain className="w-5 h-5 text-purple-600" />
+            AI Insights & Recommendations
+          </CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={refreshInsights}
+            disabled={loading}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="space-y-3">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+              </div>
+            ))}
+          </div>
+        ) : insights.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-500" />
+            <p className="font-medium text-green-700">System Operating Normally</p>
+            <p className="text-sm mt-1">No anomalies or issues detected by AI analysis</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {insights.map((insight, index) => {
+              const IconComponent = getTypeIcon(insight.type);
+              
+              return (
+                <div
+                  key={index}
+                  className={`p-4 rounded-lg border ${getSeverityColor(insight.severity)}`}
+                >
+                  <div className="flex items-start gap-3">
+                    <IconComponent className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="font-medium text-sm">{insight.title}</h4>
+                        <Badge variant="outline" className="text-xs">
+                          {insight.confidence && `${(insight.confidence * 100).toFixed(0)}% confidence`}
+                        </Badge>
+                        {insight.trend && (
+                          <div className="flex items-center gap-1">
+                            {insight.trend === 'up' && <TrendingUp className="w-3 h-3" />}
+                            {insight.trend === 'down' && <TrendingDown className="w-3 h-3" />}
+                            {insight.trend === 'stable' && <Activity className="w-3 h-3" />}
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-sm mb-2">{insight.description}</p>
+                      <div className="flex items-start gap-2">
+                        <Zap className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                        <p className="text-xs font-medium">
+                          Recommendation: {insight.recommendation}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

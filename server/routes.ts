@@ -16,6 +16,7 @@ import ticketStorage from "./ticket-storage";
 import { securityService } from "./security-service";
 import { performanceService } from "./performance-service";
 import { automationService } from "./automation-service";
+import { aiService } from "./ai-service";
 
 const JWT_SECRET =
   process.env.JWT_SECRET || "your-secret-key-change-in-production";
@@ -964,8 +965,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Memory usage extraction
       memory_usage =
-        extractNumericValue(systemHealth.memory_percent) ||
-        extractNumericValue(systemHealth.memory_usage) ||
+        extractNumericValue(systemHealth.memory_percent) ||        extractNumericValue(systemHealth.memory_usage) ||
         extractNumericValue(hardware.memory_percent) ||
         extractNumericValue(hardware.memory) ||
         extractNumericValue(data.memory_percent) ||
@@ -2418,7 +2418,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Agent download endpoint
   app.get('/api/download/agent/:platform', authenticateToken, (req, res) => {
     const { platform } = req.params;
-  
+
     const agentFiles = {
       windows: [
         'itsm_agent.py',
@@ -2444,29 +2444,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'config.ini'
       ]
     };
-  
+
     if (!agentFiles[platform as keyof typeof agentFiles]) {
       return res.status(400).json({ error: 'Invalid platform' });
     }
-  
+
     const files = agentFiles[platform as keyof typeof agentFiles];
     const filename = `itsm-agent-${platform}.zip`;
-  
+
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-  
+
     const archive = archiver('zip', { zlib: { level: 9 } });
-  
+
     archive.on('error', (err) => {
       console.error('Archive error:', err);
       res.status(500).json({ error: 'Failed to create archive' });
     });
-  
+
     archive.pipe(res);
-  
+
     // Add agent files from attached_assets directory
     const assetsPath = path.join(process.cwd(), 'attached_assets');
-  
+
     files.forEach(file => {
       const filePath = path.join(assetsPath, file);
       if (fs.existsSync(filePath)) {
@@ -2475,44 +2475,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.warn(`Agent file not found: ${file}`);
       }
     });
-  
+
     // Add installation instructions
     const instructions = `# ITSM Agent Installation Instructions
-  
+
   ## ${platform.charAt(0).toUpperCase() + platform.slice(1)} Installation
-  
+
   ### Prerequisites
   - Python 3.7 or higher
   - Administrator/root privileges
-  
+
   ### Installation Steps
   1. Extract this archive to your target directory
   2. Edit config.ini and set your ITSM server URL and authentication token
   3. Run the installation script:
-  
+
   ${platform === 'windows' ? 
     '   python install_windows.py' : 
     '   sudo python3 itsm_agent.py install'
   }
-  
+
   4. Start the service:
   ${platform === 'windows' ? 
     '   python itsm_agent.py start' : 
     '   sudo systemctl start itsm-agent'
   }
-  
+
   ### Configuration
   Edit config.ini before installation:
   - api.base_url: Your ITSM server URL
   - api.auth_token: Authentication token from admin panel
   - agent.collection_interval: Data collection frequency (seconds)
-  
+
   ### Support
   For technical support, contact your system administrator.
   `;
-  
+
     archive.append(instructions, { name: 'README.md' });
     archive.finalize();
+  });
+
+  // Get application performance insights
+  app.get("/api/devices/:id/performance-insights", authenticateToken, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const insights = await performanceService.getApplicationPerformanceInsights(id);
+      res.json(insights);
+    } catch (error) {
+      console.error("Error fetching performance insights:", error);
+      res.status(500).json({ 
+        error: "Failed to fetch performance insights",
+        top_cpu_consumers: [],
+        top_memory_consumers: [],
+        total_processes: 0,
+        system_load_analysis: {
+          high_cpu_processes: 0,
+          high_memory_processes: 0
+        }
+      });
+    }
+  });
+
+  // Get AI-powered insights for a device
+  app.get("/api/devices/:id/ai-insights", authenticateToken, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const insights = await aiService.generateDeviceInsights(id);
+      res.json(insights);
+    } catch (error) {
+      console.error("Error generating AI insights:", error);
+      res.status(500).json({ 
+        error: "Failed to generate AI insights",
+        insights: []
+      });
+    }
+  });
+
+  // Get AI recommendations for a device
+  app.get("/api/devices/:id/ai-recommendations", authenticateToken, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const recommendations = await aiService.getDeviceRecommendations(id);
+      res.json({ recommendations });
+    } catch (error) {
+      console.error("Error getting AI recommendations:", error);
+      res.status(500).json({ 
+        error: "Failed to get AI recommendations",
+        recommendations: []
+      });
+    }
   });
 
   const httpServer = createServer(app);

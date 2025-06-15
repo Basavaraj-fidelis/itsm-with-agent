@@ -6,33 +6,39 @@ import { Separator } from "@/components/ui/separator";
 import { formatDistanceToNow } from "date-fns";
 import type { Device } from "@shared/schema";
 import {
-  Monitor,
-  Cpu,
-  MemoryStick,
-  HardDrive,
-  Network,
   Activity,
-  Download,
-  RefreshCw,
-  Wifi,
-  Server,
-  Info,
-  Globe,
-  Users,
-  Shield,
-  Zap,
   AlertTriangle,
+  ArrowLeft,
+  Calendar,
   CheckCircle,
-  XCircle,
-  Settings,
-  Terminal,
   Clock,
+  Cpu,
+  Download,
+  HardDrive,
+  HelpCircle,
+  Info,
+  Memory,
+  MemoryStick,
+  Monitor,
+  Network,
+  RefreshCw,
+  Settings,
+  Shield,
   Usb,
-  ChevronDown,
+  Wifi,
+  XCircle,
+  Zap,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  AlertCircle,
+  X,
+  Brain,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { Progress } from "@/components/ui/progress";
+import { AIInsights } from "./ai-insights";
 
 interface AgentTabsProps {
   agent: any;
@@ -479,7 +485,14 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
   return (
     <Tabs defaultValue="overview" className="w-full">
       <TabsList className="grid w-full grid-cols-7">
-        <TabsTrigger value="overview">Overview</TabsTrigger>
+        <TabsTrigger value="overview" className="flex items-center space-x-2">
+          <Activity className="w-4 h-4" />
+          <span>Overview</span>
+        </TabsTrigger>
+        <TabsTrigger value="ai-insights" className="flex items-center space-x-2">
+          <Brain className="w-4 h-4" />
+          <span>AI Insights</span>
+        </TabsTrigger>
         <TabsTrigger value="hardware">Hardware</TabsTrigger>
         <TabsTrigger value="network">Network</TabsTrigger>
         <TabsTrigger value="storage">Storage</TabsTrigger>
@@ -488,6 +501,12 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
         <TabsTrigger value="updates">Updates</TabsTrigger>
       </TabsList>
 
+      {/* AI Insights Tab */}
+      <TabsContent value="ai-insights" className="space-y-6">
+        <AIInsights agent={agent} />
+      </TabsContent>
+
+      {/* Overview Tab */}
       <TabsContent value="overview" className="space-y-6">
         {/* System Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -936,6 +955,8 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                     <div>No health data available</div>
                   )}
                 </div>
+
+```text
 
                 <div className="mt-4">
                   <div className="text-blue-400">SECURITY STATUS:</div>
