@@ -1,9 +1,10 @@
-
 import { db } from "./db";
-import { sql } from "drizzle-orm";
+import { devices, alerts, deviceMetrics, usbDevices, softwareInventory, remoteAccess, deviceAlerts } from "@shared/schema";
+import { eq, desc, and, or, gte, lte, inArray } from "drizzle-orm";
+import { ALERT_THRESHOLDS, getAlertLevel } from "@shared/alert-thresholds";
 
 export class EnhancedStorage {
-  
+
   async initializeEnhancedTables() {
     try {
       // Performance baselines table

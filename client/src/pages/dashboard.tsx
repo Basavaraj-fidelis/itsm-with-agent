@@ -45,6 +45,45 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
+// Define alert thresholds
+const ALERT_THRESHOLDS = {
+  CPU: {
+    WARNING: 60,
+    CRITICAL: 80,
+  },
+  MEMORY: {
+    WARNING: 70,
+    CRITICAL: 85,
+  },
+  DISK: {
+    WARNING: 75,
+    CRITICAL: 90,
+  },
+};
+
+// Helper function to get alert level based on usage and type
+const getAlertLevel = (usage, type) => {
+  if (usage > ALERT_THRESHOLDS[type].CRITICAL) {
+    return "CRITICAL";
+  } else if (usage > ALERT_THRESHOLDS[type].WARNING) {
+    return "WARNING";
+  } else {
+    return "NORMAL";
+  }
+};
+
+// Helper function to get color based on alert level
+const getAlertColor = (alertLevel) => {
+  switch (alertLevel) {
+    case "CRITICAL":
+      return "red";
+    case "WARNING":
+      return "orange";
+    default:
+      return "green";
+  }
+};
+
 export default function Dashboard() {
   const { data: summary, isLoading: summaryLoading, error: summaryError } = useDashboardSummary();
   const { data: alerts, isLoading: alertsLoading, error: alertsError } = useAlerts();

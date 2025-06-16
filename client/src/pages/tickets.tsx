@@ -544,25 +544,48 @@ export default function Tickets() {
   };
 
   const getSLAMetrics = () => {
+    const now = new Date();
     const openTickets = tickets.filter(
       (t) => !["resolved", "closed", "cancelled"].includes(t.status),
     );
-    const slaViolations = openTickets.filter((t) => {
-      if (!t.due_date) return false;
-      return new Date(t.due_date) < new Date();
+    
+    let breached = 0;
+    let dueIn2Hours = 0;
+    let dueToday = 0;
+    let onTrack = 0;
+
+    openTickets.forEach((ticket) => {
+      // Use sla_resolution_due instead of due_date for consistency
+      const slaDate = ticket.sla_resolution_due || ticket.due_date;
+      if (!slaDate) {
+        onTrack++;
+        return;
+      }
+      
+      const timeDiff = new Date(slaDate).getTime() - now.getTime();
+      const hoursDiff = timeDiff / (1000 * 3600);
+
+      if (hoursDiff < 0) {
+        breached++;
+      } else if (hoursDiff <= 2) {
+        dueIn2Hours++;
+      } else if (hoursDiff <= 24) {
+        dueToday++;
+      } else {
+        onTrack++;
+      }
     });
+
+    const totalSLATickets = openTickets.length;
+    const compliance = totalSLATickets > 0 ? Math.round(((totalSLATickets - breached) / totalSLATickets) * 100) : 100;
 
     return {
       totalOpen: openTickets.length,
-      slaViolations: slaViolations.length,
-      slaCompliance:
-        openTickets.length > 0
-          ? Math.round(
-              ((openTickets.length - slaViolations.length) /
-                openTickets.length) *
-                100,
-            )
-          : 100,
+      slaViolations: breached,
+      dueIn2Hours,
+      dueToday,
+      onTrack,
+      slaCompliance: compliance,
     };
   };
 
@@ -791,7 +814,14 @@ export default function Tickets() {
 
   const renderQuickStats = () => (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-      <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200">
+      <Card 
+        className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 cursor-pointer hover:shadow-lg transition-all duration-200"
+        onClick={() => {
+          setSelectedStatus("all");
+          setSelectedType("all");
+          setSelectedPriority("all");
+        }}
+      >
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -807,7 +837,16 @@ export default function Tickets() {
         </CardContent>
       </Card>
 
-      <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200">
+      <Card 
+        className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 cursor-pointer hover:shadow-lg transition-all duration-200"
+        onClick={() => {
+          setSelectedStatus("all");
+          setSelectedType("all");
+          setSelectedPriority("all");
+          // Filter to show only open tickets
+          setStatusFilter("all");
+        }}
+      >
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -823,23 +862,56 @@ export default function Tickets() {
         </CardContent>
       </Card>
 
-      <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-orange-200">
+      <Card 
+        className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 cursor-pointer hover:shadow-lg transition-all duration-200"
+        onClick={() => {
+          // Filter to show only SLA violated tickets
+          const now = new Date();
+          const violatedTickets = tickets.filter((ticket) => {
+            if (["resolved", "closed", "cancelled"].includes(ticket.status)) return false;
+            const slaDate = ticket.sla_resolution_due || ticket.due_date;
+            if (!slaDate) return false;
+            return new Date(slaDate) < now;
+          });
+          
+          if (violatedTickets.length > 0) {
+            // Show the violated tickets by filtering
+            setSearchTerm("");
+            setSelectedStatus("all");
+            setSelectedType("all");
+            setSelectedPriority("all");
+            toast({
+              title: "SLA Violated Tickets",
+              description: `Found ${violatedTickets.length} tickets that have breached their SLA`,
+              variant: "destructive",
+            });
+          }
+        }}
+      >
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-orange-600 dark:text-orange-400">
+              <p className="text-sm font-medium text-red-600 dark:text-red-400">
                 SLA Violations
               </p>
-              <p className="text-3xl font-bold text-orange-900 dark:text-orange-100">
+              <p className="text-3xl font-bold text-red-900 dark:text-red-100">
                 {slaMetrics.slaViolations}
               </p>
             </div>
-            <Clock className="h-8 w-8 text-orange-600 dark:text-orange-400" />
+            <Clock className="h-8 w-8 text-red-600 dark:text-red-400" />
           </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200">
+      <Card 
+        className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200 cursor-pointer hover:shadow-lg transition-all duration-200"
+        onClick={() => {
+          toast({
+            title: "SLA Compliance",
+            description: `Current compliance rate: ${slaMetrics.slaCompliance}%`,
+          });
+        }}
+      >
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -1059,11 +1131,34 @@ export default function Tickets() {
                         <Badge className={statusColors[ticket.status as keyof typeof statusColors]}>
                           {ticket.status.replace('_', ' ').toUpperCase()}
                         </Badge>
-                        {ticket.sla_breached && (
-                          <Badge variant="destructive" className="animate-pulse">
-                            SLA BREACHED
-                          </Badge>
-                        )}
+                        {(() => {
+                          const now = new Date();
+                          const slaDate = ticket.sla_resolution_due || ticket.due_date;
+                          const isBreached = slaDate && new Date(slaDate) < now && !["resolved", "closed", "cancelled"].includes(ticket.status);
+                          
+                          if (isBreached) {
+                            return (
+                              <Badge variant="destructive" className="animate-pulse">
+                                SLA BREACHED
+                              </Badge>
+                            );
+                          }
+                          
+                          if (slaDate) {
+                            const timeDiff = new Date(slaDate).getTime() - now.getTime();
+                            const hoursDiff = timeDiff / (1000 * 3600);
+                            
+                            if (hoursDiff <= 2 && hoursDiff > 0) {
+                              return (
+                                <Badge variant="destructive" className="bg-orange-500">
+                                  DUE IN {Math.round(hoursDiff)}H
+                                </Badge>
+                              );
+                            }
+                          }
+                          
+                          return null;
+                        })()}
                       </div>
                       <h3 className="font-semibold text-lg text-neutral-900 dark:text-neutral-100">
                         {ticket.title}
