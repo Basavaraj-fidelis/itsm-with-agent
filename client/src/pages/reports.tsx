@@ -101,13 +101,41 @@ export default function Reports() {
   ];
 
   useEffect(() => {
-    fetchRecentReports();
-    generateDefaultReport();
+    let mounted = true;
+    
+    const initializeReports = async () => {
+      try {
+        await fetchRecentReports();
+        if (mounted) {
+          await generateDefaultReport();
+        }
+      } catch (error) {
+        console.error("Error initializing reports:", error);
+        if (mounted) {
+          setError("Failed to initialize reports");
+        }
+      }
+    };
+
+    initializeReports();
+    
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const fetchRecentReports = async () => {
     try {
-      const response = await api.get("/api/analytics/recent");
+      setError(null);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const response = await api.get("/api/analytics/recent", {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
       if (response.ok) {
         const data = await response.json();
         setRecentReports(data.reports || []);
@@ -116,8 +144,12 @@ export default function Reports() {
         setError("Failed to fetch recent reports");
       }
     } catch (error) {
-      console.error("Error fetching recent reports:", error);
-      setError("Network error while fetching reports");
+      if (error.name === 'AbortError') {
+        setError("Request timed out. Please try again.");
+      } else {
+        console.error("Error fetching recent reports:", error);
+        setError("Network error while fetching reports");
+      }
     }
   };
 

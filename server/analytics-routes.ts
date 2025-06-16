@@ -159,6 +159,9 @@ router.get("/recent", async (req, res) => {
     
     console.log(`Returning ${recentReports.length} recent reports`);
     
+    // Add a small delay to prevent overwhelming the system
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     res.json({
       success: true,
       reports: recentReports
