@@ -32,12 +32,12 @@ export default defineConfig(async () => {
       host: "0.0.0.0",
       port: 3000,
       strictPort: true,
-      allowedHosts: ["all", /.*\.replit\.dev$/, /.*\.replit\.co$/],
+      allowedHosts: "all",
       hmr: {
         protocol: "ws",
         host: "0.0.0.0",
-        port: 3000,
-        clientPort: 3000
+        port: 24678,
+        clientPort: 24678
       },
       proxy: {
         "/api": {
