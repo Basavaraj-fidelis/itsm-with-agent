@@ -1,0 +1,176 @@
+chunk-RPCDYKBN.js?v=43e43b9b:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+protected-route.tsx:93 Auth verification successful: Object
+api.ts:219 API Request: /api/tickets?limit=1000 Object
+api.ts:219 API Request: /api/notifications?filter=unread Object
+knowledge-base.tsx:114 Fetching KB articles with filters: Object
+api.ts:224 API Response: 200 OK
+0.0.0.0:24678/:1 
+            
+            
+           Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+api.ts:224 API Response: 200 OK
+knowledge-base.tsx:138 Received 15 articles for category: all
+0.0.0.0:24678/:1 
+            
+            
+           Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+knowledge-base.tsx:196 Opening article: Object
+/api/knowledge-base/44651fae:1 
+            
+            
+           Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+knowledge-base.tsx:166 Error fetching article: Error: Failed to fetch article: 500
+    at fetchSingleArticle (knowledge-base.tsx:160:15)
+fetchSingleArticle @ knowledge-base.tsx:166
+0.0.0.0:24678/:1 
+            
+            
+           Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+knowledge-base.tsx:196 Opening article: Object
+knowledge-base.tsx:196 Opening article: Object
+0.0.0.0:24678/:1 
+            
+            
+           Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+/api/knowledge-base/776d6828:1 
+            
+            
+           Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+knowledge-base.tsx:166 Error fetching article: Error: Failed to fetch article: 500
+    at fetchSingleArticle (knowledge-base.tsx:160:15)
+fetchSingleArticle @ knowledge-base.tsx:166
+knowledge-base.tsx:196 Opening article: Object
+/api/knowledge-base/5e2eea4a:1 
+            
+            
+           Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+knowledge-base.tsx:166 Error fetching article: Error: Failed to fetch article: 500
+    at fetchSingleArticle (knowledge-base.tsx:160:15)
+fetchSingleArticle @ knowledge-base.tsx:166
+0.0.0.0:24678/:1 
+            
+            
+           Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+0.0.0.0:24678/:1 
+            
+            
+           Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+0.0.0.0:24678/:1 
+            
+            
+           Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+0.0.0.0:24678/:1 
+            
+            
+           Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+client:736 
+            
+            
+           GET https://0.0.0.0:24678/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+client:736 
+            
+            
+           GET https://0.0.0.0:24678/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+api.ts:219 API Request: /api/notifications?filter=unread {headers: {…}, method: 'GET'}
+knowledge-base.tsx:196 Opening article: {id: '44651fae-34ef-4188-ba47-98436b9c502f', title: 'Common Software Error Messages and Solutions', content: "# Software Error Troubleshooting\n\n## Windows Error…s you've already tried\n- Screenshots of the error", author_email: 'support@company.com', category: 'Troubleshooting', …}
+client:736 
+            
+            
+           GET https://0.0.0.0:24678/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+knowledge-base.tsx:152 
+            
+            
+           GET https://b29a7eeb-b635-4639-9b85-d7f7a721c5c7-00-2uv0jnl2xv3zf.pike.replit.dev/api/knowledge-base/44651fae 500 (Internal Server Error)
+fetchSingleArticle @ knowledge-base.tsx:152
+(anonymous) @ knowledge-base.tsx:92
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=43e43b9b:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=43e43b9b:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=43e43b9b:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=43e43b9b:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=43e43b9b:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=43e43b9b:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=43e43b9b:19447
+commitRootImpl @ chunk-RPCDYKBN.js?v=43e43b9b:19416
+commitRoot @ chunk-RPCDYKBN.js?v=43e43b9b:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=43e43b9b:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=43e43b9b:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=43e43b9b:18627
+knowledge-base.tsx:166 Error fetching article: Error: Failed to fetch article: 500
+    at fetchSingleArticle (knowledge-base.tsx:160:15)
+fetchSingleArticle @ knowledge-base.tsx:166
+await in fetchSingleArticle
+(anonymous) @ knowledge-base.tsx:92
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=43e43b9b:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=43e43b9b:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=43e43b9b:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=43e43b9b:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=43e43b9b:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=43e43b9b:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=43e43b9b:19447
+commitRootImpl @ chunk-RPCDYKBN.js?v=43e43b9b:19416
+commitRoot @ chunk-RPCDYKBN.js?v=43e43b9b:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=43e43b9b:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=43e43b9b:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=43e43b9b:18627
+api.ts:224 API Response: 200 OK
+client:736 
+            
+            
+           GET https://0.0.0.0:24678/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+knowledge-base.tsx:196 Opening article: {id: '776d6828-019c-43ff-92d8-9359928c6958', title: 'Security Best Practices for End Users', content: '# Cybersecurity Guidelines\n\n## Password Security\n-… Hotline**: security@company.com or extension 911', author_email: 'support@company.com', category: 'Security', …}
+knowledge-base.tsx:152 
+            
+            
+           GET https://b29a7eeb-b635-4639-9b85-d7f7a721c5c7-00-2uv0jnl2xv3zf.pike.replit.dev/api/knowledge-base/776d6828 500 (Internal Server Error)
+fetchSingleArticle @ knowledge-base.tsx:152
+(anonymous) @ knowledge-base.tsx:92
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=43e43b9b:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=43e43b9b:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=43e43b9b:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=43e43b9b:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=43e43b9b:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=43e43b9b:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=43e43b9b:19447
+commitRootImpl @ chunk-RPCDYKBN.js?v=43e43b9b:19416
+commitRoot @ chunk-RPCDYKBN.js?v=43e43b9b:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=43e43b9b:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=43e43b9b:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=43e43b9b:18627
+knowledge-base.tsx:166 Error fetching article: Error: Failed to fetch article: 500
+    at fetchSingleArticle (knowledge-base.tsx:160:15)
+fetchSingleArticle @ knowledge-base.tsx:166
+await in fetchSingleArticle
+(anonymous) @ knowledge-base.tsx:92
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=43e43b9b:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=43e43b9b:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=43e43b9b:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=43e43b9b:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=43e43b9b:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=43e43b9b:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=43e43b9b:19447
+commitRootImpl @ chunk-RPCDYKBN.js?v=43e43b9b:19416
+commitRoot @ chunk-RPCDYKBN.js?v=43e43b9b:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=43e43b9b:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=43e43b9b:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=43e43b9b:18627
+client:736 
+            
+            
+           GET https://0.0.0.0:24678/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+client:736 
+            
+            
+           GET https://0.0.0.0:24678/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+knowledge-base.tsx:196 Opening article: {id: '776d6828-019c-43ff-92d8-9359928c6958', title: 'Security Best Practices for End Users', content: '# Cybersecurity Guidelines\n\n## Password Security\n-… Hotline**: security@company.com or extension 911', author_email: 'support@company.com', category: 'Security', …}
