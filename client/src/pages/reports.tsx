@@ -105,9 +105,9 @@ export default function Reports() {
     
     const initializeReports = async () => {
       try {
-        await fetchRecentReports();
+        // Only fetch recent reports, don't auto-generate default report
         if (mounted) {
-          await generateDefaultReport();
+          await fetchRecentReports();
         }
       } catch (error) {
         console.error("Error initializing reports:", error);
@@ -128,7 +128,7 @@ export default function Reports() {
     try {
       setError(null);
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
       
       const response = await api.get("/api/analytics/recent", {
         signal: controller.signal
@@ -142,6 +142,8 @@ export default function Reports() {
       } else {
         console.error("Failed to fetch recent reports:", response.status);
         setError("Failed to fetch recent reports");
+        // Don't retry automatically on failure
+        return;
       }
     } catch (error) {
       if (error.name === 'AbortError') {
@@ -150,6 +152,8 @@ export default function Reports() {
         console.error("Error fetching recent reports:", error);
         setError("Network error while fetching reports");
       }
+      // Don't retry automatically on error
+      return;
     }
   };
 

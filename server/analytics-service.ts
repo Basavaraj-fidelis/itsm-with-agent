@@ -81,53 +81,7 @@ class AnalyticsService {
       
       console.log(`Performance summary generated successfully`);
       return mockData;
-
-    // Calculate averages
-    const totalReports = recentReports.length;
-    const avgCpu = totalReports > 0 ? 
-      recentReports.reduce((sum, r) => sum + parseFloat(r.cpu_usage || "0"), 0) / totalReports : 0;
-    const avgMemory = totalReports > 0 ? 
-      recentReports.reduce((sum, r) => sum + parseFloat(r.memory_usage || "0"), 0) / totalReports : 0;
-    const avgDisk = totalReports > 0 ? 
-      recentReports.reduce((sum, r) => sum + parseFloat(r.disk_usage || "0"), 0) / totalReports : 0;
-
-    // Get critical alerts with error handling
-    let criticalAlerts = [];
-    try {
-      criticalAlerts = await Promise.race([
-        db
-          .select()
-          .from(alerts)
-          .where(
-            and(
-              eq(alerts.is_active, true),
-              eq(alerts.severity, "high")
-            )
-          ),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Alert query timeout')), 10000))
-      ]) as any[];
-    } catch (error) {
-      console.error("Error fetching critical alerts:", error);
-      criticalAlerts = [];
-    }
-
-    // Calculate uptime
-    const onlineDevices = allDevices.filter(d => d.status === "online");
-    const uptimePercentage = allDevices.length > 0 ? 
-      (onlineDevices.length / allDevices.length) * 100 : 0;
-
-    // Calculate trends (simplified)
-    const trends = await this.calculateTrends(timeRange);
-
-    return {
-      average_cpu: Math.round(avgCpu * 10) / 10,
-      average_memory: Math.round(avgMemory * 10) / 10,
-      average_disk: Math.round(avgDisk * 10) / 10,
-      device_count: allDevices.length,
-      uptime_percentage: Math.round(uptimePercentage * 10) / 10,
-      critical_alerts: criticalAlerts.length,
-      trends
-    };
+    
     } catch (error) {
       console.error("Error in generatePerformanceSummary:", error);
       // Return default values instead of throwing
