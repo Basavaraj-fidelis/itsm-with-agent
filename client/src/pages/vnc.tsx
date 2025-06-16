@@ -131,18 +131,24 @@ export default function VNCPage() {
             `ws://${resolvedHost}:6080/websockify`,
             `ws://${resolvedHost}:8080/websockify`,
             `ws://${resolvedHost}:5900/websockify`,
+            // TightVNC built-in web server endpoints
+            `ws://${resolvedHost}:5800/websockify`,
+            `ws://${resolvedHost}:5800/`,
             // Secure websocket endpoints
             `wss://${resolvedHost}:${port}/websockify`,
             `wss://${resolvedHost}:6080/websockify`,
             `wss://${resolvedHost}:8080/websockify`,
+            `wss://${resolvedHost}:5800/websockify`,
             // Alternative paths
             `ws://${resolvedHost}:${port}/`,
             `ws://${resolvedHost}:6080/`,
+            `ws://${resolvedHost}:5800/vnc`,
             // Fallback to original host if different
             ...(resolvedHost !== host ? [
               `ws://${host}:${port}/websockify`,
               `ws://${host}:6080/websockify`,
               `ws://${host}:8080/websockify`,
+              `ws://${host}:5800/websockify`,
             ] : [])
           ];
 
