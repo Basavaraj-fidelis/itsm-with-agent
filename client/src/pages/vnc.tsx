@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,7 +53,7 @@ export default function VNCPage() {
     bytesReceived: 0,
     bytesSent: 0,
   });
-  
+
   // VNC Settings
   const [viewOnly, setViewOnly] = useState(false);
   const [scaleViewport, setScaleViewport] = useState(true);
@@ -125,7 +124,7 @@ export default function VNCPage() {
           // Try multiple connection methods with proper host resolution
           const isLocalhost = host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0';
           const resolvedHost = isLocalhost ? window.location.hostname : host;
-          
+
           const possibleUrls = [
             // Primary websockify endpoints
             `ws://${resolvedHost}:${port}/websockify`,
@@ -184,7 +183,7 @@ export default function VNCPage() {
               rfb.addEventListener("disconnect", (e: any) => {
                 console.log("VNC disconnected:", e.detail);
                 const reason = e.detail?.reason || "Connection lost";
-                
+
                 if (connectionStatus === "connecting" && urlIndex + 1 < possibleUrls.length) {
                   console.log(`Connection attempt ${urlIndex + 1} failed: ${reason}, trying next...`);
                   setTimeout(() => tryConnection(urlIndex + 1), 1000);
@@ -222,6 +221,10 @@ export default function VNCPage() {
                 setConnectionStatus("error");
                 if (error.message?.includes("ERR_BLOCKED_BY_CLIENT") || error.toString().includes("blocked")) {
                   setErrorMessage("Connection blocked by browser security. Please:\n1. Disable ad blockers\n2. Allow mixed content\n3. Check browser console for details");
+                } else if (error.message?.includes("ERR_ADDRESS_INVALID") || error.toString().includes("address")) {
+                  setErrorMessage("Invalid server address. Please check the hostname and ensure the VNC server is accessible.");
+                } else if (error.message?.includes("ERR_CONNECTION_REFUSED")) {
+                  setErrorMessage("VNC server is not running or not accessible. Please ensure NoVNC websockify is started on the target machine.");
                 } else {
                   setErrorMessage(`Failed to establish VNC connection: ${error.message || "Unknown error"}`);
                 }
@@ -303,13 +306,13 @@ export default function VNCPage() {
                 </p>
               )}
             </div>
-            
+
             <Tabs defaultValue="troubleshooting" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="troubleshooting">Troubleshooting</TabsTrigger>
                 <TabsTrigger value="setup">Setup Guide</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="troubleshooting" className="space-y-4">
                 <div className="text-sm text-gray-500 space-y-3">
                   <p className="font-medium">Connection Issues & Solutions:</p>
@@ -324,7 +327,7 @@ export default function VNCPage() {
                   </ul>
                 </div>
               </TabsContent>
-              
+
               <TabsContent value="setup" className="space-y-4">
                 <div className="bg-blue-50 p-4 rounded-md text-blue-700 text-sm">
                   <p className="font-medium mb-2">Quick Setup Instructions:</p>
@@ -337,7 +340,7 @@ export default function VNCPage() {
                 </div>
               </TabsContent>
             </Tabs>
-            
+
             <div className="flex gap-2">
               <Button onClick={handleReconnect} className="flex-1">
                 <RefreshCw className="w-4 h-4 mr-2" />
@@ -445,7 +448,7 @@ export default function VNCPage() {
               {showSettings ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </Button>
           </div>
-          
+
           {showSettings && (
             <div className="space-y-3 text-xs">
               <div className="flex items-center justify-between">
