@@ -81,7 +81,6 @@ export default function KnowledgeBase() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
-  const [showArticleDialog, setShowArticleDialog] = useState(false);
 
   // Check if we're viewing a specific article
   const articleMatch = location.match(/^\/knowledge-base\/([^-]+)/);
@@ -195,9 +194,8 @@ export default function KnowledgeBase() {
 
   const handleArticleClick = (article: any) => {
     console.log("Opening article:", article);
-    // For now, show in dialog until routing is fixed
-    setSelectedArticle(article);
-    setShowArticleDialog(true);
+    // Navigate to dedicated article page
+    setLocation(`/knowledge-base/${article.id}`);
   };
 
   const handleBackToList = () => {
@@ -205,26 +203,26 @@ export default function KnowledgeBase() {
   };
 
   const renderMarkdown = (content: string) => {
-    // Simple markdown-like rendering
+    // Enhanced markdown-like rendering with better typography
     return content
       .split('\n')
       .map((line, index) => {
         if (line.startsWith('# ')) {
-          return <h1 key={index} className="text-2xl font-bold mt-6 mb-4 text-neutral-800 dark:text-neutral-200">{line.slice(2)}</h1>;
+          return <h1 key={index} className="text-3xl font-bold mt-8 mb-6 text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700 pb-2">{line.slice(2)}</h1>;
         } else if (line.startsWith('## ')) {
-          return <h2 key={index} className="text-xl font-semibold mt-5 mb-3 text-neutral-700 dark:text-neutral-300">{line.slice(3)}</h2>;
+          return <h2 key={index} className="text-2xl font-semibold mt-8 mb-4 text-gray-800 dark:text-gray-200">{line.slice(3)}</h2>;
         } else if (line.startsWith('### ')) {
-          return <h3 key={index} className="text-lg font-medium mt-4 mb-2 text-neutral-700 dark:text-neutral-300">{line.slice(4)}</h3>;
+          return <h3 key={index} className="text-xl font-medium mt-6 mb-3 text-gray-800 dark:text-gray-200">{line.slice(4)}</h3>;
         } else if (line.startsWith('**') && line.endsWith('**')) {
-          return <p key={index} className="font-semibold mb-2 text-neutral-700 dark:text-neutral-300">{line.slice(2, -2)}</p>;
+          return <p key={index} className="font-semibold mb-3 text-gray-800 dark:text-gray-200 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md border-l-4 border-blue-400">{line.slice(2, -2)}</p>;
         } else if (line.startsWith('- ')) {
-          return <li key={index} className="ml-4 mb-1 text-neutral-600 dark:text-neutral-400">{line.slice(2)}</li>;
+          return <li key={index} className="ml-6 mb-2 text-gray-700 dark:text-gray-300 list-disc">{line.slice(2)}</li>;
         } else if (/^\d+\./.test(line)) {
-          return <li key={index} className="ml-4 mb-1 text-neutral-600 dark:text-neutral-400 list-decimal">{line.replace(/^\d+\.\s*/, '')}</li>;
+          return <li key={index} className="ml-6 mb-2 text-gray-700 dark:text-gray-300 list-decimal">{line.replace(/^\d+\.\s*/, '')}</li>;
         } else if (line.trim() === '') {
-          return <br key={index} />;
+          return <div key={index} className="mb-4"></div>;
         } else {
-          return <p key={index} className="mb-2 text-neutral-600 dark:text-neutral-400 leading-relaxed">{line}</p>;
+          return <p key={index} className="mb-4 text-gray-700 dark:text-gray-300 leading-relaxed text-lg">{line}</p>;
         }
       });
   };
@@ -232,80 +230,143 @@ export default function KnowledgeBase() {
   // Article detail view
   if (articleId && selectedArticle) {
     return (
-      <div className="p-6 max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <Button 
-            variant="outline" 
-            onClick={handleBackToList}
-            className="mb-4 border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-300 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Knowledge Base
-          </Button>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <div className="max-w-5xl mx-auto p-6">
+          {/* Header */}
+          <div className="mb-8">
+            <Button 
+              variant="outline" 
+              onClick={handleBackToList}
+              className="mb-6 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 shadow-sm"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Knowledge Base
+            </Button>
 
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <Badge variant="secondary" className="mb-3">
-                {selectedArticle.category}
-              </Badge>
-              <h1 className="text-3xl font-bold text-neutral-800 dark:text-neutral-200 mb-4">
-                {selectedArticle.title}
-              </h1>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border-0 p-8">
+              <div className="flex items-start justify-between mb-6">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-200">
+                      {getCategoryIcon(selectedArticle.category)} {selectedArticle.category}
+                    </Badge>
+                    <Badge variant={selectedArticle.status === "published" ? "default" : "secondary"}>
+                      {selectedArticle.status === "published" ? "✅ Published" : "📝 Draft"}
+                    </Badge>
+                  </div>
+                  
+                  <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-6 leading-tight">
+                    {selectedArticle.title}
+                  </h1>
 
-              {/* Article meta */}
-              <div className="flex items-center space-x-6 text-sm text-neutral-500 mb-6">
-                <div className="flex items-center space-x-2">
-                  <User className="w-4 h-4" />
-                  <span>{selectedArticle.author_email}</span>
+                  {/* Article meta */}
+                  <div className="flex flex-wrap items-center gap-6 text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <div className="flex items-center space-x-2">
+                      <User className="w-4 h-4 text-blue-500" />
+                      <span className="font-medium">{selectedArticle.author_email}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Clock className="w-4 h-4 text-green-500" />
+                      <span>Updated {formatDate(selectedArticle.updated_at)}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Eye className="w-4 h-4 text-purple-500" />
+                      <span>{selectedArticle.views} views</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <ThumbsUp className="w-4 h-4 text-orange-500" />
+                      <span>{selectedArticle.helpful_votes} helpful</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Clock className="w-4 h-4" />
-                  <span>Updated {formatDate(selectedArticle.updated_at)}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Eye className="w-4 h-4" />
-                  <span>{selectedArticle.views} views</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <ThumbsUp className="w-4 h-4" />
-                  <span>{selectedArticle.helpful_votes} helpful</span>
+
+                <div className="flex flex-col space-y-2 ml-6">
+                  <Button variant="outline" size="sm" className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100">
+                    <ThumbsUp className="w-4 h-4 mr-2" />
+                    Mark Helpful
+                  </Button>
+                  <Button variant="outline" size="sm" className="bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100">
+                    <Share className="w-4 h-4 mr-2" />
+                    Share
+                  </Button>
+                  <Button variant="outline" size="sm" className="bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100">
+                    <Download className="w-4 h-4 mr-2" />
+                    Export PDF
+                  </Button>
                 </div>
               </div>
             </div>
+          </div>
 
-            <div className="flex space-x-2">
-              <Button variant="outline" size="sm">
-                <ThumbsUp className="w-4 h-4 mr-2" />
-                Helpful
-              </Button>
+          {/* Article content */}
+          <Card className="shadow-lg border-0 overflow-hidden">
+            <CardContent className="p-0">
+              <div className="bg-white dark:bg-gray-800 p-12">
+                <div className="prose prose-lg prose-blue dark:prose-invert max-w-none">
+                  <div className="text-gray-800 dark:text-gray-200 leading-relaxed">
+                    {renderMarkdown(selectedArticle.content)}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tags and Related Actions */}
+          <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Tags */}
+            {selectedArticle.tags && selectedArticle.tags.length > 0 && (
+              <div className="lg:col-span-2">
+                <Card className="shadow-md border-0">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center text-gray-800 dark:text-gray-200">
+                      <Tag className="w-5 h-5 mr-2 text-blue-500" />
+                      Related Tags
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedArticle.tags.map((tag) => (
+                        <Badge 
+                          key={tag} 
+                          variant="outline" 
+                          className="text-sm px-3 py-1 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 cursor-pointer transition-colors"
+                        >
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Quick Actions */}
+            <div>
+              <Card className="shadow-md border-0">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center text-gray-800 dark:text-gray-200">
+                    <Zap className="w-5 h-5 mr-2 text-yellow-500" />
+                    Quick Actions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Button variant="outline" size="sm" className="w-full justify-start">
+                    <Edit className="w-4 h-4 mr-2" />
+                    Suggest Edit
+                  </Button>
+                  <Button variant="outline" size="sm" className="w-full justify-start">
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Add Comment
+                  </Button>
+                  <Button variant="outline" size="sm" className="w-full justify-start">
+                    <Lightbulb className="w-4 h-4 mr-2" />
+                    Related Articles
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
-
-        {/* Article content */}
-        <Card>
-          <CardContent className="p-8">
-            <div className="prose prose-neutral dark:prose-invert max-w-none">
-              {renderMarkdown(selectedArticle.content)}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Tags */}
-        {selectedArticle.tags && selectedArticle.tags.length > 0 && (
-          <div className="mt-6">
-            <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Tags</h3>
-            <div className="flex flex-wrap gap-2">
-              {selectedArticle.tags.map((tag) => (
-                <Badge key={tag} variant="outline" className="text-xs">
-                  <Tag className="w-3 h-3 mr-1" />
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     );
   }
@@ -572,46 +633,7 @@ export default function KnowledgeBase() {
         </TabsContent>
       </Tabs>
 
-      {/* Article Detail Dialog */}
-      {selectedArticle && (
-        <Dialog open={showArticleDialog} onOpenChange={() => setShowArticleDialog(false)}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-semibold">
-                {selectedArticle.title}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4 text-sm text-gray-600">
-                <span>Category: {selectedArticle.category}</span>
-                <span>Author: {selectedArticle.author_email}</span>
-                <span>Views: {selectedArticle.views || 0}</span>
-                <span>Helpful: {selectedArticle.helpful_votes || 0}</span>
-              </div>
-              <div className="prose max-w-none">
-                <div dangerouslySetInnerHTML={{ 
-                  __html: selectedArticle.content.replace(/\n/g, '<br/>') 
-                }} />
-              </div>
-              <div className="flex justify-between items-center pt-4 border-t">
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {}}
-                  >
-                    <ThumbsUp className="w-4 h-4 mr-2" />
-                    Helpful ({selectedArticle.helpful_votes || 0})
-                  </Button>
-                </div>
-                <Button onClick={() => setShowArticleDialog(false)}>
-                  Close
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+      
     </div>
   );
 }
