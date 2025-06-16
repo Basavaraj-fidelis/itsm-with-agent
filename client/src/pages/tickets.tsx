@@ -170,7 +170,7 @@ export default function Tickets() {
 
   // Handle URL filter parameters
   React.useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
+    const searchParams = new URLSearchParams(window.location.search);
     const filterParam = searchParams.get('filter');
 
     if (filterParam === 'sla_violated') {
@@ -181,8 +181,10 @@ export default function Tickets() {
         description: "Showing tickets that have breached their SLA",
         variant: "destructive",
       });
+    } else {
+      setSlaViolationFilter(false);
     }
-  }, [location.search, toast, setActiveTab]);
+  }, [location, toast]);
 
   // Fetch tickets from API
   const fetchTickets = async (page = 1) => {
@@ -827,7 +829,8 @@ export default function Tickets() {
       filtered = filtered.filter(ticket => {
         if (["resolved", "closed", "cancelled"].includes(ticket.status)) return false;
         const slaDate = ticket.sla_resolution_due || ticket.due_date;
-        return slaDate ? new Date(slaDate) < now : false;
+        const isBreached = slaDate && new Date(slaDate) < now;
+        return ticket.sla_breached || isBreached;
       });
     }
 
@@ -1173,7 +1176,7 @@ export default function Tickets() {
                           const slaDate = ticket.sla_resolution_due || ticket.due_date;
                           const isBreached = slaDate && new Date(slaDate) < now && !["resolved", "closed", "cancelled"].includes(ticket.status);
 
-                          if (isBreached) {
+                          if (ticket.sla_breached || isBreached) {
                             return (
                               <Badge variant="destructive" className="animate-pulse">
                                 SLA BREACHED
@@ -1219,8 +1222,18 @@ export default function Tickets() {
                   <div className="py-2 border-b border-gray-100 dark:border-gray-800">
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-neutral-500">SLA: {ticket.sla_policy || 'Standard'}</span>
-                      <span className={`font-medium ${ticket.sla_breached ? 'text-red-600' : 'text-green-600'}`}>
-                        {ticket.sla_breached ? 'Breached' : 'Within SLA'}
+                      <span className={`font-medium ${(() => {
+                        const now = new Date();
+                        const slaDate = ticket.sla_resolution_due || ticket.due_date;
+                        const isBreached = slaDate && new Date(slaDate) < now && !["resolved", "closed", "cancelled"].includes(ticket.status);
+                        return (ticket.sla_breached || isBreached) ? 'text-red-600' : 'text-green-600';
+                      })()}`}>
+                        {(() => {
+                          const now = new Date();
+                          const slaDate = ticket.sla_resolution_due || ticket.due_date;
+                          const isBreached = slaDate && new Date(slaDate) < now && !["resolved", "closed", "cancelled"].includes(ticket.status);
+                          return (ticket.sla_breached || isBreached) ? 'Breached' : 'Within SLA';
+                        })()}
                       </span>
                     </div>
                     {ticket.sla_response_time && (
