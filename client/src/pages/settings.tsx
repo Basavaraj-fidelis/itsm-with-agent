@@ -12,13 +12,30 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import SettingsSidebar from "@/components/layout/settings-sidebar";
-import ActiveDirectory from "./active-directory";
 import { 
   TrendingUp, 
   AlertTriangle, 
   Clock, 
   CheckCircle, 
-  RefreshCw 
+  RefreshCw,
+  Users,
+  Shield,
+  Monitor,
+  Bell,
+  Palette,
+  Globe,
+  Database,
+  Mail,
+  Phone,
+  Building,
+  MapPin,
+  Save,
+  TestTube,
+  Eye,
+  EyeOff,
+  Server,
+  Zap,
+  Settings as SettingsIcon
 } from "lucide-react";
 
 export default function Settings() {
@@ -707,141 +724,6 @@ export default function Settings() {
     </div>
   );
 
-  const renderADSettings = () => (
-    <div className="space-y-6">
-      {/* Active Directory Integration */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Users className="w-5 h-5" />
-            <span>Active Directory Integration</span>
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Configure and manage Active Directory authentication settings
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Enable AD Authentication</Label>
-                <p className="text-sm text-muted-foreground">
-                  Allow users to authenticate using Active Directory credentials
-                </p>
-              </div>
-              <Switch
-                checked={settings.adEnabled}
-                onCheckedChange={(checked) =>
-                  updateSetting("adEnabled", checked)
-                }
-              />
-            </div>
-
-            {settings.adEnabled && (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="ad-server">AD Server URL</Label>
-                    <Input
-                      id="ad-server"
-                      placeholder="ldap://domain-controller.company.com:389"
-                      value={settings.adServer || ""}
-                      onChange={(e) => updateSetting("adServer", e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="ad-base-dn">Search Base DN</Label>
-                    <Input
-                      id="ad-base-dn"
-                      placeholder="OU=Users,DC=company,DC=com"
-                      value={settings.adBaseDN || ""}
-                      onChange={(e) => updateSetting("adBaseDN", e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="ad-bind-dn">Service Account DN</Label>
-                    <Input
-                      id="ad-bind-dn"
-                      placeholder="CN=service-account,OU=Service Accounts,DC=company,DC=com"
-                      value={settings.adBindDN || ""}
-                      onChange={(e) => updateSetting("adBindDN", e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="ad-bind-password">Service Account Password</Label>
-                    <Input
-                      id="ad-bind-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={settings.adBindPassword || ""}
-                      onChange={(e) => updateSetting("adBindPassword", e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    onClick={async () => {
-                      try {
-                        const response = await fetch("/api/ad/test-connection", {
-                          headers: {
-                            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
-                          },
-                        });
-                        const result = await response.json();
-
-                        toast({
-                          title: result.connected ? "Connection Successful" : "Connection Failed",
-                          description: result.message,
-                          variant: result.connected ? "default" : "destructive",
-                        });
-                      } catch (error) {
-                        toast({
-                          title: "Test Failed",
-                          description: "Unable to test AD connection",
-                          variant: "destructive",
-                        });
-                      }
-                    }}
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Test Connection
-                  </Button>
-                </div>
-
-                <div className="space-y-3">
-                  <Label>Group Role Mappings</Label>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between items-center p-2 bg-muted rounded">
-                      <span>ITSM-Admins → Administrator</span>
-                      <Badge variant="secondary">Admin</Badge>
-                    </div>
-                    <div className="flex justify-between items-center p-2 bg-muted rounded">
-                      <span>ITSM-Managers → Manager</span>
-                      <Badge variant="secondary">Manager</Badge>
-                    </div>
-                    <div className="flex justify-between items-center p-2 bg-muted rounded">
-                      <span>ITSM-Technicians → Technician</span>
-                      <Badge variant="secondary">Technician</Badge>
-                    </div>
-                    <div className="flex justify-between items-center p-2 bg-muted rounded">
-                      <span>Default → End User</span>
-                      <Badge variant="outline">End User</Badge>
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
   const renderContent = () => {
     switch (activeSection) {
       case 'general':
@@ -854,7 +736,9 @@ export default function Settings() {
         return renderSecuritySettings();
       case 'sla':
           return <SLAManagementContent />;
-        default:
+        case 'agent':
+        return renderAgentSettings();
+      default:
         return renderGeneralSettings();
     }
   };

@@ -169,7 +169,7 @@ export default function App() {
               </ProtectedRoute>
             </Route>
 
-             
+
 
             <Route path="/settings/:section?">
               <ProtectedRoute requiredRole={["admin", "manager"]}>
@@ -182,7 +182,7 @@ export default function App() {
             <Route path="/settings/active-directory">
               <ProtectedRoute requiredRole={["admin"]}>
                 <AuthenticatedLayout>
-                  <Settings />
+                  <ActiveDirectory />
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>
@@ -218,7 +218,7 @@ export default function App() {
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>
-              
+
 
             {/* Default redirect */}
             <Route path="/">
