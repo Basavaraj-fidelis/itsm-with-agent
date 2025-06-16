@@ -635,8 +635,6 @@ class AnalyticsService {
     }
   }
 
-  }
-
   async generateSecurityComplianceReport(): Promise<SecurityComplianceData> {
     try {
       console.log("Generating security compliance report");
