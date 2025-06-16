@@ -222,9 +222,19 @@ app.use((req, res, next) => {
     // this serves both the API and the client.
     // It is the only port that is not firewalled.
     const port = 5000;
-    server.listen(port, "0.0.0.0", () => {
-      log(`serving on port ${port}`);
-      console.log(`🌐 Server accessible at http://0.0.0.0:${port}`);
+    const PORT = process.env.PORT || port;
+    const serv = app.listen(PORT, '0.0.0.0', () => {
+      log(`serving on port ${PORT}`);
+      console.log(`🌐 Server accessible at http://0.0.0.0:${PORT}`);
+    });
+
+    // Handle WebSocket upgrade requests
+    serv.on('upgrade', (request, socket, head) => {
+      // Simple WebSocket upgrade handling
+      socket.write('HTTP/1.1 101 Switching Protocols\r\n' +
+        'Upgrade: websocket\r\n' +
+        'Connection: Upgrade\r\n' +
+        '\r\n');
     });
 
     console.log("✅ Server started successfully on port", port);
