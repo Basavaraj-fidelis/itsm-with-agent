@@ -1,0 +1,45 @@
+client:536 WebSocket connection to 'wss://0.0.0.0:24678/?token=rvH8lox4_Inc' failed: 
+client:560 [vite] server connection lost. Polling for restart...
+0.0.0.0:24678/:1 
+ Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+chunk-RPCDYKBN.js?v=ba8e14dc:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+protected-route.tsx:93 Auth verification successful: 
+Object
+api.ts:219 API Request: /api/tickets?limit=1000 
+Object
+api.ts:219 API Request: /api/notifications?filter=unread 
+Object
+api.ts:219 API Request: /api/dashboard/summary 
+Object
+api.ts:219 API Request: /api/alerts 
+Object
+api.ts:219 API Request: /api/devices 
+Object
+dashboard.tsx:233 Dashboard - Auth token present: true
+api.ts:224 API Response: 200 OK
+0.0.0.0:24678/:1 
+ Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+4
+api.ts:224 API Response: 200 OK
+2
+tickets.tsx:164 Uncaught ReferenceError: React is not defined
+    at Tickets (tickets.tsx:164:3)
+chunk-RPCDYKBN.js?v=ba8e14dc:14032 The above error occurred in the <Tickets> component:
+
+    at Tickets (https://f293184c-1388-4f2a-90ed-169c0dd7ac5a-00-3hoqu44jg4ol1.sisko.replit.dev/src/pages/tickets.tsx:92:20)
+    at main
+    at div
+    at div
+    at AuthenticatedLayout (https://f293184c-1388-4f2a-90ed-169c0dd7ac5a-00-3hoqu44jg4ol1.sisko.replit.dev/src/App.tsx:53:32)
+    at ProtectedRoute (https://f293184c-1388-4f2a-90ed-169c0dd7ac5a-00-3hoqu44jg4ol1.sisko.replit.dev/src/components/auth/protected-route.tsx:76:3)
+    at Route (https://f293184c-1388-4f2a-90ed-169c0dd7ac5a-00-3hoqu44jg4ol1.sisko.replit.…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=ba8e14dc:206:16)
+    at Switch (https://f293184c-1388-4f2a-90ed-169c0dd7ac5a-00-3hoqu44jg4ol1.sisko.replit.…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=ba8e14dc:262:17)
+    at Router (https://f293184c-1388-4f2a-90ed-169c0dd7ac5a-00-3hoqu44jg4ol1.sisko.replit.…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=ba8e14dc:161:17)
+    at AuthProvider (https://f293184c-1388-4f2a-90ed-169c0dd7ac5a-00-3hoqu44jg4ol1.sisko.replit.dev/src/components/auth/protected-route.tsx:36:32)
+    at QueryClientProvider (https://f293184c-1388-4f2a-90ed-169c0dd7ac5a-00-3hoqu44jg4ol1.sisko.replit.…rkspace/node_modules/.vite/deps/@tanstack_react-query.js?v=ba8e14dc:2923:3)
+    at App (https://f293184c-1388-4f2a-90ed-169c0dd7ac5a-00-3hoqu44jg4ol1.sisko.replit.dev/src/App.tsx:85:49)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+chunk-RPCDYKBN.js?v=ba8e14dc:9129 Uncaught ReferenceError: React is not defined
+    at Tickets (tickets.tsx:164:3)
