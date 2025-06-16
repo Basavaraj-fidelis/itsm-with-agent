@@ -201,15 +201,7 @@ class AnalyticsService {
 
         // Get detailed device list
         const detailedDevices = await Promise.race([
-          db.select({
-            hostname: devices.hostname,
-            ip_address: devices.ip_address,
-            os_name: devices.os_name,
-            os_version: devices.os_version,
-            status: devices.status,
-            last_seen: devices.last_seen,
-            assigned_user: devices.assigned_user
-          }).from(devices).limit(50),
+          db.select().from(devices).limit(50),
           timeout
         ]) as any[];
 
@@ -425,13 +417,7 @@ class AnalyticsService {
       try {
         // Get recent device reports for health metrics
         const recentReports = await Promise.race([
-          db.select({
-            device_id: device_reports.device_id,
-            cpu_usage: device_reports.cpu_usage,
-            memory_usage: device_reports.memory_usage,
-            disk_usage: device_reports.disk_usage,
-            created_at: device_reports.created_at
-          }).from(device_reports)
+          db.select().from(device_reports)
           .where(gte(device_reports.created_at, subHours(new Date(), 24)))
           .orderBy(desc(device_reports.created_at))
           .limit(100),
@@ -621,7 +607,9 @@ class AnalyticsService {
   private async convertToEnhancedWord(data: any, reportType: string): Promise<Buffer> {
     try {
       if (!Document || !Packer || !Paragraph) {
-        throw new Error("DOCX package not available");
+        console.log("DOCX package not available, generating enhanced text document");
+        const textContent = this.generateEnhancedTextDocument(data, reportType);
+        return Buffer.from(textContent, 'utf-8');
       }
 
       const doc = new Document({
@@ -644,6 +632,7 @@ class AnalyticsService {
       });
 
       const buffer = await Packer.toBuffer(doc);
+      console.log("Word document generated successfully, size:", buffer.length);
       return buffer;
     } catch (error) {
       console.error("Error generating Word document:", error);
@@ -1050,8 +1039,10 @@ class AnalyticsService {
 
   private generateEnhancedTextDocument(data: any, reportType: string): string {
     let content = `${this.getReportTitle(reportType)}\n`;
-    content += "=" .repeat(50) + "\n\n";
-    content += `Generated on: ${format(new Date(), 'PPpp')}\n\n`;
+    content += "=" .repeat(60) + "\n\n";
+    content += `Generated on: ${format(new Date(), 'PPpp')}\n`;
+    content += `Report Type: ${reportType.replace('-', ' ').toUpperCase()}\n`;
+    content += "-" .repeat(60) + "\n\n";
     
     // Add specific content based on report type
     switch (reportType) {
@@ -1067,7 +1058,23 @@ class AnalyticsService {
       case 'security-compliance':
         content += this.generateSecurityComplianceTextContent(data);
         break;
+      case 'performance':
+        content += this.generatePerformanceTextContent(data);
+        break;
+      case 'availability':
+        content += this.generateAvailabilityTextContent(data);
+        break;
+      case 'inventory':
+        content += this.generateInventoryTextContent(data);
+        break;
+      default:
+        content += "REPORT DATA\n";
+        content += "-" .repeat(20) + "\n";
+        content += JSON.stringify(data, null, 2);
     }
+    
+    content += "\n\n" + "=" .repeat(60) + "\n";
+    content += "End of Report\n";
     
     return content;
   }
@@ -1135,6 +1142,80 @@ class AnalyticsService {
     content += `Total Users: ${data.access_control.total_users}\n`;
     content += `Active Users: ${data.access_control.active_users}\n`;
     content += `Privileged Accounts: ${data.access_control.privileged_accounts}\n`;
+    
+    return content;
+  }
+
+  private generatePerformanceTextContent(data: any): string {
+    let content = "PERFORMANCE SUMMARY\n";
+    content += "-" .repeat(25) + "\n";
+    content += `Average CPU Usage: ${data.average_cpu || 'N/A'}%\n`;
+    content += `Average Memory Usage: ${data.average_memory || 'N/A'}%\n`;
+    content += `Average Disk Usage: ${data.average_disk || 'N/A'}%\n`;
+    content += `Active Devices: ${data.device_count || 'N/A'}\n`;
+    content += `System Uptime: ${data.uptime_percentage || 'N/A'}%\n`;
+    content += `Critical Alerts: ${data.critical_alerts || 'N/A'}\n\n`;
+    
+    if (data.trends) {
+      content += "PERFORMANCE TRENDS\n";
+      content += "-" .repeat(25) + "\n";
+      content += `CPU Trend: ${data.trends.cpu_trend || 'N/A'}%\n`;
+      content += `Memory Trend: ${data.trends.memory_trend || 'N/A'}%\n`;
+      content += `Disk Trend: ${data.trends.disk_trend || 'N/A'}%\n`;
+    }
+    
+    return content;
+  }
+
+  private generateAvailabilityTextContent(data: any): string {
+    let content = "AVAILABILITY REPORT\n";
+    content += "-" .repeat(25) + "\n";
+    content += `Total Devices: ${data.total_devices || 'N/A'}\n`;
+    content += `Online Devices: ${data.online_devices || 'N/A'}\n`;
+    content += `Offline Devices: ${data.offline_devices || 'N/A'}\n`;
+    content += `Availability Percentage: ${data.availability_percentage || 'N/A'}%\n`;
+    content += `Downtime Incidents: ${data.downtime_incidents || 'N/A'}\n`;
+    content += `Average Response Time: ${data.avg_response_time || 'N/A'}ms\n`;
+    
+    return content;
+  }
+
+  private generateInventoryTextContent(data: any): string {
+    let content = "SYSTEM INVENTORY\n";
+    content += "-" .repeat(25) + "\n";
+    content += `Total Agents: ${data.total_agents || 'N/A'}\n\n`;
+    
+    if (data.by_os) {
+      content += "DEVICES BY OPERATING SYSTEM\n";
+      content += "-" .repeat(25) + "\n";
+      Object.entries(data.by_os).forEach(([os, count]) => {
+        content += `  ${os}: ${count} devices\n`;
+      });
+      content += "\n";
+    }
+    
+    if (data.by_status) {
+      content += "DEVICES BY STATUS\n";
+      content += "-" .repeat(25) + "\n";
+      Object.entries(data.by_status).forEach(([status, count]) => {
+        content += `  ${status}: ${count} devices\n`;
+      });
+      content += "\n";
+    }
+    
+    if (data.storage_usage) {
+      content += "STORAGE USAGE\n";
+      content += "-" .repeat(25) + "\n";
+      content += `Average Disk Usage: ${data.storage_usage.avg_disk_usage || 'N/A'}%\n`;
+      content += `Devices Near Capacity: ${data.storage_usage.devices_near_capacity || 'N/A'}\n\n`;
+    }
+    
+    if (data.memory_usage) {
+      content += "MEMORY USAGE\n";
+      content += "-" .repeat(25) + "\n";
+      content += `Average Memory Usage: ${data.memory_usage.avg_memory_usage || 'N/A'}%\n`;
+      content += `High Memory Devices: ${data.memory_usage.devices_high_memory || 'N/A'}\n`;
+    }
     
     return content;
   }
