@@ -244,17 +244,30 @@ app.use((req, res, next) => {
     // Handle WebSocket upgrade requests properly
     serv.on('upgrade', (request, socket, head) => {
       const origin = request.headers.origin;
+      const wsKey = request.headers['sec-websocket-key'];
+      
       console.log('WebSocket upgrade request from:', origin);
       
-      // Allow WebSocket upgrades
-      socket.write('HTTP/1.1 101 Switching Protocols\r\n' +
-        'Upgrade: websocket\r\n' +
-        'Connection: Upgrade\r\n' +
-        'Sec-WebSocket-Accept: ' + require('crypto')
+      if (wsKey) {
+        // Proper WebSocket handshake
+        const crypto = require('crypto');
+        const acceptKey = crypto
           .createHash('sha1')
-          .update(request.headers['sec-websocket-key'] + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')
-          .digest('base64') + '\r\n' +
-        '\r\n');
+          .update(wsKey + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')
+          .digest('base64');
+          
+        socket.write(
+          'HTTP/1.1 101 Switching Protocols\r\n' +
+          'Upgrade: websocket\r\n' +
+          'Connection: Upgrade\r\n' +
+          'Sec-WebSocket-Accept: ' + acceptKey + '\r\n' +
+          'Access-Control-Allow-Origin: *\r\n' +
+          '\r\n'
+        );
+      } else {
+        socket.write('HTTP/1.1 400 Bad Request\r\n\r\n');
+        socket.destroy();
+      }
     });
 
     console.log("✅ Server started successfully on port", port);
