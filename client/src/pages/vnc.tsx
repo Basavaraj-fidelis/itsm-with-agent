@@ -122,13 +122,29 @@ export default function VNCPage() {
         vncRef.current.innerHTML = "";
 
         try {
+          // Try multiple connection methods with proper host resolution
+          const isLocalhost = host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0';
+          const resolvedHost = isLocalhost ? window.location.hostname : host;
+          
           const possibleUrls = [
-            `ws://${host}:${port}/websockify`,
-            `ws://${host}:6080/websockify`,
-            `ws://${host}:8080/websockify`,
-            `wss://${host}:${port}/websockify`,
-            `wss://${host}:6080/websockify`,
-            `wss://${host}:8080/websockify`,
+            // Primary websockify endpoints
+            `ws://${resolvedHost}:${port}/websockify`,
+            `ws://${resolvedHost}:6080/websockify`,
+            `ws://${resolvedHost}:8080/websockify`,
+            `ws://${resolvedHost}:5900/websockify`,
+            // Secure websocket endpoints
+            `wss://${resolvedHost}:${port}/websockify`,
+            `wss://${resolvedHost}:6080/websockify`,
+            `wss://${resolvedHost}:8080/websockify`,
+            // Alternative paths
+            `ws://${resolvedHost}:${port}/`,
+            `ws://${resolvedHost}:6080/`,
+            // Fallback to original host if different
+            ...(resolvedHost !== host ? [
+              `ws://${host}:${port}/websockify`,
+              `ws://${host}:6080/websockify`,
+              `ws://${host}:8080/websockify`,
+            ] : [])
           ];
 
           const tryConnection = (urlIndex: number) => {
@@ -167,14 +183,20 @@ export default function VNCPage() {
 
               rfb.addEventListener("disconnect", (e: any) => {
                 console.log("VNC disconnected:", e.detail);
-                if (
-                  connectionStatus === "connecting" &&
-                  urlIndex + 1 < possibleUrls.length
-                ) {
+                const reason = e.detail?.reason || "Connection lost";
+                
+                if (connectionStatus === "connecting" && urlIndex + 1 < possibleUrls.length) {
+                  console.log(`Connection attempt ${urlIndex + 1} failed: ${reason}, trying next...`);
                   setTimeout(() => tryConnection(urlIndex + 1), 1000);
                 } else {
                   setConnectionStatus("disconnected");
-                  setErrorMessage(e.detail.reason || "Connection lost");
+                  if (reason.includes("ERR_BLOCKED_BY_CLIENT")) {
+                    setErrorMessage("Connection blocked by browser or security extension. Please disable ad blockers and try again.");
+                  } else if (reason.includes("ERR_CONNECTION_REFUSED")) {
+                    setErrorMessage("VNC server is not running on the target machine. Please ensure NoVNC websockify is started.");
+                  } else {
+                    setErrorMessage(reason);
+                  }
                 }
               });
 
@@ -192,12 +214,17 @@ export default function VNCPage() {
                   setErrorMessage("Authentication failed on all connection attempts");
                 }
               });
-            } catch (error) {
+            } catch (error: any) {
+              console.error(`Connection attempt ${urlIndex + 1} failed:`, error);
               if (urlIndex + 1 < possibleUrls.length) {
                 setTimeout(() => tryConnection(urlIndex + 1), 1000);
               } else {
                 setConnectionStatus("error");
-                setErrorMessage("Failed to establish VNC connection with any method");
+                if (error.message?.includes("ERR_BLOCKED_BY_CLIENT") || error.toString().includes("blocked")) {
+                  setErrorMessage("Connection blocked by browser security. Please:\n1. Disable ad blockers\n2. Allow mixed content\n3. Check browser console for details");
+                } else {
+                  setErrorMessage(`Failed to establish VNC connection: ${error.message || "Unknown error"}`);
+                }
               }
             }
           };
@@ -285,13 +312,15 @@ export default function VNCPage() {
               
               <TabsContent value="troubleshooting" className="space-y-4">
                 <div className="text-sm text-gray-500 space-y-3">
-                  <p className="font-medium">Common Issues:</p>
+                  <p className="font-medium">Connection Issues & Solutions:</p>
                   <ul className="list-disc list-inside space-y-2 text-xs">
-                    <li>NoVNC websockify not running on target machine (port 6080)</li>
-                    <li>VNC server not running (port 5900)</li>
-                    <li>Firewall blocking websocket connection</li>
-                    <li>Incorrect host or port settings</li>
-                    <li>SSL/TLS certificate issues</li>
+                    <li><strong>ERR_BLOCKED_BY_CLIENT:</strong> Disable ad blockers, enable mixed content</li>
+                    <li><strong>Port 24678 blocked:</strong> Use standard VNC ports (5900, 6080)</li>
+                    <li><strong>NoVNC websockify not running:</strong> Start on port 6080</li>
+                    <li><strong>VNC server not running:</strong> Start VNC server on port 5900</li>
+                    <li><strong>Firewall blocking:</strong> Allow ports 5900, 6080, 8080</li>
+                    <li><strong>0.0.0.0 address issues:</strong> Use actual hostname/IP</li>
+                    <li><strong>Browser security:</strong> Try different browser or incognito mode</li>
                   </ul>
                 </div>
               </TabsContent>
