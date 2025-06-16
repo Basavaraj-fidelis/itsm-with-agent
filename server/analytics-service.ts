@@ -1,4 +1,3 @@
-
 import { storage } from "./storage";
 import { db } from "./db";
 import { devices, device_reports, alerts, usb_devices, installed_software, patch_management, user_sessions } from "../shared/schema";
@@ -169,12 +168,12 @@ class AnalyticsService {
   async generateAssetInventoryReport(): Promise<AssetInventoryData> {
     try {
       console.log("Generating comprehensive asset inventory report");
-      
+
       // Shorter timeout and better error handling
       const timeout = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Asset inventory timeout')), 3000)
       );
-      
+
       try {
         // Get total device count with simpler query
         const totalDevicesResult = await Promise.race([
@@ -305,7 +304,7 @@ class AnalyticsService {
         try {
           const basicDeviceCount = await db.select({ count: sql`count(*)` }).from(devices);
           const deviceCount = Number(basicDeviceCount[0]?.count) || 0;
-          
+
           return {
             total_devices: deviceCount,
             device_breakdown: {
@@ -347,10 +346,10 @@ class AnalyticsService {
   async generateTicketAnalyticsReport(timeRange: string = "30d"): Promise<TicketAnalyticsData> {
     try {
       console.log(`Generating ticket analytics report for ${timeRange}`);
-      
+
       const days = this.parseTimeRange(timeRange);
       const startDate = subDays(new Date(), days);
-      
+
       const timeout = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Ticket analytics timeout')), 3000)
       );
@@ -487,7 +486,7 @@ class AnalyticsService {
   async generateSystemHealthReport(): Promise<SystemHealthData> {
     try {
       console.log("Generating system health report");
-      
+
       const timeout = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('System health timeout')), 2000)
       );
@@ -531,14 +530,14 @@ class AnalyticsService {
             return isNaN(val) ? 0 : Math.min(100, Math.max(0, val));
           })
           .filter((v: number) => v > 0);
-        
+
         const memoryValues = recentReports
           .map((r: any) => {
             const val = parseFloat(r.memory_usage || "0");
             return isNaN(val) ? 0 : Math.min(100, Math.max(0, val));
           })
           .filter((v: number) => v > 0);
-        
+
         const diskValues = recentReports
           .map((r: any) => {
             const val = parseFloat(r.disk_usage || "0");
@@ -597,7 +596,7 @@ class AnalyticsService {
         try {
           const basicDeviceCount = await db.select({ count: sql`count(*)` }).from(devices);
           const deviceCount = Number(basicDeviceCount[0]?.count) || 0;
-          
+
           return {
             overall_health: {
               health_score: 75,
@@ -639,7 +638,7 @@ class AnalyticsService {
   async generateSecurityComplianceReport(): Promise<SecurityComplianceData> {
     try {
       console.log("Generating security compliance report");
-      
+
       const timeout = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Security compliance timeout')), 3000)
       );
@@ -726,7 +725,7 @@ class AnalyticsService {
 
   private convertToEnhancedCSV(data: any, reportType: string): string {
     let csv = "";
-    
+
     switch (reportType) {
       case "asset-inventory":
         csv = this.generateAssetInventoryCSV(data);
@@ -743,7 +742,7 @@ class AnalyticsService {
       default:
         csv = this.generateGenericCSV(data);
     }
-    
+
     return csv;
   }
 
@@ -757,7 +756,7 @@ class AnalyticsService {
       }
 
       const content = this.generateWordContent(data, reportType);
-      
+
       const doc = new Document({
         sections: [{
           properties: {},
@@ -944,7 +943,7 @@ class AnalyticsService {
 
   private generateDeviceHealthData(reports: any[]): Array<any> {
     const deviceMap: { [key: string]: any } = {};
-    
+
     reports.forEach(report => {
       if (!deviceMap[report.device_id]) {
         deviceMap[report.device_id] = {
@@ -954,7 +953,7 @@ class AnalyticsService {
           disk_values: []
         };
       }
-      
+
       if (report.cpu_usage) deviceMap[report.device_id].cpu_values.push(parseFloat(report.cpu_usage));
       if (report.memory_usage) deviceMap[report.device_id].memory_values.push(parseFloat(report.memory_usage));
       if (report.disk_usage) deviceMap[report.device_id].disk_values.push(parseFloat(report.disk_usage));
@@ -983,7 +982,7 @@ class AnalyticsService {
 
   private generateWordContent(data: any, reportType: string): Paragraph[] {
     const content: Paragraph[] = [];
-    
+
     switch (reportType) {
       case 'asset-inventory':
         content.push(...this.generateAssetInventoryWordContent(data));
@@ -998,7 +997,7 @@ class AnalyticsService {
         content.push(...this.generateSecurityComplianceWordContent(data));
         break;
     }
-    
+
     return content;
   }
 
@@ -1009,7 +1008,7 @@ class AnalyticsService {
       new Paragraph({ text: `Compliance Rate: ${Math.round((data.compliance_status.compliant_devices / data.total_devices) * 100)}%` }),
       new Paragraph({ text: `Software Packages: ${data.software_inventory.total_installed}` }),
       new Paragraph({ text: "" }),
-      
+
       new Paragraph({ text: "DEVICE BREAKDOWN", heading: HeadingLevel.HEADING_1 }),
       new Paragraph({ text: "By Operating System:", heading: HeadingLevel.HEADING_2 }),
       ...Object.entries(data.device_breakdown.by_os).map(([os, count]) => 
@@ -1020,7 +1019,7 @@ class AnalyticsService {
       ...Object.entries(data.device_breakdown.by_status).map(([status, count]) => 
         new Paragraph({ text: `  • ${status}: ${count} devices` })
       ),
-      
+
       new Paragraph({ text: "" }),
       new Paragraph({ text: "COMPLIANCE STATUS", heading: HeadingLevel.HEADING_1 }),
       new Paragraph({ text: `Compliant Devices: ${data.compliance_status.compliant_devices}` }),
@@ -1037,13 +1036,13 @@ class AnalyticsService {
       new Paragraph({ text: `Resolved Tickets: ${data.summary.resolved_tickets}` }),
       new Paragraph({ text: `Average Resolution Time: ${data.summary.avg_resolution_time} hours` }),
       new Paragraph({ text: "" }),
-      
+
       new Paragraph({ text: "SLA PERFORMANCE", heading: HeadingLevel.HEADING_1 }),
       new Paragraph({ text: `SLA Compliance Rate: ${data.sla_performance.sla_compliance_rate}%` }),
       new Paragraph({ text: `Tickets Meeting SLA: ${data.sla_performance.met_sla}` }),
       new Paragraph({ text: `SLA Breaches: ${data.sla_performance.breached_sla}` }),
       new Paragraph({ text: "" }),
-      
+
       new Paragraph({ text: "TOP ISSUES", heading: HeadingLevel.HEADING_1 }),
       ...data.top_issues.map(issue => 
         new Paragraph({ text: `• ${issue.category}: ${issue.count} tickets (avg ${issue.avg_resolution_time}h resolution)` })
@@ -1059,14 +1058,14 @@ class AnalyticsService {
       new Paragraph({ text: `Critical Alerts: ${data.overall_health.critical_alerts}` }),
       new Paragraph({ text: `System Uptime: ${data.overall_health.system_uptime}%` }),
       new Paragraph({ text: "" }),
-      
+
       new Paragraph({ text: "PERFORMANCE METRICS", heading: HeadingLevel.HEADING_1 }),
       new Paragraph({ text: `Average CPU Usage: ${data.performance_metrics.avg_cpu_usage}%` }),
       new Paragraph({ text: `Average Memory Usage: ${data.performance_metrics.avg_memory_usage}%` }),
       new Paragraph({ text: `Average Disk Usage: ${data.performance_metrics.avg_disk_usage}%` }),
       new Paragraph({ text: `Network Latency: ${data.performance_metrics.network_latency}ms` }),
       new Paragraph({ text: "" }),
-      
+
       new Paragraph({ text: "CAPACITY FORECAST", heading: HeadingLevel.HEADING_1 }),
       new Paragraph({ text: `Storage Projected Full: ${data.capacity_forecast.storage_projected_full}` }),
       new Paragraph({ text: `Devices Needing Memory Upgrade: ${data.capacity_forecast.memory_upgrade_needed.join(', ')}` }),
@@ -1082,14 +1081,14 @@ class AnalyticsService {
       new Paragraph({ text: `Missing Critical Patches: ${data.patch_compliance.missing_critical}` }),
       new Paragraph({ text: `Missing Important Patches: ${data.patch_compliance.missing_important}` }),
       new Paragraph({ text: "" }),
-      
+
       new Paragraph({ text: "ACCESS CONTROL", heading: HeadingLevel.HEADING_1 }),
       new Paragraph({ text: `Total Users: ${data.access_control.total_users}` }),
       new Paragraph({ text: `Active Users: ${data.access_control.active_users}` }),
       new Paragraph({ text: `Privileged Accounts: ${data.access_control.privileged_accounts}` }),
       new Paragraph({ text: `Inactive Accounts: ${data.access_control.inactive_accounts}` }),
       new Paragraph({ text: "" }),
-      
+
       new Paragraph({ text: "USB ACTIVITY", heading: HeadingLevel.HEADING_1 }),
       new Paragraph({ text: `Total Connections: ${data.usb_activity.total_connections}` }),
       new Paragraph({ text: `Unique Devices: ${data.usb_activity.unique_devices}` }),
@@ -1101,79 +1100,79 @@ class AnalyticsService {
   private generateAssetInventoryCSV(data: AssetInventoryData): string {
     let csv = "ASSET INVENTORY REPORT\n";
     csv += `Generated on,${format(new Date(), 'PPpp')}\n\n`;
-    
+
     csv += "SUMMARY\n";
     csv += "Metric,Value\n";
     csv += `Total Devices,${data.total_devices}\n`;
     csv += `Compliant Devices,${data.compliance_status.compliant_devices}\n`;
     csv += `Non-Compliant Devices,${data.compliance_status.non_compliant_devices}\n`;
     csv += `Total Software,${data.software_inventory.total_installed}\n\n`;
-    
+
     csv += "DEVICE BREAKDOWN BY OS\n";
     csv += "Operating System,Count\n";
     Object.entries(data.device_breakdown.by_os).forEach(([os, count]) => {
       csv += `${os},${count}\n`;
     });
-    
+
     return csv;
   }
 
   private generateTicketAnalyticsCSV(data: TicketAnalyticsData): string {
     let csv = "TICKET ANALYTICS REPORT\n";
     csv += `Generated on,${format(new Date(), 'PPpp')}\n\n`;
-    
+
     csv += "SUMMARY\n";
     csv += "Metric,Value\n";
     csv += `Total Tickets,${data.summary.total_tickets}\n`;
     csv += `Open Tickets,${data.summary.open_tickets}\n`;
     csv += `Resolved Tickets,${data.summary.resolved_tickets}\n`;
     csv += `SLA Compliance Rate,${data.sla_performance.sla_compliance_rate}%\n\n`;
-    
+
     csv += "TOP ISSUES\n";
     csv += "Category,Count,Avg Resolution Time (hours)\n";
     data.top_issues.forEach(issue => {
       csv += `${issue.category},${issue.count},${issue.avg_resolution_time}\n`;
     });
-    
+
     return csv;
   }
 
   private generateSystemHealthCSV(data: SystemHealthData): string {
     let csv = "SYSTEM HEALTH REPORT\n";
     csv += `Generated on,${format(new Date(), 'PPpp')}\n\n`;
-    
+
     csv += "OVERVIEW\n";
     csv += "Metric,Value\n";
     csv += `Health Score,${data.overall_health.health_score}/100\n`;
     csv += `Active Devices,${data.overall_health.active_devices}\n`;
     csv += `Critical Alerts,${data.overall_health.critical_alerts}\n`;
     csv += `System Uptime,${data.overall_health.system_uptime}%\n\n`;
-    
+
     csv += "PERFORMANCE METRICS\n";
     csv += "Metric,Value\n";
     csv += `Average CPU Usage,${data.performance_metrics.avg_cpu_usage}%\n`;
     csv += `Average Memory Usage,${data.performance_metrics.avg_memory_usage}%\n`;
     csv += `Average Disk Usage,${data.performance_metrics.avg_disk_usage}%\n`;
-    
+
     return csv;
   }
 
   private generateSecurityComplianceCSV(data: SecurityComplianceData): string {
     let csv = "SECURITY COMPLIANCE REPORT\n";
     csv += `Generated on,${format(new Date(), 'PPpp')}\n\n`;
-    
+
     csv += "PATCH COMPLIANCE\n";
     csv += "Metric,Value\n";
     csv += `Compliance Rate,${data.patch_compliance.compliance_percentage}%\n`;
     csv += `Up-to-Date Devices,${data.patch_compliance.up_to_date}\n`;
     csv += `Missing Critical Patches,${data.patch_compliance.missing_critical}\n\n`;
-    
+
     csv += "ACCESS CONTROL\n";
     csv += "Metric,Value\n";
     csv += `Total Users,${data.access_control.total_users}\n`;
     csv += `Active Users,${data.access_control.active_users}\n`;
     csv += `Privileged Accounts,${data.access_control.privileged_accounts}\n`;
-    
+
     return csv;
   }
 
@@ -1190,7 +1189,7 @@ class AnalyticsService {
     content += `Generated on: ${format(new Date(), 'PPpp')}\n`;
     content += `Report Type: ${reportType.replace('-', ' ').toUpperCase()}\n`;
     content += "-" .repeat(60) + "\n\n";
-    
+
     // Add specific content based on report type
     switch (reportType) {
       case 'asset-inventory':
@@ -1225,10 +1224,10 @@ class AnalyticsService {
         content += "-" .repeat(20) + "\n";
         content += JSON.stringify(data, null, 2);
     }
-    
+
     content += "\n\n" + "=" .repeat(60) + "\n";
     content += "End of Report\n";
-    
+
     return content;
   }
 
@@ -1238,14 +1237,14 @@ class AnalyticsService {
     content += `Total Devices: ${data.total_devices}\n`;
     content += `Compliance Rate: ${Math.round((data.compliance_status.compliant_devices / data.total_devices) * 100)}%\n`;
     content += `Software Packages: ${data.software_inventory.total_installed}\n\n`;
-    
+
     content += "DEVICE BREAKDOWN\n";
     content += "-" .repeat(20) + "\n";
     content += "By Operating System:\n";
     Object.entries(data.device_breakdown.by_os).forEach(([os, count]) => {
       content += `  • ${os}: ${count} devices\n`;
     });
-    
+
     return content;
   }
 
@@ -1256,13 +1255,13 @@ class AnalyticsService {
     content += `Open Tickets: ${data.summary.open_tickets}\n`;
     content += `Resolved Tickets: ${data.summary.resolved_tickets}\n`;
     content += `SLA Compliance: ${data.sla_performance.sla_compliance_rate}%\n\n`;
-    
+
     content += "TOP ISSUES\n";
     content += "-" .repeat(20) + "\n";
     data.top_issues.forEach(issue => {
       content += `• ${issue.category}: ${issue.count} tickets\n`;
     });
-    
+
     return content;
   }
 
@@ -1273,13 +1272,13 @@ class AnalyticsService {
     content += `Active Devices: ${data.overall_health.active_devices}\n`;
     content += `Critical Alerts: ${data.overall_health.critical_alerts}\n`;
     content += `System Uptime: ${data.overall_health.system_uptime}%\n\n`;
-    
+
     content += "PERFORMANCE METRICS\n";
     content += "-" .repeat(20) + "\n";
     content += `Average CPU Usage: ${data.performance_metrics.avg_cpu_usage}%\n`;
     content += `Average Memory Usage: ${data.performance_metrics.avg_memory_usage}%\n`;
     content += `Average Disk Usage: ${data.performance_metrics.avg_disk_usage}%\n`;
-    
+
     return content;
   }
 
@@ -1289,13 +1288,13 @@ class AnalyticsService {
     content += `Compliance Rate: ${data.patch_compliance.compliance_percentage}%\n`;
     content += `Up-to-Date Devices: ${data.patch_compliance.up_to_date}\n`;
     content += `Missing Critical Patches: ${data.patch_compliance.missing_critical}\n\n`;
-    
+
     content += "ACCESS CONTROL\n";
     content += "-" .repeat(20) + "\n";
     content += `Total Users: ${data.access_control.total_users}\n`;
     content += `Active Users: ${data.access_control.active_users}\n`;
     content += `Privileged Accounts: ${data.access_control.privileged_accounts}\n`;
-    
+
     return content;
   }
 
@@ -1308,7 +1307,7 @@ class AnalyticsService {
     content += `Active Devices: ${data.device_count || 'N/A'}\n`;
     content += `System Uptime: ${data.uptime_percentage || 'N/A'}%\n`;
     content += `Critical Alerts: ${data.critical_alerts || 'N/A'}\n\n`;
-    
+
     if (data.trends) {
       content += "PERFORMANCE TRENDS\n";
       content += "-" .repeat(25) + "\n";
@@ -1316,7 +1315,7 @@ class AnalyticsService {
       content += `Memory Trend: ${data.trends.memory_trend || 'N/A'}%\n`;
       content += `Disk Trend: ${data.trends.disk_trend || 'N/A'}%\n`;
     }
-    
+
     return content;
   }
 
@@ -1329,7 +1328,7 @@ class AnalyticsService {
     content += `Availability Percentage: ${data.availability_percentage || 'N/A'}%\n`;
     content += `Downtime Incidents: ${data.downtime_incidents || 'N/A'}\n`;
     content += `Average Response Time: ${data.avg_response_time || 'N/A'}ms\n`;
-    
+
     return content;
   }
 
@@ -1337,7 +1336,7 @@ class AnalyticsService {
     let content = "SYSTEM INVENTORY\n";
     content += "-" .repeat(25) + "\n";
     content += `Total Agents: ${data.total_agents || 'N/A'}\n\n`;
-    
+
     if (data.by_os) {
       content += "DEVICES BY OPERATING SYSTEM\n";
       content += "-" .repeat(25) + "\n";
@@ -1346,7 +1345,7 @@ class AnalyticsService {
       });
       content += "\n";
     }
-    
+
     if (data.by_status) {
       content += "DEVICES BY STATUS\n";
       content += "-" .repeat(25) + "\n";
@@ -1355,21 +1354,21 @@ class AnalyticsService {
       });
       content += "\n";
     }
-    
+
     if (data.storage_usage) {
       content += "STORAGE USAGE\n";
       content += "-" .repeat(25) + "\n";
       content += `Average Disk Usage: ${data.storage_usage.avg_disk_usage || 'N/A'}%\n`;
       content += `Devices Near Capacity: ${data.storage_usage.devices_near_capacity || 'N/A'}\n\n`;
     }
-    
+
     if (data.memory_usage) {
       content += "MEMORY USAGE\n";
       content += "-" .repeat(25) + "\n";
       content += `Average Memory Usage: ${data.memory_usage.avg_memory_usage || 'N/A'}%\n`;
       content += `High Memory Devices: ${data.memory_usage.devices_high_memory || 'N/A'}\n`;
     }
-    
+
     return content;
   }
 
@@ -1377,7 +1376,7 @@ class AnalyticsService {
     let content = "TREND ANALYSIS REPORT\n";
     content += "-" .repeat(25) + "\n";
     content += `Time Range: ${data.time_range || 'N/A'}\n\n`;
-    
+
     if (data.performance_trends) {
       content += "PERFORMANCE TRENDS\n";
       content += "-" .repeat(25) + "\n";
@@ -1386,7 +1385,7 @@ class AnalyticsService {
       content += `Disk Trend: ${data.performance_trends.disk_trend || 'N/A'}%\n`;
       content += `Trend Direction: ${data.performance_trends.trend_direction || 'N/A'}\n\n`;
     }
-    
+
     if (data.device_trends) {
       content += "DEVICE TRENDS\n";
       content += "-" .repeat(25) + "\n";
@@ -1394,7 +1393,7 @@ class AnalyticsService {
       content += `Online Trend: ${data.device_trends.online_trend || 'N/A'}\n`;
       content += `Health Trend: ${data.device_trends.health_trend || 'N/A'}\n\n`;
     }
-    
+
     if (data.predictions) {
       content += "PREDICTIONS\n";
       content += "-" .repeat(25) + "\n";
@@ -1403,14 +1402,14 @@ class AnalyticsService {
         content += `Warnings: ${data.predictions.capacity_warnings.join(', ')}\n`;
       }
     }
-    
+
     return content;
   }
 
   private generateCapacityTextContent(data: any): string {
     let content = "CAPACITY PLANNING REPORT\n";
     content += "-" .repeat(25) + "\n";
-    
+
     if (data.current_capacity) {
       content += "CURRENT CAPACITY\n";
       content += "-" .repeat(25) + "\n";
@@ -1419,7 +1418,7 @@ class AnalyticsService {
       content += `Memory Utilization: ${data.current_capacity.memory_utilization || 'N/A'}%\n`;
       content += `Storage Utilization: ${data.current_capacity.storage_utilization || 'N/A'}%\n\n`;
     }
-    
+
     if (data.recommendations && data.recommendations.length > 0) {
       content += "RECOMMENDATIONS\n";
       content += "-" .repeat(25) + "\n";
@@ -1428,7 +1427,7 @@ class AnalyticsService {
       });
       content += "\n";
     }
-    
+
     if (data.growth_projections) {
       content += "GROWTH PROJECTIONS\n";
       content += "-" .repeat(25) + "\n";
@@ -1436,7 +1435,7 @@ class AnalyticsService {
       content += `Next Year: ${data.growth_projections.next_year || 'N/A'}\n`;
       content += `Budget Impact: ${data.growth_projections.budget_impact || 'N/A'}\n`;
     }
-    
+
     return content;
   }
 
@@ -1459,7 +1458,7 @@ class AnalyticsService {
     content += `ET\nendstream\nendobj\n\n`;
     content += `xref\n0 5\n0000000000 65535 f\n0000000010 00000 n\n0000000079 00000 n\n0000000173 00000 n\n0000000301 00000 n\n`;
     content += `trailer\n<<\n/Size 5\n/Root 1 0 R\n>>\nstartxref\n${content.length}\n%%EOF`;
-    
+
     return content;
   }
 
@@ -1473,7 +1472,7 @@ class AnalyticsService {
     content += `\\par`;
     content += `{\\b Report Data:}\\par`;
     content += `\\par`;
-    
+
     // Add specific content based on report type
     switch (reportType) {
       case 'asset-inventory':
@@ -1491,7 +1490,7 @@ class AnalyticsService {
       default:
         content += `${JSON.stringify(data, null, 2)}`;
     }
-    
+
     content += `}`;
     return content;
   }
@@ -1651,10 +1650,10 @@ class AnalyticsService {
   async generateTrendAnalysisReport(timeRange: string = "30d"): Promise<any> {
     try {
       console.log(`Generating trend analysis report for ${timeRange}`);
-      
+
       const days = this.parseTimeRange(timeRange);
       const healthData = await this.generateSystemHealthReport();
-      
+
       return {
         time_range: timeRange,
         performance_trends: {
@@ -1693,10 +1692,10 @@ class AnalyticsService {
   async generateCapacityReport(): Promise<any> {
     try {
       console.log("Generating capacity planning report");
-      
+
       const healthData = await this.generateSystemHealthReport();
       const assetData = await this.generateAssetInventoryReport();
-      
+
       return {
         current_capacity: {
           total_devices: assetData.total_devices,
