@@ -16,7 +16,6 @@ import { useState } from "react";
 import {
   Activity,
   AlertTriangle,
-  ArrowLeft,
   Calendar,
   CheckCircle,
   Clock,
@@ -66,19 +65,29 @@ export default function AgentDetail() {
     return () => clearInterval(interval);
   }, [autoRefresh, agent, refetch]);
 
-  const handleRemoteConnect = async () => {
+  const handleRemoteConnect = async (connectionType: string) => {
     if (!agent || agent.status !== 'online') {
       return;
     }
 
     try {
+      const portMap: { [key: string]: number } = {
+        vnc: 5900,
+        rdp: 3389,
+        ssh: 22,
+        teamviewer: 5938
+      };
+
       const response = await fetch(`/api/agents/${agent.id}/remote-connect`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
         },
-        body: JSON.stringify({ connection_type: 'vnc', port: 5900 })
+        body: JSON.stringify({
+          connection_type: connectionType,
+          port: portMap[connectionType],
+        }),
       });
 
       if (!response.ok) {
@@ -87,14 +96,32 @@ export default function AgentDetail() {
 
       const result = await response.json();
       if (result.success) {
-        // Open VNC in new tab instead of modal
-        const vncUrl = `/vnc?host=${encodeURIComponent(agent.hostname)}&port=6080&vncport=5900&deviceName=${encodeURIComponent(agent.hostname)}`;
-        window.open(vncUrl, '_blank');
+        switch (connectionType) {
+          case "vnc":
+            const vncUrl = `/vnc?host=${encodeURIComponent(agent.hostname)}&port=6080&vncport=5900&deviceName=${encodeURIComponent(agent.hostname)}`;
+            window.open(vncUrl, "_blank");
+            break;
+
+          case "rdp":
+            const rdpUrl = `/rdp?host=${encodeURIComponent(agent.hostname)}&port=${result.connection_info.port}&deviceName=${encodeURIComponent(agent.hostname)}`;
+            window.open(rdpUrl, "_blank");
+            break;
+
+          case "ssh":
+            const sshUrl = `/ssh?host=${encodeURIComponent(agent.hostname)}&port=${result.connection_info.port}&deviceName=${encodeURIComponent(agent.hostname)}`;
+            window.open(sshUrl, "_blank");
+            break;
+
+          case "teamviewer":
+            // Show TeamViewer connection info
+            alert(`TeamViewer Connection:\nHost: ${result.connection_info.hostname}\nID: ${result.connection_info.teamviewer_id || 'Contact user for ID'}`);
+            break;
+        }
       } else {
         alert('Failed to initiate remote connection: ' + result.message);
       }
     } catch (error) {
-      console.error('Remote connection error:', error);
+      console.error("Error connecting remotely:", error);
       alert('Failed to initiate remote connection: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
@@ -292,7 +319,7 @@ export default function AgentDetail() {
             variant="default"
             size="sm"
             className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
-            onClick={handleRemoteConnect}
+            onClick={() => handleRemoteConnect("vnc")}
           >
             <Monitor className="w-4 h-4" />
             <span>Connect Remotely</span>
@@ -305,7 +332,7 @@ export default function AgentDetail() {
         <Button
           variant="outline"
           className="flex items-center space-x-2 h-auto p-4"
-          onClick={handleRemoteConnect}
+          onClick={() => handleRemoteConnect("vnc")}
         >
           <Monitor className="w-5 h-5" />
           <div className="text-left">

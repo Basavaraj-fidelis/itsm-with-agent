@@ -1978,6 +1978,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         is_active: true
       });
 
+      const instructions = {
+        vnc: "Ensure VNC server and websockify are running on the target machine",
+        rdp: "Ensure Remote Desktop is enabled and user has RDP permissions",
+        ssh: "Ensure SSH service is running and firewall allows SSH connections",
+        teamviewer: "Ensure TeamViewer is installed and running on the target machine"
+      };
+
       res.json({
         success: true,
         connection_info: {
@@ -1985,9 +1992,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ip_address: device.ip_address,
           port: port,
           connection_type,
-          instructions: connection_type === "vnc" 
-            ? "Ensure VNC server is running on the target machine"
-            : "Ensure remote access is enabled on the target machine"
+          instructions: instructions[connection_type] || "Ensure remote access is enabled on the target machine",
+          teamviewer_id: connection_type === "teamviewer" ? device.teamviewer_id : undefined
         }
       });
     } catch (error) {

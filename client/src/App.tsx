@@ -20,8 +20,10 @@ import Profile from "@/pages/profile";
 import Users from "@/pages/users";
 import Settings from "@/pages/settings";
 import Reports from "@/pages/reports";
-import NotFound from "@/pages/not-found";
 import VNCPage from "@/pages/vnc";
+import RDPPage from "@/pages/rdp";
+import SSHPage from "@/pages/ssh";
+import NotFound from "@/pages/not-found";
 import ActiveDirectory from "@/pages/active-directory";
 
 
@@ -171,7 +173,7 @@ export default function App() {
 
 
 
-            
+
 
             <Route path="/settings/:section?">
               <ProtectedRoute requiredRole={["admin", "manager"]}>
@@ -209,6 +211,20 @@ export default function App() {
               <ProtectedRoute>
                 <AuthenticatedLayout>
                   <VNCPage />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            </Route>
+             <Route path="/rdp">
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <RDPPage />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            </Route>
+            <Route path="/ssh">
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <SSHPage />
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>
