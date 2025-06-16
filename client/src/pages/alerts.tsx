@@ -65,8 +65,6 @@ export default function Alerts() {
       title: "Alert Marked as Read",
       description: "The alert has been marked as read.",
     });
-    // Dispatch custom event to notify dashboard to refresh
-    window.dispatchEvent(new CustomEvent('alertsMarkedAsRead'));
   };
 
   const handleMarkAllAsRead = () => {
@@ -82,9 +80,6 @@ export default function Alerts() {
       title: "All Alerts Marked as Read",
       description: `${allActiveAlertIds.length} alerts marked as read.`,
     });
-    
-    // Dispatch custom event to notify dashboard to refresh
-    window.dispatchEvent(new CustomEvent('alertsMarkedAsRead'));
   };
 
   const handleCreateTicketForAlert = async (alert: Alert) => {
