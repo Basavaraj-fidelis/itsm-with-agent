@@ -58,7 +58,7 @@ export default function AgentDetail() {
   // Auto-refresh every 30 seconds when enabled
   useEffect(() => {
     if (!autoRefresh || !agent) return;
-    
+
     const interval = setInterval(() => {
       refetch();
     }, 30000);
@@ -86,9 +86,10 @@ export default function AgentDetail() {
       }
 
       const result = await response.json();
-
       if (result.success) {
-        setShowVNCModal(true);
+        // Open VNC in new tab instead of modal
+        const vncUrl = `/vnc?host=${encodeURIComponent(agent.hostname)}&port=6080&vncport=5900&deviceName=${encodeURIComponent(agent.hostname)}`;
+        window.open(vncUrl, '_blank');
       } else {
         alert('Failed to initiate remote connection: ' + result.message);
       }
@@ -291,7 +292,7 @@ export default function AgentDetail() {
             variant="default"
             size="sm"
             className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
-            onClick={() => setShowVNCModal(true)}
+            onClick={handleRemoteConnect}
           >
             <Monitor className="w-4 h-4" />
             <span>Connect Remotely</span>
@@ -304,7 +305,7 @@ export default function AgentDetail() {
         <Button
           variant="outline"
           className="flex items-center space-x-2 h-auto p-4"
-          onClick={() => setShowVNCModal(true)}
+          onClick={handleRemoteConnect}
         >
           <Monitor className="w-5 h-5" />
           <div className="text-left">
@@ -312,7 +313,7 @@ export default function AgentDetail() {
             <div className="text-xs text-muted-foreground">Connect via VNC</div>
           </div>
         </Button>
-        
+
         <Button
           variant="outline"
           className="flex items-center space-x-2 h-auto p-4"
@@ -398,81 +399,6 @@ export default function AgentDetail() {
 
       {/* Tabbed Content */}
       <AgentTabs agent={agent} />
-
-      {/* VNC Modal */}
-      <Dialog open={showVNCModal} onOpenChange={setShowVNCModal}>
-        <DialogContent className="max-w-[95vw] w-[95vw] max-h-[95vh] h-[95vh] p-0">
-          <DialogHeader className="p-4 pb-2 border-b">
-            <div className="flex items-center justify-between">
-              <DialogTitle className="flex items-center gap-2">
-                <Monitor className="w-5 h-5" />
-                Remote Desktop - {agent.hostname}
-              </DialogTitle>
-              <div className="flex items-center gap-2">
-                <Badge
-                  variant={
-                    agent.status === "online" ? "default" : "destructive"
-                  }
-                >
-                  {agent.status}
-                </Badge>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const iframe = document.querySelector(
-                      'iframe[title*="VNC"]',
-                    ) as HTMLIFrameElement;
-                    if (iframe) {
-                      iframe.src = iframe.src; // Reload iframe
-                    }
-                  }}
-                >
-                  <RefreshCw className="w-4 h-4 mr-1" />
-                  Reconnect
-                </Button>
-              </div>
-            </div>
-          </DialogHeader>
-          <div className="flex-1 p-4 pt-0 bg-gray-900">
-            {agent.status !== "online" ? (
-              <div className="flex flex-col items-center justify-center h-full text-white">
-                <XCircle className="w-16 h-16 text-red-400 mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Agent Offline</h3>
-                <p className="text-gray-300 text-center mb-4">
-                  The agent {agent.hostname} is currently offline. Remote
-                  desktop connection is not available.
-                </p>
-                <div className="text-sm text-gray-400">
-                  Last seen:{" "}
-                  {agent.latest_report?.collected_at
-                    ? formatDistanceToNow(
-                        new Date(agent.latest_report.collected_at),
-                        { addSuffix: true },
-                      )
-                    : "never"}
-                </div>
-              </div>
-            ) : (
-              <div className="relative w-full h-full">
-                <iframe
-                  src={`/vnc?host=${agent.hostname}&port=6080&vncport=5900&embed=true`}
-                  className="w-full h-full border-0 rounded bg-black"
-                  title={`VNC connection to ${agent.hostname}`}
-                  onLoad={() => {
-                    console.log("VNC iframe loaded");
-                  }}
-                  onError={() => {
-                    console.error("VNC iframe failed to load");
-                  }}
-                />
-
-                
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
