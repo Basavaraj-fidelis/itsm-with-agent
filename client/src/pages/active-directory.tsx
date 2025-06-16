@@ -541,30 +541,30 @@ export default function ActiveDirectory() {
             <div className="space-y-3">
               <div className="flex justify-between items-center p-3 border rounded-lg">
                 <div>
-                  <p className="font-medium">ITSM-Admins</p>
+                  <p className="font-medium">IT-team</p>
                   <p className="text-sm text-muted-foreground">
-                    CN=ITSM-Admins,OU=Groups,DC=company,DC=com
+                    CN=IT-team,OU=Groups,DC=company,DC=com
                   </p>
                 </div>
                 <Badge variant="destructive">Administrator</Badge>
               </div>
               <div className="flex justify-between items-center p-3 border rounded-lg">
                 <div>
-                  <p className="font-medium">ITSM-Managers</p>
+                  <p className="font-medium">Finance-team</p>
                   <p className="text-sm text-muted-foreground">
-                    CN=ITSM-Managers,OU=Groups,DC=company,DC=com
+                    CN=Finance-team,OU=Groups,DC=company,DC=com
                   </p>
                 </div>
-                <Badge variant="default">Manager</Badge>
+                <Badge variant="outline">End User</Badge>
               </div>
               <div className="flex justify-between items-center p-3 border rounded-lg">
                 <div>
-                  <p className="font-medium">ITSM-Technicians</p>
+                  <p className="font-medium">HR-team</p>
                   <p className="text-sm text-muted-foreground">
-                    CN=ITSM-Technicians,OU=Groups,DC=company,DC=com
+                    CN=HR-team,OU=Groups,DC=company,DC=com
                   </p>
                 </div>
-                <Badge variant="secondary">Technician</Badge>
+                <Badge variant="outline">End User</Badge>
               </div>
               <div className="flex justify-between items-center p-3 border rounded-lg">
                 <div>
@@ -574,6 +574,15 @@ export default function ActiveDirectory() {
                   </p>
                 </div>
                 <Badge variant="secondary">Technician</Badge>
+              </div>
+              <div className="flex justify-between items-center p-3 border rounded-lg">
+                <div>
+                  <p className="font-medium">Department-Managers</p>
+                  <p className="text-sm text-muted-foreground">
+                    Any group containing "manager" or "lead"
+                  </p>
+                </div>
+                <Badge variant="default">Manager</Badge>
               </div>
               <div className="flex justify-between items-center p-3 border rounded-lg bg-muted/50">
                 <div>

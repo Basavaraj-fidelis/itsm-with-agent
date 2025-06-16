@@ -491,16 +491,54 @@ export class ActiveDirectoryService {
   private mapADGroupsToRole(groups: string[]): string {
     // Map AD groups to ITSM roles
     const groupMappings = {
+      // IT Team - Admin and Technician roles
+      'CN=IT-team,OU=Groups,DC=company,DC=com': 'admin',
+      'CN=IT-Admins,OU=Groups,DC=company,DC=com': 'admin',
+      'CN=IT-Support,OU=Groups,DC=company,DC=com': 'technician',
+      'CN=IT-Helpdesk,OU=Groups,DC=company,DC=com': 'technician',
+      
+      // Finance Team - Manager role for leads, end_user for others
+      'CN=Finance-team,OU=Groups,DC=company,DC=com': 'end_user',
+      'CN=Finance-Managers,OU=Groups,DC=company,DC=com': 'manager',
+      
+      // HR Team - Manager role for leads, end_user for others
+      'CN=HR-team,OU=Groups,DC=company,DC=com': 'end_user',
+      'CN=HR-Managers,OU=Groups,DC=company,DC=com': 'manager',
+      
+      // Department specific groups
+      'CN=Department-Managers,OU=Groups,DC=company,DC=com': 'manager',
+      'CN=Team-Leads,OU=Groups,DC=company,DC=com': 'manager',
+      
+      // Legacy mappings (keeping for compatibility)
       'CN=ITSM-Admins,OU=Groups,DC=company,DC=com': 'admin',
       'CN=ITSM-Managers,OU=Groups,DC=company,DC=com': 'manager',
-      'CN=ITSM-Technicians,OU=Groups,DC=company,DC=com': 'technician',
-      'CN=IT-Support,OU=Groups,DC=company,DC=com': 'technician',
-      'CN=Help-Desk,OU=Groups,DC=company,DC=com': 'technician'
+      'CN=ITSM-Technicians,OU=Groups,DC=company,DC=com': 'technician'
     };
 
+    // Check for exact matches first
     for (const group of groups) {
       if (groupMappings[group]) {
         return groupMappings[group];
+      }
+    }
+
+    // Check for partial matches (case-insensitive)
+    for (const group of groups) {
+      const groupLower = group.toLowerCase();
+      
+      // IT-team members get technician role by default
+      if (groupLower.includes('it-team') || groupLower.includes('it-support')) {
+        return 'technician';
+      }
+      
+      // Any group with "admin" gets admin role
+      if (groupLower.includes('admin')) {
+        return 'admin';
+      }
+      
+      // Any group with "manager" gets manager role
+      if (groupLower.includes('manager') || groupLower.includes('lead')) {
+        return 'manager';
       }
     }
 
