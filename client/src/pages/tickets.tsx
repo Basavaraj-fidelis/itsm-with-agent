@@ -157,6 +157,7 @@ export default function Tickets() {
   const [activeTab, setActiveTab] = useState("overview");
   const [expandedTickets, setExpandedTickets] = useState<string[]>([]);
   const [slaViolationFilter, setSlaViolationFilter] = useState(false);
+  const [showClosed, setShowClosed] = useState(false);
 
   // Handle URL filter parameters
   React.useEffect(() => {
@@ -959,7 +960,8 @@ export default function Tickets() {
                     {data.name}
                   </CardTitle>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Total: {totalForType} tickets
+                    Total:```python
+{totalForType} tickets
                   </p>
                   <CardContent className="pt-0">
                   <div className="space-y-3">
@@ -1011,7 +1013,7 @@ export default function Tickets() {
                     )}
                   </div>
                 </CardContent>
-              </Card>
+              </CardHeader>
             );
           })}
         </div>
@@ -1849,7 +1851,7 @@ export default function Tickets() {
                     <SelectItem value="low">Low</SelectItem>
                     <SelectItem value="medium">Medium</SelectItem>
                     <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="critical">Critical</SelectItem>
+                    <SelectItem value="critical"><SelectItem value="critical">Critical</SelectItem>
                   </SelectContent>
                 </Select>
                             </div>
