@@ -35,6 +35,7 @@ import {
   EyeOff,
   Server,
   Zap,
+  Key,
   Settings as SettingsIcon
 } from "lucide-react";
 
@@ -735,9 +736,24 @@ export default function Settings() {
       case 'security':
         return renderSecuritySettings();
       case 'sla':
-          return <SLAManagementContent />;
-        case 'agent':
+        return <SLAManagementContent />;
+      case 'agent':
         return renderAgentSettings();
+      case 'active-directory':
+        return (
+          <div className="space-y-6">
+            <div className="text-center p-8">
+              <Shield className="w-12 h-12 mx-auto mb-4 text-blue-500" />
+              <h3 className="text-lg font-medium mb-2">Active Directory Integration</h3>
+              <p className="text-muted-foreground mb-4">
+                Active Directory configuration is available as a separate page for detailed management.
+              </p>
+              <Button onClick={() => window.open('/settings/active-directory', '_blank')}>
+                Open Active Directory Settings
+              </Button>
+            </div>
+          </div>
+        );
       default:
         return renderGeneralSettings();
     }

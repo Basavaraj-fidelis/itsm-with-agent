@@ -72,7 +72,13 @@ export default function SettingsSidebar({ activeTab, onTabChange }: SettingsSide
           {settingsNavigation.map((item) => (
             <li key={item.id}>
               <button
-                onClick={() => setLocation(`/settings/${item.id}`)}
+                onClick={() => {
+                  if (item.id === 'active-directory') {
+                    setLocation('/settings/active-directory');
+                  } else {
+                    setLocation(`/settings/${item.id}`);
+                  }
+                }}
                 className={cn(
                   "w-full flex items-start space-x-3 p-3 rounded-lg text-left transition-colors",
                   activeTab === item.id
