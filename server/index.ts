@@ -242,15 +242,22 @@ app.use((req, res, next) => {
       }
     });
 
-    // Handle WebSocket upgrade requests properly
+    // Handle WebSocket upgrade requests properly - but only for non-Vite paths
     serv.on('upgrade', (request, socket, head) => {
+      const url = request.url;
       const origin = request.headers.origin;
-      const wsKey = request.headers['sec-websocket-key'];
+      
+      // Let Vite handle its own WebSocket connections for HMR
+      if (url && (url.includes('vite') || url.includes('hmr') || request.headers['sec-websocket-protocol']?.includes('vite'))) {
+        // Don't handle Vite WebSocket connections here
+        return;
+      }
 
-      console.log('WebSocket upgrade request from:', origin);
+      const wsKey = request.headers['sec-websocket-key'];
+      console.log('WebSocket upgrade request from:', origin, 'URL:', url);
 
       if (wsKey) {
-        // Proper WebSocket handshake
+        // Proper WebSocket handshake for application WebSockets
         const crypto = require('crypto');
         const acceptKey = crypto
           .createHash('sha1')
