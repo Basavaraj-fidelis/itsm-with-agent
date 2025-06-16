@@ -190,7 +190,8 @@ class ApiClient {
   private baseURL: string;
 
   constructor() {
-    this.baseURL = BASE_URL;
+    // Use relative path for API calls to avoid mixed content issues
+    this.baseURL = "";
   }
 
   private async request(
