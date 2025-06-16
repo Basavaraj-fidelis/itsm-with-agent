@@ -37,7 +37,7 @@ export default defineConfig(async () => {
         "all"
       ],
       hmr: {
-        protocol: "ws",
+        protocol: "wss",
         host: "0.0.0.0",
         port: 5174,
       },

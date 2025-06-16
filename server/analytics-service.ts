@@ -65,24 +65,37 @@ class AnalyticsService {
       const cutoffDate = subDays(new Date(), days);
 
       console.log(`Fetching devices for performance summary...`);
-      // Get all devices with timeout protection
-      const allDevices = await Promise.race([
-        db.select().from(devices),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Database query timeout')), 10000))
-      ]) as any[];
       
-      console.log(`Found ${allDevices.length} devices`);
+      // Get all devices with better error handling
+      let allDevices = [];
+      try {
+        allDevices = await Promise.race([
+          db.select().from(devices),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Database query timeout')), 15000))
+        ]) as any[];
+        console.log(`Found ${allDevices.length} devices`);
+      } catch (error) {
+        console.error("Error fetching devices:", error);
+        allDevices = []; // Continue with empty array
+      }
       
-      // Get recent reports with timeout protection
-      const recentReports = await Promise.race([
-        db
-          .select()
-          .from(device_reports)
-          .where(gte(device_reports.collected_at, cutoffDate))
-          .orderBy(desc(device_reports.collected_at))
-          .limit(1000), // Add limit to prevent large queries
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Database query timeout')), 10000))
-      ]) as any[];
+      // Get recent reports with better error handling
+      let recentReports = [];
+      try {
+        recentReports = await Promise.race([
+          db
+            .select()
+            .from(device_reports)
+            .where(gte(device_reports.collected_at, cutoffDate))
+            .orderBy(desc(device_reports.collected_at))
+            .limit(500), // Reduce limit for better performance
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Database query timeout')), 15000))
+        ]) as any[];
+        console.log(`Found ${recentReports.length} recent reports`);
+      } catch (error) {
+        console.error("Error fetching reports:", error);
+        recentReports = []; // Continue with empty array
+      }
 
     // Calculate averages
     const totalReports = recentReports.length;
@@ -93,16 +106,25 @@ class AnalyticsService {
     const avgDisk = totalReports > 0 ? 
       recentReports.reduce((sum, r) => sum + parseFloat(r.disk_usage || "0"), 0) / totalReports : 0;
 
-    // Get critical alerts
-    const criticalAlerts = await db
-      .select()
-      .from(alerts)
-      .where(
-        and(
-          eq(alerts.is_active, true),
-          eq(alerts.severity, "high")
-        )
-      );
+    // Get critical alerts with error handling
+    let criticalAlerts = [];
+    try {
+      criticalAlerts = await Promise.race([
+        db
+          .select()
+          .from(alerts)
+          .where(
+            and(
+              eq(alerts.is_active, true),
+              eq(alerts.severity, "high")
+            )
+          ),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Alert query timeout')), 10000))
+      ]) as any[];
+    } catch (error) {
+      console.error("Error fetching critical alerts:", error);
+      criticalAlerts = [];
+    }
 
     // Calculate uptime
     const onlineDevices = allDevices.filter(d => d.status === "online");
@@ -141,47 +163,78 @@ class AnalyticsService {
   }
 
   async generateAvailabilityReport(timeRange: string = "7d"): Promise<AvailabilityData> {
-    const allDevices = await db.select().from(devices);
-    const onlineDevices = allDevices.filter(d => d.status === "online");
-    const offlineDevices = allDevices.filter(d => d.status === "offline");
+    try {
+      const allDevices = await Promise.race([
+        db.select().from(devices),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Database timeout')), 10000))
+      ]) as any[];
+      
+      const onlineDevices = allDevices.filter(d => d.status === "online");
+      const offlineDevices = allDevices.filter(d => d.status === "offline");
 
-    const availabilityPercentage = allDevices.length > 0 ? 
-      (onlineDevices.length / allDevices.length) * 100 : 0;
+      const availabilityPercentage = allDevices.length > 0 ? 
+        (onlineDevices.length / allDevices.length) * 100 : 0;
 
-    // Get downtime incidents (alerts related to connectivity)
-    const days = this.parseTimeRange(timeRange);
-    const cutoffDate = subDays(new Date(), days);
-    
-    const downtimeIncidents = await db
-      .select()
-      .from(alerts)
-      .where(
-        and(
-          gte(alerts.triggered_at, cutoffDate),
-          eq(alerts.category, "connectivity")
-        )
-      );
+      // Get downtime incidents (alerts related to connectivity)
+      const days = this.parseTimeRange(timeRange);
+      const cutoffDate = subDays(new Date(), days);
+      
+      let downtimeIncidents = [];
+      try {
+        downtimeIncidents = await Promise.race([
+          db
+            .select()
+            .from(alerts)
+            .where(
+              and(
+                gte(alerts.triggered_at, cutoffDate),
+                eq(alerts.category, "connectivity")
+              )
+            ),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Alert query timeout')), 8000))
+        ]) as any[];
+      } catch (error) {
+        console.error("Error fetching downtime incidents:", error);
+        downtimeIncidents = [];
+      }
 
     // Calculate uptime by device
-    const uptimeByDevice = allDevices.map(device => ({
-      hostname: device.hostname,
-      uptime_percentage: device.status === "online" ? 99.5 : 85.2, // Simplified calculation
-      last_seen: device.last_seen || new Date()
-    }));
+      const uptimeByDevice = allDevices.map(device => ({
+        hostname: device.hostname,
+        uptime_percentage: device.status === "online" ? 99.5 : 85.2, // Simplified calculation
+        last_seen: device.last_seen || new Date()
+      }));
 
-    return {
-      total_devices: allDevices.length,
-      online_devices: onlineDevices.length,
-      offline_devices: offlineDevices.length,
-      availability_percentage: Math.round(availabilityPercentage * 10) / 10,
-      downtime_incidents: downtimeIncidents.length,
-      avg_response_time: 250, // Placeholder
-      uptime_by_device: uptimeByDevice
-    };
+      return {
+        total_devices: allDevices.length,
+        online_devices: onlineDevices.length,
+        offline_devices: offlineDevices.length,
+        availability_percentage: Math.round(availabilityPercentage * 10) / 10,
+        downtime_incidents: downtimeIncidents.length,
+        avg_response_time: 250, // Placeholder
+        uptime_by_device: uptimeByDevice
+      };
+    } catch (error) {
+      console.error("Error in generateAvailabilityReport:", error);
+      // Return default values instead of throwing
+      return {
+        total_devices: 0,
+        online_devices: 0,
+        offline_devices: 0,
+        availability_percentage: 0,
+        downtime_incidents: 0,
+        avg_response_time: 0,
+        uptime_by_device: []
+      };
+    }
   }
 
   async generateSystemInventory(): Promise<SystemInventoryData> {
-    const allDevices = await db.select().from(devices);
+    try {
+      const allDevices = await Promise.race([
+        db.select().from(devices),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Database timeout')), 10000))
+      ]) as any[];
 
     // Group by OS
     const byOs = allDevices.reduce((acc, device) => {
@@ -222,19 +275,37 @@ class AnalyticsService {
     const devicesHighMemory = validReports.filter(r => parseFloat(r.memory_usage || "0") > 80).length;
 
     return {
-      total_agents: allDevices.length,
-      by_os: byOs,
-      by_status: byStatus,
-      storage_usage: {
-        total_devices: allDevices.length,
-        avg_disk_usage: Math.round(avgDiskUsage * 10) / 10,
-        devices_near_capacity: devicesNearCapacity
-      },
-      memory_usage: {
-        avg_memory_usage: Math.round(avgMemoryUsage * 10) / 10,
-        devices_high_memory: devicesHighMemory
-      }
-    };
+        total_agents: allDevices.length,
+        by_os: byOs,
+        by_status: byStatus,
+        storage_usage: {
+          total_devices: allDevices.length,
+          avg_disk_usage: Math.round(avgDiskUsage * 10) / 10,
+          devices_near_capacity: devicesNearCapacity
+        },
+        memory_usage: {
+          avg_memory_usage: Math.round(avgMemoryUsage * 10) / 10,
+          devices_high_memory: devicesHighMemory
+        }
+      };
+    } catch (error) {
+      console.error("Error in generateSystemInventory:", error);
+      // Return default values instead of throwing
+      return {
+        total_agents: 0,
+        by_os: {},
+        by_status: {},
+        storage_usage: {
+          total_devices: 0,
+          avg_disk_usage: 0,
+          devices_near_capacity: 0
+        },
+        memory_usage: {
+          avg_memory_usage: 0,
+          devices_high_memory: 0
+        }
+      };
+    }
   }
 
   async generateCustomReport(reportType: string, timeRange: string, format: string): Promise<any> {

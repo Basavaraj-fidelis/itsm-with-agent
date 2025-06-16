@@ -35,7 +35,7 @@ export async function setupVite(app: Express, server: Server) {
       hmr: {
         port: 5174,
         host: "0.0.0.0",
-        protocol: "ws"
+        protocol: "wss"
       }
     },
     appType: "custom",
