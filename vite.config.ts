@@ -29,20 +29,15 @@ export default defineConfig(async () => {
       emptyOutDir: true,
     },
     server: {
-      host: "0.0.0.0",
-      port: 5173,
-      strictPort: true,
-      hmr: {
-        port: 5174,
-        host: "0.0.0.0",
-      },
-      // ADD THIS SECTION:
-      allowedHosts: [
-        // This is the specific host Replit is using.
-        // You might need to adjust this if the host changes frequently.
-        "https://ae93378f-52bc-4ac2-8812-296dee9c7a0b-00-360pjqqna7hqg.sisko.replit.dev/",
-        ".replit.dev", // A more generic wildcard for Replit domains
-      ],
+      host: '0.0.0.0',
+      port: 3000,
+      proxy: {
+        '/api': {
+          target: 'http://0.0.0.0:5000',
+          changeOrigin: true,
+          secure: false,
+        }
+      }
     },
   };
 });

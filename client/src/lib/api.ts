@@ -184,7 +184,7 @@ async function get(url: string) {
   return apiRequest(url, { method: "GET" });
 }
 
-const BASE_URL = import.meta.env.VITE_API_URL || '';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://0.0.0.0:5000';
 
 class ApiClient {
   private baseURL: string;
@@ -274,7 +274,7 @@ const clearAuthToken = () => {
   localStorage.removeItem('auth_token');
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://0.0.0.0:5000';
 
 const makeRequest = async (url: string, options: RequestInit = {}): Promise<Response> => {
   const token = getAuthToken();
