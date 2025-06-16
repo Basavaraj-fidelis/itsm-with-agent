@@ -50,6 +50,10 @@ app.use((req, res, next) => {
 
     const server = await registerRoutes(app);
 
+    // Register SLA routes
+    const { registerSLARoutes } = await import("./sla-routes");
+    registerSLARoutes(app);
+
     // Register enhanced user routes
     app.use("/api/users", userRoutes);
 

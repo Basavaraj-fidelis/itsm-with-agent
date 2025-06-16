@@ -11,40 +11,46 @@ interface SettingsSidebarProps {
 export default function SettingsSidebar({ activeTab, onTabChange }: SettingsSidebarProps) {
   const settingsNavigation = [
     {
-      id: "general",
-      name: "General",
+      id: 'general',
+      name: 'General',
       icon: Settings,
-      description: "Basic system settings"
+      description: 'Basic system settings'
     },
     {
-      id: "monitoring",
-      name: "Monitoring",
+      id: 'monitoring',
+      name: 'Monitoring',
       icon: Monitor,
-      description: "System monitoring configuration"
+      description: 'System monitoring configuration'
     },
     {
-      id: "notifications",
-      name: "Notifications",
+      id: 'notifications',
+      name: 'Notifications',
       icon: Bell,
-      description: "Notification preferences"
+      description: 'Notification preferences'
     },
     {
-      id: "security",
-      name: "Security",
+      id: 'security',
+      name: 'Security',
       icon: Shield,
-      description: "Security and authentication"
+      description: 'Security and authentication'
     },
     {
-      id: "sla",
-      name: "SLA Policies",
+      id: 'sla',
+      name: 'SLA Policies',
       icon: Clock,
-      description: "Service level agreements"
+      description: 'Service level agreements'
     },
     {
-      id: "agent",
-      name: "Agent",
+      id: 'agent',
+      name: 'Agent',
       icon: Server,
-      description: "Agent deployment and configuration"
+      description: 'Agent deployment and configuration'
+    },
+    {
+      id: 'active-directory',
+      name: 'Active Directory',
+      icon: Shield,
+      description: 'Manage Active Directory integration'
     }
   ];
 
