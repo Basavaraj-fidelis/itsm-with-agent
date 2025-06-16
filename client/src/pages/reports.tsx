@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -110,14 +110,23 @@ export default function Reports() {
       if (response.ok) {
         const data = await response.json();
         setRecentReports(data.reports || []);
+      } else {
+        console.error("Failed to fetch recent reports:", response.status);
+        setError("Failed to fetch recent reports");
       }
     } catch (error) {
       console.error("Error fetching recent reports:", error);
+      setError("Network error while fetching reports");
     }
   };
 
   const generateDefaultReport = async () => {
-    await generateReport("performance", "7d");
+    try {
+      await generateReport("performance", "7d");
+    } catch (error) {
+      console.error("Error generating default report:", error);
+      setError("Failed to load default report");
+    }
   };
 
   const generateReport = async (reportType?: string, timeRange?: string, format?: string) => {
@@ -147,6 +156,10 @@ export default function Reports() {
           a.download = `${type}-report-${format(new Date(), 'yyyy-MM-dd')}.csv`;
           a.click();
           URL.revokeObjectURL(url);
+        } else {
+          const errorText = await response.text();
+          console.error("CSV download failed:", errorText);
+          setError("Failed to download CSV report");
         }
       } else {
         // Handle JSON report
@@ -154,15 +167,25 @@ export default function Reports() {
         
         if (response.ok) {
           const data = await response.json();
-          setCurrentReport(data.report);
+          if (data.success && data.report) {
+            setCurrentReport(data.report);
+          } else {
+            setError(data.error || "Invalid report response");
+          }
         } else {
-          const errorData = await response.json();
-          setError(errorData.error || "Failed to generate report");
+          let errorMsg = "Failed to generate report";
+          try {
+            const errorData = await response.json();
+            errorMsg = errorData.error || errorMsg;
+          } catch (e) {
+            console.error("Failed to parse error response:", e);
+          }
+          setError(errorMsg);
         }
       }
     } catch (error) {
       console.error("Error generating report:", error);
-      setError("Failed to generate report. Please try again.");
+      setError("Network error. Please check your connection and try again.");
     } finally {
       setIsGenerating(false);
     }

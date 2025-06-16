@@ -142,7 +142,7 @@ export const api = {
         const errorText = await response.text();
         throw new Error(`Alerts API error ${response.status}: ${errorText}`);
       }
-      
+
       const data = await response.json();
       return Array.isArray(data) ? data : [];
     } catch (error) {
@@ -265,3 +265,45 @@ function getAuthHeaders() {
 
 // Create and export a singleton instance
 const apiClient = new ApiClient();
+
+const getAuthToken = () => {
+  return localStorage.getItem('auth_token');
+}
+
+const clearAuthToken = () => {
+  localStorage.removeItem('auth_token');
+}
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
+const makeRequest = async (url: string, options: RequestInit = {}): Promise<Response> => {
+  const token = getAuthToken();
+
+  console.log(`API Request: ${url}`, options.body ? JSON.parse(options.body as string) : '');
+
+  const config: RequestInit = {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...options.headers,
+    },
+  };
+
+  try {
+    const response = await fetch(`${API_BASE_URL}${url}`, config);
+    console.log(`API Response: ${response.status} ${response.statusText}`);
+
+    if (response.status === 401) {
+      clearAuthToken();
+      window.location.href = '/login';
+      throw new Error('Authentication required');
+    }
+
+    // Don't throw on non-2xx status codes, let the caller handle them
+    return response;
+  } catch (error) {
+    console.error(`API Error for ${url}:`, error);
+    throw error;
+  }
+};
