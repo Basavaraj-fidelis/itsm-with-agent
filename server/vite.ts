@@ -33,10 +33,7 @@ export async function setupVite(app: Express, server: Server) {
     server: {
       middlewareMode: true,
       allowedHosts: 'all',
-      hmr: {
-        port: 24678,
-        server,
-      },
+      hmr: false,
     },
     appType: "custom",
   });
