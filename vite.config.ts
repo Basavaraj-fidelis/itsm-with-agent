@@ -31,7 +31,7 @@ export default defineConfig(async () => {
     server: {
       host: '0.0.0.0',
       port: 3000,
-      allowedHosts: 'all',
+      allowedHosts: ['all', 'c39c548f-04ff-400b-b2bb-4700fcfc3020-00-33h3fwy3vlt21.sisko.replit.dev'],
       proxy: {
         '/api': {
           target: 'http://0.0.0.0:5000',
