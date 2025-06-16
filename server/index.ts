@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { userRoutes } from "./user-routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { createTicketTables } from "./migrate-tickets";
+import analyticsRoutes from "./analytics-routes";
 
 const app = express();
 app.use(express.json());
@@ -233,7 +234,7 @@ app.use((req, res, next) => {
       res.header('Access-Control-Allow-Origin', '*');
       res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
       res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
-      
+
       if (req.method === 'OPTIONS') {
         res.sendStatus(200);
       } else {
@@ -245,9 +246,9 @@ app.use((req, res, next) => {
     serv.on('upgrade', (request, socket, head) => {
       const origin = request.headers.origin;
       const wsKey = request.headers['sec-websocket-key'];
-      
+
       console.log('WebSocket upgrade request from:', origin);
-      
+
       if (wsKey) {
         // Proper WebSocket handshake
         const crypto = require('crypto');
@@ -255,7 +256,7 @@ app.use((req, res, next) => {
           .createHash('sha1')
           .update(wsKey + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')
           .digest('base64');
-          
+
         socket.write(
           'HTTP/1.1 101 Switching Protocols\r\n' +
           'Upgrade: websocket\r\n' +

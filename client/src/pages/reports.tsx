@@ -117,43 +117,47 @@ export default function Reports() {
       }
     };
 
-    initializeReports();
+    // Add a delay to ensure server is ready
+    const timer = setTimeout(() => {
+      if (mounted) {
+        initializeReports();
+      }
+    }, 1000);
     
     return () => {
       mounted = false;
+      clearTimeout(timer);
     };
   }, []);
 
   const fetchRecentReports = async () => {
     try {
       setError(null);
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      console.log("Fetching recent reports...");
       
-      const response = await api.get("/api/analytics/recent", {
-        signal: controller.signal
+      const response = await fetch("/api/analytics/recent", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
       
-      clearTimeout(timeoutId);
+      console.log("Recent reports response status:", response.status);
       
       if (response.ok) {
         const data = await response.json();
+        console.log("Recent reports data:", data);
         setRecentReports(data.reports || []);
       } else {
-        console.error("Failed to fetch recent reports:", response.status);
-        setError("Failed to fetch recent reports");
-        // Don't retry automatically on failure
-        return;
+        const errorText = await response.text();
+        console.error("Failed to fetch recent reports:", response.status, errorText);
+        setError(`Failed to fetch recent reports (${response.status})`);
       }
     } catch (error) {
-      if (error.name === 'AbortError') {
-        setError("Request timed out. Please try again.");
-      } else {
-        console.error("Error fetching recent reports:", error);
-        setError("Network error while fetching reports");
-      }
-      // Don't retry automatically on error
-      return;
+      console.error("Error fetching recent reports:", error);
+      setError("Network error while fetching reports. Please check your connection.");
+      // Set empty array as fallback
+      setRecentReports([]);
     }
   };
 
@@ -590,27 +594,39 @@ export default function Reports() {
 
         <TabsContent value="recent">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Recent Reports</CardTitle>
+              <Button variant="outline" size="sm" onClick={fetchRecentReports}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentReports.map((report) => (
-                  <div key={report.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <h4 className="font-medium">{report.title}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Generated {formatDistanceToNow(new Date(report.generated_at), { addSuffix: true })}
-                        </p>
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="sm">
-                      <Download className="h-4 w-4" />
-                    </Button>
+                {recentReports.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg font-medium">No recent reports</p>
+                    <p className="text-sm">Generate your first report using the "Generate Report" tab above.</p>
                   </div>
-                ))}
+                ) : (
+                  recentReports.map((report) => (
+                    <div key={report.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <FileText className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <h4 className="font-medium">{report.title}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Generated {formatDistanceToNow(new Date(report.generated_at), { addSuffix: true })}
+                          </p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
