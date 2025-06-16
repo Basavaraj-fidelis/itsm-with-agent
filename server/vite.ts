@@ -30,11 +30,14 @@ export function log(message: string, source = "express") {
 export async function setupVite(app: Express, server: Server) {
   const vite = await createViteServer({
     configFile: path.resolve(import.meta.dirname, "..", "vite.config.ts"),
-    server: {
+    server: { 
       middlewareMode: true,
-      allowedHosts: 'all',
-      hmr: false,
+      hmr: {
+        port: 24678,
+        host: "0.0.0.0"
+      }
     },
+    allowedHosts: ['all'],
     appType: "custom",
   });
 

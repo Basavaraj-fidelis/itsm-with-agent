@@ -228,12 +228,32 @@ app.use((req, res, next) => {
       console.log(`🌐 Server accessible at http://0.0.0.0:${PORT}`);
     });
 
-    // Handle WebSocket upgrade requests
+    // CORS middleware for development
+    app.use((req, res, next) => {
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
+      
+      if (req.method === 'OPTIONS') {
+        res.sendStatus(200);
+      } else {
+        next();
+      }
+    });
+
+    // Handle WebSocket upgrade requests properly
     serv.on('upgrade', (request, socket, head) => {
-      // Simple WebSocket upgrade handling
+      const origin = request.headers.origin;
+      console.log('WebSocket upgrade request from:', origin);
+      
+      // Allow WebSocket upgrades
       socket.write('HTTP/1.1 101 Switching Protocols\r\n' +
         'Upgrade: websocket\r\n' +
         'Connection: Upgrade\r\n' +
+        'Sec-WebSocket-Accept: ' + require('crypto')
+          .createHash('sha1')
+          .update(request.headers['sec-websocket-key'] + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')
+          .digest('base64') + '\r\n' +
         '\r\n');
     });
 
