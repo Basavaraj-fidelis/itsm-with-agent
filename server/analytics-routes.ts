@@ -1,6 +1,7 @@
 
 import { Router } from "express";
 import { analyticsService } from "./analytics-service";
+import { reportsStorage } from "./reports-storage";
 
 const router = Router();
 
@@ -12,16 +13,25 @@ router.get("/performance", async (req, res) => {
     
     const data = await analyticsService.generatePerformanceSummary(timeRange as string);
     
+    const report = {
+      id: `perf-${Date.now()}`,
+      title: "Performance Summary",
+      type: "performance",
+      data,
+      generated_at: new Date(),
+      time_range: timeRange as string
+    };
+
+    // Save to database
+    try {
+      await reportsStorage.saveReport(report);
+    } catch (saveError) {
+      console.warn("Failed to save report to database:", saveError);
+    }
+
     res.json({
       success: true,
-      report: {
-        id: `perf-${Date.now()}`,
-        title: "Performance Summary",
-        type: "performance",
-        data,
-        generated_at: new Date(),
-        time_range: timeRange
-      }
+      report
     });
   } catch (error) {
     console.error("Error generating performance report:", error);
@@ -40,16 +50,25 @@ router.get("/availability", async (req, res) => {
     
     const data = await analyticsService.generateAvailabilityReport(timeRange as string);
     
+    const report = {
+      id: `avail-${Date.now()}`,
+      title: "Availability Report",
+      type: "availability", 
+      data,
+      generated_at: new Date(),
+      time_range: timeRange as string
+    };
+
+    // Save to database
+    try {
+      await reportsStorage.saveReport(report);
+    } catch (saveError) {
+      console.warn("Failed to save report to database:", saveError);
+    }
+
     res.json({
       success: true,
-      report: {
-        id: `avail-${Date.now()}`,
-        title: "Availability Report",
-        type: "availability", 
-        data,
-        generated_at: new Date(),
-        time_range: timeRange
-      }
+      report
     });
   } catch (error) {
     console.error("Error generating availability report:", error);
@@ -67,16 +86,25 @@ router.get("/inventory", async (req, res) => {
     
     const data = await analyticsService.generateSystemInventory();
     
+    const report = {
+      id: `inv-${Date.now()}`,
+      title: "System Inventory",
+      type: "inventory",
+      data,
+      generated_at: new Date(),
+      time_range: "current"
+    };
+
+    // Save to database
+    try {
+      await reportsStorage.saveReport(report);
+    } catch (saveError) {
+      console.warn("Failed to save report to database:", saveError);
+    }
+
     res.json({
       success: true,
-      report: {
-        id: `inv-${Date.now()}`,
-        title: "System Inventory",
-        type: "inventory",
-        data,
-        generated_at: new Date(),
-        time_range: "current"
-      }
+      report
     });
   } catch (error) {
     console.error("Error generating inventory report:", error);
@@ -127,40 +155,32 @@ router.post("/generate", async (req, res) => {
   }
 });
 
-// Get recent reports (placeholder for stored reports)
+// Get recent reports from database
 router.get("/recent", async (req, res) => {
   try {
-    console.log("Fetching recent reports...");
+    console.log("Fetching recent reports from database...");
     
-    // Mock recent reports data - simplified to avoid any potential issues
-    const recentReports = [
+    const storedReports = await reportsStorage.getRecentReports(10);
+    
+    // If no stored reports, return some sample data
+    const recentReports = storedReports.length > 0 ? storedReports : [
       {
-        id: "perf-march-2024",
-        title: "Performance Summary - March 2024",
+        id: "sample-perf-2024",
+        title: "Performance Summary - Sample",
         type: "performance",
         generated_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        time_range: "30d"
-      },
-      {
-        id: "avail-weekly",
-        title: "Availability Report - Weekly",
-        type: "availability", 
-        generated_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
         time_range: "7d"
       },
       {
-        id: "inv-full-export",
-        title: "System Inventory - Full Export",
-        type: "inventory",
-        generated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-        time_range: "current"
+        id: "sample-avail-2024",
+        title: "Availability Report - Sample",
+        type: "availability", 
+        generated_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        time_range: "7d"
       }
     ];
     
     console.log(`Returning ${recentReports.length} recent reports`);
-    
-    // Add a small delay to prevent overwhelming the system
-    await new Promise(resolve => setTimeout(resolve, 100));
     
     res.json({
       success: true,
@@ -170,7 +190,64 @@ router.get("/recent", async (req, res) => {
     console.error("Error fetching recent reports:", error);
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : "Failed to fetch recent reports"
+      error: "Failed to fetch recent reports"
+    });
+  }
+});
+
+export default router;
+// Get specific report by ID
+router.get("/report/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`Fetching report with ID: ${id}`);
+    
+    const report = await reportsStorage.getReportById(id);
+    
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        error: "Report not found"
+      });
+    }
+    
+    res.json({
+      success: true,
+      report
+    });
+  } catch (error) {
+    console.error("Error fetching report:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch report"
+    });
+  }
+});
+
+// Delete report
+router.delete("/report/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`Deleting report with ID: ${id}`);
+    
+    const success = await reportsStorage.deleteReport(id);
+    
+    if (!success) {
+      return res.status(404).json({
+        success: false,
+        error: "Report not found or could not be deleted"
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: "Report deleted successfully"
+    });
+  } catch (error) {
+    console.error("Error deleting report:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to delete report"
     });
   }
 });

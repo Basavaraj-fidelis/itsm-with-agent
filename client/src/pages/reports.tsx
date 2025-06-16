@@ -102,17 +102,20 @@ export default function Reports() {
 
   useEffect(() => {
     let mounted = true;
+    let retryCount = 0;
     
     const initializeReports = async () => {
       try {
         // Only fetch recent reports, don't auto-generate default report
-        if (mounted) {
+        if (mounted && retryCount < 3) {
           await fetchRecentReports();
         }
       } catch (error) {
         console.error("Error initializing reports:", error);
         if (mounted) {
           setError("Failed to initialize reports");
+          retryCount++;
+          // Don't retry automatically to prevent spam
         }
       }
     };
@@ -135,13 +138,19 @@ export default function Reports() {
       setError(null);
       console.log("Fetching recent reports...");
       
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
       const response = await fetch("/api/analytics/recent", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
         },
+        signal: controller.signal
       });
       
+      clearTimeout(timeoutId);
       console.log("Recent reports response status:", response.status);
       
       if (response.ok) {
@@ -152,10 +161,15 @@ export default function Reports() {
         const errorText = await response.text();
         console.error("Failed to fetch recent reports:", response.status, errorText);
         setError(`Failed to fetch recent reports (${response.status})`);
+        setRecentReports([]); // Set empty array on error
       }
     } catch (error) {
       console.error("Error fetching recent reports:", error);
-      setError("Network error while fetching reports. Please check your connection.");
+      if (error.name === 'AbortError') {
+        setError("Request timed out. Please try again.");
+      } else {
+        setError("Network error while fetching reports. Please check your connection.");
+      }
       // Set empty array as fallback
       setRecentReports([]);
     }
@@ -247,6 +261,44 @@ export default function Reports() {
       a.download = `${currentReport.type}-report-${format(new Date(), 'yyyy-MM-dd')}.json`;
       a.click();
       URL.revokeObjectURL(url);
+    }
+  };
+
+  const downloadReportById = async (reportId: string, title: string) => {
+    try {
+      const response = await api.get(`/api/analytics/report/${reportId}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.report) {
+          const dataStr = JSON.stringify(data.report.data, null, 2);
+          const blob = new Blob([dataStr], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${title.replace(/\s+/g, '-').toLowerCase()}-${format(new Date(), 'yyyy-MM-dd')}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+      }
+    } catch (error) {
+      console.error("Error downloading report:", error);
+      setError("Failed to download report");
+    }
+  };
+
+  const deleteReport = async (reportId: string) => {
+    if (!confirm("Are you sure you want to delete this report?")) return;
+    
+    try {
+      const response = await api.delete(`/api/analytics/report/${reportId}`);
+      if (response.ok) {
+        setRecentReports(prev => prev.filter(report => report.id !== reportId));
+      } else {
+        setError("Failed to delete report");
+      }
+    } catch (error) {
+      console.error("Error deleting report:", error);
+      setError("Failed to delete report");
     }
   };
 
@@ -619,11 +671,28 @@ export default function Reports() {
                           <p className="text-sm text-muted-foreground">
                             Generated {formatDistanceToNow(new Date(report.generated_at), { addSuffix: true })}
                           </p>
+                          <Badge variant="outline" className="mt-1">
+                            {report.type}
+                          </Badge>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm">
-                        <Download className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => downloadReportById(report.id, report.title)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => deleteReport(report.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <AlertCircle className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))
                 )}
