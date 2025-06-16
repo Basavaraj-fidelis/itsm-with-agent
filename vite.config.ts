@@ -30,14 +30,16 @@ export default defineConfig(async () => {
     },
     server: {
       host: "0.0.0.0",
-      port: 3000,
+      port: 5173,
       strictPort: true,
-      allowedHosts: "all",
+      allowedHosts: [
+        ".replit.dev", // Generic wildcard for Replit domains
+        "all"
+      ],
       hmr: {
         protocol: "ws",
         host: "0.0.0.0",
-        port: 24678,
-        clientPort: 24678
+        port: 5174,
       },
       proxy: {
         "/api": {
