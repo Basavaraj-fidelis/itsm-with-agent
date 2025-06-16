@@ -32,7 +32,7 @@ export default defineConfig(async () => {
       host: '0.0.0.0',
       port: 3000,
       strictPort: true,
-      allowedHosts: 'all',
+      allowedHosts: 'all''',
       hmr: {
         port: 24678,
         clientPort: 24678,
