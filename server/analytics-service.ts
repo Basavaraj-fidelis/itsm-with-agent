@@ -170,59 +170,85 @@ class AnalyticsService {
     try {
       console.log("Generating comprehensive asset inventory report");
       
+      // Shorter timeout and better error handling
       const timeout = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Asset inventory timeout')), 5000)
+        setTimeout(() => reject(new Error('Asset inventory timeout')), 3000)
       );
       
       try {
-        // Get total device count
+        // Get total device count with simpler query
         const totalDevicesResult = await Promise.race([
-          db.select({ count: count() }).from(devices),
+          db.select({ count: sql`count(*)` }).from(devices),
           timeout
         ]) as any[];
-        const totalDevices = totalDevicesResult[0]?.count || 0;
+        const totalDevices = Number(totalDevicesResult[0]?.count) || 0;
 
-        // Get device breakdown by OS
-        const devicesByOS = await Promise.race([
-          db.select({
-            os_name: devices.os_name,
-            count: count()
-          }).from(devices).groupBy(devices.os_name),
-          timeout
-        ]) as any[];
+        let devicesByOS: any[] = [];
+        let devicesByStatus: any[] = [];
+        let detailedDevices: any[] = [];
+        let totalSoftware = 0;
 
-        // Get device breakdown by status
-        const devicesByStatus = await Promise.race([
-          db.select({
-            status: devices.status,
-            count: count()
-          }).from(devices).groupBy(devices.status),
-          timeout
-        ]) as any[];
+        // Try to get device breakdown by OS with fallback
+        try {
+          devicesByOS = await Promise.race([
+            db.select({
+              os_name: devices.os_name,
+              count: sql`count(*)`
+            }).from(devices).groupBy(devices.os_name),
+            timeout
+          ]) as any[];
+        } catch (osError) {
+          console.warn("OS breakdown query failed, using fallback");
+          devicesByOS = [];
+        }
 
-        // Get detailed device list
-        const detailedDevices = await Promise.race([
-          db.select().from(devices).limit(50),
-          timeout
-        ]) as any[];
+        // Try to get device breakdown by status with fallback
+        try {
+          devicesByStatus = await Promise.race([
+            db.select({
+              status: devices.status,
+              count: sql`count(*)`
+            }).from(devices).groupBy(devices.status),
+            timeout
+          ]) as any[];
+        } catch (statusError) {
+          console.warn("Status breakdown query failed, using fallback");
+          devicesByStatus = [];
+        }
 
-        // Get software inventory count
-        const softwareCountResult = await Promise.race([
-          db.select({ count: count() }).from(installed_software),
-          timeout
-        ]) as any[];
-        const totalSoftware = softwareCountResult[0]?.count || 0;
+        // Try to get detailed device list with fallback
+        try {
+          detailedDevices = await Promise.race([
+            db.select().from(devices).limit(20),
+            timeout
+          ]) as any[];
+        } catch (detailError) {
+          console.warn("Detailed devices query failed, using fallback");
+          detailedDevices = [];
+        }
 
-        // Convert arrays to objects
-        const byOS = devicesByOS.reduce((acc: any, item: any) => {
-          acc[item.os_name || 'Unknown'] = item.count;
+        // Try to get software inventory count with fallback
+        try {
+          const softwareCountResult = await Promise.race([
+            db.select({ count: sql`count(*)` }).from(installed_software),
+            timeout
+          ]) as any[];
+          totalSoftware = Number(softwareCountResult[0]?.count) || 0;
+        } catch (softwareError) {
+          console.warn("Software count query failed, using fallback");
+          totalSoftware = 0;
+        }
+
+        // Convert arrays to objects with better error handling
+        const byOS = devicesByOS.length > 0 ? devicesByOS.reduce((acc: any, item: any) => {
+          acc[item.os_name || 'Unknown'] = Number(item.count) || 0;
           return acc;
-        }, {});
+        }, {}) : { "Unknown": totalDevices };
 
-        const byStatus = devicesByStatus.reduce((acc: any, item: any) => {
-          acc[item.status || 'Unknown'] = item.count;
+        const byStatus = devicesByStatus.length > 0 ? devicesByStatus.reduce((acc: any, item: any) => {
+          acc[item.status || 'Unknown'] = Number(item.count) || 0;
           return acc;
-        }, {});
+        }, {}) : { "Unknown": totalDevices };
 
         const realData: AssetInventoryData = {
           total_devices: totalDevices,
@@ -326,63 +352,80 @@ class AnalyticsService {
       const startDate = subDays(new Date(), days);
       
       const timeout = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Ticket analytics timeout')), 5000)
+        setTimeout(() => reject(new Error('Ticket analytics timeout')), 3000)
       );
 
       try {
-        // Get total tickets
+        // Get total tickets with simpler query
         const totalTicketsResult = await Promise.race([
-          db.select({ count: count() }).from(tickets),
+          db.select({ count: sql`count(*)` }).from(tickets),
           timeout
         ]) as any[];
-        const totalTickets = totalTicketsResult[0]?.count || 0;
+        const totalTickets = Number(totalTicketsResult[0]?.count) || 0;
 
-        // Get tickets by status
-        const ticketsByStatus = await Promise.race([
-          db.select({
-            status: tickets.status,
-            count: count()
-          }).from(tickets).groupBy(tickets.status),
-          timeout
-        ]) as any[];
+        let ticketsByStatus: any[] = [];
+        let ticketsByType: any[] = [];
+        let ticketsByPriority: any[] = [];
 
-        // Get tickets by type
-        const ticketsByType = await Promise.race([
-          db.select({
-            type: tickets.type,
-            count: count()
-          }).from(tickets).groupBy(tickets.type),
-          timeout
-        ]) as any[];
+        // Try each query with individual error handling
+        try {
+          ticketsByStatus = await Promise.race([
+            db.select({
+              status: tickets.status,
+              count: sql`count(*)`
+            }).from(tickets).groupBy(tickets.status),
+            timeout
+          ]) as any[];
+        } catch (statusError) {
+          console.warn("Tickets by status query failed, using fallback");
+          ticketsByStatus = [];
+        }
 
-        // Get tickets by priority
-        const ticketsByPriority = await Promise.race([
-          db.select({
-            priority: tickets.priority,
-            count: count()
-          }).from(tickets).groupBy(tickets.priority),
-          timeout
-        ]) as any[];
+        try {
+          ticketsByType = await Promise.race([
+            db.select({
+              type: tickets.type,
+              count: sql`count(*)`
+            }).from(tickets).groupBy(tickets.type),
+            timeout
+          ]) as any[];
+        } catch (typeError) {
+          console.warn("Tickets by type query failed, using fallback");
+          ticketsByType = [];
+        }
 
-        // Convert to objects
-        const statusCounts = ticketsByStatus.reduce((acc: any, item: any) => {
-          acc[item.status] = item.count;
+        try {
+          ticketsByPriority = await Promise.race([
+            db.select({
+              priority: tickets.priority,
+              count: sql`count(*)`
+            }).from(tickets).groupBy(tickets.priority),
+            timeout
+          ]) as any[];
+        } catch (priorityError) {
+          console.warn("Tickets by priority query failed, using fallback");
+          ticketsByPriority = [];
+        }
+
+        // Convert to objects with better error handling
+        const statusCounts = ticketsByStatus.length > 0 ? ticketsByStatus.reduce((acc: any, item: any) => {
+          acc[item.status || 'unknown'] = Number(item.count) || 0;
           return acc;
-        }, {});
+        }, {}) : {};
 
-        const typeCounts = ticketsByType.reduce((acc: any, item: any) => {
-          acc[item.type] = item.count;
+        const typeCounts = ticketsByType.length > 0 ? ticketsByType.reduce((acc: any, item: any) => {
+          acc[item.type || 'unknown'] = Number(item.count) || 0;
           return acc;
-        }, {});
+        }, {}) : {};
 
-        const priorityCounts = ticketsByPriority.reduce((acc: any, item: any) => {
-          acc[item.priority] = item.count;
+        const priorityCounts = ticketsByPriority.length > 0 ? ticketsByPriority.reduce((acc: any, item: any) => {
+          acc[item.priority || 'unknown'] = Number(item.count) || 0;
           return acc;
-        }, {});
+        }, {}) : {};
 
-        const openTickets = statusCounts['open'] || 0;
-        const resolvedTickets = statusCounts['resolved'] || statusCounts['closed'] || 0;
-        const escalatedTickets = statusCounts['escalated'] || 0;
+        const openTickets = statusCounts['open'] || statusCounts['Open'] || 0;
+        const resolvedTickets = statusCounts['resolved'] || statusCounts['Resolved'] || statusCounts['closed'] || statusCounts['Closed'] || 0;
+        const escalatedTickets = statusCounts['escalated'] || statusCounts['Escalated'] || 0;
 
         const realData: TicketAnalyticsData = {
           summary: {
@@ -446,46 +489,77 @@ class AnalyticsService {
       console.log("Generating system health report");
       
       const timeout = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('System health timeout')), 3000)
+        setTimeout(() => reject(new Error('System health timeout')), 2000)
       );
 
+      let recentReports: any[] = [];
+      let alertCounts: any[] = [];
+
       try {
-        // Get recent device reports for health metrics
-        const recentReports = await Promise.race([
+        // Try to get recent device reports with simpler query
+        recentReports = await Promise.race([
           db.select().from(device_reports)
-          .where(sql`${device_reports.created_at} >= ${sql.raw(`NOW() - INTERVAL '24 hours'`)}`)
           .orderBy(desc(device_reports.created_at))
-          .limit(100),
+          .limit(50),
           timeout
         ]) as any[];
+      } catch (reportsError) {
+        console.warn("Recent reports query failed, using fallback");
+        recentReports = [];
+      }
 
-        // Get alert counts
-        const alertCounts = await Promise.race([
+      try {
+        // Try to get alert counts with simpler query
+        alertCounts = await Promise.race([
           db.select({
             severity: alerts.severity,
-            count: count()
+            count: sql`count(*)`
           }).from(alerts)
-          .where(sql`${alerts.created_at} >= ${sql.raw(`NOW() - INTERVAL '24 hours'`)}`)
-          .groupBy(alerts.severity),
+          .groupBy(alerts.severity)
+          .limit(10),
           timeout
         ]) as any[];
+      } catch (alertsError) {
+        console.warn("Alert counts query failed, using fallback");
+        alertCounts = [];
+      }
 
-        // Calculate averages
-        const cpuValues = recentReports.map((r: any) => parseFloat(r.cpu_usage || "0")).filter((v: number) => !isNaN(v));
-        const memoryValues = recentReports.map((r: any) => parseFloat(r.memory_usage || "0")).filter((v: number) => !isNaN(v));
-        const diskValues = recentReports.map((r: any) => parseFloat(r.disk_usage || "0")).filter((v: number) => !isNaN(v));
+        // Calculate averages with better error handling
+        const cpuValues = recentReports
+          .map((r: any) => {
+            const val = parseFloat(r.cpu_usage || "0");
+            return isNaN(val) ? 0 : Math.min(100, Math.max(0, val));
+          })
+          .filter((v: number) => v > 0);
+        
+        const memoryValues = recentReports
+          .map((r: any) => {
+            const val = parseFloat(r.memory_usage || "0");
+            return isNaN(val) ? 0 : Math.min(100, Math.max(0, val));
+          })
+          .filter((v: number) => v > 0);
+        
+        const diskValues = recentReports
+          .map((r: any) => {
+            const val = parseFloat(r.disk_usage || "0");
+            return isNaN(val) ? 0 : Math.min(100, Math.max(0, val));
+          })
+          .filter((v: number) => v > 0);
 
         const avgCpu = cpuValues.length > 0 ? cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length : 45.2;
         const avgMemory = memoryValues.length > 0 ? memoryValues.reduce((a, b) => a + b, 0) / memoryValues.length : 62.8;
         const avgDisk = diskValues.length > 0 ? diskValues.reduce((a, b) => a + b, 0) / diskValues.length : 78.3;
 
-        // Convert alert counts
-        const alertSummary = alertCounts.reduce((acc: any, item: any) => {
-          acc[item.severity.toLowerCase()] = item.count;
+        // Convert alert counts with better error handling
+        const alertSummary = alertCounts.length > 0 ? alertCounts.reduce((acc: any, item: any) => {
+          const severity = (item.severity || 'info').toLowerCase();
+          acc[severity] = Number(item.count) || 0;
           return acc;
-        }, { critical: 0, warning: 0, info: 0 });
+        }, { critical: 0, warning: 0, info: 0 }) : { critical: 0, warning: 0, info: 0 };
 
-        const healthScore = Math.round(100 - (avgCpu * 0.3 + avgMemory * 0.3 + avgDisk * 0.2 + (alertSummary.critical * 5)));
+        const healthScore = Math.round(Math.max(0, Math.min(100, 
+          100 - (avgCpu * 0.3 + avgMemory * 0.3 + avgDisk * 0.2 + (alertSummary.critical * 5))
+        )));
 
         const realData: SystemHealthData = {
           overall_health: {

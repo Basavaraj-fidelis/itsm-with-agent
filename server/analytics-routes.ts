@@ -258,16 +258,30 @@ router.get("/security-compliance", async (req, res) => {
 
 // Generate custom report (enhanced with new report types)
 router.post("/generate", async (req, res) => {
-  // Set timeout for long-running report generation
-  req.setTimeout(30000); // 30 seconds
+  // Set shorter timeout for report generation
+  req.setTimeout(15000); // 15 seconds
   
   try {
     const { reportType, timeRange = "7d", format = "docx" } = req.body;
     console.log(`Generating custom report: ${reportType}, timeRange: ${timeRange}, format: ${format}`);
     
+    // Validate report type
+    const allowedReportTypes = [
+      'performance', 'availability', 'inventory', 'asset-inventory',
+      'ticket-analytics', 'system-health', 'security-compliance',
+      'trends', 'capacity'
+    ];
+    
+    if (!allowedReportTypes.includes(reportType)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid report type: ${reportType}. Allowed types: ${allowedReportTypes.join(', ')}`
+      });
+    }
+    
     // Add timeout promise
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Report generation timeout')), 25000);
+      setTimeout(() => reject(new Error('Report generation timeout')), 12000);
     });
     
     const reportPromise = analyticsService.generateCustomReport(reportType, timeRange, format);
@@ -305,9 +319,27 @@ router.post("/generate", async (req, res) => {
     }
   } catch (error) {
     console.error("Error generating custom report:", error);
-    res.status(500).json({
+    
+    // Determine appropriate error message
+    let errorMessage = "Failed to generate report";
+    let statusCode = 500;
+    
+    if (error instanceof Error) {
+      if (error.message.includes('timeout')) {
+        errorMessage = "Report generation timed out. Please try again with a shorter time range.";
+        statusCode = 504;
+      } else if (error.message.includes('Database connection')) {
+        errorMessage = "Database connection error. Please check your database configuration.";
+        statusCode = 503;
+      } else {
+        errorMessage = error.message;
+      }
+    }
+    
+    res.status(statusCode).json({
       success: false,
-      error: error instanceof Error ? error.message : "Failed to generate report"
+      error: errorMessage,
+      reportType: req.body.reportType || 'unknown'
     });
   }
 });
