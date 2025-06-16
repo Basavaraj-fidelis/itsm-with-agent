@@ -29,19 +29,19 @@ export default defineConfig(async () => {
       emptyOutDir: true,
     },
     server: {
-      host: '0.0.0.0',
+      host: "0.0.0.0",
       port: 3000,
       strictPort: true,
-      allowedHosts: 'all''',
+      allowedHosts: "all",
       hmr: false,
       proxy: {
-        '/api': {
-          target: 'http://0.0.0.0:5000',
+        "/api": {
+          target: "http://0.0.0.0:5000",
           changeOrigin: true,
           secure: false,
           timeout: 30000,
-        }
-      }
+        },
+      },
     },
   };
 });
