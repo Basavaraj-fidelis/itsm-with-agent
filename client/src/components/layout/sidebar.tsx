@@ -229,21 +229,25 @@ export function Sidebar() {
         name: "Admin Panel",
         href: "/settings",
         icon: Settings,
-        current: location === "/settings",
+        current: location === "/settings" || location === "/active-directory",
         roles: ["admin"],
         iconColor: "text-gray-500",
         activeColor: "bg-gray-50 border-gray-200 text-gray-700",
         description: "System configuration",
-      },
-      {
-        name: "Active Directory",
-        href: "/active-directory",
-        icon: Shield,
-        current: location === "/active-directory",
-        roles: ["admin"],
-        iconColor: "text-gray-500",
-        activeColor: "bg-gray-50 border-gray-200 text-gray-700",
-        description: "Manage Active Directory integration",
+        subItems: [
+          {
+            name: "General Settings",
+            href: "/settings",
+            current: location === "/settings",
+            description: "Basic system configuration"
+          },
+          {
+            name: "Active Directory",
+            href: "/active-directory", 
+            current: location === "/active-directory",
+            description: "AD integration settings"
+          }
+        ]
       },
     ];
 
@@ -485,59 +489,114 @@ export function Sidebar() {
           <div className="px-3 py-2 border-t border-[#E1DFDD] dark:border-[#484644]">
             {navigation.bottom.map((item, index) => {
               const isActive = item.current;
-              const NavItem = (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={cn(
-                    "group flex items-center space-x-3 py-3 px-3 rounded-xl font-medium transition-all duration-200 relative",
-                    isActive
-                      ? `${item.activeColor} shadow-sm border`
-                      : "text-[#201F1E] dark:text-[#F3F2F1] hover:bg-gray-100 dark:hover:bg-[#484644] hover:scale-[1.02]",
-                  )}
-                >
-                  <div
+              const hasSubItems = item.subItems && item.subItems.length > 0;
+              
+              const MainNavItem = (
+                <div key={item.name}>
+                  <Link
+                    to={hasSubItems ? item.subItems[0].href : item.href}
                     className={cn(
-                      "relative flex items-center justify-center",
-                      isActive && "transform scale-110",
+                      "group flex items-center space-x-3 py-3 px-3 rounded-xl font-medium transition-all duration-200 relative",
+                      isActive
+                        ? `${item.activeColor} shadow-sm border`
+                        : "text-[#201F1E] dark:text-[#F3F2F1] hover:bg-gray-100 dark:hover:bg-[#484644] hover:scale-[1.02]",
                     )}
                   >
-                    <item.icon
+                    <div
                       className={cn(
-                        "w-5 h-5 transition-all duration-200",
-                        isActive
-                          ? item.iconColor.replace("text-", "text-")
-                          : `${item.iconColor} group-hover:scale-110`,
+                        "relative flex items-center justify-center",
+                        isActive && "transform scale-110",
                       )}
-                    />
-                  </div>
-                  {!isCollapsed && (
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium truncate">
-                          {item.name}
-                        </span>
-                        {item.notification && item.notification > 0 && (
-                          <Badge
-                            variant="secondary"
-                            className="ml-2 h-5 text-xs bg-red-100 text-red-700 border-red-200"
-                          >
-                            {item.notification}
-                          </Badge>
+                    >
+                      <item.icon
+                        className={cn(
+                          "w-5 h-5 transition-all duration-200",
+                          isActive
+                            ? item.iconColor.replace("text-", "text-")
+                            : `${item.iconColor} group-hover:scale-110`,
                         )}
+                      />
+                    </div>
+                    {!isCollapsed && (
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium truncate">
+                            {item.name}
+                          </span>
+                          {item.notification && item.notification > 0 && (
+                            <Badge
+                              variant="secondary"
+                              className="ml-2 h-5 text-xs bg-red-100 text-red-700 border-red-200"
+                            >
+                              {item.notification}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                          {item.description}
+                        </p>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                        {item.description}
-                      </p>
+                    )}
+                  </Link>
+                  
+                  {/* Sub-items for Admin Panel */}
+                  {hasSubItems && !isCollapsed && (
+                    <div className="ml-8 mt-1 space-y-1">
+                      {item.subItems.map((subItem, subIndex) => (
+                        <Link
+                          key={subItem.name}
+                          to={subItem.href}
+                          className={cn(
+                            "block py-2 px-3 rounded-lg text-sm transition-colors",
+                            subItem.current
+                              ? "bg-blue-50 text-blue-700 font-medium border-l-2 border-blue-500"
+                              : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                          )}
+                        >
+                          <div className="flex items-center space-x-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-current opacity-50"></div>
+                            <span>{subItem.name}</span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-0.5 ml-3.5">
+                            {subItem.description}
+                          </p>
+                        </Link>
+                      ))}
                     </div>
                   )}
-                </Link>
+                </div>
               );
 
               if (isCollapsed) {
                 return (
                   <Tooltip key={item.name}>
-                    <TooltipTrigger asChild>{NavItem}</TooltipTrigger>
+                    <TooltipTrigger asChild>
+                      <Link
+                        to={hasSubItems ? item.subItems[0].href : item.href}
+                        className={cn(
+                          "group flex items-center space-x-3 py-3 px-3 rounded-xl font-medium transition-all duration-200 relative",
+                          isActive
+                            ? `${item.activeColor} shadow-sm border`
+                            : "text-[#201F1E] dark:text-[#F3F2F1] hover:bg-gray-100 dark:hover:bg-[#484644] hover:scale-[1.02]",
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "relative flex items-center justify-center",
+                            isActive && "transform scale-110",
+                          )}
+                        >
+                          <item.icon
+                            className={cn(
+                              "w-5 h-5 transition-all duration-200",
+                              isActive
+                                ? item.iconColor.replace("text-", "text-")
+                                : `${item.iconColor} group-hover:scale-110`,
+                            )}
+                          />
+                        </div>
+                      </Link>
+                    </TooltipTrigger>
                     <TooltipContent
                       side="right"
                       className="flex items-center space-x-2"
@@ -556,7 +615,7 @@ export function Sidebar() {
                 );
               }
 
-              return NavItem;
+              return MainNavItem;
             })}
           </div>
         )}
