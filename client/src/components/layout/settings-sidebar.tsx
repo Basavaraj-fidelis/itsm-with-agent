@@ -36,9 +36,9 @@ export default function SettingsSidebar({ activeTab, onTabChange }: SettingsSide
     },
     {
       id: 'sla',
-      name: 'SLA Policies',
+      name: 'SLA Management',
       icon: Clock,
-      description: 'Service level agreements'
+      description: 'Service level agreements and escalation policies'
     },
     {
       id: 'agent',

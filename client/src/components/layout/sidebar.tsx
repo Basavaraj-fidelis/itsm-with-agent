@@ -212,16 +212,7 @@ export function Sidebar() {
         activeColor: "bg-cyan-50 border-cyan-200 text-cyan-700",
         description: "Manage user accounts",
       },
-      {
-        name: "SLA Management",
-        href: "/sla-management",
-        icon: Zap,
-        current: location === "/sla-management",
-        roles: ["manager", "admin"],
-        iconColor: "text-yellow-500",
-        activeColor: "bg-yellow-50 border-yellow-200 text-yellow-700",
-        description: "Service Level Agreements",
-      },
+      
       {
         name: "Analytics",
         href: "/reports",

@@ -1,33 +1,25 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import SettingsSidebar from "@/components/layout/settings-sidebar";
-import {
-  Settings as SettingsIcon,
-  Shield,
-  Bell,
-  Clock,
-  Users,
-  Monitor,
-  Save,
-  Mail,
-  Key,
-  Server,
-  CheckCircle,
-} from "lucide-react";
 import { useLocation } from "wouter";
+import SettingsSidebar from "@/components/layout/settings-sidebar";
+import ActiveDirectory from "./active-directory";
+import { 
+  TrendingUp, 
+  AlertTriangle, 
+  Clock, 
+  CheckCircle, 
+  RefreshCw 
+} from "lucide-react";
 
 export default function Settings() {
   const { toast } = useToast();
@@ -861,15 +853,84 @@ export default function Settings() {
       case 'security':
         return renderSecuritySettings();
       case 'sla':
-        return renderSLAPolicies();
-      case 'agent':
-        return renderAgentSettings();
-      case 'ad':
-        return renderADSettings();
-      default:
+          return <SLAManagementContent />;
+        default:
         return renderGeneralSettings();
     }
   };
+
+  const SLAManagementContent = () => (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Business Hours & SLA
+          </CardTitle>
+          <CardDescription>Configure service level agreement policies</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="business-start">Business Hours Start</Label>
+              <Input
+                id="business-start"
+                type="time"
+                value={settings.businessHoursStart}
+                onChange={(e) => updateSetting('businessHoursStart', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="business-end">Business Hours End</Label>
+              <Input
+                id="business-end"
+                type="time"
+                value={settings.businessHoursEnd}
+                onChange={(e) => updateSetting('businessHoursEnd', e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Auto-Escalation</Label>
+              <p className="text-sm text-muted-foreground">
+                Automatically escalate tickets approaching SLA breach
+              </p>
+            </div>
+            <Switch
+              checked={settings.autoEscalation}
+              onCheckedChange={(checked) =>
+                updateSetting("autoEscalation", checked)
+              }
+            />
+          </div>
+
+          <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/10">
+            <h4 className="font-medium mb-2">SLA Response Times</h4>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <Badge variant="destructive" className="mb-1">Critical</Badge>
+                <p>Response: 15 minutes | Resolution: 4 hours</p>
+              </div>
+              <div>
+                <Badge variant="secondary" className="mb-1">High</Badge>
+                <p>Response: 2 hours | Resolution: 24 hours</p>
+              </div>
+              <div>
+                <Badge variant="outline" className="mb-1">Medium</Badge>
+                <p>Response: 8 hours | Resolution: 72 hours</p>
+              </div>
+              <div>
+                <Badge variant="outline" className="mb-1">Low</Badge>
+                <p>Response: 24 hours | Resolution: 7 days</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 
   return (
     <div className="flex h-screen bg-neutral-50 dark:bg-neutral-900">
