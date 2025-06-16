@@ -117,11 +117,20 @@ router.get("/inventory", async (req, res) => {
 
 // Generate custom report (defaults to Word format)
 router.post("/generate", async (req, res) => {
+  // Set timeout for long-running report generation
+  req.setTimeout(30000); // 30 seconds
+  
   try {
     const { reportType, timeRange = "7d", format = "docx" } = req.body;
     console.log(`Generating custom report: ${reportType}, timeRange: ${timeRange}, format: ${format}`);
     
-    const data = await analyticsService.generateCustomReport(reportType, timeRange, format);
+    // Add timeout promise
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Report generation timeout')), 25000);
+    });
+    
+    const reportPromise = analyticsService.generateCustomReport(reportType, timeRange, format);
+    const data = await Promise.race([reportPromise, timeoutPromise]);
     
     if (format === "csv") {
       const csvData = await analyticsService.exportReport(data, "csv");
@@ -129,6 +138,7 @@ router.post("/generate", async (req, res) => {
       res.setHeader('Content-Disposition', `attachment; filename="${reportType}-report.csv"`);
       res.send(csvData);
     } else if (format === "docx") {
+      console.log("Generating Word document...");
       const wordData = await analyticsService.exportReport(data, "docx");
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
       res.setHeader('Content-Disposition', `attachment; filename="${reportType}-report.docx"`);
@@ -157,13 +167,22 @@ router.post("/generate", async (req, res) => {
 
 // Get recent reports from database
 router.get("/recent", async (req, res) => {
+  // Set shorter timeout for this endpoint
+  req.setTimeout(5000); // 5 seconds
+  
   try {
     console.log("Fetching recent reports from database...");
+    
+    // Add timeout promise to prevent hanging
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Database query timeout')), 3000);
+    });
     
     let storedReports = [];
     
     try {
-      storedReports = await reportsStorage.getRecentReports(10);
+      const dbPromise = reportsStorage.getRecentReports(10);
+      storedReports = await Promise.race([dbPromise, timeoutPromise]);
     } catch (dbError) {
       console.warn("Database error when fetching reports, using fallback:", dbError);
       storedReports = [];

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -103,7 +102,7 @@ export default function Reports() {
   useEffect(() => {
     let mounted = true;
     let retryCount = 0;
-    
+
     const initializeReports = async () => {
       try {
         // Only fetch recent reports, don't auto-generate default report
@@ -126,7 +125,7 @@ export default function Reports() {
         initializeReports();
       }
     }, 1000);
-    
+
     return () => {
       mounted = false;
       clearTimeout(timer);
@@ -137,11 +136,11 @@ export default function Reports() {
     try {
       setError(null);
       console.log("Fetching recent reports...");
-      
+
       // Add timeout to prevent hanging requests
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-      
+
       const response = await fetch("/api/analytics/recent", {
         method: "GET",
         headers: {
@@ -149,10 +148,10 @@ export default function Reports() {
         },
         signal: controller.signal
       });
-      
+
       clearTimeout(timeoutId);
       console.log("Recent reports response status:", response.status);
-      
+
       if (response.ok) {
         const data = await response.json();
         console.log("Recent reports data:", data);
@@ -184,64 +183,85 @@ export default function Reports() {
     }
   };
 
-  const generateReport = async (reportType?: string, timeRange?: string, format?: string) => {
-    const type = reportType || selectedReportType;
-    const range = timeRange || selectedTimeRange;
-    const fmt = format || selectedFormat;
+  const generateReport = async () => {
+    if (isGenerating) return;
 
     setIsGenerating(true);
     setError(null);
+    setCurrentReport(null);
 
     try {
-      let response;
-      
-      if (fmt === "csv" || fmt === "docx") {
-        // Handle CSV and Word downloads
-        response = await api.post("/api/analytics/generate", {
-          reportType: type,
-          timeRange: range,
-          format: fmt
-        });
-        
-        if (response.ok) {
+      console.log(`Generating ${selectedReportType} report for ${selectedTimeRange} in ${selectedFormat} format`);
+
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+      const response = await fetch("/api/analytics/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          reportType: selectedReportType,
+          timeRange: selectedTimeRange,
+          format: selectedFormat
+        }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        if (selectedFormat === "docx" || selectedFormat === "csv") {
+          // Handle file download
           const blob = await response.blob();
-          const url = URL.createObjectURL(blob);
+
+          if (blob.size === 0) {
+            throw new Error("Empty file received");
+          }
+
+          const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
-          const extension = fmt === "docx" ? "docx" : "csv";
+          a.style.display = 'none';
           a.href = url;
-          a.download = `${type}-report-${format(new Date(), 'yyyy-MM-dd')}.${extension}`;
+          a.download = `${selectedReportType}-report.${selectedFormat}`;
+          document.body.appendChild(a);
           a.click();
-          URL.revokeObjectURL(url);
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+
+          console.log(`${selectedFormat.toUpperCase()} download completed successfully`);
+
+          // Also refresh recent reports
+          await fetchRecentReports();
         } else {
-          const errorText = await response.text();
-          console.error(`${fmt.toUpperCase()} download failed:`, errorText);
-          setError(`Failed to download ${fmt.toUpperCase()} report`);
+          const data = await response.json();
+          if (data.success) {
+            setCurrentReport(data.report);
+            await fetchRecentReports();
+          } else {
+            setError(data.error || "Failed to generate report");
+          }
         }
       } else {
-        // Handle JSON report
-        response = await api.get(`/api/analytics/${type}?timeRange=${range}`);
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.report) {
-            setCurrentReport(data.report);
-          } else {
-            setError(data.error || "Invalid report response");
-          }
+        const errorText = await response.text();
+        console.error(`${selectedFormat.toUpperCase()} download failed:`, errorText);
+
+        if (response.status === 502) {
+          setError("Server temporarily unavailable. Please try again in a moment.");
         } else {
-          let errorMsg = "Failed to generate report";
-          try {
-            const errorData = await response.json();
-            errorMsg = errorData.error || errorMsg;
-          } catch (e) {
-            console.error("Failed to parse error response:", e);
-          }
-          setError(errorMsg);
+          setError(`Failed to generate report (${response.status})`);
         }
       }
     } catch (error) {
       console.error("Error generating report:", error);
-      setError("Network error. Please check your connection and try again.");
+      if (error.name === 'AbortError') {
+        setError("Report generation timed out. Please try again.");
+      } else {
+        setError("Network error while generating report. Please check your connection.");
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -288,7 +308,7 @@ export default function Reports() {
 
   const deleteReport = async (reportId: string) => {
     if (!confirm("Are you sure you want to delete this report?")) return;
-    
+
     try {
       const response = await api.delete(`/api/analytics/report/${reportId}`);
       if (response.ok) {

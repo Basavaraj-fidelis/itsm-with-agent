@@ -4,7 +4,18 @@ import { db } from "./db";
 import { devices, device_reports, alerts } from "../shared/schema";
 import { sql, eq, gte, and, desc } from "drizzle-orm";
 import { subDays, subHours, format } from "date-fns";
-import { Document, Packer, Paragraph, Table, TableRow, TableCell, HeadingLevel, AlignmentType } from "docx";
+// Note: Install docx package if not already installed
+let Document, Packer, Paragraph, HeadingLevel, AlignmentType;
+try {
+  const docx = require("docx");
+  Document = docx.Document;
+  Packer = docx.Packer;
+  Paragraph = docx.Paragraph;
+  HeadingLevel = docx.HeadingLevel;
+  AlignmentType = docx.AlignmentType;
+} catch (e) {
+  console.warn("DOCX package not installed, Word export will be limited");
+}
 
 export interface AnalyticsReport {
   id: string;
@@ -263,6 +274,10 @@ class AnalyticsService {
     try {
       console.log("Converting data to Word document...");
       
+      if (!Document || !Packer || !Paragraph) {
+        throw new Error("DOCX package not available - generating text-based document");
+      }
+      
       const doc = new Document({
         sections: [{
           properties: {},
@@ -287,8 +302,36 @@ class AnalyticsService {
       return buffer;
     } catch (error) {
       console.error("Error generating Word document:", error);
-      throw new Error("Failed to generate Word document: " + (error instanceof Error ? error.message : "Unknown error"));
+      
+      // Fallback to text-based document
+      const textContent = this.generateTextDocument(data);
+      return Buffer.from(textContent, 'utf-8');
     }
+  }
+
+  private generateTextDocument(data: any): string {
+    let content = "SYSTEM ANALYTICS REPORT\n";
+    content += "=" .repeat(50) + "\n\n";
+    content += `Generated on: ${format(new Date(), 'PPpp')}\n\n`;
+    
+    if (data.average_cpu !== undefined) {
+      content += "PERFORMANCE SUMMARY\n";
+      content += "-" .repeat(20) + "\n";
+      content += `Average CPU Usage: ${data.average_cpu}%\n`;
+      content += `Average Memory Usage: ${data.average_memory}%\n`;
+      content += `Average Disk Usage: ${data.average_disk}%\n`;
+      content += `Total Devices: ${data.device_count}\n`;
+      content += `System Uptime: ${data.uptime_percentage}%\n`;
+      content += `Critical Alerts: ${data.critical_alerts}\n\n`;
+      
+      content += "PERFORMANCE TRENDS\n";
+      content += "-" .repeat(18) + "\n";
+      content += `CPU Trend: ${data.trends?.cpu_trend > 0 ? '+' : ''}${data.trends?.cpu_trend}%\n`;
+      content += `Memory Trend: ${data.trends?.memory_trend > 0 ? '+' : ''}${data.trends?.memory_trend}%\n`;
+      content += `Disk Trend: ${data.trends?.disk_trend > 0 ? '+' : ''}${data.trends?.disk_trend}%\n`;
+    }
+    
+    return content;
   }
 
   private generateWordContent(data: any): Paragraph[] {
