@@ -115,7 +115,148 @@ router.get("/inventory", async (req, res) => {
   }
 });
 
-// Generate custom report (defaults to Word format)
+// Generate comprehensive asset inventory report
+router.get("/asset-inventory", async (req, res) => {
+  try {
+    console.log("Generating comprehensive asset inventory report");
+    
+    const data = await analyticsService.generateAssetInventoryReport();
+    
+    const report = {
+      id: `asset-inv-${Date.now()}`,
+      title: "Asset Inventory Report",
+      type: "asset-inventory",
+      data,
+      generated_at: new Date(),
+      time_range: "current"
+    };
+
+    try {
+      await reportsStorage.saveReport(report);
+    } catch (saveError) {
+      console.warn("Failed to save report to database:", saveError);
+    }
+
+    res.json({
+      success: true,
+      report
+    });
+  } catch (error) {
+    console.error("Error generating asset inventory report:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to generate asset inventory report"
+    });
+  }
+});
+
+// Generate comprehensive ticket analytics report
+router.get("/ticket-analytics", async (req, res) => {
+  try {
+    const { timeRange = "30d" } = req.query;
+    console.log(`Generating ticket analytics report for ${timeRange}`);
+    
+    const data = await analyticsService.generateTicketAnalyticsReport(timeRange as string);
+    
+    const report = {
+      id: `ticket-analytics-${Date.now()}`,
+      title: "Ticket Analytics Report",
+      type: "ticket-analytics",
+      data,
+      generated_at: new Date(),
+      time_range: timeRange as string
+    };
+
+    try {
+      await reportsStorage.saveReport(report);
+    } catch (saveError) {
+      console.warn("Failed to save report to database:", saveError);
+    }
+
+    res.json({
+      success: true,
+      report
+    });
+  } catch (error) {
+    console.error("Error generating ticket analytics report:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to generate ticket analytics report"
+    });
+  }
+});
+
+// Generate comprehensive system health report
+router.get("/system-health", async (req, res) => {
+  try {
+    console.log("Generating comprehensive system health report");
+    
+    const data = await analyticsService.generateSystemHealthReport();
+    
+    const report = {
+      id: `sys-health-${Date.now()}`,
+      title: "System Health Report",
+      type: "system-health",
+      data,
+      generated_at: new Date(),
+      time_range: "current"
+    };
+
+    try {
+      await reportsStorage.saveReport(report);
+    } catch (saveError) {
+      console.warn("Failed to save report to database:", saveError);
+    }
+
+    res.json({
+      success: true,
+      report
+    });
+  } catch (error) {
+    console.error("Error generating system health report:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to generate system health report"
+    });
+  }
+});
+
+// Generate comprehensive security compliance report
+router.get("/security-compliance", async (req, res) => {
+  try {
+    console.log("Generating comprehensive security compliance report");
+    
+    const data = await analyticsService.generateSecurityComplianceReport();
+    
+    const report = {
+      id: `sec-compliance-${Date.now()}`,
+      title: "Security Compliance Report",
+      type: "security-compliance",
+      data,
+      generated_at: new Date(),
+      time_range: "current"
+    };
+
+    try {
+      await reportsStorage.saveReport(report);
+    } catch (saveError) {
+      console.warn("Failed to save report to database:", saveError);
+    }
+
+    res.json({
+      success: true,
+      report
+    });
+  } catch (error) {
+    console.error("Error generating security compliance report:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to generate security compliance report"
+    });
+  }
+});
+
+// Generate custom report (enhanced with new report types)
 router.post("/generate", async (req, res) => {
   // Set timeout for long-running report generation
   req.setTimeout(30000); // 30 seconds
@@ -133,13 +274,13 @@ router.post("/generate", async (req, res) => {
     const data = await Promise.race([reportPromise, timeoutPromise]);
     
     if (format === "csv") {
-      const csvData = await analyticsService.exportReport(data, "csv");
+      const csvData = await analyticsService.exportReport(data, "csv", reportType);
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename="${reportType}-report.csv"`);
       res.send(csvData);
     } else if (format === "docx") {
       console.log("Generating Word document...");
-      const wordData = await analyticsService.exportReport(data, "docx");
+      const wordData = await analyticsService.exportReport(data, "docx", reportType);
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
       res.setHeader('Content-Disposition', `attachment; filename="${reportType}-report.docx"`);
       res.send(wordData);
@@ -148,7 +289,7 @@ router.post("/generate", async (req, res) => {
         success: true,
         report: {
           id: `${reportType}-${Date.now()}`,
-          title: `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`,
+          title: `${reportType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} Report`,
           type: reportType,
           data,
           generated_at: new Date(),
