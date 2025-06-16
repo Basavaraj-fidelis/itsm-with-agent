@@ -1,4 +1,3 @@
-
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 
@@ -61,7 +60,7 @@ class ReportsStorage {
         ORDER BY generated_at DESC
         LIMIT ${limit}
       `);
-      
+
       return result.rows.map(row => ({
         id: row.id as string,
         title: row.title as string,
@@ -84,9 +83,9 @@ class ReportsStorage {
         FROM reports
         WHERE id = ${id}
       `);
-      
+
       if (result.rows.length === 0) return null;
-      
+
       const row = result.rows[0];
       return {
         id: row.id as string,

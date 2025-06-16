@@ -131,7 +131,7 @@ export default function Reports() {
   // Auto-refresh real-time metrics
   useEffect(() => {
     fetchRealTimeMetrics();
-    const interval = setInterval(fetchRealTimeMetrics, 30000); // Refresh every 30 seconds
+    const interval = setInterval(fetchRealTimeMetrics, 60000); // Refresh every 60 seconds to reduce load
     return () => clearInterval(interval);
   }, []);
 
