@@ -23,6 +23,7 @@ import Reports from "@/pages/reports";
 import NotFound from "@/pages/not-found";
 import VNCPage from "@/pages/vnc";
 import ActiveDirectory from "@/pages/active-directory";
+import SLAManagement from "@/pages/sla-management";
 
 // Layout
 import Sidebar from "@/components/layout/sidebar";
@@ -212,6 +213,13 @@ export default function App() {
               <ProtectedRoute>
                 <AuthenticatedLayout>
                   <VNCPage />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            </Route>
+              <Route path="/sla-management">
+              <ProtectedRoute requiredRole={["admin", "manager"]}>
+                <AuthenticatedLayout>
+                  <SLAManagement />
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>
