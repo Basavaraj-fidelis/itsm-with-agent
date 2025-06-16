@@ -260,26 +260,35 @@ class AnalyticsService {
   }
 
   private async convertToWord(data: any): Promise<Buffer> {
-    const doc = new Document({
-      sections: [{
-        properties: {},
-        children: [
-          new Paragraph({
-            text: "System Analytics Report",
-            heading: HeadingLevel.TITLE,
-            alignment: AlignmentType.CENTER,
-          }),
-          new Paragraph({
-            text: `Generated on ${format(new Date(), 'PPpp')}`,
-            alignment: AlignmentType.CENTER,
-          }),
-          new Paragraph({ text: "" }), // Empty line
-          ...this.generateWordContent(data)
-        ],
-      }],
-    });
+    try {
+      console.log("Converting data to Word document...");
+      
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            new Paragraph({
+              text: "System Analytics Report",
+              heading: HeadingLevel.TITLE,
+              alignment: AlignmentType.CENTER,
+            }),
+            new Paragraph({
+              text: `Generated on ${format(new Date(), 'PPpp')}`,
+              alignment: AlignmentType.CENTER,
+            }),
+            new Paragraph({ text: "" }), // Empty line
+            ...this.generateWordContent(data)
+          ],
+        }],
+      });
 
-    return await Packer.toBuffer(doc);
+      const buffer = await Packer.toBuffer(doc);
+      console.log("Word document generated successfully");
+      return buffer;
+    } catch (error) {
+      console.error("Error generating Word document:", error);
+      throw new Error("Failed to generate Word document: " + (error instanceof Error ? error.message : "Unknown error"));
+    }
   }
 
   private generateWordContent(data: any): Paragraph[] {

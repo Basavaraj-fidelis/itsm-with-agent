@@ -115,10 +115,10 @@ router.get("/inventory", async (req, res) => {
   }
 });
 
-// Generate custom report
+// Generate custom report (defaults to Word format)
 router.post("/generate", async (req, res) => {
   try {
-    const { reportType, timeRange = "7d", format = "json" } = req.body;
+    const { reportType, timeRange = "7d", format = "docx" } = req.body;
     console.log(`Generating custom report: ${reportType}, timeRange: ${timeRange}, format: ${format}`);
     
     const data = await analyticsService.generateCustomReport(reportType, timeRange, format);
@@ -150,7 +150,7 @@ router.post("/generate", async (req, res) => {
     console.error("Error generating custom report:", error);
     res.status(500).json({
       success: false,
-      error: error.message || "Failed to generate report"
+      error: error instanceof Error ? error.message : "Failed to generate report"
     });
   }
 });
@@ -160,7 +160,14 @@ router.get("/recent", async (req, res) => {
   try {
     console.log("Fetching recent reports from database...");
     
-    const storedReports = await reportsStorage.getRecentReports(10);
+    let storedReports = [];
+    
+    try {
+      storedReports = await reportsStorage.getRecentReports(10);
+    } catch (dbError) {
+      console.warn("Database error when fetching reports, using fallback:", dbError);
+      storedReports = [];
+    }
     
     // If no stored reports, return some sample data
     const recentReports = storedReports.length > 0 ? storedReports : [
@@ -190,7 +197,7 @@ router.get("/recent", async (req, res) => {
     console.error("Error fetching recent reports:", error);
     res.status(500).json({
       success: false,
-      error: "Failed to fetch recent reports"
+      error: error instanceof Error ? error.message : "Failed to fetch recent reports"
     });
   }
 });

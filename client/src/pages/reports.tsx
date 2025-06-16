@@ -75,7 +75,7 @@ function MetricCard({ title, value, trend, icon: Icon, description }: MetricCard
 export default function Reports() {
   const [selectedReportType, setSelectedReportType] = useState("performance");
   const [selectedTimeRange, setSelectedTimeRange] = useState("7d");
-  const [selectedFormat, setSelectedFormat] = useState("json");
+  const [selectedFormat, setSelectedFormat] = useState("docx");
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentReport, setCurrentReport] = useState<Report | null>(null);
   const [recentReports, setRecentReports] = useState<any[]>([]);
@@ -95,9 +95,9 @@ export default function Reports() {
   ];
 
   const formats = [
-    { value: "json", label: "JSON" },
+    { value: "docx", label: "MS Word (DOCX)" },
     { value: "csv", label: "CSV" },
-    { value: "docx", label: "MS Word (DOCX)" }
+    { value: "json", label: "JSON" }
   ];
 
   useEffect(() => {
