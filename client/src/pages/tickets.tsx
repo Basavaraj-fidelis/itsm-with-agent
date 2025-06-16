@@ -123,10 +123,11 @@ interface TicketData {
 }
 
 export default function Tickets() {
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedType, setSelectedType] = useState("all");
-  const [selectedStatus, setSelectedStatus] = useState("all");
-  const [selectedPriority, setSelectedPriority] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [selectedType, setSelectedType] = useState<string>("all");
+  const [selectedPriority, setSelectedPriority] = useState<string>("all");
   const [viewMode, setViewMode] = useState<
     "tickets" | "workflows" | "analytics"
   >("tickets");
@@ -150,11 +151,28 @@ export default function Tickets() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
+
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
-  const [location, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("overview");
   const [expandedTickets, setExpandedTickets] = useState<string[]>([]);
+  const [slaViolationFilter, setSlaViolationFilter] = useState(false);
+
+  // Handle URL filter parameters
+  React.useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const filterParam = searchParams.get('filter');
+
+    if (filterParam === 'sla_violated') {
+      setSlaViolationFilter(true);
+      setActiveTab("overview");
+      toast({
+        title: "SLA Violated Tickets",
+        description: "Showing tickets that have breached their SLA",
+        variant: "destructive",
+      });
+    }
+  }, [location.search, toast, setActiveTab]);
 
   // Fetch tickets from API
   const fetchTickets = async (page = 1) => {
@@ -548,7 +566,7 @@ export default function Tickets() {
     const openTickets = tickets.filter(
       (t) => !["resolved", "closed", "cancelled"].includes(t.status),
     );
-    
+
     let breached = 0;
     let dueIn2Hours = 0;
     let dueToday = 0;
@@ -561,7 +579,7 @@ export default function Tickets() {
         onTrack++;
         return;
       }
-      
+
       const timeDiff = new Date(slaDate).getTime() - now.getTime();
       const hoursDiff = timeDiff / (1000 * 3600);
 
@@ -793,6 +811,16 @@ export default function Tickets() {
       );
     }
 
+     // Handle SLA violation filter
+     if (slaViolationFilter) {
+      const now = new Date();
+      filtered = filtered.filter(ticket => {
+        if (["resolved", "closed", "cancelled"].includes(ticket.status)) return false;
+        const slaDate = ticket.sla_resolution_due || ticket.due_date;
+        return slaDate ? new Date(slaDate) < now : false;
+      });
+    }
+
     return filtered;
   };
 
@@ -862,30 +890,11 @@ export default function Tickets() {
         </CardContent>
       </Card>
 
-      <Card 
+      <Card
         className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 cursor-pointer hover:shadow-lg transition-all duration-200"
         onClick={() => {
-          // Filter to show only SLA violated tickets
-          const now = new Date();
-          const violatedTickets = tickets.filter((ticket) => {
-            if (["resolved", "closed", "cancelled"].includes(ticket.status)) return false;
-            const slaDate = ticket.sla_resolution_due || ticket.due_date;
-            if (!slaDate) return false;
-            return new Date(slaDate) < now;
-          });
-          
-          if (violatedTickets.length > 0) {
-            // Show the violated tickets by filtering
-            setSearchTerm("");
-            setSelectedStatus("all");
-            setSelectedType("all");
-            setSelectedPriority("all");
-            toast({
-              title: "SLA Violated Tickets",
-              description: `Found ${violatedTickets.length} tickets that have breached their SLA`,
-              variant: "destructive",
-            });
-          }
+          // Redirect to tickets page with SLA violation filter
+          setLocation("/tickets?filter=sla_violated");
         }}
       >
         <CardContent className="p-6">
@@ -952,8 +961,7 @@ export default function Tickets() {
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Total: {totalForType} tickets
                   </p>
-                </CardHeader>
-                <CardContent className="pt-0">
+                </Card<CardContent className="pt-0">
                   <div className="space-y-3">
                     {['new', 'assigned', 'in_progress', 'pending', 'resolved', 'closed'].map(status => {
                       const count = data.statuses[status] || 0;
@@ -1065,7 +1073,25 @@ export default function Tickets() {
               <SelectItem value="critical">Critical</SelectItem>
             </SelectContent>
           </Select>
+           <Button
+                variant={showClosed ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowClosed(!showClosed)}
+                className="flex items-center gap-2"
+              >
+                <Eye className="w-4 h-4" />
+                {showClosed ? "Hide Closed" : "Show Closed"}
+              </Button>
 
+              <Button
+                variant={slaViolationFilter ? "destructive" : "outline"}
+                size="sm"
+                onClick={() => setSlaViolationFilter(!slaViolationFilter)}
+                className="flex items-center gap-2"
+              >
+                <AlertTriangle className="w-4 h-4" />
+                {slaViolationFilter ? "Clear SLA Filter" : "SLA Violations Only"}
+              </Button>
           <Button variant="outline" size="sm">
             <Download className="w-4 h-4 mr-2" />
             Export
@@ -1135,7 +1161,7 @@ export default function Tickets() {
                           const now = new Date();
                           const slaDate = ticket.sla_resolution_due || ticket.due_date;
                           const isBreached = slaDate && new Date(slaDate) < now && !["resolved", "closed", "cancelled"].includes(ticket.status);
-                          
+
                           if (isBreached) {
                             return (
                               <Badge variant="destructive" className="animate-pulse">
@@ -1143,11 +1169,11 @@ export default function Tickets() {
                               </Badge>
                             );
                           }
-                          
+
                           if (slaDate) {
                             const timeDiff = new Date(slaDate).getTime() - now.getTime();
                             const hoursDiff = timeDiff / (1000 * 3600);
-                            
+
                             if (hoursDiff <= 2 && hoursDiff > 0) {
                               return (
                                 <Badge variant="destructive" className="bg-orange-500">
@@ -1156,7 +1182,7 @@ export default function Tickets() {
                               );
                             }
                           }
-                          
+
                           return null;
                         })()}
                       </div>
@@ -1545,7 +1571,7 @@ export default function Tickets() {
                   <Plus className="w-4 h-4" />
                   <span>Create Ticket</span>
                 </Button>
-                
+
                 <Button
                   variant={activeTab === "analytics" ? "default" : "outline"}
                   size="sm"
@@ -1826,7 +1852,7 @@ export default function Tickets() {
                     <SelectItem value="critical">Critical</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
+                            </div>
             </div>
             <div>
               <Label htmlFor="title">Title</Label>

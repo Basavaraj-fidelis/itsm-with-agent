@@ -475,7 +475,13 @@ export default function Dashboard() {
       {/* SLA and Assignment Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         {/* SLA Violations */}
-        <Card className="bg-white dark:bg-gray-800 shadow-lg border-0 rounded-xl overflow-hidden">
+        <Card 
+        className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 cursor-pointer hover:shadow-lg transition-all duration-200"
+        onClick={() => {
+          // Navigate to tickets page with SLA violation filter
+          navigate('/tickets?filter=sla_violated');
+        }}
+      >
           <CardHeader className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-gray-700 dark:to-gray-600 border-b border-gray-200 dark:border-gray-600">
             <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center">
               <Clock className="w-5 h-5 mr-2 text-red-500" />
