@@ -1,0 +1,112 @@
+The **"Upgrade Required"** message usually means the browser or server is trying to **establish a WebSocket (HMR)** connection, but the request is not being handled properly — often due to:
+
+* **HMR being disabled**, but the browser still attempting it.
+* **Mismatch in port or protocol** (especially on Replit).
+* **Proxying issues** where WebSocket upgrade requests are not forwarded correctly.
+
+---
+
+### You currently have this in your `vite.config.ts`:
+
+```ts
+hmr: false,
+```
+
+This tells Vite to **disable Hot Module Replacement**, but the frontend is still trying to connect to it. That’s likely the cause of the “Upgrade Required” message (HTTP 426).
+
+---
+
+### ✅ Solutions:
+
+#### Option 1: **Enable HMR (Recommended for Dev)**
+
+Enable HMR for Replit. Update this block:
+
+```ts
+server: {
+  host: "0.0.0.0",
+  port: 3000,
+  strictPort: true,
+  allowedHosts: [/.*\.replit\.dev$/],
+  hmr: false, // ❌ remove or change this
+  proxy: {
+    "/api": {
+      target: "http://0.0.0.0:5000",
+      changeOrigin: true,
+      secure: false,
+      timeout: 30000,
+    },
+  },
+}
+```
+
+Replace with:
+
+```ts
+server: {
+  host: "0.0.0.0",
+  port: 3000,
+  strictPort: true,
+  allowedHosts: [/.*\.replit\.dev$/],
+  hmr: {
+    protocol: "ws",
+    host: "localhost",
+    port: 3000,
+  },
+  proxy: {
+    "/api": {
+      target: "http://0.0.0.0:5000",
+      changeOrigin: true,
+      secure: false,
+      timeout: 30000,
+    },
+  },
+}
+```
+
+⚠️ You may need to adjust `host` to match Replit's WebSocket hostname (e.g., `c39c548f-...replit.dev`) — test with or without it.
+
+---
+
+#### Option 2: **Fully Disable HMR in Frontend (Not Ideal)**
+
+If you want to completely disable HMR, you must also tell **Vite’s client** to stop trying to connect.
+
+To do this, launch Vite with the `--no-hmr` flag (not just `hmr: false`), or use `client: { hmr: false }` in the config:
+
+```ts
+server: {
+  host: "0.0.0.0",
+  port: 3000,
+  strictPort: true,
+  allowedHosts: [/.*\.replit\.dev$/],
+  hmr: false,
+  proxy: {
+    "/api": {
+      target: "http://0.0.0.0:5000",
+      changeOrigin: true,
+      secure: false,
+      timeout: 30000,
+    },
+  },
+},
+client: {
+  hmr: false
+},
+```
+
+But this removes all hot-reload features — not recommended for development.
+
+---
+
+### ✅ Recommendation (Best for Replit Dev):
+
+```ts
+hmr: {
+  protocol: "ws",
+  host: "localhost", // or replit hostname
+  port: 3000,
+}
+```
+
+Try this setup, restart Vite, and your app should work without the "Upgrade Required" error. Let me know if you want a Replit-specific example based on your full folder structure.
