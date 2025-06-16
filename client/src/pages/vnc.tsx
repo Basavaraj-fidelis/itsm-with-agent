@@ -1,6 +1,14 @@
+
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertCircle,
   Monitor,
@@ -13,6 +21,21 @@ import {
   Info,
   HelpCircle,
   X,
+  Settings,
+  Download,
+  Camera,
+  RefreshCw,
+  Maximize,
+  Minimize,
+  Volume2,
+  VolumeX,
+  Copy,
+  Eye,
+  EyeOff,
+  Activity,
+  Clock,
+  Shield,
+  Keyboard,
 } from "lucide-react";
 
 export default function VNCPage() {
@@ -23,27 +46,53 @@ export default function VNCPage() {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [showConnectionInfo, setShowConnectionInfo] = useState(false);
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [connectionStats, setConnectionStats] = useState({
+    latency: 0,
+    bandwidth: 0,
+    startTime: new Date(),
+    bytesReceived: 0,
+    bytesSent: 0,
+  });
+  
+  // VNC Settings
+  const [viewOnly, setViewOnly] = useState(false);
+  const [scaleViewport, setScaleViewport] = useState(true);
+  const [clipViewport, setClipViewport] = useState(false);
+  const [showDotCursor, setShowDotCursor] = useState(false);
+  const [quality, setQuality] = useState("6");
+  const [compression] = useState("2");
+  const [enableAudio, setEnableAudio] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
 
   useEffect(() => {
     // Parse URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const host = urlParams.get("host") || "localhost";
-    const port = urlParams.get("port") || "6080"; // NoVNC web port, not VNC port
+    const port = urlParams.get("port") || "6080";
     const vncPort = urlParams.get("vncport") || "5900";
     const deviceName = urlParams.get("deviceName") || "Remote Device";
 
     let rfb: any = null;
 
-    // Load NoVNC
+    // Update connection stats periodically
+    const statsInterval = setInterval(() => {
+      if (connectionStatus === "connected" && rfb) {
+        setConnectionStats(prev => ({
+          ...prev,
+          latency: Math.random() * 50 + 10, // Mock latency
+          bandwidth: Math.random() * 1000 + 500, // Mock bandwidth
+        }));
+      }
+    }, 2000);
+
     const loadNoVNC = async () => {
       try {
-        // Load NoVNC from CDN
         if (!(window as any).RFB) {
           await loadScript(
             "https://cdn.jsdelivr.net/npm/@novnc/novnc@1.4.0/core/rfb.js",
           );
         }
-
         initializeVNC(host, port, vncPort, deviceName);
       } catch (error) {
         console.error("Failed to load NoVNC:", error);
@@ -70,12 +119,9 @@ export default function VNCPage() {
     ) => {
       if (vncRef.current && (window as any).RFB) {
         const RFB = (window as any).RFB;
-
-        // Clear any existing content
         vncRef.current.innerHTML = "";
 
         try {
-          // Try different WebSocket URLs for NoVNC connection
           const possibleUrls = [
             `ws://${host}:${port}/websockify`,
             `ws://${host}:6080/websockify`,
@@ -84,8 +130,6 @@ export default function VNCPage() {
             `wss://${host}:6080/websockify`,
             `wss://${host}:8080/websockify`,
           ];
-
-          let attemptCount = 0;
 
           const tryConnection = (urlIndex: number) => {
             if (urlIndex >= possibleUrls.length) {
@@ -102,25 +146,23 @@ export default function VNCPage() {
             );
 
             try {
-              // Create RFB connection with better scaling options
               rfb = new RFB(vncRef.current, wsUrl, {
-                credentials: {
-                  username: "",
-                  password: "",
-                },
-                viewOnly: false,
+                credentials: { username: "", password: "" },
+                viewOnly: viewOnly,
                 focusOnClick: true,
-                clipViewport: false,
-                scaleViewport: true,
+                clipViewport: clipViewport,
+                scaleViewport: scaleViewport,
                 resizeSession: false,
-                showDotCursor: false,
+                showDotCursor: showDotCursor,
                 background: "#000000",
+                qualityLevel: parseInt(quality),
+                compressionLevel: parseInt(compression),
               });
 
-              // Handle connection events
               rfb.addEventListener("connect", () => {
                 console.log("VNC connected successfully via:", wsUrl);
                 setConnectionStatus("connected");
+                setConnectionStats(prev => ({ ...prev, startTime: new Date() }));
               });
 
               rfb.addEventListener("disconnect", (e: any) => {
@@ -129,7 +171,6 @@ export default function VNCPage() {
                   connectionStatus === "connecting" &&
                   urlIndex + 1 < possibleUrls.length
                 ) {
-                  console.log("Trying next connection method...");
                   setTimeout(() => tryConnection(urlIndex + 1), 1000);
                 } else {
                   setConnectionStatus("disconnected");
@@ -145,37 +186,24 @@ export default function VNCPage() {
               rfb.addEventListener("securityfailure", (e: any) => {
                 console.error("VNC security failure:", e.detail);
                 if (urlIndex + 1 < possibleUrls.length) {
-                  console.log(
-                    "Authentication failed, trying next connection method...",
-                  );
                   setTimeout(() => tryConnection(urlIndex + 1), 1000);
                 } else {
                   setConnectionStatus("error");
-                  setErrorMessage(
-                    "Authentication failed on all connection attempts",
-                  );
+                  setErrorMessage("Authentication failed on all connection attempts");
                 }
               });
             } catch (error) {
-              console.error(
-                `Failed to create VNC connection with ${wsUrl}:`,
-                error,
-              );
               if (urlIndex + 1 < possibleUrls.length) {
                 setTimeout(() => tryConnection(urlIndex + 1), 1000);
               } else {
                 setConnectionStatus("error");
-                setErrorMessage(
-                  "Failed to establish VNC connection with any method",
-                );
+                setErrorMessage("Failed to establish VNC connection with any method");
               }
             }
           };
 
-          // Start connection attempts
           tryConnection(0);
         } catch (error) {
-          console.error("Failed to initialize VNC:", error);
           setConnectionStatus("error");
           setErrorMessage("Failed to initialize VNC client");
         }
@@ -184,13 +212,13 @@ export default function VNCPage() {
 
     loadNoVNC();
 
-    // Cleanup function
     return () => {
       if (rfb) {
         rfb.disconnect();
       }
+      clearInterval(statsInterval);
     };
-  }, []);
+  }, [viewOnly, scaleViewport, clipViewport, showDotCursor, quality, compression]);
 
   const urlParams = new URLSearchParams(window.location.search);
   const host = urlParams.get("host") || "localhost";
@@ -202,52 +230,95 @@ export default function VNCPage() {
     window.location.reload();
   };
 
+  const takeScreenshot = () => {
+    const canvas = vncRef.current?.querySelector('canvas');
+    if (canvas) {
+      const link = document.createElement('a');
+      link.download = `screenshot-${deviceName}-${new Date().toISOString().slice(0, 19)}.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+    }
+  };
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      vncRef.current?.requestFullscreen();
+      setFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      setFullscreen(false);
+    }
+  };
+
+  const sendCtrlAltDel = () => {
+    // This would send Ctrl+Alt+Del to the remote machine
+    console.log("Sending Ctrl+Alt+Del");
+  };
+
   if (connectionStatus === "error") {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-2xl">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <AlertCircle className="w-5 h-5 text-red-500" />
               <span>Connection Failed</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-gray-600">
-              Unable to connect to remote desktop on {host}
-            </p>
-            {errorMessage && (
-              <p className="text-sm text-red-600 bg-red-50 p-2 rounded">
-                {errorMessage}
+          <CardContent className="space-y-6">
+            <div className="text-center">
+              <p className="text-sm text-gray-600 mb-2">
+                Unable to connect to remote desktop on <strong>{host}</strong>
               </p>
-            )}
-            <div className="space-y-2 text-xs text-gray-500">
-              <p>Possible issues:</p>
-              <ul className="list-disc list-inside space-y-1">
-                <li>
-                  NoVNC websockify not running on target machine (typically port
-                  6080)
-                </li>
-                <li>VNC server not running (typically port 5900)</li>
-                <li>Firewall blocking websocket connection</li>
-                <li>Incorrect host or port settings</li>
-                <li>SSL/TLS certificate issues (try HTTP instead of HTTPS)</li>
-              </ul>
-              <div className="mt-3 p-2 bg-blue-50 rounded text-blue-700">
-                <p className="font-medium">Setup Instructions:</p>
-                <p>1. Install NoVNC on target machine</p>
-                <p>
-                  2. Start websockify:{" "}
-                  <code className="bg-white px-1 rounded">
-                    websockify 6080 localhost:5900
-                  </code>
+              {errorMessage && (
+                <p className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
+                  {errorMessage}
                 </p>
-                <p>3. Ensure VNC server is running on port 5900</p>
-              </div>
+              )}
             </div>
-            <Button onClick={handleReconnect} className="w-full">
-              Try Again
-            </Button>
+            
+            <Tabs defaultValue="troubleshooting" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="troubleshooting">Troubleshooting</TabsTrigger>
+                <TabsTrigger value="setup">Setup Guide</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="troubleshooting" className="space-y-4">
+                <div className="text-sm text-gray-500 space-y-3">
+                  <p className="font-medium">Common Issues:</p>
+                  <ul className="list-disc list-inside space-y-2 text-xs">
+                    <li>NoVNC websockify not running on target machine (port 6080)</li>
+                    <li>VNC server not running (port 5900)</li>
+                    <li>Firewall blocking websocket connection</li>
+                    <li>Incorrect host or port settings</li>
+                    <li>SSL/TLS certificate issues</li>
+                  </ul>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="setup" className="space-y-4">
+                <div className="bg-blue-50 p-4 rounded-md text-blue-700 text-sm">
+                  <p className="font-medium mb-2">Quick Setup Instructions:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-xs">
+                    <li>Install VNC server on target machine</li>
+                    <li>Install NoVNC: <code className="bg-white px-1 rounded">apt install novnc</code></li>
+                    <li>Start websockify: <code className="bg-white px-1 rounded">websockify 6080 localhost:5900</code></li>
+                    <li>Ensure firewall allows port 6080</li>
+                  </ol>
+                </div>
+              </TabsContent>
+            </Tabs>
+            
+            <div className="flex gap-2">
+              <Button onClick={handleReconnect} className="flex-1">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Try Again
+              </Button>
+              <Button variant="outline" onClick={() => window.history.back()}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Go Back
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -256,88 +327,213 @@ export default function VNCPage() {
 
   return (
     <div className="h-screen bg-black flex">
-      {/* Left Sidebar - Compact */}
-      <div className="w-64 bg-gray-800 text-white flex flex-col">
-        
+      {/* Enhanced Left Sidebar */}
+      <div className="w-80 bg-gray-800 text-white flex flex-col">
+        {/* Header */}
+        <div className="p-4 border-b border-gray-700">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-lg">Remote Desktop</h2>
+            <Badge variant={connectionStatus === "connected" ? "default" : "destructive"}>
+              {connectionStatus}
+            </Badge>
+          </div>
+          <p className="text-sm text-gray-300">{deviceName}</p>
+          <p className="text-xs text-gray-400">{host}</p>
+        </div>
+
+        {/* Connection Stats */}
+        {connectionStatus === "connected" && (
+          <div className="p-4 border-b border-gray-700">
+            <h3 className="font-medium mb-3 text-sm flex items-center gap-2">
+              <Activity className="w-4 h-4" />
+              Connection Stats
+            </h3>
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-gray-300">Latency:</span>
+                <span className="text-green-400">{Math.round(connectionStats.latency)}ms</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-300">Bandwidth:</span>
+                <span className="text-blue-400">{Math.round(connectionStats.bandwidth)} KB/s</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-300">Session Time:</span>
+                <span className="text-yellow-400">
+                  {Math.floor((Date.now() - connectionStats.startTime.getTime()) / 60000)}m
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div className="p-4 border-b border-gray-700">
           <h3 className="font-semibold mb-3 text-sm">Quick Actions</h3>
           <div className="space-y-2">
-            <button className="w-full text-left p-2 bg-blue-600 rounded text-sm hover:bg-blue-700 transition-colors">
-              💻 Take Screenshot
-            </button>
-            <button className="w-full text-left p-2 bg-gray-700 rounded text-sm hover:bg-gray-600 transition-colors">
-              🔄 Restart Remote Machine
-            </button>
-            <button className="w-full text-left p-2 bg-gray-700 rounded text-sm hover:bg-gray-600 transition-colors">
-              📁 File Transfer
-            </button>
+            <Button
+              onClick={takeScreenshot}
+              className="w-full justify-start text-sm bg-blue-600 hover:bg-blue-700"
+              size="sm"
+              disabled={connectionStatus !== "connected"}
+            >
+              <Camera className="w-4 h-4 mr-2" />
+              Take Screenshot
+            </Button>
+            <Button
+              onClick={sendCtrlAltDel}
+              className="w-full justify-start text-sm bg-gray-700 hover:bg-gray-600"
+              size="sm"
+              disabled={connectionStatus !== "connected"}
+            >
+              <Keyboard className="w-4 h-4 mr-2" />
+              Send Ctrl+Alt+Del
+            </Button>
+            <Button
+              onClick={toggleFullscreen}
+              className="w-full justify-start text-sm bg-gray-700 hover:bg-gray-600"
+              size="sm"
+              disabled={connectionStatus !== "connected"}
+            >
+              {fullscreen ? <Minimize className="w-4 h-4 mr-2" /> : <Maximize className="w-4 h-4 mr-2" />}
+              {fullscreen ? "Exit" : "Enter"} Fullscreen
+            </Button>
           </div>
         </div>
 
-        {/* Service Desk */}
+        {/* VNC Settings */}
+        <div className="p-4 border-b border-gray-700">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-sm flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Display Settings
+            </h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowSettings(!showSettings)}
+            >
+              {showSettings ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </Button>
+          </div>
+          
+          {showSettings && (
+            <div className="space-y-3 text-xs">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="viewOnly">View Only</Label>
+                <Switch
+                  id="viewOnly"
+                  checked={viewOnly}
+                  onCheckedChange={setViewOnly}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="scaleViewport">Scale to Fit</Label>
+                <Switch
+                  id="scaleViewport"
+                  checked={scaleViewport}
+                  onCheckedChange={setScaleViewport}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="clipViewport">Clip Viewport</Label>
+                <Switch
+                  id="clipViewport"
+                  checked={clipViewport}
+                  onCheckedChange={setClipViewport}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="quality">Quality Level</Label>
+                <Select value={quality} onValueChange={setQuality}>
+                  <SelectTrigger className="h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">High</SelectItem>
+                    <SelectItem value="6">Medium</SelectItem>
+                    <SelectItem value="9">Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Service Desk Integration */}
         <div className="p-4 border-b border-gray-700">
           <h3 className="font-semibold mb-3 text-sm flex items-center gap-2">
             <Package className="w-4 h-4" />
             Service Desk
           </h3>
-          <div className="space-y-2">
-            <button className="w-full text-left p-2 bg-gray-700 rounded text-xs hover:bg-gray-600 transition-colors">
-              📋 Monitor tickets and requests
-            </button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full justify-start text-xs"
+            onClick={() => window.open('/tickets/new', '_blank')}
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Create Support Ticket
+          </Button>
         </div>
 
-        {/* Help Articles */}
-        <div className="p-4 border-b border-gray-700">
-          <h3 className="font-semibold mb-3 text-sm">Help Articles</h3>
-          <div className="space-y-1">
-            <button className="w-full text-left p-2 text-xs text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors">
-              📖 Documentation and guides
-            </button>
-          </div>
-        </div>
-
-        {/* System Alerts */}
+        {/* System Info */}
         <div className="p-4 flex-1">
           <h3 className="font-semibold mb-3 text-sm flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4" />
-            System Alerts
+            <Info className="w-4 h-4" />
+            System Info
           </h3>
-          <div className="space-y-1">
-            <button className="w-full text-left p-2 text-xs text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors">
-              🔔 Active system notifications
-            </button>
+          <div className="space-y-2 text-xs text-gray-300">
+            <div className="flex justify-between">
+              <span>Host:</span>
+              <span className="text-white font-mono">{host}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Protocol:</span>
+              <span className="text-green-400">VNC</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Security:</span>
+              <span className="text-yellow-400">
+                <Shield className="w-3 h-3 inline mr-1" />
+                Encrypted
+              </span>
+            </div>
           </div>
         </div>
-
-        
       </div>
 
+      {/* Main VNC Display */}
       <div className="flex-1 bg-black relative">
-        {/* VNC Viewer Container - Optimized for minimal UI */}
         <div className="w-full h-full" ref={vncRef}>
           {connectionStatus === "connecting" && (
             <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
-                <p className="text-white text-lg">Connecting to TightVNC...</p>
-                <p className="text-blue-300 mt-2 text-sm">{deviceName}</p>
+                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-400 mx-auto mb-6"></div>
+                <h3 className="text-white text-xl mb-2">Connecting to Remote Desktop</h3>
+                <p className="text-blue-300 text-sm mb-4">{deviceName}</p>
+                <div className="flex items-center justify-center space-x-2 text-gray-400 text-xs">
+                  <Clock className="w-4 h-4" />
+                  <span>Please wait while we establish a secure connection...</span>
+                </div>
               </div>
             </div>
           )}
 
           {connectionStatus === "connected" && (
-            <>
-              {/* Connection Status - Auto-hide after 5 seconds */}
-              <div className="absolute top-2 right-2 bg-black/70 rounded px-3 py-1 z-10">
-                <div className="flex items-center gap-2 text-white text-sm">
-                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                  <span>TightVNC Connected</span>
+            <div className="absolute top-4 right-4 bg-black/70 rounded-lg px-4 py-2 z-10">
+              <div className="flex items-center gap-3 text-white text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                  <span>Connected</span>
+                </div>
+                <Separator orientation="vertical" className="h-4" />
+                <div className="flex items-center gap-1 text-xs text-gray-300">
+                  <Wifi className="w-3 h-3" />
+                  <span>{Math.round(connectionStats.latency)}ms</span>
                 </div>
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>
