@@ -330,7 +330,18 @@ export default function VNCPage() {
                     <li><strong>Firewall blocking:</strong> Allow ports 5900, 6080, 8080</li>
                     <li><strong>0.0.0.0 address issues:</strong> Use actual hostname/IP</li>
                     <li><strong>Browser security:</strong> Try different browser or incognito mode</li>
+                    <li><strong>Private IP endpoints:</strong> Establish VPN connection first, then connect using private IP</li>
+                    <li><strong>Network isolation:</strong> Use SSH tunnel or reverse proxy for secure access</li>
                   </ul>
+                </div>
+                
+                <div className="bg-yellow-50 p-3 rounded-md border border-yellow-200">
+                  <h4 className="font-medium text-yellow-800 mb-2 text-xs">Private Network Access</h4>
+                  <div className="text-xs text-yellow-700 space-y-1">
+                    <p><strong>Option 1:</strong> Connect via VPN to access private IP directly</p>
+                    <p><strong>Option 2:</strong> Use SSH tunnel: <code className="bg-yellow-100 px-1 rounded">ssh -L 6080:endpoint_private_ip:6080 jump_host</code></p>
+                    <p><strong>Option 3:</strong> Deploy reverse proxy on accessible server</p>
+                  </div>
                 </div>
               </TabsContent>
 
@@ -342,6 +353,16 @@ export default function VNCPage() {
                     <li>Install NoVNC: <code className="bg-white px-1 rounded">apt install novnc</code></li>
                     <li>Start websockify: <code className="bg-white px-1 rounded">websockify 6080 localhost:5900</code></li>
                     <li>Ensure firewall allows port 6080</li>
+                  </ol>
+                </div>
+                
+                <div className="bg-orange-50 p-4 rounded-md text-orange-700 text-sm">
+                  <p className="font-medium mb-2">Private Network Setup:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-xs">
+                    <li><strong>VPN Method:</strong> Connect to company VPN, then use private IP directly</li>
+                    <li><strong>SSH Tunnel:</strong> Create tunnel via jump host: <code className="bg-white px-1 rounded">ssh -L 6080:PRIVATE_IP:6080 jump_host</code></li>
+                    <li><strong>Reverse Proxy:</strong> Deploy nginx/apache on public server to proxy connections</li>
+                    <li><strong>Cloud Bastion:</strong> Use cloud provider's bastion host service</li>
                   </ol>
                 </div>
               </TabsContent>

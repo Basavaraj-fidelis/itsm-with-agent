@@ -96,25 +96,42 @@ export default function AgentDetail() {
 
       const result = await response.json();
       if (result.success) {
+        const { connection_info } = result;
+        
+        // Check if private IP requires special handling
+        if (connection_info.is_private_ip && connection_info.tunnel_required) {
+          const tunnelMethods = connection_info.tunnel_suggestions?.map(s => 
+            `${s.method.toUpperCase()}: ${s.description}${s.command ? `\nCommand: ${s.command}` : ''}`
+          ).join('\n\n');
+          
+          const proceed = confirm(
+            `This endpoint has a private IP address (${connection_info.ip_address}). ` +
+            `You'll need to establish network connectivity first:\n\n${tunnelMethods}\n\n` +
+            `Do you want to proceed with the connection attempt?`
+          );
+          
+          if (!proceed) return;
+        }
+        
         switch (connectionType) {
           case "vnc":
-            const vncUrl = `/vnc?host=${encodeURIComponent(agent.hostname)}&port=6080&vncport=5900&deviceName=${encodeURIComponent(agent.hostname)}`;
+            const vncUrl = `/vnc?host=${encodeURIComponent(connection_info.ip_address || agent.hostname)}&port=6080&vncport=5900&deviceName=${encodeURIComponent(agent.hostname)}`;
             window.open(vncUrl, "_blank");
             break;
 
           case "rdp":
-            const rdpUrl = `/rdp?host=${encodeURIComponent(agent.hostname)}&port=${result.connection_info.port}&deviceName=${encodeURIComponent(agent.hostname)}`;
+            const rdpUrl = `/rdp?host=${encodeURIComponent(connection_info.ip_address || agent.hostname)}&port=${connection_info.port}&deviceName=${encodeURIComponent(agent.hostname)}`;
             window.open(rdpUrl, "_blank");
             break;
 
           case "ssh":
-            const sshUrl = `/ssh?host=${encodeURIComponent(agent.hostname)}&port=${result.connection_info.port}&deviceName=${encodeURIComponent(agent.hostname)}`;
+            const sshUrl = `/ssh?host=${encodeURIComponent(connection_info.ip_address || agent.hostname)}&port=${connection_info.port}&deviceName=${encodeURIComponent(agent.hostname)}`;
             window.open(sshUrl, "_blank");
             break;
 
           case "teamviewer":
             // Show TeamViewer connection info
-            alert(`TeamViewer Connection:\nHost: ${result.connection_info.hostname}\nID: ${result.connection_info.teamviewer_id || 'Contact user for ID'}`);
+            alert(`TeamViewer Connection:\nHost: ${connection_info.hostname}\nID: ${connection_info.teamviewer_id || 'Contact user for ID'}`);
             break;
         }
       } else {

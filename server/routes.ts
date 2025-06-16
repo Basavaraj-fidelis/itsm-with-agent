@@ -1949,7 +1949,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/agents/:id/remote-connect", authenticateToken, async (req, res) => {
     try {
       const agentId = req.params.id;
-      const { connection_type = "vnc", port = 5900 } = req.body;
+      const { connection_type = "vnc", port = 5900, use_tunnel = false, jump_host = null } = req.body;
 
       const device = await storage.getDevice(agentId);
       if (!device) {
@@ -1962,6 +1962,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: device.status 
         });
       }
+
+      // Check if device IP is private
+      const isPrivateIP = device.ip_address && (
+        device.ip_address.startsWith("10.") ||
+        device.ip_address.startsWith("172.") ||
+        device.ip_address.startsWith("192.168.") ||
+        device.ip_address.startsWith("169.254.")
+      );
 
       // Log connection attempt
       await storage.createAlert({
@@ -1980,21 +1988,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const instructions = {
         vnc: "Ensure VNC server and websockify are running on the target machine",
-        rdp: "Ensure Remote Desktop is enabled and user has RDP permissions",
+        rdp: "Ensure Remote Desktop is enabled and user has RDP permissions", 
         ssh: "Ensure SSH service is running and firewall allows SSH connections",
         teamviewer: "Ensure TeamViewer is installed and running on the target machine"
       };
 
+      const connectionInfo = {
+        hostname: device.hostname,
+        ip_address: device.ip_address,
+        port: port,
+        connection_type,
+        instructions: instructions[connection_type] || "Ensure remote access is enabled on the target machine",
+        teamviewer_id: connection_type === "teamviewer" ? device.teamviewer_id : undefined,
+        is_private_ip: isPrivateIP
+      };
+
+      // Add tunnel guidance for private IPs
+      if (isPrivateIP) {
+        connectionInfo.tunnel_required = true;
+        connectionInfo.tunnel_suggestions = [
+          {
+            method: "ssh_tunnel",
+            command: `ssh -L ${port}:${device.ip_address}:${port} ${jump_host || 'your_jump_host'}`,
+            description: "Create SSH tunnel via jump host"
+          },
+          {
+            method: "vpn",
+            description: "Connect to company VPN first, then access private IP directly"
+          },
+          {
+            method: "reverse_proxy",
+            description: "Deploy reverse proxy on public server"
+          }
+        ];
+      }
+
       res.json({
         success: true,
-        connection_info: {
-          hostname: device.hostname,
-          ip_address: device.ip_address,
-          port: port,
-          connection_type,
-          instructions: instructions[connection_type] || "Ensure remote access is enabled on the target machine",
-          teamviewer_id: connection_type === "teamviewer" ? device.teamviewer_id : undefined
-        }
+        connection_info: connectionInfo
       });
     } catch (error) {
       console.error("Error initiating remote connection:", error);
