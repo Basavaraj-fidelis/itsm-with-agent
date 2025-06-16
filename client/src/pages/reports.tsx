@@ -83,7 +83,10 @@ export default function Reports() {
   const reportTypes = [
     { value: "performance", label: "Performance Summary", icon: BarChart3 },
     { value: "availability", label: "Availability Report", icon: Activity },
-    { value: "inventory", label: "System Inventory", icon: Server }
+    { value: "inventory", label: "System Inventory", icon: Server },
+    { value: "trends", label: "Trend Analysis", icon: TrendingUp },
+    { value: "capacity", label: "Capacity Planning", icon: HardDrive },
+    { value: "security", label: "Security Summary", icon: AlertCircle }
   ];
 
   const timeRanges = [
@@ -96,8 +99,41 @@ export default function Reports() {
   const formats = [
     { value: "docx", label: "MS Word (DOCX)" },
     { value: "csv", label: "CSV" },
-    { value: "json", label: "JSON" }
+    { value: "json", label: "JSON" },
+    { value: "pdf", label: "PDF" }
   ];
+
+  const [realTimeMetrics, setRealTimeMetrics] = useState<any>(null);
+  const [isLoadingRealTime, setIsLoadingRealTime] = useState(false);
+
+  // Fetch real-time metrics
+  const fetchRealTimeMetrics = async () => {
+    setIsLoadingRealTime(true);
+    try {
+      const response = await fetch("/api/analytics/realtime", {
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setRealTimeMetrics(data.metrics);
+      }
+    } catch (error) {
+      console.error("Error fetching real-time metrics:", error);
+    } finally {
+      setIsLoadingRealTime(false);
+    }
+  };
+
+  // Auto-refresh real-time metrics
+  useEffect(() => {
+    fetchRealTimeMetrics();
+    const interval = setInterval(fetchRealTimeMetrics, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     let mounted = true;

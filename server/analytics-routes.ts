@@ -165,6 +165,67 @@ router.post("/generate", async (req, res) => {
   }
 });
 
+// Get real-time performance metrics
+router.get("/realtime", async (req, res) => {
+  try {
+    console.log("Fetching real-time performance metrics...");
+    
+    const metrics = await analyticsService.getRealTimeMetrics();
+    
+    res.json({
+      success: true,
+      metrics
+    });
+  } catch (error) {
+    console.error("Error fetching real-time metrics:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch real-time metrics"
+    });
+  }
+});
+
+// Get trend analysis
+router.get("/trends", async (req, res) => {
+  try {
+    const { metric = "cpu", timeRange = "7d" } = req.query;
+    console.log(`Generating trend analysis for ${metric} over ${timeRange}`);
+    
+    const trends = await analyticsService.getTrendAnalysis(metric as string, timeRange as string);
+    
+    res.json({
+      success: true,
+      trends
+    });
+  } catch (error) {
+    console.error("Error generating trend analysis:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to generate trend analysis"
+    });
+  }
+});
+
+// Get capacity planning recommendations
+router.get("/capacity", async (req, res) => {
+  try {
+    console.log("Generating capacity planning recommendations...");
+    
+    const recommendations = await analyticsService.getCapacityRecommendations();
+    
+    res.json({
+      success: true,
+      recommendations
+    });
+  } catch (error) {
+    console.error("Error generating capacity recommendations:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to generate capacity recommendations"
+    });
+  }
+});
+
 // Get recent reports from database
 router.get("/recent", async (req, res) => {
   // Set shorter timeout for this endpoint
@@ -221,7 +282,6 @@ router.get("/recent", async (req, res) => {
   }
 });
 
-export default router;
 // Get specific report by ID
 router.get("/report/:id", async (req, res) => {
   try {
