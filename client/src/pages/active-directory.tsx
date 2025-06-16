@@ -92,19 +92,21 @@ export default function ActiveDirectory() {
         body: JSON.stringify(adConfig),
       });
 
-      if (response.ok) {
-        setIsConfigured(true);
-        toast({
-          title: "Configuration Saved",
-          description: "Active Directory configuration has been saved successfully",
-        });
-      } else {
-        throw new Error("Failed to save configuration");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "Unknown error" }));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
+
+      setIsConfigured(true);
+      toast({
+        title: "Configuration Saved",
+        description: "Active Directory configuration has been saved successfully",
+      });
     } catch (error) {
+      console.error("AD configuration save error:", error);
       toast({
         title: "Save Failed",
-        description: "Failed to save AD configuration",
+        description: error instanceof Error ? error.message : "Failed to save AD configuration",
         variant: "destructive",
       });
     }
@@ -121,6 +123,11 @@ export default function ActiveDirectory() {
         },
         body: JSON.stringify(adConfig),
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const result = await response.json();
       setConnectionStatus(result);
       
@@ -130,9 +137,10 @@ export default function ActiveDirectory() {
         variant: result.connected ? "default" : "destructive",
       });
     } catch (error) {
+      console.error("AD connection test error:", error);
       const errorResult = {
         connected: false,
-        message: "Unable to test AD connection",
+        message: error instanceof Error ? error.message : "Unable to test AD connection",
       };
       setConnectionStatus(errorResult);
       
@@ -166,11 +174,12 @@ export default function ActiveDirectory() {
         },
         body: JSON.stringify({ username: syncUsername }),
       });
+      
       const result = await response.json();
       
       toast({
         title: "User Sync",
-        description: result.message,
+        description: result.message || (response.ok ? "User synced successfully" : "Sync failed"),
         variant: response.ok ? "default" : "destructive",
       });
       
@@ -179,9 +188,10 @@ export default function ActiveDirectory() {
         setSyncUsername("");
       }
     } catch (error) {
+      console.error("User sync error:", error);
       toast({
         title: "Sync Failed",
-        description: "Unable to sync user from AD",
+        description: error instanceof Error ? error.message : "Unable to sync user from AD",
         variant: "destructive",
       });
     } finally {
@@ -226,12 +236,20 @@ export default function ActiveDirectory() {
           Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
         },
       });
-      if (response.ok) {
-        const groups = await response.json();
-        setAvailableGroups(groups);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+      
+      const groups = await response.json();
+      setAvailableGroups(groups);
     } catch (error) {
       console.error("Failed to load AD groups:", error);
+      toast({
+        title: "Groups Load Failed",
+        description: "Unable to load Active Directory groups",
+        variant: "destructive",
+      });
     }
   };
 
