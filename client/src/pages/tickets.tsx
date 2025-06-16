@@ -961,7 +961,8 @@ export default function Tickets() {
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Total: {totalForType} tickets
                   </p>
-                </Card<CardContent className="pt-0">
+                </CardHeader>
+                <CardContent className="pt-0">
                   <div className="space-y-3">
                     {['new', 'assigned', 'in_progress', 'pending', 'resolved', 'closed'].map(status => {
                       const count = data.statuses[status] || 0;
@@ -1853,6 +1854,7 @@ export default function Tickets() {
                   </SelectContent>
                 </Select>
                             </div>
+```python
             </div>
             <div>
               <Label htmlFor="title">Title</Label>
