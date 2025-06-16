@@ -4,6 +4,7 @@ import { db } from "./db";
 import { devices, device_reports, alerts } from "../shared/schema";
 import { sql, eq, gte, and, desc } from "drizzle-orm";
 import { subDays, subHours, format } from "date-fns";
+import { Document, Packer, Paragraph, Table, TableRow, TableCell, HeadingLevel, AlignmentType } from "docx";
 
 export interface AnalyticsReport {
   id: string;
@@ -268,9 +269,11 @@ class AnalyticsService {
     };
   }
 
-  async exportReport(reportData: any, format: string): Promise<string> {
+  async exportReport(reportData: any, format: string): Promise<string | Buffer> {
     if (format === "csv") {
       return this.convertToCSV(reportData);
+    } else if (format === "docx") {
+      return await this.convertToWord(reportData);
     } else if (format === "json") {
       return JSON.stringify(reportData, null, 2);
     }
@@ -278,11 +281,120 @@ class AnalyticsService {
   }
 
   private convertToCSV(data: any): string {
-    // Simple CSV conversion
-    const headers = Object.keys(data);
-    const csvHeaders = headers.join(",");
-    const csvData = headers.map(h => data[h]).join(",");
-    return `${csvHeaders}\n${csvData}`;
+    // Enhanced CSV conversion for different report types
+    if (data.average_cpu !== undefined) {
+      // Performance report
+      return `Metric,Value,Unit\n` +
+             `Average CPU,${data.average_cpu},%\n` +
+             `Average Memory,${data.average_memory},%\n` +
+             `Average Disk,${data.average_disk},%\n` +
+             `Device Count,${data.device_count},devices\n` +
+             `Uptime Percentage,${data.uptime_percentage},%\n` +
+             `Critical Alerts,${data.critical_alerts},alerts`;
+    } else if (data.total_devices !== undefined) {
+      // Availability report
+      return `Metric,Value\n` +
+             `Total Devices,${data.total_devices}\n` +
+             `Online Devices,${data.online_devices}\n` +
+             `Offline Devices,${data.offline_devices}\n` +
+             `Availability Percentage,${data.availability_percentage}%\n` +
+             `Downtime Incidents,${data.downtime_incidents}`;
+    } else {
+      // Fallback for other reports
+      const headers = Object.keys(data);
+      const csvHeaders = headers.join(",");
+      const csvData = headers.map(h => typeof data[h] === 'object' ? JSON.stringify(data[h]) : data[h]).join(",");
+      return `${csvHeaders}\n${csvData}`;
+    }
+  }
+
+  private async convertToWord(data: any): Promise<Buffer> {
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: [
+          new Paragraph({
+            text: "System Analytics Report",
+            heading: HeadingLevel.TITLE,
+            alignment: AlignmentType.CENTER,
+          }),
+          new Paragraph({
+            text: `Generated on ${format(new Date(), 'PPpp')}`,
+            alignment: AlignmentType.CENTER,
+          }),
+          new Paragraph({ text: "" }), // Empty line
+          ...this.generateWordContent(data)
+        ],
+      }],
+    });
+
+    return await Packer.toBuffer(doc);
+  }
+
+  private generateWordContent(data: any): Paragraph[] {
+    const content: Paragraph[] = [];
+
+    if (data.average_cpu !== undefined) {
+      // Performance report content
+      content.push(
+        new Paragraph({
+          text: "Performance Summary",
+          heading: HeadingLevel.HEADING_1,
+        }),
+        new Paragraph({ text: `Average CPU Usage: ${data.average_cpu}%` }),
+        new Paragraph({ text: `Average Memory Usage: ${data.average_memory}%` }),
+        new Paragraph({ text: `Average Disk Usage: ${data.average_disk}%` }),
+        new Paragraph({ text: `Total Devices: ${data.device_count}` }),
+        new Paragraph({ text: `System Uptime: ${data.uptime_percentage}%` }),
+        new Paragraph({ text: `Critical Alerts: ${data.critical_alerts}` }),
+        new Paragraph({ text: "" }),
+        new Paragraph({
+          text: "Performance Trends",
+          heading: HeadingLevel.HEADING_2,
+        }),
+        new Paragraph({ text: `CPU Trend: ${data.trends?.cpu_trend > 0 ? '+' : ''}${data.trends?.cpu_trend}%` }),
+        new Paragraph({ text: `Memory Trend: ${data.trends?.memory_trend > 0 ? '+' : ''}${data.trends?.memory_trend}%` }),
+        new Paragraph({ text: `Disk Trend: ${data.trends?.disk_trend > 0 ? '+' : ''}${data.trends?.disk_trend}%` })
+      );
+    } else if (data.total_devices !== undefined) {
+      // Availability report content
+      content.push(
+        new Paragraph({
+          text: "Availability Report",
+          heading: HeadingLevel.HEADING_1,
+        }),
+        new Paragraph({ text: `Total Devices: ${data.total_devices}` }),
+        new Paragraph({ text: `Online Devices: ${data.online_devices}` }),
+        new Paragraph({ text: `Offline Devices: ${data.offline_devices}` }),
+        new Paragraph({ text: `Availability: ${data.availability_percentage}%` }),
+        new Paragraph({ text: `Downtime Incidents: ${data.downtime_incidents}` })
+      );
+    } else if (data.total_agents !== undefined) {
+      // Inventory report content
+      content.push(
+        new Paragraph({
+          text: "System Inventory",
+          heading: HeadingLevel.HEADING_1,
+        }),
+        new Paragraph({ text: `Total Agents: ${data.total_agents}` }),
+        new Paragraph({ text: `Average Disk Usage: ${data.storage_usage?.avg_disk_usage}%` }),
+        new Paragraph({ text: `Average Memory Usage: ${data.memory_usage?.avg_memory_usage}%` }),
+        new Paragraph({ text: "" }),
+        new Paragraph({
+          text: "Operating Systems",
+          heading: HeadingLevel.HEADING_2,
+        })
+      );
+      
+      // Add OS breakdown
+      if (data.by_os) {
+        Object.entries(data.by_os).forEach(([os, count]) => {
+          content.push(new Paragraph({ text: `${os}: ${count} devices` }));
+        });
+      }
+    }
+
+    return content;
   }
 }
 

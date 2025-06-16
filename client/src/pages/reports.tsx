@@ -96,7 +96,8 @@ export default function Reports() {
 
   const formats = [
     { value: "json", label: "JSON" },
-    { value: "csv", label: "CSV" }
+    { value: "csv", label: "CSV" },
+    { value: "docx", label: "MS Word (DOCX)" }
   ];
 
   useEffect(() => {
@@ -140,8 +141,8 @@ export default function Reports() {
     try {
       let response;
       
-      if (fmt === "csv") {
-        // Handle CSV download
+      if (fmt === "csv" || fmt === "docx") {
+        // Handle CSV and Word downloads
         response = await api.post("/api/analytics/generate", {
           reportType: type,
           timeRange: range,
@@ -152,14 +153,15 @@ export default function Reports() {
           const blob = await response.blob();
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
+          const extension = fmt === "docx" ? "docx" : "csv";
           a.href = url;
-          a.download = `${type}-report-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+          a.download = `${type}-report-${format(new Date(), 'yyyy-MM-dd')}.${extension}`;
           a.click();
           URL.revokeObjectURL(url);
         } else {
           const errorText = await response.text();
-          console.error("CSV download failed:", errorText);
-          setError("Failed to download CSV report");
+          console.error(`${fmt.toUpperCase()} download failed:`, errorText);
+          setError(`Failed to download ${fmt.toUpperCase()} report`);
         }
       } else {
         // Handle JSON report

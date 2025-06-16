@@ -100,6 +100,11 @@ router.post("/generate", async (req, res) => {
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename="${reportType}-report.csv"`);
       res.send(csvData);
+    } else if (format === "docx") {
+      const wordData = await analyticsService.exportReport(data, "docx");
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader('Content-Disposition', `attachment; filename="${reportType}-report.docx"`);
+      res.send(wordData);
     } else {
       res.json({
         success: true,
