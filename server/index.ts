@@ -58,8 +58,16 @@ app.use((req, res, next) => {
     // Register enhanced user routes
     app.use("/api/users", userRoutes);
 
+    // Register analytics routes
+    const analyticsRoutes = await import("./analytics-routes");
+    app.use("/api/analytics", analyticsRoutes.default);
+
     // Import storage after it's available
     const { storage } = await import("./storage");
+
+    // Initialize reports table
+    const { reportsStorage } = await import("./reports-storage");
+    await reportsStorage.createReportsTable();
 
     // Auth middleware
     const authenticateToken = async (req: any, res: any, next: any) => {
