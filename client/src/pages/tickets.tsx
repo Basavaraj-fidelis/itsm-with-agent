@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,7 +45,8 @@ import {
   ChevronUp,
   ChevronDown,
   Settings,
-  Download
+  Download,
+  Eye
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -99,6 +100,11 @@ interface NewTicketFormData {
   priority: string;
   requester_email: string;
   category: string;
+  impact?: string;
+  urgency?: string;
+  change_type?: string;
+  risk_level?: string;
+  known_error?: boolean;
 }
 
 interface TicketData {
@@ -123,7 +129,7 @@ interface TicketData {
 }
 
 export default function Tickets() {
-  const location = useLocation();
+  const [location, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [selectedType, setSelectedType] = useState<string>("all");
@@ -143,6 +149,8 @@ export default function Tickets() {
     priority: "medium",
     requester_email: "",
     category: "",
+    impact: "medium",
+    urgency: "medium",
   });
 
   const [tickets, setTickets] = useState<TicketData[]>([]);
