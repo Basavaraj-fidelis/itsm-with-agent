@@ -83,7 +83,7 @@ export default function KnowledgeBase() {
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
 
   // Check if we're viewing a specific article
-  const articleMatch = location.match(/^\/knowledge-base\/([^-]+)/);
+  const articleMatch = location.match(/^\/knowledge-base\/(.+)/);
   const articleId = articleMatch ? articleMatch[1] : null;
 
 

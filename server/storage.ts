@@ -2702,12 +2702,8 @@ smartphones
       console.log("Database query failed for single article:", dbError.message);
     }
 
-    // Fallback to file storage
-    if (!this.knowledgeBase) {
-      await this.loadKnowledgeBase();
-    }
-
-    return this.knowledgeBase.find((article) => article.id === id) || null;
+    // Return null if not found in database
+    return null;
   }
 
   async incrementArticleViews(id) {
