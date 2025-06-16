@@ -27,7 +27,7 @@ router.get("/performance", async (req, res) => {
     console.error("Error generating performance report:", error);
     res.status(500).json({
       success: false,
-      error: "Failed to generate performance report"
+      error: error instanceof Error ? error.message : "Failed to generate performance report"
     });
   }
 });
@@ -125,30 +125,34 @@ router.post("/generate", async (req, res) => {
 // Get recent reports (placeholder for stored reports)
 router.get("/recent", async (req, res) => {
   try {
-    // Mock recent reports data
+    console.log("Fetching recent reports...");
+    
+    // Mock recent reports data - simplified to avoid any potential issues
     const recentReports = [
       {
         id: "perf-march-2024",
         title: "Performance Summary - March 2024",
         type: "performance",
-        generated_at: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+        generated_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
         time_range: "30d"
       },
       {
         id: "avail-weekly",
         title: "Availability Report - Weekly",
         type: "availability", 
-        generated_at: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+        generated_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
         time_range: "7d"
       },
       {
         id: "inv-full-export",
         title: "System Inventory - Full Export",
         type: "inventory",
-        generated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+        generated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
         time_range: "current"
       }
     ];
+    
+    console.log(`Returning ${recentReports.length} recent reports`);
     
     res.json({
       success: true,
@@ -158,7 +162,7 @@ router.get("/recent", async (req, res) => {
     console.error("Error fetching recent reports:", error);
     res.status(500).json({
       success: false,
-      error: "Failed to fetch recent reports"
+      error: error instanceof Error ? error.message : "Failed to fetch recent reports"
     });
   }
 });

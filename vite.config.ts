@@ -31,12 +31,17 @@ export default defineConfig(async () => {
     server: {
       host: '0.0.0.0',
       port: 3000,
-      allowedHosts: ['all', 'c39c548f-04ff-400b-b2bb-4700fcfc3020-00-33h3fwy3vlt21.sisko.replit.dev'],
+      strictPort: true,
+      hmr: {
+        port: 24678,
+        clientPort: 24678,
+      },
       proxy: {
         '/api': {
           target: 'http://0.0.0.0:5000',
           changeOrigin: true,
           secure: false,
+          timeout: 30000,
         }
       }
     },

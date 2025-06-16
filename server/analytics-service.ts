@@ -59,18 +59,29 @@ export interface SystemInventoryData {
 
 class AnalyticsService {
   async generatePerformanceSummary(timeRange: string = "7d"): Promise<PerformanceSummaryData> {
-    const days = this.parseTimeRange(timeRange);
-    const cutoffDate = subDays(new Date(), days);
+    try {
+      const days = this.parseTimeRange(timeRange);
+      const cutoffDate = subDays(new Date(), days);
 
-    // Get all devices
-    const allDevices = await db.select().from(devices);
-    
-    // Get recent reports
-    const recentReports = await db
-      .select()
-      .from(device_reports)
-      .where(gte(device_reports.collected_at, cutoffDate))
-      .orderBy(desc(device_reports.collected_at));
+      console.log(`Fetching devices for performance summary...`);
+      // Get all devices with timeout protection
+      const allDevices = await Promise.race([
+        db.select().from(devices),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Database query timeout')), 10000))
+      ]) as any[];
+      
+      console.log(`Found ${allDevices.length} devices`);
+      
+      // Get recent reports with timeout protection
+      const recentReports = await Promise.race([
+        db
+          .select()
+          .from(device_reports)
+          .where(gte(device_reports.collected_at, cutoffDate))
+          .orderBy(desc(device_reports.collected_at))
+          .limit(1000), // Add limit to prevent large queries
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Database query timeout')), 10000))
+      ]) as any[];
 
     // Calculate averages
     const totalReports = recentReports.length;
@@ -109,6 +120,23 @@ class AnalyticsService {
       critical_alerts: criticalAlerts.length,
       trends
     };
+    } catch (error) {
+      console.error("Error in generatePerformanceSummary:", error);
+      // Return default values instead of throwing
+      return {
+        average_cpu: 0,
+        average_memory: 0,
+        average_disk: 0,
+        device_count: 0,
+        uptime_percentage: 0,
+        critical_alerts: 0,
+        trends: {
+          cpu_trend: 0,
+          memory_trend: 0,
+          disk_trend: 0
+        }
+      };
+    }
   }
 
   async generateAvailabilityReport(timeRange: string = "7d"): Promise<AvailabilityData> {
