@@ -158,6 +158,8 @@ export default function Tickets() {
   const [expandedTickets, setExpandedTickets] = useState<string[]>([]);
   const [slaViolationFilter, setSlaViolationFilter] = useState(false);
 
+  const [showClosed, setShowClosed] = useState(false);
+
   // Handle URL filter parameters
   React.useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -1854,7 +1856,6 @@ export default function Tickets() {
                   </SelectContent>
                 </Select>
                             </div>
-```python
             </div>
             <div>
               <Label htmlFor="title">Title</Label>
