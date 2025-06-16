@@ -242,6 +242,25 @@ export default function Dashboard() {
     }
   }, [summaryError, alertsError, agentsError]);
 
+  // Listen for localStorage changes to refresh alert counts
+  React.useEffect(() => {
+    const handleStorageChange = () => {
+      // Force re-render when readAlerts in localStorage changes
+      window.location.reload();
+    };
+
+    // Listen for storage events (when localStorage changes in other tabs)
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also listen for custom event when alerts are marked as read in same tab
+    window.addEventListener('alertsMarkedAsRead', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('alertsMarkedAsRead', handleStorageChange);
+    };
+  }, []);
+
   if (summaryLoading || agentsLoading || alertsLoading || ticketsLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900 p-6 space-y-8">
@@ -385,7 +404,12 @@ export default function Dashboard() {
 
         <MetricCard
           title="Alerts"
-          value={alerts?.length || 0}
+          value={(() => {
+            if (!alerts) return 0;
+            // Get read alerts from localStorage to match alerts page behavior
+            const readAlerts = JSON.parse(localStorage.getItem('readAlerts') || '[]');
+            return alerts.filter(alert => !readAlerts.includes(alert.id)).length;
+          })()}
           icon={AlertTriangle}
           change={{
             value: alerts?.filter(alert => {
@@ -638,9 +662,14 @@ export default function Dashboard() {
                   ></div>
                 ))}
               </div>
-            ) : alerts && alerts.length > 0 ? (
-              <div className="space-y-4">
-                {alerts.slice(0, 5).map((alert) => (
+            ) : (() => {
+              if (!alerts) return null;
+              // Filter out read alerts to match alerts page behavior
+              const readAlerts = JSON.parse(localStorage.getItem('readAlerts') || '[]');
+              const unreadAlerts = alerts.filter(alert => !readAlerts.includes(alert.id));
+              return unreadAlerts.length > 0 ? (
+                <div className="space-y-4">
+                  {unreadAlerts.slice(0, 5).map((alert) => (
                   <div
                     key={alert.id}
                     className={`flex items-start space-x-3 p-3 rounded-lg border ${
@@ -679,13 +708,14 @@ export default function Dashboard() {
                     </div>
                   </div>
                 ))}
-              </div>
-            ) : (
-              <div className="text-center py-4">
-                <AlertTriangle className="w-12 h-12 text-neutral-400 mx-auto mb-2" />
-                <p className="text-neutral-500">No recent alerts</p>
-              </div>
-            )}
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <AlertTriangle className="w-12 h-12 text-neutral-400 mx-auto mb-2" />
+                  <p className="text-neutral-500">No unread alerts</p>
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
       </div>
