@@ -1,7 +1,9 @@
 
 import { storage } from "./storage";
 import { db } from "./db";
-import { devices, device_reports, alerts, tickets, users, installed_software, usb_devices, patch_management, user_sessions } from "../shared/schema";
+import { devices, device_reports, alerts, usb_devices, installed_software, patch_management, user_sessions } from "../shared/schema";
+import { tickets } from "../shared/ticket-schema";
+import { users } from "../shared/user-schema";
 import { sql, eq, gte, and, desc, count, avg, sum, between } from "drizzle-orm";
 import { subDays, subHours, format, startOfDay, endOfDay, startOfMonth, endOfMonth } from "date-fns";
 

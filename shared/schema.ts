@@ -108,3 +108,40 @@ export type InsertDeviceReport = z.infer<typeof insertDeviceReportSchema>;
 export type Alert = typeof alerts.$inferSelect;
 export type InsertAlert = z.infer<typeof insertAlertSchema>;
 export type DeviceReportRequest = z.infer<typeof deviceReportRequestSchema>;
+
+// Additional tables needed for analytics
+export const installed_software = pgTable("installed_software", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  device_id: uuid("device_id").references(() => devices.id).notNull(),
+  name: text("name").notNull(),
+  version: text("version"),
+  publisher: text("publisher"),
+  install_date: timestamp("install_date"),
+  license_key: text("license_key"),
+  category: text("category"),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow()
+});
+
+export const patch_management = pgTable("patch_management", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  device_id: uuid("device_id").references(() => devices.id).notNull(),
+  patch_id: text("patch_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  severity: text("severity").notNull(),
+  install_date: timestamp("install_date"),
+  status: text("status").default("pending"),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow()
+});
+
+export const user_sessions = pgTable("user_sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  user_id: uuid("user_id").notNull(),
+  device_id: uuid("device_id").references(() => devices.id),
+  session_start: timestamp("session_start").defaultNow(),
+  session_end: timestamp("session_end"),
+  duration_minutes: numeric("duration_minutes"),
+  created_at: timestamp("created_at").defaultNow()
+});
