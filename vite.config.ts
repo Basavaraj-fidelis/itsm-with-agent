@@ -30,17 +30,14 @@ export default defineConfig(async () => {
     },
     server: {
       host: "0.0.0.0",
-      port: 5173,
+      port: 5173, // make sure Replit forwards this port
       strictPort: true,
+      hmr: false, // 🚫 Disable Hot Module Replacement (no websocket)
       allowedHosts: [
-        ".replit.dev", // Generic wildcard for Replit domains
-        "all"
+        /\.replit\.dev$/,
+        /\.sisko\.replit\.dev$/,
+        "738c25d0-9a16-4532-a326-c937a7001ba0-00-khy30kh70x5y.sisko.replit.dev",
       ],
-      hmr: {
-        protocol: "wss",
-        host: "0.0.0.0",
-        port: 5174,
-      },
       proxy: {
         "/api": {
           target: "http://0.0.0.0:5000",
