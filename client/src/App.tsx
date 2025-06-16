@@ -171,13 +171,7 @@ export default function App() {
 
 
 
-            <Route path="/settings/active-directory">
-              <ProtectedRoute requiredRole={["admin"]}>
-                <AuthenticatedLayout>
-                  <ActiveDirectory />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
+            
 
             <Route path="/settings/:section?">
               <ProtectedRoute requiredRole={["admin", "manager"]}>

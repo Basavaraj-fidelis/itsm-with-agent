@@ -12,7 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import SettingsSidebar from "@/components/layout/settings-sidebar";
-import { 
+import {
   TrendingUp, 
   AlertTriangle, 
   Clock, 
@@ -36,7 +36,11 @@ import {
   Server,
   Zap,
   Key,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Activity,
+  Link,
+  UserCheck,
+  Users2
 } from "lucide-react";
 
 export default function Settings() {
@@ -725,6 +729,74 @@ export default function Settings() {
     </div>
   );
 
+  const renderActiveDirectorySettings = () => (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Active Directory Integration
+          </CardTitle>
+          <CardDescription>Configure Active Directory settings to sync users and groups</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="adServer">AD Server Address</Label>
+              <Input
+                id="adServer"
+                placeholder="ldap://your-ad-server.com"
+                value={settings.adServer}
+                onChange={(e) => updateSetting('adServer', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="adBaseDN">Base DN</Label>
+              <Input
+                id="adBaseDN"
+                placeholder="OU=Users,DC=your-domain,DC=com"
+                value={settings.adBaseDN}
+                onChange={(e) => updateSetting('adBaseDN', e.target.value)}
+              />
+            </div>
+          </div>
+  
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="adBindDN">Bind DN (User)</Label>
+              <Input
+                id="adBindDN"
+                placeholder="CN=Bind User,OU=Service Accounts,DC=your-domain,DC=com"
+                value={settings.adBindDN}
+                onChange={(e) => updateSetting('adBindDN', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="adBindPassword">Bind Password</Label>
+              <Input
+                id="adBindPassword"
+                type="password"
+                value={settings.adBindPassword}
+                onChange={(e) => updateSetting('adBindPassword', e.target.value)}
+              />
+            </div>
+          </div>
+  
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Enable Active Directory</Label>
+              <p className="text-sm text-muted-foreground">Enable synchronization with Active Directory</p>
+            </div>
+            <Switch
+              checked={settings.adEnabled}
+              onCheckedChange={(checked) => updateSetting('adEnabled', checked)}
+            />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
   const renderContent = () => {
     switch (activeSection) {
       case 'general':
@@ -740,20 +812,7 @@ export default function Settings() {
       case 'agent':
         return renderAgentSettings();
       case 'active-directory':
-        return (
-          <div className="space-y-6">
-            <div className="text-center p-8">
-              <Shield className="w-12 h-12 mx-auto mb-4 text-blue-500" />
-              <h3 className="text-lg font-medium mb-2">Active Directory Integration</h3>
-              <p className="text-muted-foreground mb-4">
-                Active Directory configuration is available as a separate page for detailed management.
-              </p>
-              <Button onClick={() => window.open('/settings/active-directory', '_blank')}>
-                Open Active Directory Settings
-              </Button>
-            </div>
-          </div>
-        );
+        return renderActiveDirectorySettings();
       default:
         return renderGeneralSettings();
     }
