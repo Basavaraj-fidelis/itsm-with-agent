@@ -576,7 +576,7 @@ class AnalyticsService {
     } else if (format === "json") {
       return JSON.stringify(reportData, null, 2);
     } else if (format === "pdf") {
-      return await this.convertToPDF(reportData);
+      return await this.convertToPDF(reportData, reportType);
     }
     throw new Error("Unsupported format");
   }
@@ -606,12 +606,15 @@ class AnalyticsService {
 
   private async convertToEnhancedWord(data: any, reportType: string): Promise<Buffer> {
     try {
-      if (!Document || !Packer || !Paragraph) {
-        console.log("DOCX package not available, generating enhanced text document");
+      if (!Document || !Packer || !Paragraph || !HeadingLevel || !AlignmentType) {
+        console.log("DOCX package not fully available, generating text document as docx");
         const textContent = this.generateEnhancedTextDocument(data, reportType);
+        // Return as buffer with proper encoding to avoid corruption
         return Buffer.from(textContent, 'utf-8');
       }
 
+      const content = this.generateWordContent(data, reportType);
+      
       const doc = new Document({
         sections: [{
           properties: {},
@@ -626,7 +629,7 @@ class AnalyticsService {
               alignment: AlignmentType.CENTER,
             }),
             new Paragraph({ text: "" }),
-            ...this.generateWordContent(data, reportType)
+            ...content
           ],
         }],
       });
@@ -636,7 +639,8 @@ class AnalyticsService {
       return buffer;
     } catch (error) {
       console.error("Error generating Word document:", error);
-      const textContent = this.generateEnhancedTextDocument(data, reportType);
+      // Fallback to plain text in proper Word format
+      const textContent = this.generateWordFallbackDocument(data, reportType);
       return Buffer.from(textContent, 'utf-8');
     }
   }
@@ -1220,9 +1224,104 @@ class AnalyticsService {
     return content;
   }
 
-  private async convertToPDF(data: any): Promise<Buffer> {
-    const textContent = this.generateEnhancedTextDocument(data, 'generic');
+  private async convertToPDF(data: any, reportType: string = 'generic'): Promise<Buffer> {
+    // Generate a simple PDF-like text format
+    const textContent = this.generatePDFTextDocument(data, reportType);
     return Buffer.from(textContent, 'utf-8');
+  }
+
+  private generatePDFTextDocument(data: any, reportType: string): string {
+    let content = `%PDF-1.4\n`;
+    content += `1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n\n`;
+    content += `2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n\n`;
+    content += `3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n/Contents 4 0 R\n>>\nendobj\n\n`;
+    content += `4 0 obj\n<<\n/Length ${this.getReportTitle(reportType).length + 100}\n>>\nstream\n`;
+    content += `BT\n/F1 12 Tf\n50 750 Td\n(${this.getReportTitle(reportType)}) Tj\n`;
+    content += `0 -20 Td\n(Generated: ${format(new Date(), 'PPpp')}) Tj\n`;
+    content += `0 -40 Td\n(Report Data:) Tj\n`;
+    content += `0 -20 Td\n(${JSON.stringify(data, null, 2).substring(0, 500)}...) Tj\n`;
+    content += `ET\nendstream\nendobj\n\n`;
+    content += `xref\n0 5\n0000000000 65535 f\n0000000010 00000 n\n0000000079 00000 n\n0000000173 00000 n\n0000000301 00000 n\n`;
+    content += `trailer\n<<\n/Size 5\n/Root 1 0 R\n>>\nstartxref\n${content.length}\n%%EOF`;
+    
+    return content;
+  }
+
+  private generateWordFallbackDocument(data: any, reportType: string): string {
+    // Generate a simple RTF document that Word can read
+    let content = `{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0 Times New Roman;}}`;
+    content += `\\f0\\fs24 `;
+    content += `{\\b\\fs28 ${this.getReportTitle(reportType)}\\par}`;
+    content += `\\par`;
+    content += `Generated on: ${format(new Date(), 'PPpp')}\\par`;
+    content += `\\par`;
+    content += `{\\b Report Data:}\\par`;
+    content += `\\par`;
+    
+    // Add specific content based on report type
+    switch (reportType) {
+      case 'asset-inventory':
+        content += this.generateAssetInventoryRTF(data);
+        break;
+      case 'ticket-analytics':
+        content += this.generateTicketAnalyticsRTF(data);
+        break;
+      case 'system-health':
+        content += this.generateSystemHealthRTF(data);
+        break;
+      case 'security-compliance':
+        content += this.generateSecurityComplianceRTF(data);
+        break;
+      default:
+        content += `${JSON.stringify(data, null, 2)}`;
+    }
+    
+    content += `}`;
+    return content;
+  }
+
+  private generateAssetInventoryRTF(data: any): string {
+    let content = `{\\b EXECUTIVE SUMMARY}\\par`;
+    content += `Total Devices: ${data.total_devices}\\par`;
+    content += `Compliance Rate: ${Math.round((data.compliance_status.compliant_devices / data.total_devices) * 100)}%\\par`;
+    content += `Software Packages: ${data.software_inventory.total_installed}\\par`;
+    content += `\\par`;
+    content += `{\\b DEVICE BREAKDOWN}\\par`;
+    Object.entries(data.device_breakdown.by_os).forEach(([os, count]) => {
+      content += `${os}: ${count} devices\\par`;
+    });
+    return content;
+  }
+
+  private generateTicketAnalyticsRTF(data: any): string {
+    let content = `{\\b TICKET SUMMARY}\\par`;
+    content += `Total Tickets: ${data.summary.total_tickets}\\par`;
+    content += `Open Tickets: ${data.summary.open_tickets}\\par`;
+    content += `Resolved Tickets: ${data.summary.resolved_tickets}\\par`;
+    content += `SLA Compliance: ${data.sla_performance.sla_compliance_rate}%\\par`;
+    content += `\\par`;
+    content += `{\\b TOP ISSUES}\\par`;
+    data.top_issues.forEach((issue: any) => {
+      content += `${issue.category}: ${issue.count} tickets\\par`;
+    });
+    return content;
+  }
+
+  private generateSystemHealthRTF(data: any): string {
+    let content = `{\\b SYSTEM OVERVIEW}\\par`;
+    content += `Health Score: ${data.overall_health.health_score}/100\\par`;
+    content += `Active Devices: ${data.overall_health.active_devices}\\par`;
+    content += `Critical Alerts: ${data.overall_health.critical_alerts}\\par`;
+    content += `System Uptime: ${data.overall_health.system_uptime}%\\par`;
+    return content;
+  }
+
+  private generateSecurityComplianceRTF(data: any): string {
+    let content = `{\\b PATCH COMPLIANCE}\\par`;
+    content += `Compliance Rate: ${data.patch_compliance.compliance_percentage}%\\par`;
+    content += `Up-to-Date Devices: ${data.patch_compliance.up_to_date}\\par`;
+    content += `Missing Critical Patches: ${data.patch_compliance.missing_critical}\\par`;
+    return content;
   }
 
   // Legacy methods for backward compatibility

@@ -284,6 +284,12 @@ router.post("/generate", async (req, res) => {
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
       res.setHeader('Content-Disposition', `attachment; filename="${reportType}-report.docx"`);
       res.send(wordData);
+    } else if (format === "pdf") {
+      console.log("Generating PDF document...");
+      const pdfData = await analyticsService.exportReport(data, "pdf", reportType);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${reportType}-report.pdf"`);
+      res.send(pdfData);
     } else {
       res.json({
         success: true,
