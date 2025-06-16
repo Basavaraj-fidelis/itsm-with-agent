@@ -254,7 +254,7 @@ app.use((req, res, next) => {
     serv.on('upgrade', (request, socket, head) => {
       const url = request.url;
       const origin = request.headers.origin;
-      
+
       // Let Vite handle its own WebSocket connections for HMR
       if (url && (url.includes('vite') || url.includes('hmr') || request.headers['sec-websocket-protocol']?.includes('vite'))) {
         // Don't handle Vite WebSocket connections here
