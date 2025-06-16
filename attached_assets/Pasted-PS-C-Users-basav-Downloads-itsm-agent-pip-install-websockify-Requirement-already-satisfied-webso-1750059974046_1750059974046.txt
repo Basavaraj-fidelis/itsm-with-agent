@@ -1,0 +1,23 @@
+PS C:\Users\basav\Downloads\itsm-agent> pip install websockify
+Requirement already satisfied: websockify in c:\users\basav\appdata\local\programs\python\python310\lib\site-packages (0.13.0)
+Requirement already satisfied: jwcrypto in c:\users\basav\appdata\local\programs\python\python310\lib\site-packages (from websockify) (1.5.6)
+Requirement already satisfied: requests in c:\users\basav\appdata\local\programs\python\python310\lib\site-packages (from websockify) (2.31.0)
+Requirement already satisfied: redis in c:\users\basav\appdata\local\programs\python\python310\lib\site-packages (from websockify) (6.2.0)
+Requirement already satisfied: numpy in c:\users\basav\appdata\local\programs\python\python310\lib\site-packages (from websockify) (1.25.2)
+Requirement already satisfied: typing-extensions>=4.5.0 in c:\users\basav\appdata\local\programs\python\python310\lib\site-packages (from jwcrypto->websockify) (4.13.2)
+Requirement already satisfied: cryptography>=3.4 in c:\users\basav\appdata\local\programs\python\python310\lib\site-packages (from jwcrypto->websockify) (41.0.3)
+Requirement already satisfied: cffi>=1.12 in c:\users\basav\appdata\local\programs\python\python310\lib\site-packages (from cryptography>=3.4->jwcrypto->websockify) (1.17.1)
+Requirement already satisfied: pycparser in c:\users\basav\appdata\local\programs\python\python310\lib\site-packages (from cffi>=1.12->cryptography>=3.4->jwcrypto->websockify) (2.22)
+Requirement already satisfied: async-timeout>=4.0.3 in c:\users\basav\appdata\local\programs\python\python310\lib\site-packages (from redis->websockify) (4.0.3)
+Requirement already satisfied: certifi>=2017.4.17 in c:\users\basav\appdata\local\programs\python\python310\lib\site-packages (from requests->websockify) (2025.4.26)
+Requirement already satisfied: idna<4,>=2.5 in c:\users\basav\appdata\local\programs\python\python310\lib\site-packages (from requests->websockify) (3.10)
+Requirement already satisfied: urllib3<3,>=1.21.1 in c:\users\basav\appdata\local\programs\python\python310\lib\site-packages (from requests->websockify) (2.4.0)
+Requirement already satisfied: charset-normalizer<4,>=2 in c:\users\basav\appdata\local\programs\python\python310\lib\site-packages (from requests->websockify) (3.4.2)
+WARNING: You are using pip version 21.2.3; however, version 25.1.1 is available.
+You should consider upgrading via the 'C:\Users\basav\AppData\Local\Programs\Python\Python310\python.exe -m pip install --upgrade pip' command.
+PS C:\Users\basav\Downloads\itsm-agent> websockify 6080 0.0.0.0:5900
+WARNING: no 'resource' module, daemonizing is disabled
+WebSocket server settings:
+  - Listen on :6080
+  - No SSL/TLS support (no cert file)
+  - proxying from :6080 to 0.0.0.0:5900
