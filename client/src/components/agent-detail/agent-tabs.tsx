@@ -2033,49 +2033,97 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
             <div className="flex items-center justify-between">
               <span>Last Boot Time</span>
               <span className="text-muted-foreground">
-                {rawData?.extracted_update_info?.last_boot_time
-                  ? format(
-                      new Date(rawData.extracted_update_info.last_boot_time),
-                      "PPpp",
-                    )
-                  : "5/22/2025, 6:39:47 PM"}
+                {(() => {
+                  const bootTime = rawData?.update_history?.last_boot_time || 
+                                 rawData?.os_info?.boot_time ||
+                                 rawData?.extracted_update_info?.last_boot_time;
+                  
+                  if (bootTime) {
+                    try {
+                      return format(new Date(bootTime), "PPpp");
+                    } catch {
+                      return bootTime;
+                    }
+                  }
+                  return "Unknown";
+                })()}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span>System Uptime</span>
               <span className="text-muted-foreground">
-                {rawData?.extracted_update_info?.system_uptime_hours
-                  ? `${rawData.extracted_update_info.system_uptime_hours} hours`
-                  : "449 hours"}
+                {(() => {
+                  const uptimeHours = rawData?.update_history?.system_uptime_hours ||
+                                    rawData?.extracted_update_info?.system_uptime_hours;
+                  
+                  if (uptimeHours !== undefined && uptimeHours !== null) {
+                    if (uptimeHours < 24) {
+                      return `${uptimeHours} hours`;
+                    } else {
+                      const days = Math.floor(uptimeHours / 24);
+                      const hours = uptimeHours % 24;
+                      return `${days} days, ${hours} hours`;
+                    }
+                  }
+                  
+                  // Fallback: calculate from uptime_seconds if available
+                  const uptimeSeconds = rawData?.os_info?.uptime_seconds;
+                  if (uptimeSeconds) {
+                    const hours = Math.floor(uptimeSeconds / 3600);
+                    if (hours < 24) {
+                      return `${hours} hours`;
+                    } else {
+                      const days = Math.floor(hours / 24);
+                      const remainingHours = hours % 24;
+                      return `${days} days, ${remainingHours} hours`;
+                    }
+                  }
+                  
+                  return "Unknown";
+                })()}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span>Pending Reboot</span>
               <Badge
                 variant={
+                  rawData?.update_history?.pending_reboot ||
                   rawData?.extracted_update_info?.pending_reboot
                     ? "destructive"
                     : "default"
                 }
               >
-                {rawData?.extracted_update_info?.pending_reboot
+                {rawData?.update_history?.pending_reboot ||
+                rawData?.extracted_update_info?.pending_reboot
                   ? "Required"
                   : "Not Required"}
               </Badge>
             </div>
             <div className="flex items-center justify-between">
-              <span>Windows Version</span>
+              <span>Operating System</span>
               <span className="text-muted-foreground">
-                {rawData?.extracted_update_info?.windows_version ||
+                {rawData?.os_info?.product_name ||
                   rawData?.os_info?.display_version ||
-                  rawData?.os_info?.product_name ||
-                  "24H2"}
+                  rawData?.extracted_update_info?.windows_version ||
+                  `${rawData?.os_info?.name || "Unknown"} ${rawData?.os_info?.version || ""}`.trim() ||
+                  "Unknown"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>OS Build</span>
+              <span className="text-muted-foreground">
+                {rawData?.os_info?.build_number ||
+                  rawData?.extracted_update_info?.windows_build ||
+                  rawData?.os_info?.release ||
+                  "Unknown"}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span>Last Update Check</span>
               <span className="text-muted-foreground">
-                {rawData?.extracted_update_info?.last_update_check || "Unknown"}
+                {rawData?.security?.windows_updates?.last_update_check ||
+                  rawData?.extracted_update_info?.last_update_check || 
+                  "Unknown"}
               </span>
             </div>
           </CardContent>
@@ -2094,14 +2142,23 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                 </div>
                 <Badge
                   variant={
-                    rawData?.extracted_security_info?.firewall_status ===
-                    "enabled"
+                    (rawData?.security?.firewall_status === "enabled" ||
+                     rawData?.extracted_security_info?.firewall_status === "enabled")
                       ? "default"
-                      : "destructive"
+                      : rawData?.security?.firewall_status === "disabled" ||
+                        rawData?.extracted_security_info?.firewall_status === "disabled"
+                      ? "destructive"
+                      : "secondary"
                   }
                 >
-                  {rawData?.extracted_security_info?.firewall_status ||
-                    "enabled"}
+                  {(() => {
+                    const status = rawData?.security?.firewall_status ||
+                                 rawData?.extracted_security_info?.firewall_status;
+                    
+                    if (status === "enabled") return "Enabled";
+                    if (status === "disabled") return "Disabled";
+                    return "Unknown";
+                  })()}
                 </Badge>
               </div>
               <div className="p-4 border rounded-lg">
@@ -2111,14 +2168,23 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                 </div>
                 <Badge
                   variant={
-                    rawData?.extracted_security_info?.antivirus_status ===
-                    "enabled"
+                    (rawData?.security?.antivirus_status === "enabled" ||
+                     rawData?.extracted_security_info?.antivirus_status === "enabled")
                       ? "default"
-                      : "destructive"
+                      : rawData?.security?.antivirus_status === "disabled" ||
+                        rawData?.extracted_security_info?.antivirus_status === "disabled"
+                      ? "destructive"
+                      : "secondary"
                   }
                 >
-                  {rawData?.extracted_security_info?.antivirus_status ||
-                    "enabled"}
+                  {(() => {
+                    const status = rawData?.security?.antivirus_status ||
+                                 rawData?.extracted_security_info?.antivirus_status;
+                    
+                    if (status === "enabled") return "Enabled";
+                    if (status === "disabled") return "Disabled";
+                    return "Unknown";
+                  })()}
                 </Badge>
               </div>
               <div className="p-4 border rounded-lg">
@@ -2127,8 +2193,15 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                   <span className="font-medium">Last Security Scan</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {rawData?.extracted_security_info?.last_scan ||
-                    "QuickScanStartTime: 6/9/2025 1:31:02 PM"}
+                  {(() => {
+                    const lastScan = rawData?.security?.last_scan ||
+                                   rawData?.extracted_security_info?.last_scan;
+                    
+                    if (lastScan && lastScan !== "unknown") {
+                      return lastScan;
+                    }
+                    return "No scan data available";
+                  })()}
                 </p>
               </div>
             </div>
@@ -2140,41 +2213,87 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
             <CardTitle>Recent Updates</CardTitle>
           </CardHeader>
           <CardContent>
-            {rawData?.extracted_update_info?.recent_updates &&
-            rawData.extracted_update_info.recent_updates.length > 0 ? (
-              <div className="space-y-3">
-                {rawData.extracted_update_info.recent_updates.map(
-                  (update: any, index: number) => (
+            {(() => {
+              const recentUpdates = rawData?.security?.windows_updates?.recent_updates ||
+                                  rawData?.extracted_update_info?.recent_updates ||
+                                  [];
+              
+              return recentUpdates.length > 0 ? (
+                <div className="space-y-3">
+                  {recentUpdates.slice(0, 10).map((update: any, index: number) => (
                     <div
                       key={index}
                       className="flex items-center justify-between p-3 border rounded-lg"
                     >
-                      <div>
+                      <div className="flex-1">
                         <p className="font-medium">
-                          {update.title || update.name}
+                          {update.title || update.name || `Update ${index + 1}`}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           Installed:{" "}
-                          {update.installed_date
-                            ? format(new Date(update.installed_date), "PPp")
-                            : "Unknown"}
+                          {(() => {
+                            const installDate = update.installed_date || update.InstalledOn;
+                            if (installDate) {
+                              try {
+                                return format(new Date(installDate), "PPp");
+                              } catch {
+                                return installDate;
+                              }
+                            }
+                            return "Unknown";
+                          })()}
                         </p>
+                        {update.HotFixID && (
+                          <p className="text-xs text-muted-foreground">
+                            ID: {update.HotFixID}
+                          </p>
+                        )}
                       </div>
-                      <Badge variant="outline">{update.type || "Update"}</Badge>
+                      <Badge variant="outline">
+                        {update.type || 
+                         (update.Description && update.Description.includes('Security') ? 'Security Update' : 'Update') ||
+                         'Update'}
+                      </Badge>
                     </div>
-                  ),
-                )}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Download className="w-12 h-12 mx-auto mb-4" />
-                <p>No recent updates data available</p>
-                <p className="text-sm">
-                  Update information will appear here when collected by the
-                  agent
-                </p>
-              </div>
-            )}
+                  ))}
+                  
+                  {recentUpdates.length > 10 && (
+                    <div className="text-center text-sm text-muted-foreground mt-4">
+                      ... and {recentUpdates.length - 10} more updates
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Download className="w-12 h-12 mx-auto mb-4" />
+                  <p>No recent updates data available</p>
+                  <p className="text-sm">
+                    {rawData ? 
+                      "Update information will be collected on the next agent report" :
+                      "Update information will appear here when collected by the agent"
+                    }
+                  </p>
+                  
+                  {/* Debug information for troubleshooting */}
+                  {rawData && (
+                    <details className="mt-4 text-left">
+                      <summary className="text-xs text-gray-500 cursor-pointer">
+                        Debug Info
+                      </summary>
+                      <div className="text-xs text-gray-600 mt-2 font-mono bg-gray-100 p-2 rounded">
+                        <div>Security data available: {rawData.security ? 'Yes' : 'No'}</div>
+                        <div>Windows updates data: {rawData.security?.windows_updates ? 'Yes' : 'No'}</div>
+                        <div>Update history data: {rawData.update_history ? 'Yes' : 'No'}</div>
+                        <div>OS info available: {rawData.os_info ? 'Yes' : 'No'}</div>
+                        {rawData.security?.windows_updates && (
+                          <div>Recent updates count: {rawData.security.windows_updates.recent_updates?.length || 0}</div>
+                        )}
+                      </div>
+                    </details>
+                  )}
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
       </TabsContent>
