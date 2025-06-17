@@ -1,5 +1,6 @@
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
+import { sql } from "drizzle-orm";
 import * as schema from "@shared/schema";
 
 // Use your specific PostgreSQL database URL
@@ -19,3 +20,5 @@ export const pool = new Pool({
 });
 
 export const db = drizzle(pool, { schema });
+
+export { sql };
