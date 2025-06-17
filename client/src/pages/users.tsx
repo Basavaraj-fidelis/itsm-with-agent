@@ -39,7 +39,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
-interface User {
+interface UserInterface {
   id: string;
   email: string;
   name: string;
@@ -76,7 +76,7 @@ export default function Users() {
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserInterface | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [bulkAction, setBulkAction] = useState("");
@@ -228,7 +228,7 @@ export default function Users() {
   });
 
   // Filter users based on all criteria
-  const filteredUsers = users.filter((user: User) => {
+  const filteredUsers = users.filter((user: UserInterface) => {
     const matchesSearch = !searchTerm || 
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -248,15 +248,15 @@ export default function Users() {
   });
 
   // Get unique departments for filter
-  const departments = [...new Set(users.map((user: User) => user.department).filter(Boolean))];
+  const departments = [...new Set(users.map((user: UserInterface) => user.department).filter(Boolean))];
 
   // User statistics
   const stats = {
     total: users.length,
-    active: users.filter((u: User) => u.is_active).length,
-    inactive: users.filter((u: User) => !u.is_active).length,
-    adSynced: users.filter((u: User) => u.ad_synced).length,
-    local: users.filter((u: User) => !u.ad_synced).length,
+    active: users.filter((u: UserInterface) => u.is_active).length,
+    inactive: users.filter((u: UserInterface) => !u.is_active).length,
+    adSynced: users.filter((u: UserInterface) => u.ad_synced).length,
+    local: users.filter((u: UserInterface) => !u.ad_synced).length,
   };
 
   const handleCreateUser = () => {
@@ -281,7 +281,7 @@ export default function Users() {
     switch (bulkAction) {
       case "activate":
         selectedUsers.forEach(userId => {
-          const user = users.find((u: User) => u.id === userId);
+          const user = users.find((u: UserInterface) => u.id === userId);
           if (user) {
             updateUserMutation.mutate({ ...user, is_active: true });
           }
@@ -289,7 +289,7 @@ export default function Users() {
         break;
       case "deactivate":
         selectedUsers.forEach(userId => {
-          const user = users.find((u: User) => u.id === userId);
+          const user = users.find((u: UserInterface) => u.id === userId);
           if (user) {
             updateUserMutation.mutate({ ...user, is_active: false });
           }
@@ -297,7 +297,7 @@ export default function Users() {
         break;
       case "export":
         // Export to CSV functionality
-        const csv = users.map((u: User) => 
+        const csv = users.map((u: UserInterface) => 
           `${u.name},${u.email},${u.role},${u.department},${u.is_active ? 'Active' : 'Inactive'},${u.ad_synced ? 'AD' : 'Local'}`
         ).join('\n');
         const blob = new Blob([`Name,Email,Role,Department,Status,Source\n${csv}`], { type: 'text/csv' });
@@ -312,7 +312,7 @@ export default function Users() {
     setBulkAction("");
   };
 
-  const getSyncStatusIcon = (user: User) => {
+  const getSyncStatusIcon = (user: UserInterface) => {
     if (user.ad_synced) {
       if (user.ad_last_sync) {
         const lastSync = new Date(user.ad_last_sync);
@@ -621,7 +621,7 @@ export default function Users() {
                       type="checkbox"
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setSelectedUsers(filteredUsers.map((u: User) => u.id));
+                          setSelectedUsers(filteredUsers.map((u: UserInterface) => u.id));
                         } else {
                           setSelectedUsers([]);
                         }
@@ -639,7 +639,7 @@ export default function Users() {
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((user: User) => (
+                {filteredUsers.map((user: UserInterface) => (
                   <tr key={user.id} className="border-b hover:bg-gray-50">
                     <td className="p-2">
                       <input
