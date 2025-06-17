@@ -14,13 +14,30 @@ if (!DATABASE_URL) {
   );
 }
 
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+let sslConfig = false;
+if (!DATABASE_URL.includes('localhost') && !DATABASE_URL.includes('127.0.0.1')) {
+  try {
+    const caCert = readFileSync(join(process.cwd(), 'attached_assets', 'ca_1750140881112.pem'));
+    sslConfig = {
+      rejectUnauthorized: true,
+      ca: caCert,
+    };
+  } catch (error) {
+    console.log('CA certificate not found, using fallback SSL config');
+    sslConfig = {
+      rejectUnauthorized: false,
+      requestCert: false,
+      agent: false
+    };
+  }
+}
+
 export const pool = new Pool({
   connectionString: DATABASE_URL,
-  ssl: DATABASE_URL.includes('localhost') || DATABASE_URL.includes('127.0.0.1') ? false : { 
-    rejectUnauthorized: false,
-    requestCert: false,
-    agent: false
-  },
+  ssl: sslConfig,
 });
 
 export const db = drizzle(pool, { schema });
