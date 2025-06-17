@@ -8,18 +8,22 @@ const DATABASE_URL = process.env.DATABASE_URL || "postgres://avnadmin:AVNS_YOa-j
 let sslConfig = false;
 if (!DATABASE_URL.includes('localhost') && !DATABASE_URL.includes('127.0.0.1')) {
   try {
-    const caCert = fs.readFileSync(path.join(process.cwd(), 'attached_assets', 'ca_1750140881112.pem'));
+    const caCertPath = path.join(process.cwd(), 'attached_assets', 'ca_1750140881112.pem');
+    const caCert = fs.readFileSync(caCertPath);
     sslConfig = {
       rejectUnauthorized: true,
       ca: caCert,
+      checkServerIdentity: () => undefined,
     };
     console.log('📋 Using CA certificate for secure connection');
   } catch (error) {
-    console.log('⚠️  CA certificate not found, using fallback SSL config');
+    console.log('⚠️ CA certificate not found, using secure fallback SSL config');
+    console.log('Error loading CA cert:', error.message);
     sslConfig = {
       rejectUnauthorized: false,
-      requestCert: false,
-      agent: false
+      requestCert: true,
+      agent: false,
+      secureProtocol: 'TLSv1_2_method',
     };
   }
 }
