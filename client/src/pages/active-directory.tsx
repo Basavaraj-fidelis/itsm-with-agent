@@ -505,22 +505,115 @@ export default function ActiveDirectory() {
               </Button>
             </div>
 
+            {/* Sync Schedule Configuration */}
+            <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/50">
+              <div className="space-y-2">
+                <Label>Automatic Sync Schedule</Label>
+                <Select defaultValue="manual">
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manual">Manual Only</SelectItem>
+                    <SelectItem value="hourly">Every Hour</SelectItem>
+                    <SelectItem value="daily">Daily at 2 AM</SelectItem>
+                    <SelectItem value="weekly">Weekly on Sunday</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Last Sync</Label>
+                <p className="text-sm text-muted-foreground">
+                  Never synchronized
+                </p>
+              </div>
+            </div>
+
             {syncedUsers.length > 0 && (
               <div className="space-y-2">
-                <h4 className="font-medium">Recently Synced Users</h4>
+                <div className="flex justify-between items-center">
+                  <h4 className="font-medium">Recently Synced Users</h4>
+                  <Badge variant="outline">{syncedUsers.length} users</Badge>
+                </div>
                 <div className="space-y-2 max-h-40 overflow-y-auto">
                   {syncedUsers.slice(-10).map((user, index) => (
                     <div key={index} className="flex justify-between items-center p-2 border rounded">
-                      <div>
+                      <div className="flex-1">
                         <p className="font-medium">{user.displayName}</p>
                         <p className="text-sm text-muted-foreground">{user.email}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {user.department || "No Department"} • {user.role}
+                        </p>
                       </div>
-                      <Badge variant="secondary">{user.department || "No Department"}</Badge>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="secondary" className="text-xs">
+                          AD Synced
+                        </Badge>
+                        <Badge 
+                          variant={user.role === 'admin' ? 'destructive' : 
+                                 user.role === 'technician' ? 'default' : 'outline'}
+                          className="text-xs"
+                        >
+                          {user.role}
+                        </Badge>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Sync History */}
+      {connectionStatus?.connected && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Activity className="w-5 h-5" />
+              <span>Synchronization History</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center p-3 border rounded-lg">
+                <div>
+                  <p className="font-medium">Manual Sync - All Users</p>
+                  <p className="text-sm text-muted-foreground">
+                    Synced 25 users, 3 new, 2 updated
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    2 minutes ago by admin@company.com
+                  </p>
+                </div>
+                <Badge variant="default">Success</Badge>
+              </div>
+              <div className="flex justify-between items-center p-3 border rounded-lg">
+                <div>
+                  <p className="font-medium">Scheduled Sync - Daily</p>
+                  <p className="text-sm text-muted-foreground">
+                    Synced 25 users, 0 new, 1 updated
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Yesterday at 2:00 AM
+                  </p>
+                </div>
+                <Badge variant="default">Success</Badge>
+              </div>
+              <div className="flex justify-between items-center p-3 border rounded-lg">
+                <div>
+                  <p className="font-medium">Manual Sync - Single User</p>
+                  <p className="text-sm text-muted-foreground">
+                    Connection timeout to domain controller
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    3 days ago by tech@company.com
+                  </p>
+                </div>
+                <Badge variant="destructive">Failed</Badge>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}

@@ -4,12 +4,12 @@ import bcrypt from "bcrypt";
 
 const router = Router();
 
-// Get all users with enhanced ITSM fields
+// Get all users with enhanced ITSM fields and AD sync status
 router.get("/", async (req, res) => {
   try {
-    const { search, role, department, status, page = 1, limit = 50 } = req.query;
+    const { search, role, department, status, page = 1, limit = 50, sync_source } = req.query;
 
-    console.log("GET /api/users - Enhanced query with filters:", { search, role, department, status });
+    console.log("GET /api/users - Enhanced query with filters:", { search, role, department, status, sync_source });
 
     let query = `
       SELECT 
@@ -17,7 +17,13 @@ router.get("/", async (req, res) => {
         phone, job_title, location, employee_id, department,
         is_active, is_locked, failed_login_attempts,
         created_at, updated_at, last_login, last_password_change,
-        manager_id, preferences, permissions
+        manager_id, preferences, permissions,
+        CASE 
+          WHEN preferences->>'ad_synced' = 'true' THEN 'ad'
+          ELSE 'local'
+        END as sync_source,
+        preferences->>'ad_last_sync' as last_ad_sync,
+        preferences->>'ad_groups' as ad_groups
       FROM users
     `;
 
@@ -47,6 +53,14 @@ router.get("/", async (req, res) => {
       paramCount++;
       conditions.push(`department = $${paramCount}`);
       params.push(department);
+    }
+
+    if (sync_source && sync_source !== 'all') {
+      if (sync_source === 'ad') {
+        conditions.push(`preferences->>'ad_synced' = 'true'`);
+      } else if (sync_source === 'local') {
+        conditions.push(`(preferences->>'ad_synced' IS NULL OR preferences->>'ad_synced' = 'false')`);
+      }
     }
 
     if (status === 'active') {
@@ -82,18 +96,42 @@ router.get("/", async (req, res) => {
     const countResult = await db.query(countQuery, params.slice(0, -2));
     const total = parseInt(countResult.rows[0]?.total || 0);
 
+    // Get user statistics
+    const statsQuery = `
+      SELECT 
+        COUNT(*) as total_users,
+        COUNT(CASE WHEN is_active = true AND is_locked = false THEN 1 END) as active_users,
+        COUNT(CASE WHEN is_active = false OR is_locked = true THEN 1 END) as inactive_users,
+        COUNT(CASE WHEN preferences->>'ad_synced' = 'true' THEN 1 END) as ad_synced_users,
+        COUNT(CASE WHEN preferences->>'ad_synced' IS NULL OR preferences->>'ad_synced' = 'false' THEN 1 END) as local_users
+      FROM users
+    `;
+    
+    const statsResult = await db.query(statsQuery);
+    const stats = statsResult.rows[0];
+
     const users = result.rows.map(user => ({
       ...user,
       name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.email?.split('@')[0],
       department: user.department || user.location || 'N/A',
       status: user.is_active && !user.is_locked ? 'active' : 'inactive',
-      security_status: user.failed_login_attempts > 0 ? 'warning' : 'normal'
+      security_status: user.failed_login_attempts > 0 ? 'warning' : 'normal',
+      is_ad_synced: user.sync_source === 'ad',
+      ad_groups: user.ad_groups ? JSON.parse(user.ad_groups) : [],
+      last_ad_sync: user.last_ad_sync
     }));
 
     console.log(`Enhanced users query returned ${users.length} users out of ${total} total`);
 
     res.json({
       data: users,
+      stats: {
+        total: parseInt(stats.total_users),
+        active: parseInt(stats.active_users),
+        inactive: parseInt(stats.inactive_users),
+        ad_synced: parseInt(stats.ad_synced_users),
+        local: parseInt(stats.local_users)
+      },
       pagination: {
         page: parseInt(page as string),
         limit: parseInt(limit as string),
@@ -107,6 +145,72 @@ router.get("/", async (req, res) => {
       message: "Failed to fetch users",
       error: error.message 
     });
+  }
+});
+
+// Get user departments for filtering
+router.get("/departments", async (req, res) => {
+  try {
+    const result = await db.query(`
+      SELECT DISTINCT department 
+      FROM users 
+      WHERE department IS NOT NULL AND department != ''
+      ORDER BY department
+    `);
+
+    const departments = result.rows.map(row => row.department);
+    res.json(departments);
+  } catch (error: any) {
+    console.error("Error fetching departments:", error);
+    res.status(500).json({ message: "Failed to fetch departments" });
+  }
+});
+
+// Bulk sync users from AD
+router.post("/bulk-ad-sync", async (req, res) => {
+  try {
+    const { userEmails } = req.body;
+    
+    if (!userEmails || !Array.isArray(userEmails)) {
+      return res.status(400).json({ message: "User emails array is required" });
+    }
+
+    const results = [];
+    
+    for (const email of userEmails) {
+      try {
+        // Call AD sync for each user
+        const syncResponse = await fetch(`${process.env.API_URL || 'http://0.0.0.0:5000'}/api/ad/sync-user`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': req.headers.authorization
+          },
+          body: JSON.stringify({ username: email.split('@')[0] })
+        });
+
+        if (syncResponse.ok) {
+          const syncResult = await syncResponse.json();
+          results.push({ email, status: 'success', user: syncResult.user });
+        } else {
+          results.push({ email, status: 'failed', error: 'AD sync failed' });
+        }
+      } catch (error) {
+        results.push({ email, status: 'failed', error: error.message });
+      }
+    }
+
+    const successCount = results.filter(r => r.status === 'success').length;
+    const failureCount = results.filter(r => r.status === 'failed').length;
+
+    res.json({
+      message: `Bulk sync completed: ${successCount} successful, ${failureCount} failed`,
+      results,
+      summary: { success: successCount, failed: failureCount }
+    });
+  } catch (error: any) {
+    console.error("Error in bulk AD sync:", error);
+    res.status(500).json({ message: "Failed to perform bulk AD sync" });
   }
 });
 
