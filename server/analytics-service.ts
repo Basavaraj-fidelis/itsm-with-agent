@@ -566,8 +566,9 @@ class AnalyticsService {
     try {
       console.log("Generating system health report");
 
+      // Increase timeout for larger fleets
       const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("System health timeout")), 2000),
+        setTimeout(() => reject(new Error("System health timeout")), 5000),
       );
 
       let recentReports: any[] = [];

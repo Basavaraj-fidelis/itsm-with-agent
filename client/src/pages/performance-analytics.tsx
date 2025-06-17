@@ -106,7 +106,9 @@ export default function PerformanceAnalytics() {
     queryFn: () => api.getDevices(),
     retry: 1,
     refetchOnWindowFocus: false,
-    refetchInterval: autoRefresh ? refreshInterval : false
+    refetchInterval: autoRefresh ? refreshInterval : false,
+    staleTime: 30000, // Cache for 30 seconds for better performance
+    cacheTime: 300000 // Keep in cache for 5 minutes
   });
 
   const { data: insights, isError: insightsError, refetch: refetchInsights } = useQuery({
