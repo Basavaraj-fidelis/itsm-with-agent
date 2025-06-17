@@ -406,8 +406,24 @@ router.post("/:id/lock", async (req, res) => {
     const { reason } = req.body;
     const userId = req.params.id;
 
-    console.log(`Locking user ${userId} with reason: ${reason}`);
+    console.log(`Attempting to lock user ${userId} with reason: ${reason}`);
 
+    // First check if user exists
+    const userCheck = await db.query(`SELECT id, email, username, is_locked FROM users WHERE id = $1`, [userId]);
+    
+    if (userCheck.rows.length === 0) {
+      console.log(`User ${userId} not found`);
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const user = userCheck.rows[0];
+    
+    if (user.is_locked) {
+      console.log(`User ${userId} is already locked`);
+      return res.status(400).json({ message: "User is already locked" });
+    }
+
+    // Update user to locked status
     const result = await db.query(`
       UPDATE users 
       SET is_locked = true, updated_at = NOW() 
@@ -416,14 +432,45 @@ router.post("/:id/lock", async (req, res) => {
     `, [userId]);
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: "User not found" });
+      console.log(`Failed to lock user ${userId} - no rows updated`);
+      return res.status(500).json({ message: "Failed to update user status" });
     }
 
-    console.log("User locked successfully:", result.rows[0]);
-    res.json({ message: "User locked successfully", user: result.rows[0] });
+    // Log the action in audit trail
+    try {
+      await db.query(`
+        INSERT INTO audit_logs (user_id, action, table_name, record_id, new_values, ip_address)
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, [
+        userId, 
+        'user_locked', 
+        'users', 
+        userId, 
+        JSON.stringify({ is_locked: true, reason: reason || 'Manual lock' }),
+        req.ip || req.connection.remoteAddress
+      ]);
+    } catch (auditError) {
+      console.log("Audit log failed but user lock succeeded:", auditError);
+    }
+
+    const lockedUser = result.rows[0];
+    console.log("User locked successfully:", lockedUser);
+    
+    res.json({ 
+      message: "User locked successfully", 
+      user: {
+        ...lockedUser,
+        status: 'inactive'
+      }
+    });
   } catch (error: any) {
     console.error("Error locking user:", error);
-    res.status(500).json({ message: "Failed to lock user" });
+    console.error("Error details:", error.message, error.stack);
+    res.status(500).json({ 
+      message: "Failed to lock user", 
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
@@ -432,8 +479,24 @@ router.post("/:id/unlock", async (req, res) => {
   try {
     const userId = req.params.id;
 
-    console.log(`Unlocking user ${userId}`);
+    console.log(`Attempting to unlock user ${userId}`);
 
+    // First check if user exists
+    const userCheck = await db.query(`SELECT id, email, username, is_locked FROM users WHERE id = $1`, [userId]);
+    
+    if (userCheck.rows.length === 0) {
+      console.log(`User ${userId} not found`);
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const user = userCheck.rows[0];
+    
+    if (!user.is_locked) {
+      console.log(`User ${userId} is already unlocked`);
+      return res.status(400).json({ message: "User is already unlocked" });
+    }
+
+    // Update user to unlocked status
     const result = await db.query(`
       UPDATE users 
       SET is_locked = false, failed_login_attempts = 0, updated_at = NOW() 
@@ -442,14 +505,45 @@ router.post("/:id/unlock", async (req, res) => {
     `, [userId]);
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: "User not found" });
+      console.log(`Failed to unlock user ${userId} - no rows updated`);
+      return res.status(500).json({ message: "Failed to update user status" });
     }
 
-    console.log("User unlocked successfully:", result.rows[0]);
-    res.json({ message: "User unlocked successfully", user: result.rows[0] });
+    // Log the action in audit trail
+    try {
+      await db.query(`
+        INSERT INTO audit_logs (user_id, action, table_name, record_id, new_values, ip_address)
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, [
+        userId, 
+        'user_unlocked', 
+        'users', 
+        userId, 
+        JSON.stringify({ is_locked: false }),
+        req.ip || req.connection.remoteAddress
+      ]);
+    } catch (auditError) {
+      console.log("Audit log failed but user unlock succeeded:", auditError);
+    }
+
+    const unlockedUser = result.rows[0];
+    console.log("User unlocked successfully:", unlockedUser);
+    
+    res.json({ 
+      message: "User unlocked successfully", 
+      user: {
+        ...unlockedUser,
+        status: 'active'
+      }
+    });
   } catch (error: any) {
     console.error("Error unlocking user:", error);
-    res.status(500).json({ message: "Failed to unlock user" });
+    console.error("Error details:", error.message, error.stack);
+    res.status(500).json({ 
+      message: "Failed to unlock user", 
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 

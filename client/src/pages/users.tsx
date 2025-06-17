@@ -208,41 +208,82 @@ export default function UsersPage() {
   // Lock user mutation
   const lockUserMutation = useMutation({
     mutationFn: async ({ userId, reason }: { userId: string; reason: string }) => {
-      const response = await api.post(`/api/users/${userId}/lock`, { reason });
-      if (!response.ok) throw new Error("Failed to lock user");
-      return await response.json();
+      console.log(`Attempting to lock user ${userId} with reason: ${reason}`);
+
+      const response = await fetch(`/api/users/${userId}/lock`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ reason })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Lock user error:', errorData);
+        throw new Error(errorData.message || 'Failed to lock user');
+      }
+
+      const result = await response.json();
+      console.log('Lock user success:', result);
+      return result;
     },
-    onSuccess: () => {
-      toast({ title: "Success", description: "User locked successfully" });
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+    onSuccess: (data) => {
+      refetch();
+      toast({
+        title: "Success",
+        description: `User ${data.user?.email || 'user'} has been locked successfully`
+      });
     },
     onError: (error: any) => {
+      console.error('Lock user mutation error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to lock user",
-        variant: "destructive",
+        variant: "destructive"
       });
-    },
+    }
   });
 
   // Unlock user mutation
   const unlockUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const response = await api.post(`/api/users/${userId}/unlock`);
-      if (!response.ok) throw new Error("Failed to unlock user");
-      return await response.json();
+      console.log(`Attempting to unlock user ${userId}`);
+
+      const response = await fetch(`/api/users/${userId}/unlock`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Unlock user error:', errorData);
+        throw new Error(errorData.message || 'Failed to unlock user');
+      }
+
+      const result = await response.json();
+      console.log('Unlock user success:', result);
+      return result;
     },
-    onSuccess: () => {
-      toast({ title: "Success", description: "User unlocked successfully" });
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+    onSuccess: (data) => {
+      refetch();
+      toast({
+        title: "Success",
+        description: `User ${data.user?.email || 'user'} has been unlocked successfully`
+      });
     },
     onError: (error: any) => {
+      console.error('Unlock user mutation error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to unlock user",
-        variant: "destructive",
+        variant: "destructive"
       });
-    },
+    }
   });
 
   // AD Sync mutation
