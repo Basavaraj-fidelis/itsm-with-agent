@@ -1,11 +1,16 @@
 
 import { Pool } from 'pg';
 
-const DATABASE_URL = process.env.DATABASE_URL || "postgres://avnadmin:AVNS_YOa-jMJ2ghMv9bcWgze@pg-2d00a622-basureddy2020-11ac.l.aivencloud.com:21320/defaultdb";
+const DATABASE_URL = process.env.DATABASE_URL;
+
+if (!DATABASE_URL) {
+  console.error('❌ DATABASE_URL environment variable is not set');
+  process.exit(1);
+}
 
 const pool = new Pool({
   connectionString: DATABASE_URL,
-  ssl: DATABASE_URL.includes('localhost') || DATABASE_URL.includes('127.0.0.1') ? false : {
+  ssl: {
     rejectUnauthorized: false, // Accept self-signed certs for Aiven
   },
 });
