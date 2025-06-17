@@ -325,249 +325,335 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900 p-6 space-y-8">
-      {/* Enhanced Header */}
-      <div className="mb-8 relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-indigo-600/10 rounded-2xl -z-10"></div>
-        <div className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
-                IT Service Management Dashboard
-              </h1>
-              <p className="text-gray-600 dark:text-gray-300 text-lg">Real-time system overview and monitoring</p>
-              <div className="flex items-center mt-3 text-sm text-gray-500 dark:text-gray-400">
-                <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-                Live data • Last updated {new Date().toLocaleTimeString()}
-              </div>
-            </div>
-            <div className="hidden md:flex items-center space-x-4">
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-md border border-gray-200 dark:border-gray-700">
-                <div className="text-xs text-gray-500 dark:text-gray-400">Active Tickets</div>
-                <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                  {tickets.filter(t => !['resolved', 'closed', 'cancelled'].includes(t.status)).length} Open
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900">
+      <div className="p-4 md:p-6 lg:p-8 space-y-6">
+        {/* Enhanced Header with Better Layout */}
+        <div className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-indigo-600/5 rounded-3xl border border-blue-200/20 dark:border-blue-700/20"></div>
+          <div className="relative p-6 md:p-8">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              {/* Title Section */}
+              <div className="space-y-3">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+                    <Activity className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                      IT Service Management Dashboard
+                    </h1>
+                    <p className="text-gray-600 dark:text-gray-300 text-sm md:text-base">
+                      Real-time system overview and monitoring
+                    </p>
+                  </div>
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {tickets.filter(t => ['resolved', 'closed', 'cancelled'].includes(t.status)).length} Resolved
+                <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span>Live Data</span>
+                  </div>
+                  <div className="h-4 w-px bg-gray-300 dark:bg-gray-600"></div>
+                  <span>Updated {new Date().toLocaleTimeString()}</span>
+                </div>
+              </div>
+
+              {/* Quick Stats Cards */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl p-4 border border-gray-200/50 dark:border-gray-700/50 shadow-sm">
+                  <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                    Active Tickets
+                  </div>
+                  <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                    {tickets.filter(t => !['resolved', 'closed', 'cancelled'].includes(t.status)).length}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    {tickets.filter(t => ['resolved', 'closed', 'cancelled'].includes(t.status)).length} resolved
+                  </div>
+                </div>
+                <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl p-4 border border-gray-200/50 dark:border-gray-700/50 shadow-sm">
+                  <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                    System Health
+                  </div>
+                  <div className="text-xl font-bold text-green-600 dark:text-green-400">
+                    {summary ? `${Math.round((summary.online_devices / summary.total_devices) * 100)}%` : "0%"}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    {summary?.online_devices || 0} of {summary?.total_devices || 0} online
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
       {/* Enhanced Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard
-          title="Total Agents"
-          value={summary?.total_devices || 0}
-          icon={Monitor}
-          change={{
-            value: "2",
-            type: "increase",
-            label: "new this month",
-          }}
-          color="blue"
-        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          <MetricCard
+            title="Total Agents"
+            value={summary?.total_devices || 0}
+            icon={Monitor}
+            change={{
+              value: "2",
+              type: "increase",
+              label: "new this month",
+            }}
+            color="blue"
+          />
 
-        <MetricCard
-          title="Online Agents"
-          value={summary?.online_devices || 0}
-          icon={CheckCircle}
-          trend={{
-            label: "Availability",
-            value: summary
-              ? `${Math.round((summary.online_devices / summary.total_devices) * 100)}%`
-              : "0%",
-          }}
-          color="green"
-        />
+          <MetricCard
+            title="Online Agents"
+            value={summary?.online_devices || 0}
+            icon={CheckCircle}
+            trend={{
+              label: "Availability",
+              value: summary
+                ? `${Math.round((summary.online_devices / summary.total_devices) * 100)}%`
+                : "0%",
+            }}
+            color="green"
+          />
 
-        <MetricCard
-          title="Alerts"
-          value={alerts?.length || 0}
-          icon={AlertTriangle}
-          change={{
-            value: alerts?.filter(alert => {
-              const yesterday = new Date();
-              yesterday.setDate(yesterday.getDate() - 1);
-              return new Date(alert.triggered_at) >= yesterday;
-            }).length?.toString() || "0",
-            type: "increase",
-            label: "since yesterday",
-          }}
-          color="red"
-        />
+          <MetricCard
+            title="Alerts"
+            value={alerts?.length || 0}
+            icon={AlertTriangle}
+            change={{
+              value: alerts?.filter(alert => {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                return new Date(alert.triggered_at) >= yesterday;
+              }).length?.toString() || "0",
+              type: "increase",
+              label: "since yesterday",
+            }}
+            color="red"
+          />
 
-        <MetricCard
-          title="Offline Agents"
-          value={summary?.offline_devices || 0}
-          icon={XCircle}
-          change={{
-            value: summary?.offline_devices ? "1" : "0",
-            type: "decrease",
-            label: "disconnected",
-          }}
-          color="orange"
-        />
-      </div>
+          <MetricCard
+            title="Offline Agents"
+            value={summary?.offline_devices || 0}
+            icon={XCircle}
+            change={{
+              value: summary?.offline_devices ? "1" : "0",
+              type: "decrease",
+              label: "disconnected",
+            }}
+            color="orange"
+          />
+        </div>
 
       {/* ITSM Overview Sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        {/* Ticket Distribution by Type */}
-        <Card className="bg-white dark:bg-gray-800 shadow-lg border-0 rounded-xl overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-600 border-b border-gray-200 dark:border-gray-600">
-            <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Active Ticket Distribution</CardTitle>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-              Breakdown by ticket type (open tickets only)
-            </p>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              {ticketDistribution.map((item) => (
-                <div key={item.type} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-3 h-3 rounded-full ${item.color}`}></div>
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.type}</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Ticket Distribution by Type */}
+          <Card className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-xl border border-gray-200/60 dark:border-gray-700/60 rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-300">
+            <CardHeader className="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 dark:from-gray-700/50 dark:to-gray-600/50 border-b border-gray-200/50 dark:border-gray-600/50 p-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-2xl flex items-center justify-center">
+                  <BarChart3 className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                    Active Ticket Distribution
+                  </CardTitle>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                    Breakdown by ticket type (open tickets only)
+                  </p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-5">
+                {ticketDistribution.map((item) => (
+                  <div key={item.type} className="group">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-4 h-4 rounded-full ${item.color} shadow-sm`}></div>
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.type}</span>
+                      </div>
+                      <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{item.count}</span>
+                    </div>
+                    <div className="w-full bg-gray-200/70 dark:bg-gray-700/70 rounded-full h-3 overflow-hidden">
                       <div 
-                        className={`h-2 rounded-full ${item.color}`}
+                        className={`h-full rounded-full ${item.color} transition-all duration-500 ease-out shadow-sm`}
                         style={{ width: `${item.percentage}%` }}
                       ></div>
                     </div>
-                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 w-8">{item.count}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Ticket Status Overview */}
-        <Card className="bg-white dark:bg-gray-800 shadow-lg border-0 rounded-xl overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-600 border-b border-gray-200 dark:border-gray-600">
-            <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Active Ticket Status</CardTitle>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-              Status of open tickets only
-            </p>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              {statusDistribution.map((item) => (
-                <div key={item.status} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-3 h-3 rounded-full ${item.color}`}></div>
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.status}</span>
-                    {item.urgency === "attention" && (
-                      <AlertTriangle className="w-4 h-4 text-orange-500" />
-                    )}
-                  </div>
-                  <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">{item.count}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* SLA and Assignment Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        {/* SLA Violations */}
-        <Card 
-        className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 cursor-pointer hover:shadow-lg transition-all duration-200"
-        onClick={() => {
-          // Navigate to tickets page with SLA violation filter
-          navigate('/tickets?filter=sla_violated');
-        }}
-      >
-          <CardHeader className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-gray-700 dark:to-gray-600 border-b border-gray-200 dark:border-gray-600">
-            <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-              <Clock className="w-5 h-5 mr-2 text-red-500" />
-              SLA Status
-            </CardTitle>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-              Tickets approaching or exceeding SLA
-            </p>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
-                <div>
-                  <p className="text-sm font-medium text-red-800 dark:text-red-200">SLA Breached</p>
-                  <p className="text-xs text-red-600 dark:text-red-300">Immediate attention required</p>
-                </div>
-                <span className="text-2xl font-bold text-red-600 dark:text-red-400">{slaStatus.breached}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                <div>
-                  <p className="text-sm font-medium text-orange-800 dark:text-orange-200">Due in 2 Hours</p>
-                  <p className="text-xs text-orange-600 dark:text-orange-300">Response time approaching</p>
-                </div>
-                <span className="text-2xl font-bold text-orange-600 dark:text-orange-400">{slaStatus.dueIn2Hours}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                <div>
-                  <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Due Today</p>
-                  <p className="text-xs text-yellow-600 dark:text-yellow-300">Resolution time approaching</p>
-                </div>
-                <span className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{slaStatus.dueToday}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Assignment Overview */}
-        <Card className="bg-white dark:bg-gray-800 shadow-lg border-0 rounded-xl overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-gray-700 dark:to-gray-600 border-b border-gray-200 dark:border-gray-600">
-            <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-              <User className="w-5 h-5 mr-2 text-purple-500" />
-              Assignments
-            </CardTitle>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-              Ticket distribution by assignee
-            </p>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              {assignmentDistribution.map((assignee, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-3 h-3 rounded-full ${
-                      assignee.status === "online" ? "bg-green-500" :
-                      assignee.status === "away" ? "bg-yellow-500" : "bg-gray-400"
-                    }`}></div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{assignee.name}</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">{assignee.team}</p>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {item.percentage}% of total active tickets
                     </div>
                   </div>
-                  <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">{assignee.count}</span>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Ticket Status Overview */}
+          <Card className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-xl border border-gray-200/60 dark:border-gray-700/60 rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-300">
+            <CardHeader className="bg-gradient-to-r from-green-50/80 to-emerald-50/80 dark:from-gray-700/50 dark:to-gray-600/50 border-b border-gray-200/50 dark:border-gray-600/50 p-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 text-white" />
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                <div>
+                  <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                    Active Ticket Status
+                  </CardTitle>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                    Status of open tickets only
+                  </p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                {statusDistribution.map((item) => (
+                  <div key={item.status} className="flex items-center justify-between p-3 rounded-2xl bg-gray-50/50 dark:bg-gray-700/30 border border-gray-200/30 dark:border-gray-600/30 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors duration-200">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-4 h-4 rounded-full ${item.color} shadow-sm`}></div>
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.status}</span>
+                      {item.urgency === "attention" && (
+                        <AlertTriangle className="w-4 h-4 text-orange-500" />
+                      )}
+                    </div>
+                    <span className="text-lg font-bold text-gray-900 dark:text-gray-100 px-3 py-1 bg-white/70 dark:bg-gray-800/70 rounded-xl border border-gray-200/50 dark:border-gray-600/50">
+                      {item.count}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+      {/* SLA and Assignment Overview */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* SLA Violations */}
+          <Card className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-xl border border-red-200/60 dark:border-red-700/60 rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-300 cursor-pointer group">
+            <CardHeader className="bg-gradient-to-r from-red-50/80 to-pink-50/80 dark:from-gray-700/50 dark:to-gray-600/50 border-b border-red-200/50 dark:border-red-600/50 p-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-pink-500 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                  <Clock className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                    SLA Status
+                  </CardTitle>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                    Tickets approaching or exceeding SLA
+                  </p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 rounded-2xl border border-red-200/50 dark:border-red-700/50 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                    <div>
+                      <p className="text-sm font-semibold text-red-800 dark:text-red-200">SLA Breached</p>
+                      <p className="text-xs text-red-600 dark:text-red-300">Immediate attention required</p>
+                    </div>
+                  </div>
+                  <span className="text-2xl font-bold text-red-600 dark:text-red-400 px-3 py-1 bg-white/70 dark:bg-gray-800/70 rounded-xl">
+                    {slaStatus.breached}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/30 rounded-2xl border border-orange-200/50 dark:border-orange-700/50 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                    <div>
+                      <p className="text-sm font-semibold text-orange-800 dark:text-orange-200">Due in 2 Hours</p>
+                      <p className="text-xs text-orange-600 dark:text-orange-300">Response time approaching</p>
+                    </div>
+                  </div>
+                  <span className="text-2xl font-bold text-orange-600 dark:text-orange-400 px-3 py-1 bg-white/70 dark:bg-gray-800/70 rounded-xl">
+                    {slaStatus.dueIn2Hours}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-900/30 dark:to-yellow-800/30 rounded-2xl border border-yellow-200/50 dark:border-yellow-700/50 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                    <div>
+                      <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">Due Today</p>
+                      <p className="text-xs text-yellow-600 dark:text-yellow-300">Resolution time approaching</p>
+                    </div>
+                  </div>
+                  <span className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 px-3 py-1 bg-white/70 dark:bg-gray-800/70 rounded-xl">
+                    {slaStatus.dueToday}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Assignment Overview */}
+          <Card className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-xl border border-gray-200/60 dark:border-gray-700/60 rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-300">
+            <CardHeader className="bg-gradient-to-r from-purple-50/80 to-violet-50/80 dark:from-gray-700/50 dark:to-gray-600/50 border-b border-gray-200/50 dark:border-gray-600/50 p-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-violet-500 rounded-2xl flex items-center justify-center">
+                  <Users className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                    Assignments
+                  </CardTitle>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                    Ticket distribution by assignee
+                  </p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                {assignmentDistribution.map((assignee, index) => (
+                  <div key={index} className="flex items-center justify-between p-4 rounded-2xl bg-gray-50/50 dark:bg-gray-700/30 border border-gray-200/40 dark:border-gray-600/40 hover:bg-gray-100/60 dark:hover:bg-gray-700/50 transition-all duration-200">
+                    <div className="flex items-center space-x-4">
+                      <div className={`w-4 h-4 rounded-full shadow-sm ${
+                        assignee.status === "online" ? "bg-green-500 animate-pulse" :
+                        assignee.status === "away" ? "bg-yellow-500" : "bg-gray-400"
+                      }`}></div>
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center">
+                          <User className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{assignee.name}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">{assignee.team}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-lg font-bold text-gray-900 dark:text-gray-100 px-3 py-1 bg-white/70 dark:bg-gray-800/70 rounded-xl border border-gray-200/50 dark:border-gray-600/50">
+                      {assignee.count}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
       {/* Charts and Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Recent Tickets */}
-        <Card className="col-span-2 bg-white dark:bg-gray-800 shadow-lg border-0 rounded-xl overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-600 border-b border-gray-200 dark:border-gray-600">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Recent Tickets</CardTitle>
-                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                  Latest service desk requests and incidents
-                </p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Recent Tickets */}
+          <Card className="col-span-2 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-xl border border-gray-200/60 dark:border-gray-700/60 rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-300">
+            <CardHeader className="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 dark:from-gray-700/50 dark:to-gray-600/50 border-b border-gray-200/50 dark:border-gray-600/50 p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-2xl flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Recent Tickets</CardTitle>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                      Latest service desk requests and incidents
+                    </p>
+                  </div>
+                </div>
+                <div className="bg-blue-100/70 dark:bg-blue-900/70 rounded-2xl p-3 border border-blue-200/50 dark:border-blue-700/50">
+                  <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
               </div>
-              <div className="bg-blue-100 dark:bg-blue-900 rounded-lg p-2">
-                <Monitor className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
-          </CardHeader>
+            </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {/* Recent tickets data */}
@@ -619,15 +705,25 @@ export default function Dashboard() {
         </Card>
 
         {/* Recent Alerts */}
-        <Card className="bg-white dark:bg-gray-800 shadow-lg border-0 rounded-xl overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-gray-700 dark:to-gray-600 border-b border-gray-200 dark:border-gray-600">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Recent Alerts</CardTitle>
-              <div className="bg-red-100 dark:bg-red-900 rounded-lg p-2">
-                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+          <Card className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-xl border border-gray-200/60 dark:border-gray-700/60 rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-300">
+            <CardHeader className="bg-gradient-to-r from-red-50/80 to-orange-50/80 dark:from-gray-700/50 dark:to-gray-600/50 border-b border-gray-200/50 dark:border-gray-600/50 p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-orange-500 rounded-2xl flex items-center justify-center">
+                    <AlertTriangle className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Recent Alerts</CardTitle>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                      System notifications and warnings
+                    </p>
+                  </div>
+                </div>
+                <div className="bg-red-100/70 dark:bg-red-900/70 rounded-2xl p-3 border border-red-200/50 dark:border-red-700/50">
+                  <Bell className="w-5 h-5 text-red-600 dark:text-red-400" />
+                </div>
               </div>
-            </div>
-          </CardHeader>
+            </CardHeader>
           <CardContent>
             {alertsLoading ? (
               <div className="space-y-4">
@@ -688,6 +784,7 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );
