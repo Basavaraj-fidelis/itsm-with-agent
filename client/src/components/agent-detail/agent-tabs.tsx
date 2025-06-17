@@ -36,11 +36,13 @@ import {
   Brain,
   Terminal,
   Globe,
+  Search,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { Progress } from "@/components/ui/progress";
 import { AIInsights } from "./ai-insights";
+import { Package } from "lucide-react";
 
 interface AgentTabsProps {
   agent: any;
@@ -961,6 +963,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
 ```text
 
                 <div className="mt-4">
+                  ```python
                   <div className="text-blue-400">SECURITY STATUS:</div>
                   {rawData.security ? (
                     <>
