@@ -2250,3 +2250,87 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
               })()}
             </CardContent>
           </Card>
+
+          {/* Security Update Status */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Shield className="w-5 h-5" />
+                <span>Security Update Status</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const rawData = latestReport?.raw_data
+                  ? typeof latestReport.raw_data === "string"
+                    ? JSON.parse(latestReport.raw_data)
+                    : latestReport.raw_data
+                  : {};
+
+                const securityInfo = rawData.security || {};
+                const windowsUpdates = securityInfo.windows_updates || {};
+
+                return (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Last Update Check:</span>
+                        <span className="font-medium">
+                          {windowsUpdates.last_update_check || "Unknown"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Automatic Updates:</span>
+                        <span className="font-medium">
+                          {windowsUpdates.automatic_updates !== undefined 
+                            ? (windowsUpdates.automatic_updates ? "Enabled" : "Disabled")
+                            : "Unknown"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Firewall Status:</span>
+                        <span className="font-medium capitalize">
+                          {securityInfo.firewall_status || "Unknown"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Antivirus Status:</span>
+                        <span className="font-medium capitalize">
+                          {securityInfo.antivirus_status || "Unknown"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {windowsUpdates.recent_updates && windowsUpdates.recent_updates.length > 0 && (
+                      <div className="mt-4">
+                        <h4 className="font-medium mb-2">Recent Security Updates</h4>
+                        <div className="space-y-2">
+                          {windowsUpdates.recent_updates.slice(0, 5).map((update, index) => (
+                            <div key={index} className="p-2 border rounded text-sm">
+                              <div className="font-medium">{update.title}</div>
+                              <div className="text-gray-600">{update.installed_date}</div>
+                              <Badge 
+                                variant="outline" 
+                                className={
+                                  update.type === 'Security Update' 
+                                    ? "border-red-300 text-red-700" 
+                                    : "border-blue-300 text-blue-700"
+                                }
+                              >
+                                {update.type}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </CardContent>
+          </Card>
+        </div>
+      </TabsContent>
+    </Tabs>
+  );
+}
