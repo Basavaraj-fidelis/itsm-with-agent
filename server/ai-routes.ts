@@ -1,4 +1,3 @@
-
 import { Router } from 'express';
 import { aiService } from './ai-service';
 import { aiInsightsStorage } from './ai-insights-storage';
@@ -14,7 +13,7 @@ router.get('/insights/:deviceId', async (req, res) => {
     // Check if we should generate fresh insights or use cached ones
     if (refresh === 'true') {
       const insights = await aiService.generateDeviceInsights(deviceId);
-      
+
       // Store insights in database for future use
       for (const insight of insights) {
         await aiInsightsStorage.storeInsight({

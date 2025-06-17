@@ -69,7 +69,7 @@ export function AIInsights({ agent }: AIInsightsProps) {
 
       const processes = Array.isArray(rawData.processes) ? rawData.processes : [];
       const systemHealth = rawData.system_health || {};
-      const security = rawData.security || {};
+      const securityData = rawData.security || {};
 
     // 1. Performance Anomaly Detection
     if (cpuUsage > 85) {
@@ -139,13 +139,12 @@ export function AIInsights({ agent }: AIInsightsProps) {
     }
 
     // 5. Security Assessment
-    const security = rawData.security || {};
-    if (security.firewall_status === 'disabled' || security.antivirus_status === 'disabled') {
+    if (securityData.firewall_status === 'disabled' || securityData.antivirus_status === 'disabled') {
       aiInsights.push({
         type: 'security',
         severity: 'high',
         title: 'Security Service Alert',
-        description: `${security.firewall_status === 'disabled' ? 'Firewall disabled' : ''} ${security.antivirus_status === 'disabled' ? 'Antivirus disabled' : ''}`,
+        description: `${securityData.firewall_status === 'disabled' ? 'Firewall disabled' : ''} ${securityData.antivirus_status === 'disabled' ? 'Antivirus disabled' : ''}`,
         recommendation: 'Immediately enable disabled security services to protect the system',
         confidence: 0.95,
         metric: 'Security'
@@ -294,6 +293,11 @@ export function AIInsights({ agent }: AIInsightsProps) {
                         <Badge variant="outline" className="text-xs">
                           {insight.confidence && `${(insight.confidence * 100).toFixed(0)}% confidence`}
                         </Badge>
+                        {insight.existing_ticket && (
+                          <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+                            Ticket: {insight.existing_ticket.number}
+                          </Badge>
+                        )}
                         {insight.trend && (
                           <div className="flex items-center gap-1">
                             {insight.trend === 'up' && <TrendingUp className="w-3 h-3" />}
