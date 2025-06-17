@@ -14,36 +14,11 @@ if (!DATABASE_URL) {
   );
 }
 
-import { readFileSync } from 'fs';
-import { join } from 'path';
-
-let sslConfig = false;
-if (!DATABASE_URL.includes('localhost') && !DATABASE_URL.includes('127.0.0.1')) {
-  try {
-    const caCertPath = join(process.cwd(), 'attached_assets', 'ca_1750140881112.pem');
-    const caCert = readFileSync(caCertPath);
-    console.log('✅ CA certificate loaded successfully');
-    sslConfig = {
-      rejectUnauthorized: true,
-      ca: caCert,
-      checkServerIdentity: () => undefined, // Skip hostname verification for managed databases
-    };
-  } catch (error) {
-    console.log('⚠️ CA certificate not found, using secure fallback SSL config');
-    // For Aiven/managed databases, we need SSL but can be less strict about certs
-    sslConfig = {
-      rejectUnauthorized: false,
-      requestCert: true,
-      agent: false,
-      // Add these for better compatibility with managed PostgreSQL services
-      secureProtocol: 'TLSv1_2_method',
-    };
-  }
-}
-
 export const pool = new Pool({
   connectionString: DATABASE_URL,
-  ssl: sslConfig,
+  ssl: DATABASE_URL.includes('localhost') || DATABASE_URL.includes('127.0.0.1') ? false : {
+    rejectUnauthorized: false, // Accept self-signed certs for Aiven
+  },
 });
 
 export const db = drizzle(pool, { schema });
