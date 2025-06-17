@@ -958,7 +958,6 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                         </span>
                       </div>
                     </>
-<previous_generation>
                   ) : null}
                 </div>
 
