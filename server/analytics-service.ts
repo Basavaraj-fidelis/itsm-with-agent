@@ -23,8 +23,9 @@ import {
   endOfMonth,
 } from "date-fns";
 
-// Note: Install docx package if not already installed
-let Document,
+// Import docx package for Word document generation
+import {
+  Document,
   Packer,
   Paragraph,
   HeadingLevel,
@@ -32,21 +33,11 @@ let Document,
   Table,
   TableRow,
   TableCell,
-  WidthType;
-try {
-  const docx = require("docx");
-  Document = docx.Document;
-  Packer = docx.Packer;
-  Paragraph = docx.Paragraph;
-  HeadingLevel = docx.HeadingLevel;
-  AlignmentType = docx.AlignmentType;
-  Table = docx.Table;
-  TableRow = docx.TableRow;
-  TableCell = docx.TableCell;
-  WidthType = docx.WidthType;
-} catch (e) {
-  console.warn("DOCX package not installed, Word export will be limited");
-}
+  WidthType,
+  TextRun,
+  BorderStyle,
+  VerticalAlign
+} from "docx";
 
 export interface AnalyticsReport {
   id: string;
@@ -881,20 +872,7 @@ class AnalyticsService {
     reportType: string,
   ): Promise<Buffer> {
     try {
-      if (
-        !Document ||
-        !Packer ||
-        !Paragraph ||
-        !HeadingLevel ||
-        !AlignmentType
-      ) {
-        console.log(
-          "DOCX package not fully available, generating text document as docx",
-        );
-        const textContent = this.generateEnhancedTextDocument(data, reportType);
-        // Return as buffer with proper encoding to avoid corruption
-        return Buffer.from(textContent, "utf-8");
-      }
+      console.log("Generating Word document with proper DOCX format...");
 
       const content = this.generateWordContent(data, reportType);
 
@@ -904,15 +882,32 @@ class AnalyticsService {
             properties: {},
             children: [
               new Paragraph({
-                text: this.getReportTitle(reportType),
+                children: [
+                  new TextRun({
+                    text: this.getReportTitle(reportType),
+                    bold: true,
+                    size: 32,
+                  }),
+                ],
                 heading: HeadingLevel.TITLE,
                 alignment: AlignmentType.CENTER,
+                spacing: {
+                  after: 400,
+                },
               }),
               new Paragraph({
-                text: `Generated on ${format(new Date(), "PPpp")}`,
+                children: [
+                  new TextRun({
+                    text: `Generated on ${format(new Date(), "PPpp")}`,
+                    size: 24,
+                    italics: true,
+                  }),
+                ],
                 alignment: AlignmentType.CENTER,
+                spacing: {
+                  after: 600,
+                },
               }),
-              new Paragraph({ text: "" }),
               ...content,
             ],
           },
@@ -924,9 +919,7 @@ class AnalyticsService {
       return buffer;
     } catch (error) {
       console.error("Error generating Word document:", error);
-      // Fallback to plain text in proper Word format
-      const textContent = this.generateWordFallbackDocument(data, reportType);
-      return Buffer.from(textContent, "utf-8");
+      throw new Error("Failed to generate Word document: " + error.message);
     }
   }
 
@@ -1209,49 +1202,143 @@ class AnalyticsService {
   ): Paragraph[] {
     return [
       new Paragraph({
-        text: "EXECUTIVE SUMMARY",
+        children: [
+          new TextRun({
+            text: "EXECUTIVE SUMMARY",
+            bold: true,
+            size: 28,
+          }),
+        ],
         heading: HeadingLevel.HEADING_1,
-      }),
-      new Paragraph({ text: `Total Devices Managed: ${data.total_devices}` }),
-      new Paragraph({
-        text: `Compliance Rate: ${Math.round((data.compliance_status.compliant_devices / data.total_devices) * 100)}%`,
+        spacing: { before: 400, after: 200 },
       }),
       new Paragraph({
-        text: `Software Packages: ${data.software_inventory.total_installed}`,
+        children: [
+          new TextRun({ text: `Total Devices Managed: `, size: 24 }),
+          new TextRun({ text: `${data.total_devices}`, bold: true, size: 24 }),
+        ],
+        spacing: { after: 100 },
       }),
-      new Paragraph({ text: "" }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: `Compliance Rate: `, size: 24 }),
+          new TextRun({
+            text: `${Math.round((data.compliance_status.compliant_devices / data.total_devices) * 100)}%`,
+            bold: true,
+            size: 24,
+          }),
+        ],
+        spacing: { after: 100 },
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: `Software Packages: `, size: 24 }),
+          new TextRun({
+            text: `${data.software_inventory.total_installed}`,
+            bold: true,
+            size: 24,
+          }),
+        ],
+        spacing: { after: 300 },
+      }),
 
       new Paragraph({
-        text: "DEVICE BREAKDOWN",
+        children: [
+          new TextRun({
+            text: "DEVICE BREAKDOWN",
+            bold: true,
+            size: 28,
+          }),
+        ],
         heading: HeadingLevel.HEADING_1,
+        spacing: { before: 400, after: 200 },
       }),
       new Paragraph({
-        text: "By Operating System:",
+        children: [
+          new TextRun({
+            text: "By Operating System:",
+            bold: true,
+            size: 24,
+          }),
+        ],
         heading: HeadingLevel.HEADING_2,
+        spacing: { after: 100 },
       }),
       ...Object.entries(data.device_breakdown.by_os).map(
-        ([os, count]) => new Paragraph({ text: `  • ${os}: ${count} devices` }),
+        ([os, count]) =>
+          new Paragraph({
+            children: [
+              new TextRun({ text: `  • ${os}: `, size: 22 }),
+              new TextRun({ text: `${count} devices`, bold: true, size: 22 }),
+            ],
+            spacing: { after: 50 },
+          }),
       ),
-      new Paragraph({ text: "" }),
-      new Paragraph({ text: "By Status:", heading: HeadingLevel.HEADING_2 }),
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: "By Status:",
+            bold: true,
+            size: 24,
+          }),
+        ],
+        heading: HeadingLevel.HEADING_2,
+        spacing: { before: 200, after: 100 },
+      }),
       ...Object.entries(data.device_breakdown.by_status).map(
         ([status, count]) =>
-          new Paragraph({ text: `  • ${status}: ${count} devices` }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: `  • ${status}: `, size: 22 }),
+              new TextRun({ text: `${count} devices`, bold: true, size: 22 }),
+            ],
+            spacing: { after: 50 },
+          }),
       ),
 
-      new Paragraph({ text: "" }),
       new Paragraph({
-        text: "COMPLIANCE STATUS",
+        children: [
+          new TextRun({
+            text: "COMPLIANCE STATUS",
+            bold: true,
+            size: 28,
+          }),
+        ],
         heading: HeadingLevel.HEADING_1,
+        spacing: { before: 400, after: 200 },
       }),
       new Paragraph({
-        text: `Compliant Devices: ${data.compliance_status.compliant_devices}`,
+        children: [
+          new TextRun({ text: `Compliant Devices: `, size: 24 }),
+          new TextRun({
+            text: `${data.compliance_status.compliant_devices}`,
+            bold: true,
+            size: 24,
+          }),
+        ],
+        spacing: { after: 100 },
       }),
       new Paragraph({
-        text: `Non-Compliant Devices: ${data.compliance_status.non_compliant_devices}`,
+        children: [
+          new TextRun({ text: `Non-Compliant Devices: `, size: 24 }),
+          new TextRun({
+            text: `${data.compliance_status.non_compliant_devices}`,
+            bold: true,
+            size: 24,
+          }),
+        ],
+        spacing: { after: 100 },
       }),
       new Paragraph({
-        text: `Missing Critical Patches: ${data.compliance_status.missing_patches}`,
+        children: [
+          new TextRun({ text: `Missing Critical Patches: `, size: 24 }),
+          new TextRun({
+            text: `${data.compliance_status.missing_patches}`,
+            bold: true,
+            size: 24,
+          }),
+        ],
+        spacing: { after: 100 },
       }),
     ];
   }
@@ -1261,39 +1348,99 @@ class AnalyticsService {
   ): Paragraph[] {
     return [
       new Paragraph({
-        text: "TICKET SUMMARY",
+        children: [
+          new TextRun({
+            text: "TICKET SUMMARY",
+            bold: true,
+            size: 28,
+          }),
+        ],
         heading: HeadingLevel.HEADING_1,
-      }),
-      new Paragraph({ text: `Total Tickets: ${data.summary.total_tickets}` }),
-      new Paragraph({ text: `Open Tickets: ${data.summary.open_tickets}` }),
-      new Paragraph({
-        text: `Resolved Tickets: ${data.summary.resolved_tickets}`,
+        spacing: { before: 400, after: 200 },
       }),
       new Paragraph({
-        text: `Average Resolution Time: ${data.summary.avg_resolution_time} hours`,
+        children: [
+          new TextRun({ text: `Total Tickets: `, size: 24 }),
+          new TextRun({ text: `${data.summary.total_tickets}`, bold: true, size: 24 }),
+        ],
+        spacing: { after: 100 },
       }),
-      new Paragraph({ text: "" }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: `Open Tickets: `, size: 24 }),
+          new TextRun({ text: `${data.summary.open_tickets}`, bold: true, size: 24 }),
+        ],
+        spacing: { after: 100 },
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: `Resolved Tickets: `, size: 24 }),
+          new TextRun({ text: `${data.summary.resolved_tickets}`, bold: true, size: 24 }),
+        ],
+        spacing: { after: 100 },
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: `Average Resolution Time: `, size: 24 }),
+          new TextRun({ text: `${data.summary.avg_resolution_time} hours`, bold: true, size: 24 }),
+        ],
+        spacing: { after: 300 },
+      }),
 
       new Paragraph({
-        text: "SLA PERFORMANCE",
+        children: [
+          new TextRun({
+            text: "SLA PERFORMANCE",
+            bold: true,
+            size: 28,
+          }),
+        ],
         heading: HeadingLevel.HEADING_1,
+        spacing: { before: 400, after: 200 },
       }),
       new Paragraph({
-        text: `SLA Compliance Rate: ${data.sla_performance.sla_compliance_rate}%`,
+        children: [
+          new TextRun({ text: `SLA Compliance Rate: `, size: 24 }),
+          new TextRun({ text: `${data.sla_performance.sla_compliance_rate}%`, bold: true, size: 24 }),
+        ],
+        spacing: { after: 100 },
       }),
       new Paragraph({
-        text: `Tickets Meeting SLA: ${data.sla_performance.met_sla}`,
+        children: [
+          new TextRun({ text: `Tickets Meeting SLA: `, size: 24 }),
+          new TextRun({ text: `${data.sla_performance.met_sla}`, bold: true, size: 24 }),
+        ],
+        spacing: { after: 100 },
       }),
       new Paragraph({
-        text: `SLA Breaches: ${data.sla_performance.breached_sla}`,
+        children: [
+          new TextRun({ text: `SLA Breaches: `, size: 24 }),
+          new TextRun({ text: `${data.sla_performance.breached_sla}`, bold: true, size: 24 }),
+        ],
+        spacing: { after: 300 },
       }),
-      new Paragraph({ text: "" }),
 
-      new Paragraph({ text: "TOP ISSUES", heading: HeadingLevel.HEADING_1 }),
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: "TOP ISSUES",
+            bold: true,
+            size: 28,
+          }),
+        ],
+        heading: HeadingLevel.HEADING_1,
+        spacing: { before: 400, after: 200 },
+      }),
       ...data.top_issues.map(
         (issue) =>
           new Paragraph({
-            text: `• ${issue.category}: ${issue.count} tickets (avg ${issue.avg_resolution_time}h resolution)`,
+            children: [
+              new TextRun({
+                text: `• ${issue.category}: ${issue.count} tickets (avg ${issue.avg_resolution_time}h resolution)`,
+                size: 22,
+              }),
+            ],
+            spacing: { after: 100 },
           }),
       ),
     ];
@@ -1766,26 +1913,56 @@ class AnalyticsService {
     data: any,
     reportType: string = "generic",
   ): Promise<Buffer> {
-    // Generate a simple PDF-like text format
-    const textContent = this.generatePDFTextDocument(data, reportType);
-    return Buffer.from(textContent, "utf-8");
+    // Generate a properly formatted text document for PDF
+    const textContent = this.generateEnhancedTextDocument(data, reportType);
+    
+    // Create a simple but valid PDF with proper content
+    const pdfContent = this.generateValidPDF(textContent, reportType);
+    return Buffer.from(pdfContent, "binary");
   }
 
-  private generatePDFTextDocument(data: any, reportType: string): string {
-    let content = `%PDF-1.4\n`;
-    content += `1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n\n`;
-    content += `2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n\n`;
-    content += `3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n/Contents 4 0 R\n>>\nendobj\n\n`;
-    content += `4 0 obj\n<<\n/Length ${this.getReportTitle(reportType).length + 100}\n>>\nstream\n`;
-    content += `BT\n/F1 12 Tf\n50 750 Td\n(${this.getReportTitle(reportType)}) Tj\n`;
-    content += `0 -20 Td\n(Generated: ${format(new Date(), "PPpp")}) Tj\n`;
-    content += `0 -40 Td\n(Report Data:) Tj\n`;
-    content += `0 -20 Td\n(${JSON.stringify(data, null, 2).substring(0, 500)}...) Tj\n`;
-    content += `ET\nendstream\nendobj\n\n`;
-    content += `xref\n0 5\n0000000000 65535 f\n0000000010 00000 n\n0000000079 00000 n\n0000000173 00000 n\n0000000301 00000 n\n`;
-    content += `trailer\n<<\n/Size 5\n/Root 1 0 R\n>>\nstartxref\n${content.length}\n%%EOF`;
-
-    return content;
+  private generateValidPDF(textContent: string, reportType: string): string {
+    const title = this.getReportTitle(reportType);
+    const timestamp = format(new Date(), "PPpp");
+    
+    // Split content into lines for better formatting
+    const lines = textContent.split('\n').slice(0, 50); // Limit to prevent oversized PDF
+    
+    let streamContent = `BT\n/F1 16 Tf\n50 750 Td\n(${title}) Tj\n`;
+    streamContent += `0 -30 Td\n/F1 12 Tf\n(Generated: ${timestamp}) Tj\n`;
+    streamContent += `0 -40 Td\n`;
+    
+    let yPosition = 0;
+    for (let i = 0; i < Math.min(lines.length, 30); i++) {
+      const line = lines[i].replace(/[()\\]/g, '\\$&').substring(0, 80); // Escape special chars and limit length
+      if (line.trim()) {
+        streamContent += `0 -20 Td\n(${line}) Tj\n`;
+        yPosition += 20;
+        if (yPosition > 600) break; // Prevent overflow
+      }
+    }
+    
+    streamContent += `ET\n`;
+    
+    const streamLength = streamContent.length;
+    
+    let pdf = `%PDF-1.4\n`;
+    pdf += `1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n\n`;
+    pdf += `2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n\n`;
+    pdf += `3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n/Resources <<\n/Font <<\n/F1 <<\n/Type /Font\n/Subtype /Type1\n/BaseFont /Helvetica\n>>\n>>\n>>\n/Contents 4 0 R\n>>\nendobj\n\n`;
+    pdf += `4 0 obj\n<<\n/Length ${streamLength}\n>>\nstream\n${streamContent}endstream\nendobj\n\n`;
+    
+    const xrefPos = pdf.length;
+    pdf += `xref\n0 5\n0000000000 65535 f \n`;
+    
+    const positions = [9, pdf.indexOf('2 0 obj'), pdf.indexOf('3 0 obj'), pdf.indexOf('4 0 obj')];
+    positions.forEach(pos => {
+      pdf += `${pos.toString().padStart(10, '0')} 00000 n \n`;
+    });
+    
+    pdf += `trailer\n<<\n/Size 5\n/Root 1 0 R\n>>\nstartxref\n${xrefPos}\n%%EOF`;
+    
+    return pdf;
   }
 
   private generateWordFallbackDocument(data: any, reportType: string): string {
