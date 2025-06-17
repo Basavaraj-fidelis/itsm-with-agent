@@ -1,4 +1,5 @@
 import { apiRequest } from "./queryClient";
+import { QueryClient } from '@tanstack/react-query';
 
 export interface DashboardSummary {
   total_devices: number;
@@ -305,4 +306,77 @@ async function post(url: string, data?: any) {
 
 async function get(url: string) {
   return apiRequest(url, { method: "GET" });
+}
+
+// API utility functions
+
+const API_BASE = '/api';
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 3,
+      staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public statusText: string
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+export async function apiRequest<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  try {
+    console.log('API Request:', `${API_BASE}${endpoint}`);
+
+    const token = localStorage.getItem('token');
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...options.headers,
+    };
+
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+      ...options,
+      headers,
+    });
+
+    console.log('API Response:', response.status, response.statusText);
+
+    if (!response.ok) {
+      let errorMessage = `API Error: ${response.status} ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch {
+        const errorText = await response.text();
+        errorMessage = errorText || errorMessage;
+      }
+      throw new ApiError(errorMessage, response.status, response.statusText);
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      return await response.json();
+    } else {
+      return await response.text() as unknown as T;
+    }
+  } catch (error) {
+    console.error('API Request Failed:', error);
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new Error(`Network error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }

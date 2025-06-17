@@ -636,7 +636,7 @@ export default function Dashboard() {
                     key={i}
                     className="animate-pulse h-16 bg-neutral-200 dark:bg-neutral-700 rounded"
                   ></div>
-                ))}
+                                ))}
               </div>
             ) : alerts && alerts.length > 0 ? (
               <div className="space-y-4">
