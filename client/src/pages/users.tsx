@@ -376,14 +376,10 @@ export default function UsersPage() {
                 {adSyncMutation.isPending ? "Syncing..." : "Sync AD"}
               </Button>
             )}
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add User
-                </Button>
-              </DialogTrigger>
-            </Dialog>
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add User
+            </Button>
           </div>
         </div>
 
@@ -750,10 +746,11 @@ export default function UsersPage() {
       </Card>
 
       {/* Create User Dialog */}
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Add New User</DialogTitle>
-        </DialogHeader>
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New User</DialogTitle>
+          </DialogHeader>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -858,7 +855,8 @@ export default function UsersPage() {
             </Button>
           </div>
         </div>
-      </DialogContent>
+        </DialogContent>
+      </Dialog>
 
       {/* View User Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
