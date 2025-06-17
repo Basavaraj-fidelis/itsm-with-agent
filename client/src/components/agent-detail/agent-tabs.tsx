@@ -958,7 +958,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                         </span>
                       </div>
                     </>
-                  <div className="mt-4">```text
+                  <div className="mt-4">
 
                   <div className="text-blue-400">SECURITY STATUS:</div>
                   {rawData.security ? (
