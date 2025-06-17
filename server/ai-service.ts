@@ -317,6 +317,43 @@ class AIService {
     return Math.sqrt(variance);
   }
 
+  private detectAnomalies(values: number[], threshold = 2.5): number[] {
+    if (values.length < 3) return [];
+
+    const mean = values.reduce((a, b) => a + b, 0) / values.length;
+    const std = Math.sqrt(values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length);
+    
+    return values.filter(value => Math.abs(value - mean) > threshold * std);
+  }
+
+  private calculateSeasonality(values: number[]): { pattern: string; confidence: number } {
+    if (values.length < 7) return { pattern: 'insufficient_data', confidence: 0 };
+
+    // Simple weekly pattern detection
+    const weeklyAvg = [];
+    for (let day = 0; day < 7; day++) {
+      const dayValues = values.filter((_, index) => index % 7 === day);
+      weeklyAvg[day] = dayValues.reduce((a, b) => a + b, 0) / dayValues.length;
+    }
+
+    const totalVariance = values.reduce((sum, val) => {
+      const overallMean = values.reduce((a, b) => a + b, 0) / values.length;
+      return sum + Math.pow(val - overallMean, 2);
+    }, 0) / values.length;
+
+    const weeklyVariance = weeklyAvg.reduce((sum, dayMean) => {
+      const overallMean = weeklyAvg.reduce((a, b) => a + b, 0) / 7;
+      return sum + Math.pow(dayMean - overallMean, 2);
+    }, 0) / 7;
+
+    const seasonalityStrength = weeklyVariance / totalVariance;
+    
+    return {
+      pattern: seasonalityStrength > 0.3 ? 'weekly' : 'random',
+      confidence: Math.min(seasonalityStrength, 1.0)
+    };
+  }
+
   async getDeviceRecommendations(deviceId: string): Promise<string[]> {
     const insights = await this.generateDeviceInsights(deviceId);
     return insights

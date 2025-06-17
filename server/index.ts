@@ -48,7 +48,7 @@ app.use((req, res, next) => {
     // Initialize database tables
     try {
       console.log("🔗 Testing database connection...");
-      
+
       // Check if DATABASE_URL is properly set
       if (!process.env.DATABASE_URL) {
         console.error("❌ DATABASE_URL environment variable is not set");
@@ -84,7 +84,7 @@ app.use((req, res, next) => {
           'SSL certificate issue - check database connection settings' : 
           'Check database URL and credentials'
       });
-      
+
       if (error.code === 'ENOTFOUND') {
         console.log("🔧 To fix this issue:");
         console.log("1. Go to the Database tab in Replit");
@@ -92,7 +92,7 @@ app.use((req, res, next) => {
         console.log("3. The DATABASE_URL environment variable will be automatically configured");
         console.log("4. Restart your application");
       }
-      
+
       process.exit(1);
     }
 

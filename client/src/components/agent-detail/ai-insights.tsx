@@ -40,20 +40,36 @@ export function AIInsights({ agent }: AIInsightsProps) {
     const aiInsights: AIInsight[] = [];
     const latestReport = agent.latest_report;
     
-    // Parse metrics
-    const cpuUsage = parseFloat(latestReport.cpu_usage || "0");
-    const memoryUsage = parseFloat(latestReport.memory_usage || "0");
-    const diskUsage = parseFloat(latestReport.disk_usage || "0");
+    try {
+      // Parse metrics with error handling
+      const cpuUsage = parseFloat(latestReport.cpu_usage || "0");
+      const memoryUsage = parseFloat(latestReport.memory_usage || "0");
+      const diskUsage = parseFloat(latestReport.disk_usage || "0");
 
-    // Parse raw data for advanced analysis
-    const rawData = latestReport.raw_data 
-      ? (typeof latestReport.raw_data === "string" 
-         ? JSON.parse(latestReport.raw_data) 
-         : latestReport.raw_data)
-      : {};
+      // Parse raw data for advanced analysis with proper error handling
+      let rawData = {};
+      try {
+        if (latestReport.raw_data) {
+          if (typeof latestReport.raw_data === "string") {
+            // Only parse if it's a valid JSON string, not "[object Object]"
+            if (latestReport.raw_data.startsWith('{') || latestReport.raw_data.startsWith('[')) {
+              rawData = JSON.parse(latestReport.raw_data);
+            } else {
+              console.warn('Invalid JSON format in raw_data:', latestReport.raw_data);
+              rawData = {};
+            }
+          } else if (typeof latestReport.raw_data === "object") {
+            rawData = latestReport.raw_data;
+          }
+        }
+      } catch (parseError) {
+        console.error('Error parsing raw_data:', parseError);
+        rawData = {};
+      }
 
-    const processes = rawData.processes || [];
-    const systemHealth = rawData.system_health || {};
+      const processes = Array.isArray(rawData.processes) ? rawData.processes : [];
+      const systemHealth = rawData.system_health || {};
+      const security = rawData.security || {};
 
     // 1. Performance Anomaly Detection
     if (cpuUsage > 85) {
@@ -164,25 +180,44 @@ export function AIInsights({ agent }: AIInsightsProps) {
     }
 
     return aiInsights;
+    } catch (error) {
+      console.error('Error generating AI insights:', error);
+      return [];
+    }
+  };
+
+  const fetchInsights = async (refresh = false) => {
+    if (!agent?.id) return;
+    
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/ai/insights/${agent.id}${refresh ? '?refresh=true' : ''}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setInsights(data.insights || []);
+      } else {
+        console.error('AI insights API error:', data.error);
+        // Fallback to client-side generation
+        setInsights(generateInsights());
+      }
+    } catch (error) {
+      console.error('Error fetching AI insights:', error);
+      // Fallback to client-side generation
+      setInsights(generateInsights());
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     if (agent) {
-      setLoading(true);
-      // Simulate AI processing delay
-      setTimeout(() => {
-        setInsights(generateInsights());
-        setLoading(false);
-      }, 1000);
+      fetchInsights(false);
     }
   }, [agent]);
 
   const refreshInsights = () => {
-    setLoading(true);
-    setTimeout(() => {
-      setInsights(generateInsights());
-      setLoading(false);
-    }, 800);
+    fetchInsights(true);
   };
 
   const getSeverityColor = (severity: string) => {
