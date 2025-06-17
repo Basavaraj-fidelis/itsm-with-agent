@@ -958,6 +958,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                         </span>
                       </div>
                     </>
+<previous_generation>
                   ) : null}
                 </div>
 
@@ -2285,18 +2286,6 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                           {windowsUpdates.automatic_updates !== undefined 
                             ? (windowsUpdates.automatic_updates ? "Enabled" : "Disabled")
                             : "Unknown"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">Firewall Status:</span>
-                        <span className="font-medium capitalize">
-                          {securityInfo.firewall_status || "Unknown"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">Antivirus Status:</span>
-                        <span className="font-medium capitalize">
-                          {securityInfo.antivirus_status || "Unknown"}
                         </span>
                       </div>
                     </div>
