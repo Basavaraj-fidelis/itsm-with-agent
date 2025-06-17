@@ -116,8 +116,8 @@ router.get("/", async (req, res) => {
       department: user.department || user.location || 'N/A',
       status: user.is_active && !user.is_locked ? 'active' : 'inactive',
       security_status: user.failed_login_attempts > 0 ? 'warning' : 'normal',
-      is_ad_synced: user.sync_source === 'ad',
-      ad_groups: user.ad_groups ? JSON.parse(user.ad_groups) : [],
+      ad_synced: user.sync_source === 'ad',
+      ad_groups: user.ad_groups ? (typeof user.ad_groups === 'string' ? JSON.parse(user.ad_groups) : user.ad_groups) : [],
       last_ad_sync: user.last_ad_sync
     }));
 
@@ -301,22 +301,45 @@ router.post("/", async (req, res) => {
 // Update user
 router.put("/:id", async (req, res) => {
   try {
+    console.log("PUT /api/users/:id - Updating user:", req.params.id);
+    console.log("Request body:", req.body);
+
     const { email, name, role, department, phone, is_active, password } = req.body;
+
+    // Validate required fields
+    if (!email || !name || !role) {
+      return res.status(400).json({ message: "Email, name, and role are required" });
+    }
 
     // Parse name into first and last name
     const nameParts = (name || '').trim().split(' ');
     const first_name = nameParts[0] || '';
     const last_name = nameParts.slice(1).join(' ') || '';
 
+    // Check if user exists first
+    const userCheck = await db.query(`SELECT id FROM users WHERE id = $1`, [req.params.id]);
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
     let updateQuery = `
       UPDATE users 
       SET email = $1, first_name = $2, last_name = $3, role = $4, 
           phone = $5, location = $6, department = $7, is_active = $8, updated_at = NOW()
     `;
-    let values = [email, first_name, last_name, role, phone, department, department, is_active];
+    let values = [
+      email.toLowerCase(), 
+      first_name, 
+      last_name, 
+      role, 
+      phone || null, 
+      department || null, 
+      department || null, 
+      is_active !== undefined ? is_active : true
+    ];
 
     // If password is provided, update it too
-    if (password) {
+    if (password && password.trim()) {
       const saltRounds = 10;
       const password_hash = await bcrypt.hash(password, saltRounds);
       updateQuery += `, password_hash = $9 WHERE id = $10`;
@@ -326,22 +349,30 @@ router.put("/:id", async (req, res) => {
       values.push(req.params.id);
     }
 
-    updateQuery += ` RETURNING id, email, username, first_name, last_name, role, phone, location, department, is_active, created_at`;
+    updateQuery += ` RETURNING id, email, username, first_name, last_name, role, phone, location, department, is_active, created_at, updated_at`;
+
+    console.log("Executing update query:", updateQuery);
+    console.log("With values:", values);
 
     const result = await db.query(updateQuery, values);
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "User not found or update failed" });
     }
 
     const updatedUser = result.rows[0];
     updatedUser.name = `${updatedUser.first_name || ''} ${updatedUser.last_name || ''}`.trim();
-    updatedUser.department = department;
+    
+    console.log("User updated successfully:", updatedUser);
 
     res.json(updatedUser);
   } catch (error: any) {
     console.error("Error updating user:", error);
-    res.status(500).json({ message: "Failed to update user" });
+    res.status(500).json({ 
+      message: "Failed to update user",
+      error: error.message,
+      details: error.detail || error.stack
+    });
   }
 });
 
@@ -363,6 +394,59 @@ router.delete("/:id", async (req, res) => {
   } catch (error: any) {
     console.error("Error deleting user:", error);
     res.status(500).json({ message: "Failed to delete user" });
+  }
+});
+
+// Lock user endpoint
+router.post("/:id/lock", async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const userId = req.params.id;
+
+    console.log(`Locking user ${userId} with reason: ${reason}`);
+
+    const result = await db.query(`
+      UPDATE users 
+      SET is_locked = true, updated_at = NOW() 
+      WHERE id = $1 
+      RETURNING id, email, username, first_name, last_name, is_locked
+    `, [userId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    console.log("User locked successfully:", result.rows[0]);
+    res.json({ message: "User locked successfully", user: result.rows[0] });
+  } catch (error: any) {
+    console.error("Error locking user:", error);
+    res.status(500).json({ message: "Failed to lock user" });
+  }
+});
+
+// Unlock user endpoint
+router.post("/:id/unlock", async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    console.log(`Unlocking user ${userId}`);
+
+    const result = await db.query(`
+      UPDATE users 
+      SET is_locked = false, failed_login_attempts = 0, updated_at = NOW() 
+      WHERE id = $1 
+      RETURNING id, email, username, first_name, last_name, is_locked
+    `, [userId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    console.log("User unlocked successfully:", result.rows[0]);
+    res.json({ message: "User unlocked successfully", user: result.rows[0] });
+  } catch (error: any) {
+    console.error("Error unlocking user:", error);
+    res.status(500).json({ message: "Failed to unlock user" });
   }
 });
 

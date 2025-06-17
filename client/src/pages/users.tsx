@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -80,7 +79,7 @@ export default function UsersPage() {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [bulkAction, setBulkAction] = useState("");
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  
+
   const [newUser, setNewUser] = useState({
     name: "",
     email: "",
@@ -93,19 +92,22 @@ export default function UsersPage() {
   });
 
   // Fetch users
-  const { data: users = [], isLoading, error, refetch } = useQuery({
+  const { data: usersResponse, isLoading, error, refetch } = useQuery({
     queryKey: ["/api/users", { search: searchTerm, role: roleFilter }],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchTerm) params.append("search", searchTerm);
       if (roleFilter !== "all") params.append("role", roleFilter);
-      
+
       const response = await api.get(`/api/users?${params}`);
       if (!response.ok) throw new Error("Failed to fetch users");
       return await response.json();
     },
-    refetchInterval: 30000,
+    refetchInterval: 120000, // Reduced from 30 seconds to 2 minutes
   });
+
+  // Extract users array from response
+  const users = usersResponse?.data || usersResponse || [];
 
   // Fetch AD sync status
   const { data: adSyncStatus } = useQuery({
@@ -232,13 +234,13 @@ export default function UsersPage() {
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.department.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
     const matchesDepartment = departmentFilter === "all" || user.department === departmentFilter;
     const matchesStatus = statusFilter === "all" || 
       (statusFilter === "active" && user.is_active) ||
       (statusFilter === "inactive" && !user.is_active);
-    
+
     const matchesSyncSource = syncSourceFilter === "all" ||
       (syncSourceFilter === "ad" && user.ad_synced) ||
       (syncSourceFilter === "local" && !user.ad_synced);
@@ -276,7 +278,7 @@ export default function UsersPage() {
 
   const handleBulkAction = () => {
     if (!bulkAction || selectedUsers.length === 0) return;
-    
+
     switch (bulkAction) {
       case "activate":
         selectedUsers.forEach(userId => {
@@ -396,7 +398,7 @@ export default function UsersPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center space-x-2">
@@ -733,7 +735,7 @@ export default function UsersPage() {
                 ))}
               </tbody>
             </table>
-            
+
             {filteredUsers.length === 0 && (
               <div className="text-center py-8">
                 <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -773,7 +775,7 @@ export default function UsersPage() {
               />
             </div>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="password">Password</Label>
@@ -906,7 +908,7 @@ export default function UsersPage() {
                     <p className="mt-1">{selectedUser.location || '-'}</p>
                   </div>
                 </div>
-                
+
                 <div className="space-y-4">
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Phone</Label>
@@ -984,7 +986,7 @@ export default function UsersPage() {
                   )}
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edit-role">Role</Label>
