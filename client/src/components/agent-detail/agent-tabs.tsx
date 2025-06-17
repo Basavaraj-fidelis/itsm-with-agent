@@ -2261,7 +2261,11 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
             </CardHeader>
             <CardContent>
               {(() => {
-                const rawData = latestReport?.raw_data ? JSON.parse(latestReport.raw_data) : null;
+                const rawData = latestReport?.raw_data
+                  ? typeof latestReport.raw_data === "string"
+                    ? JSON.parse(latestReport.raw_data)
+                    : latestReport.raw_data
+                  : null;
                 const security = rawData?.security;
 
                 if (!security) {
