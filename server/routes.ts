@@ -2090,6 +2090,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug endpoint to check device status
+  app.get("/api/debug/devices", authenticateToken, async (req, res) => {
+    try {
+      const devices = await storage.getDevices();
+      const now = new Date();
+      
+      const deviceDetails = devices.map(device => {
+        const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
+        const minutesAgo = lastSeen ? Math.floor((now.getTime() - lastSeen.getTime()) / (1000 * 60)) : null;
+        
+        return {
+          id: device.id,
+          hostname: device.hostname,
+          ip_address: device.ip_address,
+          assigned_user: device.assigned_user,
+          status: device.status,
+          last_seen: device.last_seen,
+          minutes_since_last_report: minutesAgo,
+          is_recently_active: minutesAgo !== null && minutesAgo < 5,
+          created_at: device.created_at
+        };
+      });
+
+      res.json({
+        total_devices: devices.length,
+        devices: deviceDetails,
+        summary: {
+          online: deviceDetails.filter(d => d.status === 'online').length,
+          offline: deviceDetails.filter(d => d.status === 'offline').length,
+          recently_active: deviceDetails.filter(d => d.is_recently_active).length
+        }
+      });
+    } catch (error) {
+      console.error("Error in debug devices endpoint:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Health check
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date() });

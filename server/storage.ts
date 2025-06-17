@@ -2880,13 +2880,13 @@ smartphones
   async createUser(data: any): Promise<any> {
     try {
       const { pool } = await import("./db");
-      
+
       // Parse name into first and last name
       const nameParts = (data.name || '').trim().split(' ');
       const first_name = nameParts[0] || '';
       const last_name = nameParts.slice(1).join(' ') || '';
       const username = data.email?.split('@')[0] || '';
-      
+
       const result = await pool.query(
         `
         INSERT INTO users (
@@ -2916,7 +2916,7 @@ smartphones
       const user = result.rows[0];
       // Add computed name field for consistency
       user.name = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.email?.split('@')[0];
-      
+
       return user;
     } catch (error) {
       console.error("Error creating user:", error);
@@ -3081,7 +3081,7 @@ smartphones
 
     for (const device of allDevices) {
       const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
-      if (lastSeen && lastSeen < fiveMinutesAgo && device.status === "online") {
+       if (lastSeen && lastSeen < fiveMinutesAgo && device.status === "online") {
         await this.updateDevice(device.id, { status: "offline" });
       }
     }
@@ -3107,3 +3107,76 @@ smartphones
 
 // Create and export storage instance
 export const storage = new DatabaseStorage();
+
+import os from "os";
+
+export async function registerAgent(
+  hostname: string,
+  ip_address: string,
+  currentUser: string | null,
+) {
+  try {
+    const osInfo = {
+      platform: os.platform(),
+      version: os.release(),
+      name: os.type(),
+    };
+
+    // Check if device already exists
+    let device = await storage.getDeviceByHostname(hostname);
+
+    if (!device) {
+        device = await storage.createDevice({
+          hostname: hostname,
+          assigned_user: currentUser,
+          os_name: osInfo.name || osInfo.platform || osInfo.system || null,
+          os_version:
+            osInfo.version || osInfo.release || osInfo.version_info || null,
+          ip_address: ip_address,
+          status: "online",
+          last_seen: new Date(),
+        });
+        console.log(
+          "🆕 Created new device:",
+          device.id,
+          "Hostname:",
+          hostname,
+          "User:",
+          currentUser,
+          "IP:",
+          ip_address,
+        );
+      } else {
+        // Update existing device including IP address and user
+        await storage.updateDevice(device.id, {
+          assigned_user: currentUser || device.assigned_user,
+          os_name:
+            osInfo.name || osInfo.platform || osInfo.system || device.os_name,
+          os_version:
+            osInfo.version ||
+            osInfo.release ||
+            osInfo.version_info ||
+            device.os_version,
+          ip_address: ip_address || device.ip_address,
+          status: "online",
+          last_seen: new Date(),
+        });
+        console.log(
+          "🔄 Updated existing device:",
+          device.id,
+          "Hostname:",
+          hostname,
+          "User:",
+          currentUser,
+          "IP:",
+          ip_address,
+          "Previous status:",
+          device.status,
+        );
+    }
+
+    return device;
+  } catch (error) {
+    console.error("Error registering agent:", error);
+  }
+}
