@@ -1,4 +1,3 @@
-
 import { storage } from "./storage";
 
 export interface AIInsight {
@@ -29,127 +28,36 @@ export interface PerformancePrediction {
 
 class AIService {
   async generateDeviceInsights(deviceId: string): Promise<AIInsight[]> {
-    try {
-      // Get device data
-      const device = await storage.getDeviceById(deviceId);
-      if (!device || !device.latest_report) {
-        return [];
-      }
-
-      const insights: AIInsight[] = [];
-      const latestReport = device.latest_report;
-      
-      // Parse metrics with error handling
-      const cpuUsage = parseFloat(latestReport.cpu_usage || "0");
-      const memoryUsage = parseFloat(latestReport.memory_usage || "0");
-      const diskUsage = parseFloat(latestReport.disk_usage || "0");
-
-      // Generate insights based on metrics
-      if (cpuUsage > 85) {
-        insights.push({
-          id: `cpu-high-${Date.now()}`,
-          device_id: deviceId,
-          type: 'performance',
-          severity: cpuUsage > 95 ? 'high' : 'medium',
-          title: 'High CPU Usage Detected',
-          description: `CPU usage at ${cpuUsage.toFixed(1)}%`,
-          recommendation: 'Consider investigating high CPU processes or scheduling maintenance during off-hours.',
-          confidence: 0.9,
-          metadata: { cpu_usage: cpuUsage },
-          created_at: new Date()
-        });
-      }
-
-      if (memoryUsage > 80) {
-        insights.push({
-          id: `memory-high-${Date.now()}`,
-          device_id: deviceId,
-          type: 'performance',
-          severity: memoryUsage > 90 ? 'high' : 'medium',
-          title: 'Memory Pressure Detected',
-          description: `Memory usage at ${memoryUsage.toFixed(1)}%`,
-          recommendation: memoryUsage > 90 
-            ? 'Immediate action required: Close unnecessary applications or restart system'
-            : 'Monitor memory usage and consider memory upgrade if pattern persists',
-          confidence: 0.85,
-          metadata: { memory_usage: memoryUsage },
-          created_at: new Date()
-        });
-      }
-
-      if (diskUsage > 75) {
-        const daysToFull = diskUsage > 90 ? 7 : diskUsage > 85 ? 30 : 90;
-        insights.push({
-          id: `disk-prediction-${Date.now()}`,
-          device_id: deviceId,
-          type: 'prediction',
-          severity: diskUsage > 90 ? 'high' : diskUsage > 85 ? 'medium' : 'low',
-          title: 'Disk Space Forecast',
-          description: `Current disk usage: ${diskUsage.toFixed(1)}%. Projected to reach capacity in ~${daysToFull} days`,
-          recommendation: 'Schedule disk cleanup or expansion to prevent service interruption',
-          confidence: 0.75,
-          metadata: { disk_usage: diskUsage, days_to_full: daysToFull },
-          created_at: new Date()
-        });
-      }
-
-      return insights;
-    } catch (error) {
-      console.error('Error generating device insights:', error);
-      return [];
-    }
-  }
-
-  async getDeviceRecommendations(deviceId: string): Promise<any[]> {
-    try {
-      const insights = await this.generateDeviceInsights(deviceId);
-      return insights.map(insight => ({
-        title: insight.title,
-        recommendation: insight.recommendation,
-        priority: insight.severity,
-        confidence: insight.confidence
-      }));
-    } catch (error) {
-      console.error('Error getting device recommendations:', error);
-      return [];
-    }
-  }
-}
-
-export const aiService = new AIService();
-
-class AIService {
-  async generateDeviceInsights(deviceId: string): Promise<AIInsight[]> {
     const insights: AIInsight[] = [];
-    
+
     try {
       // Get recent device reports (last 7 days)
       const reports = await storage.getRecentDeviceReports(deviceId, 7);
-      
+
       if (reports.length === 0) {
         return insights;
       }
 
       const latestReport = reports[0];
-      
+
       // Performance Analysis
       await this.analyzePerformancePatterns(deviceId, reports, insights);
-      
+
       // Security Assessment
       await this.analyzeSecurityPosture(deviceId, latestReport, insights);
-      
+
       // Resource Predictions
       await this.generateResourcePredictions(deviceId, reports, insights);
-      
+
       // Process Behavior Analysis
       await this.analyzeProcessBehavior(deviceId, latestReport, insights);
-      
+
       // System Health Assessment
       await this.analyzeSystemHealth(deviceId, latestReport, insights);
 
       console.log(`Generated ${insights.length} AI insights for device ${deviceId}`);
       return insights;
-      
+
     } catch (error) {
       console.error("Error generating AI insights:", error);
       return insights;
@@ -166,7 +74,7 @@ class AIService {
     // Analyze CPU trends
     const cpuValues = reports.map(r => parseFloat(r.cpu_usage || "0")).filter(v => !isNaN(v));
     const cpuTrend = this.calculateTrend(cpuValues);
-    
+
     if (cpuTrend > 2) { // Increasing by >2% per day
       insights.push({
         id: `cpu-trend-${deviceId}`,
@@ -185,7 +93,7 @@ class AIService {
     // Analyze Memory trends
     const memoryValues = reports.map(r => parseFloat(r.memory_usage || "0")).filter(v => !isNaN(v));
     const memoryTrend = this.calculateTrend(memoryValues);
-    
+
     if (memoryTrend > 1.5) {
       insights.push({
         id: `memory-trend-${deviceId}`,
@@ -227,21 +135,21 @@ class AIService {
     if (!latestReport.raw_data) return;
 
     const rawData = JSON.parse(latestReport.raw_data);
-    const security = rawData.security || {};
+    const securityData = rawData.security || {};
     const processes = rawData.processes || [];
 
     // Security services check
-    if (security.firewall_status !== 'enabled' || security.antivirus_status !== 'enabled') {
+    if (securityData.firewall_status !== 'enabled' || securityData.antivirus_status !== 'enabled') {
       insights.push({
         id: `security-services-${deviceId}`,
         device_id: deviceId,
         type: 'security',
         severity: 'critical',
         title: 'Critical Security Services Disabled',
-        description: `${security.firewall_status !== 'enabled' ? 'Firewall disabled. ' : ''}${security.antivirus_status !== 'enabled' ? 'Antivirus disabled.' : ''}`,
+        description: `${securityData.firewall_status !== 'enabled' ? 'Firewall disabled. ' : ''}${securityData.antivirus_status !== 'enabled' ? 'Antivirus disabled.' : ''}`,
         recommendation: 'Immediately enable all security services and run full system scan',
         confidence: 0.95,
-        metadata: { firewall: security.firewall_status, antivirus: security.antivirus_status },
+        metadata: { firewall: securityData.firewall_status, antivirus: securityData.antivirus_status },
         created_at: new Date()
       });
     }
@@ -278,11 +186,11 @@ class AIService {
     // Disk space prediction
     const diskValues = reports.map(r => parseFloat(r.disk_usage || "0")).filter(v => !isNaN(v));
     const diskTrend = this.calculateTrend(diskValues);
-    
+
     if (diskTrend > 0.5) { // Growing by >0.5% per day
       const currentDisk = diskValues[0] || 0;
       const daysToFull = (95 - currentDisk) / diskTrend;
-      
+
       if (daysToFull > 0 && daysToFull < 90) {
         insights.push({
           id: `disk-prediction-${deviceId}`,
@@ -417,7 +325,7 @@ class AIService {
 
     const mean = values.reduce((a, b) => a + b, 0) / values.length;
     const std = Math.sqrt(values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length);
-    
+
     return values.filter(value => Math.abs(value - mean) > threshold * std);
   }
 
@@ -442,7 +350,7 @@ class AIService {
     }, 0) / 7;
 
     const seasonalityStrength = weeklyVariance / totalVariance;
-    
+
     return {
       pattern: seasonalityStrength > 0.3 ? 'weekly' : 'random',
       confidence: Math.min(seasonalityStrength, 1.0)
