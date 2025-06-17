@@ -12,6 +12,10 @@ export interface AIInsight {
   confidence: number;
   metadata: any;
   created_at: Date;
+  existing_ticket?: {
+    id: string;
+    number: string;
+  };
 }
 
 export interface PerformancePrediction {
@@ -22,6 +26,97 @@ export interface PerformancePrediction {
   confidence: number;
   recommendation: string;
 }
+
+class AIService {
+  async generateDeviceInsights(deviceId: string): Promise<AIInsight[]> {
+    try {
+      // Get device data
+      const device = await storage.getDeviceById(deviceId);
+      if (!device || !device.latest_report) {
+        return [];
+      }
+
+      const insights: AIInsight[] = [];
+      const latestReport = device.latest_report;
+      
+      // Parse metrics with error handling
+      const cpuUsage = parseFloat(latestReport.cpu_usage || "0");
+      const memoryUsage = parseFloat(latestReport.memory_usage || "0");
+      const diskUsage = parseFloat(latestReport.disk_usage || "0");
+
+      // Generate insights based on metrics
+      if (cpuUsage > 85) {
+        insights.push({
+          id: `cpu-high-${Date.now()}`,
+          device_id: deviceId,
+          type: 'performance',
+          severity: cpuUsage > 95 ? 'high' : 'medium',
+          title: 'High CPU Usage Detected',
+          description: `CPU usage at ${cpuUsage.toFixed(1)}%`,
+          recommendation: 'Consider investigating high CPU processes or scheduling maintenance during off-hours.',
+          confidence: 0.9,
+          metadata: { cpu_usage: cpuUsage },
+          created_at: new Date()
+        });
+      }
+
+      if (memoryUsage > 80) {
+        insights.push({
+          id: `memory-high-${Date.now()}`,
+          device_id: deviceId,
+          type: 'performance',
+          severity: memoryUsage > 90 ? 'high' : 'medium',
+          title: 'Memory Pressure Detected',
+          description: `Memory usage at ${memoryUsage.toFixed(1)}%`,
+          recommendation: memoryUsage > 90 
+            ? 'Immediate action required: Close unnecessary applications or restart system'
+            : 'Monitor memory usage and consider memory upgrade if pattern persists',
+          confidence: 0.85,
+          metadata: { memory_usage: memoryUsage },
+          created_at: new Date()
+        });
+      }
+
+      if (diskUsage > 75) {
+        const daysToFull = diskUsage > 90 ? 7 : diskUsage > 85 ? 30 : 90;
+        insights.push({
+          id: `disk-prediction-${Date.now()}`,
+          device_id: deviceId,
+          type: 'prediction',
+          severity: diskUsage > 90 ? 'high' : diskUsage > 85 ? 'medium' : 'low',
+          title: 'Disk Space Forecast',
+          description: `Current disk usage: ${diskUsage.toFixed(1)}%. Projected to reach capacity in ~${daysToFull} days`,
+          recommendation: 'Schedule disk cleanup or expansion to prevent service interruption',
+          confidence: 0.75,
+          metadata: { disk_usage: diskUsage, days_to_full: daysToFull },
+          created_at: new Date()
+        });
+      }
+
+      return insights;
+    } catch (error) {
+      console.error('Error generating device insights:', error);
+      return [];
+    }
+  }
+
+  async getDeviceRecommendations(deviceId: string): Promise<any[]> {
+    try {
+      const insights = await this.generateDeviceInsights(deviceId);
+      return insights.map(insight => ({
+        title: insight.title,
+        recommendation: insight.recommendation,
+        priority: insight.severity,
+        confidence: insight.confidence
+      }));
+    } catch (error) {
+      console.error('Error getting device recommendations:', error);
+      return [];
+    }
+  }
+}
+
+export const aiService = new AIService();
 
 class AIService {
   async generateDeviceInsights(deviceId: string): Promise<AIInsight[]> {

@@ -175,12 +175,15 @@ class AIWorkflowIntegration {
 
   private async findExistingTicket(deviceId: string, insight: any): Promise<any> {
     try {
-      const { ticketStorage } = await import('./ticket-storage');
+      // Import ticket storage
+      const ticketStorageModule = await import('./ticket-storage');
+      const ticketStorage = ticketStorageModule.ticketStorage;
       
       // Search for open tickets for the same device with similar issue type
-      const { data: tickets } = await ticketStorage.getTickets(1, 50, {
+      const result = await ticketStorage.getTickets(1, 50, {
         status: 'open'
       });
+      const tickets = result.data || [];
 
       // Find tickets that match device and issue type criteria
       const existingTickets = tickets.filter(ticket => {
@@ -210,7 +213,9 @@ class AIWorkflowIntegration {
 
   private async updateExistingTicket(ticketId: string, insight: any): Promise<void> {
     try {
-      const { ticketStorage } = await import('./ticket-storage');
+      // Import ticket storage
+      const ticketStorageModule = await import('./ticket-storage');
+      const ticketStorage = ticketStorageModule.ticketStorage;
       
       // Add a comment to the existing ticket with the new insight
       await ticketStorage.addComment(ticketId, {

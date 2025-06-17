@@ -96,3 +96,50 @@ class AIInsightsStorage {
 }
 
 export const aiInsightsStorage = new AIInsightsStorage();
+import { storage } from './storage';
+
+export interface AIInsightRecord {
+  device_id: string;
+  insight_type: string;
+  severity: string;
+  title: string;
+  description: string;
+  recommendation: string;
+  confidence: number;
+  metadata: any;
+  is_active: boolean;
+}
+
+class AIInsightsStorage {
+  async storeInsight(insight: AIInsightRecord): Promise<void> {
+    try {
+      // For now, just log the insight since we don't have AI insights table
+      console.log('Storing AI insight:', {
+        device_id: insight.device_id,
+        type: insight.insight_type,
+        severity: insight.severity,
+        title: insight.title
+      });
+      
+      // In a real implementation, this would store in database
+      // await db.insert(aiInsights).values(insight);
+    } catch (error) {
+      console.error('Error storing AI insight:', error);
+      throw error;
+    }
+  }
+
+  async getInsightsForDevice(deviceId: string, limit: number = 20): Promise<any[]> {
+    try {
+      // For now, return empty array since we don't have insights table
+      // In real implementation, this would query the database
+      console.log(`Getting cached insights for device ${deviceId}`);
+      return [];
+    } catch (error) {
+      console.error('Error getting cached insights:', error);
+      return [];
+    }
+  }
+}
+
+export const aiInsightsStorage = new AIInsightsStorage();

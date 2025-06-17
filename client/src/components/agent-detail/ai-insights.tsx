@@ -190,14 +190,22 @@ export function AIInsights({ agent }: AIInsightsProps) {
     
     setLoading(true);
     try {
-      const response = await fetch(`/api/ai/insights/${agent.id}${refresh ? '?refresh=true' : ''}`);
+      const response = await fetch(`/api/ai/insights/${agent.id}${refresh ? '?refresh=true' : ''}`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       
-      if (data.success) {
-        setInsights(data.insights || []);
+      if (data.success && Array.isArray(data.insights)) {
+        setInsights(data.insights);
       } else {
-        console.error('AI insights API error:', data.error);
-        // Fallback to client-side generation
+        console.warn('AI insights API returned invalid data, using client-side generation');
         setInsights(generateInsights());
       }
     } catch (error) {
