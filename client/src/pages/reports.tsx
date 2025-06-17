@@ -26,7 +26,6 @@ import {
   Maximize2,
   Filter
 } from "lucide-react";
-import { api } from "@/lib/api";
 import { formatDistanceToNow, format } from "date-fns";
 import {
   Chart as ChartJS,
@@ -260,19 +259,29 @@ export default function Reports() {
   const fetchRealTimeMetrics = async () => {
     setIsLoadingRealTime(true);
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
       const response = await fetch("/api/analytics/realtime", {
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem('token')}`
-        }
+          "Authorization": `Bearer ${localStorage.getItem('token') || ''}`
+        },
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
       
       if (response.ok) {
         const data = await response.json();
         setRealTimeMetrics(data.metrics);
+      } else {
+        console.warn("Failed to fetch real-time metrics:", response.status);
       }
     } catch (error) {
-      console.error("Error fetching real-time metrics:", error);
+      if (error.name !== 'AbortError') {
+        console.error("Error fetching real-time metrics:", error);
+      }
     } finally {
       setIsLoadingRealTime(false);
     }
@@ -450,7 +459,12 @@ export default function Reports() {
 
   const downloadReportById = async (reportId: string, title: string) => {
     try {
-      const response = await api.get(`/api/analytics/report/${reportId}`);
+      const response = await fetch(`/api/analytics/report/${reportId}`, {
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem('token') || ''}`
+        }
+      });
+      
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.report) {
@@ -463,6 +477,8 @@ export default function Reports() {
           a.click();
           URL.revokeObjectURL(url);
         }
+      } else {
+        throw new Error(`HTTP ${response.status}`);
       }
     } catch (error) {
       console.error("Error downloading report:", error);
@@ -474,7 +490,13 @@ export default function Reports() {
     if (!confirm("Are you sure you want to delete this report?")) return;
 
     try {
-      const response = await api.delete(`/api/analytics/report/${reportId}`);
+      const response = await fetch(`/api/analytics/report/${reportId}`, {
+        method: 'DELETE',
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem('token') || ''}`
+        }
+      });
+      
       if (response.ok) {
         setRecentReports(prev => prev.filter(report => report.id !== reportId));
       } else {
