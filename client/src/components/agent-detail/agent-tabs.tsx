@@ -958,7 +958,8 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                         </span>
                       </div>
                     </>
-                  )}
+                  ) : null}
+                </div>
 
                 <div className="mt-4">
                   <div className="text-blue-400">SECURITY STATUS:</div>
@@ -1830,8 +1831,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
             <CardContent>
               <div className="space-y-4">
                 {topProcesses.length > 0 ? (
-                  <div className="space-y-3">
-                    {topProcesses.map((process, index) => (
+                  <div className="space-y-3">                    {topProcesses.map((process, index) => (
                       <div
                         key={index}
                         className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-3"
