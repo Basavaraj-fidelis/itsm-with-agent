@@ -4,6 +4,7 @@ import { userRoutes } from "./user-routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { createTicketTables } from "./migrate-tickets";
 import analyticsRoutes from "./analytics-routes";
+import { db, sql } from "./db";
 
 const app = express();
 app.use(express.json());
@@ -43,7 +44,26 @@ app.use((req, res, next) => {
   try {
     // Run migrations on startup
     console.log("🚀 Starting server...");
-    await createTicketTables();
+
+    // Initialize database tables
+    try {
+      console.log("🔗 Testing database connection...");
+      await db.execute(sql`SELECT 1`);
+      console.log("✅ Database connection successful");
+
+      await createTicketTables();
+      console.log("✅ Database tables initialized successfully");
+    } catch (error) {
+      console.error("❌ Failed to initialize database:", error);
+      console.error("📋 Error details:", {
+        code: error.code,
+        message: error.message,
+        hint: error.code === 'SELF_SIGNED_CERT_IN_CHAIN' ? 
+          'SSL certificate issue - check database connection settings' : 
+          'Check database URL and credentials'
+      });
+      process.exit(1);
+    }
 
     // Import and run admin tables migration
     const { createAdminTables } = await import("./migrate-admin-tables");

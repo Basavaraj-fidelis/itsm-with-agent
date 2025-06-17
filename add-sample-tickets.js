@@ -7,7 +7,7 @@ const DATABASE_URL = process.env.DATABASE_URL ||
 
 const pool = new Pool({
   connectionString: DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ssl: DATABASE_URL.includes('localhost') ? false : { rejectUnauthorized: false },
 });
 
 const sampleTickets = [
