@@ -14,42 +14,59 @@ router.get('/insights/:deviceId', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Device ID is required' });
     }
 
+    // Set timeout to prevent long-running requests
+    const timeout = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Request timeout')), 5000)
+    );
+
     let insights = [];
 
     try {
-      // Check if we should generate fresh insights or use cached ones
-      if (refresh === 'true') {
-        insights = await aiService.generateDeviceInsights(deviceId);
+      const insightsPromise = (async () => {
+        // Check if we should generate fresh insights or use cached ones
+        if (refresh === 'true') {
+          const generatedInsights = await aiService.generateDeviceInsights(deviceId);
 
-        // Store insights in database for future use
-        if (Array.isArray(insights)) {
-          for (const insight of insights) {
-            try {
-              await aiInsightsStorage.storeInsight({
-                device_id: deviceId,
-                insight_type: insight.type,
-                severity: insight.severity,
-                title: insight.title,
-                description: insight.description,
-                recommendation: insight.recommendation,
-                confidence: insight.confidence,
-                metadata: insight.metadata || {},
-                is_active: true
-              });
-            } catch (storeError) {
-              console.warn('Failed to store insight:', storeError);
-            }
+          // Store insights in database for future use (fire and forget)
+          if (Array.isArray(generatedInsights)) {
+            setImmediate(async () => {
+              for (const insight of generatedInsights) {
+                try {
+                  await aiInsightsStorage.storeInsight({
+                    device_id: deviceId,
+                    insight_type: insight.type,
+                    severity: insight.severity,
+                    title: insight.title,
+                    description: insight.description,
+                    recommendation: insight.recommendation,
+                    confidence: insight.confidence,
+                    metadata: insight.metadata || {},
+                    is_active: true
+                  });
+                } catch (storeError) {
+                  console.warn('Failed to store insight:', storeError.message);
+                }
+              }
+            });
           }
+          return generatedInsights;
+        } else {
+          // Try cached insights first
+          try {
+            const cachedInsights = await aiInsightsStorage.getInsightsForDevice(deviceId, 20);
+            if (cachedInsights && cachedInsights.length > 0) {
+              return cachedInsights;
+            }
+          } catch (cacheError) {
+            console.warn('Failed to get cached insights:', cacheError.message);
+          }
+          
+          // Fallback to generating fresh insights
+          return await aiService.generateDeviceInsights(deviceId);
         }
-      } else {
-        // Return cached insights
-        try {
-          insights = await aiInsightsStorage.getInsightsForDevice(deviceId, 20);
-        } catch (cacheError) {
-          console.warn('Failed to get cached insights, generating fresh ones:', cacheError);
-          insights = await aiService.generateDeviceInsights(deviceId);
-        }
-      }
+      })();
+
+      insights = await Promise.race([insightsPromise, timeout]);
 
       // Ensure insights is an array
       if (!Array.isArray(insights)) {
@@ -58,13 +75,13 @@ router.get('/insights/:deviceId', async (req, res) => {
 
       res.json({ success: true, insights });
     } catch (serviceError) {
-      console.error('AI service error:', serviceError);
-      // Return empty insights array on service error
+      console.warn('AI service timeout or error:', serviceError.message);
+      // Return empty insights array on service error/timeout
       res.json({ success: true, insights: [] });
     }
   } catch (error) {
     console.error('Error in AI insights API:', error);
-    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 

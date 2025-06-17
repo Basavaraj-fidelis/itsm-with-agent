@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,7 +38,7 @@ export function AIInsights({ agent }: AIInsightsProps) {
 
     const aiInsights: AIInsight[] = [];
     const latestReport = agent.latest_report;
-    
+
     try {
       // Parse metrics with error handling
       const cpuUsage = parseFloat(latestReport.cpu_usage || "0");
@@ -92,7 +91,7 @@ export function AIInsights({ agent }: AIInsightsProps) {
     // 2. Memory Pressure Analysis
     if (memoryUsage > 80) {
       const memoryPressure = systemHealth.memory_pressure?.pressure_level || 'unknown';
-      
+
       aiInsights.push({
         type: 'performance',
         severity: memoryUsage > 90 ? 'high' : 'medium',
@@ -110,7 +109,7 @@ export function AIInsights({ agent }: AIInsightsProps) {
     // 3. Disk Space Prediction
     if (diskUsage > 75) {
       const daysToFull = diskUsage > 90 ? 7 : diskUsage > 85 ? 30 : 90;
-      
+
       aiInsights.push({
         type: 'prediction',
         severity: diskUsage > 90 ? 'high' : diskUsage > 85 ? 'medium' : 'low',
@@ -185,33 +184,37 @@ export function AIInsights({ agent }: AIInsightsProps) {
     }
   };
 
-  const fetchInsights = async (refresh = false) => {
+  const fetchInsights = async () => {
     if (!agent?.id) return;
-    
+
     setLoading(true);
     try {
-      const response = await fetch(`/api/ai/insights/${agent.id}${refresh ? '?refresh=true' : ''}`, {
+      const response = await fetch(`/api/ai/insights/${agent.id}`, {
         headers: {
-          'Content-Type': 'application/json',
-        },
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
       });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.success && Array.isArray(data.insights)) {
-        setInsights(data.insights);
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && Array.isArray(data.insights)) {
+          setInsights(data.insights);
+        } else {
+          // Fallback to client-side generation
+          const clientInsights = generateInsights();
+          setInsights(clientInsights);
+        }
       } else {
-        console.warn('AI insights API returned invalid data, using client-side generation');
-        setInsights(generateInsights());
+        console.warn(`AI insights API returned ${response.status}, using fallback`);
+        // Fallback to client-side generation on server error
+        const clientInsights = generateInsights();
+        setInsights(clientInsights);
       }
     } catch (error) {
-      console.error('Error fetching AI insights:', error);
+      console.warn('AI insights API unavailable, using fallback:', error.message);
       // Fallback to client-side generation
-      setInsights(generateInsights());
+      const clientInsights = generateInsights();
+      setInsights(clientInsights);
     } finally {
       setLoading(false);
     }
@@ -287,7 +290,7 @@ export function AIInsights({ agent }: AIInsightsProps) {
           <div className="space-y-4">
             {insights.map((insight, index) => {
               const IconComponent = getTypeIcon(insight.type);
-              
+
               return (
                 <div
                   key={index}

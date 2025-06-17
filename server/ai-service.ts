@@ -31,35 +31,55 @@ class AIService {
     const insights: AIInsight[] = [];
 
     try {
-      // Get recent device reports (last 7 days)
-      const reports = await storage.getRecentDeviceReports(deviceId, 7);
+      // Get recent device reports (last 7 days) with timeout
+      const reportsPromise = storage.getRecentDeviceReports(deviceId, 7);
+      const timeout = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Database query timeout')), 3000)
+      );
+      
+      const reports = await Promise.race([reportsPromise, timeout]);
 
-      if (reports.length === 0) {
+      if (!reports || reports.length === 0) {
+        console.log(`No reports found for device ${deviceId}`);
         return insights;
       }
 
       const latestReport = reports[0];
 
-      // Performance Analysis
-      await this.analyzePerformancePatterns(deviceId, reports, insights);
+      // Run analysis with timeout protection
+      const analysisPromises = [
+        this.analyzePerformancePatterns(deviceId, reports, insights).catch(err => 
+          console.warn('Performance analysis failed:', err.message)
+        ),
+        this.analyzeSecurityPosture(deviceId, latestReport, insights).catch(err => 
+          console.warn('Security analysis failed:', err.message)
+        ),
+        this.generateResourcePredictions(deviceId, reports, insights).catch(err => 
+          console.warn('Resource prediction failed:', err.message)
+        ),
+        this.analyzeProcessBehavior(deviceId, latestReport, insights).catch(err => 
+          console.warn('Process analysis failed:', err.message)
+        ),
+        this.analyzeSystemHealth(deviceId, latestReport, insights).catch(err => 
+          console.warn('System health analysis failed:', err.message)
+        )
+      ];
 
-      // Security Assessment
-      await this.analyzeSecurityPosture(deviceId, latestReport, insights);
+      // Wait for all analysis to complete with timeout
+      const analysisTimeout = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Analysis timeout')), 2000)
+      );
 
-      // Resource Predictions
-      await this.generateResourcePredictions(deviceId, reports, insights);
-
-      // Process Behavior Analysis
-      await this.analyzeProcessBehavior(deviceId, latestReport, insights);
-
-      // System Health Assessment
-      await this.analyzeSystemHealth(deviceId, latestReport, insights);
+      await Promise.race([
+        Promise.allSettled(analysisPromises),
+        analysisTimeout
+      ]);
 
       console.log(`Generated ${insights.length} AI insights for device ${deviceId}`);
       return insights;
 
     } catch (error) {
-      console.error("Error generating AI insights:", error);
+      console.warn(`Error generating AI insights for device ${deviceId}:`, error.message);
       return insights;
     }
   }
