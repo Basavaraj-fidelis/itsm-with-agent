@@ -67,7 +67,7 @@ interface ADSyncStatus {
   errors: string[];
 }
 
-export default function Users() {
+export default function UsersPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
