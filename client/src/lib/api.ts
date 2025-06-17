@@ -43,7 +43,130 @@ export interface Alert {
   device_hostname?: string;
 }
 
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://0.0.0.0:5000';
 
+class ApiClient {
+  private baseURL: string;
+
+  constructor() {
+    // Use relative path for API calls to avoid mixed content issues
+    this.baseURL = "";
+  }
+
+  private async request(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<Response> {
+    const url = `${this.baseURL}${endpoint}`;
+
+    const config: RequestInit = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
+    };
+
+    // Add auth token if it exists
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      config.headers = {
+        ...config.headers,
+        'Authorization': `Bearer ${token}`,
+      };
+    }
+
+    console.log(`API Request: ${url}`, config);
+
+    try {
+      const response = await fetch(url, config);
+
+      console.log(`API Response: ${response.status} ${response.statusText}`);
+
+      // Don't throw for client errors, let the caller handle them
+      return response;
+    } catch (error) {
+      console.error('API Request failed:', error);
+      // Handle network connection errors
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('Network connection failed. Please check your internet connection.');
+      }
+      throw error;
+    }
+  }
+
+  async get(url: string): Promise<Response> {
+    return this.request(url, { method: 'GET' });
+  }
+
+  async post(url: string, data?: any): Promise<Response> {
+    return this.request(url, {
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async put(url: string, data?: any): Promise<Response> {
+    return this.request(url, {
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async delete(url: string): Promise<Response> {
+    return this.request(url, { method: 'DELETE' });
+  }
+}
+
+// Create and export a singleton instance
+const apiClient = new ApiClient();
+
+function getAuthHeaders() {
+  const token = localStorage.getItem('auth_token');
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
+
+const getAuthToken = () => {
+  return localStorage.getItem('auth_token');
+}
+
+const clearAuthToken = () => {
+  localStorage.removeItem('auth_token');
+}
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://0.0.0.0:5000';
+
+const makeRequest = async (url: string, options: RequestInit = {}): Promise<Response> => {
+  const token = getAuthToken();
+
+  console.log(`API Request: ${url}`, options.body ? JSON.parse(options.body as string) : '');
+
+  const config: RequestInit = {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...options.headers,
+    },
+  };
+
+  try {
+    const response = await fetch(`${API_BASE_URL}${url}`, config);
+    console.log(`API Response: ${response.status} ${response.statusText}`);
+
+    if (response.status === 401) {
+      clearAuthToken();
+      window.location.href = '/login';
+      throw new Error('Authentication required');
+    }
+
+    // Don't throw on non-2xx status codes, let the caller handle them
+    return response;
+  } catch (error) {
+    console.error(`API Error for ${url}:`, error);
+    throw error;
+  }
+};
 
 export const api = {
   // Core HTTP methods
@@ -183,174 +306,3 @@ async function post(url: string, data?: any) {
 async function get(url: string) {
   return apiRequest(url, { method: "GET" });
 }
-
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://0.0.0.0:5000';
-
-class ApiClient {
-  private baseURL: string;
-
-  constructor() {
-    // Use relative path for API calls to avoid mixed content issues
-    this.baseURL = "";
-  }
-
-  private async request(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<Response> {
-    const url = `${this.baseURL}${endpoint}`;
-
-    const config: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      ...options,
-    };
-
-    // Add auth token if it exists
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      config.headers = {
-        ...config.headers,
-        'Authorization': `Bearer ${token}`,
-      };
-    }
-
-    console.log(`API Request: ${url}`, config);
-
-    try {
-      const response = await fetch(url, config);
-
-      console.log(`API Response: ${response.status} ${response.statusText}`);
-
-      // Don't throw for client errors, let the caller handle them
-      return response;
-    } catch (error) {
-      console.error('API Request failed:', error);
-      // Handle network connection errors
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-        throw new Error('Network connection failed. Please check your internet connection.');
-      }
-      throw error;
-    }
-  }
-
-  async get(url: string): Promise<Response> {
-    return this.request(url, { method: 'GET' });
-  }
-
-  async post(url: string, data?: any): Promise<Response> {
-    return this.request(url, {
-      method: 'POST',
-      body: data ? JSON.stringify(data) : undefined,
-    });
-  }
-
-  async put(url: string, data?: any): Promise<Response> {
-    return this.request(url, {
-      method: 'PUT',
-      body: data ? JSON.stringify(data) : undefined,
-    });
-  }
-
-  async delete(url: string): Promise<Response> {
-    return this.request(url, { method: 'DELETE' });
-  }
-}
-
-function getAuthHeaders() {
-  const token = localStorage.getItem('auth_token');
-  return token ? { 'Authorization': `Bearer ${token}` } : {};
-}
-
-// Create and export a singleton instance
-const apiClient = new ApiClient();
-
-const getAuthToken = () => {
-  return localStorage.getItem('auth_token');
-}
-
-const clearAuthToken = () => {
-  localStorage.removeItem('auth_token');
-}
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://0.0.0.0:5000';
-
-const makeRequest = async (url: string, options: RequestInit = {}): Promise<Response> => {
-  const token = getAuthToken();
-
-  console.log(`API Request: ${url}`, options.body ? JSON.parse(options.body as string) : '');
-
-  const config: RequestInit = {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...options.headers,
-    },
-  };
-
-  try {
-    const response = await fetch(`${API_BASE_URL}${url}`, config);
-    console.log(`API Response: ${response.status} ${response.statusText}`);
-
-    if (response.status === 401) {
-      clearAuthToken();
-      window.location.href = '/login';
-      throw new Error('Authentication required');
-    }
-
-    // Don't throw on non-2xx status codes, let the caller handle them
-    return response;
-  } catch (error) {
-    console.error(`API Error for ${url}:`, error);
-    throw error;
-  }
-};
-
-const api = {
-  async get(endpoint: string, options: RequestInit = {}) {
-    try {
-      return await makeRequest(endpoint, { ...options, method: "GET" });
-    } catch (error) {
-      console.error(`GET ${endpoint} failed:`, error);
-      throw error;
-    }
-  },
-
-  async post(endpoint: string, data?: any, options: RequestInit = {}) {
-    try {
-      return await makeRequest(endpoint, {
-        ...options,
-        method: "POST",
-        body: data ? JSON.stringify(data) : undefined,
-      });
-    } catch (error) {
-      console.error(`POST ${endpoint} failed:`, error);
-      throw error;
-    }
-  },
-
-  async put(endpoint: string, data?: any, options: RequestInit = {}) {
-    try {
-      return await makeRequest(endpoint, {
-        ...options,
-        method: "PUT",
-        body: data ? JSON.stringify(data) : undefined,
-      });
-    } catch (error) {
-      console.error(`PUT ${endpoint} failed:`, error);
-      throw error;
-    }
-  },
-
-  async delete(endpoint: string, options: RequestInit = {}) {
-    try {
-      return await makeRequest(endpoint, { ...options, method: "DELETE" });
-    } catch (error) {
-      console.error(`DELETE ${endpoint} failed:`, error);
-      throw error;
-    }
-  },
-};
