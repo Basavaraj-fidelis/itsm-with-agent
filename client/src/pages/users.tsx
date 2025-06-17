@@ -22,7 +22,6 @@ import {
   Mail,
   Phone,
   Building,
-  Sync,
   Download,
   Upload,
   MoreVertical,
@@ -373,7 +372,7 @@ export default function UsersPage() {
                 variant="outline"
                 size="sm"
               >
-                <Sync className="w-4 h-4 mr-2" />
+                <RefreshCw className="w-4 h-4 mr-2" />
                 {adSyncMutation.isPending ? "Syncing..." : "Sync AD"}
               </Button>
             )}
