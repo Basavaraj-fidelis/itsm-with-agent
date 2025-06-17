@@ -1,14 +1,38 @@
 import { storage } from "./storage";
 import { db } from "./db";
-import { devices, device_reports, alerts, usb_devices, installed_software, patch_management, user_sessions } from "../shared/schema";
+import {
+  devices,
+  device_reports,
+  alerts,
+  usb_devices,
+  installed_software,
+  patch_management,
+  user_sessions,
+} from "../shared/schema";
 import { tickets } from "../shared/ticket-schema";
 import { users } from "../shared/user-schema";
 import { sql, eq, and, desc, count, avg, sum, between } from "drizzle-orm";
 import { gte } from "drizzle-orm";
-import { subDays, subHours, format, startOfDay, endOfDay, startOfMonth, endOfMonth } from "date-fns";
+import {
+  subDays,
+  subHours,
+  format,
+  startOfDay,
+  endOfDay,
+  startOfMonth,
+  endOfMonth,
+} from "date-fns";
 
 // Note: Install docx package if not already installed
-let Document, Packer, Paragraph, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType;
+let Document,
+  Packer,
+  Paragraph,
+  HeadingLevel,
+  AlignmentType,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType;
 try {
   const docx = require("docx");
   Document = docx.Document;
@@ -170,16 +194,16 @@ class AnalyticsService {
       console.log("Generating comprehensive asset inventory report");
 
       // Shorter timeout and better error handling
-      const timeout = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Asset inventory timeout')), 3000)
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Asset inventory timeout")), 3000),
       );
 
       try {
         // Get total device count with simpler query
-        const totalDevicesResult = await Promise.race([
+        const totalDevicesResult = (await Promise.race([
           db.select({ count: sql`count(*)` }).from(devices),
-          timeout
-        ]) as any[];
+          timeout,
+        ])) as any[];
         const totalDevices = Number(totalDevicesResult[0]?.count) || 0;
 
         let devicesByOS: any[] = [];
@@ -189,13 +213,16 @@ class AnalyticsService {
 
         // Try to get device breakdown by OS with fallback
         try {
-          devicesByOS = await Promise.race([
-            db.select({
-              os_name: devices.os_name,
-              count: sql`count(*)`
-            }).from(devices).groupBy(devices.os_name),
-            timeout
-          ]) as any[];
+          devicesByOS = (await Promise.race([
+            db
+              .select({
+                os_name: devices.os_name,
+                count: sql`count(*)`,
+              })
+              .from(devices)
+              .groupBy(devices.os_name),
+            timeout,
+          ])) as any[];
         } catch (osError) {
           console.warn("OS breakdown query failed, using fallback");
           devicesByOS = [];
@@ -203,13 +230,16 @@ class AnalyticsService {
 
         // Try to get device breakdown by status with fallback
         try {
-          devicesByStatus = await Promise.race([
-            db.select({
-              status: devices.status,
-              count: sql`count(*)`
-            }).from(devices).groupBy(devices.status),
-            timeout
-          ]) as any[];
+          devicesByStatus = (await Promise.race([
+            db
+              .select({
+                status: devices.status,
+                count: sql`count(*)`,
+              })
+              .from(devices)
+              .groupBy(devices.status),
+            timeout,
+          ])) as any[];
         } catch (statusError) {
           console.warn("Status breakdown query failed, using fallback");
           devicesByStatus = [];
@@ -217,10 +247,10 @@ class AnalyticsService {
 
         // Try to get detailed device list with fallback
         try {
-          detailedDevices = await Promise.race([
+          detailedDevices = (await Promise.race([
             db.select().from(devices).limit(20),
-            timeout
-          ]) as any[];
+            timeout,
+          ])) as any[];
         } catch (detailError) {
           console.warn("Detailed devices query failed, using fallback");
           detailedDevices = [];
@@ -228,10 +258,10 @@ class AnalyticsService {
 
         // Try to get software inventory count with fallback
         try {
-          const softwareCountResult = await Promise.race([
+          const softwareCountResult = (await Promise.race([
             db.select({ count: sql`count(*)` }).from(installed_software),
-            timeout
-          ]) as any[];
+            timeout,
+          ])) as any[];
           totalSoftware = Number(softwareCountResult[0]?.count) || 0;
         } catch (softwareError) {
           console.warn("Software count query failed, using fallback");
@@ -239,15 +269,21 @@ class AnalyticsService {
         }
 
         // Convert arrays to objects with better error handling
-        const byOS = devicesByOS.length > 0 ? devicesByOS.reduce((acc: any, item: any) => {
-          acc[item.os_name || 'Unknown'] = Number(item.count) || 0;
-          return acc;
-        }, {}) : { "Unknown": totalDevices };
+        const byOS =
+          devicesByOS.length > 0
+            ? devicesByOS.reduce((acc: any, item: any) => {
+                acc[item.os_name || "Unknown"] = Number(item.count) || 0;
+                return acc;
+              }, {})
+            : { Unknown: totalDevices };
 
-        const byStatus = devicesByStatus.length > 0 ? devicesByStatus.reduce((acc: any, item: any) => {
-          acc[item.status || 'Unknown'] = Number(item.count) || 0;
-          return acc;
-        }, {}) : { "Unknown": totalDevices };
+        const byStatus =
+          devicesByStatus.length > 0
+            ? devicesByStatus.reduce((acc: any, item: any) => {
+                acc[item.status || "Unknown"] = Number(item.count) || 0;
+                return acc;
+              }, {})
+            : { Unknown: totalDevices };
 
         const realData: AssetInventoryData = {
           total_devices: totalDevices,
@@ -255,33 +291,34 @@ class AnalyticsService {
             by_os: byOS,
             by_status: byStatus,
             by_department: {
-              "IT": Math.floor(totalDevices * 0.3),
-              "Finance": Math.floor(totalDevices * 0.2),
-              "HR": Math.floor(totalDevices * 0.15),
-              "Operations": Math.floor(totalDevices * 0.35)
-            }
+              IT: Math.floor(totalDevices * 0.3),
+              Finance: Math.floor(totalDevices * 0.2),
+              HR: Math.floor(totalDevices * 0.15),
+              Operations: Math.floor(totalDevices * 0.35),
+            },
           },
           hardware_summary: {
             avg_cpu_cores: 4.2,
             avg_memory_gb: 8.5,
             avg_disk_gb: 512,
             newest_device: detailedDevices[0]?.hostname || "WS-001",
-            oldest_device: detailedDevices[detailedDevices.length - 1]?.hostname || "WS-012"
+            oldest_device:
+              detailedDevices[detailedDevices.length - 1]?.hostname || "WS-012",
           },
           software_inventory: {
             total_installed: totalSoftware,
             licensed_software: Math.floor(totalSoftware * 0.7),
             by_category: {
-              "Productivity": Math.floor(totalSoftware * 0.4),
-              "Development": Math.floor(totalSoftware * 0.2),
-              "Security": Math.floor(totalSoftware * 0.15),
-              "Utilities": Math.floor(totalSoftware * 0.25)
-            }
+              Productivity: Math.floor(totalSoftware * 0.4),
+              Development: Math.floor(totalSoftware * 0.2),
+              Security: Math.floor(totalSoftware * 0.15),
+              Utilities: Math.floor(totalSoftware * 0.25),
+            },
           },
           compliance_status: {
             compliant_devices: Math.floor(totalDevices * 0.85),
             non_compliant_devices: Math.floor(totalDevices * 0.15),
-            missing_patches: Math.floor(totalDevices * 0.12)
+            missing_patches: Math.floor(totalDevices * 0.12),
           },
           detailed_devices: detailedDevices.map((device: any) => ({
             hostname: device.hostname || "Unknown",
@@ -291,75 +328,84 @@ class AnalyticsService {
             status: device.status || "Unknown",
             last_seen: device.last_seen || new Date(),
             department: "IT", // Default since we don't have department in devices table yet
-            assigned_user: device.assigned_user || "Unassigned"
-          }))
+            assigned_user: device.assigned_user || "Unassigned",
+          })),
         };
 
-        console.log("Asset inventory report generated successfully with real data");
+        console.log(
+          "Asset inventory report generated successfully with real data",
+        );
         return realData;
-
       } catch (dbError) {
         console.error("Database error in asset inventory report:", dbError);
         // Try to get at least basic device count without complex queries
         try {
-          const basicDeviceCount = await db.select({ count: sql`count(*)` }).from(devices);
+          const basicDeviceCount = await db
+            .select({ count: sql`count(*)` })
+            .from(devices);
           const deviceCount = Number(basicDeviceCount[0]?.count) || 0;
 
           return {
             total_devices: deviceCount,
             device_breakdown: {
-              by_os: { "Unknown": deviceCount },
-              by_status: { "Unknown": deviceCount },
-              by_department: { "IT": Math.floor(deviceCount * 0.5), "Other": Math.floor(deviceCount * 0.5) }
+              by_os: { Unknown: deviceCount },
+              by_status: { Unknown: deviceCount },
+              by_department: {
+                IT: Math.floor(deviceCount * 0.5),
+                Other: Math.floor(deviceCount * 0.5),
+              },
             },
             hardware_summary: {
               avg_cpu_cores: 4.0,
               avg_memory_gb: 8.0,
               avg_disk_gb: 500,
               newest_device: "Device-001",
-              oldest_device: "Device-" + String(deviceCount).padStart(3, '0')
+              oldest_device: "Device-" + String(deviceCount).padStart(3, "0"),
             },
             software_inventory: {
               total_installed: 0,
               licensed_software: 0,
-              by_category: {}
+              by_category: {},
             },
             compliance_status: {
               compliant_devices: Math.floor(deviceCount * 0.8),
               non_compliant_devices: Math.floor(deviceCount * 0.2),
-              missing_patches: Math.floor(deviceCount * 0.1)
+              missing_patches: Math.floor(deviceCount * 0.1),
             },
-            detailed_devices: []
+            detailed_devices: [],
           };
         } catch (fallbackError) {
           console.error("Even basic query failed:", fallbackError);
-          throw new Error("Database connection failed - please check your database configuration");
+          throw new Error(
+            "Database connection failed - please check your database configuration",
+          );
         }
       }
-
     } catch (error) {
       console.error("Error generating asset inventory report:", error);
       return this.getMockAssetInventoryData();
     }
   }
 
-  async generateTicketAnalyticsReport(timeRange: string = "30d"): Promise<TicketAnalyticsData> {
+  async generateTicketAnalyticsReport(
+    timeRange: string = "30d",
+  ): Promise<TicketAnalyticsData> {
     try {
       console.log(`Generating ticket analytics report for ${timeRange}`);
 
       const days = this.parseTimeRange(timeRange);
       const startDate = subDays(new Date(), days);
 
-      const timeout = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Ticket analytics timeout')), 3000)
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Ticket analytics timeout")), 3000),
       );
 
       try {
         // Get total tickets with simpler query
-        const totalTicketsResult = await Promise.race([
+        const totalTicketsResult = (await Promise.race([
           db.select({ count: sql`count(*)` }).from(tickets),
-          timeout
-        ]) as any[];
+          timeout,
+        ])) as any[];
         const totalTickets = Number(totalTicketsResult[0]?.count) || 0;
 
         let ticketsByStatus: any[] = [];
@@ -368,63 +414,87 @@ class AnalyticsService {
 
         // Try each query with individual error handling
         try {
-          ticketsByStatus = await Promise.race([
-            db.select({
-              status: tickets.status,
-              count: sql`count(*)`
-            }).from(tickets).groupBy(tickets.status),
-            timeout
-          ]) as any[];
+          ticketsByStatus = (await Promise.race([
+            db
+              .select({
+                status: tickets.status,
+                count: sql`count(*)`,
+              })
+              .from(tickets)
+              .groupBy(tickets.status),
+            timeout,
+          ])) as any[];
         } catch (statusError) {
           console.warn("Tickets by status query failed, using fallback");
           ticketsByStatus = [];
         }
 
         try {
-          ticketsByType = await Promise.race([
-            db.select({
-              type: tickets.type,
-              count: sql`count(*)`
-            }).from(tickets).groupBy(tickets.type),
-            timeout
-          ]) as any[];
+          ticketsByType = (await Promise.race([
+            db
+              .select({
+                type: tickets.type,
+                count: sql`count(*)`,
+              })
+              .from(tickets)
+              .groupBy(tickets.type),
+            timeout,
+          ])) as any[];
         } catch (typeError) {
           console.warn("Tickets by type query failed, using fallback");
           ticketsByType = [];
         }
 
         try {
-          ticketsByPriority = await Promise.race([
-            db.select({
-              priority: tickets.priority,
-              count: sql`count(*)`
-            }).from(tickets).groupBy(tickets.priority),
-            timeout
-          ]) as any[];
+          ticketsByPriority = (await Promise.race([
+            db
+              .select({
+                priority: tickets.priority,
+                count: sql`count(*)`,
+              })
+              .from(tickets)
+              .groupBy(tickets.priority),
+            timeout,
+          ])) as any[];
         } catch (priorityError) {
           console.warn("Tickets by priority query failed, using fallback");
           ticketsByPriority = [];
         }
 
         // Convert to objects with better error handling
-        const statusCounts = ticketsByStatus.length > 0 ? ticketsByStatus.reduce((acc: any, item: any) => {
-          acc[item.status || 'unknown'] = Number(item.count) || 0;
-          return acc;
-        }, {}) : {};
+        const statusCounts =
+          ticketsByStatus.length > 0
+            ? ticketsByStatus.reduce((acc: any, item: any) => {
+                acc[item.status || "unknown"] = Number(item.count) || 0;
+                return acc;
+              }, {})
+            : {};
 
-        const typeCounts = ticketsByType.length > 0 ? ticketsByType.reduce((acc: any, item: any) => {
-          acc[item.type || 'unknown'] = Number(item.count) || 0;
-          return acc;
-        }, {}) : {};
+        const typeCounts =
+          ticketsByType.length > 0
+            ? ticketsByType.reduce((acc: any, item: any) => {
+                acc[item.type || "unknown"] = Number(item.count) || 0;
+                return acc;
+              }, {})
+            : {};
 
-        const priorityCounts = ticketsByPriority.length > 0 ? ticketsByPriority.reduce((acc: any, item: any) => {
-          acc[item.priority || 'unknown'] = Number(item.count) || 0;
-          return acc;
-        }, {}) : {};
+        const priorityCounts =
+          ticketsByPriority.length > 0
+            ? ticketsByPriority.reduce((acc: any, item: any) => {
+                acc[item.priority || "unknown"] = Number(item.count) || 0;
+                return acc;
+              }, {})
+            : {};
 
-        const openTickets = statusCounts['open'] || statusCounts['Open'] || 0;
-        const resolvedTickets = statusCounts['resolved'] || statusCounts['Resolved'] || statusCounts['closed'] || statusCounts['Closed'] || 0;
-        const escalatedTickets = statusCounts['escalated'] || statusCounts['Escalated'] || 0;
+        const openTickets = statusCounts["open"] || statusCounts["Open"] || 0;
+        const resolvedTickets =
+          statusCounts["resolved"] ||
+          statusCounts["Resolved"] ||
+          statusCounts["closed"] ||
+          statusCounts["Closed"] ||
+          0;
+        const escalatedTickets =
+          statusCounts["escalated"] || statusCounts["Escalated"] || 0;
 
         const realData: TicketAnalyticsData = {
           summary: {
@@ -432,51 +502,69 @@ class AnalyticsService {
             open_tickets: openTickets,
             resolved_tickets: resolvedTickets,
             escalated_tickets: escalatedTickets,
-            avg_resolution_time: 24.5 // Hours - would need more complex query
+            avg_resolution_time: 24.5, // Hours - would need more complex query
           },
           sla_performance: {
             met_sla: Math.floor(totalTickets * 0.85),
             breached_sla: Math.floor(totalTickets * 0.15),
-            sla_compliance_rate: 85.2
+            sla_compliance_rate: 85.2,
           },
           ticket_distribution: {
             by_type: typeCounts,
             by_priority: priorityCounts,
             by_department: {
-              "IT": Math.floor(totalTickets * 0.4),
-              "Finance": Math.floor(totalTickets * 0.2),
-              "HR": Math.floor(totalTickets * 0.15),
-              "Operations": Math.floor(totalTickets * 0.25)
+              IT: Math.floor(totalTickets * 0.4),
+              Finance: Math.floor(totalTickets * 0.2),
+              HR: Math.floor(totalTickets * 0.15),
+              Operations: Math.floor(totalTickets * 0.25),
             },
             by_technician: {
               "John Smith": Math.floor(totalTickets * 0.3),
               "Sarah Johnson": Math.floor(totalTickets * 0.25),
               "Mike Wilson": Math.floor(totalTickets * 0.2),
-              "Unassigned": Math.floor(totalTickets * 0.25)
-            }
+              Unassigned: Math.floor(totalTickets * 0.25),
+            },
           },
           trend_analysis: {
             daily_created: this.generateDailyTrend(days, totalTickets * 0.1),
             daily_resolved: this.generateDailyTrend(days, totalTickets * 0.08),
-            resolution_time_trend: this.generateResolutionTrend(days)
+            resolution_time_trend: this.generateResolutionTrend(days),
           },
           top_issues: [
-            { category: "Password Reset", count: Math.floor(totalTickets * 0.25), avg_resolution_time: 2.5 },
-            { category: "Software Installation", count: Math.floor(totalTickets * 0.18), avg_resolution_time: 4.2 },
-            { category: "Hardware Issue", count: Math.floor(totalTickets * 0.15), avg_resolution_time: 48.0 },
-            { category: "Network Problem", count: Math.floor(totalTickets * 0.12), avg_resolution_time: 6.5 },
-            { category: "Email Issues", count: Math.floor(totalTickets * 0.10), avg_resolution_time: 3.8 }
-          ]
+            {
+              category: "Password Reset",
+              count: Math.floor(totalTickets * 0.25),
+              avg_resolution_time: 2.5,
+            },
+            {
+              category: "Software Installation",
+              count: Math.floor(totalTickets * 0.18),
+              avg_resolution_time: 4.2,
+            },
+            {
+              category: "Hardware Issue",
+              count: Math.floor(totalTickets * 0.15),
+              avg_resolution_time: 48.0,
+            },
+            {
+              category: "Network Problem",
+              count: Math.floor(totalTickets * 0.12),
+              avg_resolution_time: 6.5,
+            },
+            {
+              category: "Email Issues",
+              count: Math.floor(totalTickets * 0.1),
+              avg_resolution_time: 3.8,
+            },
+          ],
         };
 
         console.log("Ticket analytics report generated successfully");
         return realData;
-
       } catch (dbError) {
         console.warn("Database error, using mock ticket data:", dbError);
         return this.getMockTicketAnalyticsData();
       }
-
     } catch (error) {
       console.error("Error generating ticket analytics report:", error);
       return this.getMockTicketAnalyticsData();
@@ -487,8 +575,8 @@ class AnalyticsService {
     try {
       console.log("Generating system health report");
 
-      const timeout = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('System health timeout')), 2000)
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("System health timeout")), 2000),
       );
 
       let recentReports: any[] = [];
@@ -496,12 +584,14 @@ class AnalyticsService {
 
       try {
         // Try to get recent device reports with simpler query
-        recentReports = await Promise.race([
-          db.select().from(device_reports)
-          .orderBy(desc(device_reports.created_at))
-          .limit(50),
-          timeout
-        ]) as any[];
+        recentReports = (await Promise.race([
+          db
+            .select()
+            .from(device_reports)
+            .orderBy(desc(device_reports.created_at))
+            .limit(50),
+          timeout,
+        ])) as any[];
       } catch (reportsError) {
         console.warn("Recent reports query failed, using fallback");
         recentReports = [];
@@ -509,161 +599,199 @@ class AnalyticsService {
 
       try {
         // Try to get alert counts with simpler query
-        alertCounts = await Promise.race([
-          db.select({
-            severity: alerts.severity,
-            count: sql`count(*)`
-          }).from(alerts)
-          .groupBy(alerts.severity)
-          .limit(10),
-          timeout
-        ]) as any[];
+        alertCounts = (await Promise.race([
+          db
+            .select({
+              severity: alerts.severity,
+              count: sql`count(*)`,
+            })
+            .from(alerts)
+            .groupBy(alerts.severity)
+            .limit(10),
+          timeout,
+        ])) as any[];
       } catch (alertsError) {
         console.warn("Alert counts query failed, using fallback");
         alertCounts = [];
       }
 
-        // Calculate averages with better error handling
-        const cpuValues = recentReports
-          .map((r: any) => {
-            const val = parseFloat(r.cpu_usage || "0");
-            return isNaN(val) ? 0 : Math.min(100, Math.max(0, val));
-          })
-          .filter((v: number) => v > 0);
+      // Calculate averages with better error handling
+      const cpuValues = recentReports
+        .map((r: any) => {
+          const val = parseFloat(r.cpu_usage || "0");
+          return isNaN(val) ? 0 : Math.min(100, Math.max(0, val));
+        })
+        .filter((v: number) => v > 0);
 
-        const memoryValues = recentReports
-          .map((r: any) => {
-            const val = parseFloat(r.memory_usage || "0");
-            return isNaN(val) ? 0 : Math.min(100, Math.max(0, val));
-          })
-          .filter((v: number) => v > 0);
+      const memoryValues = recentReports
+        .map((r: any) => {
+          const val = parseFloat(r.memory_usage || "0");
+          return isNaN(val) ? 0 : Math.min(100, Math.max(0, val));
+        })
+        .filter((v: number) => v > 0);
 
-        const diskValues = recentReports
-          .map((r: any) => {
-            const val = parseFloat(r.disk_usage || "0");
-            return isNaN(val) ? 0 : Math.min(100, Math.max(0, val));
-          })
-          .filter((v: number) => v > 0);
+      const diskValues = recentReports
+        .map((r: any) => {
+          const val = parseFloat(r.disk_usage || "0");
+          return isNaN(val) ? 0 : Math.min(100, Math.max(0, val));
+        })
+        .filter((v: number) => v > 0);
 
-        const avgCpu = cpuValues.length > 0 ? cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length : 45.2;
-        const avgMemory = memoryValues.length > 0 ? memoryValues.reduce((a, b) => a + b, 0) / memoryValues.length : 62.8;
-        const avgDisk = diskValues.length > 0 ? diskValues.reduce((a, b) => a + b, 0) / diskValues.length : 78.3;
+      const avgCpu =
+        cpuValues.length > 0
+          ? cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length
+          : 45.2;
+      const avgMemory =
+        memoryValues.length > 0
+          ? memoryValues.reduce((a, b) => a + b, 0) / memoryValues.length
+          : 62.8;
+      const avgDisk =
+        diskValues.length > 0
+          ? diskValues.reduce((a, b) => a + b, 0) / diskValues.length
+          : 78.3;
 
-        // Convert alert counts with better error handling
-        const alertSummary = alertCounts.length > 0 ? alertCounts.reduce((acc: any, item: any) => {
-          const severity = (item.severity || 'info').toLowerCase();
-          acc[severity] = Number(item.count) || 0;
-          return acc;
-        }, { critical: 0, warning: 0, info: 0 }) : { critical: 0, warning: 0, info: 0 };
+      // Convert alert counts with better error handling
+      const alertSummary =
+        alertCounts.length > 0
+          ? alertCounts.reduce(
+              (acc: any, item: any) => {
+                const severity = (item.severity || "info").toLowerCase();
+                acc[severity] = Number(item.count) || 0;
+                return acc;
+              },
+              { critical: 0, warning: 0, info: 0 },
+            )
+          : { critical: 0, warning: 0, info: 0 };
 
-        const healthScore = Math.round(Math.max(0, Math.min(100, 
-          100 - (avgCpu * 0.3 + avgMemory * 0.3 + avgDisk * 0.2 + (alertSummary.critical * 5))
-        )));
+      const healthScore = Math.round(
+        Math.max(
+          0,
+          Math.min(
+            100,
+            100 -
+              (avgCpu * 0.3 +
+                avgMemory * 0.3 +
+                avgDisk * 0.2 +
+                alertSummary.critical * 5),
+          ),
+        ),
+      );
 
-        const realData: SystemHealthData = {
+      const realData: SystemHealthData = {
+        overall_health: {
+          health_score: Math.max(0, Math.min(100, healthScore)),
+          active_devices: recentReports.length,
+          critical_alerts: alertSummary.critical,
+          system_uptime: 98.7,
+        },
+        performance_metrics: {
+          avg_cpu_usage: Math.round(avgCpu * 10) / 10,
+          avg_memory_usage: Math.round(avgMemory * 10) / 10,
+          avg_disk_usage: Math.round(avgDisk * 10) / 10,
+          network_latency: 45.2,
+        },
+        device_health: this.generateDeviceHealthData(recentReports),
+        alert_summary: {
+          critical: alertSummary.critical,
+          warning: alertSummary.warning || 5,
+          info: alertSummary.info || 12,
+          resolved_24h: Math.floor(
+            (alertSummary.critical + alertSummary.warning) * 0.7,
+          ),
+        },
+        capacity_forecast: {
+          storage_projected_full: "Q3 2025",
+          memory_upgrade_needed: ["WS-003", "WS-007", "WS-012"],
+          cpu_bottlenecks: ["WS-001", "WS-005"],
+        },
+      };
+
+      console.log("System health report generated successfully");
+      return realData;
+    } catch (dbError) {
+      console.error("Database error in system health report:", dbError);
+      // Try basic device count query
+      try {
+        const basicDeviceCount = await db
+          .select({ count: sql`count(*)` })
+          .from(devices);
+        const deviceCount = Number(basicDeviceCount[0]?.count) || 0;
+
+        return {
           overall_health: {
-            health_score: Math.max(0, Math.min(100, healthScore)),
-            active_devices: recentReports.length,
-            critical_alerts: alertSummary.critical,
-            system_uptime: 98.7
+            health_score: 75,
+            active_devices: deviceCount,
+            critical_alerts: 0,
+            system_uptime: 95.0,
           },
           performance_metrics: {
-            avg_cpu_usage: Math.round(avgCpu * 10) / 10,
-            avg_memory_usage: Math.round(avgMemory * 10) / 10,
-            avg_disk_usage: Math.round(avgDisk * 10) / 10,
-            network_latency: 45.2
+            avg_cpu_usage: 45.0,
+            avg_memory_usage: 65.0,
+            avg_disk_usage: 70.0,
+            network_latency: 50.0,
           },
-          device_health: this.generateDeviceHealthData(recentReports),
+          device_health: [],
           alert_summary: {
-            critical: alertSummary.critical,
-            warning: alertSummary.warning || 5,
-            info: alertSummary.info || 12,
-            resolved_24h: Math.floor((alertSummary.critical + alertSummary.warning) * 0.7)
+            critical: 0,
+            warning: 0,
+            info: 0,
+            resolved_24h: 0,
           },
           capacity_forecast: {
-            storage_projected_full: "Q3 2025",
-            memory_upgrade_needed: ["WS-003", "WS-007", "WS-012"],
-            cpu_bottlenecks: ["WS-001", "WS-005"]
-          }
+            storage_projected_full: "Q4 2025",
+            memory_upgrade_needed: [],
+            cpu_bottlenecks: [],
+          },
         };
-
-        console.log("System health report generated successfully");
-        return realData;
-
-      } catch (dbError) {
-        console.error("Database error in system health report:", dbError);
-        // Try basic device count query
-        try {
-          const basicDeviceCount = await db.select({ count: sql`count(*)` }).from(devices);
-          const deviceCount = Number(basicDeviceCount[0]?.count) || 0;
-
-          return {
-            overall_health: {
-              health_score: 75,
-              active_devices: deviceCount,
-              critical_alerts: 0,
-              system_uptime: 95.0
-            },
-            performance_metrics: {
-              avg_cpu_usage: 45.0,
-              avg_memory_usage: 65.0,
-              avg_disk_usage: 70.0,
-              network_latency: 50.0
-            },
-            device_health: [],
-            alert_summary: {
-              critical: 0,
-              warning: 0,
-              info: 0,
-              resolved_24h: 0
-            },
-            capacity_forecast: {
-              storage_projected_full: "Q4 2025",
-              memory_upgrade_needed: [],
-              cpu_bottlenecks: []
-            }
-          };
-        } catch (fallbackError) {
-          console.error("Basic device query failed:", fallbackError);
-          throw new Error("Database connection failed - please check your database configuration");
-        }
+      } catch (fallbackError) {
+        console.error("Basic device query failed:", fallbackError);
+        throw new Error(
+          "Database connection failed - please check your database configuration",
+        );
       }
-
-    } catch (error) {
-      console.error("Error generating system health report:", error);
-      return this.getMockSystemHealthData();
     }
+  }
+  catch(error) {
+    console.error("Error generating system health report:", error);
+    return this.getMockSystemHealthData();
   }
 
   async generateSecurityComplianceReport(): Promise<SecurityComplianceData> {
     try {
       console.log("Generating security compliance report");
 
-      const timeout = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Security compliance timeout')), 3000)
+      const timeout = new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Security compliance timeout")),
+          3000,
+        ),
       );
 
       try {
         // Get user counts
-        const totalUsersResult = await Promise.race([
+        const totalUsersResult = (await Promise.race([
           db.select({ count: count() }).from(users),
-          timeout
-        ]) as any[];
+          timeout,
+        ])) as any[];
         const totalUsers = totalUsersResult[0]?.count || 0;
 
         // Get active users (logged in within last 30 days)
-        const activeUsersResult = await Promise.race([
-          db.select({ count: count() }).from(users)
-            .where(sql`${users.last_login} >= ${sql.raw(`NOW() - INTERVAL '30 days'`)}`),
-          timeout
-        ]) as any[];
+        const activeUsersResult = (await Promise.race([
+          db
+            .select({ count: count() })
+            .from(users)
+            .where(
+              sql`${users.last_login} >= ${sql.raw(`NOW() - INTERVAL '30 days'`)}`,
+            ),
+          timeout,
+        ])) as any[];
         const activeUsers = activeUsersResult[0]?.count || 0;
 
         // Get USB device connections
-        const usbConnectionsResult = await Promise.race([
+        const usbConnectionsResult = (await Promise.race([
           db.select({ count: count() }).from(usb_devices),
-          timeout
-        ]) as any[];
+          timeout,
+        ])) as any[];
         const usbConnections = usbConnectionsResult[0]?.count || 0;
 
         const realData: SecurityComplianceData = {
@@ -672,37 +800,35 @@ class AnalyticsService {
             up_to_date: 15,
             missing_critical: 2,
             missing_important: 1,
-            compliance_percentage: 83.3
+            compliance_percentage: 83.3,
           },
           access_control: {
             total_users: totalUsers,
             active_users: activeUsers,
             privileged_accounts: Math.floor(totalUsers * 0.15),
             inactive_accounts: totalUsers - activeUsers,
-            recent_logins_24h: Math.floor(activeUsers * 0.6)
+            recent_logins_24h: Math.floor(activeUsers * 0.6),
           },
           usb_activity: {
             total_connections: usbConnections,
             unique_devices: Math.floor(usbConnections * 0.7),
             blocked_attempts: Math.floor(usbConnections * 0.05),
-            policy_violations: Math.floor(usbConnections * 0.02)
+            policy_violations: Math.floor(usbConnections * 0.02),
           },
           security_alerts: {
             malware_detected: 2,
             unauthorized_access: 1,
             policy_violations: 3,
-            resolved_incidents: 5
-          }
+            resolved_incidents: 5,
+          },
         };
 
         console.log("Security compliance report generated successfully");
         return realData;
-
       } catch (dbError) {
         console.warn("Database error, using mock security data:", dbError);
         return this.getMockSecurityComplianceData();
       }
-
     } catch (error) {
       console.error("Error generating security compliance report:", error);
       return this.getMockSecurityComplianceData();
@@ -710,7 +836,11 @@ class AnalyticsService {
   }
 
   // Enhanced export methods
-  async exportReport(reportData: any, format: string, reportType: string): Promise<string | Buffer> {
+  async exportReport(
+    reportData: any,
+    format: string,
+    reportType: string,
+  ): Promise<string | Buffer> {
     if (format === "csv") {
       return this.convertToEnhancedCSV(reportData, reportType);
     } else if (format === "docx") {
@@ -746,34 +876,47 @@ class AnalyticsService {
     return csv;
   }
 
-  private async convertToEnhancedWord(data: any, reportType: string): Promise<Buffer> {
+  private async convertToEnhancedWord(
+    data: any,
+    reportType: string,
+  ): Promise<Buffer> {
     try {
-      if (!Document || !Packer || !Paragraph || !HeadingLevel || !AlignmentType) {
-        console.log("DOCX package not fully available, generating text document as docx");
+      if (
+        !Document ||
+        !Packer ||
+        !Paragraph ||
+        !HeadingLevel ||
+        !AlignmentType
+      ) {
+        console.log(
+          "DOCX package not fully available, generating text document as docx",
+        );
         const textContent = this.generateEnhancedTextDocument(data, reportType);
         // Return as buffer with proper encoding to avoid corruption
-        return Buffer.from(textContent, 'utf-8');
+        return Buffer.from(textContent, "utf-8");
       }
 
       const content = this.generateWordContent(data, reportType);
 
       const doc = new Document({
-        sections: [{
-          properties: {},
-          children: [
-            new Paragraph({
-              text: this.getReportTitle(reportType),
-              heading: HeadingLevel.TITLE,
-              alignment: AlignmentType.CENTER,
-            }),
-            new Paragraph({
-              text: `Generated on ${format(new Date(), 'PPpp')}`,
-              alignment: AlignmentType.CENTER,
-            }),
-            new Paragraph({ text: "" }),
-            ...content
-          ],
-        }],
+        sections: [
+          {
+            properties: {},
+            children: [
+              new Paragraph({
+                text: this.getReportTitle(reportType),
+                heading: HeadingLevel.TITLE,
+                alignment: AlignmentType.CENTER,
+              }),
+              new Paragraph({
+                text: `Generated on ${format(new Date(), "PPpp")}`,
+                alignment: AlignmentType.CENTER,
+              }),
+              new Paragraph({ text: "" }),
+              ...content,
+            ],
+          },
+        ],
       });
 
       const buffer = await Packer.toBuffer(doc);
@@ -783,7 +926,7 @@ class AnalyticsService {
       console.error("Error generating Word document:", error);
       // Fallback to plain text in proper Word format
       const textContent = this.generateWordFallbackDocument(data, reportType);
-      return Buffer.from(textContent, 'utf-8');
+      return Buffer.from(textContent, "utf-8");
     }
   }
 
@@ -792,28 +935,38 @@ class AnalyticsService {
     return {
       total_devices: 18,
       device_breakdown: {
-        by_os: { "Windows 10": 8, "Windows 11": 6, "Ubuntu 20.04": 3, "macOS": 1 },
-        by_status: { "online": 15, "offline": 2, "maintenance": 1 },
-        by_department: { "IT": 5, "Finance": 4, "HR": 3, "Operations": 6 }
+        by_os: {
+          "Windows 10": 8,
+          "Windows 11": 6,
+          "Ubuntu 20.04": 3,
+          macOS: 1,
+        },
+        by_status: { online: 15, offline: 2, maintenance: 1 },
+        by_department: { IT: 5, Finance: 4, HR: 3, Operations: 6 },
       },
       hardware_summary: {
         avg_cpu_cores: 4.2,
         avg_memory_gb: 8.5,
         avg_disk_gb: 512,
         newest_device: "WS-018",
-        oldest_device: "WS-001"
+        oldest_device: "WS-001",
       },
       software_inventory: {
         total_installed: 156,
         licensed_software: 109,
-        by_category: { "Productivity": 62, "Development": 31, "Security": 23, "Utilities": 40 }
+        by_category: {
+          Productivity: 62,
+          Development: 31,
+          Security: 23,
+          Utilities: 40,
+        },
       },
       compliance_status: {
         compliant_devices: 15,
         non_compliant_devices: 3,
-        missing_patches: 2
+        missing_patches: 2,
       },
-      detailed_devices: []
+      detailed_devices: [],
     };
   }
 
@@ -824,25 +977,30 @@ class AnalyticsService {
         open_tickets: 23,
         resolved_tickets: 115,
         escalated_tickets: 4,
-        avg_resolution_time: 24.5
+        avg_resolution_time: 24.5,
       },
       sla_performance: {
         met_sla: 121,
         breached_sla: 21,
-        sla_compliance_rate: 85.2
+        sla_compliance_rate: 85.2,
       },
       ticket_distribution: {
-        by_type: { "Incident": 89, "Request": 32, "Change": 21 },
-        by_priority: { "Low": 67, "Medium": 52, "High": 18, "Critical": 5 },
-        by_department: { "IT": 57, "Finance": 28, "HR": 21, "Operations": 36 },
-        by_technician: { "John Smith": 43, "Sarah Johnson": 36, "Mike Wilson": 28, "Unassigned": 35 }
+        by_type: { Incident: 89, Request: 32, Change: 21 },
+        by_priority: { Low: 67, Medium: 52, High: 18, Critical: 5 },
+        by_department: { IT: 57, Finance: 28, HR: 21, Operations: 36 },
+        by_technician: {
+          "John Smith": 43,
+          "Sarah Johnson": 36,
+          "Mike Wilson": 28,
+          Unassigned: 35,
+        },
       },
       trend_analysis: {
         daily_created: [],
         daily_resolved: [],
-        resolution_time_trend: []
+        resolution_time_trend: [],
       },
-      top_issues: []
+      top_issues: [],
     };
   }
 
@@ -852,26 +1010,26 @@ class AnalyticsService {
         health_score: 87,
         active_devices: 15,
         critical_alerts: 2,
-        system_uptime: 98.7
+        system_uptime: 98.7,
       },
       performance_metrics: {
         avg_cpu_usage: 45.2,
         avg_memory_usage: 62.8,
         avg_disk_usage: 78.3,
-        network_latency: 45.2
+        network_latency: 45.2,
       },
       device_health: [],
       alert_summary: {
         critical: 2,
         warning: 5,
         info: 12,
-        resolved_24h: 8
+        resolved_24h: 8,
       },
       capacity_forecast: {
         storage_projected_full: "Q3 2025",
         memory_upgrade_needed: ["WS-003", "WS-007", "WS-012"],
-        cpu_bottlenecks: ["WS-001", "WS-005"]
-      }
+        cpu_bottlenecks: ["WS-001", "WS-005"],
+      },
     };
   }
 
@@ -882,60 +1040,73 @@ class AnalyticsService {
         up_to_date: 15,
         missing_critical: 2,
         missing_important: 1,
-        compliance_percentage: 83.3
+        compliance_percentage: 83.3,
       },
       access_control: {
         total_users: 45,
         active_users: 38,
         privileged_accounts: 7,
         inactive_accounts: 7,
-        recent_logins_24h: 23
+        recent_logins_24h: 23,
       },
       usb_activity: {
         total_connections: 89,
         unique_devices: 62,
         blocked_attempts: 4,
-        policy_violations: 2
+        policy_violations: 2,
       },
       security_alerts: {
         malware_detected: 2,
         unauthorized_access: 1,
         policy_violations: 3,
-        resolved_incidents: 5
-      }
+        resolved_incidents: 5,
+      },
     };
   }
 
   // Helper methods
   private parseTimeRange(timeRange: string): number {
     switch (timeRange) {
-      case "24h": return 1;
-      case "7d": return 7;
-      case "30d": return 30;
-      case "90d": return 90;
-      default: return 30;
+      case "24h":
+        return 1;
+      case "7d":
+        return 7;
+      case "30d":
+        return 30;
+      case "90d":
+        return 90;
+      default:
+        return 30;
     }
   }
 
-  private generateDailyTrend(days: number, avgPerDay: number): Array<{ date: string; count: number }> {
+  private generateDailyTrend(
+    days: number,
+    avgPerDay: number,
+  ): Array<{ date: string; count: number }> {
     const trend = [];
     for (let i = days - 1; i >= 0; i--) {
       const date = subDays(new Date(), i);
       trend.push({
-        date: format(date, 'yyyy-MM-dd'),
-        count: Math.max(0, Math.floor(avgPerDay + (Math.random() - 0.5) * avgPerDay * 0.5))
+        date: format(date, "yyyy-MM-dd"),
+        count: Math.max(
+          0,
+          Math.floor(avgPerDay + (Math.random() - 0.5) * avgPerDay * 0.5),
+        ),
       });
     }
     return trend;
   }
 
-  private generateResolutionTrend(days: number): Array<{ date: string; avg_hours: number }> {
+  private generateResolutionTrend(
+    days: number,
+  ): Array<{ date: string; avg_hours: number }> {
     const trend = [];
     for (let i = days - 1; i >= 0; i--) {
       const date = subDays(new Date(), i);
       trend.push({
-        date: format(date, 'yyyy-MM-dd'),
-        avg_hours: Math.round((20 + Math.random() * 10) * 10) / 10
+        date: format(date, "yyyy-MM-dd"),
+        avg_hours: Math.round((20 + Math.random() * 10) * 10) / 10,
       });
     }
     return trend;
@@ -944,39 +1115,71 @@ class AnalyticsService {
   private generateDeviceHealthData(reports: any[]): Array<any> {
     const deviceMap: { [key: string]: any } = {};
 
-    reports.forEach(report => {
+    reports.forEach((report) => {
       if (!deviceMap[report.device_id]) {
         deviceMap[report.device_id] = {
           hostname: `Device-${report.device_id.slice(-4)}`,
           cpu_values: [],
           memory_values: [],
-          disk_values: []
+          disk_values: [],
         };
       }
 
-      if (report.cpu_usage) deviceMap[report.device_id].cpu_values.push(parseFloat(report.cpu_usage));
-      if (report.memory_usage) deviceMap[report.device_id].memory_values.push(parseFloat(report.memory_usage));
-      if (report.disk_usage) deviceMap[report.device_id].disk_values.push(parseFloat(report.disk_usage));
+      if (report.cpu_usage)
+        deviceMap[report.device_id].cpu_values.push(
+          parseFloat(report.cpu_usage),
+        );
+      if (report.memory_usage)
+        deviceMap[report.device_id].memory_values.push(
+          parseFloat(report.memory_usage),
+        );
+      if (report.disk_usage)
+        deviceMap[report.device_id].disk_values.push(
+          parseFloat(report.disk_usage),
+        );
     });
 
-    return Object.values(deviceMap).map((device: any) => ({
-      hostname: device.hostname,
-      health_score: Math.round(100 - Math.max(...device.cpu_values, 0) * 0.5 - Math.max(...device.memory_values, 0) * 0.3),
-      cpu_usage: device.cpu_values.length > 0 ? device.cpu_values.reduce((a: number, b: number) => a + b, 0) / device.cpu_values.length : 0,
-      memory_usage: device.memory_values.length > 0 ? device.memory_values.reduce((a: number, b: number) => a + b, 0) / device.memory_values.length : 0,
-      disk_usage: device.disk_values.length > 0 ? device.disk_values.reduce((a: number, b: number) => a + b, 0) / device.disk_values.length : 0,
-      uptime_percentage: 95 + Math.random() * 5,
-      last_alert: "2 hours ago"
-    })).slice(0, 10);
+    return Object.values(deviceMap)
+      .map((device: any) => ({
+        hostname: device.hostname,
+        health_score: Math.round(
+          100 -
+            Math.max(...device.cpu_values, 0) * 0.5 -
+            Math.max(...device.memory_values, 0) * 0.3,
+        ),
+        cpu_usage:
+          device.cpu_values.length > 0
+            ? device.cpu_values.reduce((a: number, b: number) => a + b, 0) /
+              device.cpu_values.length
+            : 0,
+        memory_usage:
+          device.memory_values.length > 0
+            ? device.memory_values.reduce((a: number, b: number) => a + b, 0) /
+              device.memory_values.length
+            : 0,
+        disk_usage:
+          device.disk_values.length > 0
+            ? device.disk_values.reduce((a: number, b: number) => a + b, 0) /
+              device.disk_values.length
+            : 0,
+        uptime_percentage: 95 + Math.random() * 5,
+        last_alert: "2 hours ago",
+      }))
+      .slice(0, 10);
   }
 
   private getReportTitle(reportType: string): string {
     switch (reportType) {
-      case 'asset-inventory': return 'ASSET INVENTORY REPORT';
-      case 'ticket-analytics': return 'TICKET ANALYTICS REPORT';
-      case 'system-health': return 'SYSTEM HEALTH REPORT';
-      case 'security-compliance': return 'SECURITY COMPLIANCE REPORT';
-      default: return 'SYSTEM ANALYTICS REPORT';
+      case "asset-inventory":
+        return "ASSET INVENTORY REPORT";
+      case "ticket-analytics":
+        return "TICKET ANALYTICS REPORT";
+      case "system-health":
+        return "SYSTEM HEALTH REPORT";
+      case "security-compliance":
+        return "SECURITY COMPLIANCE REPORT";
+      default:
+        return "SYSTEM ANALYTICS REPORT";
     }
   }
 
@@ -984,16 +1187,16 @@ class AnalyticsService {
     const content: Paragraph[] = [];
 
     switch (reportType) {
-      case 'asset-inventory':
+      case "asset-inventory":
         content.push(...this.generateAssetInventoryWordContent(data));
         break;
-      case 'ticket-analytics':
+      case "ticket-analytics":
         content.push(...this.generateTicketAnalyticsWordContent(data));
         break;
-      case 'system-health':
+      case "system-health":
         content.push(...this.generateSystemHealthWordContent(data));
         break;
-      case 'security-compliance':
+      case "security-compliance":
         content.push(...this.generateSecurityComplianceWordContent(data));
         break;
     }
@@ -1001,105 +1204,214 @@ class AnalyticsService {
     return content;
   }
 
-  private generateAssetInventoryWordContent(data: AssetInventoryData): Paragraph[] {
+  private generateAssetInventoryWordContent(
+    data: AssetInventoryData,
+  ): Paragraph[] {
     return [
-      new Paragraph({ text: "EXECUTIVE SUMMARY", heading: HeadingLevel.HEADING_1 }),
+      new Paragraph({
+        text: "EXECUTIVE SUMMARY",
+        heading: HeadingLevel.HEADING_1,
+      }),
       new Paragraph({ text: `Total Devices Managed: ${data.total_devices}` }),
-      new Paragraph({ text: `Compliance Rate: ${Math.round((data.compliance_status.compliant_devices / data.total_devices) * 100)}%` }),
-      new Paragraph({ text: `Software Packages: ${data.software_inventory.total_installed}` }),
+      new Paragraph({
+        text: `Compliance Rate: ${Math.round((data.compliance_status.compliant_devices / data.total_devices) * 100)}%`,
+      }),
+      new Paragraph({
+        text: `Software Packages: ${data.software_inventory.total_installed}`,
+      }),
       new Paragraph({ text: "" }),
 
-      new Paragraph({ text: "DEVICE BREAKDOWN", heading: HeadingLevel.HEADING_1 }),
-      new Paragraph({ text: "By Operating System:", heading: HeadingLevel.HEADING_2 }),
-      ...Object.entries(data.device_breakdown.by_os).map(([os, count]) => 
-        new Paragraph({ text: `  • ${os}: ${count} devices` })
+      new Paragraph({
+        text: "DEVICE BREAKDOWN",
+        heading: HeadingLevel.HEADING_1,
+      }),
+      new Paragraph({
+        text: "By Operating System:",
+        heading: HeadingLevel.HEADING_2,
+      }),
+      ...Object.entries(data.device_breakdown.by_os).map(
+        ([os, count]) => new Paragraph({ text: `  • ${os}: ${count} devices` }),
       ),
       new Paragraph({ text: "" }),
       new Paragraph({ text: "By Status:", heading: HeadingLevel.HEADING_2 }),
-      ...Object.entries(data.device_breakdown.by_status).map(([status, count]) => 
-        new Paragraph({ text: `  • ${status}: ${count} devices` })
+      ...Object.entries(data.device_breakdown.by_status).map(
+        ([status, count]) =>
+          new Paragraph({ text: `  • ${status}: ${count} devices` }),
       ),
 
       new Paragraph({ text: "" }),
-      new Paragraph({ text: "COMPLIANCE STATUS", heading: HeadingLevel.HEADING_1 }),
-      new Paragraph({ text: `Compliant Devices: ${data.compliance_status.compliant_devices}` }),
-      new Paragraph({ text: `Non-Compliant Devices: ${data.compliance_status.non_compliant_devices}` }),
-      new Paragraph({ text: `Missing Critical Patches: ${data.compliance_status.missing_patches}` })
+      new Paragraph({
+        text: "COMPLIANCE STATUS",
+        heading: HeadingLevel.HEADING_1,
+      }),
+      new Paragraph({
+        text: `Compliant Devices: ${data.compliance_status.compliant_devices}`,
+      }),
+      new Paragraph({
+        text: `Non-Compliant Devices: ${data.compliance_status.non_compliant_devices}`,
+      }),
+      new Paragraph({
+        text: `Missing Critical Patches: ${data.compliance_status.missing_patches}`,
+      }),
     ];
   }
 
-  private generateTicketAnalyticsWordContent(data: TicketAnalyticsData): Paragraph[] {
+  private generateTicketAnalyticsWordContent(
+    data: TicketAnalyticsData,
+  ): Paragraph[] {
     return [
-      new Paragraph({ text: "TICKET SUMMARY", heading: HeadingLevel.HEADING_1 }),
+      new Paragraph({
+        text: "TICKET SUMMARY",
+        heading: HeadingLevel.HEADING_1,
+      }),
       new Paragraph({ text: `Total Tickets: ${data.summary.total_tickets}` }),
       new Paragraph({ text: `Open Tickets: ${data.summary.open_tickets}` }),
-      new Paragraph({ text: `Resolved Tickets: ${data.summary.resolved_tickets}` }),
-      new Paragraph({ text: `Average Resolution Time: ${data.summary.avg_resolution_time} hours` }),
+      new Paragraph({
+        text: `Resolved Tickets: ${data.summary.resolved_tickets}`,
+      }),
+      new Paragraph({
+        text: `Average Resolution Time: ${data.summary.avg_resolution_time} hours`,
+      }),
       new Paragraph({ text: "" }),
 
-      new Paragraph({ text: "SLA PERFORMANCE", heading: HeadingLevel.HEADING_1 }),
-      new Paragraph({ text: `SLA Compliance Rate: ${data.sla_performance.sla_compliance_rate}%` }),
-      new Paragraph({ text: `Tickets Meeting SLA: ${data.sla_performance.met_sla}` }),
-      new Paragraph({ text: `SLA Breaches: ${data.sla_performance.breached_sla}` }),
+      new Paragraph({
+        text: "SLA PERFORMANCE",
+        heading: HeadingLevel.HEADING_1,
+      }),
+      new Paragraph({
+        text: `SLA Compliance Rate: ${data.sla_performance.sla_compliance_rate}%`,
+      }),
+      new Paragraph({
+        text: `Tickets Meeting SLA: ${data.sla_performance.met_sla}`,
+      }),
+      new Paragraph({
+        text: `SLA Breaches: ${data.sla_performance.breached_sla}`,
+      }),
       new Paragraph({ text: "" }),
 
       new Paragraph({ text: "TOP ISSUES", heading: HeadingLevel.HEADING_1 }),
-      ...data.top_issues.map(issue => 
-        new Paragraph({ text: `• ${issue.category}: ${issue.count} tickets (avg ${issue.avg_resolution_time}h resolution)` })
-      )
+      ...data.top_issues.map(
+        (issue) =>
+          new Paragraph({
+            text: `• ${issue.category}: ${issue.count} tickets (avg ${issue.avg_resolution_time}h resolution)`,
+          }),
+      ),
     ];
   }
 
   private generateSystemHealthWordContent(data: SystemHealthData): Paragraph[] {
     return [
-      new Paragraph({ text: "SYSTEM OVERVIEW", heading: HeadingLevel.HEADING_1 }),
-      new Paragraph({ text: `Overall Health Score: ${data.overall_health.health_score}/100` }),
-      new Paragraph({ text: `Active Devices: ${data.overall_health.active_devices}` }),
-      new Paragraph({ text: `Critical Alerts: ${data.overall_health.critical_alerts}` }),
-      new Paragraph({ text: `System Uptime: ${data.overall_health.system_uptime}%` }),
+      new Paragraph({
+        text: "SYSTEM OVERVIEW",
+        heading: HeadingLevel.HEADING_1,
+      }),
+      new Paragraph({
+        text: `Overall Health Score: ${data.overall_health.health_score}/100`,
+      }),
+      new Paragraph({
+        text: `Active Devices: ${data.overall_health.active_devices}`,
+      }),
+      new Paragraph({
+        text: `Critical Alerts: ${data.overall_health.critical_alerts}`,
+      }),
+      new Paragraph({
+        text: `System Uptime: ${data.overall_health.system_uptime}%`,
+      }),
       new Paragraph({ text: "" }),
 
-      new Paragraph({ text: "PERFORMANCE METRICS", heading: HeadingLevel.HEADING_1 }),
-      new Paragraph({ text: `Average CPU Usage: ${data.performance_metrics.avg_cpu_usage}%` }),
-      new Paragraph({ text: `Average Memory Usage: ${data.performance_metrics.avg_memory_usage}%` }),
-      new Paragraph({ text: `Average Disk Usage: ${data.performance_metrics.avg_disk_usage}%` }),
-      new Paragraph({ text: `Network Latency: ${data.performance_metrics.network_latency}ms` }),
+      new Paragraph({
+        text: "PERFORMANCE METRICS",
+        heading: HeadingLevel.HEADING_1,
+      }),
+      new Paragraph({
+        text: `Average CPU Usage: ${data.performance_metrics.avg_cpu_usage}%`,
+      }),
+      new Paragraph({
+        text: `Average Memory Usage: ${data.performance_metrics.avg_memory_usage}%`,
+      }),
+      new Paragraph({
+        text: `Average Disk Usage: ${data.performance_metrics.avg_disk_usage}%`,
+      }),
+      new Paragraph({
+        text: `Network Latency: ${data.performance_metrics.network_latency}ms`,
+      }),
       new Paragraph({ text: "" }),
 
-      new Paragraph({ text: "CAPACITY FORECAST", heading: HeadingLevel.HEADING_1 }),
-      new Paragraph({ text: `Storage Projected Full: ${data.capacity_forecast.storage_projected_full}` }),
-      new Paragraph({ text: `Devices Needing Memory Upgrade: ${data.capacity_forecast.memory_upgrade_needed.join(', ')}` }),
-      new Paragraph({ text: `CPU Bottlenecks: ${data.capacity_forecast.cpu_bottlenecks.join(', ')}` })
+      new Paragraph({
+        text: "CAPACITY FORECAST",
+        heading: HeadingLevel.HEADING_1,
+      }),
+      new Paragraph({
+        text: `Storage Projected Full: ${data.capacity_forecast.storage_projected_full}`,
+      }),
+      new Paragraph({
+        text: `Devices Needing Memory Upgrade: ${data.capacity_forecast.memory_upgrade_needed.join(", ")}`,
+      }),
+      new Paragraph({
+        text: `CPU Bottlenecks: ${data.capacity_forecast.cpu_bottlenecks.join(", ")}`,
+      }),
     ];
   }
 
-  private generateSecurityComplianceWordContent(data: SecurityComplianceData): Paragraph[] {
+  private generateSecurityComplianceWordContent(
+    data: SecurityComplianceData,
+  ): Paragraph[] {
     return [
-      new Paragraph({ text: "PATCH COMPLIANCE", heading: HeadingLevel.HEADING_1 }),
-      new Paragraph({ text: `Compliance Rate: ${data.patch_compliance.compliance_percentage}%` }),
-      new Paragraph({ text: `Up-to-Date Devices: ${data.patch_compliance.up_to_date}` }),
-      new Paragraph({ text: `Missing Critical Patches: ${data.patch_compliance.missing_critical}` }),
-      new Paragraph({ text: `Missing Important Patches: ${data.patch_compliance.missing_important}` }),
+      new Paragraph({
+        text: "PATCH COMPLIANCE",
+        heading: HeadingLevel.HEADING_1,
+      }),
+      new Paragraph({
+        text: `Compliance Rate: ${data.patch_compliance.compliance_percentage}%`,
+      }),
+      new Paragraph({
+        text: `Up-to-Date Devices: ${data.patch_compliance.up_to_date}`,
+      }),
+      new Paragraph({
+        text: `Missing Critical Patches: ${data.patch_compliance.missing_critical}`,
+      }),
+      new Paragraph({
+        text: `Missing Important Patches: ${data.patch_compliance.missing_important}`,
+      }),
       new Paragraph({ text: "" }),
 
-      new Paragraph({ text: "ACCESS CONTROL", heading: HeadingLevel.HEADING_1 }),
-      new Paragraph({ text: `Total Users: ${data.access_control.total_users}` }),
-      new Paragraph({ text: `Active Users: ${data.access_control.active_users}` }),
-      new Paragraph({ text: `Privileged Accounts: ${data.access_control.privileged_accounts}` }),
-      new Paragraph({ text: `Inactive Accounts: ${data.access_control.inactive_accounts}` }),
+      new Paragraph({
+        text: "ACCESS CONTROL",
+        heading: HeadingLevel.HEADING_1,
+      }),
+      new Paragraph({
+        text: `Total Users: ${data.access_control.total_users}`,
+      }),
+      new Paragraph({
+        text: `Active Users: ${data.access_control.active_users}`,
+      }),
+      new Paragraph({
+        text: `Privileged Accounts: ${data.access_control.privileged_accounts}`,
+      }),
+      new Paragraph({
+        text: `Inactive Accounts: ${data.access_control.inactive_accounts}`,
+      }),
       new Paragraph({ text: "" }),
 
       new Paragraph({ text: "USB ACTIVITY", heading: HeadingLevel.HEADING_1 }),
-      new Paragraph({ text: `Total Connections: ${data.usb_activity.total_connections}` }),
-      new Paragraph({ text: `Unique Devices: ${data.usb_activity.unique_devices}` }),
-      new Paragraph({ text: `Blocked Attempts: ${data.usb_activity.blocked_attempts}` }),
-      new Paragraph({ text: `Policy Violations: ${data.usb_activity.policy_violations}` })
+      new Paragraph({
+        text: `Total Connections: ${data.usb_activity.total_connections}`,
+      }),
+      new Paragraph({
+        text: `Unique Devices: ${data.usb_activity.unique_devices}`,
+      }),
+      new Paragraph({
+        text: `Blocked Attempts: ${data.usb_activity.blocked_attempts}`,
+      }),
+      new Paragraph({
+        text: `Policy Violations: ${data.usb_activity.policy_violations}`,
+      }),
     ];
   }
 
   private generateAssetInventoryCSV(data: AssetInventoryData): string {
     let csv = "ASSET INVENTORY REPORT\n";
-    csv += `Generated on,${format(new Date(), 'PPpp')}\n\n`;
+    csv += `Generated on,${format(new Date(), "PPpp")}\n\n`;
 
     csv += "SUMMARY\n";
     csv += "Metric,Value\n";
@@ -1119,7 +1431,7 @@ class AnalyticsService {
 
   private generateTicketAnalyticsCSV(data: TicketAnalyticsData): string {
     let csv = "TICKET ANALYTICS REPORT\n";
-    csv += `Generated on,${format(new Date(), 'PPpp')}\n\n`;
+    csv += `Generated on,${format(new Date(), "PPpp")}\n\n`;
 
     csv += "SUMMARY\n";
     csv += "Metric,Value\n";
@@ -1130,7 +1442,7 @@ class AnalyticsService {
 
     csv += "TOP ISSUES\n";
     csv += "Category,Count,Avg Resolution Time (hours)\n";
-    data.top_issues.forEach(issue => {
+    data.top_issues.forEach((issue) => {
       csv += `${issue.category},${issue.count},${issue.avg_resolution_time}\n`;
     });
 
@@ -1139,7 +1451,7 @@ class AnalyticsService {
 
   private generateSystemHealthCSV(data: SystemHealthData): string {
     let csv = "SYSTEM HEALTH REPORT\n";
-    csv += `Generated on,${format(new Date(), 'PPpp')}\n\n`;
+    csv += `Generated on,${format(new Date(), "PPpp")}\n\n`;
 
     csv += "OVERVIEW\n";
     csv += "Metric,Value\n";
@@ -1159,7 +1471,7 @@ class AnalyticsService {
 
   private generateSecurityComplianceCSV(data: SecurityComplianceData): string {
     let csv = "SECURITY COMPLIANCE REPORT\n";
-    csv += `Generated on,${format(new Date(), 'PPpp')}\n\n`;
+    csv += `Generated on,${format(new Date(), "PPpp")}\n\n`;
 
     csv += "PATCH COMPLIANCE\n";
     csv += "Metric,Value\n";
@@ -1179,53 +1491,57 @@ class AnalyticsService {
   private generateGenericCSV(data: any): string {
     const headers = Object.keys(data);
     const csvHeaders = headers.join(",");
-    const csvData = headers.map(h => typeof data[h] === 'object' ? JSON.stringify(data[h]) : data[h]).join(",");
+    const csvData = headers
+      .map((h) =>
+        typeof data[h] === "object" ? JSON.stringify(data[h]) : data[h],
+      )
+      .join(",");
     return `${csvHeaders}\n${csvData}`;
   }
 
   private generateEnhancedTextDocument(data: any, reportType: string): string {
     let content = `${this.getReportTitle(reportType)}\n`;
-    content += "=" .repeat(60) + "\n\n";
-    content += `Generated on: ${format(new Date(), 'PPpp')}\n`;
-    content += `Report Type: ${reportType.replace('-', ' ').toUpperCase()}\n`;
-    content += "-" .repeat(60) + "\n\n";
+    content += "=".repeat(60) + "\n\n";
+    content += `Generated on: ${format(new Date(), "PPpp")}\n`;
+    content += `Report Type: ${reportType.replace("-", " ").toUpperCase()}\n`;
+    content += "-".repeat(60) + "\n\n";
 
     // Add specific content based on report type
     switch (reportType) {
-      case 'asset-inventory':
+      case "asset-inventory":
         content += this.generateAssetInventoryTextContent(data);
         break;
-      case 'ticket-analytics':
+      case "ticket-analytics":
         content += this.generateTicketAnalyticsTextContent(data);
         break;
-      case 'system-health':
+      case "system-health":
         content += this.generateSystemHealthTextContent(data);
         break;
-      case 'security-compliance':
+      case "security-compliance":
         content += this.generateSecurityComplianceTextContent(data);
         break;
-      case 'performance':
+      case "performance":
         content += this.generatePerformanceTextContent(data);
         break;
-      case 'availability':
+      case "availability":
         content += this.generateAvailabilityTextContent(data);
         break;
-      case 'inventory':
+      case "inventory":
         content += this.generateInventoryTextContent(data);
         break;
-      case 'trends':
+      case "trends":
         content += this.generateTrendsTextContent(data);
         break;
-      case 'capacity':
+      case "capacity":
         content += this.generateCapacityTextContent(data);
         break;
       default:
         content += "REPORT DATA\n";
-        content += "-" .repeat(20) + "\n";
+        content += "-".repeat(20) + "\n";
         content += JSON.stringify(data, null, 2);
     }
 
-    content += "\n\n" + "=" .repeat(60) + "\n";
+    content += "\n\n" + "=".repeat(60) + "\n";
     content += "End of Report\n";
 
     return content;
@@ -1233,13 +1549,13 @@ class AnalyticsService {
 
   private generateAssetInventoryTextContent(data: AssetInventoryData): string {
     let content = "EXECUTIVE SUMMARY\n";
-    content += "-" .repeat(20) + "\n";
+    content += "-".repeat(20) + "\n";
     content += `Total Devices: ${data.total_devices}\n`;
     content += `Compliance Rate: ${Math.round((data.compliance_status.compliant_devices / data.total_devices) * 100)}%\n`;
     content += `Software Packages: ${data.software_inventory.total_installed}\n\n`;
 
     content += "DEVICE BREAKDOWN\n";
-    content += "-" .repeat(20) + "\n";
+    content += "-".repeat(20) + "\n";
     content += "By Operating System:\n";
     Object.entries(data.device_breakdown.by_os).forEach(([os, count]) => {
       content += `  • ${os}: ${count} devices\n`;
@@ -1248,17 +1564,19 @@ class AnalyticsService {
     return content;
   }
 
-  private generateTicketAnalyticsTextContent(data: TicketAnalyticsData): string {
+  private generateTicketAnalyticsTextContent(
+    data: TicketAnalyticsData,
+  ): string {
     let content = "TICKET SUMMARY\n";
-    content += "-" .repeat(20) + "\n";
+    content += "-".repeat(20) + "\n";
     content += `Total Tickets: ${data.summary.total_tickets}\n`;
     content += `Open Tickets: ${data.summary.open_tickets}\n`;
     content += `Resolved Tickets: ${data.summary.resolved_tickets}\n`;
     content += `SLA Compliance: ${data.sla_performance.sla_compliance_rate}%\n\n`;
 
     content += "TOP ISSUES\n";
-    content += "-" .repeat(20) + "\n";
-    data.top_issues.forEach(issue => {
+    content += "-".repeat(20) + "\n";
+    data.top_issues.forEach((issue) => {
       content += `• ${issue.category}: ${issue.count} tickets\n`;
     });
 
@@ -1267,14 +1585,14 @@ class AnalyticsService {
 
   private generateSystemHealthTextContent(data: SystemHealthData): string {
     let content = "SYSTEM OVERVIEW\n";
-    content += "-" .repeat(20) + "\n";
+    content += "-".repeat(20) + "\n";
     content += `Health Score: ${data.overall_health.health_score}/100\n`;
     content += `Active Devices: ${data.overall_health.active_devices}\n`;
     content += `Critical Alerts: ${data.overall_health.critical_alerts}\n`;
     content += `System Uptime: ${data.overall_health.system_uptime}%\n\n`;
 
     content += "PERFORMANCE METRICS\n";
-    content += "-" .repeat(20) + "\n";
+    content += "-".repeat(20) + "\n";
     content += `Average CPU Usage: ${data.performance_metrics.avg_cpu_usage}%\n`;
     content += `Average Memory Usage: ${data.performance_metrics.avg_memory_usage}%\n`;
     content += `Average Disk Usage: ${data.performance_metrics.avg_disk_usage}%\n`;
@@ -1282,15 +1600,17 @@ class AnalyticsService {
     return content;
   }
 
-  private generateSecurityComplianceTextContent(data: SecurityComplianceData): string {
+  private generateSecurityComplianceTextContent(
+    data: SecurityComplianceData,
+  ): string {
     let content = "PATCH COMPLIANCE\n";
-    content += "-" .repeat(20) + "\n";
+    content += "-".repeat(20) + "\n";
     content += `Compliance Rate: ${data.patch_compliance.compliance_percentage}%\n`;
     content += `Up-to-Date Devices: ${data.patch_compliance.up_to_date}\n`;
     content += `Missing Critical Patches: ${data.patch_compliance.missing_critical}\n\n`;
 
     content += "ACCESS CONTROL\n";
-    content += "-" .repeat(20) + "\n";
+    content += "-".repeat(20) + "\n";
     content += `Total Users: ${data.access_control.total_users}\n`;
     content += `Active Users: ${data.access_control.active_users}\n`;
     content += `Privileged Accounts: ${data.access_control.privileged_accounts}\n`;
@@ -1300,20 +1620,20 @@ class AnalyticsService {
 
   private generatePerformanceTextContent(data: any): string {
     let content = "PERFORMANCE SUMMARY\n";
-    content += "-" .repeat(25) + "\n";
-    content += `Average CPU Usage: ${data.average_cpu || 'N/A'}%\n`;
-    content += `Average Memory Usage: ${data.average_memory || 'N/A'}%\n`;
-    content += `Average Disk Usage: ${data.average_disk || 'N/A'}%\n`;
-    content += `Active Devices: ${data.device_count || 'N/A'}\n`;
-    content += `System Uptime: ${data.uptime_percentage || 'N/A'}%\n`;
-    content += `Critical Alerts: ${data.critical_alerts || 'N/A'}\n\n`;
+    content += "-".repeat(25) + "\n";
+    content += `Average CPU Usage: ${data.average_cpu || "N/A"}%\n`;
+    content += `Average Memory Usage: ${data.average_memory || "N/A"}%\n`;
+    content += `Average Disk Usage: ${data.average_disk || "N/A"}%\n`;
+    content += `Active Devices: ${data.device_count || "N/A"}\n`;
+    content += `System Uptime: ${data.uptime_percentage || "N/A"}%\n`;
+    content += `Critical Alerts: ${data.critical_alerts || "N/A"}\n\n`;
 
     if (data.trends) {
       content += "PERFORMANCE TRENDS\n";
-      content += "-" .repeat(25) + "\n";
-      content += `CPU Trend: ${data.trends.cpu_trend || 'N/A'}%\n`;
-      content += `Memory Trend: ${data.trends.memory_trend || 'N/A'}%\n`;
-      content += `Disk Trend: ${data.trends.disk_trend || 'N/A'}%\n`;
+      content += "-".repeat(25) + "\n";
+      content += `CPU Trend: ${data.trends.cpu_trend || "N/A"}%\n`;
+      content += `Memory Trend: ${data.trends.memory_trend || "N/A"}%\n`;
+      content += `Disk Trend: ${data.trends.disk_trend || "N/A"}%\n`;
     }
 
     return content;
@@ -1321,25 +1641,25 @@ class AnalyticsService {
 
   private generateAvailabilityTextContent(data: any): string {
     let content = "AVAILABILITY REPORT\n";
-    content += "-" .repeat(25) + "\n";
-    content += `Total Devices: ${data.total_devices || 'N/A'}\n`;
-    content += `Online Devices: ${data.online_devices || 'N/A'}\n`;
-    content += `Offline Devices: ${data.offline_devices || 'N/A'}\n`;
-    content += `Availability Percentage: ${data.availability_percentage || 'N/A'}%\n`;
-    content += `Downtime Incidents: ${data.downtime_incidents || 'N/A'}\n`;
-    content += `Average Response Time: ${data.avg_response_time || 'N/A'}ms\n`;
+    content += "-".repeat(25) + "\n";
+    content += `Total Devices: ${data.total_devices || "N/A"}\n`;
+    content += `Online Devices: ${data.online_devices || "N/A"}\n`;
+    content += `Offline Devices: ${data.offline_devices || "N/A"}\n`;
+    content += `Availability Percentage: ${data.availability_percentage || "N/A"}%\n`;
+    content += `Downtime Incidents: ${data.downtime_incidents || "N/A"}\n`;
+    content += `Average Response Time: ${data.avg_response_time || "N/A"}ms\n`;
 
     return content;
   }
 
   private generateInventoryTextContent(data: any): string {
     let content = "SYSTEM INVENTORY\n";
-    content += "-" .repeat(25) + "\n";
-    content += `Total Agents: ${data.total_agents || 'N/A'}\n\n`;
+    content += "-".repeat(25) + "\n";
+    content += `Total Agents: ${data.total_agents || "N/A"}\n\n`;
 
     if (data.by_os) {
       content += "DEVICES BY OPERATING SYSTEM\n";
-      content += "-" .repeat(25) + "\n";
+      content += "-".repeat(25) + "\n";
       Object.entries(data.by_os).forEach(([os, count]) => {
         content += `  ${os}: ${count} devices\n`;
       });
@@ -1348,7 +1668,7 @@ class AnalyticsService {
 
     if (data.by_status) {
       content += "DEVICES BY STATUS\n";
-      content += "-" .repeat(25) + "\n";
+      content += "-".repeat(25) + "\n";
       Object.entries(data.by_status).forEach(([status, count]) => {
         content += `  ${status}: ${count} devices\n`;
       });
@@ -1357,16 +1677,16 @@ class AnalyticsService {
 
     if (data.storage_usage) {
       content += "STORAGE USAGE\n";
-      content += "-" .repeat(25) + "\n";
-      content += `Average Disk Usage: ${data.storage_usage.avg_disk_usage || 'N/A'}%\n`;
-      content += `Devices Near Capacity: ${data.storage_usage.devices_near_capacity || 'N/A'}\n\n`;
+      content += "-".repeat(25) + "\n";
+      content += `Average Disk Usage: ${data.storage_usage.avg_disk_usage || "N/A"}%\n`;
+      content += `Devices Near Capacity: ${data.storage_usage.devices_near_capacity || "N/A"}\n\n`;
     }
 
     if (data.memory_usage) {
       content += "MEMORY USAGE\n";
-      content += "-" .repeat(25) + "\n";
-      content += `Average Memory Usage: ${data.memory_usage.avg_memory_usage || 'N/A'}%\n`;
-      content += `High Memory Devices: ${data.memory_usage.devices_high_memory || 'N/A'}\n`;
+      content += "-".repeat(25) + "\n";
+      content += `Average Memory Usage: ${data.memory_usage.avg_memory_usage || "N/A"}%\n`;
+      content += `High Memory Devices: ${data.memory_usage.devices_high_memory || "N/A"}\n`;
     }
 
     return content;
@@ -1374,32 +1694,35 @@ class AnalyticsService {
 
   private generateTrendsTextContent(data: any): string {
     let content = "TREND ANALYSIS REPORT\n";
-    content += "-" .repeat(25) + "\n";
-    content += `Time Range: ${data.time_range || 'N/A'}\n\n`;
+    content += "-".repeat(25) + "\n";
+    content += `Time Range: ${data.time_range || "N/A"}\n\n`;
 
     if (data.performance_trends) {
       content += "PERFORMANCE TRENDS\n";
-      content += "-" .repeat(25) + "\n";
-      content += `CPU Trend: ${data.performance_trends.cpu_trend || 'N/A'}%\n`;
-      content += `Memory Trend: ${data.performance_trends.memory_trend || 'N/A'}%\n`;
-      content += `Disk Trend: ${data.performance_trends.disk_trend || 'N/A'}%\n`;
-      content += `Trend Direction: ${data.performance_trends.trend_direction || 'N/A'}\n\n`;
+      content += "-".repeat(25) + "\n";
+      content += `CPU Trend: ${data.performance_trends.cpu_trend || "N/A"}%\n`;
+      content += `Memory Trend: ${data.performance_trends.memory_trend || "N/A"}%\n`;
+      content += `Disk Trend: ${data.performance_trends.disk_trend || "N/A"}%\n`;
+      content += `Trend Direction: ${data.performance_trends.trend_direction || "N/A"}\n\n`;
     }
 
     if (data.device_trends) {
       content += "DEVICE TRENDS\n";
-      content += "-" .repeat(25) + "\n";
-      content += `Total Devices: ${data.device_trends.total_devices || 'N/A'}\n`;
-      content += `Online Trend: ${data.device_trends.online_trend || 'N/A'}\n`;
-      content += `Health Trend: ${data.device_trends.health_trend || 'N/A'}\n\n`;
+      content += "-".repeat(25) + "\n";
+      content += `Total Devices: ${data.device_trends.total_devices || "N/A"}\n`;
+      content += `Online Trend: ${data.device_trends.online_trend || "N/A"}\n`;
+      content += `Health Trend: ${data.device_trends.health_trend || "N/A"}\n\n`;
     }
 
     if (data.predictions) {
       content += "PREDICTIONS\n";
-      content += "-" .repeat(25) + "\n";
-      content += `Next 30 Days: ${data.predictions.next_30_days || 'N/A'}\n`;
-      if (data.predictions.capacity_warnings && data.predictions.capacity_warnings.length > 0) {
-        content += `Warnings: ${data.predictions.capacity_warnings.join(', ')}\n`;
+      content += "-".repeat(25) + "\n";
+      content += `Next 30 Days: ${data.predictions.next_30_days || "N/A"}\n`;
+      if (
+        data.predictions.capacity_warnings &&
+        data.predictions.capacity_warnings.length > 0
+      ) {
+        content += `Warnings: ${data.predictions.capacity_warnings.join(", ")}\n`;
       }
     }
 
@@ -1408,41 +1731,44 @@ class AnalyticsService {
 
   private generateCapacityTextContent(data: any): string {
     let content = "CAPACITY PLANNING REPORT\n";
-    content += "-" .repeat(25) + "\n";
+    content += "-".repeat(25) + "\n";
 
     if (data.current_capacity) {
       content += "CURRENT CAPACITY\n";
-      content += "-" .repeat(25) + "\n";
-      content += `Total Devices: ${data.current_capacity.total_devices || 'N/A'}\n`;
-      content += `CPU Utilization: ${data.current_capacity.cpu_utilization || 'N/A'}%\n`;
-      content += `Memory Utilization: ${data.current_capacity.memory_utilization || 'N/A'}%\n`;
-      content += `Storage Utilization: ${data.current_capacity.storage_utilization || 'N/A'}%\n\n`;
+      content += "-".repeat(25) + "\n";
+      content += `Total Devices: ${data.current_capacity.total_devices || "N/A"}\n`;
+      content += `CPU Utilization: ${data.current_capacity.cpu_utilization || "N/A"}%\n`;
+      content += `Memory Utilization: ${data.current_capacity.memory_utilization || "N/A"}%\n`;
+      content += `Storage Utilization: ${data.current_capacity.storage_utilization || "N/A"}%\n\n`;
     }
 
     if (data.recommendations && data.recommendations.length > 0) {
       content += "RECOMMENDATIONS\n";
-      content += "-" .repeat(25) + "\n";
+      content += "-".repeat(25) + "\n";
       data.recommendations.forEach((rec: any) => {
-        content += `• ${rec.type || 'Unknown'} (${rec.urgency || 'Low'}): ${rec.description || 'No description'}\n`;
+        content += `• ${rec.type || "Unknown"} (${rec.urgency || "Low"}): ${rec.description || "No description"}\n`;
       });
       content += "\n";
     }
 
     if (data.growth_projections) {
       content += "GROWTH PROJECTIONS\n";
-      content += "-" .repeat(25) + "\n";
-      content += `Next Quarter: ${data.growth_projections.next_quarter || 'N/A'}\n`;
-      content += `Next Year: ${data.growth_projections.next_year || 'N/A'}\n`;
-      content += `Budget Impact: ${data.growth_projections.budget_impact || 'N/A'}\n`;
+      content += "-".repeat(25) + "\n";
+      content += `Next Quarter: ${data.growth_projections.next_quarter || "N/A"}\n`;
+      content += `Next Year: ${data.growth_projections.next_year || "N/A"}\n`;
+      content += `Budget Impact: ${data.growth_projections.budget_impact || "N/A"}\n`;
     }
 
     return content;
   }
 
-  private async convertToPDF(data: any, reportType: string = 'generic'): Promise<Buffer> {
+  private async convertToPDF(
+    data: any,
+    reportType: string = "generic",
+  ): Promise<Buffer> {
     // Generate a simple PDF-like text format
     const textContent = this.generatePDFTextDocument(data, reportType);
-    return Buffer.from(textContent, 'utf-8');
+    return Buffer.from(textContent, "utf-8");
   }
 
   private generatePDFTextDocument(data: any, reportType: string): string {
@@ -1452,7 +1778,7 @@ class AnalyticsService {
     content += `3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n/Contents 4 0 R\n>>\nendobj\n\n`;
     content += `4 0 obj\n<<\n/Length ${this.getReportTitle(reportType).length + 100}\n>>\nstream\n`;
     content += `BT\n/F1 12 Tf\n50 750 Td\n(${this.getReportTitle(reportType)}) Tj\n`;
-    content += `0 -20 Td\n(Generated: ${format(new Date(), 'PPpp')}) Tj\n`;
+    content += `0 -20 Td\n(Generated: ${format(new Date(), "PPpp")}) Tj\n`;
     content += `0 -40 Td\n(Report Data:) Tj\n`;
     content += `0 -20 Td\n(${JSON.stringify(data, null, 2).substring(0, 500)}...) Tj\n`;
     content += `ET\nendstream\nendobj\n\n`;
@@ -1468,23 +1794,23 @@ class AnalyticsService {
     content += `\\f0\\fs24 `;
     content += `{\\b\\fs28 ${this.getReportTitle(reportType)}\\par}`;
     content += `\\par`;
-    content += `Generated on: ${format(new Date(), 'PPpp')}\\par`;
+    content += `Generated on: ${format(new Date(), "PPpp")}\\par`;
     content += `\\par`;
     content += `{\\b Report Data:}\\par`;
     content += `\\par`;
 
     // Add specific content based on report type
     switch (reportType) {
-      case 'asset-inventory':
+      case "asset-inventory":
         content += this.generateAssetInventoryRTF(data);
         break;
-      case 'ticket-analytics':
+      case "ticket-analytics":
         content += this.generateTicketAnalyticsRTF(data);
         break;
-      case 'system-health':
+      case "system-health":
         content += this.generateSystemHealthRTF(data);
         break;
-      case 'security-compliance':
+      case "security-compliance":
         content += this.generateSecurityComplianceRTF(data);
         break;
       default:
@@ -1552,8 +1878,8 @@ class AnalyticsService {
       trends: {
         cpu_trend: 2.1,
         memory_trend: -1.5,
-        disk_trend: 0.8
-      }
+        disk_trend: 0.8,
+      },
     };
   }
 
@@ -1566,7 +1892,7 @@ class AnalyticsService {
       availability_percentage: healthData.overall_health.system_uptime,
       downtime_incidents: healthData.overall_health.critical_alerts,
       avg_response_time: 245,
-      uptime_by_device: []
+      uptime_by_device: [],
     };
   }
 
@@ -1579,16 +1905,20 @@ class AnalyticsService {
       storage_usage: {
         total_devices: assetData.total_devices,
         avg_disk_usage: 67.2,
-        devices_near_capacity: 3
+        devices_near_capacity: 3,
       },
       memory_usage: {
         avg_memory_usage: 72.8,
-        devices_high_memory: 5
-      }
+        devices_high_memory: 5,
+      },
     };
   }
 
-  async generateCustomReport(reportType: string, timeRange: string, format: string): Promise<any> {
+  async generateCustomReport(
+    reportType: string,
+    timeRange: string,
+    format: string,
+  ): Promise<any> {
     switch (reportType) {
       case "performance":
         return await this.generatePerformanceSummary(timeRange);
@@ -1622,7 +1952,7 @@ class AnalyticsService {
       memory_usage: healthData.performance_metrics.avg_memory_usage,
       disk_usage: healthData.performance_metrics.avg_disk_usage,
       active_devices: healthData.overall_health.active_devices,
-      alerts_last_hour: healthData.overall_health.critical_alerts
+      alerts_last_hour: healthData.overall_health.critical_alerts,
     };
   }
 
@@ -1632,7 +1962,7 @@ class AnalyticsService {
       timeRange,
       data: [],
       trend: 0,
-      prediction: null
+      prediction: null,
     };
   }
 
@@ -1641,9 +1971,14 @@ class AnalyticsService {
     return {
       generated_at: new Date(),
       recommendations: [],
-      overall_health: healthData.overall_health.health_score >= 85 ? "excellent" : 
-                     healthData.overall_health.health_score >= 70 ? "good" : 
-                     healthData.overall_health.health_score >= 55 ? "fair" : "poor"
+      overall_health:
+        healthData.overall_health.health_score >= 85
+          ? "excellent"
+          : healthData.overall_health.health_score >= 70
+            ? "good"
+            : healthData.overall_health.health_score >= 55
+              ? "fair"
+              : "poor",
     };
   }
 
@@ -1660,31 +1995,54 @@ class AnalyticsService {
           cpu_trend: healthData.performance_metrics.avg_cpu_usage,
           memory_trend: healthData.performance_metrics.avg_memory_usage,
           disk_trend: healthData.performance_metrics.avg_disk_usage,
-          trend_direction: "stable"
+          trend_direction: "stable",
         },
         device_trends: {
           total_devices: healthData.overall_health.active_devices,
           online_trend: "increasing",
-          health_trend: healthData.overall_health.health_score >= 80 ? "improving" : "declining"
+          health_trend:
+            healthData.overall_health.health_score >= 80
+              ? "improving"
+              : "declining",
         },
         alert_trends: {
           critical_alerts: healthData.alert_summary.critical,
           warning_alerts: healthData.alert_summary.warning,
-          trend_direction: healthData.alert_summary.critical > 5 ? "increasing" : "stable"
+          trend_direction:
+            healthData.alert_summary.critical > 5 ? "increasing" : "stable",
         },
         predictions: {
           next_30_days: "System performance expected to remain stable",
-          capacity_warnings: healthData.overall_health.health_score < 70 ? ["Monitor disk usage", "Consider memory upgrades"] : []
-        }
+          capacity_warnings:
+            healthData.overall_health.health_score < 70
+              ? ["Monitor disk usage", "Consider memory upgrades"]
+              : [],
+        },
       };
     } catch (error) {
       console.error("Error generating trend analysis report:", error);
       return {
         time_range: timeRange,
-        performance_trends: { cpu_trend: 45.2, memory_trend: 62.8, disk_trend: 78.3, trend_direction: "stable" },
-        device_trends: { total_devices: 15, online_trend: "stable", health_trend: "stable" },
-        alert_trends: { critical_alerts: 2, warning_alerts: 5, trend_direction: "stable" },
-        predictions: { next_30_days: "System performance expected to remain stable", capacity_warnings: [] }
+        performance_trends: {
+          cpu_trend: 45.2,
+          memory_trend: 62.8,
+          disk_trend: 78.3,
+          trend_direction: "stable",
+        },
+        device_trends: {
+          total_devices: 15,
+          online_trend: "stable",
+          health_trend: "stable",
+        },
+        alert_trends: {
+          critical_alerts: 2,
+          warning_alerts: 5,
+          trend_direction: "stable",
+        },
+        predictions: {
+          next_30_days: "System performance expected to remain stable",
+          capacity_warnings: [],
+        },
       };
     }
   }
@@ -1701,39 +2059,59 @@ class AnalyticsService {
           total_devices: assetData.total_devices,
           cpu_utilization: healthData.performance_metrics.avg_cpu_usage,
           memory_utilization: healthData.performance_metrics.avg_memory_usage,
-          storage_utilization: healthData.performance_metrics.avg_disk_usage
+          storage_utilization: healthData.performance_metrics.avg_disk_usage,
         },
         capacity_forecast: healthData.capacity_forecast,
         recommendations: [
           {
             type: "storage",
-            urgency: healthData.performance_metrics.avg_disk_usage > 80 ? "high" : "medium",
-            description: "Monitor storage usage across all devices"
+            urgency:
+              healthData.performance_metrics.avg_disk_usage > 80
+                ? "high"
+                : "medium",
+            description: "Monitor storage usage across all devices",
           },
           {
             type: "memory",
-            urgency: healthData.performance_metrics.avg_memory_usage > 85 ? "high" : "low",
-            description: "Consider memory upgrades for high-usage devices"
+            urgency:
+              healthData.performance_metrics.avg_memory_usage > 85
+                ? "high"
+                : "low",
+            description: "Consider memory upgrades for high-usage devices",
           },
           {
             type: "performance",
-            urgency: healthData.overall_health.health_score < 70 ? "high" : "low",
-            description: "Overall system health monitoring"
-          }
+            urgency:
+              healthData.overall_health.health_score < 70 ? "high" : "low",
+            description: "Overall system health monitoring",
+          },
         ],
         growth_projections: {
           next_quarter: "15% increase in storage usage expected",
           next_year: "25% device growth projected",
-          budget_impact: "Moderate - focus on storage and memory upgrades"
-        }
+          budget_impact: "Moderate - focus on storage and memory upgrades",
+        },
       };
     } catch (error) {
       console.error("Error generating capacity report:", error);
       return {
-        current_capacity: { total_devices: 15, cpu_utilization: 45.2, memory_utilization: 62.8, storage_utilization: 78.3 },
-        capacity_forecast: { storage_projected_full: "Q3 2025", memory_upgrade_needed: [], cpu_bottlenecks: [] },
+        current_capacity: {
+          total_devices: 15,
+          cpu_utilization: 45.2,
+          memory_utilization: 62.8,
+          storage_utilization: 78.3,
+        },
+        capacity_forecast: {
+          storage_projected_full: "Q3 2025",
+          memory_upgrade_needed: [],
+          cpu_bottlenecks: [],
+        },
         recommendations: [],
-        growth_projections: { next_quarter: "Stable growth expected", next_year: "Moderate expansion", budget_impact: "Low" }
+        growth_projections: {
+          next_quarter: "Stable growth expected",
+          next_year: "Moderate expansion",
+          budget_impact: "Low",
+        },
       };
     }
   }
