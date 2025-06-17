@@ -1,0 +1,32 @@
+
+const { Pool } = require('pg');
+
+const DATABASE_URL = process.env.DATABASE_URL || "postgres://avnadmin:AVNS_YOa-jMJ2ghMv9bcWgze@pg-2d00a622-basureddy2020-11ac.l.aivencloud.com:21320/defaultdb?sslmode=require";
+
+const pool = new Pool({
+  connectionString: DATABASE_URL,
+  ssl: DATABASE_URL.includes('localhost') || DATABASE_URL.includes('127.0.0.1') ? false : { 
+    rejectUnauthorized: false,
+    requestCert: false,
+    agent: false
+  },
+});
+
+async function testConnection() {
+  try {
+    console.log('🔗 Testing database connection...');
+    const client = await pool.connect();
+    const result = await client.query('SELECT NOW() as current_time, COUNT(*) as user_count FROM users');
+    console.log('✅ Database connection successful!');
+    console.log('📊 Current time:', result.rows[0].current_time);
+    console.log('👥 User count:', result.rows[0].user_count);
+    client.release();
+    await pool.end();
+  } catch (error) {
+    console.error('❌ Database connection failed:', error.message);
+    console.error('🔍 Error code:', error.code);
+    process.exit(1);
+  }
+}
+
+testConnection();
