@@ -48,6 +48,25 @@ app.use((req, res, next) => {
     // Initialize database tables
     try {
       console.log("🔗 Testing database connection...");
+      
+      // Check if DATABASE_URL is properly set
+      if (!process.env.DATABASE_URL) {
+        console.error("❌ DATABASE_URL environment variable is not set");
+        console.log("💡 To fix this:");
+        console.log("1. Open the Database tab in Replit");
+        console.log("2. Click 'Create a database'");
+        console.log("3. Choose PostgreSQL");
+        console.log("4. The DATABASE_URL will be automatically set");
+        process.exit(1);
+      }
+
+      if (process.env.DATABASE_URL.includes('base')) {
+        console.error("❌ Invalid DATABASE_URL detected - contains 'base' hostname");
+        console.log("💡 This usually means the database URL is corrupted or incomplete");
+        console.log("🔧 Please check your database configuration in Replit");
+        process.exit(1);
+      }
+
       await db.execute(sql`SELECT 1`);
       console.log("✅ Database connection successful");
 
@@ -58,10 +77,22 @@ app.use((req, res, next) => {
       console.error("📋 Error details:", {
         code: error.code,
         message: error.message,
-        hint: error.code === 'SELF_SIGNED_CERT_IN_CHAIN' ? 
+        hostname: error.hostname,
+        hint: error.code === 'ENOTFOUND' ? 
+          'Database hostname cannot be resolved. Please check your DATABASE_URL in Replit Database settings.' :
+          error.code === 'SELF_SIGNED_CERT_IN_CHAIN' ? 
           'SSL certificate issue - check database connection settings' : 
           'Check database URL and credentials'
       });
+      
+      if (error.code === 'ENOTFOUND') {
+        console.log("🔧 To fix this issue:");
+        console.log("1. Go to the Database tab in Replit");
+        console.log("2. Create a new PostgreSQL database if you don't have one");
+        console.log("3. The DATABASE_URL environment variable will be automatically configured");
+        console.log("4. Restart your application");
+      }
+      
       process.exit(1);
     }
 
