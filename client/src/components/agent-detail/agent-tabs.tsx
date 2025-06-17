@@ -958,15 +958,8 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                         </span>
                       </div>
                     </>
-                  ) : (
-                    <div>No health data available</div>
-                  )}
-                </div>
+                  <div className="mt-4">```text
 
-```text
-
-                <div className="mt-4">
-                  ```python
                   <div className="text-blue-400">SECURITY STATUS:</div>
                   {rawData.security ? (
                     <>
@@ -1434,7 +1427,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
                     {(() => {
                       const rawData = latestReport?.raw_data
                         ? typeof latestReport.raw_data === "string"
-                          ? JSON.parse(latestReport.raw_data)
+                          ? JSON.parse(latest_report.raw_data)
                           : latestReport.raw_data
                         : {};
                       return (
@@ -2024,278 +2017,306 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
         </Card>
       </TabsContent>
 
+      {/* Updates Tab */}
       <TabsContent value="updates" className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>System Update Status</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span>Last Boot Time</span>
-              <span className="text-muted-foreground">
+        <div className="grid grid-cols-1 gap-6">
+          {/* System Update Status */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Download className="w-5 h-5" />
+                <span>System Update Status</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
                 {(() => {
-                  const bootTime = rawData?.update_history?.last_boot_time || 
-                                 rawData?.os_info?.boot_time ||
-                                 rawData?.extracted_update_info?.last_boot_time;
-                  
-                  if (bootTime) {
-                    try {
-                      return format(new Date(bootTime), "PPpp");
-                    } catch {
-                      return bootTime;
-                    }
-                  }
-                  return "Unknown";
-                })()}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>System Uptime</span>
-              <span className="text-muted-foreground">
-                {(() => {
-                  const uptimeHours = rawData?.update_history?.system_uptime_hours ||
-                                    rawData?.extracted_update_info?.system_uptime_hours;
-                  
-                  if (uptimeHours !== undefined && uptimeHours !== null) {
-                    if (uptimeHours < 24) {
-                      return `${uptimeHours} hours`;
-                    } else {
-                      const days = Math.floor(uptimeHours / 24);
-                      const hours = uptimeHours % 24;
-                      return `${days} days, ${hours} hours`;
-                    }
-                  }
-                  
-                  // Fallback: calculate from uptime_seconds if available
-                  const uptimeSeconds = rawData?.os_info?.uptime_seconds;
-                  if (uptimeSeconds) {
-                    const hours = Math.floor(uptimeSeconds / 3600);
-                    if (hours < 24) {
-                      return `${hours} hours`;
-                    } else {
-                      const days = Math.floor(hours / 24);
-                      const remainingHours = hours % 24;
-                      return `${days} days, ${remainingHours} hours`;
-                    }
-                  }
-                  
-                  return "Unknown";
-                })()}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Pending Reboot</span>
-              <Badge
-                variant={
-                  rawData?.update_history?.pending_reboot ||
-                  rawData?.extracted_update_info?.pending_reboot
-                    ? "destructive"
-                    : "default"
-                }
-              >
-                {rawData?.update_history?.pending_reboot ||
-                rawData?.extracted_update_info?.pending_reboot
-                  ? "Required"
-                  : "Not Required"}
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Operating System</span>
-              <span className="text-muted-foreground">
-                {rawData?.os_info?.product_name ||
-                  rawData?.os_info?.display_version ||
-                  rawData?.extracted_update_info?.windows_version ||
-                  `${rawData?.os_info?.name || "Unknown"} ${rawData?.os_info?.version || ""}`.trim() ||
-                  "Unknown"}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>OS Build</span>
-              <span className="text-muted-foreground">
-                {rawData?.os_info?.build_number ||
-                  rawData?.extracted_update_info?.windows_build ||
-                  rawData?.os_info?.release ||
-                  "Unknown"}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Last Update Check</span>
-              <span className="text-muted-foreground">
-                {rawData?.security?.windows_updates?.last_update_check ||
-                  rawData?.extracted_update_info?.last_update_check || 
-                  "Unknown"}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+                  const rawData = latestReport?.raw_data
+                    ? typeof latestReport.raw_data === "string"
+                      ? JSON.parse(latestReport.raw_data)
+                      : latestReport.raw_data
+                    : {};
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Security Status</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 border rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <Shield className="w-4 h-4 text-blue-500" />
-                  <span className="font-medium">Firewall Status</span>
-                </div>
-                <Badge
-                  variant={
-                    (rawData?.security?.firewall_status === "enabled" ||
-                     rawData?.extracted_security_info?.firewall_status === "enabled")
-                      ? "default"
-                      : rawData?.security?.firewall_status === "disabled" ||
-                        rawData?.extracted_security_info?.firewall_status === "disabled"
-                      ? "destructive"
-                      : "secondary"
-                  }
-                >
-                  {(() => {
-                    const status = rawData?.security?.firewall_status ||
-                                 rawData?.extracted_security_info?.firewall_status;
-                    
-                    if (status === "enabled") return "Enabled";
-                    if (status === "disabled") return "Disabled";
-                    return "Unknown";
-                  })()}
-                </Badge>
-              </div>
-              <div className="p-4 border rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <Shield className="w-4 h-4 text-green-500" />
-                  <span className="font-medium">Antivirus Status</span>
-                </div>
-                <Badge
-                  variant={
-                    (rawData?.security?.antivirus_status === "enabled" ||
-                     rawData?.extracted_security_info?.antivirus_status === "enabled")
-                      ? "default"
-                      : rawData?.security?.antivirus_status === "disabled" ||
-                        rawData?.extracted_security_info?.antivirus_status === "disabled"
-                      ? "destructive"
-                      : "secondary"
-                  }
-                >
-                  {(() => {
-                    const status = rawData?.security?.antivirus_status ||
-                                 rawData?.extracted_security_info?.antivirus_status;
-                    
-                    if (status === "enabled") return "Enabled";
-                    if (status === "disabled") return "Disabled";
-                    return "Unknown";
-                  })()}
-                </Badge>
-              </div>
-              <div className="p-4 border rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <Download className="w-4 h-4 text-purple-500" />
-                  <span className="font-medium">Last Security Scan</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {(() => {
-                    const lastScan = rawData?.security?.last_scan ||
-                                   rawData?.extracted_security_info?.last_scan;
-                    
-                    if (lastScan && lastScan !== "unknown") {
-                      return lastScan;
-                    }
-                    return "No scan data available";
-                  })()}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                  const osInfo = rawData.os_info || {};
+                  const updateHistory = rawData.update_history || {};
+                  const securityInfo = rawData.security || {};
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Updates</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {(() => {
-              const recentUpdates = rawData?.security?.windows_updates?.recent_updates ||
-                                  rawData?.extracted_update_info?.recent_updates ||
-                                  [];
-              
-              return recentUpdates.length > 0 ? (
-                <div className="space-y-3">
-                  {recentUpdates.slice(0, 10).map((update: any, index: number) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 border rounded-lg"
-                    >
-                      <div className="flex-1">
-                        <p className="font-medium">
-                          {update.title || update.name || `Update ${index + 1}`}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Installed:{" "}
-                          {(() => {
-                            const installDate = update.installed_date || update.InstalledOn;
-                            if (installDate) {
-                              try {
-                                return format(new Date(installDate), "PPp");
-                              } catch {
-                                return installDate;
-                              }
-                            }
-                            return "Unknown";
-                          })()}
-                        </p>
-                        {update.HotFixID && (
-                          <p className="text-xs text-muted-foreground">
-                            ID: {update.HotFixID}
+                  return (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
+                          <div className="flex items-center gap-2 mb-2">
+                            <RefreshCw className="h-4 w-4 text-blue-600" />
+                            <h4 className="font-medium text-blue-900">Last Update</h4>
+                          </div>
+                          <p className="text-blue-800">
+                            {osInfo.last_update?.DateTime || 
+                             updateHistory.last_update || 
+                             "Unknown"}
                           </p>
-                        )}
+                        </div>
+
+                        <div className="p-4 border rounded-lg bg-green-50 border-green-200">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Clock className="h-4 w-4 text-green-600" />
+                            <h4 className="font-medium text-green-900">System Uptime</h4>
+                          </div>
+                          <p className="text-green-800">
+                            {updateHistory.system_uptime_hours 
+                              ? `${updateHistory.system_uptime_hours} hours`
+                              : osInfo.uptime_seconds 
+                                ? `${Math.floor(osInfo.uptime_seconds / 3600)} hours`
+                                : "Unknown"}
+                          </p>
+                        </div>
+
+                        <div className="p-4 border rounded-lg bg-yellow-50 border-yellow-200">
+                          <div className="flex items-center gap-2 mb-2">
+                            <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                            <h4 className="font-medium text-yellow-900">Pending Reboot</h4>
+                          </div>
+                          <p className="text-yellow-800">
+                            {updateHistory.pending_reboot ? "Yes" : "No"}
+                          </p>
+                        </div>
+
+                        <div className="p-4 border rounded-lg bg-purple-50 border-purple-200">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Settings className="h-4 w-4 text-purple-600" />
+                            <h4 className="font-medium text-purple-900">OS Build</h4>
+                          </div>
+                          <p className="text-purple-800">
+                            {osInfo.build_number || osInfo.version || "Unknown"}
+                          </p>
+                        </div>
                       </div>
-                      <Badge variant="outline">
-                        {update.type || 
-                         (update.Description && update.Description.includes('Security') ? 'Security Update' : 'Update') ||
-                         'Update'}
-                      </Badge>
+
+                      {/* OS Version Details */}
+                      <div className="mt-4 p-4 border rounded-lg bg-gray-50">
+                        <h4 className="font-medium mb-2">Operating System Details</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <span className="text-gray-600">Product:</span>
+                            <span className="ml-2 font-medium">
+                              {osInfo.product_name || osInfo.name || "Unknown"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Version:</span>
+                            <span className="ml-2 font-medium">
+                              {osInfo.display_version || osInfo.version || "Unknown"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Build:</span>
+                            <span className="ml-2 font-medium">
+                              {osInfo.build_number || "Unknown"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Architecture:</span>
+                            <span className="ml-2 font-medium">
+                              {osInfo.architecture || "Unknown"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Installed Patches/Updates */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Package className="w-5 h-5" />
+                <span>Recent Updates & Patches</span>
+                <span className="text-sm text-neutral-500">
+                  {(() => {
+                    const rawData = latestReport?.raw_data
+                      ? typeof latestReport.raw_data === "string"
+                        ? JSON.parse(latestReport.raw_data)
+                        : latestReport.raw_data
+                      : {};
+                    const patches = rawData.os_info?.patches || [];
+                    return `(${patches.length} patches installed)`;
+                  })()}
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const rawData = latestReport?.raw_data
+                  ? typeof latestReport.raw_data === "string"
+                    ? JSON.parse(latestReport.raw_data)
+                    : latestReport.raw_data
+                  : {};
+
+                const patches = rawData.os_info?.patches || [];
+
+                if (patches.length === 0) {
+                  return (
+                    <div className="text-center py-6">
+                      <Package className="w-12 h-12 mx-auto text-neutral-400 mb-2" />
+                      <p className="text-neutral-500 italic">
+                        No patch information available
+                      </p>
                     </div>
-                  ))}
-                  
-                  {recentUpdates.length > 10 && (
-                    <div className="text-center text-sm text-muted-foreground mt-4">
-                      ... and {recentUpdates.length - 10} more updates
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Download className="w-12 h-12 mx-auto mb-4" />
-                  <p>No recent updates data available</p>
-                  <p className="text-sm">
-                    {rawData ? 
-                      "Update information will be collected on the next agent report" :
-                      "Update information will appear here when collected by the agent"
+                  );
+                }
+
+                // Sort patches by installation date (newest first)
+                const sortedPatches = [...patches].sort((a, b) => {
+                  const dateA = a.installed_on?.value || a.installed_on || 0;
+                  const dateB = b.installed_on?.value || b.installed_on || 0;
+
+                  // Extract timestamp from /Date(timestamp)/ format
+                  const getTimestamp = (date) => {
+                    if (typeof date === 'string' && date.includes('/Date(')) {
+                      const match = date.match(/\/Date\((\d+)\)\//);
+                      return match ? parseInt(match[1]) : 0;
                     }
-                  </p>
-                  
-                  {/* Debug information for troubleshooting */}
-                  {rawData && (
-                    <details className="mt-4 text-left">
-                      <summary className="text-xs text-gray-500 cursor-pointer">
-                        Debug Info
-                      </summary>
-                      <div className="text-xs text-gray-600 mt-2 font-mono bg-gray-100 p-2 rounded">
-                        <div>Security data available: {rawData.security ? 'Yes' : 'No'}</div>
-                        <div>Windows updates data: {rawData.security?.windows_updates ? 'Yes' : 'No'}</div>
-                        <div>Update history data: {rawData.update_history ? 'Yes' : 'No'}</div>
-                        <div>OS info available: {rawData.os_info ? 'Yes' : 'No'}</div>
-                        {rawData.security?.windows_updates && (
-                          <div>Recent updates count: {rawData.security.windows_updates.recent_updates?.length || 0}</div>
-                        )}
+                    return typeof date === 'number' ? date : 0;
+                  };
+
+                  return getTimestamp(dateB) - getTimestamp(dateA);
+                });
+
+                return (
+                  <div className="space-y-3">
+                    {sortedPatches.map((patch, index) => {
+                      const installDate = patch.installed_on?.DateTime || 
+                                        patch.installed_on || 
+                                        "Unknown date";
+
+                      const isRecent = (() => {
+                        if (patch.installed_on?.value) {
+                          const match = patch.installed_on.value.match(/\/Date\((\d+)\)\//);
+                          if (match) {
+                            const patchTime = parseInt(match[1]);
+                            const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+                            return patchTime > thirtyDaysAgo;
+                          }
+                        }
+                        return false;
+                      })();
+
+                      return (
+                        <div
+                          key={index}
+                          className={`p-3 border rounded-lg ${
+                            isRecent 
+                              ? "bg-green-50 border-green-200" 
+                              : "bg-white border-gray-200"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-2 h-2 rounded-full ${
+                                isRecent ? "bg-green-500" : "bg-gray-400"
+                              }`}></div>
+                              <div>
+                                <h4 className="font-medium text-gray-900">
+                                  {patch.id || `Update ${index + 1}`}
+                                </h4>
+                                <p className="text-sm text-gray-600">
+                                  {installDate}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              {isRecent && (
+                                <Badge 
+                                  variant="default" 
+                                  className="bg-green-100 text-green-800"
+                                >
+                                  Recent
+                                </Badge>
+                              )}
+                              <Badge variant="outline">
+                                {patch.id?.startsWith('KB') ? 'Windows Update' : 'System Update'}
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </CardContent>
+          </Card>
+
+          {/* Security Update Status */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Shield className="w-5 h-5" />
+                <span>Security Update Status</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const rawData = latestReport?.raw_data
+                  ? typeof latestReport.raw_data === "string"
+                    ? JSON.parse(latestReport.raw_data)
+                    : latestReport.raw_data
+                  : {};
+
+                const securityInfo = rawData.security || {};
+                const windowsUpdates = securityInfo.windows_updates || {};
+
+                return (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Last Update Check:</span>
+                        <span className="font-medium">
+                          {windowsUpdates.last_update_check || "Unknown"}
+                        </span>
                       </div>
-                    </details>
-                  )}
-                </div>
-              );
-            })()}
-          </CardContent>
-        </Card>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Automatic Updates:</span>
+                        <span className="font-medium">
+                          {windowsUpdates.automatic_updates !== undefined 
+                            ? (windowsUpdates.automatic_updates ? "Enabled" : "Disabled")
+                            : "Unknown"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {windowsUpdates.recent_updates && windowsUpdates.recent_updates.length > 0 && (
+                      <div className="mt-4">
+                        <h4 className="font-medium mb-2">Recent Security Updates</h4>
+                        <div className="space-y-2">
+                          {windowsUpdates.recent_updates.slice(0, 5).map((update, index) => (
+                            <div key={index} className="p-2 border rounded text-sm">
+                              <div className="font-medium">{update.title}</div>
+                              <div className="text-gray-600">{update.installed_date}</div>
+                              <Badge 
+                                variant="outline" 
+                                className={
+                                  update.type === 'Security Update' 
+                                    ? "border-red-300 text-red-700" 
+                                    : "border-blue-300 text-blue-700"
+                                }
+                              >
+                                {update.type}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </CardContent>
+          </Card>
+        </div>
       </TabsContent>
     </Tabs>
   );
