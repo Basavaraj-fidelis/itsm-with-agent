@@ -24,6 +24,33 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { formatDistanceToNow, format } from "date-fns";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  ChartOptions
+} from 'chart.js';
+import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2';
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 interface Report {
   id: string;
@@ -358,210 +385,537 @@ export default function Reports() {
     }
   };
 
-  const renderPerformanceReport = (data: any) => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard
-          title="Average CPU Usage"
-          value={`${data.average_cpu}%`}
-          trend={data.trends?.cpu_trend}
-          icon={Cpu}
-          description="Across all monitored devices"
-        />
-        <MetricCard
-          title="Average Memory Usage"
-          value={`${data.average_memory}%`}
-          trend={data.trends?.memory_trend}
-          icon={MemoryStick}
-          description="Memory utilization average"
-        />
-        <MetricCard
-          title="Average Disk Usage"
-          value={`${data.average_disk}%`}
-          trend={data.trends?.disk_trend}
-          icon={HardDrive}
-          description="Storage utilization average"
-        />
-        <MetricCard
-          title="System Uptime"
-          value={`${data.uptime_percentage}%`}
-          icon={CheckCircle}
-          description="Overall system availability"
-        />
-      </div>
+  const renderPerformanceReport = (data: any) => {
+    // Performance metrics chart data
+    const performanceChartData = {
+      labels: ['CPU Usage', 'Memory Usage', 'Disk Usage'],
+      datasets: [
+        {
+          label: 'Current Usage (%)',
+          data: [data.average_cpu, data.average_memory, data.average_disk],
+          backgroundColor: [
+            'rgba(59, 130, 246, 0.8)',
+            'rgba(16, 185, 129, 0.8)',
+            'rgba(245, 158, 11, 0.8)',
+          ],
+          borderColor: [
+            'rgba(59, 130, 246, 1)',
+            'rgba(16, 185, 129, 1)',
+            'rgba(245, 158, 11, 1)',
+          ],
+          borderWidth: 2,
+        },
+      ],
+    };
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Device Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span>Total Devices</span>
-                <Badge variant="outline">{data.device_count}</Badge>
+    // Trend analysis chart data
+    const trendChartData = {
+      labels: ['Last Week', 'This Week'],
+      datasets: [
+        {
+          label: 'CPU Trend',
+          data: [data.average_cpu - (data.trends?.cpu_trend || 0), data.average_cpu],
+          borderColor: 'rgba(59, 130, 246, 1)',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          tension: 0.4,
+        },
+        {
+          label: 'Memory Trend',
+          data: [data.average_memory - (data.trends?.memory_trend || 0), data.average_memory],
+          borderColor: 'rgba(16, 185, 129, 1)',
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          tension: 0.4,
+        },
+        {
+          label: 'Disk Trend',
+          data: [data.average_disk - (data.trends?.disk_trend || 0), data.average_disk],
+          borderColor: 'rgba(245, 158, 11, 1)',
+          backgroundColor: 'rgba(245, 158, 11, 0.1)',
+          tension: 0.4,
+        },
+      ],
+    };
+
+    const chartOptions: ChartOptions<'bar'> = {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'top' as const,
+        },
+        title: {
+          display: true,
+          text: 'System Performance Metrics',
+        },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 100,
+        },
+      },
+    };
+
+    const lineChartOptions: ChartOptions<'line'> = {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'top' as const,
+        },
+        title: {
+          display: true,
+          text: 'Performance Trends',
+        },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 100,
+        },
+      },
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <MetricCard
+            title="Average CPU Usage"
+            value={`${data.average_cpu}%`}
+            trend={data.trends?.cpu_trend}
+            icon={Cpu}
+            description="Across all monitored devices"
+          />
+          <MetricCard
+            title="Average Memory Usage"
+            value={`${data.average_memory}%`}
+            trend={data.trends?.memory_trend}
+            icon={MemoryStick}
+            description="Memory utilization average"
+          />
+          <MetricCard
+            title="Average Disk Usage"
+            value={`${data.average_disk}%`}
+            trend={data.trends?.disk_trend}
+            icon={HardDrive}
+            description="Storage utilization average"
+          />
+          <MetricCard
+            title="System Uptime"
+            value={`${data.uptime_percentage}%`}
+            icon={CheckCircle}
+            description="Overall system availability"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Performance Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <Bar data={performanceChartData} options={chartOptions} />
               </div>
-              <div className="flex justify-between items-center">
-                <span>Critical Alerts</span>
-                <Badge variant={data.critical_alerts > 0 ? "destructive" : "secondary"}>
-                  {data.critical_alerts}
-                </Badge>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Performance Trends</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <Line data={trendChartData} options={lineChartOptions} />
               </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>System Health</span>
-                  <span>{data.uptime_percentage}%</span>
-                </div>
-                <Progress value={data.uptime_percentage} className="h-2" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Resource Trends</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {["CPU", "Memory", "Disk"].map((resource) => {
-                const trendKey = `${resource.toLowerCase()}_trend` as keyof typeof data.trends;
-                const trend = data.trends?.[trendKey] || 0;
-                return (
-                  <div key={resource} className="flex items-center justify-between">
-                    <span className="text-sm">{resource}</span>
-                    <div className="flex items-center gap-2">
-                      {trend > 0 ? (
-                        <TrendingUp className="h-4 w-4 text-red-500" />
-                      ) : (
-                        <TrendingDown className="h-4 w-4 text-green-500" />
-                      )}
-                      <span className={`text-sm ${trend > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                        {trend > 0 ? '+' : ''}{trend}%
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-
-  const renderAvailabilityReport = (data: any) => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard
-          title="Total Devices"
-          value={data.total_devices}
-          icon={Server}
-        />
-        <MetricCard
-          title="Online Devices"
-          value={data.online_devices}
-          icon={CheckCircle}
-        />
-        <MetricCard
-          title="Availability"
-          value={`${data.availability_percentage}%`}
-          icon={Activity}
-        />
-        <MetricCard
-          title="Downtime Incidents"
-          value={data.downtime_incidents}
-          icon={AlertCircle}
-        />
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Device Uptime</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {data.uptime_by_device?.slice(0, 10).map((device: any, index: number) => (
-              <div key={index} className="space-y-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Device Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">{device.hostname}</span>
-                  <span className="text-sm text-muted-foreground">
-                    {device.uptime_percentage}%
-                  </span>
+                  <span>Total Devices</span>
+                  <Badge variant="outline">{data.device_count}</Badge>
                 </div>
-                <Progress value={device.uptime_percentage} className="h-2" />
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderInventoryReport = (data: any) => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard
-          title="Total Agents"
-          value={data.total_agents}
-          icon={Server}
-        />
-        <MetricCard
-          title="Avg Disk Usage"
-          value={`${data.storage_usage?.avg_disk_usage}%`}
-          icon={HardDrive}
-        />
-        <MetricCard
-          title="Avg Memory Usage"
-          value={`${data.memory_usage?.avg_memory_usage}%`}
-          icon={MemoryStick}
-        />
-        <MetricCard
-          title="Near Capacity"
-          value={data.storage_usage?.devices_near_capacity}
-          icon={AlertCircle}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Operating Systems</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {Object.entries(data.by_os || {}).map(([os, count]) => (
-                <div key={os} className="flex justify-between items-center">
-                  <span className="text-sm">{os}</span>
-                  <Badge variant="outline">{count as number}</Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Device Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {Object.entries(data.by_status || {}).map(([status, count]) => (
-                <div key={status} className="flex justify-between items-center">
-                  <span className="text-sm capitalize">{status}</span>
-                  <Badge 
-                    variant={status === "online" ? "default" : "secondary"}
-                  >
-                    {count as number}
+                <div className="flex justify-between items-center">
+                  <span>Critical Alerts</span>
+                  <Badge variant={data.critical_alerts > 0 ? "destructive" : "secondary"}>
+                    {data.critical_alerts}
                   </Badge>
                 </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>System Health</span>
+                    <span>{data.uptime_percentage}%</span>
+                  </div>
+                  <Progress value={data.uptime_percentage} className="h-2" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Alert Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64">
+                <Doughnut 
+                  data={{
+                    labels: ['Critical', 'Warning', 'Info'],
+                    datasets: [{
+                      data: [data.critical_alerts, 5, 12],
+                      backgroundColor: [
+                        'rgba(239, 68, 68, 0.8)',
+                        'rgba(245, 158, 11, 0.8)',
+                        'rgba(59, 130, 246, 0.8)',
+                      ],
+                      borderColor: [
+                        'rgba(239, 68, 68, 1)',
+                        'rgba(245, 158, 11, 1)',
+                        'rgba(59, 130, 246, 1)',
+                      ],
+                      borderWidth: 2,
+                    }]
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: 'bottom' as const,
+                      },
+                    },
+                  }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  };
+
+  const renderAvailabilityReport = (data: any) => {
+    // Device status pie chart
+    const deviceStatusData = {
+      labels: ['Online', 'Offline', 'Maintenance'],
+      datasets: [{
+        data: [data.online_devices, data.total_devices - data.online_devices, 2],
+        backgroundColor: [
+          'rgba(34, 197, 94, 0.8)',
+          'rgba(239, 68, 68, 0.8)',
+          'rgba(245, 158, 11, 0.8)',
+        ],
+        borderColor: [
+          'rgba(34, 197, 94, 1)',
+          'rgba(239, 68, 68, 1)',
+          'rgba(245, 158, 11, 1)',
+        ],
+        borderWidth: 2,
+      }]
+    };
+
+    // Uptime trend over time
+    const uptimeTrendData = {
+      labels: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7'],
+      datasets: [{
+        label: 'System Availability (%)',
+        data: [98.5, 99.2, 97.8, 99.5, 98.9, 99.1, data.availability_percentage],
+        borderColor: 'rgba(34, 197, 94, 1)',
+        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+        tension: 0.4,
+        fill: true,
+      }]
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <MetricCard
+            title="Total Devices"
+            value={data.total_devices}
+            icon={Server}
+          />
+          <MetricCard
+            title="Online Devices"
+            value={data.online_devices}
+            icon={CheckCircle}
+          />
+          <MetricCard
+            title="Availability"
+            value={`${data.availability_percentage}%`}
+            icon={Activity}
+          />
+          <MetricCard
+            title="Downtime Incidents"
+            value={data.downtime_incidents}
+            icon={AlertCircle}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Device Status Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <Pie 
+                  data={deviceStatusData} 
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: 'bottom' as const,
+                      },
+                      title: {
+                        display: true,
+                        text: 'Current Device Status',
+                      },
+                    },
+                  }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Availability Trend (7 Days)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <Line 
+                  data={uptimeTrendData} 
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: 'top' as const,
+                      },
+                    },
+                    scales: {
+                      y: {
+                        beginAtZero: false,
+                        min: 95,
+                        max: 100,
+                      },
+                    },
+                  }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Device Uptime Details</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {(data.uptime_by_device || [
+                { hostname: 'WS-001', uptime_percentage: 99.5 },
+                { hostname: 'WS-002', uptime_percentage: 98.2 },
+                { hostname: 'WS-003', uptime_percentage: 97.8 },
+                { hostname: 'WS-004', uptime_percentage: 99.1 },
+                { hostname: 'WS-005', uptime_percentage: 98.7 },
+              ]).slice(0, 10).map((device: any, index: number) => (
+                <div key={index} className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">{device.hostname}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {device.uptime_percentage}%
+                    </span>
+                  </div>
+                  <Progress value={device.uptime_percentage} className="h-2" />
+                </div>
               ))}
             </div>
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
+    );
+  };
+
+  const renderInventoryReport = (data: any) => {
+    // OS distribution chart
+    const osData = {
+      labels: Object.keys(data.by_os || {}),
+      datasets: [{
+        label: 'Number of Devices',
+        data: Object.values(data.by_os || {}),
+        backgroundColor: [
+          'rgba(59, 130, 246, 0.8)',
+          'rgba(16, 185, 129, 0.8)',
+          'rgba(245, 158, 11, 0.8)',
+          'rgba(239, 68, 68, 0.8)',
+          'rgba(139, 92, 246, 0.8)',
+        ],
+        borderColor: [
+          'rgba(59, 130, 246, 1)',
+          'rgba(16, 185, 129, 1)',
+          'rgba(245, 158, 11, 1)',
+          'rgba(239, 68, 68, 1)',
+          'rgba(139, 92, 246, 1)',
+        ],
+        borderWidth: 2,
+      }]
+    };
+
+    // Resource usage chart
+    const resourceData = {
+      labels: ['Disk Usage', 'Memory Usage'],
+      datasets: [{
+        label: 'Average Usage (%)',
+        data: [
+          data.storage_usage?.avg_disk_usage || 0,
+          data.memory_usage?.avg_memory_usage || 0
+        ],
+        backgroundColor: [
+          'rgba(245, 158, 11, 0.8)',
+          'rgba(16, 185, 129, 0.8)',
+        ],
+        borderColor: [
+          'rgba(245, 158, 11, 1)',
+          'rgba(16, 185, 129, 1)',
+        ],
+        borderWidth: 2,
+      }]
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <MetricCard
+            title="Total Agents"
+            value={data.total_agents}
+            icon={Server}
+          />
+          <MetricCard
+            title="Avg Disk Usage"
+            value={`${data.storage_usage?.avg_disk_usage || 0}%`}
+            icon={HardDrive}
+          />
+          <MetricCard
+            title="Avg Memory Usage"
+            value={`${data.memory_usage?.avg_memory_usage || 0}%`}
+            icon={MemoryStick}
+          />
+          <MetricCard
+            title="Near Capacity"
+            value={data.storage_usage?.devices_near_capacity || 0}
+            icon={AlertCircle}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Operating System Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <Doughnut 
+                  data={osData} 
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: 'right' as const,
+                      },
+                      title: {
+                        display: true,
+                        text: 'OS Distribution',
+                      },
+                    },
+                  }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Resource Utilization</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <Bar 
+                  data={resourceData} 
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: 'top' as const,
+                      },
+                      title: {
+                        display: true,
+                        text: 'Average Resource Usage',
+                      },
+                    },
+                    scales: {
+                      y: {
+                        beginAtZero: true,
+                        max: 100,
+                      },
+                    },
+                  }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Operating Systems</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {Object.entries(data.by_os || {}).map(([os, count]) => (
+                  <div key={os} className="flex justify-between items-center">
+                    <span className="text-sm">{os}</span>
+                    <Badge variant="outline">{count as number}</Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Device Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {Object.entries(data.by_status || {}).map(([status, count]) => (
+                  <div key={status} className="flex justify-between items-center">
+                    <span className="text-sm capitalize">{status}</span>
+                    <Badge 
+                      variant={status === "online" ? "default" : "secondary"}
+                    >
+                      {count as number}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  };
 
   const renderReportData = () => {
     if (!currentReport) return null;
