@@ -488,7 +488,7 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
 
   return (
     <Tabs defaultValue="overview" className="w-full">
-      <TabsList className="grid w-full grid-cols-7">
+      <TabsList className="grid w-full grid-cols-8">
         <TabsTrigger value="overview" className="flex items-center space-x-2">
           <Activity className="w-4 h-4" />
           <span>Overview</span>
@@ -502,7 +502,10 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
         <TabsTrigger value="storage">Storage</TabsTrigger>
         <TabsTrigger value="processes">Processes</TabsTrigger>
         <TabsTrigger value="software">Software</TabsTrigger>
-        <TabsTrigger value="updates">Updates</TabsTrigger>
+        <TabsTrigger value="updates" className="flex items-center space-x-2">
+          <Package className="w-4 h-4" />
+          <span>Updates</span>
+        </TabsTrigger>
       </TabsList>
 
       {/* AI Insights Tab */}
