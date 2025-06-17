@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,6 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Users,
   Settings,
   CheckCircle,
   AlertCircle,
@@ -60,7 +58,7 @@ export default function ActiveDirectory() {
   const [syncUsername, setSyncUsername] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isConfigured, setIsConfigured] = useState(false);
-  
+
   // AD Configuration
   const [adConfig, setAdConfig] = useState({
     enabled: false,
@@ -124,14 +122,14 @@ export default function ActiveDirectory() {
         },
         body: JSON.stringify(adConfig),
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const result = await response.json();
       setConnectionStatus(result);
-      
+
       toast({
         title: result.connected ? "Connection Successful" : "Connection Failed",
         description: result.message,
@@ -144,7 +142,7 @@ export default function ActiveDirectory() {
         message: error instanceof Error ? error.message : "Unable to test AD connection",
       };
       setConnectionStatus(errorResult);
-      
+
       toast({
         title: "Test Failed",
         description: errorResult.message,
@@ -175,15 +173,15 @@ export default function ActiveDirectory() {
         },
         body: JSON.stringify({ username: syncUsername }),
       });
-      
+
       const result = await response.json();
-      
+
       toast({
         title: "User Sync",
         description: result.message || (response.ok ? "User synced successfully" : "Sync failed"),
         variant: response.ok ? "default" : "destructive",
       });
-      
+
       if (response.ok && result.user) {
         setSyncedUsers(prev => [...prev, result.user]);
         setSyncUsername("");
@@ -210,12 +208,12 @@ export default function ActiveDirectory() {
         },
       });
       const result = await response.json();
-      
+
       toast({
         title: "Bulk Sync Complete",
         description: `Synced ${result.syncedCount || 0} users from Active Directory`,
       });
-      
+
       if (result.users) {
         setSyncedUsers(result.users);
       }
@@ -237,11 +235,11 @@ export default function ActiveDirectory() {
           Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
         },
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const groups = await response.json();
       setAvailableGroups(groups);
     } catch (error) {
@@ -534,7 +532,7 @@ export default function ActiveDirectory() {
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <h4 className="font-medium">Recently Synced Users</h4>
-                  <Badge variant="outline">{syncedUsers.length} users</Badge>
+                  <Badge variant="outline">{syncedUsers.length} users}</Badge>
                 </div>
                 <div className="space-y-2 max-h-40 overflow-y-auto">
                   {syncedUsers.slice(-10).map((user, index) => (

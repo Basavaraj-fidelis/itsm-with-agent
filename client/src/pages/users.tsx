@@ -1,1117 +1,1062 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import {
-  Users as UsersIcon,
-  Plus,
-  Search,
-  MoreHorizontal,
-  Edit,
-  Trash2,
-  Shield,
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { api } from "@/lib/api";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { 
+  Plus, 
+  Search, 
+  Filter, 
+  Users, 
+  UserCheck, 
+  UserX, 
+  Shield, 
+  Calendar,
   Mail,
   Phone,
   Building,
-  UserCheck,
-  UserX,
-  Calendar,
-  AlertTriangle,
-  Key,
-  Clock,
-  Filter,
+  Sync,
   Download,
+  Upload,
+  MoreVertical,
+  Edit,
+  Trash2,
+  Eye,
   RefreshCw,
-  Settings,
-  Lock,
-  Unlock,
-  BadgeCheck,
-  Activity,
+  Database,
+  Cloud,
+  CheckCircle,
+  XCircle,
+  Clock,
+  AlertTriangle
 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 interface User {
   id: string;
   email: string;
-  username: string;
   name: string;
-  first_name?: string;
-  last_name?: string;
+  username?: string;
   role: string;
-  department?: string;
-  phone?: string;
+  department: string;
+  phone: string;
+  is_active: boolean;
+  last_login?: string;
+  created_at: string;
+  updated_at: string;
+  ad_synced?: boolean;
+  ad_last_sync?: string;
+  ad_groups?: string[];
   job_title?: string;
   location?: string;
-  employee_id?: string;
-  manager_id?: string;
-  is_active: boolean;
-  is_locked?: boolean;
-  failed_login_attempts?: number;
-  created_at: string;
-  last_login?: string;
-  last_password_change?: string;
-  status?: string;
-  security_status?: string;
-  permissions?: string[];
-  preferences?: Record<string, any>;
 }
 
-interface UserStats {
-  total: number;
-  active: number;
-  inactive: number;
-  locked: number;
-  admins: number;
-  technicians: number;
-  managers: number;
-  end_users: number;
+interface ADSyncStatus {
+  enabled: boolean;
+  last_sync: string;
+  sync_status: 'success' | 'error' | 'pending';
+  total_users: number;
+  synced_users: number;
+  errors: string[];
 }
-
-const roles = [
-  { value: "admin", label: "Administrator", description: "Full system access", color: "bg-red-100 text-red-800" },
-  { value: "manager", label: "Manager", description: "Team oversight and reporting", color: "bg-blue-100 text-blue-800" },
-  { value: "technician", label: "Technician", description: "Ticket management and resolution", color: "bg-green-100 text-green-800" },
-  { value: "user", label: "End User", description: "Submit and view own tickets", color: "bg-gray-100 text-gray-800" },
-  { value: "end_user", label: "End User", description: "Submit and view own tickets", color: "bg-gray-100 text-gray-800" },
-];
-
-const departments = [
-  "IT",
-  "Human Resources", 
-  "Finance",
-  "Marketing",
-  "Sales",
-  "Operations",
-  "Engineering",
-  "Support",
-  "Legal",
-  "Facilities",
-];
-
-// Mock useAuth hook for now - replace with actual auth context
-const useAuth = () => {
-  return {
-    user: {
-      role: "admin", // Mock admin role
-      email: "admin@company.com"
-    }
-  };
-};
 
 export default function Users() {
-  const { user: currentUser } = useAuth();
   const { toast } = useToast();
-  const [users, setUsers] = useState<User[]>([]);
-  const [stats, setStats] = useState<UserStats>({
-    total: 0, active: 0, inactive: 0, locked: 0,
-    admins: 0, technicians: 0, managers: 0, end_users: 0
-  });
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedRole, setSelectedRole] = useState('all');
-  const [selectedDepartment, setSelectedDepartment] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [syncSourceFilter, setSyncSourceFilter] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [formData, setFormData] = useState({
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [bulkAction, setBulkAction] = useState("");
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  
+  const [newUser, setNewUser] = useState({
     name: "",
     email: "",
+    password: "",
     role: "user",
     department: "",
     phone: "",
-    password: "",
-    employee_id: "",
     job_title: "",
+    location: ""
   });
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
 
-  useEffect(() => {
-    fetchUsers();
-  }, [searchTerm, selectedRole, selectedDepartment, selectedStatus]);
-
-  const fetchUsers = async () => {
-    try {
-      setIsLoading(true);
-      console.log("Fetching users with enhanced filters...");
-
+  // Fetch users
+  const { data: users = [], isLoading, error, refetch } = useQuery({
+    queryKey: ["/api/users", { search: searchTerm, role: roleFilter }],
+    queryFn: async () => {
       const params = new URLSearchParams();
-      if (searchTerm.trim()) params.append('search', searchTerm.trim());
-      if (selectedRole && selectedRole !== 'all') params.append('role', selectedRole);
-      if (selectedDepartment && selectedDepartment !== 'all') params.append('department', selectedDepartment);
-      if (selectedStatus && selectedStatus !== 'all') params.append('status', selectedStatus);
+      if (searchTerm) params.append("search", searchTerm);
+      if (roleFilter !== "all") params.append("role", roleFilter);
+      
+      const response = await api.get(`/api/users?${params}`);
+      if (!response.ok) throw new Error("Failed to fetch users");
+      return await response.json();
+    },
+    refetchInterval: 30000,
+  });
 
-      const queryString = params.toString();
-      const url = `/api/users${queryString ? `?${queryString}` : ''}`;
+  // Fetch AD sync status
+  const { data: adSyncStatus } = useQuery({
+    queryKey: ["/api/ad/sync-status"],
+    queryFn: async () => {
+      try {
+        const response = await api.get("/api/ad/sync-status");
+        if (!response.ok) throw new Error("Failed to fetch AD sync status");
+        return await response.json();
+      } catch (error) {
+        return {
+          enabled: false,
+          last_sync: null,
+          sync_status: 'error',
+          total_users: 0,
+          synced_users: 0,
+          errors: []
+        };
+      }
+    },
+    refetchInterval: 30000,
+  });
 
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
+  // Create user mutation
+  const createUserMutation = useMutation({
+    mutationFn: async (userData: typeof newUser) => {
+      const response = await api.post("/api/users", userData);
+      if (!response.ok) throw new Error("Failed to create user");
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "User created successfully" });
+      setIsCreateDialogOpen(false);
+      setNewUser({
+        name: "",
+        email: "",
+        password: "",
+        role: "user",
+        department: "",
+        phone: "",
+        job_title: "",
+        location: ""
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create user",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update user mutation
+  const updateUserMutation = useMutation({
+    mutationFn: async ({ id, ...userData }: any) => {
+      const response = await api.put(`/api/users/${id}`, userData);
+      if (!response.ok) throw new Error("Failed to update user");
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "User updated successfully" });
+      setIsEditDialogOpen(false);
+      setSelectedUser(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update user",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete user mutation
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await api.delete(`/api/users/${userId}`);
+      if (!response.ok) throw new Error("Failed to delete user");
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "User deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete user",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // AD Sync mutation
+  const adSyncMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.post("/api/ad/sync-users");
+      if (!response.ok) throw new Error("Failed to sync AD users");
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      toast({ 
+        title: "Success", 
+        description: `AD sync completed. ${data.synced_count || 0} users synced.`
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/ad/sync-status"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to sync AD users",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Filter users based on all criteria
+  const filteredUsers = users.filter((user: User) => {
+    const matchesSearch = !searchTerm || 
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.department.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesRole = roleFilter === "all" || user.role === roleFilter;
+    const matchesDepartment = departmentFilter === "all" || user.department === departmentFilter;
+    const matchesStatus = statusFilter === "all" || 
+      (statusFilter === "active" && user.is_active) ||
+      (statusFilter === "inactive" && !user.is_active);
+    
+    const matchesSyncSource = syncSourceFilter === "all" ||
+      (syncSourceFilter === "ad" && user.ad_synced) ||
+      (syncSourceFilter === "local" && !user.ad_synced);
+
+    return matchesSearch && matchesRole && matchesDepartment && matchesStatus && matchesSyncSource;
+  });
+
+  // Get unique departments for filter
+  const departments = [...new Set(users.map((user: User) => user.department).filter(Boolean))];
+
+  // User statistics
+  const stats = {
+    total: users.length,
+    active: users.filter((u: User) => u.is_active).length,
+    inactive: users.filter((u: User) => !u.is_active).length,
+    adSynced: users.filter((u: User) => u.ad_synced).length,
+    local: users.filter((u: User) => !u.ad_synced).length,
+  };
+
+  const handleCreateUser = () => {
+    createUserMutation.mutate(newUser);
+  };
+
+  const handleUpdateUser = () => {
+    if (selectedUser) {
+      updateUserMutation.mutate(selectedUser);
+    }
+  };
+
+  const handleDeleteUser = (userId: string) => {
+    if (confirm("Are you sure you want to delete this user?")) {
+      deleteUserMutation.mutate(userId);
+    }
+  };
+
+  const handleBulkAction = () => {
+    if (!bulkAction || selectedUsers.length === 0) return;
+    
+    switch (bulkAction) {
+      case "activate":
+        selectedUsers.forEach(userId => {
+          const user = users.find((u: User) => u.id === userId);
+          if (user) {
+            updateUserMutation.mutate({ ...user, is_active: true });
+          }
+        });
+        break;
+      case "deactivate":
+        selectedUsers.forEach(userId => {
+          const user = users.find((u: User) => u.id === userId);
+          if (user) {
+            updateUserMutation.mutate({ ...user, is_active: false });
+          }
+        });
+        break;
+      case "export":
+        // Export to CSV functionality
+        const csv = users.map((u: User) => 
+          `${u.name},${u.email},${u.role},${u.department},${u.is_active ? 'Active' : 'Inactive'},${u.ad_synced ? 'AD' : 'Local'}`
+        ).join('\n');
+        const blob = new Blob([`Name,Email,Role,Department,Status,Source\n${csv}`], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'users.csv';
+        a.click();
+        break;
+    }
+    setSelectedUsers([]);
+    setBulkAction("");
+  };
+
+  const getSyncStatusIcon = (user: User) => {
+    if (user.ad_synced) {
+      if (user.ad_last_sync) {
+        const lastSync = new Date(user.ad_last_sync);
+        const hoursSinceSync = (Date.now() - lastSync.getTime()) / (1000 * 60 * 60);
+        if (hoursSinceSync > 24) {
+          return <Clock className="w-4 h-4 text-yellow-500" title="Sync outdated" />;
         }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        return <CheckCircle className="w-4 h-4 text-green-500" title="AD Synced" />;
       }
-
-      const result = await response.json();
-      console.log("Enhanced users data received:", result);
-
-      const userData = result.data || result || [];
-      setUsers(Array.isArray(userData) ? userData : []);
-
-      // Calculate stats
-      calculateStats(userData);
-
-    } catch (error) {
-      console.error("Failed to fetch users:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load users. Please try again.",
-        variant: "destructive",
-      });
-      setUsers([]);
-    } finally {
-      setIsLoading(false);
-      setLoading(false);
+      return <Cloud className="w-4 h-4 text-blue-500" title="AD User" />;
     }
+    return <Database className="w-4 h-4 text-gray-500" title="Local User" />;
   };
 
-  const calculateStats = (userData: User[]) => {
-    const newStats = {
-      total: userData.length,
-      active: userData.filter(u => u.is_active && !u.is_locked).length,
-      inactive: userData.filter(u => !u.is_active).length,
-      locked: userData.filter(u => u.is_locked).length,
-      admins: userData.filter(u => u.role === 'admin').length,
-      technicians: userData.filter(u => u.role === 'technician').length,
-      managers: userData.filter(u => u.role === 'manager').length,
-      end_users: userData.filter(u => u.role === 'end_user' || u.role === 'user').length,
-    };
-    setStats(newStats);
-  };
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="h-8 bg-gray-200 rounded w-48 animate-pulse" />
+        <div className="space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-16 bg-gray-200 rounded animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-  const createUser = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch("/api/users", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({
-          ...formData,
-          role: formData.role === 'user' ? 'end_user' : formData.role
-        }),
-      });
-
-      if (response.ok) {
-        const newUser = await response.json();
-        await fetchUsers(); // Refresh the list
-        setIsCreateDialogOpen(false);
-        resetForm();
-        toast({
-          title: "User Created",
-          description: "New user has been created successfully.",
-        });
-      } else {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to create user");
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create user.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateUser = async () => {
-    if (!selectedUser) return;
-
-    try {
-      setIsLoading(true);
-      const updateData = { ...formData };
-      if (!updateData.password) {
-        delete updateData.password;
-      }
-
-      const response = await fetch(`/api/users/${selectedUser.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify(updateData),
-      });
-
-      if (response.ok) {
-        await fetchUsers(); // Refresh the list
-        setIsEditDialogOpen(false);
-        setSelectedUser(null);
-        resetForm();
-        toast({
-          title: "User Updated",
-          description: "User has been updated successfully.",
-        });
-      } else {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to update user");
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update user.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const deleteUser = async () => {
-    if (!selectedUser) return;
-
-    try {
-      setIsLoading(true);
-      const response = await fetch(`/api/users/${selectedUser.id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
-      if (response.ok) {
-        await fetchUsers(); // Refresh the list
-        setIsDeleteDialogOpen(false);
-        setSelectedUser(null);
-        toast({
-          title: "User Deleted",
-          description: "User has been deleted successfully.",
-        });
-      } else {
-        throw new Error("Failed to delete user");
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete user.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const toggleUserStatus = async (user: User) => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`/api/users/${user.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({ ...user, is_active: !user.is_active }),
-      });
-
-      if (response.ok) {
-        await fetchUsers(); // Refresh the list
-        toast({
-          title: "User Status Updated",
-          description: `User has been ${!user.is_active ? "activated" : "deactivated"}.`,
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update user status.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const toggleUserLock = async (user: User) => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`/api/users/${user.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({ ...user, is_locked: !user.is_locked }),
-      });
-
-      if (response.ok) {
-        await fetchUsers(); // Refresh the list
-        toast({
-          title: "User Lock Status Updated",
-          description: `User has been ${!user.is_locked ? "locked" : "unlocked"}.`,
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update user lock status.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      email: "",
-      role: "user",
-      department: "",
-      phone: "",
-      password: "",
-      employee_id: "",
-      job_title: "",
-    });
-  };
-
-  const openEditDialog = (user: User) => {
-    setSelectedUser(user);
-    setFormData({
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      department: user.department || "",
-      phone: user.phone || "",
-      password: "",
-      employee_id: user.employee_id || "",
-      job_title: user.job_title || "",
-    });
-    setIsEditDialogOpen(true);
-  };
-
-  const openDeleteDialog = (user: User) => {
-    setSelectedUser(user);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const getUserInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .substring(0, 2);
-  };
-
-  const getRoleBadgeColor = (role: string) => {
-    const roleConfig = roles.find(r => r.value === role);
-    return roleConfig?.color || "bg-gray-100 text-gray-800";
-  };
-
-  const getStatusBadge = (user: User) => {
-    if (user.is_locked) {
-      return <Badge variant="destructive"><Lock className="w-3 h-3 mr-1" />Locked</Badge>;
-    }
-    if (!user.is_active) {
-      return <Badge variant="secondary"><UserX className="w-3 h-3 mr-1" />Inactive</Badge>;
-    }
-    return <Badge variant="default"><UserCheck className="w-3 h-3 mr-1" />Active</Badge>;
-  };
-
-  const getSecurityIndicator = (user: User) => {
-    if (user.failed_login_attempts && user.failed_login_attempts > 0) {
-      return <AlertTriangle className="w-4 h-4 text-orange-500" />;
-    }
-    return null;
-  };
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "Never";
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
-    });
-  };
-
-  // Check if current user has admin privileges
-  const isAdmin = currentUser?.role === "admin";
-
-  if (!isAdmin) {
+  if (error) {
     return (
       <div className="p-6">
-        <Card>
-          <CardContent className="p-8 text-center">
-            <Shield className="w-12 h-12 mx-auto mb-4 text-neutral-400" />
-            <h2 className="text-xl font-semibold mb-2">Access Restricted</h2>
-            <p className="text-neutral-600">
-              You need administrator privileges to access user management.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="text-center py-12">
+          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-red-600 mb-2">Error Loading Users</h3>
+          <p className="text-gray-600 mb-4">Failed to load user data. Please try again.</p>
+          <Button onClick={() => refetch()} variant="outline">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Retry
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#201F1E] dark:text-[#F3F2F1] mb-2">
-            User Management
-          </h1>
-          <p className="text-neutral-600">
-            Comprehensive user administration for ITSM platform
-          </p>
-        </div>
-        <div className="flex space-x-2">
-          <Button variant="outline" onClick={fetchUsers} disabled={isLoading}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="flex items-center">
-                <Plus className="w-4 h-4 mr-2" />
-                Add User
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>Create New User</DialogTitle>
-                <DialogDescription>
-                  Add a new user to the ITSM system with appropriate role and permissions.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">Full Name</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="col-span-3"
-                    placeholder="John Doe"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="email" className="text-right">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="col-span-3"
-                    placeholder="john.doe@company.com"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="employee_id" className="text-right">Employee ID</Label>
-                  <Input
-                    id="employee_id"
-                    value={formData.employee_id}
-                    onChange={(e) => setFormData({ ...formData, employee_id: e.target.value })}
-                    className="col-span-3"
-                    placeholder="EMP001"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="job_title" className="text-right">Job Title</Label>
-                  <Input
-                    id="job_title"
-                    value={formData.job_title}
-                    onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
-                    className="col-span-3"
-                    placeholder="IT Technician"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="password" className="text-right">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="col-span-3"
-                    placeholder="Temporary password"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="role" className="text-right">Role</Label>
-                  <Select
-                    value={formData.role}
-                    onValueChange={(value) => setFormData({ ...formData, role: value })}
-                  >
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {roles.map((role) => (
-                        <SelectItem key={role.value} value={role.value}>
-                          <div>
-                            <div className="font-medium">{role.label}</div>
-                            <div className="text-xs text-neutral-500">{role.description}</div>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="department" className="text-right">Department</Label>
-                  <Select
-                    value={formData.department}
-                    onValueChange={(value) => setFormData({ ...formData, department: value })}
-                  >
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {departments.map((dept) => (
-                        <SelectItem key={dept} value={dept}>
-                          {dept}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="phone" className="text-right">Phone</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="col-span-3"
-                    placeholder="+1 (555) 123-4567"
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={createUser} disabled={isLoading}>
-                  {isLoading ? "Creating..." : "Create User"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
-
-      {/* Enhanced Stats and Filters */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-6">
-          {/* Statistics Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-            <Card className="p-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
-                <div className="text-xs text-neutral-500">Total Users</div>
-              </div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{stats.active}</div>
-                <div className="text-xs text-neutral-500">Active</div>
-              </div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-red-600">{stats.inactive}</div>
-                <div className="text-xs text-neutral-500">Inactive</div>
-              </div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">{stats.locked}</div>
-                <div className="text-xs text-neutral-500">Locked</div>
-              </div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">{stats.admins}</div>
-                <div className="text-xs text-neutral-500">Admins</div>
-              </div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{stats.managers}</div>
-                <div className="text-xs text-neutral-500">Managers</div>
-              </div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{stats.technicians}</div>
-                <div className="text-xs text-neutral-500">Technicians</div>
-              </div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-gray-600">{stats.end_users}</div>
-                <div className="text-xs text-neutral-500">End Users</div>
-              </div>
-            </Card>
+      {/* Header with Statistics */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">User Directory</h1>
+            <p className="text-gray-600">Manage system users and Active Directory integration</p>
           </div>
+          <div className="flex items-center space-x-2">
+            {adSyncStatus?.enabled && (
+              <Button
+                onClick={() => adSyncMutation.mutate()}
+                disabled={adSyncMutation.isPending}
+                variant="outline"
+                size="sm"
+              >
+                <Sync className="w-4 h-4 mr-2" />
+                {adSyncMutation.isPending ? "Syncing..." : "Sync AD"}
+              </Button>
+            )}
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add User
+                </Button>
+              </DialogTrigger>
+            </Dialog>
+          </div>
+        </div>
 
-          {/* Enhanced Filters */}
-          <Card className="p-4">
-            <div className="flex flex-wrap gap-4 items-center">
-              <div className="flex-1 min-w-[200px]">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-4 h-4" />
-                  <Input
-                    placeholder="Search users by name, email, or employee ID..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-2">
+                <Users className="w-5 h-5 text-blue-500" />
+                <div>
+                  <p className="text-sm text-gray-600">Total Users</p>
+                  <p className="text-2xl font-bold">{stats.total}</p>
                 </div>
               </div>
-              <Select value={selectedRole} onValueChange={setSelectedRole}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Roles</SelectItem>
-                  {roles.map((role) => (
-                    <SelectItem key={role.value} value={role.value}>
-                      {role.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Department" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
-                  {departments.map((dept) => (
-                    <SelectItem key={dept} value={dept}>
-                      {dept}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </Card>
-
-          {/* Enhanced Users Table */}
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Role & Department</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Security</TableHead>
-                    <TableHead>Last Activity</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8">
-                        <div className="flex items-center justify-center">
-                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          Loading users...
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : users.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8">
-                        <div className="text-neutral-500">
-                          <UsersIcon className="w-8 h-8 mx-auto mb-2" />
-                          No users found
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    users.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <div className="flex items-center space-x-3">
-                            <Avatar className="h-8 w-8">
-                              <AvatarFallback className="bg-[#0078D4] text-white text-sm">
-                                {getUserInitials(user.name)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="font-medium">{user.name}</div>
-                              <div className="text-sm text-neutral-500">{user.email}</div>
-                              {user.employee_id && (
-                                <div className="text-xs text-neutral-400">ID: {user.employee_id}</div>
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <Badge className={getRoleBadgeColor(user.role)}>
-                              <Shield className="w-3 h-3 mr-1" />
-                              {roles.find(r => r.value === user.role)?.label || user.role}
-                            </Badge>
-                            {(user.department || user.location) && (
-                              <div className="flex items-center text-sm">
-                                <Building className="w-3 h-3 mr-1 text-neutral-400" />
-                                {user.department || user.location || 'Not Set'}
-                              </div>
-                            )}
-                            {user.job_title && (
-                              <div className="text-xs text-neutral-500">{user.job_title}</div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="flex items-center text-sm">
-                              <Mail className="w-3 h-3 mr-1 text-neutral-400" />
-                              {user.email}
-                            </div>
-                            {user.phone && (
-                              <div className="flex items-center text-sm">
-                                <Phone className="w-3 h-3 mr-1 text-neutral-400" />
-                                {user.phone}
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>{getStatusBadge(user)}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            {getSecurityIndicator(user)}
-                            {user.failed_login_attempts && user.failed_login_attempts > 0 && (
-                              <span className="text-xs text-orange-600">
-                                {user.failed_login_attempts} failed attempts
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <div className="flex items-center">
-                              <Clock className="w-3 h-3 mr-1 text-neutral-400" />
-                              {formatDate(user.last_login)}
-                            </div>
-                            <div className="text-xs text-neutral-500">
-                              Created: {formatDate(user.created_at)}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>User Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => openEditDialog(user)}>
-                                <Edit className="w-4 h-4 mr-2" />
-                                Edit User
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => toggleUserStatus(user)}>
-                                {user.is_active ? (
-                                  <>
-                                    <UserX className="w-4 h-4 mr-2" />
-                                    Deactivate
-                                  </>
-                                ) : (
-                                  <>
-                                    <UserCheck className="w-4 h-4 mr-2" />
-                                    Activate
-                                  </>
-                                )}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => toggleUserLock(user)}>
-                                {user.is_locked ? (
-                                  <>
-                                    <Unlock className="w-4 h-4 mr-2" />
-                                    Unlock Account
-                                  </>
-                                ) : (
-                                  <>
-                                    <Lock className="w-4 h-4 mr-2" />
-                                    Lock Account
-                                  </>
-                                )}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => openDeleteDialog(user)}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Delete User
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="analytics" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Role Distribution</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {roles.filter((role, index, self) => 
-                    self.findIndex(r => r.label === role.label) === index
-                  ).map((role) => {
-                    const count = users.filter(u => 
-                      u.role === role.value || 
-                      (role.value === 'user' && u.role === 'end_user') ||
-                      (role.value === 'end_user' && u.role === 'user')
-                    ).length;
-                    const percentage = users.length > 0 ? (count / users.length) * 100 : 0;
-                    return (
-                      <div key={role.value} className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <div className={`w-3 h-3 rounded-full ${role.color.split(' ')[0]}`}></div>
-                          <span className="text-sm font-medium">{role.label}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <div className="w-20 bg-gray-200 rounded-full h-2">
-                            <div
-                              className={`h-2 rounded-full ${role.color.split(' ')[0]}`}
-                              style={{ width: `${percentage}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-sm text-gray-600 w-8">{count}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-2">
+                <UserCheck className="w-5 h-5 text-green-500" />
+                <div>
+                  <p className="text-sm text-gray-600">Active</p>
+                  <p className="text-2xl font-bold">{stats.active}</p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Department Distribution</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {departments.map((dept) => {
-                    const count = users.filter(u => 
-                      u.department === dept || u.location === dept
-                    ).length;
-                    const percentage = users.length > 0 ? (count / users.length) * 100 : 0;
-                    if (count === 0) return null;
-                    return (
-                      <div key={dept} className="flex items-center justify-between">
-                        <span className="text-sm font-medium">{dept}</span>
-                        <div className="flex items-center space-x-2">
-                          <div className="w-20 bg-gray-200 rounded-full h-2">
-                            <div
-                              className="h-2 rounded-full bg-blue-500"
-                              style={{ width: `${percentage}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-sm text-gray-600 w-8">{count}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-2">
+                <UserX className="w-5 h-5 text-red-500" />
+                <div>
+                  <p className="text-sm text-gray-600">Inactive</p>
+                  <p className="text-2xl font-bold">{stats.inactive}</p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-2">
+                <Cloud className="w-5 h-5 text-blue-500" />
+                <div>
+                  <p className="text-sm text-gray-600">AD Synced</p>
+                  <p className="text-2xl font-bold">{stats.adSynced}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-2">
+                <Database className="w-5 h-5 text-gray-500" />
+                <div>
+                  <p className="text-sm text-gray-600">Local</p>
+                  <p className="text-2xl font-bold">{stats.local}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* AD Sync Status */}
+        {adSyncStatus?.enabled && (
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className={`w-3 h-3 rounded-full ${
+                    adSyncStatus.sync_status === 'success' ? 'bg-green-500' :
+                    adSyncStatus.sync_status === 'error' ? 'bg-red-500' : 'bg-yellow-500'
+                  }`} />
+                  <div>
+                    <p className="font-medium">Active Directory Sync Status</p>
+                    <p className="text-sm text-gray-600">
+                      Last sync: {adSyncStatus.last_sync ? 
+                        formatDistanceToNow(new Date(adSyncStatus.last_sync), { addSuffix: true }) : 
+                        'Never'
+                      }
+                    </p>
+                  </div>
+                </div>
+                <Badge variant={
+                  adSyncStatus.sync_status === 'success' ? 'default' :
+                  adSyncStatus.sync_status === 'error' ? 'destructive' : 'secondary'
+                }>
+                  {adSyncStatus.sync_status}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Filters and Search */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex-1 min-w-64">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Search users by name, email, or department..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="manager">Manager</SelectItem>
+                <SelectItem value="technician">Technician</SelectItem>
+                <SelectItem value="user">User</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={syncSourceFilter} onValueChange={setSyncSourceFilter}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Source" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sources</SelectItem>
+                <SelectItem value="ad">AD Synced</SelectItem>
+                <SelectItem value="local">Local Only</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Department" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Departments</SelectItem>
+                {departments.map(dept => (
+                  <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button variant="outline" size="sm" onClick={() => {
+              setSearchTerm("");
+              setRoleFilter("all");
+              setSyncSourceFilter("all");
+              setDepartmentFilter("all");
+              setStatusFilter("all");
+            }}>
+              Clear Filters
+            </Button>
           </div>
-        </TabsContent>
-      </Tabs>
 
-      {/* Edit User Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>
-              Update user information and permissions.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-name" className="text-right">Full Name</Label>
+          {/* Bulk Actions */}
+          {selectedUsers.length > 0 && (
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-medium">
+                  {selectedUsers.length} user(s) selected
+                </span>
+                <Select value={bulkAction} onValueChange={setBulkAction}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Bulk Actions" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="activate">Activate Users</SelectItem>
+                    <SelectItem value="deactivate">Deactivate Users</SelectItem>
+                    <SelectItem value="export">Export Selected</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button 
+                  size="sm" 
+                  onClick={handleBulkAction}
+                  disabled={!bulkAction}
+                >
+                  Apply
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setSelectedUsers([])}
+                >
+                  Clear Selection
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Users Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Users ({filteredUsers.length})</span>
+            <div className="flex items-center space-x-2">
+              <Button variant="outline" size="sm">
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+              <Button variant="outline" size="sm">
+                <Upload className="w-4 h-4 mr-2" />
+                Import
+              </Button>
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-2">
+                    <input
+                      type="checkbox"
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedUsers(filteredUsers.map((u: User) => u.id));
+                        } else {
+                          setSelectedUsers([]);
+                        }
+                      }}
+                      checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
+                    />
+                  </th>
+                  <th className="text-left p-2">User</th>
+                  <th className="text-left p-2">Role</th>
+                  <th className="text-left p-2">Department</th>
+                  <th className="text-left p-2">Status</th>
+                  <th className="text-left p-2">Source</th>
+                  <th className="text-left p-2">Last Login</th>
+                  <th className="text-left p-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.map((user: User) => (
+                  <tr key={user.id} className="border-b hover:bg-gray-50">
+                    <td className="p-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedUsers.includes(user.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedUsers([...selectedUsers, user.id]);
+                          } else {
+                            setSelectedUsers(selectedUsers.filter(id => id !== user.id));
+                          }
+                        }}
+                      />
+                    </td>
+                    <td className="p-2">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                          <span className="text-sm font-medium text-blue-600">
+                            {user.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium">{user.name}</p>
+                          <p className="text-sm text-gray-600">{user.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-2">
+                      <Badge variant={
+                        user.role === 'admin' ? 'destructive' :
+                        user.role === 'manager' ? 'default' : 'secondary'
+                      }>
+                        {user.role}
+                      </Badge>
+                    </td>
+                    <td className="p-2">
+                      <div className="flex items-center space-x-1">
+                        <Building className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm">{user.department || '-'}</span>
+                      </div>
+                    </td>
+                    <td className="p-2">
+                      <Badge variant={user.is_active ? 'default' : 'secondary'}>
+                        {user.is_active ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </td>
+                    <td className="p-2">
+                      <div className="flex items-center space-x-1">
+                        {getSyncStatusIcon(user)}
+                        <span className="text-sm">
+                          {user.ad_synced ? 'AD' : 'Local'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="p-2">
+                      <span className="text-sm text-gray-600">
+                        {user.last_login ? 
+                          formatDistanceToNow(new Date(user.last_login), { addSuffix: true }) : 
+                          'Never'
+                        }
+                      </span>
+                    </td>
+                    <td className="p-2">
+                      <div className="flex items-center space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setIsViewDialogOpen(true);
+                          }}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setIsEditDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteUser(user.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            
+            {filteredUsers.length === 0 && (
+              <div className="text-center py-8">
+                <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No users found</h3>
+                <p className="text-gray-600">Try adjusting your search or filter criteria.</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Create User Dialog */}
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add New User</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="name">Full Name</Label>
               <Input
-                id="edit-name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="col-span-3"
+                id="name"
+                value={newUser.name}
+                onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                placeholder="Enter full name"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-email" className="text-right">Email</Label>
+            <div>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="edit-email"
+                id="email"
                 type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="col-span-3"
+                value={newUser.email}
+                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                placeholder="Enter email address"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-employee_id" className="text-right">Employee ID</Label>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="password">Password</Label>
               <Input
-                id="edit-employee_id"
-                value={formData.employee_id}
-                onChange={(e) => setFormData({ ...formData, employee_id: e.target.value })}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-job_title" className="text-right">Job Title</Label>
-              <Input
-                id="edit-job_title"
-                value={formData.job_title}
-                onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-password" className="text-right">Password</Label>
-              <Input
-                id="edit-password"
+                id="password"
                 type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="Leave blank to keep current"
-                className="col-span-3"
+                value={newUser.password}
+                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                placeholder="Enter password"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-role" className="text-right">Role</Label>
-              <Select
-                value={formData.role}
-                onValueChange={(value) => setFormData({ ...formData, role: value })}
-              >
-                <SelectTrigger className="col-span-3">
+            <div>
+              <Label htmlFor="role">Role</Label>
+              <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {roles.map((role) => (
-                    <SelectItem key={role.value} value={role.value}>
-                      <div>
-                        <div className="font-medium">{role.label}</div>
-                        <div className="text-xs text-neutral-500">{role.description}</div>
-                      </div>
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="technician">Technician</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-department" className="text-right">Department</Label>
-              <Select
-                value={formData.department}
-                onValueChange={(value) => setFormData({ ...formData, department: value })}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select department" />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map((dept) => (
-                    <SelectItem key={dept} value={dept}>
-                      {dept}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-phone" className="text-right">Phone</Label>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="department">Department</Label>
               <Input
-                id="edit-phone"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="col-span-3"
+                id="department"
+                value={newUser.department}
+                onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
+                placeholder="Enter department"
+              />
+            </div>
+            <div>
+              <Label htmlFor="phone">Phone</Label>
+              <Input
+                id="phone"
+                value={newUser.phone}
+                onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                placeholder="Enter phone number"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="job_title">Job Title</Label>
+              <Input
+                id="job_title"
+                value={newUser.job_title}
+                onChange={(e) => setNewUser({ ...newUser, job_title: e.target.value })}
+                placeholder="Enter job title"
+              />
+            </div>
+            <div>
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                value={newUser.location}
+                onChange={(e) => setNewUser({ ...newUser, location: e.target.value })}
+                placeholder="Enter location"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={updateUser} disabled={isLoading}>
-              {isLoading ? "Updating..." : "Update User"}
+            <Button 
+              onClick={handleCreateUser}
+              disabled={createUserMutation.isPending || !newUser.name || !newUser.email || !newUser.password}
+            >
+              {createUserMutation.isPending ? "Creating..." : "Create User"}
             </Button>
-          </DialogFooter>
+          </div>
+        </div>
+      </DialogContent>
+
+      {/* View User Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>User Details</DialogTitle>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="space-y-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span className="text-2xl font-medium text-blue-600">
+                    {selectedUser.name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold">{selectedUser.name}</h3>
+                  <p className="text-gray-600">{selectedUser.email}</p>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <Badge variant={selectedUser.is_active ? 'default' : 'secondary'}>
+                      {selectedUser.is_active ? 'Active' : 'Inactive'}
+                    </Badge>
+                    {getSyncStatusIcon(selectedUser)}
+                    <span className="text-sm text-gray-600">
+                      {selectedUser.ad_synced ? 'AD Synced' : 'Local User'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Role</Label>
+                    <p className="mt-1">{selectedUser.role}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Department</Label>
+                    <p className="mt-1">{selectedUser.department || '-'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Job Title</Label>
+                    <p className="mt-1">{selectedUser.job_title || '-'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Location</Label>
+                    <p className="mt-1">{selectedUser.location || '-'}</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Phone</Label>
+                    <p className="mt-1">{selectedUser.phone || '-'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Last Login</Label>
+                    <p className="mt-1">
+                      {selectedUser.last_login ? 
+                        formatDistanceToNow(new Date(selectedUser.last_login), { addSuffix: true }) : 
+                        'Never'
+                      }
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Created</Label>
+                    <p className="mt-1">
+                      {formatDistanceToNow(new Date(selectedUser.created_at), { addSuffix: true })}
+                    </p>
+                  </div>
+                  {selectedUser.ad_synced && selectedUser.ad_last_sync && (
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Last AD Sync</Label>
+                      <p className="mt-1">
+                        {formatDistanceToNow(new Date(selectedUser.ad_last_sync), { addSuffix: true })}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {selectedUser.ad_groups && selectedUser.ad_groups.length > 0 && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">AD Groups</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {selectedUser.ad_groups.map((group, index) => (
+                      <Badge key={index} variant="outline">{group}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
-      {/* Delete User Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete User</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete {selectedUser?.name}? This action cannot be undone.
-              All associated data will be permanently removed.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={deleteUser}
-              className="bg-red-600 hover:bg-red-700"
-              disabled={isLoading}
-            >
-              {isLoading ? "Deleting..." : "Delete User"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Edit User Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-name">Full Name</Label>
+                  <Input
+                    id="edit-name"
+                    value={selectedUser.name}
+                    onChange={(e) => setSelectedUser({ ...selectedUser, name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-email">Email</Label>
+                  <Input
+                    id="edit-email"
+                    type="email"
+                    value={selectedUser.email}
+                    onChange={(e) => setSelectedUser({ ...selectedUser, email: e.target.value })}
+                    disabled={selectedUser.ad_synced}
+                  />
+                  {selectedUser.ad_synced && (
+                    <p className="text-xs text-gray-500 mt-1">Email cannot be modified for AD users</p>
+                  )}
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-role">Role</Label>
+                  <Select 
+                    value={selectedUser.role} 
+                    onValueChange={(value) => setSelectedUser({ ...selectedUser, role: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="technician">Technician</SelectItem>
+                      <SelectItem value="manager">Manager</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="edit-department">Department</Label>
+                  <Input
+                    id="edit-department"
+                    value={selectedUser.department}
+                    onChange={(e) => setSelectedUser({ ...selectedUser, department: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-phone">Phone</Label>
+                  <Input
+                    id="edit-phone"
+                    value={selectedUser.phone}
+                    onChange={(e) => setSelectedUser({ ...selectedUser, phone: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-status">Status</Label>
+                  <Select 
+                    value={selectedUser.is_active ? "active" : "inactive"} 
+                    onValueChange={(value) => setSelectedUser({ ...selectedUser, is_active: value === "active" })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleUpdateUser}
+                  disabled={updateUserMutation.isPending}
+                >
+                  {updateUserMutation.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
