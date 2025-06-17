@@ -308,3 +308,49 @@ const makeRequest = async (url: string, options: RequestInit = {}): Promise<Resp
     throw error;
   }
 };
+
+const api = {
+  async get(endpoint: string, options: RequestInit = {}) {
+    try {
+      return await makeRequest(endpoint, { ...options, method: "GET" });
+    } catch (error) {
+      console.error(`GET ${endpoint} failed:`, error);
+      throw error;
+    }
+  },
+
+  async post(endpoint: string, data?: any, options: RequestInit = {}) {
+    try {
+      return await makeRequest(endpoint, {
+        ...options,
+        method: "POST",
+        body: data ? JSON.stringify(data) : undefined,
+      });
+    } catch (error) {
+      console.error(`POST ${endpoint} failed:`, error);
+      throw error;
+    }
+  },
+
+  async put(endpoint: string, data?: any, options: RequestInit = {}) {
+    try {
+      return await makeRequest(endpoint, {
+        ...options,
+        method: "PUT",
+        body: data ? JSON.stringify(data) : undefined,
+      });
+    } catch (error) {
+      console.error(`PUT ${endpoint} failed:`, error);
+      throw error;
+    }
+  },
+
+  async delete(endpoint: string, options: RequestInit = {}) {
+    try {
+      return await makeRequest(endpoint, { ...options, method: "DELETE" });
+    } catch (error) {
+      console.error(`DELETE ${endpoint} failed:`, error);
+      throw error;
+    }
+  },
+};

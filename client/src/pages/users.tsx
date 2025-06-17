@@ -301,23 +301,33 @@ export default function UsersPage() {
     local: users.filter((u: UserInterface) => !u.ad_synced).length,
   };
 
-  const handleCreateUser = () => {
-    createUserMutation.mutate(newUser);
+  const handleCreateUser = async () => {
+    try {
+      createUserMutation.mutate(newUser);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      toast({ message: "Failed to create user", type: "error" });
+    }
   };
 
-  const handleUpdateUser = () => {
-    if (selectedUser) {
-      console.log("Updating user:", selectedUser);
-      const updateData = {
-        id: selectedUser.id,
-        email: selectedUser.email,
-        name: selectedUser.name,
-        role: selectedUser.role,
-        department: selectedUser.department,
-        phone: selectedUser.phone,
-        is_active: selectedUser.is_active
-      };
-      updateUserMutation.mutate(updateData);
+  const handleUpdateUser = async () => {
+    try {
+      if (selectedUser) {
+        console.log("Updating user:", selectedUser);
+        const updateData = {
+          id: selectedUser.id,
+          email: selectedUser.email,
+          name: selectedUser.name,
+          role: selectedUser.role,
+          department: selectedUser.department,
+          phone: selectedUser.phone,
+          is_active: selectedUser.is_active
+        };
+        updateUserMutation.mutate(updateData);
+      }
+    } catch (error) {
+      console.error("Error updating user:", error);
+      toast({ message: "Failed to update user", type: "error" });
     }
   };
 
