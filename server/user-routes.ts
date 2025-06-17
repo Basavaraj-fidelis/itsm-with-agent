@@ -304,7 +304,7 @@ router.put("/:id", async (req, res) => {
     console.log("PUT /api/users/:id - Updating user:", req.params.id);
     console.log("Request body:", req.body);
 
-    const { email, name, role, department, phone, is_active, password } = req.body;
+    const { email, name, role, department, phone, is_active, is_locked, password } = req.body;
 
     // Validate required fields
     if (!email || !name || !role) {
@@ -317,7 +317,7 @@ router.put("/:id", async (req, res) => {
     const last_name = nameParts.slice(1).join(' ') || '';
 
     // Check if user exists first
-    const userCheck = await db.query(`SELECT id FROM users WHERE id = $1`, [req.params.id]);
+    const userCheck = await db.query(`SELECT id, is_locked FROM users WHERE id = $1`, [req.params.id]);
     if (userCheck.rows.length === 0) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -325,7 +325,8 @@ router.put("/:id", async (req, res) => {
     let updateQuery = `
       UPDATE users 
       SET email = $1, first_name = $2, last_name = $3, role = $4, 
-          phone = $5, location = $6, department = $7, is_active = $8, updated_at = NOW()
+          phone = $5, location = $6, department = $7, is_active = $8, 
+          is_locked = $9, updated_at = NOW()
     `;
     let values = [
       email.toLowerCase(), 
@@ -335,21 +336,22 @@ router.put("/:id", async (req, res) => {
       phone || null, 
       department || null, 
       department || null, 
-      is_active !== undefined ? is_active : true
+      is_active !== undefined ? is_active : true,
+      is_locked !== undefined ? is_locked : false
     ];
 
     // If password is provided, update it too
     if (password && password.trim()) {
       const saltRounds = 10;
       const password_hash = await bcrypt.hash(password, saltRounds);
-      updateQuery += `, password_hash = $9 WHERE id = $10`;
+      updateQuery += `, password_hash = $10 WHERE id = $11`;
       values.push(password_hash, req.params.id);
     } else {
-      updateQuery += ` WHERE id = $9`;
+      updateQuery += ` WHERE id = $10`;
       values.push(req.params.id);
     }
 
-    updateQuery += ` RETURNING id, email, username, first_name, last_name, role, phone, location, department, is_active, created_at, updated_at`;
+    updateQuery += ` RETURNING id, email, username, first_name, last_name, role, phone, location, department, is_active, is_locked, created_at, updated_at`;
 
     console.log("Executing update query:", updateQuery);
     console.log("With values:", values);
@@ -362,6 +364,7 @@ router.put("/:id", async (req, res) => {
 
     const updatedUser = result.rows[0];
     updatedUser.name = `${updatedUser.first_name || ''} ${updatedUser.last_name || ''}`.trim();
+    updatedUser.department = updatedUser.department || updatedUser.location;
     
     console.log("User updated successfully:", updatedUser);
 

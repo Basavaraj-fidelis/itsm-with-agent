@@ -46,6 +46,7 @@ interface UserInterface {
   department: string;
   phone: string;
   is_active: boolean;
+  is_locked?: boolean;
   last_login?: string;
   created_at: string;
   updated_at: string;
@@ -204,6 +205,46 @@ export default function UsersPage() {
     },
   });
 
+  // Lock user mutation
+  const lockUserMutation = useMutation({
+    mutationFn: async ({ userId, reason }: { userId: string; reason: string }) => {
+      const response = await api.post(`/api/users/${userId}/lock`, { reason });
+      if (!response.ok) throw new Error("Failed to lock user");
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "User locked successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to lock user",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Unlock user mutation
+  const unlockUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await api.post(`/api/users/${userId}/unlock`);
+      if (!response.ok) throw new Error("Failed to unlock user");
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "User unlocked successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to unlock user",
+        variant: "destructive",
+      });
+    },
+  });
+
   // AD Sync mutation
   const adSyncMutation = useMutation({
     mutationFn: async () => {
@@ -266,7 +307,30 @@ export default function UsersPage() {
 
   const handleUpdateUser = () => {
     if (selectedUser) {
-      updateUserMutation.mutate(selectedUser);
+      console.log("Updating user:", selectedUser);
+      const updateData = {
+        id: selectedUser.id,
+        email: selectedUser.email,
+        name: selectedUser.name,
+        role: selectedUser.role,
+        department: selectedUser.department,
+        phone: selectedUser.phone,
+        is_active: selectedUser.is_active
+      };
+      updateUserMutation.mutate(updateData);
+    }
+  };
+
+  const handleLockUser = (userId: string) => {
+    const reason = prompt("Enter reason for locking user:");
+    if (reason) {
+      lockUserMutation.mutate({ userId, reason });
+    }
+  };
+
+  const handleUnlockUser = (userId: string) => {
+    if (confirm("Are you sure you want to unlock this user?")) {
+      unlockUserMutation.mutate(userId);
     }
   };
 
@@ -679,9 +743,16 @@ export default function UsersPage() {
                       </div>
                     </td>
                     <td className="p-2">
-                      <Badge variant={user.is_active ? 'default' : 'secondary'}>
-                        {user.is_active ? 'Active' : 'Inactive'}
-                      </Badge>
+                      <div className="flex flex-col space-y-1">
+                        <Badge variant={user.is_active ? 'default' : 'secondary'}>
+                          {user.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                        {user.is_locked && (
+                          <Badge variant="destructive" className="text-xs">
+                            Locked
+                          </Badge>
+                        )}
+                      </div>
                     </td>
                     <td className="p-2">
                       <div className="flex items-center space-x-1">
@@ -708,6 +779,7 @@ export default function UsersPage() {
                             setSelectedUser(user);
                             setIsViewDialogOpen(true);
                           }}
+                          title="View User"
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
@@ -718,14 +790,37 @@ export default function UsersPage() {
                             setSelectedUser(user);
                             setIsEditDialogOpen(true);
                           }}
+                          title="Edit User"
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
+                        {user.is_active ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleLockUser(user.id)}
+                            className="text-yellow-600 hover:text-yellow-700"
+                            title="Lock User"
+                          >
+                            <Shield className="w-4 h-4" />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleUnlockUser(user.id)}
+                            className="text-green-600 hover:text-green-700"
+                            title="Unlock User"
+                          >
+                            <UserCheck className="w-4 h-4" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDeleteUser(user.id)}
                           className="text-red-600 hover:text-red-700"
+                          title="Delete User"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
