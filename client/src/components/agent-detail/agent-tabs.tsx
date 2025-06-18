@@ -1097,8 +1097,8 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
 
                       <div className="mt-4">
                         <h4 className="font-medium mb-2 text-sm">Recent Patches</h4>
-                        <div className="space-y-2 max-h-40 overflow-y-auto">
-                          {processedData.raw_data.os_info.patches.slice(0, 5).map((patch, index) => (
+                        <div className="space-y-2">
+                          {processedData.raw_data.os_info.patches.slice(0, 3).map((patch, index) => (
                             <div key={index} className="p-2 border rounded-lg bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
                               <div className="text-xs">
                                 <div className="font-medium text-green-900 dark:text-green-100">
@@ -1110,6 +1110,13 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                               </div>
                             </div>
                           ))}
+                          {processedData.raw_data.os_info.patches.length > 3 && (
+                            <div className="text-center pt-2">
+                              <span className="text-xs text-neutral-500">
+                                +{processedData.raw_data.os_info.patches.length - 3} more patches
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -1118,8 +1125,8 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                        processedData.raw_data.extracted_update_info.recent_updates.length > 0 && (
                         <div className="mt-4">
                           <h4 className="font-medium mb-2 text-sm">Recent Updates</h4>
-                          <div className="space-y-2 max-h-32 overflow-y-auto">
-                            {processedData.raw_data.extracted_update_info.recent_updates.slice(0, 3).map((update, index) => (
+                          <div className="space-y-2">
+                            {processedData.raw_data.extracted_update_info.recent_updates.slice(0, 2).map((update, index) => (
                               <div key={index} className="p-2 border rounded-lg bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
                                 <div className="text-xs">
                                   <div className="font-medium text-blue-900 dark:text-blue-100">
@@ -1131,6 +1138,13 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                 </div>
                               </div>
                             ))}
+                            {processedData.raw_data.extracted_update_info.recent_updates.length > 2 && (
+                              <div className="text-center pt-2">
+                                <span className="text-xs text-neutral-500">
+                                  +{processedData.raw_data.extracted_update_info.recent_updates.length - 2} more updates
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
@@ -1204,10 +1218,10 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       {/* Top Port Connections */}
                       <div className="mt-4">
                         <h4 className="font-medium mb-2 text-sm">Top Connections</h4>
-                        <div className="space-y-1 max-h-32 overflow-y-auto">
+                        <div className="space-y-1">
                           {processedData.raw_data.active_ports
                             .sort((a, b) => a.LocalPort - b.LocalPort)
-                            .slice(0, 4)
+                            .slice(0, 3)
                             .map((port, index) => (
                               <div key={index} className="p-2 border rounded-lg bg-muted/20">
                                 <div className="flex items-center justify-between text-xs">
@@ -1226,6 +1240,13 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                 </div>
                               </div>
                             ))}
+                          {processedData.raw_data.active_ports.length > 3 && (
+                            <div className="text-center pt-2">
+                              <span className="text-xs text-neutral-500">
+                                +{processedData.raw_data.active_ports.length - 3} more connections
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
