@@ -276,7 +276,20 @@ export class AgentDataProcessor {
     return storage.disks || [];
   }
 
-  static processAgent(agent: any): ProcessedAgentData {
+  static extractUpdateInfo(rawData: any): any {
+    return {
+      updates: rawData.updates || rawData.windows_updates || [],
+      security: rawData.security || {},
+      security_patches: rawData.security_patches || [],
+      last_update_check: rawData.security?.last_update_check || rawData.last_update_check,
+      automatic_updates: rawData.security?.automatic_updates || rawData.automatic_updates,
+      pending_reboot: rawData.pending_reboot || false,
+      uptime: rawData.os_info?.uptime_formatted || rawData.uptime,
+      boot_time: rawData.os_info?.boot_time || rawData.boot_time
+    };
+  }
+
+  static processAgent(agent: any): ProcessedAgentData & { updateInfo: any; raw_data: any } {
     const rawData = this.processRawData(agent.latest_report?.raw_data);
 
     return {
@@ -287,7 +300,9 @@ export class AgentDataProcessor {
       usbDevices: this.extractUSBDevices(rawData),
       processes: this.extractProcesses(rawData),
       software: this.extractSoftware(rawData),
-      storage: this.extractStorage(rawData)
+      storage: this.extractStorage(rawData),
+      updateInfo: this.extractUpdateInfo(rawData),
+      raw_data: rawData
     };
   }
 }
