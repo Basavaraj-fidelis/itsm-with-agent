@@ -1589,7 +1589,7 @@ export default function Tickets() {
               </div>
               <div className="flex items-center space-x-3">
                 <Button
-                  onClick={() => setShowNewTicketDialog(true)}
+                  onClick={() => setLocation('/create-ticket')}
                   className="bg-green-600 hover:bg-green-700 text-white flex items-center space-x-2"
                 >
                   <Plus className="w-4 h-4" />
@@ -1979,7 +1979,7 @@ export default function Tickets() {
       {/* Floating Action Button */}
       <div className="fixed bottom-6 right-6 z-50">
         <Button
-          onClick={() => setShowNewTicketDialog(true)}
+          onClick={() => setLocation('/create-ticket')}
           size="lg"
           className="rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-all duration-200 bg-green-600 hover:bg-green-700"
         >

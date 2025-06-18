@@ -11,8 +11,9 @@ import Dashboard from "@/pages/dashboard";
 import Agents from "@/pages/agents";
 import AgentDetail from "@/pages/agent-detail";
 import Alerts from "@/pages/alerts";
-import Tickets from "@/pages/tickets";
 import TicketDetail from "@/pages/ticket-detail";
+import CreateTicket from "@/pages/create-ticket";
+import Tickets from "@/pages/tickets";
 import KnowledgeBase from "@/pages/knowledge-base";
 import NewArticle from "@/pages/new-article";
 import Notifications from "@/pages/notifications";
@@ -136,6 +137,13 @@ export default function App() {
               <ProtectedRoute>
                 <AuthenticatedLayout>
                   <TicketDetail />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            </Route>
+             <Route path="/create-ticket">
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <CreateTicket />
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>
