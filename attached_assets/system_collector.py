@@ -1,27 +1,23 @@
-#!/usr/bin/env python3
 """
 System Information Collector
 Gathers comprehensive system information across platforms
 """
 
-import psutil
-import platform
+import os
+import sys
 import json
 import socket
+import platform
 import subprocess
-import sys
-import os
-import time
-from datetime import datetime, timedelta
+import psutil
 import logging
+from datetime import datetime
+from pathlib import Path
+import requests
 import getpass
 import csv
 import io
-from pathlib import Path
-import requests
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+import re
 
 class SystemCollector:
     """Collects comprehensive system information"""
@@ -31,32 +27,27 @@ class SystemCollector:
         self.is_windows = platform.system().lower() == 'windows'
         self.is_linux = platform.system().lower() == 'linux'
         self.is_macos = platform.system().lower() == 'darwin'
-        self.system_data = {}
     
     def collect_all(self):
         """Collect all available system information"""
-        try:
-            self.system_data = {
-                'timestamp': datetime.utcnow().isoformat() + 'Z',
-                'hostname': self._get_hostname(),
-                'os_info': self._get_os_info(),
-                'network': self._get_network_info(),
-                'hardware': self._get_hardware_info(),
-                'storage': self._get_storage_info(),
-                'software': self._get_software_info(),
-                'processes': self._get_running_processes(),
-                'usb_devices': self._get_usb_devices(),
-                'virtualization': self._get_virtualization_info(),
-                'system_health': self._get_system_health(),
-                'security': self._get_security_info(),
-                'assigned_user': self._get_current_user(),
-                'update_history': self._get_update_history()
-            }
+        info = {
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
+            'hostname': self._get_hostname(),
+            'os_info': self._get_os_info(),
+            'network': self._get_network_info(),
+            'hardware': self._get_hardware_info(),
+            'storage': self._get_storage_info(),
+            'software': self._get_software_info(),
+            'processes': self._get_running_processes(),
+            'usb_devices': self._get_usb_devices(),
+            'virtualization': self._get_virtualization_info(),
+            'system_health': self._get_system_health(),
+            'security': self._get_security_info(),
+            'assigned_user': self._get_current_user(),
+            "active_ports": self._get_filtered_tcp_ports()
+        }
         
-            return self.system_data
-        except Exception as e:
-            self.logger.error(f"Error collecting system information: {e}")
-            return {}
+        return info
     
     def _get_hostname(self):
         """Get system hostname"""
@@ -95,32 +86,32 @@ class SystemCollector:
             return {}
     
     def _get_windows_os_info(self):
-        """Get Windows-specific OS information"""
-        try:
-            info = {}
+       """Get Windows-specific OS information"""
+       try:
+           info = {}
 
-            # Get Windows version info from registry
-            try:
+           # Get Windows version info from registry
+           try:
                 import winreg
                 with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, 
-                                  r"SOFTWARE\Microsoft\Windows NT\CurrentVersion") as key:
-                    try:
+                                r"SOFTWARE\Microsoft\Windows NT\CurrentVersion") as key:
+                 try:
                         info['build_number'] = winreg.QueryValueEx(key, "CurrentBuildNumber")[0]
-                    except Exception:
+                 except Exception:
                         pass
-                    try:
+                 try:
                         info['display_version'] = winreg.QueryValueEx(key, "DisplayVersion")[0]
-                    except Exception:
+                 except Exception:
                         pass
-                    try:
+                 try:
                         info['product_name'] = winreg.QueryValueEx(key, "ProductName")[0]
-                    except Exception:
+                 except Exception:
                         pass
-            except Exception as e:
+           except Exception as e:
                 self.logger.warning(f"Registry access failed: {e}")
 
-            # Alternative method using systeminfo command
-            if not info:
+           # Alternative method using systeminfo command
+           if not info:
                 try:
                     result = subprocess.run(['systeminfo'], capture_output=True, text=True, timeout=30)
                     if result.returncode == 0:
@@ -132,8 +123,8 @@ class SystemCollector:
                 except Exception as e:
                     self.logger.warning(f"systeminfo command failed: {e}")
 
-            # Improved last update time retrieval using PowerShell Get-HotFix
-            try:
+            # Last update time (latest patch)
+           try:
                 ps_command = "Get-HotFix | Sort-Object InstalledOn -Descending | Select-Object -First 1 | ConvertTo-Json"
                 result = subprocess.run(["powershell", "-Command", ps_command], capture_output=True, text=True, timeout=30)
                 if result.returncode == 0 and result.stdout:
@@ -141,20 +132,40 @@ class SystemCollector:
                     hotfix_info = js.loads(result.stdout.strip())
                     if isinstance(hotfix_info, dict) and 'InstalledOn' in hotfix_info:
                         info['last_update'] = hotfix_info['InstalledOn']
-            except Exception as e:
+           except Exception as e:
                 self.logger.warning(f"PowerShell last update fetch failed: {e}")
 
-            return info
-        except Exception as e:
+            # Full list of installed patches
+           try:
+                ps_command = "Get-HotFix | Select-Object HotFixID, InstalledOn | ConvertTo-Json"
+                result = subprocess.run(["powershell", "-Command", ps_command], capture_output=True, text=True, timeout=30)
+                if result.returncode == 0 and result.stdout:
+                    import json as js
+                    patches = js.loads(result.stdout.strip())
+                    if isinstance(patches, list):
+                        info['patches'] = [
+                            {
+                                "id": patch.get('HotFixID', 'unknown'),
+                                "installed_on": patch.get('InstalledOn', 'unknown')
+                            }
+                            for patch in patches
+                        ]
+           except Exception as e:
+                self.logger.warning(f"Failed to collect full patch list: {e}")
+
+           return info
+       except Exception as e:
             self.logger.error(f"Error getting Windows OS info: {e}")
             return {}
+
+
         
     def _get_linux_os_info(self):
         """Get Linux-specific OS information"""
         try:
             info = {}
-            
-            # Try to read /etc/os-release
+
+            # Read OS release info
             try:
                 with open('/etc/os-release', 'r') as f:
                     for line in f:
@@ -163,63 +174,104 @@ class SystemCollector:
                             info[key.lower()] = value.strip('"')
             except Exception:
                 pass
-            
-            # Get kernel version
+
+            # Kernel version
             try:
                 info['kernel_version'] = platform.uname().release
             except Exception:
                 pass
-            
-            # Get last update time (package manager dependent)
+
+            # Last update time
             try:
-                # Try apt (Debian/Ubuntu)
                 if os.path.exists('/var/log/apt/history.log'):
                     result = subprocess.run(['tail', '-n', '50', '/var/log/apt/history.log'], 
-                                          capture_output=True, text=True, timeout=10)
+                                            capture_output=True, text=True, timeout=10)
                     if result.returncode == 0:
                         lines = result.stdout.strip().split('\n')
                         for line in reversed(lines):
                             if line.startswith('Start-Date:'):
                                 info['last_update'] = line.split(':', 1)[1].strip()
                                 break
-                
-                # Try yum/dnf (RedHat/CentOS/Fedora)
-                elif os.path.exists('/var/log/yum.log') or os.path.exists('/var/log/dnf.log'):
+
+                elif os.path.exists('/var/log/dnf.log') or os.path.exists('/var/log/yum.log'):
                     log_file = '/var/log/dnf.log' if os.path.exists('/var/log/dnf.log') else '/var/log/yum.log'
                     result = subprocess.run(['tail', '-n', '10', log_file], 
-                                          capture_output=True, text=True, timeout=10)
+                                            capture_output=True, text=True, timeout=10)
                     if result.returncode == 0:
                         lines = result.stdout.strip().split('\n')
                         if lines:
-                            info['last_update'] = lines[-1].split()[0:2]  # Date and time
+                            info['last_update'] = ' '.join(lines[-1].split()[0:2])
             except Exception:
                 pass
-            
+
+            # Patch list (APT or RPM)
+            try:
+                patches = []
+                if shutil.which('dpkg'):
+                    result = subprocess.run(['grep', 'Start-Date:', '/var/log/apt/history.log'], 
+                                            capture_output=True, text=True, timeout=10)
+                    if result.returncode == 0:
+                        for i, line in enumerate(result.stdout.strip().split('\n')[-10:]):
+                            patches.append({"id": f"APT-{i+1}", "installed_on": line.replace('Start-Date:', '').strip()})
+                elif shutil.which('rpm'):
+                    result = subprocess.run(['rpm', '-qa', '--last'], capture_output=True, text=True, timeout=15)
+                    if result.returncode == 0:
+                        for i, line in enumerate(result.stdout.strip().split('\n')[:10]):
+                            parts = line.split()
+                            patches.append({
+                                "id": parts[0],
+                                "installed_on": ' '.join(parts[1:4])
+                            })
+                if patches:
+                    info['patches'] = patches
+            except Exception as e:
+                self.logger.warning(f"Failed to collect Linux patch list: {e}")
+
             return info
         except Exception as e:
             self.logger.error(f"Error getting Linux OS info: {e}")
             return {}
-    
+
     def _get_macos_os_info(self):
         """Get macOS-specific OS information"""
         try:
             info = {}
-            
-            # Get macOS version
+
             try:
                 result = subprocess.run(['sw_vers'], capture_output=True, text=True, timeout=10)
                 if result.returncode == 0:
                     for line in result.stdout.strip().split('\n'):
-                        if ':' in line:
-                            key, value = line.split(':', 1)
-                            info[key.strip().lower().replace(' ', '_')] = value.strip()
+                        if 'ProductName:' in line:
+                            info['product_name'] = line.split(':')[1].strip()
+                        elif 'ProductVersion:' in line:
+                            info['version'] = line.split(':')[1].strip()
+                        elif 'BuildVersion:' in line:
+                            info['build'] = line.split(':')[1].strip()
             except Exception:
                 pass
-            
+
+            # Last update and patches
+            try:
+                result = subprocess.run(['softwareupdate', '--history'], capture_output=True, text=True, timeout=15)
+                if result.returncode == 0:
+                    lines = result.stdout.strip().split('\n')
+                    patches = []
+                    for line in lines[1:][-10:]:  # skip header
+                        parts = line.strip().split()
+                        if len(parts) >= 3:
+                            patch_name = parts[0]
+                            patch_date = ' '.join(parts[1:3])
+                            patches.append({"id": patch_name, "installed_on": patch_date})
+                    if patches:
+                        info['patches'] = patches
+            except Exception as e:
+                self.logger.warning(f"Failed to collect macOS patch list: {e}")
+
             return info
         except Exception as e:
-            self.logger.error(f"Error getting macOS info: {e}")
+            self.logger.error(f"Error getting macOS OS info: {e}")
             return {}
+
     
     def _get_network_info(self):
         """Get network interface information"""
@@ -293,6 +345,8 @@ class SystemCollector:
         except Exception as e:
             self.logger.error(f"Error getting network info: {e}", exc_info=True)
             return {}
+
+
     
     def _get_public_ip(self):
         """Get public IP address"""
@@ -717,7 +771,7 @@ class SystemCollector:
             return []
     
     def _get_software_info(self):
-        """Get installed software information (excluding default OS applications)"""
+        """Get installed software information"""
         try:
             software = []
             
@@ -734,20 +788,15 @@ class SystemCollector:
                             if line.strip() and ',' in line:
                                 parts = line.split(',')
                                 if len(parts) >= 4 and parts[1].strip():
-                                    name = parts[1].strip()
-                                    vendor = parts[2].strip()
-
-                                    # Filter out default Windows components and system software
-                                    if not self._is_default_windows_software(name, vendor):
-                                        software.append({
-                                            'name': name,
-                                            'version': parts[3].strip(),
-                                            'vendor': vendor
-                                        })
-
+                                    software.append({
+                                        'name': parts[1].strip(),
+                                        'version': parts[3].strip(),
+                                        'vendor': parts[2].strip()
+                                    })
+                
                 except Exception:
                     pass
-
+            
             elif self.is_linux:
                 try:
                     # Try different package managers
@@ -756,115 +805,43 @@ class SystemCollector:
                         result = subprocess.run([
                             'dpkg', '-l'
                         ], capture_output=True, text=True, timeout=60)
-
+                        
                         if result.returncode == 0:
                             for line in result.stdout.split('\n'):
                                 if line.startswith('ii'):
                                     parts = line.split()
                                     if len(parts) >= 3:
-                                        name = parts[1]
-
-                                        # Filter out default Linux system packages
-                                        if not self._is_default_linux_software(name):
-                                            software.append({
-                                                'name': name,
-                                                'version': parts[2],
-                                                'vendor': 'debian'
-                                            })
-
+                                        software.append({
+                                            'name': parts[1],
+                                            'version': parts[2],
+                                            'vendor': 'debian'
+                                        })
+                    
                     elif os.path.exists('/usr/bin/rpm'):
                         # RedHat/CentOS/Fedora
                         result = subprocess.run([
                             'rpm', '-qa', '--queryformat', '%{NAME}|%{VERSION}|%{VENDOR}\n'
                         ], capture_output=True, text=True, timeout=60)
-
+                        
                         if result.returncode == 0:
                             for line in result.stdout.split('\n'):
                                 if '|' in line:
                                     parts = line.split('|')
                                     if len(parts) >= 3:
-                                        name = parts[0]
-
-                                        # Filter out default Linux system packages
-                                        if not self._is_default_linux_software(name):
-                                            software.append({
-                                                'name': name,
-                                                'version': parts[1],
-                                                'vendor': parts[2]
-                                            })
-
+                                        software.append({
+                                            'name': parts[0],
+                                            'version': parts[1],
+                                            'vendor': parts[2]
+                                        })
+                
                 except Exception:
                     pass
-
+            
             # Limit to top 50 packages to avoid overwhelming the API
             return software[:50]
         except Exception as e:
             self.logger.error(f"Error getting software info: {e}")
             return []
-
-    def _is_default_windows_software(self, name, vendor):
-        """Check if software is a default Windows component"""
-        name_lower = name.lower()
-        vendor_lower = vendor.lower()
-
-        # Microsoft system components and built-in apps
-        if 'microsoft' in vendor_lower:
-            microsoft_defaults = [
-                'windows', 'microsoft edge', 'internet explorer', 'windows defender',
-                'windows media', 'microsoft store', 'xbox', 'cortana', 'onedrive',
-                'windows security', 'windows update', 'microsoft.net', '.net framework',
-                'visual c++', 'directx', 'windows sdk', 'microsoft visual c++',
-                'windows runtime', 'microsoft silverlight', 'windows installer',
-                'windows powershell', 'windows subsystem', 'microsoft help viewer'
-            ]
-
-            for default in microsoft_defaults:
-                if default in name_lower:
-                    return True
-
-        # Other common system software to exclude
-        system_software = [
-            'intel', 'amd', 'nvidia', 'realtek', 'broadcom', 'qualcomm',
-            'driver', 'codec', 'runtime', 'redistributable', 'framework',
-            'windows', 'system', 'update', 'security', 'defender'
-        ]
-
-        for sys_soft in system_software:
-            if sys_soft in name_lower and any(x in vendor_lower for x in ['intel', 'amd', 'nvidia', 'realtek', 'microsoft']):
-return True
-
-        return False
-
-    def _is_default_linux_software(self, name):
-        """Check if software is a default Linux system package"""
-        name_lower = name.lower()
-
-        # Common system packages and libraries to exclude
-        system_packages = [
-            'lib', 'glib', 'gtk', 'gnome', 'kde', 'systemd', 'dbus', 'udev',
-            'kernel', 'linux-', 'ubuntu-', 'debian-', 'fedora-', 'centos-',
-            'base-', 'essential', 'core', 'common', 'utils', 'tools',
-            'driver', 'firmware', 'mesa', 'x11', 'xorg', 'wayland',
-            'pulse', 'alsa', 'network-manager', 'bluetooth', 'wireless',
-            'gstreamer', 'fontconfig', 'cairo', 'pango', 'atk', 'gdk',
-            'cups', 'avahi', 'packagekit', 'appstream', 'apt', 'dpkg',
-            'rpm', 'yum', 'dnf', 'zypper', 'snap', 'flatpak'
-        ]
-
-        # Check if package name starts with or contains system identifiers
-        for sys_pkg in system_packages:
-            if name_lower.startswith(sys_pkg) or sys_pkg in name_lower:
-                return True
-
-        # Exclude development libraries and headers
-        if name_lower.endswith('-dev') or name_lower.endswith('-devel') or '-dev-' in name_lower:
-            return True
-
-        # Exclude documentation packages
-        if name_lower.endswith('-doc') or name_lower.endswith('-docs') or '-doc-' in name_lower:
-            return True
-
-        return False
     
     def _get_running_processes(self):
         """Get running processes information"""
@@ -1099,17 +1076,104 @@ return True
             return None
     
     def _get_security_info(self):
-        """Get security-related information"""
+        """Get firewall, antivirus, update check, and update mode info"""
         try:
-            info = {
-                'firewall_status': self._get_firewall_status(),
-                'antivirus_status': self._get_antivirus_status(),
-                'last_scan': self._get_last_security_scan()
-            }
+            info = {}
+
+            def _normalize_win_date(value):
+                """Convert /Date(1750141848172)/ to readable date"""
+                try:
+                    if isinstance(value, str) and value.startswith("/Date("):
+                        import re
+                        import datetime
+                        match = re.search(r"/Date\((\d+)\)/", value)
+                        if match:
+                            timestamp_ms = int(match.group(1))
+                            dt = datetime.datetime.fromtimestamp(timestamp_ms / 1000)
+                            return dt.strftime("%Y-%m-%d %H:%M:%S")
+                except Exception:
+                    pass
+                return value if value else "N/A"
+
+            if platform.system().lower() == 'windows':
+                # ✅ Firewall Status
+                try:
+                    result = subprocess.run(
+                        ["powershell", "-Command", "Get-NetFirewallProfile | Select-Object -ExpandProperty Enabled"],
+                        capture_output=True, text=True, timeout=10)
+                    if result.returncode == 0:
+                        info['firewall_status'] = "enabled" if "True" in result.stdout else "disabled"
+                    else:
+                        info['firewall_status'] = "unknown"
+                except Exception:
+                    info['firewall_status'] = "unknown"
+
+                # ✅ Antivirus Status + Last Scan
+                try:
+                    ps_command = (
+                        "Get-MpComputerStatus | "
+                        "Select-Object -Property AMServiceEnabled,AntivirusEnabled,QuickScanStartTime,FullScanStartTime | ConvertTo-Json"
+                    )
+                    result = subprocess.run(["powershell", "-Command", ps_command],
+                                            capture_output=True, text=True, timeout=10)
+                    if result.returncode == 0 and result.stdout:
+                        import json as js
+                        status = js.loads(result.stdout.strip())
+                        if isinstance(status, dict):
+                            info['antivirus_status'] = "enabled" if status.get("AntivirusEnabled") else "disabled"
+                            quick = _normalize_win_date(status.get('QuickScanStartTime'))
+                            full = _normalize_win_date(status.get('FullScanStartTime'))
+                            info['last_scan'] = f"{quick} / {full}"
+                    else:
+                        info['antivirus_status'] = "unknown"
+                except Exception:
+                    info['antivirus_status'] = "unknown"
+
+                # ✅ Last Update Check (COM API fallback)
+                try:
+                    ps = "(New-Object -ComObject Microsoft.Update.AutoUpdate).Results.LastSearchSuccessDate"
+                    result = subprocess.run(["powershell", "-Command", ps],
+                                            capture_output=True, text=True, timeout=5)
+                    if result.returncode == 0 and result.stdout.strip():
+                        info["last_update_check"] = result.stdout.strip()
+                    else:
+                        info["last_update_check"] = "Unknown"
+                except Exception:
+                    info["last_update_check"] = "Unknown"
+
+                # ✅ Automatic Updates Status (Policy + Fallback)
+                try:
+                    ps_policy = "(Get-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU' -ErrorAction SilentlyContinue).AUOptions"
+                    result = subprocess.run(["powershell", "-Command", ps_policy],
+                                            capture_output=True, text=True, timeout=5)
+
+                    if not result.stdout.strip():
+                        ps_default = "(Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update' -ErrorAction SilentlyContinue).AUOptions"
+                        result = subprocess.run(["powershell", "-Command", ps_default],
+                                                capture_output=True, text=True, timeout=5)
+
+                    if result.returncode == 0 and result.stdout.strip().isdigit():
+                        au = int(result.stdout.strip())
+                        au_map = {
+                            1: "Never check",
+                            2: "Notify download/install",
+                            3: "Auto-download / notify",
+                            4: "Auto-download / schedule install",
+                            5: "Local admin chooses"
+                        }
+                        info["automatic_updates"] = au_map.get(au, f"Unknown ({au})")
+                    else:
+                        info["automatic_updates"] = "Managed by policy or unknown"
+                except Exception:
+                    info["automatic_updates"] = "Managed by policy or unknown"
+
             return info
+
         except Exception as e:
-            self.logger.error(f"Error getting security info: {e}")
+            self.logger.error(f"Error collecting security info: {e}")
             return {}
+
+
     
     def _get_firewall_status(self):
         """Get firewall status"""
@@ -1170,444 +1234,32 @@ return True
             return 'unknown'
         except Exception:
             return 'unknown'
-
-    def _get_windows_update_info(self):
-        """Get Windows Update information"""
-        update_info = {
-            'last_update_check': 'unknown',
-            'recent_updates': []
-        }
+    
+  
+    def _get_filtered_tcp_ports(self):
+        ignore_pattern = re.compile(r'^(chrome|msedge|brave|explorer|svchost|Idle|System|WindowsPackageManagerServer|msedgewebview2|ms-teams)$', re.IGNORECASE)
+        result = []
 
         try:
-            # Get recent updates using PowerShell
-            ps_script = """
-            Get-HotFix | Sort-Object InstalledOn -Descending | Select-Object -First 10 | ForEach-Object {
-                [PSCustomObject]@{
-                    HotFixID = $_.HotFixID
-                    Description = $_.Description
-                    InstalledBy = $_.InstalledBy
-                    InstalledOn = $_.InstalledOn
-                }
-            } | ConvertTo-Json
-            """
-
-            result = subprocess.run([
-                'powershell', '-Command', ps_script
-            ], capture_output=True, text=True, timeout=20)
-
-            if result.returncode == 0 and result.stdout.strip():
-                try:
-                    updates_data = json.loads(result.stdout)
-                    if isinstance(updates_data, list):
-                        for update in updates_data:
-                            if update.get('InstalledOn'):
-                                update_info['recent_updates'].append({
-                                    'title': f"{update.get('HotFixID', 'Unknown')} - {update.get('Description', 'Unknown')}",
-                                    'installed_date': update.get('InstalledOn'),
-                                    'type': 'Security Update' if 'Security' in str(update.get('Description', '')) else 'Update'
-                                })
-                    elif isinstance(updates_data, dict):
-                        if updates_data.get('InstalledOn'):
-                            update_info['recent_updates'].append({
-                                'title': f"{updates_data.get('HotFixID', 'Unknown')} - {updates_data.get('Description', 'Unknown')}",
-                                'installed_date': updates_data.get('InstalledOn'),
-                                'type': 'Security Update' if 'Security' in str(updates_data.get('Description', '')) else 'Update'
-                            })
-                except json.JSONDecodeError:
-                    pass
-        except Exception as e:
-            self.logger.warning(f"Could not get recent Windows updates: {e}")
-
-        try:
-            # Try to get last update check time
-            result = subprocess.run([
-                'powershell', '-Command', 
-                '(New-Object -ComObject Microsoft.Update.AutoUpdate).Results.LastSearchSuccessDate'
-            ], capture_output=True, text=True, timeout=10)
-
-            if result.returncode == 0 and result.stdout.strip():
-                update_info['last_update_check'] = result.stdout.strip()
-        except:
-            pass
-
-        return update_info
-
-    def _get_update_history(self):
-        """Get system update history and status"""
-        try:
-            update_history = {
-                'last_boot_time': None,
-                'system_uptime_hours': None,
-                'pending_reboot': False,
-                'last_update': None
-            }
-
-            # Get boot time and uptime
-            boot_time = datetime.fromtimestamp(psutil.boot_time())
-            update_history['last_boot_time'] = boot_time.isoformat()
-
-            uptime_seconds = (datetime.now() - boot_time).total_seconds()
-            update_history['system_uptime_hours'] = int(uptime_seconds / 3600)
-
-            if platform.system() == 'Windows':
-                # Check for pending reboot
-                try:
-                    result = subprocess.run([
-                        'powershell', '-Command', 
-                        'Get-ChildItem "HKLM:SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update\\RebootRequired" -ErrorAction SilentlyContinue'
-                    ], capture_output=True, text=True, timeout=10)
-
-                    if result.returncode == 0 and result.stdout.strip():
-                        update_history['pending_reboot'] = True
-                except:
-                    pass
-
-                # Try alternative method for pending reboot
-                try:
-                    result = subprocess.run([
-                        'powershell', '-Command',
-                        'if (Get-ChildItem "HKLM:SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Component Based Servicing\\RebootPending" -ErrorAction SilentlyContinue) { "true" } else { "false" }'
-                    ], capture_output=True, text=True, timeout=10)
-
-                    if result.returncode == 0 and 'true' in result.stdout.lower():
-                        update_history['pending_reboot'] = True
-                except:
-                    pass
-
-            return update_history
-        except Exception as e:
-            self.logger.error(f"Error getting update history: {e}")
-            return {}
-
-    def _get_windows_security_info(self):
-        """Get Windows security information"""
-        security = {
-            'firewall_status': 'unknown',
-            'antivirus_status': 'unknown',
-            'last_scan': 'unknown',
-            'windows_updates': {}
-        }
-
-        try:
-            # Check Windows Firewall status
-            result = subprocess.run([
-                'netsh', 'advfirewall', 'show', 'allprofiles', 'state'
-            ], capture_output=True, text=True, timeout=10)
-
-            if result.returncode == 0 and 'ON' in result.stdout:
-                security['firewall_status'] = 'enabled'
-            else:
-                security['firewall_status'] = 'disabled'
-        except:
-            pass
-
-        try:
-            # Check Windows Defender status
-            result = subprocess.run([
-                'powershell', '-Command', 'Get-MpComputerStatus | Select-Object AntivirusEnabled,RealTimeProtectionEnabled'
-            ], capture_output=True, text=True, timeout=15)
-
-            if result.returncode == 0:
-                if 'True' in result.stdout:
-                    security['antivirus_status'] = 'enabled'
-                else:
-                    security['antivirus_status'] = 'disabled'
-        except:
-            pass
-
-        try:
-            # Get last scan information
-            result = subprocess.run([
-                'powershell', '-Command', 'Get-MpThreatDetection | Select-Object -Last 1'
-            ], capture_output=True, text=True, timeout=15)
-
-            if result.returncode == 0 and result.stdout.strip():
-                security['last_scan'] = result.stdout.strip()
-            else:
-                # Try alternative method
-                result = subprocess.run([
-                    'powershell', '-Command', 'Get-MpPreference | Select-Object ScanSchedule*'
-                ], capture_output=True, text=True, timeout=15)
-                if result.returncode == 0:
-                    security['last_scan'] = result.stdout.strip()
-        except:
-            pass
-
-        # Get Windows Update information
-        try:
-            security['windows_updates'] = self._get_windows_update_info()
-        except Exception as e:
-            self.logger.warning(f"Could not get Windows update info: {e}")
-
-        return security
-
-    def _get_linux_security_info(self):
-        """Get Linux security information"""
-        security = {
-            'firewall_status': 'unknown',
-            'antivirus_status': 'unknown',
-            'last_scan': 'unknown'
-        }
-
-        try:
-            # Check UFW status
-            result = subprocess.run(['ufw', 'status'], capture_output=True, text=True, timeout=5)
-            if result.returncode == 0:
-                if 'Status: active' in result.stdout:
-                    security['firewall_status'] = 'enabled'
-                else:
-                    security['firewall_status'] = 'disabled'
-        except:
-            try:
-                # Check iptables
-                result = subprocess.run(['iptables', '-L'], capture_output=True, text=True, timeout=5)
-                if result.returncode == 0:
-                    security['firewall_status'] = 'enabled'
-            except:
-                pass
-
-        return security
-
-    def _get_installed_software(self):
-        """Get installed software list"""
-        try:
-            software = []
-            
-            if self.is_windows:
-                software = self._get_windows_software()
-            elif self.is_linux:
-                software = self._get_linux_software()
-            elif self.is_macos:
-                software = self._get_macos_software()
-
-            return software[:50]  # Limit to 50 items
-        except Exception as e:
-            self.logger.error(f"Error getting software info: {e}")
-            return []
-
-    def _get_windows_software(self):
-        """Get Windows installed software from registry"""
-        software = []
-        try:
-            import winreg
-
-            # Check both 32-bit and 64-bit software keys
-            keys = [
-                r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
-                r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
-            ]
-
-            for key_path in keys:
-                try:
-                    key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, key_path)
-                    for i in range(winreg.QueryInfoKey(key)[0]):
-                        try:
-                            subkey_name = winreg.EnumKey(key, i)
-                            subkey = winreg.OpenKey(key, subkey_name)
-
-                            try:
-                                name = winreg.QueryValueEx(subkey, "DisplayName")[0]
-                                version = ""
-                                vendor = ""
-
-                                try:
-                                    version = winreg.QueryValueEx(subkey, "DisplayVersion")[0]
-                                except:
-                                    pass
-
-                                try:
-                                    vendor = winreg.QueryValueEx(subkey, "Publisher")[0]
-                                except:
-                                    pass
-
-                                software.append({
-                                    'name': name,
-                                    'version': version,
-                                    'vendor': vendor
-                                })
-                            except:
-                                pass
-
-                            winreg.CloseKey(subkey)
-                        except:
-                            continue
-
-                    winreg.CloseKey(key)
-                except:
+            for conn in psutil.net_connections(kind='tcp'):
+                if conn.status != psutil.CONN_ESTABLISHED:
+                    continue
+                if not conn.raddr:
                     continue
 
-        except Exception as e:
-            self.logger.error(f"Error getting Windows software: {e}")
-
-        return software
-
-    def _get_linux_software(self):
-        """Get Linux installed packages"""
-        software = []
-        try:
-            # Try different package managers
-            commands = [
-                ["dpkg", "-l"],  # Debian/Ubuntu
-                ["rpm", "-qa"],  # Red Hat/CentOS
-                ["pacman", "-Q"], # Arch
-            ]
-
-            for cmd in commands:
                 try:
-                    result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-                    if result.returncode == 0:
-                        for line in result.stdout.split('\n'):
-                            if line.strip():
-                                parts = line.split()
-                                if len(parts) >= 2:
-                                    software.append({
-                                        'name': parts[1] if cmd[0] == 'dpkg' else parts[0],
-                                        'version': parts[2] if cmd[0] == 'dpkg' and len(parts) > 2 else 'unknown',
-                                        'vendor': 'system'
-                                    })
-                        break
-                except:
+                    proc = psutil.Process(conn.pid)
+                    pname = proc.name().lower()
+                    if ignore_pattern.match(pname):
+                        continue
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
                     continue
+
+                result.append({
+                    "LocalPort": conn.laddr.port,
+                    "RemotePort": conn.raddr.port
+                })
         except Exception as e:
-            self.logger.error(f"Error getting Linux software: {e}")
+            self.logger.warning(f"Failed to get TCP ports: {e}")
 
-        return software
-
-    def _get_macos_software(self):
-        """Get macOS installed applications"""
-        software = []
-        try:
-            # Get applications from /Applications
-            apps_dir = "/Applications"
-            if os.path.exists(apps_dir):
-                for app in os.listdir(apps_dir):
-                    if app.endswith('.app'):
-                        software.append({
-                            'name': app.replace('.app', ''),
-                            'version': 'unknown',
-                            'vendor': 'unknown'
-                        })
-        except Exception as e:
-            self.logger.error(f"Error getting macOS software: {e}")
-
-        return software
-
-    def _get_usb_devices(self):
-        """Get USB devices information"""
-        try:
-            usb_devices = []
-
-            if platform.system() == 'Windows':
-                usb_devices = self._get_windows_usb_devices()
-            elif platform.system() == 'Linux':
-                usb_devices = self._get_linux_usb_devices()
-
-            return usb_devices
-        except Exception as e:
-            self.logger.error(f"Error getting USB devices: {e}")
-            return []
-
-    def _get_windows_usb_devices(self):
-        """Get Windows USB devices using WMI"""
-        usb_devices = []
-        try:
-            # Try using wmic command
-            result = subprocess.run([
-                'wmic', 'path', 'Win32_USBHub', 'get', 
-                'DeviceID,Description', '/format:csv'
-            ], capture_output=True, text=True, timeout=10)
-
-            if result.returncode == 0:
-                lines = result.stdout.strip().split('\n')
-                for line in lines[2:]:  # Skip header lines
-                    if line.strip():
-                        parts = line.split(',')
-                        if len(parts) >= 3:
-                            usb_devices.append({
-                                'description': parts[1].strip() if len(parts) > 1 else 'Unknown',
-                                'device_id': parts[2].strip() if len(parts) > 2 else 'Unknown'
-                            })
-        except Exception as e:
-            self.logger.warning(f"Could not get USB devices via wmic: {e}")
-
-        return usb_devices
-
-    def _get_linux_usb_devices(self):
-        """Get Linux USB devices using lsusb"""
-        usb_devices = []
-        try:
-            result = subprocess.run(['lsusb'], capture_output=True, text=True, timeout=10)
-            if result.returncode == 0:
-                for line in result.stdout.split('\n'):
-                    if 'ID' in line:
-                        parts = line.split('ID')
-                        if len(parts) > 1:
-                            device_info = parts[1].strip()
-                            usb_devices.append({
-                                'description': device_info,
-                                'device_id': device_info.split()[0] if device_info.split() else 'Unknown'
-                            })
-        except Exception as e:
-            self.logger.warning(f"Could not get USB devices via lsusb: {e}")
-
-        return usb_devices
-
-    def _get_system_health(self):
-        """Get system health metrics"""
-        try:
-            health = {}
-
-            # CPU temperature (if available)
-            try:
-                temps = psutil.sensors_temperatures()
-                if temps:
-                    health['cpu_temperature'] = temps
-                else:
-                    health['cpu_temperature'] = None
-            except:
-                health['cpu_temperature'] = None
-
-            # Disk health
-            health['disk_health'] = {
-                'status': 'healthy',
-                'note': 'Basic disk health check - see storage section for SMART data'
-            }
-
-            # Memory pressure
-            memory = psutil.virtual_memory()
-            if memory.percent > 90:
-                pressure_level = 'high'
-            elif memory.percent > 75:
-                pressure_level = 'medium'
-            else:
-                pressure_level = 'low'
-
-            health['memory_pressure'] = {
-                'pressure_level': pressure_level,
-                'usage_percent': memory.percent
-            }
-
-            # System load (Linux/macOS)
-            try:
-                load_avg = os.getloadavg()
-                health['system_load'] = {
-                    '1min': load_avg[0],
-                    '5min': load_avg[1],
-                    '15min': load_avg[2]
-                }
-            except:
-                health['system_load'] = None
-
-            return health
-        except Exception as e:
-            self.logger.error(f"Error getting system health: {e}")
-            return {}
-
-def main():
-    """Main function for testing"""
-    collector = SystemCollector()
-    data = collector.collect_all()
-    print(json.dumps(data, indent=2, default=str))
-
-if __name__ == "__main__":
-    main()
+        return result
