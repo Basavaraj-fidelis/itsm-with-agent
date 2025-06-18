@@ -1266,7 +1266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           currentSeverity = "warning";
           currentThreshold = thresholds.warning;
           if (metric === "cpu") {
-            message = `Memory usage elevated: ${value.toFixed(1)}% - Monitor`;
+            message = `CPU usage elevated: ${value.toFixed(1)}% - Monitor`;
           } else if (metric === "memory") {
             message = `Memory usage elevated: ${value.toFixed(1)}% - Monitor`;
           } else if (metric === "disk") {
@@ -2760,11 +2760,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         priority: priority && priority !== "all" && priority.trim() !== "" ? priority : undefined,
         search: search && search.trim() !== "" ? search.trim() : undefined
       };
-
-      // Only log when there are actual filters applied
-      if (Object.values(filters).some(value => value !== undefined)) {
-        console.log("Applied ticket filters:", filters);
-      }
 
       const tickets = await ticketStorage.getTickets(page, limit, filters);
       res.json(tickets);

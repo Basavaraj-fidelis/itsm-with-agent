@@ -1084,11 +1084,13 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       )}
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-neutral-500">
+                    
+                    <div className="text-center py-12">
                       <Package className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
                       <p>No update information available</p>
                       <p className="text-xs mt-1">Update data will appear when reported by the agent</p>
                     </div>
+                    
                   )}
                 </CardContent>
               </Card>
@@ -1223,7 +1225,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             .map((port, index) => {
                               const isWellKnownRemote = port.RemotePort === 443 || port.RemotePort === 80 || port.RemotePort === 22 || port.RemotePort === 21;
                               const isHighLocalPort = port.LocalPort > 49152; // Ephemeral port range
-                              
+
                               return (
                                 <div key={index} className="p-3 border rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
                                   <div className="flex items-center justify-between">
