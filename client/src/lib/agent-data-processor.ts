@@ -295,7 +295,7 @@ export class AgentDataProcessor {
 // Custom hook for processed agent data with memoization
 export const useProcessedAgentData = (agent: any) => {
   return useMemo(() => {
-    if (!agent) return null;
+    if (!agent || !agent.id) return null;
     return AgentDataProcessor.processAgent(agent);
   }, [agent?.latest_report?.id, agent?.id]);
 };

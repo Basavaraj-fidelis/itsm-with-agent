@@ -32,8 +32,10 @@ export default defineConfig(async () => {
       host: "0.0.0.0",
       port: 5173,
       strictPort: true,
-      hmr: false, // Disable HMR completely
-      ws: false, // Disable WebSocket server
+      hmr: {
+        port: 5173,
+        host: "0.0.0.0"
+      },
       allowedHosts: [
         /\.replit\.dev$/,
         /\.sisko\.replit\.dev$/,
