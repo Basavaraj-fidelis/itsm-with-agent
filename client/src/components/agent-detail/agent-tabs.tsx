@@ -909,7 +909,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
         {/* Updates Tab */}
         <TabsContent value="updates" className="space-y-6">
           <SafeDataRenderer>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Windows Update Status */}
               <Card>
                 <CardHeader>
