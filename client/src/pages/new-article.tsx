@@ -131,7 +131,7 @@ export default function NewArticle() {
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-6 max-w-full mx-auto px-8">
       {/* Header */}
       <div className="mb-6">
         <Link to="/knowledge-base">
@@ -179,9 +179,9 @@ export default function NewArticle() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-5 gap-6">
         {/* Main Content */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-3 xl:col-span-4">
           <Card>
             <CardHeader>
               <CardTitle>Article Content</CardTitle>
@@ -209,7 +209,7 @@ export default function NewArticle() {
                       value={article.content}
                       onChange={(e) => setArticle({ ...article, content: e.target.value })}
                       placeholder="Write your article content here... (Supports markdown)"
-                      className="mt-1 min-h-[400px] font-mono"
+                      className="mt-1 min-h-[500px] font-mono"
                     />
                     <p className="text-xs text-neutral-500 mt-1">
                       Supports markdown: # Headers, **bold**, - lists, etc.
@@ -218,7 +218,7 @@ export default function NewArticle() {
                 </>
               ) : (
                 /* Preview Mode */
-                <div className="border rounded-lg p-6 bg-white dark:bg-gray-900 min-h-[500px]">
+                <div className="border rounded-lg p-6 bg-white dark:bg-gray-900 min-h-[600px]">
                   <h1 className="text-3xl font-bold mb-4 text-neutral-800 dark:text-neutral-200">
                     {article.title || "Article Title Preview"}
                   </h1>
@@ -234,7 +234,7 @@ export default function NewArticle() {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
+        <div className="lg:col-span-1 xl:col-span-1 space-y-6">
           {/* Article Settings */}
           <Card>
             <CardHeader>
