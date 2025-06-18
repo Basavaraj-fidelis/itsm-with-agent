@@ -48,6 +48,7 @@ import { AIInsights } from "./ai-insights";
 
 interface AgentTabsProps {
   agent: Agent;
+  processedData?: any;
 }
 
 // Helper function to format bytes to human-readable format
@@ -60,9 +61,8 @@ const formatBytes = (bytes: number, decimals: number = 2) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
 };
 
-export default function AgentTabs({ agent }: AgentTabsProps) {
+export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
   const [usbHistory, setUsbHistory] = useState([]);
-  const processedData = useProcessedAgentData(agent);
 
   useEffect(() => {
     const fetchUSBHistory = async () => {

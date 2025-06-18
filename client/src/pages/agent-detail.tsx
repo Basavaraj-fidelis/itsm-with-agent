@@ -50,6 +50,10 @@ import { useEffect } from "react";
 export default function AgentDetail() {
   const { id } = useParams();
   const { data: agent, isLoading, error, refetch } = useAgent(id || "");
+  
+  // Always call this hook at the top, regardless of loading/error state
+  const processedData = useProcessedAgentData(agent);
+  
   const [showVNCModal, setShowVNCModal] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState(null);
@@ -217,20 +221,13 @@ export default function AgentDetail() {
     );
   }
 
-  // Use processed data with memoization for performance
-  const processedData = useProcessedAgentData(agent);
-  
-  const metrics = useMemo(() => {
-    if (!processedData) {
-      return {
-        cpuUsage: 0,
-        memoryUsage: 0,
-        diskUsage: 0,
-        networkIO: 0
-      };
-    }
-    return processedData.metrics;
-  }, [processedData]);
+  // Extract metrics from processed data
+  const metrics = processedData?.metrics || {
+    cpuUsage: 0,
+    memoryUsage: 0,
+    diskUsage: 0,
+    networkIO: 0
+  };
 
   const { cpuUsage, memoryUsage, diskUsage, networkIO } = metrics;
 
@@ -450,7 +447,7 @@ export default function AgentDetail() {
       </div>
 
       {/* Tabbed Content */}
-      <AgentTabs agent={agent} />
+      <AgentTabs agent={agent} processedData={processedData} />
       </div>
     </AgentErrorBoundary>
   );
