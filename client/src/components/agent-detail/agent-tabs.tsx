@@ -906,24 +906,277 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
           </SafeDataRenderer>
         </TabsContent>
 
-        {/* Updates Tab - Keep existing implementation */}
+        {/* Updates Tab */}
         <TabsContent value="updates" className="space-y-6">
           <SafeDataRenderer>
-            {/* Keep the existing updates implementation */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Download className="w-5 h-5" />
-                  <span>System Update Status</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-neutral-500">
-                  <Package className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
-                  <p>Update information will be displayed here</p>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* System Update Status */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Download className="w-5 h-5" />
+                    <span>Windows Update Status</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {processedData?.raw_data?.extracted_update_info ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 gap-3 text-sm">
+                        <Stat 
+                          label="Last Update Check" 
+                          value={processedData.raw_data.extracted_update_info.last_update_check || "N/A"} 
+                        />
+                        <Stat 
+                          label="Windows Version" 
+                          value={processedData.raw_data.extracted_update_info.windows_version || "N/A"} 
+                        />
+                        <Stat 
+                          label="Windows Build" 
+                          value={processedData.raw_data.extracted_update_info.windows_build || "N/A"} 
+                        />
+                        <div className="flex justify-between">
+                          <span className="text-neutral-600">Pending Reboot:</span>
+                          <Badge variant={processedData.raw_data.extracted_update_info.pending_reboot ? "destructive" : "default"}>
+                            {processedData.raw_data.extracted_update_info.pending_reboot ? "Required" : "Not Required"}
+                          </Badge>
+                        </div>
+                        <Stat 
+                          label="System Uptime" 
+                          value={processedData.raw_data.extracted_update_info.system_uptime_hours ? 
+                            `${processedData.raw_data.extracted_update_info.system_uptime_hours} hours` : "N/A"} 
+                        />
+                        <Stat 
+                          label="Last Boot Time" 
+                          value={processedData.raw_data.extracted_update_info.last_boot_time || "N/A"} 
+                        />
+                      </div>
+
+                      {/* Recent Updates */}
+                      {processedData.raw_data.extracted_update_info.recent_updates && 
+                       processedData.raw_data.extracted_update_info.recent_updates.length > 0 && (
+                        <div className="mt-6">
+                          <h4 className="font-medium mb-3">Recent Updates</h4>
+                          <div className="space-y-2">
+                            {processedData.raw_data.extracted_update_info.recent_updates.slice(0, 5).map((update, index) => (
+                              <div key={index} className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                                <div className="text-sm">
+                                  <div className="font-medium text-blue-900 dark:text-blue-100">
+                                    {update.title || update.name || `Update ${index + 1}`}
+                                  </div>
+                                  {update.description && (
+                                    <div className="text-blue-700 dark:text-blue-300 text-xs mt-1">
+                                      {update.description.substring(0, 100)}
+                                      {update.description.length > 100 ? "..." : ""}
+                                    </div>
+                                  )}
+                                  <div className="text-blue-600 dark:text-blue-400 text-xs mt-1">
+                                    Installed: {update.installed_date || update.date || "Unknown"}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-neutral-500">
+                      <Package className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
+                      <p>No update information available</p>
+                      <p className="text-xs mt-1">Update data will appear when reported by the agent</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Security Status */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Shield className="w-5 h-5" />
+                    <span>Security Status</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {processedData?.raw_data?.extracted_security_info ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 gap-3 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-neutral-600">Firewall Status:</span>
+                          <Badge variant={processedData.raw_data.extracted_security_info.firewall_status === "enabled" ? "default" : "destructive"}>
+                            {processedData.raw_data.extracted_security_info.firewall_status || "Unknown"}
+                          </Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-neutral-600">Antivirus Status:</span>
+                          <Badge variant={processedData.raw_data.extracted_security_info.antivirus_status === "enabled" ? "default" : "destructive"}>
+                            {processedData.raw_data.extracted_security_info.antivirus_status || "Unknown"}
+                          </Badge>
+                        </div>
+                        <Stat 
+                          label="Last Security Scan" 
+                          value={processedData.raw_data.extracted_security_info.last_scan || "N/A"} 
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 text-neutral-500">
+                      <Shield className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
+                      <p>No security information available</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* System Health Summary */}
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Activity className="w-5 h-5" />
+                    <span>System Health & Recommendations</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {processedData?.raw_data ? (
+                    <div className="space-y-4">
+                      {/* System Health Indicators */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Memory Pressure */}
+                        {processedData.raw_data.system_health?.memory_pressure && (
+                          <div className="p-4 border rounded-lg">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <MemoryStick className="w-4 h-4 text-orange-500" />
+                              <span className="font-medium">Memory Pressure</span>
+                            </div>
+                            <div className="text-sm">
+                              <div className="flex justify-between">
+                                <span>Level:</span>
+                                <Badge variant={
+                                  processedData.raw_data.system_health.memory_pressure.pressure_level === "high" ? "destructive" :
+                                  processedData.raw_data.system_health.memory_pressure.pressure_level === "medium" ? "secondary" : "default"
+                                }>
+                                  {processedData.raw_data.system_health.memory_pressure.pressure_level}
+                                </Badge>
+                              </div>
+                              <div className="mt-1">
+                                Usage: {processedData.raw_data.system_health.memory_pressure.usage_percent}%
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Disk Health */}
+                        {processedData.raw_data.system_health?.disk_health && (
+                          <div className="p-4 border rounded-lg">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <HardDrive className="w-4 h-4 text-green-500" />
+                              <span className="font-medium">Disk Health</span>
+                            </div>
+                            <div className="text-sm">
+                              <div className="flex justify-between">
+                                <span>Status:</span>
+                                <Badge variant={processedData.raw_data.system_health.disk_health.status === "healthy" ? "default" : "destructive"}>
+                                  {processedData.raw_data.system_health.disk_health.status}
+                                </Badge>
+                              </div>
+                              {processedData.raw_data.system_health.disk_health.note && (
+                                <div className="mt-1 text-xs text-neutral-500">
+                                  {processedData.raw_data.system_health.disk_health.note}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Virtualization Status */}
+                        {processedData.raw_data.extracted_virtualization && (
+                          <div className="p-4 border rounded-lg">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <Monitor className="w-4 h-4 text-blue-500" />
+                              <span className="font-medium">Virtualization</span>
+                            </div>
+                            <div className="text-sm">
+                              <div className="flex justify-between">
+                                <span>Virtual:</span>
+                                <Badge variant={processedData.raw_data.extracted_virtualization.is_virtual ? "secondary" : "default"}>
+                                  {processedData.raw_data.extracted_virtualization.is_virtual ? "Yes" : "No"}
+                                </Badge>
+                              </div>
+                              {processedData.raw_data.extracted_virtualization.hypervisor && 
+                               processedData.raw_data.extracted_virtualization.hypervisor !== "unknown" && (
+                                <div className="mt-1">
+                                  Hypervisor: {processedData.raw_data.extracted_virtualization.hypervisor}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Recommendations */}
+                      <div className="mt-6">
+                        <h4 className="font-medium mb-3">System Recommendations</h4>
+                        <div className="space-y-2">
+                          {/* Memory recommendation */}
+                          {metrics.memoryUsage > 85 && (
+                            <div className="p-3 border-l-4 border-orange-500 bg-orange-50 dark:bg-orange-900/20">
+                              <div className="text-sm">
+                                <div className="font-medium text-orange-800 dark:text-orange-200">High Memory Usage</div>
+                                <div className="text-orange-700 dark:text-orange-300">
+                                  Consider closing unnecessary applications or adding more RAM.
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Disk recommendation */}
+                          {metrics.diskUsage > 85 && (
+                            <div className="p-3 border-l-4 border-red-500 bg-red-50 dark:bg-red-900/20">
+                              <div className="text-sm">
+                                <div className="font-medium text-red-800 dark:text-red-200">Low Disk Space</div>
+                                <div className="text-red-700 dark:text-red-300">
+                                  Clean up disk space by removing temporary files and uninstalling unused programs.
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Reboot recommendation */}
+                          {processedData.raw_data.extracted_update_info?.pending_reboot && (
+                            <div className="p-3 border-l-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20">
+                              <div className="text-sm">
+                                <div className="font-medium text-yellow-800 dark:text-yellow-200">Reboot Required</div>
+                                <div className="text-yellow-700 dark:text-yellow-300">
+                                  A system restart is required to complete pending updates.
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Show success message if everything is good */}
+                          {metrics.memoryUsage <= 85 && metrics.diskUsage <= 85 && 
+                           !processedData.raw_data.extracted_update_info?.pending_reboot && (
+                            <div className="p-3 border-l-4 border-green-500 bg-green-50 dark:bg-green-900/20">
+                              <div className="text-sm">
+                                <div className="font-medium text-green-800 dark:text-green-200">System Health Good</div>
+                                <div className="text-green-700 dark:text-green-300">
+                                  No immediate action required. System is running optimally.
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-neutral-500">
+                      <Activity className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
+                      <p>No system health data available</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </SafeDataRenderer>
         </TabsContent>
       </Tabs>
