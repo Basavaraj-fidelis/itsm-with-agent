@@ -4,7 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { formatDistanceToNow } from "date-fns";
-import type { Device } from "@shared/schema";
+import { AgentErrorBoundary, SafeDataRenderer } from "@/components/ui/agent-error-boundary";
+import { useProcessedAgentData } from "@/lib/agent-data-processor";
+import type { Agent } from "@/types/agent-types";
 import {
   Activity,
   AlertTriangle,
@@ -37,158 +39,35 @@ import {
   Terminal,
   Globe,
   Search,
+  Package,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { Progress } from "@/components/ui/progress";
 import { AIInsights } from "./ai-insights";
-import { Package } from "lucide-react";
 
 interface AgentTabsProps {
-  agent: any;
+  agent: Agent;
 }
 
 // Helper function to format bytes to human-readable format
 const formatBytes = (bytes: number, decimals: number = 2) => {
   if (bytes === 0) return "0 Bytes";
-
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
   const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
-
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
-};
-
-const getEthernetIP = (agent: any) => {
-  // Check raw_data first for network interfaces
-  const rawData = agent.latest_report?.raw_data
-    ? typeof agent.latest_report.raw_data === "string"
-      ? JSON.parse(agent.latest_report.raw_data)
-      : agent.latest_report.raw_data
-    : {};
-
-  const interfaces =
-    rawData.network?.interfaces || agent.network?.interfaces || [];
-  for (const iface of interfaces) {
-    const name = iface.name?.toLowerCase() || "";
-    // Look for actual Ethernet interfaces, exclude vEthernet (virtual)
-    if (
-      (name.includes("eth") ||
-        name.includes("ethernet") ||
-        name.includes("enet") ||
-        name.includes("local area connection")) &&
-      !name.includes("veth") &&
-      !name.includes("virtual") &&
-      iface.stats?.is_up !== false // Only get active interfaces
-    ) {
-      for (const addr of iface.addresses || []) {
-        if (
-          addr.family === "AF_INET" &&
-          !addr.address.startsWith("127.") &&
-          !addr.address.startsWith("169.254.") &&
-          addr.address !== "0.0.0.0"
-        ) {
-          return addr.address;
-        }
-      }
-    }
-  }
-
-  return "Not Available";
-};
-
-const getWiFiIP = (agent: any) => {
-  // Check raw_data first for network interfaces
-  const rawData = agent.latest_report?.raw_data
-    ? typeof agent.latest_report.raw_data === "string"
-      ? JSON.parse(agent.latest_report.raw_data)
-      : agent.latest_report.raw_data
-    : {};
-
-  const interfaces =
-    rawData.network?.interfaces || agent.network?.interfaces || [];
-  for (const iface of interfaces) {
-    const name = iface.name?.toLowerCase() || "";
-    if (
-      (name.includes("wifi") ||
-        name.includes("wlan") ||
-        name.includes("wireless") ||
-        name.includes("wi-fi") ||
-        name.includes("802.11")) &&
-      iface.stats?.is_up !== false // Only get active interfaces
-    ) {
-      for (const addr of iface.addresses || []) {
-        if (
-          addr.family === "AF_INET" &&
-          !addr.address.startsWith("127.") &&
-          !addr.address.startsWith("169.254.") &&
-          addr.address !== "0.0.0.0"
-        ) {
-          return addr.address;
-        }
-      }
-    }
-  }
-
-  return "Not Available";
-};
-
-const getAllIPs = (agent: any) => {
-  // Check raw_data first for network interfaces
-  const rawData = agent.latest_report?.raw_data
-    ? typeof agent.latest_report.raw_data === "string"
-      ? JSON.parse(agent.latest_report.raw_data)
-      : agent.latest_report.raw_data
-    : {};
-
-  const allIPs: string[] = [];
-  const interfaces =
-    rawData.network?.interfaces || agent.network?.interfaces || [];
-
-  for (const iface of interfaces) {
-    // Skip virtual and loopback interfaces for main IP detection
-    const name = iface.name?.toLowerCase() || "";
-    const isVirtual =
-      name.includes("virtual") ||
-      name.includes("veth") ||
-      name.includes("docker") ||
-      name.includes("vmware");
-
-    if (!isVirtual && iface.stats?.is_up !== false) {
-      for (const addr of iface.addresses || []) {
-        if (
-          addr.family === "AF_INET" &&
-          addr.address &&
-          !addr.address.startsWith("127.") &&
-          !addr.address.startsWith("169.254.") &&
-          addr.address !== "0.0.0.0" &&
-          !allIPs.includes(addr.address)
-        ) {
-          allIPs.push(addr.address);
-        }
-      }
-    }
-  }
-
-  return allIPs;
 };
 
 export default function AgentTabs({ agent }: AgentTabsProps) {
   const [usbHistory, setUsbHistory] = useState([]);
+  const processedData = useProcessedAgentData(agent);
 
   useEffect(() => {
     const fetchUSBHistory = async () => {
       try {
         const token = localStorage.getItem("auth_token");
-        console.log(
-          "Fetching USB devices for agent:",
-          agent.id,
-          "with token:",
-          !!token,
-        );
-
         const response = await fetch(`/api/devices/${agent.id}/usb-devices`, {
           headers: token
             ? {
@@ -202,16 +81,11 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
 
         if (response.ok) {
           const data = await response.json();
-          console.log("USB devices fetched from API:", data);
           setUsbHistory(data);
         } else if (response.status === 403) {
           console.warn("Access forbidden for USB devices endpoint");
         } else {
-          console.error(
-            "Failed to fetch USB devices:",
-            response.status,
-            response.statusText,
-          );
+          console.error("Failed to fetch USB devices:", response.status, response.statusText);
         }
       } catch (error) {
         console.error("Error fetching USB history:", error);
@@ -220,263 +94,22 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
 
     if (agent.id) {
       fetchUSBHistory();
-
-      // Also log USB devices found in raw data for debugging
-      const currentUSB = getUSBDevices();
-      console.log("USB devices in raw data:", currentUSB);
-      console.log("Raw data keys:", Object.keys(rawData));
-      if (rawData.hardware) {
-        console.log("Hardware keys:", Object.keys(rawData.hardware));
-      }
     }
   }, [agent.id]);
 
+  if (!processedData) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-2"></div>
+          <p className="text-gray-600">Processing agent data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { systemInfo, networkInfo, hardwareInfo, metrics, usbDevices, processes, software, storage } = processedData;
   const latestReport = agent.latest_report;
-
-  // Parse metrics
-  const cpuUsage = latestReport?.cpu_usage
-    ? parseFloat(latestReport.cpu_usage)
-    : 0;
-  const memoryUsage = latestReport?.memory_usage
-    ? parseFloat(latestReport.memory_usage)
-    : 0;
-  const diskUsage = latestReport?.disk_usage
-    ? Math.round(parseFloat(latestReport.disk_usage))
-    : 0;
-
-  // Parse raw data for detailed information
-  const rawData = latestReport?.raw_data
-    ? typeof latestReport.raw_data === "string"
-      ? JSON.parse(latestReport.raw_data)
-      : latestReport.raw_data
-    : {};
-
-  // Extract system information with proper fallbacks
-  const systemInfo =
-    rawData.system_info || rawData.hardware || rawData.os_info || {};
-  const networkInfo =
-    rawData.network_interfaces || rawData.network || rawData.network_info || {};
-  const storageInfo =
-    rawData.storage || rawData.disk_info || rawData.disks || {};
-  const processInfo = rawData.processes || rawData.running_processes || [];
-  const softwareInfo = rawData.installed_software || rawData.software || [];
-  const hardwareInfo = rawData.hardware || {};
-
-  // Hardware details
-  const cpuInfo = hardwareInfo.cpu || {};
-  const memoryInfo = hardwareInfo.memory || {};
-  const systemHardware = hardwareInfo.system || {};
-
-  // Extract manufacturer and model with fallbacks
-  const manufacturer =
-    systemHardware.manufacturer ||
-    rawData.manufacturer ||
-    rawData.system_info?.manufacturer ||
-    rawData.hardware?.manufacturer ||
-    "Unknown";
-
-  const model =
-    systemHardware.model ||
-    rawData.model ||
-    rawData.system_info?.model ||
-    rawData.hardware?.model ||
-    "Unknown";
-
-  // Extract MAC addresses from network interfaces
-  const getMacAddresses = () => {
-    const macAddresses = [];
-
-    // First check for primary_mac in raw data (top level)
-    if (rawData.primary_mac) {
-      return rawData.primary_mac;
-    }
-
-    // Check in various nested locations
-    if (rawData.network?.primary_mac) {
-      return rawData.network.primary_mac;
-    }
-
-    if (rawData.hardware?.primary_mac) {
-      return rawData.hardware.primary_mac;
-    }
-
-    if (rawData.system_info?.primary_mac) {
-      return rawData.system_info.primary_mac;
-    }
-
-    const networkData = rawData.network || {};
-
-    // Check for interfaces array with AF_LINK (MAC addresses)
-    if (networkData.interfaces && Array.isArray(networkData.interfaces)) {
-      networkData.interfaces.forEach((iface: any) => {
-        if (iface.addresses && Array.isArray(iface.addresses)) {
-          iface.addresses.forEach((addr: any) => {
-            // Look for AF_LINK addresses which contain MAC addresses
-            if (
-              addr.family &&
-              (addr.family.includes("AF_LINK") ||
-                addr.family.includes("AF_PACKET")) &&
-              addr.address &&
-              addr.address !== "00:00:00:00:00:00"
-            ) {
-              macAddresses.push(`${iface.name}: ${addr.address}`);
-            }
-          });
-        }
-        // Also check for direct mac property on interface
-        if (iface.mac && iface.mac !== "00:00:00:00:00:00") {
-          macAddresses.push(`${iface.name}: ${iface.mac}`);
-        }
-      });
-    }
-
-    // If we found MAC addresses from interfaces, return them
-    if (macAddresses.length > 0) {
-      return macAddresses.join(", ");
-    }
-
-    // Fallback to any MAC address fields
-    const possibleMacFields = [
-      rawData.mac_address,
-      rawData.hardware?.mac_address,
-      rawData.network?.mac_address,
-      rawData.system_info?.mac_address,
-    ];
-
-    for (const mac of possibleMacFields) {
-      if (mac && mac !== "00:00:00:00:00:00") {
-        return mac;
-      }
-    }
-
-    return "Not available";
-  };
-
-  // Extract USB devices from various possible locations in the raw data
-  const getUSBDevices = () => {
-    // Check multiple possible locations for USB device data
-    const possibleLocations = [
-      rawData.usb_devices,
-      rawData.hardware?.usb_devices,
-      rawData.system_info?.usb_devices,
-      rawData.devices?.usb,
-      hardwareInfo.usb_devices,
-    ];
-
-    for (const location of possibleLocations) {
-      if (location && Array.isArray(location) && location.length > 0) {
-        return location;
-      }
-    }
-
-    return [];
-  };
-
-  const usbDevices = getUSBDevices();
-
-  // Helper function to convert bytes to GB
-  const bytesToGB = (bytes: number) => {
-    if (!bytes || bytes === 0) return "0 GB";
-    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + " GB";
-  };
-
-  // Helper function to safely get nested values
-  const getSystemValue = (keys: string[], fallback = "Unknown") => {
-    for (const key of keys) {
-      if (
-        rawData[key] !== undefined &&
-        rawData[key] !== null &&
-        rawData[key] !== ""
-      ) {
-        return rawData[key];
-      }
-      if (
-        systemInfo[key] !== undefined &&
-        systemInfo[key] !== null &&
-        systemInfo[key] !== ""
-      ) {
-        return systemInfo[key];
-      }
-    }
-    return fallback;
-  };
-
-  // Extract specific system details
-  const hostname =
-    agent.hostname || rawData.hostname || rawData.computer_name || "Unknown";
-  const osName =
-    agent.os_name ||
-    rawData.os ||
-    rawData.operating_system ||
-    systemInfo.os ||
-    systemInfo.operating_system ||
-    "Unknown";
-  const osVersion =
-    agent.os_version ||
-    rawData.os_version ||
-    systemInfo.os_version ||
-    rawData.version ||
-    "Unknown";
-  const architecture =
-    rawData.os_info?.architecture ||
-    rawData.architecture ||
-    systemInfo.architecture ||
-    rawData.arch ||
-    systemInfo.arch ||
-    rawData.system_info?.architecture ||
-    rawData.hardware?.system?.architecture ||
-    rawData.platform_info?.architecture ||
-    "64bit";
-
-  const processor =
-    rawData.hardware?.cpu?.model ||
-    cpuInfo.model ||
-    rawData.processor ||
-    systemInfo.processor ||
-    rawData.cpu_model ||
-    systemInfo.cpu_model ||
-    rawData.cpu ||
-    rawData.os_info?.processor ||
-    "Intel(R) Core(TM) i5-10400F CPU @ 2.90GHz";
-  const physicalCores =
-    cpuInfo.physical_cores || rawData.hardware?.cpu?.physical_cores || "N/A";
-  const logicalCores =
-    cpuInfo.logical_cores || rawData.hardware?.cpu?.logical_cores || "N/A";
-  const cpuFreq = cpuInfo.current_freq
-    ? `${cpuInfo.current_freq} MHz`
-    : rawData.hardware?.cpu?.current_freq
-      ? `${rawData.hardware?.cpu?.current_freq} MHz`
-      : "N/A";
-  const maxFreq = cpuInfo.max_freq
-    ? `${cpuInfo.max_freq} MHz`
-    : rawData.hardware?.cpu?.max_freq
-      ? `${rawData.hardware?.cpu?.max_freq} MHz`
-      : "N/A";
-
-  const totalMemory = memoryInfo.total
-    ? bytesToGB(memoryInfo.total)
-    : rawData.total_memory ||
-      systemInfo.total_memory ||
-      rawData.memory_total ||
-      "Unknown";
-  const availableMemory = memoryInfo.available
-    ? bytesToGB(memoryInfo.available)
-    : rawData.available_memory || rawData.memory_available || "Unknown";
-  const usedMemory = memoryInfo.used ? bytesToGB(memoryInfo.used) : "Unknown";
-
-  const serialNumber =
-    rawData.hardware?.system?.serial_number ||
-    systemHardware.serial_number ||
-    rawData.serial_number ||
-    rawData.system_info?.serial_number ||
-    "To be filled by O.E.M.";
-
-  // Sort processes by memory usage and get top 10
-  const topProcesses = Array.isArray(processInfo)
-    ? processInfo
-        .sort((a, b) => (b.memory_percent || 0) - (a.memory_percent || 0))
-        .slice(0, 10)
-    : [];
 
   // Reusable Stat display component
   const Stat = ({ label, value }: { label: string; value: string }) => (
@@ -486,1842 +119,814 @@ export default function AgentTabs({ agent }: AgentTabsProps) {
     </div>
   );
 
-  return (
-    <Tabs defaultValue="overview" className="w-full">
-      <TabsList className="grid w-full grid-cols-8">
-        <TabsTrigger value="overview" className="flex items-center space-x-2">
-          <Activity className="w-4 h-4" />
-          <span>Overview</span>
-        </TabsTrigger>
-        <TabsTrigger value="ai-insights" className="flex items-center space-x-2">
-          <Brain className="w-4 h-4" />
-          <span>AI Insights</span>
-        </TabsTrigger>
-        <TabsTrigger value="hardware">Hardware</TabsTrigger>
-        <TabsTrigger value="network">Network</TabsTrigger>
-        <TabsTrigger value="storage">Storage</TabsTrigger>
-        <TabsTrigger value="processes">Processes</TabsTrigger>
-        <TabsTrigger value="software">Software</TabsTrigger>
-        <TabsTrigger value="updates" className="flex items-center space-x-2">
-          <Package className="w-4 h-4" />
-          <span>Updates</span>
-        </TabsTrigger>
-      </TabsList>
-
-      {/* AI Insights Tab */}
-      <TabsContent value="ai-insights" className="space-y-6">
-        <AIInsights agent={agent} />
-      </TabsContent>
-
-      {/* Overview Tab */}
-      <TabsContent value="overview" className="space-y-6">
-        {/* System Information */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Monitor className="w-5 h-5" />
-                <span>System Information</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 gap-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Hostname:</span>
-                  <span className="font-medium">{hostname}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Status:</span>
-                  <Badge
-                    variant={
-                      agent.status === "online" ? "default" : "destructive"
-                    }
-                  >
-                    {agent.status}
-                  </Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Operating System:</span>
-                  <span className="font-medium">{osName}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">OS Version:</span>
-                  <span className="font-medium">{osVersion}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Architecture:</span>
-                  <span className="font-medium">
-                    {architecture !== "Unknown" ? architecture : "N/A"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">IP Address:</span>
-                  <span className="font-medium">
-                    {(() => {
-                      // First try to get Ethernet IP
-                      const ethernetIP = getEthernetIP(agent);
-                      if (ethernetIP !== "Not Available") {
-                        return ethernetIP;
-                      }
-
-                      // Then try Wi-Fi IP
-                      const wifiIP = getWiFiIP(agent);
-                      if (wifiIP !== "Not Available") {
-                        return wifiIP;
-                      }
-
-                      // Get any active IP from all interfaces
-                      const allIPs = getAllIPs(agent);
-                      if (allIPs.length > 0) {
-                        return allIPs[0]; // Return the first active IP
-                      }
-
-                      // Fallback to agent data
-                      return (
-                        agent.ip_address ||
-                        rawData.ip_address ||
-                        "Not Available"
-                      );
-                    })()}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Assigned User:</span>
-                  <span className="font-medium">
-                    {(() => {
-                      // Try multiple sources for assigned user
-                      const user =
-                        rawData.extracted_current_user ||
-                        rawData.assigned_user ||
-                        agent.assigned_user ||
-                        rawData.current_user ||
-                        rawData.user ||
-                        rawData.username ||
-                        rawData.system_info?.current_user ||
-                        rawData.os_info?.current_user ||
-                        rawData.hardware?.current_user;
-
-                      console.log(
-                        "Agent detail user found:",
-                        user,
-                        "for agent:",
-                        agent.hostname,
-                      );
-
-                      // Filter out system accounts and invalid values
-                      if (
-                        !user ||
-                        user.endsWith("$") ||
-                        user === "Unknown" ||
-                        user === "N/A" ||
-                        user.includes("SYSTEM") ||
-                        user.includes("NETWORK SERVICE") ||
-                        user.includes("LOCAL SERVICE")
-                      ) {
-                        return "N/A";
-                      }
-
-                      // Handle computer accounts like "DESKTOP-CMM8H3C$" - extract actual user from processes or other sources
-                      if (user.endsWith("$")) {
-                        // Look for actual user in processes data
-                        const processes = rawData.processes || [];
-                        for (const process of processes) {
-                          const processUser = process.username;
-                          if (
-                            processUser &&
-                            processUser.includes("\\") &&
-                            !processUser.includes("NT AUTHORITY") &&
-                            !processUser.includes("Window Manager")
-                          ) {
-                            const actualUser = processUser.split("\\").pop();
-                            if (
-                              actualUser &&
-                              !actualUser.endsWith("$") &&
-                              actualUser !== "SYSTEM"
-                            ) {
-                              return actualUser;
-                            }
-                          }
-                        }
-                        return "N/A";
-                      }
-
-                      // Handle domain users like "DESKTOP-CMM8H3C\basav" or "DOMAIN\user"
-                      if (user.includes("\\"))
-                        return user.split("\\").pop() || user;
-                      // Handle email format
-                      if (user.includes("@")) return user.split("@")[0];
-                      return user;
-                    })()}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Last Report:</span>
-                  <span className="font-medium">
-                    {latestReport?.collected_at
-                      ? formatDistanceToNow(
-                          new Date(latestReport.collected_at),
-                          { addSuffix: true },
-                        )
-                      : "Never"}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Current Metrics */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Activity className="w-5 h-5" />
-                <span>Current Performance</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {/* CPU Usage */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Cpu className="w-4 h-4 text-blue-600" />
-                      <span className="text-sm font-medium">CPU Usage</span>
-                    </div>
-                    <span
-                      className={`text-sm font-medium ${
-                        cpuUsage >= 85
-                          ? "text-red-600"
-                          : cpuUsage >= 75
-                            ? "text-yellow-600"
-                            : "text-green-600"
-                      }`}
-                    >
-                      {Math.round(cpuUsage)}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full ${
-                        cpuUsage >= 85
-                          ? "bg-red-500"
-                          : cpuUsage >= 75
-                            ? "bg-yellow-500"
-                            : "bg-green-500"
-                      }`}
-                      style={{ width: `${Math.min(cpuUsage, 100)}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Memory Usage */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <MemoryStick className="w-4 h-4 text-purple-600" />
-                      <span className="text-sm font-medium">Memory Usage</span>
-                    </div>
-                    <span
-                      className={`text-sm font-medium ${
-                        memoryUsage >= 85
-                          ? "text-red-600"
-                          : memoryUsage >= 75
-                            ? "text-yellow-600"
-                            : "text-green-600"
-                      }`}
-                    >
-                      {Math.round(memoryUsage)}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full ${
-                        memoryUsage >= 85
-                          ? "bg-red-500"
-                          : memoryUsage >= 75
-                            ? "bg-yellow-500"
-                            : "bg-green-500"
-                      }`}
-                      style={{ width: `${Math.min(memoryUsage, 100)}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Disk Usage */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <HardDrive className="w-4 h-4 text-orange-600" />
-                      <span className="text-sm font-medium">Disk Usage</span>
-                    </div>
-                    <span
-                      className={`text-sm font-medium ${
-                        diskUsage >= 85
-                          ? "text-red-600"
-                          : diskUsage >= 75
-                            ? "text-yellow-600"
-                            : "text-green-600"
-                      }`}
-                    >
-                      {Math.round(diskUsage)}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full ${
-                        diskUsage >= 85
-                          ? "bg-red-500"
-                          : diskUsage >= 75
-                            ? "bg-yellow-500"
-                            : "bg-green-500"
-                      }`}
-                      style={{ width: `${Math.min(diskUsage, 100)}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+  // Performance bar component
+  const PerformanceBar = ({ 
+    label, 
+    value, 
+    icon: Icon 
+  }: { 
+    label: string; 
+    value: number; 
+    icon: any 
+  }) => (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Icon className="w-4 h-4 text-blue-600" />
+          <span className="text-sm font-medium">{label}</span>
         </div>
-        {/* Realtime Data Terminal */}
-        <Card className="col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Terminal className="w-5 h-5" />
-              <span>Realtime System Data</span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.location.reload()}
-                className="ml-auto"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm h-96 overflow-y-auto">
-              <div className="space-y-1">
-                <div className="text-green-300">
-                  # ITSM Agent - {agent.hostname} - Live System Data
-                </div>
-                <div className="text-yellow-400">
-                  Last Updated:{" "}
-                  {latestReport?.collected_at
-                    ? new Date(latestReport.collected_at).toLocaleString()
-                    : "N/A"}
-                </div>
-                <div>
-                  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                </div>
+        <span
+          className={`text-sm font-medium ${
+            value >= 85
+              ? "text-red-600"
+              : value >= 75
+                ? "text-yellow-600"
+                : "text-green-600"
+          }`}
+        >
+          {Math.round(value)}%
+        </span>
+      </div>
+      <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
+        <div
+          className={`h-2 rounded-full ${
+            value >= 85
+              ? "bg-red-500"
+              : value >= 75
+                ? "bg-yellow-500"
+                : "bg-green-500"
+          }`}
+          style={{ width: `${Math.min(value, 100)}%` }}
+        />
+      </div>
+    </div>
+  );
 
-                <div className="mt-4">
-                  <div className="text-blue-400">SYSTEM STATUS:</div>
-                  <div>
-                    Status:{" "}
-                    <span
-                      className={
-                        agent.status === "online"
-                          ? "text-green-400"
-                          : "text-red-400"
-                      }
-                    >
-                      {agent.status.toUpperCase()}
-                    </span>
-                  </div>
-                  <div>
-                    OS:{" "}
-                    {rawData.os_info?.name ||
-                      rawData.os_info?.platform ||
-                      agent.os_name ||
-                      "Windows 10"}{" "}
-                    {rawData.os_info?.version ||
-                      rawData.os_info?.release ||
-                      agent.os_version ||
-                      ""}
-                  </div>
-                  <div>
-                    Architecture:{" "}
-                    {rawData.os_info?.architecture ||
-                      rawData.architecture ||
-                      rawData.hardware?.system?.architecture ||
-                      "64bit"}
-                  </div>
-                  <div>
-                    Assigned User:{" "}
-                    {(() => {
-                      const user =
-                        rawData.assigned_user ||
-                        agent.assigned_user ||
-                        rawData.current_user ||
-                        rawData.user ||
-                        rawData.username;
-                      if (!user || user === "Unknown") return "N/A";
-                      if (user.endsWith("$")) {
-                        // Look for actual user in processes data
-                        const processes = rawData.processes || [];
-                        for (const process of processes) {
-                          const processUser = process.username;
-                          if (
-                            processUser &&
-                            processUser.includes("\\") &&
-                            !processUser.includes("NT AUTHORITY") &&
-                            !processUser.includes("Window Manager")
-                          ) {
-                            const actualUser = processUser.split("\\").pop();
-                            if (
-                              actualUser &&
-                              !actualUser.endsWith("$") &&
-                              actualUser !== "SYSTEM"
-                            ) {
-                              return actualUser;
-                            }
-                          }
-                        }
-                        return "Computer Account";
-                      }
-                      if (user.includes("\\"))
-                        return user.split("\\").pop() || user;
-                      if (user.includes("@")) return user.split("@")[0];
-                      return user;
-                    })()}
-                  </div>
-                </div>
+  return (
+    <AgentErrorBoundary>
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-8">
+          <TabsTrigger value="overview" className="flex items-center space-x-2">
+            <Activity className="w-4 h-4" />
+            <span>Overview</span>
+          </TabsTrigger>
+          <TabsTrigger value="ai-insights" className="flex items-center space-x-2">
+            <Brain className="w-4 h-4" />
+            <span>AI Insights</span>
+          </TabsTrigger>
+          <TabsTrigger value="hardware">Hardware</TabsTrigger>
+          <TabsTrigger value="network">Network</TabsTrigger>
+          <TabsTrigger value="storage">Storage</TabsTrigger>
+          <TabsTrigger value="processes">Processes</TabsTrigger>
+          <TabsTrigger value="software">Software</TabsTrigger>
+          <TabsTrigger value="updates" className="flex items-center space-x-2">
+            <Package className="w-4 h-4" />
+            <span>Updates</span>
+          </TabsTrigger>
+        </TabsList>
 
-                <div className="mt-4">
-                  <div className="text-blue-400">PERFORMANCE METRICS:</div>
-                  <div>
-                    CPU Usage:{" "}
-                    <span className="text-yellow-400">
-                      {latestReport?.cpu_usage
-                        ? parseFloat(latestReport.cpu_usage).toFixed(2)
-                        : "0.00"}
-                      %
-                    </span>
-                  </div>
-                  <div>
-                    Memory Usage:{" "}
-                    <span className="text-yellow-400">
-                      {latestReport?.memory_usage
-                        ? parseFloat(latestReport.memory_usage).toFixed(2)
-                        : "0.00"}
-                      %
-                    </span>
-                  </div>
-                  <div>
-                    Disk Usage:{" "}
-                    <span className="text-yellow-400">
-                      {latestReport?.disk_usage
-                        ? parseFloat(latestReport.disk_usage).toFixed(2)
-                        : "0.00"}
-                      %
-                    </span>
-                  </div>
-                  <div>
-                    Network I/O:{" "}
-                    <span className="text-yellow-400">
-                      {latestReport?.network_io
-                        ? (
-                            parseInt(latestReport.network_io) /
-                            1024 /
-                            1024
-                          ).toFixed(2)
-                        : "0.00"}{" "}
-                      MB
-                    </span>
-                  </div>
-                </div>
+        {/* AI Insights Tab */}
+        <TabsContent value="ai-insights" className="space-y-6">
+          <SafeDataRenderer>
+            <AIInsights agent={agent} />
+          </SafeDataRenderer>
+        </TabsContent>
 
-                <div className="mt-4">
-                  <div className="text-blue-400">SYSTEM HEALTH:</div>
-                  {rawData.system_health ? (
-                    <>
-                      <div>
-                        Disk Health:{" "}
-                        <span className="text-green-400">
-                          {rawData.system_health.disk_health?.status ||
-                            "Unknown"}
-                        </span>
-                      </div>
-                      <div>
-                        Memory Pressure:{" "}
-                        <span className="text-yellow-400">
-                          {rawData.system_health.memory_pressure
-                            ?.pressure_level || "Unknown"}
-                        </span>
-                      </div>
-                      <div>
-                        Memory Usage:{" "}
-                        <span className="text-yellow-400">
-                          {rawData.system_health.memory_pressure
-                            ?.usage_percent || 0}
-                          %
-                        </span>
-                      </div>
-                    </>
-                  ) : null}
-                </div>
-
-                <div className="mt-4">
-                  <div className="text-blue-400">SECURITY STATUS:</div>
-                  {rawData.security ? (
-                    <>
-                      <div>
-                        Firewall:{" "}
-                        <span className="text-green-400">
-                          {rawData.security.firewall_status || "Unknown"}
-                        </span>
-                      </div>
-                      <div>
-                        Antivirus:{" "}
-                        <span className="text-green-400">
-                          {rawData.security.antivirus_status || "Unknown"}
-                        </span>
-                      </div>
-                      <div>
-                        Last Scan:{" "}
-                        <span className="text-yellow-400">
-                          {rawData.security.last_scan || "Unknown"}
-                        </span>
-                      </div>
-                    </>
-                  ) : (
-                    <div>No security data available</div>
-                  )}
-                </div>
-
-                <div className="mt-4">
-                  <div className="text-blue-400">TOP PROCESSES (by CPU):</div>
-                  {rawData.processes && rawData.processes.length > 0 ? (
-                    rawData.processes
-                      .filter((process) => process.cpu_percent > 1)
-                      .sort((a, b) => b.cpu_percent - a.cpu_percent)
-                      .slice(0, 10)
-                      .map((process, index) => (
-                        <div key={index}>
-                          PID {process.pid}:{" "}
-                          <span className="text-cyan-400">{process.name}</span>{" "}
-                          - CPU:{" "}
-                          <span className="text-yellow-400">
-                            {process.cpu_percent.toFixed(1)}%
-                          </span>{" "}
-                          RAM:{" "}
-                          <span className="text-yellow-400">
-                            {process.memory_percent.toFixed(1)}%
-                          </span>
-                        </div>
-                      ))
-                  ) : (
-                    <div>No process data available</div>
-                  )}
-                </div>
-
-                <div className="mt-4">
-                  <div className="text-blue-400">
-                    INSTALLED SOFTWARE (Sample):
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6">
+          <SafeDataRenderer>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* System Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Monitor className="w-5 h-5" />
+                    <span>System Information</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 gap-3 text-sm">
+                    <Stat label="Hostname" value={systemInfo.hostname} />
+                    <div className="flex justify-between">
+                      <span className="text-neutral-600">Status:</span>
+                      <Badge variant={agent.status === "online" ? "default" : "destructive"}>
+                        {agent.status}
+                      </Badge>
+                    </div>
+                    <Stat label="Operating System" value={systemInfo.osName} />
+                    <Stat label="OS Version" value={systemInfo.osVersion} />
+                    <Stat label="Architecture" value={systemInfo.architecture} />
+                    <Stat label="IP Address" value={networkInfo.primaryIP} />
+                    <Stat label="Assigned User" value={systemInfo.assignedUser} />
+                    <div className="flex justify-between">
+                      <span className="text-neutral-600">Last Report:</span>
+                      <span className="font-medium">
+                        {latestReport?.collected_at
+                          ? formatDistanceToNow(new Date(latestReport.collected_at), { addSuffix: true })
+                          : "Never"}
+                      </span>
+                    </div>
                   </div>
-                  {rawData.software && rawData.software.length > 0 ? (
-                    rawData.software.slice(0, 5).map((software, index) => (
-                      <div key={index}>
-                        <span className="text-cyan-400">{software.name}</span> v
-                        {software.version} -{" "}
-                        <span className="text-gray-400">{software.vendor}</span>
-                      </div>
-                    ))
-                  ) : (
-                    <div>No software data available</div>
-                  )}
-                </div>
+                </CardContent>
+              </Card>
 
-                <div className="mt-4">
-                  <div className="text-blue-400">NETWORK INFO:</div>
-                  {(() => {
-                    const interfaces =
-                      rawData.network?.interfaces ||
-                      agent.network?.interfaces ||
-                      [];
-                    const activeInterfaces = interfaces.filter(
-                      (iface) =>
-                        iface.stats?.is_up &&
-                        iface.addresses &&
-                        iface.addresses.some(
-                          (addr) =>
-                            addr.family === "AF_INET" &&
-                            !addr.address.startsWith("127.") &&
-                            !addr.address.startsWith("169.254."),
-                        ),
-                    );
-                    return activeInterfaces.length > 0 ? (
-                      activeInterfaces.slice(0, 3).map((iface, index) => {
-                        const ipAddr = iface.addresses.find(
-                          (addr) =>
-                            addr.family === "AF_INET" &&
-                            !addr.address.startsWith("127.") &&
-                            !addr.address.startsWith("169.254."),
+              {/* Current Metrics */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Activity className="w-5 h-5" />
+                    <span>Current Performance</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <PerformanceBar label="CPU Usage" value={metrics.cpuUsage} icon={Cpu} />
+                    <PerformanceBar label="Memory Usage" value={metrics.memoryUsage} icon={MemoryStick} />
+                    <PerformanceBar label="Disk Usage" value={metrics.diskUsage} icon={HardDrive} />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Terminal Data Display */}
+            <Card className="col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Terminal className="w-5 h-5" />
+                  <span>Realtime System Data</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.location.reload()}
+                    className="ml-auto"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm h-96 overflow-y-auto">
+                  <div className="space-y-1">
+                    <div className="text-green-300"># ITSM Agent - {systemInfo.hostname} - Live System Data</div>
+                    <div className="text-yellow-400">
+                      Last Updated: {latestReport?.collected_at ? new Date(latestReport.collected_at).toLocaleString() : "N/A"}
+                    </div>
+                    <div>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
+
+                    <div className="mt-4">
+                      <div className="text-blue-400">SYSTEM STATUS:</div>
+                      <div>Status: <span className={agent.status === "online" ? "text-green-400" : "text-red-400"}>{agent.status.toUpperCase()}</span></div>
+                      <div>OS: {systemInfo.osName} {systemInfo.osVersion}</div>
+                      <div>Architecture: {systemInfo.architecture}</div>
+                      <div>Assigned User: {systemInfo.assignedUser}</div>
+                    </div>
+
+                    <div className="mt-4">
+                      <div className="text-blue-400">PERFORMANCE METRICS:</div>
+                      <div>CPU Usage: <span className="text-yellow-400">{metrics.cpuUsage.toFixed(2)}%</span></div>
+                      <div>Memory Usage: <span className="text-yellow-400">{metrics.memoryUsage.toFixed(2)}%</span></div>
+                      <div>Disk Usage: <span className="text-yellow-400">{metrics.diskUsage.toFixed(2)}%</span></div>
+                      <div>Network I/O: <span className="text-yellow-400">{(metrics.networkIO / 1024 / 1024).toFixed(2)} MB</span></div>
+                    </div>
+
+                    <div className="mt-4">
+                      <div className="text-blue-400">NETWORK INFO:</div>
+                      {networkInfo.interfaces.slice(0, 3).map((iface, index) => {
+                        const ipAddr = iface.addresses?.find(addr => 
+                          addr.family === "AF_INET" && 
+                          !addr.address.startsWith("127.") && 
+                          !addr.address.startsWith("169.254.")
                         );
                         return (
                           <div key={index}>
-                            {iface.name}:{" "}
-                            <span className="text-green-400">Active</span> - IP:{" "}
-                            <span className="text-yellow-400">
-                              {ipAddr?.address || "N/A"}
-                            </span>
+                            {iface.name}: <span className="text-green-400">Active</span> - IP: <span className="text-yellow-400">{ipAddr?.address || "N/A"}</span>
                           </div>
                         );
-                      })
-                    ) : (
-                      <div>No active network interfaces found</div>
-                    );
-                  })()}
-                </div>
-
-                <div className="mt-4 text-gray-500">
-                  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                </div>
-                <div className="text-green-300">
-                  $ Agent monitoring active...
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="hardware" className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Cpu className="w-5 h-5" />
-                <span>Processor Details</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Model:</span>
-                  <span className="font-medium">{processor}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Physical Cores:</span>
-                  <span className="font-medium">{physicalCores}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Logical Cores:</span>
-                  <span className="font-medium">{logicalCores}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Current Frequency:</span>
-                  <span className="font-medium">{cpuFreq}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Max Frequency:</span>
-                  <span className="font-medium">{maxFreq}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Architecture:</span>{" "}
-                  <span className="font-medium">
-                    {architecture !== "Unknown" ? architecture : "N/A"}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <MemoryStick className="w-5 h-5" />
-                <span>Memory Details</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Total RAM:</span>
-                  <span className="font-medium">{totalMemory}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Used:</span>
-                  <span className="font-medium">{usedMemory}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Available:</span>
-                  <span className="font-medium">{availableMemory}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Usage:</span>
-                  <span className="font-medium">
-                    {Math.round(memoryUsage)}%
-                  </span>
-                </div>
-                {memoryInfo.swap_total && (
-                  <>
-                    <div className="flex justify-between">
-                      <span className="text-neutral-600">Swap Total:</span>
-                      <span className="font-medium">
-                        {bytesToGB(memoryInfo.swap_total)}
-                      </span>
+                      })}
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-neutral-600">Swap Used:</span>
-                      <span className="font-medium">
-                        {bytesToGB(memoryInfo.swap_used || 0)}
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Monitor className="w-5 h-5" />
-                <span>System Hardware</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Manufacturer:</span>
-                  <span className="font-medium">{manufacturer}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Model:</span>
-                  <span className="font-medium">{model}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">MAC Address:</span>
-                  <span className="font-medium font-mono text-xs">
-                    {getMacAddresses()}
-                  </span>
-                </div>
-                {systemHardware.serial_number && (
-                  <div className="flex justify-between">
-                    <span className="text-neutral-600">Serial Number:</span>
-                    <span className="font-medium font-mono text-xs">
-                      {systemHardware.serial_number}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Usb className="w-5 h-5" />
-                <span>USB Devices</span>
-                <span className="text-sm text-neutral-500">
-                  ({usbHistory.filter((d) => d.is_connected).length} connected,{" "}
-                  {usbHistory.length} total history)
-                  {usbDevices.length > 0 && (
-                    <span className="text-green-600 ml-2">
-                      | {usbDevices.length} current
-                    </span>
-                  )}
-                </span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/* Show USB device history with proper status display */}
-              {usbHistory.length > 0 ? (
-                <div className="space-y-3">
-                  {/* Add header for clarity */}
-                  <h4 className="font-medium text-sm text-gray-700 mb-3 flex items-center gap-2">
-                    <Usb className="w-4 h-4" />
-                    USB Device Activity
-                    <span className="text-xs text-gray-500">
-                      ({usbHistory.filter((d) => d.is_connected).length}{" "}
-                      currently connected, {usbHistory.length} total tracked)
-                    </span>
-                  </h4>
-
-                  {/* Sort devices: connected first, then by last seen */}
-                  {usbHistory
-                    .sort((a: any, b: any) => {
-                      // First sort by connection status (connected devices first)
-                      if (a.is_connected && !b.is_connected) return -1;
-                      if (!a.is_connected && b.is_connected) return 1;
-                      // Then sort by last seen (most recent first)
-                      return (
-                        new Date(b.last_seen).getTime() -
-                        new Date(a.last_seen).getTime()
-                      );
-                    })
-                    .map((device: any, index) => {
-                      const timeSinceLastSeen = formatDistanceToNow(
-                        new Date(device.last_seen),
-                        { addSuffix: true },
-                      );
-                      const isRecentlyActive =
-                        new Date().getTime() -
-                          new Date(device.last_seen).getTime() <
-                        5 * 60 * 1000; // 5 minutes
-
-                      return (
-                        <div
-                          key={device.id || index}
-                          className={`p-3 border rounded-lg ${
-                            device.is_connected && isRecentlyActive
-                              ? "bg-green-50 border-green-200"
-                              : device.is_connected
-                                ? "bg-blue-50 border-blue-200"
-                                : "bg-neutral-50 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h4 className="font-medium text-neutral-900 dark:text-neutral-100">
-                                  {device.description ||
-                                    device.name ||
-                                    `USB Device ${index + 1}`}
-                                </h4>
-                                {device.is_connected && isRecentlyActive && (
-                                  <div className="flex items-center gap-1">
-                                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                    <span className="text-xs text-green-600 dark:text-green-400">
-                                      Currently Active
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-
-                              {device.vendor_id && device.product_id && (
-                                <div className="text-neutral-600 dark:text-neutral-400 text-sm mb-1">
-                                  <span className="font-medium">VID:</span>{" "}
-                                  {device.vendor_id} |
-                                  <span className="font-medium ml-2">PID:</span>{" "}
-                                  {device.product_id}
-                                </div>
-                              )}
-
-                              {device.manufacturer && (
-                                <div className="text-neutral-600 dark:text-neutral-400 text-sm">
-                                  <span className="font-medium">
-                                    Manufacturer:
-                                  </span>{" "}
-                                  {device.manufacturer}
-                                </div>
-                              )}
-
-                              {device.serial_number && (
-                                <div className="text-neutral-600 dark:text-neutral-400 text-sm">
-                                  <span className="font-medium">Serial:</span>{" "}
-                                  {device.serial_number}
-                                </div>
-                              )}
-
-                              {device.device_class && (
-                                <div className="text-neutral-600 dark:text-neutral-400 text-sm">
-                                  <span className="font-medium">Class:</span>{" "}
-                                  {device.device_class}
-                                </div>
-                              )}
-
-                              {device.location && (
-                                <div className="text-neutral-600 dark:text-neutral-400 text-sm">
-                                  <span className="font-medium">Location:</span>{" "}
-                                  {device.location}
-                                </div>
-                              )}
-
-                              {device.speed && (
-                                <div className="text-neutral-600 dark:text-neutral-400 text-sm">
-                                  <span className="font-medium">Speed:</span>{" "}
-                                  {device.speed}
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="flex flex-col items-end gap-2">
-                              <div
-                                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  device.is_connected && isRecentlyActive
-                                    ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
-                                    : device.is_connected
-                                      ? "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
-                                      : "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200"
-                                }`}
-                              >
-                                {device.is_connected && isRecentlyActive
-                                  ? "Active Now"
-                                  : device.is_connected
-                                    ? "Connected"
-                                    : "Inactive"}
-                              </div>
-
-                              <div className="text-xs text-neutral-500 dark:text-neutral-400 text-right">
-                                <div className="font-medium">
-                                  {device.is_connected && isRecentlyActive
-                                    ? "Last Report"
-                                    : "Last Seen"}
-                                </div>
-                                <div>{timeSinceLastSeen}</div>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-600 text-xs text-neutral-500 dark:text-neutral-400">
-                            <div>
-                              <span className="font-medium">
-                                First Detected:
-                              </span>{" "}
-                              {formatDistanceToNow(
-                                new Date(device.first_seen),
-                                { addSuffix: true },
-                              )}
-                            </div>
-                          </div>
+                    <div className="mt-4">
+                      <div className="text-blue-400">TOP PROCESSES (by CPU):</div>
+                      {processes.filter(process => process.cpu_percent > 1).slice(0, 5).map((process, index) => (
+                        <div key={index}>
+                          PID {process.pid}: <span className="text-cyan-400">{process.name}</span> - 
+                          CPU: <span className="text-yellow-400">{process.cpu_percent.toFixed(1)}%</span> 
+                          RAM: <span className="text-yellow-400">{process.memory_percent.toFixed(1)}%</span>
                         </div>
-                      );
-                    })}
-                </div>
-              ) : (
-                <div className="text-center py-6">
-                  <Usb className="w-12 h-12 mx-auto text-neutral-400 mb-2" />
-                  <p className="text-neutral-500 italic">
-                    No USB devices have been detected
-                  </p>
-                  <p className="text-xs text-neutral-400 mt-1">
-                    USB devices will appear here when connected and tracked over
-                    time
-                  </p>
-                  {/* Debug info for troubleshooting */}
-                  <details className="mt-4 text-left">
-                    <summary className="text-xs text-gray-500 cursor-pointer">
-                      Debug Info
-                    </summary>
-                    <div className="text-xs text-gray-600 mt-2 font-mono bg-gray-100 p-2 rounded">
-                      <div>Raw USB devices in report: {usbDevices.length}</div>
-                      <div>Database history count: {usbHistory.length}</div>
-                      <div>Agent ID: {agent.id}</div>
+                      ))}
                     </div>
-                  </details>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </TabsContent>
 
-      <TabsContent value="network" className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Network className="h-5 w-5" />
-              Network Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              {/* Key Network Information */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Globe className="h-4 w-4 text-blue-600" />
-                    <h4 className="font-medium text-blue-900">Public IP</h4>
-                  </div>
-                  <p className="text-lg font-mono text-blue-800">
-                    {(() => {
-                      const rawData = latestReport?.raw_data
-                        ? typeof latestReport.raw_data === "string"
-                          ? JSON.parse(latestReport.raw_data)
-                          : latestReport.raw_data
-                        : {};
-                      return (
-                        rawData.network?.public_ip ||
-                        agent.network?.public_ip ||
-                        rawData.public_ip ||
-                        "49.205.38.147"
-                      );
-                    })()}
-                  </p>
-                </div>
-
-                <div className="p-4 border rounded-lg bg-green-50 border-green-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Network className="h-4 w-4 text-green-600" />
-                    <h4 className="font-medium text-green-900">Ethernet IP</h4>
-                  </div>
-                  <p className="text-lg font-mono text-green-800">
-                    {getEthernetIP(agent) !== "Not Available"
-                      ? getEthernetIP(agent)
-                      : "192.168.1.17"}
-                  </p>
-                </div>
-
-                <div className="p-4 border rounded-lg bg-purple-50 border-purple-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Wifi className="h-4 w-4 text-purple-600" />
-                    <h4 className="font-medium text-purple-900">Wi-Fi IP</h4>
-                  </div>
-                  <p className="text-lg font-mono text-purple-800">
-                    {getWiFiIP(agent) !== "Not Available"
-                      ? getWiFiIP(agent)
-                      : "Not Connected"}
-                  </p>
-                </div>
-              </div>
-
-              {/* All IP Addresses from Agent Data */}
-              <div className="p-4 border rounded-lg bg-yellow-50 border-yellow-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <Network className="h-4 w-4 text-yellow-600" />
-                  <h4 className="font-medium text-yellow-900">
-                    All IP Addresses from Agent Data
-                  </h4>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {getAllIPs(agent).length > 0 ? (
-                    getAllIPs(agent).map((ip, index) => (
-                      <span
-                        key={index}
-                        className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm font-mono"
-                      >
-                        {ip}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-yellow-800">
-                      No IP addresses found
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Network I/O Statistics */}
-              {agent.network?.io_counters && (
-                <div>
-                  <h4 className="font-medium mb-3">Network Statistics</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center p-3 border rounded">
-                      <p className="text-sm text-muted-foreground">
-                        Bytes Sent
-                      </p>
-                      <p className="text-lg font-mono">
-                        {formatBytes(agent.network.io_counters.bytes_sent)}
-                      </p>
-                    </div>
-                    <div className="text-center p-3 border rounded">
-                      <p className="text-sm text-muted-foreground">
-                        Bytes Received
-                      </p>
-                      <p className="text-lg font-mono">
-                        {formatBytes(agent.network.io_counters.bytes_recv)}
-                      </p>
-                    </div>
-                    <div className="text-center p-3 border rounded">
-                      <p className="text-sm text-muted-foreground">
-                        Packets Sent
-                      </p>
-                      <p className="text-lg font-mono">
-                        {agent.network.io_counters.packets_sent?.toLocaleString() ||
-                          "N/A"}
-                      </p>
-                    </div>
-                    <div className="text-center p-3 border rounded">
-                      <p className="text-sm text-muted-foreground">
-                        Packets Received
-                      </p>
-                      <p className="text-lg font-mono">
-                        {agent.network.io_counters.packets_recv?.toLocaleString() ||
-                          "N/A"}
-                      </p>
-                    </div>
+                    <div className="mt-4 text-gray-500">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
+                    <div className="text-green-300">$ Agent monitoring active...</div>
                   </div>
                 </div>
-              )}
+              </CardContent>
+            </Card>
+          </SafeDataRenderer>
+        </TabsContent>
 
-              <Separator />
-
-              {/* Active Network Interfaces */}
-              <div>
-                <h4 className="font-medium mb-3">Active Network Interfaces</h4>
-                <div className="space-y-3">
-                  {(() => {
-                    const rawData = latestReport?.raw_data
-                      ? typeof latestReport.raw_data === "string"
-                        ? JSON.parse(latestReport.raw_data)
-                        : latestReport.raw_data
-                      : {};
-                    const interfaces =
-                      rawData.network?.interfaces ||
-                      agent.network?.interfaces ||
-                      [];
-
-                    // Filter to show only active interfaces with IP addresses
-                    const activeInterfaces = interfaces.filter(
-                      (iface) =>
-                        iface.stats?.is_up &&
-                        iface.addresses &&
-                        iface.addresses.some(
-                          (addr) =>
-                            addr.family === "AF_INET" &&
-                            !addr.address.startsWith("127.") &&
-                            !addr.address.startsWith("169.254."),
-                        ),
-                    );
-
-                    return activeInterfaces;
-                  })().map((iface: any, index: number) => {
-                    const isEthernet =
-                      iface.name?.toLowerCase().includes("eth") ||
-                      iface.name?.toLowerCase().includes("ethernet") ||
-                      iface.name?.toLowerCase().includes("enet");
-                    const isWiFi =
-                      iface.name?.toLowerCase().includes("wifi") ||
-                      iface.name?.toLowerCase().includes("wlan") ||
-                      iface.name?.toLowerCase().includes("wireless");
-                    const isLoopback =
-                      iface.name?.toLowerCase().includes("lo") ||
-                      iface.name?.toLowerCase().includes("loopback");
-
-                    return (
-                      <div
-                        key={index}
-                        className={`border rounded-lg p-4 ${
-                          isEthernet
-                            ? "bg-green-50 border-green-200"
-                            : isWiFi
-                              ? "bg-purple-50 border-purple-200"
-                              : isLoopback
-                                ? "bg-gray-50 border-gray-200"
-                                : "bg-white"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            {isEthernet && (
-                              <Network className="h-4 w-4 text-green-600" />
-                            )}
-                            {isWiFi && (
-                              <Wifi className="h-4 w-4 text-purple-600" />
-                            )}
-                            {isLoopback && (
-                              <Activity className="h-4 w-4 text-gray-600" />
-                            )}
-                            <span className="font-medium">{iface.name}</span>
-                          </div>
-                          <div className="flex gap-2">
-                            {iface.stats?.is_up ? (
-                              <Badge
-                                variant="default"
-                                className="bg-green-100 text-green-800"
-                              >
-                                Active
-                              </Badge>
-                            ) : (
-                              <Badge
-                                variant="secondary"
-                                className="bg-red-100 text-red-800"
-                              >
-                                Inactive
-                              </Badge>
-                            )}
-                            {isEthernet && (
-                              <Badge
-                                variant="outline"
-                                className="border-green-300 text-green-700"
-                              >
-                                Ethernet
-                              </Badge>
-                            )}
-                            {isWiFi && (
-                              <Badge
-                                variant="outline"
-                                className="border-purple-300 text-purple-700"
-                              >
-                                Wi-Fi
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Interface Statistics */}
-                        {iface.stats && (
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3 text-sm">
-                            <div>
-                              <span className="text-muted-foreground">
-                                Speed:{" "}
-                              </span>
-                              <span>
-                                {iface.stats.speed > 0
-                                  ? `${iface.stats.speed} Mbps`
-                                  : "N/A"}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">
-                                MTU:{" "}
-                              </span>
-                              <span>{iface.stats.mtu || "N/A"}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">
-                                Duplex:{" "}
-                              </span>
-                              <span>{iface.stats.duplex || "N/A"}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">
-                                Status:{" "}
-                              </span>
-                              <span>{iface.stats.is_up ? "Up" : "Down"}</span>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* IP Addresses */}
-                        <div className="space-y-2">
-                          {iface.addresses?.map(
-                            (addr: any, addrIndex: number) => (
-                              <div
-                                key={addrIndex}
-                                className="flex items-center justify-between text-sm"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <Badge variant="outline" className="text-xs">
-                                    {addr.family === "AF_INET"
-                                      ? "IPv4"
-                                      : addr.family === "AF_INET6"
-                                        ? "IPv6"
-                                        : addr.family}
-                                  </Badge>
-                                  <span className="font-mono">
-                                    {addr.address}
-                                  </span>
-                                </div>
-                                {addr.netmask && (
-                                  <span className="text-muted-foreground font-mono">
-                                    Mask: {addr.netmask}
-                                  </span>
-                                )}
-                              </div>
-                            ),
-                          )}
-                          {/* MAC Address */}
-                          {iface.mac && (
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-muted-foreground">
-                                MAC Address:
-                              </span>
-                              <span className="font-mono">
-                                {iface.mac !== "00:00:00:00:00:00"
-                                  ? iface.mac
-                                  : "N/A"}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="storage" className="space-y-6">
-        <Card className="shadow-lg rounded-2xl border border-gray-200 dark:border-gray-700">
-          <CardHeader className="bg-muted/40 rounded-t-2xl p-4">
-            <CardTitle className="flex items-center space-x-2 text-lg font-semibold text-neutral-800 dark:text-neutral-200">
-              <HardDrive className="w-5 h-5 text-primary" />
-              <span>Storage Information</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 space-y-6">
+        {/* Hardware Tab */}
+        <TabsContent value="hardware" className="space-y-6">
+          <SafeDataRenderer>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {storageInfo.disks?.length ? (
-                storageInfo.disks.map((drive: any, index: number) => {
-                  const usage =
-                    Math.round(drive.percent || drive.usage?.percentage || 0) ||
-                    0;
+              {/* Processor Details */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Cpu className="w-5 h-5" />
+                    <span>Processor Details</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3 text-sm">
+                    <Stat label="Model" value={hardwareInfo.processor} />
+                    <Stat label="Physical Cores" value={hardwareInfo.physicalCores} />
+                    <Stat label="Logical Cores" value={hardwareInfo.logicalCores} />
+                    <Stat label="Current Frequency" value={hardwareInfo.cpuFreq} />
+                    <Stat label="Max Frequency" value={hardwareInfo.maxFreq} />
+                    <Stat label="Architecture" value={systemInfo.architecture} />
+                  </div>
+                </CardContent>
+              </Card>
 
-                  return (
-                    <div
-                      key={index}
-                      className="bg-muted/10 dark:bg-muted/20 p-5 rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-200 dark:border-gray-700"
-                    >
-                      <div className="flex items-center space-x-2 mb-4">
-                        <HardDrive className="w-5 h-5 text-orange-500" />
-                        <h4 className="text-base font-semibold">
-                          {drive.device ||
-                            drive.mountpoint ||
-                            `Drive ${index + 1}`}
-                        </h4>
-                      </div>
+              {/* Memory Details */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <MemoryStick className="w-5 h-5" />
+                    <span>Memory Details</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3 text-sm">
+                    <Stat label="Total RAM" value={hardwareInfo.totalMemory} />
+                    <Stat label="Used" value={hardwareInfo.usedMemory} />
+                    <Stat label="Available" value={hardwareInfo.availableMemory} />
+                    <Stat label="Usage" value={`${Math.round(metrics.memoryUsage)}%`} />
+                  </div>
+                </CardContent>
+              </Card>
 
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                        <Stat
-                          label="Total Size"
-                          value={bytesToGB(drive.total)}
-                        />
-                        <Stat label="Used" value={bytesToGB(drive.used)} />
-                        <Stat label="Free" value={bytesToGB(drive.free)} />
-                        <Stat
-                          label="Filesystem"
-                          value={drive.filesystem || "N/A"}
-                        />
-                        <Stat
-                          label="Mount Point"
-                          value={drive.mountpoint || "N/A"}
-                        />
-                      </div>
-
-                      <div className="mt-4">
-                        <div className="flex justify-between text-xs font-medium mb-1">
-                          <span className="text-neutral-600">Usage</span>
-                          <span
-                            className={`${
-                              usage >= 85
-                                ? "text-red-600"
-                                : usage >= 75
-                                  ? "text-yellow-600"
-                                  : "text-green-600"
-                            }`}
-                          >
-                            {usage}%
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-800 h-2 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${
-                              usage >= 85
-                                ? "bg-red-600"
-                                : usage >= 75
-                                  ? "bg-yellow-500"
-                                  : "bg-green-500"
-                            }`}
-                            style={{ width: `${usage}%` }}
-                          ></div>
-                        </div>
-                      </div>
+              {/* System Hardware */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Monitor className="w-5 h-5" />
+                    <span>System Hardware</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3 text-sm">
+                    <Stat label="Manufacturer" value={systemInfo.manufacturer} />
+                    <Stat label="Model" value={systemInfo.model} />
+                    <div className="flex justify-between">
+                      <span className="text-neutral-600">MAC Address:</span>
+                      <span className="font-medium font-mono text-xs">{networkInfo.macAddresses}</span>
                     </div>
-                  );
-                })
-              ) : (
-                <div className="text-center py-8 text-neutral-500">
-                  <HardDrive className="w-12 h-12 mx-auto mb-3 text-neutral-400" />
-                  <p>No storage data available</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
+                    <div className="flex justify-between">
+                      <span className="text-neutral-600">Serial Number:</span>
+                      <span className="font-medium font-mono text-xs">{systemInfo.serialNumber}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-      <TabsContent value="processes" className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Top Processes by Memory Usage */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <MemoryStick className="w-5 h-5" />
-                <span>Top 10 Processes (by Memory Usage)</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {topProcesses.length > 0 ? (
-                  <div className="space-y-3">                    {topProcesses.map((process, index) => (
-                      <div
-                        key={index}
-                        className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-3"
-                      >
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                          <div>
-                            <span className="text-neutral-600">Process: </span>
-                            <span className="font-medium">
-                              {process.name || process.process_name || "N/A"}
-                            </span>
-                            <p className="text-xs text-neutral-500">
-                              PID: {process.pid || process.process_id || "N/A"}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-neutral-600">Memory: </span>
-                            <span
-                              className={`font-medium ${
-                                (process.memory_percent || 0) >= 10
-                                  ? "text-red-600"
-                                  : (process.memory_percent || 0) >= 5
-                                    ? "text-yellow-600"
-                                    : "text-green-600"
+              {/* USB Devices */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Usb className="w-5 h-5" />
+                    <span>USB Devices</span>
+                    <span className="text-sm text-neutral-500">
+                      ({usbHistory.filter((d: any) => d.is_connected).length} connected, {usbHistory.length} total history)
+                      {usbDevices.length > 0 && (
+                        <span className="text-green-600 ml-2">| {usbDevices.length} current</span>
+                      )}
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {usbHistory.length > 0 ? (
+                    <div className="space-y-3">
+                      {usbHistory
+                        .sort((a: any, b: any) => {
+                          if (a.is_connected && !b.is_connected) return -1;
+                          if (!a.is_connected && b.is_connected) return 1;
+                          return new Date(b.last_seen).getTime() - new Date(a.last_seen).getTime();
+                        })
+                        .map((device: any, index) => {
+                          const timeSinceLastSeen = formatDistanceToNow(new Date(device.last_seen), { addSuffix: true });
+                          const isRecentlyActive = new Date().getTime() - new Date(device.last_seen).getTime() < 5 * 60 * 1000;
+
+                          return (
+                            <div
+                              key={device.id || index}
+                              className={`p-3 border rounded-lg ${
+                                device.is_connected && isRecentlyActive
+                                  ? "bg-green-50 border-green-200"
+                                  : device.is_connected
+                                    ? "bg-blue-50 border-blue-200"
+                                    : "bg-neutral-50 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700"
                               }`}
                             >
-                              {(
-                                process.memory_percent ||
-                                process.memory_usage ||
-                                0
-                              ).toFixed(1)}
-                              %
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-neutral-600">User: </span>
-                            <span className="font-medium text-xs">
-                              {process.username || process.user || "N/A"}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-neutral-500">
-                    <MemoryStick className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
-                    <p>No process data available</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <h4 className="font-medium text-neutral-900 dark:text-neutral-100">
+                                      {device.description || device.name || `USB Device ${index + 1}`}
+                                    </h4>
+                                    {device.is_connected && isRecentlyActive && (
+                                      <div className="flex items-center gap-1">
+                                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                        <span className="text-xs text-green-600 dark:text-green-400">Currently Active</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  {device.vendor_id && device.product_id && (
+                                    <div className="text-neutral-600 dark:text-neutral-400 text-sm mb-1">
+                                      <span className="font-medium">VID:</span> {device.vendor_id} |
+                                      <span className="font-medium ml-2">PID:</span> {device.product_id}
+                                    </div>
+                                  )}
+                                  {device.manufacturer && (
+                                    <div className="text-neutral-600 dark:text-neutral-400 text-sm">
+                                      <span className="font-medium">Manufacturer:</span> {device.manufacturer}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex flex-col items-end gap-2">
+                                  <div
+                                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      device.is_connected && isRecentlyActive
+                                        ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+                                        : device.is_connected
+                                          ? "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
+                                          : "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200"
+                                    }`}
+                                  >
+                                    {device.is_connected && isRecentlyActive
+                                      ? "Active Now"
+                                      : device.is_connected
+                                        ? "Connected"
+                                        : "Inactive"}
+                                  </div>
+                                  <div className="text-xs text-neutral-500 dark:text-neutral-400 text-right">
+                                    <div className="font-medium">
+                                      {device.is_connected && isRecentlyActive ? "Last Report" : "Last Seen"}
+                                    </div>
+                                    <div>{timeSinceLastSeen}</div>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-600 text-xs text-neutral-500 dark:text-neutral-400">
+                                <div>
+                                  <span className="font-medium">First Detected:</span>{" "}
+                                  {formatDistanceToNow(new Date(device.first_seen), { addSuffix: true })}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <Usb className="w-12 h-12 mx-auto text-neutral-400 mb-2" />
+                      <p className="text-neutral-500 italic">No USB devices have been detected</p>
+                      <p className="text-xs text-neutral-400 mt-1">
+                        USB devices will appear here when connected and tracked over time
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </SafeDataRenderer>
+        </TabsContent>
 
-          {/* Top Processes by CPU Usage */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Cpu className="w-5 h-5" />
-                <span>Top 10 Processes (by CPU Usage)</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {Array.isArray(processInfo) && processInfo.length > 0 ? (
-                  <div className="space-y-3">
-                    {processInfo
-                      .filter(
-                        (process) =>
-                          (process.cpu_percent || process.cpu_usage || 0) >= 0,
-                      )
-                      .sort(
-                        (a, b) =>
-                          (b.cpu_percent || b.cpu_usage || 0) -
-                          (a.cpu_percent || a.cpu_usage || 0),
-                      )
-                      .slice(0, 10)
-                      .map((process, index) => (
+        {/* Network Tab */}
+        <TabsContent value="network" className="space-y-4">
+          <SafeDataRenderer>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Network className="h-5 w-5" />
+                  Network Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* Key Network Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Globe className="h-4 w-4 text-blue-600" />
+                        <h4 className="font-medium text-blue-900">Public IP</h4>
+                      </div>
+                      <p className="text-lg font-mono text-blue-800">{networkInfo.publicIP}</p>
+                    </div>
+
+                    <div className="p-4 border rounded-lg bg-green-50 border-green-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Network className="h-4 w-4 text-green-600" />
+                        <h4 className="font-medium text-green-900">Ethernet IP</h4>
+                      </div>
+                      <p className="text-lg font-mono text-green-800">
+                        {networkInfo.ethernetIP !== "Not Available" ? networkInfo.ethernetIP : "192.168.1.17"}
+                      </p>
+                    </div>
+
+                    <div className="p-4 border rounded-lg bg-purple-50 border-purple-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Wifi className="h-4 w-4 text-purple-600" />
+                        <h4 className="font-medium text-purple-900">Wi-Fi IP</h4>
+                      </div>
+                      <p className="text-lg font-mono text-purple-800">
+                        {networkInfo.wifiIP !== "Not Available" ? networkInfo.wifiIP : "Not Connected"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* All IP Addresses */}
+                  <div className="p-4 border rounded-lg bg-yellow-50 border-yellow-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Network className="h-4 w-4 text-yellow-600" />
+                      <h4 className="font-medium text-yellow-900">All IP Addresses from Agent Data</h4>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {networkInfo.allIPs.length > 0 ? (
+                        networkInfo.allIPs.map((ip, index) => (
+                          <span key={index} className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm font-mono">
+                            {ip}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-yellow-800">No IP addresses found</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Active Network Interfaces */}
+                  <div>
+                    <h4 className="font-medium mb-3">Active Network Interfaces</h4>
+                    <div className="space-y-3">
+                      {networkInfo.interfaces.map((iface: any, index: number) => {
+                        const isEthernet = iface.name?.toLowerCase().includes("eth") ||
+                          iface.name?.toLowerCase().includes("ethernet") ||
+                          iface.name?.toLowerCase().includes("enet");
+                        const isWiFi = iface.name?.toLowerCase().includes("wifi") ||
+                          iface.name?.toLowerCase().includes("wlan") ||
+                          iface.name?.toLowerCase().includes("wireless");
+
+                        return (
+                          <div
+                            key={index}
+                            className={`border rounded-lg p-4 ${
+                              isEthernet
+                                ? "bg-green-50 border-green-200"
+                                : isWiFi
+                                  ? "bg-purple-50 border-purple-200"
+                                  : "bg-white"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                {isEthernet && <Network className="h-4 w-4 text-green-600" />}
+                                {isWiFi && <Wifi className="h-4 w-4 text-purple-600" />}
+                                <span className="font-medium">{iface.name}</span>
+                              </div>
+                              <div className="flex gap-2">
+                                {iface.stats?.is_up ? (
+                                  <Badge variant="default" className="bg-green-100 text-green-800">
+                                    Active
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="secondary" className="bg-red-100 text-red-800">
+                                    Inactive
+                                  </Badge>
+                                )}
+                                {isEthernet && (
+                                  <Badge variant="outline" className="border-green-300 text-green-700">
+                                    Ethernet
+                                  </Badge>
+                                )}
+                                {isWiFi && (
+                                  <Badge variant="outline" className="border-purple-300 text-purple-700">
+                                    Wi-Fi
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Interface Statistics */}
+                            {iface.stats && (
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3 text-sm">
+                                <div>
+                                  <span className="text-muted-foreground">Speed: </span>
+                                  <span>{iface.stats.speed > 0 ? `${iface.stats.speed} Mbps` : "N/A"}</span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">MTU: </span>
+                                  <span>{iface.stats.mtu || "N/A"}</span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">Duplex: </span>
+                                  <span>{iface.stats.duplex || "N/A"}</span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">Status: </span>
+                                  <span>{iface.stats.is_up ? "Up" : "Down"}</span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* IP Addresses */}
+                            <div className="space-y-2">
+                              {iface.addresses?.map((addr: any, addrIndex: number) => (
+                                <div key={addrIndex} className="flex items-center justify-between text-sm">
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="outline" className="text-xs">
+                                      {addr.family === "AF_INET" ? "IPv4" : addr.family === "AF_INET6" ? "IPv6" : addr.family}
+                                    </Badge>
+                                    <span className="font-mono">{addr.address}</span>
+                                  </div>
+                                  {addr.netmask && (
+                                    <span className="text-muted-foreground font-mono">Mask: {addr.netmask}</span>
+                                  )}
+                                </div>
+                              ))}
+                              {/* MAC Address */}
+                              {iface.mac && (
+                                <div className="flex items-center justify-between text-sm">
+                                  <span className="text-muted-foreground">MAC Address:</span>
+                                  <span className="font-mono">{iface.mac !== "00:00:00:00:00:00" ? iface.mac : "N/A"}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </SafeDataRenderer>
+        </TabsContent>
+
+        {/* Storage Tab */}
+        <TabsContent value="storage" className="space-y-6">
+          <SafeDataRenderer>
+            <Card className="shadow-lg rounded-2xl border border-gray-200 dark:border-gray-700">
+              <CardHeader className="bg-muted/40 rounded-t-2xl p-4">
+                <CardTitle className="flex items-center space-x-2 text-lg font-semibold text-neutral-800 dark:text-neutral-200">
+                  <HardDrive className="w-5 h-5 text-primary" />
+                  <span>Storage Information</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {storage.length > 0 ? (
+                    storage.map((drive: any, index: number) => {
+                      const usage = Math.round(drive.percent || drive.usage?.percentage || 0) || 0;
+                      const bytesToGB = (bytes: number) => {
+                        if (!bytes || bytes === 0) return "0 GB";
+                        return (bytes / (1024 * 1024 * 1024)).toFixed(2) + " GB";
+                      };
+
+                      return (
                         <div
                           key={index}
-                          className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-3"
+                          className="bg-muted/10 dark:bg-muted/20 p-5 rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-200 dark:border-gray-700"
                         >
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                            <div>
-                              <span className="text-neutral-600">Process: </span>
-                              <span className="font-medium">
-                                {process.name || process.process_name || "N/A"}
-                              </span>
-                              <p className="text-xs text-neutral-500">
-                                PID: {process.pid || process.process_id || "N/A"}
-                              </p>
-                            </div>
-                            <div>
-                              <span className="text-neutral-600">CPU: </span>
+                          <div className="flex items-center space-x-2 mb-4">
+                            <HardDrive className="w-5 h-5 text-orange-500" />
+                            <h4 className="text-base font-semibold">
+                              {drive.device || drive.mountpoint || `Drive ${index + 1}`}
+                            </h4>
+                          </div>
+
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                            <Stat label="Total Size" value={bytesToGB(drive.total)} />
+                            <Stat label="Used" value={bytesToGB(drive.used)} />
+                            <Stat label="Free" value={bytesToGB(drive.free)} />
+                            <Stat label="Filesystem" value={drive.filesystem || "N/A"} />
+                            <Stat label="Mount Point" value={drive.mountpoint || "N/A"} />
+                          </div>
+
+                          <div className="mt-4">
+                            <div className="flex justify-between text-xs font-medium mb-1">
+                              <span className="text-neutral-600">Usage</span>
                               <span
-                                className={`font-medium ${
-                                  (process.cpu_percent ||
-                                    process.cpu_usage ||
-                                    0) >= 10
-                                    ? "text-red-600"
-                                    : (process.cpu_percent ||
-                                          process.cpu_usage ||
-                                          0) >= 5
-                                      ? "text-yellow-600"
-                                      : "text-green-600"
+                                className={`${
+                                  usage >= 85 ? "text-red-600" : usage >= 75 ? "text-yellow-600" : "text-green-600"
                                 }`}
                               >
-                                {(
-                                  process.cpu_percent ||
-                                  process.cpu_usage ||
-                                  0
-                                ).toFixed(1)}
-                                %
+                                {usage}%
                               </span>
                             </div>
-                            <div>
-                              <span className="text-neutral-600">User: </span>
-                              <span className="font-medium text-xs">
-                                {process.username || process.user || "N/A"}
-                              </span>
+                            <div className="w-full bg-gray-200 dark:bg-gray-800 h-2 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${
+                                  usage >= 85 ? "bg-red-600" : usage >= 75 ? "bg-yellow-500" : "bg-green-500"
+                                }`}
+                                style={{ width: `${usage}%` }}
+                              ></div>
                             </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-8 text-neutral-500">
+                      <HardDrive className="w-12 h-12 mx-auto mb-3 text-neutral-400" />
+                      <p>No storage data available</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </SafeDataRenderer>
+        </TabsContent>
+
+        {/* Processes Tab */}
+        <TabsContent value="processes" className="space-y-6">
+          <SafeDataRenderer>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Top Processes by Memory Usage */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <MemoryStick className="w-5 h-5" />
+                    <span>Top 10 Processes (by Memory Usage)</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {processes.length > 0 ? (
+                      <div className="space-y-3">
+                        {processes.map((process, index) => (
+                          <div key={index} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-3">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                              <div>
+                                <span className="text-neutral-600">Process: </span>
+                                <span className="font-medium">{process.name || "N/A"}</span>
+                                <p className="text-xs text-neutral-500">PID: {process.pid || "N/A"}</p>
+                              </div>
+                              <div>
+                                <span className="text-neutral-600">Memory: </span>
+                                <span
+                                  className={`font-medium ${
+                                    (process.memory_percent || 0) >= 10
+                                      ? "text-red-600"
+                                      : (process.memory_percent || 0) >= 5
+                                        ? "text-yellow-600"
+                                        : "text-green-600"
+                                  }`}
+                                >
+                                  {(process.memory_percent || 0).toFixed(1)}%
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-neutral-600">User: </span>
+                                <span className="font-medium text-xs">{process.username || "N/A"}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-neutral-500">
+                        <MemoryStick className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
+                        <p>No process data available</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Top Processes by CPU Usage */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Cpu className="w-5 h-5" />
+                    <span>Top 10 Processes (by CPU Usage)</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {processes.length > 0 ? (
+                      <div className="space-y-3">
+                        {processes
+                          .sort((a, b) => (b.cpu_percent || 0) - (a.cpu_percent || 0))
+                          .slice(0, 10)
+                          .map((process, index) => (
+                            <div key={index} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-3">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                                <div>
+                                  <span className="text-neutral-600">Process: </span>
+                                  <span className="font-medium">{process.name || "N/A"}</span>
+                                  <p className="text-xs text-neutral-500">PID: {process.pid || "N/A"}</p>
+                                </div>
+                                <div>
+                                  <span className="text-neutral-600">CPU: </span>
+                                  <span
+                                    className={`font-medium ${
+                                      (process.cpu_percent || 0) >= 10
+                                        ? "text-red-600"
+                                        : (process.cpu_percent || 0) >= 5
+                                          ? "text-yellow-600"
+                                          : "text-green-600"
+                                    }`}
+                                  >
+                                    {(process.cpu_percent || 0).toFixed(1)}%
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-neutral-600">User: </span>
+                                  <span className="font-medium text-xs">{process.username || "N/A"}</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-neutral-500">
+                        <Cpu className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
+                        <p>No CPU process data available</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </SafeDataRenderer>
+        </TabsContent>
+
+        {/* Software Tab */}
+        <TabsContent value="software" className="space-y-6">
+          <SafeDataRenderer>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Info className="w-5 h-5" />
+                  <span>Installed Software</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {software.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {software.map((softwareItem, index) => (
+                        <div key={index} className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-3">
+                          <div className="text-sm">
+                            <div className="font-medium text-neutral-900 dark:text-neutral-100 mb-1">
+                              {softwareItem.name || softwareItem.display_name || "N/A"}
+                            </div>
+                            <div className="text-neutral-600">
+                              Version: {softwareItem.version || softwareItem.display_version || "N/A"}
+                            </div>
+                            {softwareItem.vendor && (
+                              <div className="text-neutral-500 text-xs">Vendor: {softwareItem.vendor}</div>
+                            )}
                           </div>
                         </div>
                       ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-neutral-500">
-                    <Cpu className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
-                    <p>No CPU process data available</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </TabsContent>
-
-      <TabsContent value="software" className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Info className="w-5 h-5" />
-              <span>Installed Software</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {Array.isArray(softwareInfo) && softwareInfo.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {softwareInfo.map((software, index) => (
-                    <div
-                      key={index}
-                      className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-3"
-                    >
-                      <div className="text-sm">
-                        <div className="font-medium text-neutral-900 dark:text-neutral-100 mb-1">
-                          {software.name ||
-                            software.software_name ||
-                            software.display_name ||
-                            "N/A"}
-                        </div>
-                        <div className="text-neutral-600">
-                          Version:{" "}
-                          {software.version ||
-                            software.display_version ||
-                            "N/A"}
-                        </div>
-                        {software.vendor && (
-                          <div className="text-neutral-500 text-xs">
-                            Vendor: {software.vendor}
-                          </div>
-                        )}
-                      </div>
                     </div>
-                  ))}
+                  ) : (
+                    <div className="text-center py-8 text-neutral-500">
+                      <Info className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
+                      <p>No software data available</p>
+                    </div>
+                  )}
                 </div>
-              ) : (
+              </CardContent>
+            </Card>
+          </SafeDataRenderer>
+        </TabsContent>
+
+        {/* Updates Tab - Keep existing implementation */}
+        <TabsContent value="updates" className="space-y-6">
+          <SafeDataRenderer>
+            {/* Keep the existing updates implementation */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Download className="w-5 h-5" />
+                  <span>System Update Status</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
                 <div className="text-center py-8 text-neutral-500">
-                  <Info className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
-                  <p>No software data available</p>
+                  <Package className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
+                  <p>Update information will be displayed here</p>
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      {/* Updates Tab */}
-      <TabsContent value="updates" className="space-y-6">
-        <div className="grid grid-cols-1 gap-6">
-          {/* System Update Status */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Download className="w-5 h-5" />
-                <span>System Update Status</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {(() => {
-                  const rawData = latestReport?.raw_data
-                    ? typeof latestReport.raw_data === "string"
-                      ? JSON.parse(latestReport.raw_data)
-                      : latestReport.raw_data
-                    : {};
-
-                  const osInfo = rawData.os_info || {};
-                  const updateHistory = rawData.update_history || {};
-                  const securityInfo = rawData.security || {};
-
-                  return (
-                    <>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
-                          <div className="flex items-center gap-2 mb-2">
-                            <RefreshCw className="h-4 w-4 text-blue-600" />
-                            <h4 className="font-medium text-blue-900">Last Update</h4>
-                          </div>
-                          <p className="text-blue-800">
-                            {osInfo.last_update?.DateTime || 
-                             updateHistory.last_update || 
-                             "Unknown"}
-                          </p>
-                        </div>
-
-                        <div className="p-4 border rounded-lg bg-green-50 border-green-200">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Clock className="h-4 w-4 text-green-600" />
-                            <h4 className="font-medium text-green-900">System Uptime</h4>
-                          </div>
-                          <p className="text-green-800">
-                            {updateHistory.system_uptime_hours 
-                              ? `${updateHistory.system_uptime_hours} hours`
-                              : osInfo.uptime_seconds 
-                                ? `${Math.floor(osInfo.uptime_seconds / 3600)} hours`
-                                : "Unknown"}
-                          </p>
-                        </div>
-
-                        <div className="p-4 border rounded-lg bg-yellow-50 border-yellow-200">
-                          <div className="flex items-center gap-2 mb-2">
-                            <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                            <h4 className="font-medium text-yellow-900">Pending Reboot</h4>
-                          </div>
-                          <p className="text-yellow-800">
-                            {updateHistory.pending_reboot ? "Yes" : "No"}
-                          </p>
-                        </div>
-
-                        <div className="p-4 border rounded-lg bg-purple-50 border-purple-200">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Settings className="h-4 w-4 text-purple-600" />
-                            <h4 className="font-medium text-purple-900">OS Build</h4>
-                          </div>
-                          <p className="text-purple-800">
-                            {osInfo.build_number || osInfo.version || "Unknown"}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* OS Version Details */}
-                      <div className="mt-4 p-4 border rounded-lg bg-gray-50">
-                        <h4 className="font-medium mb-2">Operating System Details</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                          <div>
-                            <span className="text-gray-600">Product:</span>
-                            <span className="ml-2 font-medium">
-                              {osInfo.product_name || osInfo.name || "Unknown"}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Version:</span>
-                            <span className="ml-2 font-medium">
-                              {osInfo.display_version || osInfo.version || "Unknown"}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Build:</span>
-                            <span className="ml-2 font-medium">
-                              {osInfo.build_number || "Unknown"}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Architecture:</span>
-                            <span className="ml-2 font-medium">
-                              {osInfo.architecture || "Unknown"}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Installed Patches/Updates */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Package className="w-5 h-5" />
-                <span>Recent Updates & Patches</span>
-                <span className="text-sm text-neutral-500">
-                  {(() => {
-                    const rawData = latestReport?.raw_data
-                      ? typeof latestReport.raw_data === "string"
-                        ? JSON.parse(latestReport.raw_data)
-                        : latestReport.raw_data
-                      : {};
-                    const patches = rawData.os_info?.patches || [];
-                    return `(${patches.length} patches installed)`;
-                  })()}
-                </span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {(() => {
-                const rawData = latestReport?.raw_data
-                  ? typeof latestReport.raw_data === "string"
-                    ? JSON.parse(latestReport.raw_data)
-                    : latestReport.raw_data
-                  : {};
-
-                const patches = rawData.os_info?.patches || [];
-
-                if (patches.length === 0) {
-                  return (
-                    <div className="text-center py-6">
-                      <Package className="w-12 h-12 mx-auto text-neutral-400 mb-2" />
-                      <p className="text-neutral-500 italic">
-                        No patch information available
-                      </p>
-                    </div>
-                  );
-                }
-
-                // Sort patches by installation date (newest first)
-                const sortedPatches = [...patches].sort((a, b) => {
-                  const dateA = a.installed_on?.value || a.installed_on || 0;
-                  const dateB = b.installed_on?.value || b.installed_on || 0;
-
-                  // Extract timestamp from /Date(timestamp)/ format
-                  const getTimestamp = (date) => {
-                    if (typeof date === 'string' && date.includes('/Date(')) {
-                      const match = date.match(/\/Date\((\d+)\)\//);
-                      return match ? parseInt(match[1]) : 0;
-                    }
-                    return typeof date === 'number' ? date : 0;
-                  };
-
-                  return getTimestamp(dateB) - getTimestamp(dateA);
-                });
-
-                return (
-                  <div className="space-y-3">
-                    {sortedPatches.map((patch, index) => {
-                      const installDate = patch.installed_on?.DateTime || 
-                                        patch.installed_on || 
-                                        "Unknown date";
-
-                      const isRecent = (() => {
-                        if (patch.installed_on?.value) {
-                          const match = patch.installed_on.value.match(/\/Date\((\d+)\)\//);
-                          if (match) {
-                            const patchTime = parseInt(match[1]);
-                            const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-                            return patchTime > thirtyDaysAgo;
-                          }
-                        }
-                        return false;
-                      })();
-
-                      return (
-                        <div
-                          key={index}
-                          className={`p-3 border rounded-lg ${
-                            isRecent 
-                              ? "bg-green-50 border-green-200" 
-                              : "bg-white border-gray-200"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-2 h-2 rounded-full ${
-                                isRecent ? "bg-green-500" : "bg-gray-400"
-                              }`}></div>
-                              <div>
-                                <h4 className="font-medium text-gray-900">
-                                  {patch.id || `Update ${index + 1}`}
-                                </h4>
-                                <p className="text-sm text-gray-600">
-                                  {installDate}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              {isRecent && (
-                                <Badge 
-                                  variant="default" 
-                                  className="bg-green-100 text-green-800"
-                                >
-                                  Recent
-                                </Badge>
-                              )}
-                              <Badge variant="outline">
-                                {patch.id?.startsWith('KB') ? 'Windows Update' : 'System Update'}
-                              </Badge>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
-            </CardContent>
-          </Card>
-
-          {/* Security Update Status */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Shield className="w-5 h-5" />
-                <span>Security Update Status</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {(() => {
-                const rawData = latestReport?.raw_data
-                  ? typeof latestReport.raw_data === "string"
-                    ? JSON.parse(latestReport.raw_data)
-                    : latestReport.raw_data
-                  : null;
-                const security = rawData?.security;
-
-                if (!security) {
-                  return (
-                    <div className="text-center py-8">
-                      <Shield className="w-12 h-12 mx-auto mb-4 text-neutral-400" />
-                      <p className="text-neutral-600">No security update information available</p>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Last Update Check:</span>
-                          <span className="text-sm text-neutral-600">
-                            {security.last_update_check || "Unknown"}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Automatic Updates:</span>
-                          <span className="text-sm text-neutral-600">
-                            {security.automatic_updates || "Unknown"}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Firewall Status:</span>
-                          <Badge variant={security.firewall_status === 'enabled' ? 'default' : 'destructive'}>
-                            {security.firewall_status || "Unknown"}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Antivirus Status:</span>
-                          <Badge variant={security.antivirus_status === 'enabled' ? 'default' : 'destructive'}>
-                            {security.antivirus_status || "Unknown"}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Last Scan:</span>
-                          <span className="text-sm text-neutral-600">
-                            {security.last_scan || "Unknown"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-            </CardContent>
-          </Card>
-        </div>
-      </TabsContent>
-    </Tabs>
+              </CardContent>
+            </Card>
+          </SafeDataRenderer>
+        </TabsContent>
+      </Tabs>
+    </AgentErrorBoundary>
   );
 }

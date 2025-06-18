@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { MetricCard } from "@/components/agent-detail/metric-card";
 import AgentTabs from "@/components/agent-detail/agent-tabs";
+import { AgentErrorBoundary } from "@/components/ui/agent-error-boundary";
+import { useProcessedAgentData } from "@/lib/agent-data-processor";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useAgent } from "@/hooks/use-agents";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -215,24 +217,29 @@ export default function AgentDetail() {
     );
   }
 
-  const cpuUsage = agent.latest_report?.cpu_usage
-    ? parseFloat(parseFloat(agent.latest_report.cpu_usage).toFixed(2))
-    : 0;
+  // Use processed data with memoization for performance
+  const processedData = useProcessedAgentData(agent);
+  
+  const metrics = useMemo(() => {
+    if (!processedData) {
+      return {
+        cpuUsage: 0,
+        memoryUsage: 0,
+        diskUsage: 0,
+        networkIO: 0
+      };
+    }
+    return processedData.metrics;
+  }, [processedData]);
 
-  const memoryUsage = agent.latest_report?.memory_usage
-    ? parseFloat(parseFloat(agent.latest_report.memory_usage).toFixed(2))
-    : 0;
-
-  const diskUsage = agent.latest_report?.disk_usage
-    ? parseFloat(parseFloat(agent.latest_report.disk_usage).toFixed(2))
-    : 0;
-
-  const networkIO = agent.latest_report?.network_io
-    ? parseInt(agent.latest_report.network_io)
-    : 0;
+  const { cpuUsage, memoryUsage, diskUsage, networkIO } = metrics;
 
   return (
-    <div className="p-6 space-y-6">
+    <AgentErrorBoundary 
+      fallbackTitle="Agent Detail Error"
+      fallbackMessage="There was an error loading the agent details. This might be due to data processing issues or network problems."
+    >
+      <div className="p-6 space-y-6">
       {/* Breadcrumb */}
       <nav className="text-sm text-neutral-600 mb-4">
         <Link
@@ -444,6 +451,7 @@ export default function AgentDetail() {
 
       {/* Tabbed Content */}
       <AgentTabs agent={agent} />
-    </div>
+      </div>
+    </AgentErrorBoundary>
   );
 }
