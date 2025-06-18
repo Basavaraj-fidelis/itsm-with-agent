@@ -45,6 +45,14 @@ import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { Progress } from "@/components/ui/progress";
 import { AIInsights } from "./ai-insights";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 interface AgentTabsProps {
   agent: Agent;
@@ -63,6 +71,9 @@ const formatBytes = (bytes: number, decimals: number = 2) => {
 
 export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
   const [usbHistory, setUsbHistory] = useState([]);
+  const [patchesCurrentPage, setPatchesCurrentPage] = useState(1);
+  const [portsCurrentPage, setPortsCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   useEffect(() => {
     const fetchUSBHistory = async () => {
@@ -1096,58 +1107,73 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       </div>
 
                       <div className="mt-4">
-                        <h4 className="font-medium mb-2 text-sm">Recent Patches</h4>
+                        <h4 className="font-medium mb-2 text-sm">Patches (Page {patchesCurrentPage})</h4>
                         <div className="space-y-2">
-                          {processedData.raw_data.os_info.patches.slice(0, 3).map((patch, index) => (
-                            <div key={index} className="p-2 border rounded-lg bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-                              <div className="text-xs">
-                                <div className="font-medium text-green-900 dark:text-green-100">
-                                  {(patch.id || `Patch ${index + 1}`).slice(0, 25)}...
-                                </div>
-                                <div className="text-green-600 dark:text-green-400 text-xs mt-1">
-                                  {patch.installed_on?.DateTime?.slice(0, 10) || patch.installed_on?.slice(0, 10) || "Unknown"}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                          {processedData.raw_data.os_info.patches.length > 3 && (
-                            <div className="text-center pt-2">
-                              <span className="text-xs text-neutral-500">
-                                +{processedData.raw_data.os_info.patches.length - 3} more patches
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Recent Updates */}
-                      {processedData.raw_data.extracted_update_info?.recent_updates && 
-                       processedData.raw_data.extracted_update_info.recent_updates.length > 0 && (
-                        <div className="mt-4">
-                          <h4 className="font-medium mb-2 text-sm">Recent Updates</h4>
-                          <div className="space-y-2">
-                            {processedData.raw_data.extracted_update_info.recent_updates.slice(0, 2).map((update, index) => (
-                              <div key={index} className="p-2 border rounded-lg bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                          {(() => {
+                            const patches = processedData.raw_data.os_info.patches;
+                            const startIndex = (patchesCurrentPage - 1) * itemsPerPage;
+                            const endIndex = startIndex + itemsPerPage;
+                            const currentPatches = patches.slice(startIndex, endIndex);
+                            
+                            return currentPatches.map((patch, index) => (
+                              <div key={startIndex + index} className="p-2 border rounded-lg bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
                                 <div className="text-xs">
-                                  <div className="font-medium text-blue-900 dark:text-blue-100">
-                                    {(update.title || update.name || `Update ${index + 1}`).slice(0, 25)}...
+                                  <div className="font-medium text-green-900 dark:text-green-100">
+                                    {(patch.id || `Patch ${startIndex + index + 1}`).slice(0, 35)}
+                                    {(patch.id || `Patch ${startIndex + index + 1}`).length > 35 ? '...' : ''}
                                   </div>
-                                  <div className="text-blue-600 dark:text-blue-400 text-xs mt-1">
-                                    {update.installed_date?.slice(0, 10) || update.date?.slice(0, 10) || "Unknown"}
+                                  <div className="text-green-600 dark:text-green-400 text-xs mt-1">
+                                    {patch.installed_on?.DateTime?.slice(0, 10) || patch.installed_on?.slice(0, 10) || "Unknown"}
                                   </div>
                                 </div>
                               </div>
-                            ))}
-                            {processedData.raw_data.extracted_update_info.recent_updates.length > 2 && (
-                              <div className="text-center pt-2">
-                                <span className="text-xs text-neutral-500">
-                                  +{processedData.raw_data.extracted_update_info.recent_updates.length - 2} more updates
-                                </span>
-                              </div>
-                            )}
-                          </div>
+                            ));
+                          })()}
                         </div>
-                      )}
+                        
+                        {/* Patches Pagination */}
+                        {(() => {
+                          const patches = processedData.raw_data.os_info.patches;
+                          const totalPages = Math.ceil(patches.length / itemsPerPage);
+                          
+                          if (totalPages > 1) {
+                            return (
+                              <div className="mt-4">
+                                <Pagination>
+                                  <PaginationContent>
+                                    <PaginationItem>
+                                      <PaginationPrevious 
+                                        onClick={() => setPatchesCurrentPage(Math.max(1, patchesCurrentPage - 1))}
+                                        className={patchesCurrentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                      />
+                                    </PaginationItem>
+                                    
+                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                      <PaginationItem key={page}>
+                                        <PaginationLink
+                                          onClick={() => setPatchesCurrentPage(page)}
+                                          isActive={page === patchesCurrentPage}
+                                          className="cursor-pointer"
+                                        >
+                                          {page}
+                                        </PaginationLink>
+                                      </PaginationItem>
+                                    ))}
+                                    
+                                    <PaginationItem>
+                                      <PaginationNext 
+                                        onClick={() => setPatchesCurrentPage(Math.min(totalPages, patchesCurrentPage + 1))}
+                                        className={patchesCurrentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                      />
+                                    </PaginationItem>
+                                  </PaginationContent>
+                                </Pagination>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
                     </div>
                   ) : (
                     <div className="text-center py-8">
@@ -1215,20 +1241,28 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                         </div>
                       </div>
 
-                      {/* Top Port Connections */}
+                      {/* Port Connections */}
                       <div className="mt-4">
-                        <h4 className="font-medium mb-2 text-sm">Top Connections</h4>
+                        <h4 className="font-medium mb-2 text-sm">Port Connections (Page {portsCurrentPage})</h4>
                         <div className="space-y-1">
-                          {processedData.raw_data.active_ports
-                            .sort((a, b) => a.LocalPort - b.LocalPort)
-                            .slice(0, 3)
-                            .map((port, index) => (
-                              <div key={index} className="p-2 border rounded-lg bg-muted/20">
+                          {(() => {
+                            const ports = processedData.raw_data.active_ports.sort((a, b) => a.LocalPort - b.LocalPort);
+                            const startIndex = (portsCurrentPage - 1) * itemsPerPage;
+                            const endIndex = startIndex + itemsPerPage;
+                            const currentPorts = ports.slice(startIndex, endIndex);
+                            
+                            return currentPorts.map((port, index) => (
+                              <div key={startIndex + index} className="p-2 border rounded-lg bg-muted/20">
                                 <div className="flex items-center justify-between text-xs">
                                   <div>
                                     <span className="font-medium text-blue-900 dark:text-blue-100">
                                       {port.LocalPort} → {port.RemotePort}
                                     </span>
+                                    {port.RemoteAddress && (
+                                      <div className="text-neutral-500 text-xs mt-1">
+                                        {port.RemoteAddress.slice(0, 20)}{port.RemoteAddress.length > 20 ? '...' : ''}
+                                      </div>
+                                    )}
                                   </div>
                                   <Badge variant="default" className="text-xs">
                                     {port.RemotePort === 443 ? "HTTPS" :
@@ -1239,15 +1273,52 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                   </Badge>
                                 </div>
                               </div>
-                            ))}
-                          {processedData.raw_data.active_ports.length > 3 && (
-                            <div className="text-center pt-2">
-                              <span className="text-xs text-neutral-500">
-                                +{processedData.raw_data.active_ports.length - 3} more connections
-                              </span>
-                            </div>
-                          )}
+                            ));
+                          })()}
                         </div>
+                        
+                        {/* Ports Pagination */}
+                        {(() => {
+                          const ports = processedData.raw_data.active_ports;
+                          const totalPages = Math.ceil(ports.length / itemsPerPage);
+                          
+                          if (totalPages > 1) {
+                            return (
+                              <div className="mt-4">
+                                <Pagination>
+                                  <PaginationContent>
+                                    <PaginationItem>
+                                      <PaginationPrevious 
+                                        onClick={() => setPortsCurrentPage(Math.max(1, portsCurrentPage - 1))}
+                                        className={portsCurrentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                      />
+                                    </PaginationItem>
+                                    
+                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                      <PaginationItem key={page}>
+                                        <PaginationLink
+                                          onClick={() => setPortsCurrentPage(page)}
+                                          isActive={page === portsCurrentPage}
+                                          className="cursor-pointer"
+                                        >
+                                          {page}
+                                        </PaginationLink>
+                                      </PaginationItem>
+                                    ))}
+                                    
+                                    <PaginationItem>
+                                      <PaginationNext 
+                                        onClick={() => setPortsCurrentPage(Math.min(totalPages, portsCurrentPage + 1))}
+                                        className={portsCurrentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                      />
+                                    </PaginationItem>
+                                  </PaginationContent>
+                                </Pagination>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
                       </div>
                     </div>
                   ) : (
