@@ -950,6 +950,14 @@ export default function Tickets() {
       </Card>
     </div>
   );
+  const clearAllFilters = () => {
+    setSelectedStatus("all");
+    setSelectedType("all");
+    setSelectedPriority("all");
+    setStatusFilter("all");
+    setPriorityFilter("all");
+    setSearchTerm("");
+  };
 
   const renderStatusCards = () => {
     const statusCounts = getStatusCountsByType();
@@ -978,45 +986,53 @@ export default function Tickets() {
                 <CardContent className="pt-0">
                   <div className="space-y-3">
                     {['new', 'assigned', 'in_progress', 'pending', 'resolved', 'closed'].map(status => {
-                      const count = data.statuses[status] || 0;
-                      if (count === 0) return null;
+                          const count = data.statuses[status] || 0;
+                          if (count === 0) return null;
 
-                      return (
-                        <div key={status} className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <div className={`w-2 h-2 rounded-full ${
-                              status === 'new' ? 'bg-blue-500' :
-                              status === 'assigned' ? 'bg-purple-500' :
-                              status === 'in_progress' ? 'bg-yellow-500' :
-                              status === 'pending' ? 'bg-orange-500' :
-                              status === 'resolved' ? 'bg-green-500' :
-                              'bg-gray-500'
-                            }`} />
-                            <span className="text-sm capitalize text-gray-700 dark:text-gray-300">
-                              {status.replace('_', ' ')}
-                            </span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                              {count}
-                            </span>
-                            <Badge 
-                              variant="outline" 
-                              className={
-                                statusColors[status as keyof typeof statusColors] || "bg-gray-100 text-gray-800"
-                              }
-                              onClick={() => {
-                                setSelectedType(type);
-                                setSelectedStatus(status);
-                              }}
-                              style={{ cursor: 'pointer' }}
-                            >
-                              {Math.round((count / totalForType) * 100)}%
-                            </Badge>
-                          </div>
-                        </div>
-                      );
-                    })}
+                          return (
+                            <div key={status} className="flex items-center justify-between">
+                              <div className="flex items-center space-x-2">
+                                <div className={`w-2 h-2 rounded-full ${
+                                  status === 'new' ? 'bg-blue-500' :
+                                  status === 'assigned' ? 'bg-purple-500' :
+                                  status === 'in_progress' ? 'bg-yellow-500' :
+                                  status === 'pending' ? 'bg-orange-500' :
+                                  status === 'resolved' ? 'bg-green-500' :
+                                  'bg-gray-500'
+                                }`} />
+                                <span className="text-sm capitalize text-gray-700 dark:text-gray-300">
+                                  {status.replace('_', ' ')}
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                  {count}
+                                </span>
+                                <Badge 
+                                  variant="outline" 
+                                  className={`cursor-pointer hover:bg-opacity-80 ${
+                                    statusColors[status as keyof typeof statusColors] || "bg-gray-100 text-gray-800"
+                                  }`}
+                                  onClick={() => {
+                                    // Clear all filters first
+                                    clearAllFilters();
+                                    // Set specific filters
+                                    setSelectedType(type);
+                                    setSelectedStatus(status);
+                                    setStatusFilter(status);
+                                    // Navigate to the specific tab
+                                    if (type === 'request') setActiveTab('requests');
+                                    else if (type === 'incident') setActiveTab('incidents');
+                                    else if (type === 'problem') setActiveTab('problems');
+                                    else if (type === 'change') setActiveTab('changes');
+                                  }}
+                                >
+                                  {Math.round((count / totalForType) * 100)}%
+                                </Badge>
+                              </div>
+                            </div>
+                          );
+                        })}
 
                     {totalForType === 0 && (
                       <p className="text-sm text-gray-500 dark:text-gray-400 italic">
@@ -1202,7 +1218,7 @@ export default function Tickets() {
                           return null;
                         })()}
                       </div>
-                      
+
                       {/* Title */}
                       <h3 className="font-semibold text-base text-neutral-900 dark:text-neutral-100 line-clamp-1">
                         {ticket.title}
@@ -1246,7 +1262,7 @@ export default function Tickets() {
                       }`}>
                         <IconComponent className="w-5 h-5" />
                       </div>
-                      
+
                       <Button
                         variant="outline"
                         size="sm"
