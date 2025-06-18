@@ -577,7 +577,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all devices
   app.get("/api/devices", authenticateToken, async (req, res) => {
     try {
+      console.log("Fetching devices - checking for agent activity...");
       const devices = await storage.getDevices();
+      
+      // Log device status summary
+      const onlineCount = devices.filter(d => d.status === 'online').length;
+      const offlineCount = devices.filter(d => d.status === 'offline').length;
+      console.log(`Device Status Summary: ${onlineCount} online, ${offlineCount} offline, ${devices.length} total`);
 
       // Enhance devices with latest report data and update offline status
       const devicesWithReports = await Promise.all(
@@ -693,7 +699,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Report endpoint (from ITSM agents)
   app.post("/api/report", async (req, res) => {
     try {
-      console.log("Received report data:", JSON.stringify(req.body, null, 2));
+      console.log("=== AGENT REPORT RECEIVED ===");
+      console.log("Timestamp:", new Date().toISOString());
+      console.log("Agent IP:", req.ip);
+      console.log("User-Agent:", req.headers['user-agent']);
+      console.log("Report data keys:", Object.keys(req.body));
+      console.log("Hostname:", req.body.hostname || 'NOT PROVIDED');
+      console.log("================================");
+      console.log("Full report data:", JSON.stringify(req.body, null, 2));
 
       // Skip validation and work with raw data - be completely flexible
       const data = req.body;
@@ -1545,8 +1558,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }),
       });
 
+      console.log("=== AGENT REPORT PROCESSED SUCCESSFULLY ===");
+      console.log("Device ID:", device.id);
+      console.log("Device Status:", device.status);
+      console.log("===============================================");
       res.json({ message: "Report saved successfully" });
     } catch (error) {
+      console.error("=== AGENT REPORT ERROR ===");
       console.error("Error processing report:", error);
       if (error instanceof Error && error.name === "ZodError") {
         return res
