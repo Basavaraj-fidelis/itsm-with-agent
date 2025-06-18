@@ -584,20 +584,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         devices.map(async (device) => {
           const latestReport = await storage.getLatestDeviceReport(device.id);
 
-          // Check if device should be marked offline (no activity for 5 minutes)
+          // Check if device should be marked offline (no activity for 10 minutes)
           const now = new Date();
           const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
-          const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+          const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
 
           let currentStatus = device.status;
           if (
             lastSeen &&
-            lastSeen < fiveMinutesAgo &&
+            lastSeen < tenMinutesAgo &&
             device.status === "online"
           ) {
             // Mark device as offline but don't delete data
             await storage.updateDevice(device.id, { status: "offline" });
             currentStatus = "offline";
+          } else if (
+            lastSeen &&
+            lastSeen >= tenMinutesAgo &&
+            device.status === "offline"
+          ) {
+            // Mark device as online if it has recent activity
+            await storage.updateDevice(device.id, { status: "online" });
+            currentStatus = "online";
           }
 
           return {
@@ -957,8 +965,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
       } else {
         // Update existing device including IP address and user
-        await storage.updateDevice(device.id, {
-          assigned_user: currentUser || device.assigned_user,
+        await storage.updateDevice(device.id, {          assigned_user: currentUser || device.assigned_user,
           os_name:
             osInfo.name || osInfo.platform || osInfo.system || device.os_name,
           os_version:
@@ -1874,8 +1881,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               availability_percentage: (
                 (onlineDevices.length / allDevices.length) *
                 100
-              ).toFixed(2),
-            };
+              ).toFixed(2),            };
             break;
 
           case "alerts":
