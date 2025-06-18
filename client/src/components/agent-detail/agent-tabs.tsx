@@ -1177,6 +1177,143 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Active Network Ports */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Network className="w-5 h-5" />
+                    <span>Active Network Ports</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {processedData?.raw_data?.active_ports && processedData.raw_data.active_ports.length > 0 ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 gap-3 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-neutral-600">Total Active Connections:</span>
+                          <span className="font-medium">{processedData.raw_data.active_ports.length}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-neutral-600">Unique Local Ports:</span>
+                          <span className="font-medium">
+                            {new Set(processedData.raw_data.active_ports.map(port => port.LocalPort)).size}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-neutral-600">Unique Remote Ports:</span>
+                          <span className="font-medium">
+                            {new Set(processedData.raw_data.active_ports.map(port => port.RemotePort)).size}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Port Details */}
+                      <div className="mt-6">
+                        <h4 className="font-medium mb-3 flex items-center justify-between">
+                          Active Port Connections
+                          <Badge variant="outline" className="text-xs">
+                            {processedData.raw_data.active_ports.length} connections
+                          </Badge>
+                        </h4>
+                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                          {processedData.raw_data.active_ports
+                            .sort((a, b) => a.LocalPort - b.LocalPort)
+                            .slice(0, 50) // Show first 50 connections
+                            .map((port, index) => {
+                              const isWellKnownRemote = port.RemotePort === 443 || port.RemotePort === 80 || port.RemotePort === 22 || port.RemotePort === 21;
+                              const isHighLocalPort = port.LocalPort > 49152; // Ephemeral port range
+                              
+                              return (
+                                <div key={index} className="p-3 border rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-4">
+                                      <div className="text-sm">
+                                        <div className="font-medium text-blue-900 dark:text-blue-100">
+                                          Local: {port.LocalPort}
+                                        </div>
+                                        <div className="text-neutral-600 dark:text-neutral-400 text-xs">
+                                          {isHighLocalPort ? "Ephemeral" : "System/User"}
+                                        </div>
+                                      </div>
+                                      <div className="text-neutral-400">→</div>
+                                      <div className="text-sm">
+                                        <div className="font-medium text-green-900 dark:text-green-100">
+                                          Remote: {port.RemotePort}
+                                        </div>
+                                        <div className="text-neutral-600 dark:text-neutral-400 text-xs">
+                                          {port.RemotePort === 443 ? "HTTPS" :
+                                           port.RemotePort === 80 ? "HTTP" :
+                                           port.RemotePort === 22 ? "SSH" :
+                                           port.RemotePort === 21 ? "FTP" :
+                                           port.RemotePort === 25 ? "SMTP" :
+                                           port.RemotePort === 53 ? "DNS" :
+                                           port.RemotePort === 3389 ? "RDP" :
+                                           port.RemotePort === 5228 ? "Google Services" :
+                                           port.RemotePort === 7680 ? "Windows Update" :
+                                           port.RemotePort === 8009 ? "Web Service" :
+                                           "Custom"}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      {isWellKnownRemote && (
+                                        <Badge variant="default" className="text-xs bg-green-100 text-green-800">
+                                          Standard
+                                        </Badge>
+                                      )}
+                                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Active Connection"></div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          {processedData.raw_data.active_ports.length > 50 && (
+                            <div className="text-center py-2">
+                              <span className="text-sm text-neutral-500">
+                                ... and {processedData.raw_data.active_ports.length - 50} more connections
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Port Analysis */}
+                      <div className="mt-4 p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                        <h5 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Port Analysis</h5>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+                          <div>
+                            <span className="text-blue-600 dark:text-blue-400">HTTPS (443):</span>
+                            <span className="ml-1 font-medium">
+                              {processedData.raw_data.active_ports.filter(p => p.RemotePort === 443).length}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-blue-600 dark:text-blue-400">HTTP (80):</span>
+                            <span className="ml-1 font-medium">
+                              {processedData.raw_data.active_ports.filter(p => p.RemotePort === 80).length}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-blue-600 dark:text-blue-400">Custom Ports:</span>
+                            <span className="ml-1 font-medium">
+                              {processedData.raw_data.active_ports.filter(p => 
+                                ![443, 80, 22, 21, 25, 53, 3389, 5228, 7680].includes(p.RemotePort)
+                              ).length}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-neutral-500">
+                      <Network className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
+                      <p>No active port information available</p>
+                      <p className="text-xs mt-1">Port data will appear when reported by the agent</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           </SafeDataRenderer>
         </TabsContent>

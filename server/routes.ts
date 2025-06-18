@@ -142,17 +142,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (useActiveDirectory) {
         try {
           const { adService } = await import('./ad-service');
-          
+
           // Extract username from email if needed
           const username = email.includes('@') ? email.split('@')[0] : email;
-          
+
           console.log("Attempting AD authentication for:", username);
           const adUser = await adService.authenticateUser(username, password);
-          
+
           if (adUser) {
             // Sync user to local database
             const localUser = await adService.syncUserToDatabase(adUser);
-            
+
             // Generate JWT token
             const token = jwt.sign(
               { 
@@ -1493,6 +1493,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      //Add agent active ports to the device reports
+      const activePorts = data.active_ports;
+       if (activePorts && Array.isArray(activePorts) && activePorts.length > 0) {
+        console.log(`Found active ports in location:`, activePorts);
+      }
+
+       // Create device report with active ports
+       await storage.createDeviceReport({
+        device_id: device.id,
+        cpu_usage: cpu_usage?.toString() || null,
+        memory_usage: memory_usage?.toString() || null,
+        disk_usage: disk_usage?.toString() || null,
+        network_io: network_io?.toString() || null,
+        raw_data: JSON.stringify({
+          ...req.body,
+          extracted_mac_addresses: mac_addresses,
+          extracted_primary_mac: primary_mac,
+          extracted_usb_devices: usbDevices,
+          extracted_current_user: currentUser,
+          extracted_ip_address: ip_address,
+          extracted_active_ports: activePorts, //added active ports
+          extracted_update_info: {
+            last_boot_time: updateHistory.last_boot_time || osInfo.boot_time,
+            system_uptime_hours:
+              updateHistory.system_uptime_hours ||
+              (osInfo.uptime_seconds
+                ? Math.floor(osInfo.uptime_seconds / 3600)
+                : null),
+            pending_reboot: updateHistory.pending_reboot,
+            last_update_check: windowsUpdates.last_update_check,
+            recent_updates: windowsUpdates.recent_updates,
+            last_update: osInfo.last_update,
+            windows_build: osInfo.build_number,
+            windows_version: osInfo.display_version || osInfo.product_name,
+          },
+          extracted_security_info: {
+            firewall_status: securityInfo.firewall_status,
+            antivirus_status: securityInfo.antivirus_status,
+            last_scan: securityInfo.last_scan,
+          },
+          extracted_virtualization: data.virtualization,
+          processed_at: new Date().toISOString(),
+        }),
+      });
+
       res.json({ message: "Report saved successfully" });
     } catch (error) {
       console.error("Error processing report:", error);
@@ -1840,7 +1885,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               period: period,
               generated_at: new Date().toISOString(),
               total_alerts: alerts.length,
-              alerts: alerts.slice(0, 100), // Limit to 100 recent alerts
+              alerts: alerts.slice(0, 100), //```text
+
             };
             break;
 
@@ -2095,11 +2141,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const devices = await storage.getDevices();
       const now = new Date();
-      
+
       const deviceDetails = devices.map(device => {
         const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
         const minutesAgo = lastSeen ? Math.floor((now.getTime() - lastSeen.getTime()) / (1000 * 60)) : null;
-        
+
         return {
           id: device.id,
           hostname: device.hostname,
@@ -2697,6 +2743,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Ticket routes
+  app.get("/api/tickets", authenticateToken, async (req, res) => {
+    try {
+      // Modify filter logging
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const type = req.query.type as string;
+      const status = req.query.status as string;
+      const priority = req.query.priority as string;
+      const search = req.query.search as string;
+
+      const filters = {
+        type: type && type !== "all" && type.trim() !== "" ? type : undefined,
+        status: status && status !== "all" && status.trim() !== "" ? status : undefined,
+        priority: priority && priority !== "all" && priority.trim() !== "" ? priority : undefined,
+        search: search && search.trim() !== "" ? search.trim() : undefined
+      };
+
+      // Only log when there are actual filters applied
+      if (Object.values(filters).some(value => value !== undefined)) {
+        console.log("Applied ticket filters:", filters);
+      }
+
+      const tickets = await ticketStorage.getTickets(page, limit, filters);
+      res.json(tickets);
+    } catch (error) {
+      console.error("Error fetching tickets:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
+import fs from 'fs';
+import path from 'path';
+import archiver from 'archiver';
