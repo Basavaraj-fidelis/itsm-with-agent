@@ -57,9 +57,6 @@ export default function AgentDetail() {
   const [showConnectionInfo, setShowConnectionInfo] = useState(false);
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
 
-  // Always call useProcessedAgentData hook, even if agent is undefined
-  const processedData = useProcessedAgentData(agent);
-
   // Auto-refresh every 30 seconds when enabled
   useEffect(() => {
     if (!autoRefresh || !agent) return;
@@ -220,12 +217,20 @@ export default function AgentDetail() {
     );
   }
 
-  const metrics = processedData?.metrics || {
-    cpuUsage: 0,
-    memoryUsage: 0,
-    diskUsage: 0,
-    networkIO: 0
-  };
+  // Use processed data with memoization for performance
+  const processedData = useProcessedAgentData(agent);
+  
+  const metrics = useMemo(() => {
+    if (!processedData) {
+      return {
+        cpuUsage: 0,
+        memoryUsage: 0,
+        diskUsage: 0,
+        networkIO: 0
+      };
+    }
+    return processedData.metrics;
+  }, [processedData]);
 
   const { cpuUsage, memoryUsage, diskUsage, networkIO } = metrics;
 
