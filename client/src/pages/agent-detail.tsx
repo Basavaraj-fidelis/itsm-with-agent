@@ -74,8 +74,31 @@ export default function AgentDetail() {
 
   const handleRemoteConnect = async (connectionType: string) => {
     if (!agent || agent.status !== 'online') {
+      alert(`Cannot connect: Agent is ${agent?.status || 'offline'}. Only online agents support remote connections.`);
       return;
     }
+
+    // Log connection attempt for audit trail
+    const logConnectionAttempt = async (type: string, success: boolean, details?: string) => {
+      try {
+        await fetch('/api/audit/connection-log', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          },
+          body: JSON.stringify({
+            agent_id: agent.id,
+            connection_type: type,
+            success,
+            details,
+            timestamp: new Date().toISOString()
+          })
+        });
+      } catch (error) {
+        console.warn('Failed to log connection attempt:', error);
+      }
+    };
 
     try {
       const portMap: { [key: string]: number } = {
@@ -84,6 +107,10 @@ export default function AgentDetail() {
         ssh: 22,
         teamviewer: 5938
       };
+
+      // Show connecting status
+      const connectingMessage = `Initiating ${connectionType.toUpperCase()} connection to ${agent.hostname}...`;
+      console.log(connectingMessage);
 
       const response = await fetch(`/api/agents/${agent.id}/remote-connect`, {
         method: 'POST',
@@ -105,48 +132,66 @@ export default function AgentDetail() {
       if (result.success) {
         const { connection_info } = result;
         
-        // Check if private IP requires special handling
+        // Enhanced private IP handling
         if (connection_info.is_private_ip && connection_info.tunnel_required) {
           const tunnelMethods = connection_info.tunnel_suggestions?.map(s => 
-            `${s.method.toUpperCase()}: ${s.description}${s.command ? `\nCommand: ${s.command}` : ''}`
-          ).join('\n\n');
+            `• ${s.method.toUpperCase()}: ${s.description}${s.command ? `\n  Command: ${s.command}` : ''}`
+          ).join('\n');
           
           const proceed = confirm(
-            `This endpoint has a private IP address (${connection_info.ip_address}). ` +
-            `You'll need to establish network connectivity first:\n\n${tunnelMethods}\n\n` +
-            `Do you want to proceed with the connection attempt?`
+            `🔒 NETWORK SECURITY NOTICE\n\n` +
+            `Target: ${connection_info.ip_address} (Private Network)\n` +
+            `Agent: ${agent.hostname}\n\n` +
+            `This agent is on a private network. You'll need secure tunnel access:\n\n${tunnelMethods}\n\n` +
+            `⚠️  Ensure you have proper authorization before proceeding.\n\n` +
+            `Continue with connection attempt?`
           );
           
-          if (!proceed) return;
+          if (!proceed) {
+            await logConnectionAttempt(connectionType, false, 'User cancelled due to private IP');
+            return;
+          }
         }
         
+        // Enhanced connection handling with better UX
         switch (connectionType) {
           case "vnc":
-            const vncUrl = `/vnc?host=${encodeURIComponent(connection_info.ip_address || agent.hostname)}&port=6080&vncport=5900&deviceName=${encodeURIComponent(agent.hostname)}`;
-            window.open(vncUrl, "_blank");
+            const vncUrl = `/vnc?host=${encodeURIComponent(connection_info.ip_address || agent.hostname)}&port=6080&vncport=5900&deviceName=${encodeURIComponent(agent.hostname)}&timestamp=${Date.now()}`;
+            window.open(vncUrl, "_blank", "width=1200,height=800,scrollbars=yes,resizable=yes");
+            await logConnectionAttempt(connectionType, true, `VNC connection to ${connection_info.ip_address}`);
             break;
 
           case "rdp":
-            const rdpUrl = `/rdp?host=${encodeURIComponent(connection_info.ip_address || agent.hostname)}&port=${connection_info.port}&deviceName=${encodeURIComponent(agent.hostname)}`;
-            window.open(rdpUrl, "_blank");
+            const rdpUrl = `/rdp?host=${encodeURIComponent(connection_info.ip_address || agent.hostname)}&port=${connection_info.port}&deviceName=${encodeURIComponent(agent.hostname)}&timestamp=${Date.now()}`;
+            window.open(rdpUrl, "_blank", "width=1200,height=800,scrollbars=yes,resizable=yes");
+            await logConnectionAttempt(connectionType, true, `RDP connection to ${connection_info.ip_address}:${connection_info.port}`);
             break;
 
           case "ssh":
-            const sshUrl = `/ssh?host=${encodeURIComponent(connection_info.ip_address || agent.hostname)}&port=${connection_info.port}&deviceName=${encodeURIComponent(agent.hostname)}`;
-            window.open(sshUrl, "_blank");
+            const sshUrl = `/ssh?host=${encodeURIComponent(connection_info.ip_address || agent.hostname)}&port=${connection_info.port}&deviceName=${encodeURIComponent(agent.hostname)}&timestamp=${Date.now()}`;
+            window.open(sshUrl, "_blank", "width=1000,height=600,scrollbars=yes,resizable=yes");
+            await logConnectionAttempt(connectionType, true, `SSH connection to ${connection_info.ip_address}:${connection_info.port}`);
             break;
 
           case "teamviewer":
-            // Show TeamViewer connection info
-            alert(`TeamViewer Connection:\nHost: ${connection_info.hostname}\nID: ${connection_info.teamviewer_id || 'Contact user for ID'}`);
+            const tvInfo = `TeamViewer Connection Details:\n\nHost: ${connection_info.hostname}\nTeamViewer ID: ${connection_info.teamviewer_id || 'Contact end user for ID'}\nIP Address: ${connection_info.ip_address}`;
+            alert(tvInfo);
+            await logConnectionAttempt(connectionType, true, 'TeamViewer info displayed');
             break;
         }
+
+        // Show success notification
+        console.log(`✅ ${connectionType.toUpperCase()} connection initiated successfully`);
+        
       } else {
-        alert('Failed to initiate remote connection: ' + result.message);
+        await logConnectionAttempt(connectionType, false, result.message);
+        alert(`Connection Failed\n\n${result.message}\n\nPlease check agent connectivity and try again.`);
       }
     } catch (error) {
-      console.error("Error connecting remotely:", error);
-      alert('Failed to initiate remote connection: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error("Remote connection error:", error);
+      await logConnectionAttempt(connectionType, false, errorMessage);
+      alert(`Connection Error\n\n${errorMessage}\n\nPlease check your network connection and agent status.`);
     }
   };
 

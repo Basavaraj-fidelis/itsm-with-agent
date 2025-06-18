@@ -324,6 +324,44 @@ export function AIInsights({ agent }: AIInsightsProps) {
                           Recommendation: {insight.recommendation}
                         </p>
                       </div>
+                      
+                      {/* Action Buttons for High Severity Issues */}
+                      {insight.severity === 'high' && (
+                        <div className="flex gap-2 mt-3">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-7"
+                            onClick={() => {
+                              // Create ticket for this issue
+                              const ticketData = {
+                                title: insight.title,
+                                description: `${insight.description}\n\nRecommendation: ${insight.recommendation}`,
+                                priority: 'high',
+                                type: insight.type,
+                                agent_id: agent.id
+                              };
+                              // Navigate to create ticket with pre-filled data
+                              window.open(`/tickets/new?data=${encodeURIComponent(JSON.stringify(ticketData))}`, '_blank');
+                            }}
+                          >
+                            Create Ticket
+                          </Button>
+                          {insight.type === 'performance' && (
+                            <Button
+                              size="sm"
+                              variant="outline" 
+                              className="text-xs h-7"
+                              onClick={() => {
+                                // Navigate to performance analytics for this agent
+                                window.open(`/performance-analytics?agent=${agent.id}&metric=${insight.metric}`, '_blank');
+                              }}
+                            >
+                              View Metrics
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

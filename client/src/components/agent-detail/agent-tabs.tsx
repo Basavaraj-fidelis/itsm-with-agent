@@ -1119,15 +1119,18 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                         </div>
                         <Stat 
                           label="Real-time Protection" 
-                          value={processedData.raw_data.security.real_time_protection || "Unknown"} 
+                          value={processedData.raw_data.security.real_time_protection || 
+                                 (processedData.raw_data.security.antivirus_status === "enabled" ? "Active" : "Unknown")} 
                         />
                         <Stat 
                           label="Last Virus Scan" 
-                          value={processedData.raw_data.security.last_virus_scan || "Unknown"} 
+                          value={processedData.raw_data.security.last_virus_scan || 
+                                 processedData.raw_data.security.last_scan || "Not Available"} 
                         />
                         <Stat 
                           label="Virus Definitions" 
-                          value={processedData.raw_data.security.virus_definitions_version || "Unknown"} 
+                          value={processedData.raw_data.security.virus_definitions_version || 
+                                 processedData.raw_data.security.definitions_version || "Not Available"} 
                         />
                         <div className="flex justify-between">
                           <span className="text-neutral-600">Windows Security Center:</span>
