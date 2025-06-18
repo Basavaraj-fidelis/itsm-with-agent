@@ -69,13 +69,16 @@ const workflowTemplates: ServiceDeskWorkflow[] = [
     icon: <Search className="w-5 h-5" />,
     color: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
     steps: [
-      { id: 1, name: "Problem Identification", description: "Pattern of incidents identified", status: "completed" },
-      { id: 2, name: "Problem Logging", description: "Create problem record", status: "completed", assignee: "Problem Manager", timeframe: "2 hours" },
-      { id: 3, name: "Investigation", description: "Deep dive root cause analysis", status: "active", assignee: "Technical Experts", timeframe: "1-2 weeks" },
-      { id: 4, name: "Solution Design", description: "Design permanent solution", status: "pending", assignee: "Architecture Team", timeframe: "1 week" },
-      { id: 5, name: "Change Request", description: "Submit RFC for permanent fix", status: "pending", assignee: "Change Manager", timeframe: "3 days" },
-      { id: 6, name: "Implementation", description: "Deploy permanent solution", status: "pending", assignee: "Implementation Team" },
-      { id: 7, name: "Verification", description: "Confirm problem resolved", status: "pending", assignee: "Problem Manager" }
+      { id: 1, name: "Problem Detection", description: "Multiple related incidents detected", status: "completed" },
+      { id: 2, name: "Problem Logging", description: "Problem record created with initial details", status: "completed", assignee: "Service Desk", timeframe: "30 minutes" },
+      { id: 3, name: "Problem Categorization", description: "Categorize and prioritize problem", status: "completed", assignee: "Problem Manager", timeframe: "1 hour" },
+      { id: 4, name: "Investigation & Diagnosis", description: "Root cause analysis and investigation", status: "active", assignee: "Problem Analyst Team", timeframe: "5-10 days" },
+      { id: 5, name: "Workaround Implementation", description: "Implement temporary workaround if possible", status: "pending", assignee: "Technical Team", timeframe: "2-3 days" },
+      { id: 6, name: "Known Error Creation", description: "Document as Known Error in KEDB", status: "pending", assignee: "Problem Manager", timeframe: "1 day" },
+      { id: 7, name: "Resolution Planning", description: "Plan permanent resolution approach", status: "pending", assignee: "Architecture Team", timeframe: "3-5 days" },
+      { id: 8, name: "Change Initiation", description: "Raise Change Request for permanent fix", status: "pending", assignee: "Problem Manager", timeframe: "1 day" },
+      { id: 9, name: "Solution Implementation", description: "Implement permanent solution via Change", status: "pending", assignee: "Implementation Team", timeframe: "As per Change" },
+      { id: 10, name: "Problem Closure", description: "Verify resolution and close problem", status: "pending", assignee: "Problem Manager", timeframe: "1 week post-fix" }
     ]
   },
   {
@@ -85,12 +88,16 @@ const workflowTemplates: ServiceDeskWorkflow[] = [
     icon: <Settings className="w-5 h-5" />,
     color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
     steps: [
-      { id: 1, name: "Change Request", description: "RFC submitted with details", status: "completed" },
-      { id: 2, name: "Impact Assessment", description: "Assess risks and impact", status: "completed", assignee: "Change Analyst", timeframe: "1 day" },
-      { id: 3, name: "CAB Review", description: "Change Advisory Board review", status: "active", assignee: "CAB Members", timeframe: "Weekly meeting" },
-      { id: 4, name: "Authorization", description: "Change authority approval", status: "pending", assignee: "Change Manager", timeframe: "2 days" },
-      { id: 5, name: "Implementation", description: "Execute change as planned", status: "pending", assignee: "Implementation Team", timeframe: "Scheduled" },
-      { id: 6, name: "Review", description: "Post-implementation review", status: "pending", assignee: "Change Manager", timeframe: "1 week" }
+      { id: 1, name: "Change Request Initiation", description: "RFC created with business justification", status: "completed" },
+      { id: 2, name: "Initial Filtering", description: "Validate completeness and feasibility", status: "completed", assignee: "Change Coordinator", timeframe: "4 hours" },
+      { id: 3, name: "Change Assessment", description: "Impact, risk, and resource assessment", status: "active", assignee: "Change Analyst", timeframe: "1-2 days" },
+      { id: 4, name: "Technical Review", description: "Technical feasibility and design review", status: "pending", assignee: "Technical Architects", timeframe: "2-3 days" },
+      { id: 5, name: "CAB Evaluation", description: "Change Advisory Board review and recommendation", status: "pending", assignee: "CAB Members", timeframe: "Weekly CAB meeting" },
+      { id: 6, name: "Change Authorization", description: "Final approval from Change Authority", status: "pending", assignee: "Change Manager/CAB Chair", timeframe: "1 day" },
+      { id: 7, name: "Implementation Planning", description: "Detailed implementation and rollback planning", status: "pending", assignee: "Implementation Team", timeframe: "3-5 days" },
+      { id: 8, name: "Change Implementation", description: "Execute change according to plan", status: "pending", assignee: "Implementation Team", timeframe: "As scheduled" },
+      { id: 9, name: "Post Implementation Review", description: "Verify success and document lessons learned", status: "pending", assignee: "Change Manager", timeframe: "1-2 weeks post-implementation" },
+      { id: 10, name: "Change Closure", description: "Formal closure with success confirmation", status: "pending", assignee: "Change Manager", timeframe: "1 week post-PIR" }
     ]
   }
 ];

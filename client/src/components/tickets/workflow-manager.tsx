@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,37 +28,44 @@ interface WorkflowManagerProps {
 
 const WORKFLOW_DEFINITIONS = {
   request: [
-    { id: 1, name: "Request Submitted", status: "new", assignee: "Service Desk" },
+    { id: 1, name: "Request Submitted", status: "new", assignee: "User" },
     { id: 2, name: "Initial Review", status: "assigned", assignee: "Service Desk", timeframe: "1 hour" },
     { id: 3, name: "Approval Process", status: "pending", assignee: "Manager", timeframe: "4 hours" },
     { id: 4, name: "Fulfillment", status: "in_progress", assignee: "IT Team", timeframe: "1-3 days" },
-    { id: 5, name: "Verification", status: "resolved", assignee: "User", timeframe: "1 day" },
-    { id: 6, name: "Closure", status: "closed", assignee: "Service Desk" }
+    { id: 5, name: "Verification", status: "pending", assignee: "User", timeframe: "1 day" },
+    { id: 6, name: "Closure", status: "resolved", assignee: "Service Desk" }
   ],
   incident: [
-    { id: 1, name: "Incident Reported", status: "new", assignee: "Service Desk" },
+    { id: 1, name: "Incident Reported", status: "new", assignee: "User" },
     { id: 2, name: "Initial Assessment", status: "assigned", assignee: "Service Desk", timeframe: "15 minutes" },
     { id: 3, name: "Investigation", status: "in_progress", assignee: "L2 Support", timeframe: "1 hour" },
     { id: 4, name: "Resolution", status: "in_progress", assignee: "Technical Team", timeframe: "2-4 hours" },
-    { id: 5, name: "Verification", status: "resolved", assignee: "Service Desk", timeframe: "30 minutes" },
-    { id: 6, name: "Closure", status: "closed", assignee: "Service Desk" }
+    { id: 5, name: "Verification", status: "pending", assignee: "Service Desk", timeframe: "30 minutes" },
+    { id: 6, name: "Closure", status: "resolved", assignee: "Service Desk" }
   ],
   problem: [
-    { id: 1, name: "Problem Identification", status: "new", assignee: "Problem Manager" },
-    { id: 2, name: "Problem Logging", status: "assigned", assignee: "Problem Manager", timeframe: "2 hours" },
-    { id: 3, name: "Investigation", status: "in_progress", assignee: "Technical Experts", timeframe: "1-2 weeks" },
-    { id: 4, name: "Solution Design", status: "in_progress", assignee: "Architecture Team", timeframe: "1 week" },
-    { id: 5, name: "Change Request", status: "pending", assignee: "Change Manager", timeframe: "3 days" },
-    { id: 6, name: "Implementation", status: "in_progress", assignee: "Implementation Team" },
-    { id: 7, name: "Verification", status: "resolved", assignee: "Problem Manager" }
+    { id: 1, name: "Problem Detection", status: "new", assignee: "System/User" },
+    { id: 2, name: "Problem Logging", status: "assigned", assignee: "Service Desk", timeframe: "30 minutes" },
+    { id: 3, name: "Problem Categorization", status: "assigned", assignee: "Problem Manager", timeframe: "1 hour" },
+    { id: 4, name: "Investigation & Diagnosis", status: "in_progress", assignee: "Problem Analyst Team", timeframe: "5-10 days" },
+    { id: 5, name: "Workaround Implementation", status: "in_progress", assignee: "Technical Team", timeframe: "2-3 days" },
+    { id: 6, name: "Known Error Creation", status: "pending", assignee: "Problem Manager", timeframe: "1 day" },
+    { id: 7, name: "Resolution Planning", status: "pending", assignee: "Architecture Team", timeframe: "3-5 days" },
+    { id: 8, name: "Change Initiation", status: "pending", assignee: "Problem Manager", timeframe: "1 day" },
+    { id: 9, name: "Solution Implementation", status: "in_progress", assignee: "Implementation Team", timeframe: "As per Change" },
+    { id: 10, name: "Problem Closure", status: "resolved", assignee: "Problem Manager", timeframe: "1 week post-fix" }
   ],
   change: [
-    { id: 1, name: "Change Request", status: "pending", assignee: "Change Manager" },
-    { id: 2, name: "Impact Assessment", status: "assigned", assignee: "Change Analyst", timeframe: "1 day" },
-    { id: 3, name: "CAB Review", status: "pending", assignee: "CAB Members", timeframe: "Weekly meeting" },
-    { id: 4, name: "Authorization", status: "pending", assignee: "Change Manager", timeframe: "2 days" },
-    { id: 5, name: "Implementation", status: "in_progress", assignee: "Implementation Team", timeframe: "Scheduled" },
-    { id: 6, name: "Review", status: "resolved", assignee: "Change Manager", timeframe: "1 week" }
+    { id: 1, name: "Change Request Initiation", status: "new", assignee: "Requestor" },
+    { id: 2, name: "Initial Filtering", status: "assigned", assignee: "Change Coordinator", timeframe: "4 hours" },
+    { id: 3, name: "Change Assessment", status: "in_progress", assignee: "Change Analyst", timeframe: "1-2 days" },
+    { id: 4, name: "Technical Review", status: "pending", assignee: "Technical Architects", timeframe: "2-3 days" },
+    { id: 5, name: "CAB Evaluation", status: "pending", assignee: "CAB Members", timeframe: "Weekly CAB meeting" },
+    { id: 6, name: "Change Authorization", status: "pending", assignee: "Change Manager/CAB Chair", timeframe: "1 day" },
+    { id: 7, name: "Implementation Planning", status: "pending", assignee: "Implementation Team", timeframe: "3-5 days" },
+    { id: 8, name: "Change Implementation", status: "in_progress", assignee: "Implementation Team", timeframe: "As scheduled" },
+    { id: 9, name: "Post Implementation Review", status: "pending", assignee: "Change Manager", timeframe: "1-2 weeks post-implementation" },
+    { id: 10, name: "Change Closure", status: "resolved", assignee: "Change Manager", timeframe: "1 week post-PIR" }
   ]
 };
 
