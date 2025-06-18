@@ -909,8 +909,8 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
         {/* Updates Tab */}
         <TabsContent value="updates" className="space-y-6">
           <SafeDataRenderer>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* System Update Status */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Windows Update Status */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
@@ -920,62 +920,37 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {processedData?.raw_data ? (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 gap-3 text-sm">
-                        {/* Enhanced OS Information */}
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 gap-2 text-sm">
                         <Stat 
                           label="Product Name" 
                           value={processedData.raw_data.os_info?.product_name || 
                                  `${systemInfo.osName} ${systemInfo.osVersion}`} 
                         />
                         <Stat 
-                          label="Display Version" 
-                          value={processedData.raw_data.os_info?.display_version || "N/A"} 
-                        />
-                        <Stat 
                           label="Build Number" 
                           value={processedData.raw_data.os_info?.build_number || 
                                  processedData.raw_data.extracted_update_info?.windows_build || "N/A"} 
                         />
-                        <Stat 
-                          label="Platform" 
-                          value={processedData.raw_data.os_info?.platform_string || "N/A"} 
-                        />
-
-                        {/* Last Update Information */}
                         <div className="flex justify-between">
-                          <span className="text-neutral-600">Last Update:</span>
-                          <span className="font-medium">
+                          <span className="text-neutral-600 text-xs">Last Update:</span>
+                          <span className="font-medium text-xs">
                             {processedData.raw_data.os_info?.last_update?.DateTime || 
                              processedData.raw_data.os_info?.last_update || "N/A"}
                           </span>
                         </div>
-
-                        <Stat 
-                          label="Last Update Check" 
-                          value={processedData.raw_data.security?.last_update_check || 
-                                 processedData.raw_data.extracted_update_info?.last_update_check || "N/A"} 
-                        />
-
                         <div className="flex justify-between">
-                          <span className="text-neutral-600">Automatic Updates:</span>
-                          <Badge variant={processedData.raw_data.security?.automatic_updates?.includes("Managed") ? "secondary" : "default"}>
-                            {processedData.raw_data.security?.automatic_updates || "Unknown"}
+                          <span className="text-neutral-600 text-xs">Auto Updates:</span>
+                          <Badge variant={processedData.raw_data.security?.automatic_updates?.includes("Managed") ? "secondary" : "default"} className="text-xs">
+                            {processedData.raw_data.security?.automatic_updates?.slice(0, 8) || "Unknown"}
                           </Badge>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-neutral-600">Pending Reboot:</span>
-                          <Badge variant={processedData.raw_data.extracted_update_info?.pending_reboot ? "destructive" : "default"}>
-                            {processedData.raw_data.extracted_update_info?.pending_reboot ? "Required" : "Not Required"}
+                          <span className="text-neutral-600 text-xs">Pending Reboot:</span>
+                          <Badge variant={processedData.raw_data.extracted_update_info?.pending_reboot ? "destructive" : "default"} className="text-xs">
+                            {processedData.raw_data.extracted_update_info?.pending_reboot ? "Required" : "No"}
                           </Badge>
                         </div>
-
-                        {/* System Timing Information */}
-                        <Stat 
-                          label="System Boot Time" 
-                          value={processedData.raw_data.os_info?.boot_time || 
-                                 processedData.raw_data.extracted_update_info?.last_boot_time || "N/A"} 
-                        />
                         <Stat 
                           label="System Uptime" 
                           value={(() => {
@@ -983,99 +958,28 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             if (uptimeSeconds) {
                               const days = Math.floor(uptimeSeconds / 86400);
                               const hours = Math.floor((uptimeSeconds % 86400) / 3600);
-                              const minutes = Math.floor((uptimeSeconds % 3600) / 60);
-                              return `${days}d ${hours}h ${minutes}m`;
+                              return `${days}d ${hours}h`;
                             }
-                            return processedData.raw_data.os_info?.uptime_formatted || 
-                                   (processedData.raw_data.extracted_update_info?.system_uptime_hours ? 
-                                    `${processedData.raw_data.extracted_update_info.system_uptime_hours} hours` : "N/A");
+                            return processedData.raw_data.extracted_update_info?.system_uptime_hours ? 
+                                   `${processedData.raw_data.extracted_update_info.system_uptime_hours}h` : "N/A";
                           })()} 
                         />
                       </div>
 
-                      {/* Installed Windows Patches */}
-                      {processedData.raw_data.os_info?.patches && processedData.raw_data.os_info.patches.length > 0 && (
-                        <div className="mt-6">
-                          <h4 className="font-medium mb-3">Installed Patches ({processedData.raw_data.os_info.patches.length})</h4>
-                          <div className="space-y-2 max-h-64 overflow-y-auto">
-                            {processedData.raw_data.os_info.patches.slice(0, 10).map((patch, index) => (
-                              <div key={index} className="p-3 border rounded-lg bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-                                <div className="text-sm">
-                                  <div className="font-medium text-green-900 dark:text-green-100">
-                                    {patch.id || `Patch ${index + 1}`}
-                                  </div>
-                                  <div className="text-green-600 dark:text-green-400 text-xs mt-1">
-                                    Installed: {patch.installed_on?.DateTime || patch.installed_on || "Unknown date"}
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                            {processedData.raw_data.os_info.patches.length > 10 && (
-                              <div className="text-center py-2">
-                                <span className="text-sm text-neutral-500">
-                                  ... and {processedData.raw_data.os_info.patches.length - 10} more patches
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Available Updates from Agent Data */}
+                      {/* Available Updates */}
                       {processedData.raw_data.updates && processedData.raw_data.updates.length > 0 && (
-                        <div className="mt-6">
-                          <h4 className="font-medium mb-3">Available Updates ({processedData.raw_data.updates.length})</h4>
-                          <div className="space-y-2 max-h-64 overflow-y-auto">
-                            {processedData.raw_data.updates.slice(0, 10).map((update, index) => (
-                              <div key={index} className="p-3 border rounded-lg bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800">
-                                <div className="text-sm">
+                        <div className="mt-4">
+                          <h4 className="font-medium mb-2 text-sm">Available Updates ({processedData.raw_data.updates.length})</h4>
+                          <div className="space-y-2 max-h-32 overflow-y-auto">
+                            {processedData.raw_data.updates.slice(0, 3).map((update, index) => (
+                              <div key={index} className="p-2 border rounded-lg bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800">
+                                <div className="text-xs">
                                   <div className="font-medium text-orange-900 dark:text-orange-100">
-                                    {update.title || update.name || `Update ${index + 1}`}
+                                    {(update.title || update.name || `Update ${index + 1}`).slice(0, 30)}...
                                   </div>
-                                  {update.description && (
-                                    <div className="text-orange-700 dark:text-orange-300 text-xs mt-1">
-                                      {update.description.length > 100 ? 
-                                        `${update.description.substring(0, 100)}...` : 
-                                        update.description}
-                                    </div>
-                                  )}
-                                  <div className="flex justify-between items-center mt-2">
-                                    <div className="text-orange-600 dark:text-orange-400 text-xs">
-                                      Size: {update.size || "Unknown"}
-                                    </div>
-                                    <Badge variant={update.severity === "critical" ? "destructive" : 
-                                                   update.severity === "important" ? "secondary" : "outline"}>
-                                      {update.severity || "Standard"}
-                                    </Badge>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Recent Updates */}
-                      {processedData.raw_data.extracted_update_info?.recent_updates && 
-                       processedData.raw_data.extracted_update_info.recent_updates.length > 0 && (
-                        <div className="mt-6">
-                          <h4 className="font-medium mb-3">Recent Updates</h4>
-                          <div className="space-y-2">
-                            {processedData.raw_data.extracted_update_info.recent_updates.slice(0, 5).map((update, index) => (
-                              <div key={index} className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-                                <div className="text-sm">
-                                  <div className="font-medium text-blue-900 dark:text-blue-100">
-                                    {update.title || update.name || `Update ${index + 1}`}
-                                  </div>
-                                  {update.description && (
-                                    <div className="text-blue-700 dark:text-blue-300 text-xs mt-1">
-                                      {update.description.substring(0, 100)}
-                                      {update.description.length > 100 ? "..." : ""}
-                                    </div>
-                                  )}
-                                  <div className="text-blue-600 dark:text-blue-400 text-xs mt-1">
-                                    Installed: {update.installed_date || update.date || "Unknown"}
-                                  </div>
+                                  <Badge variant={update.severity === "critical" ? "destructive" : "outline"} className="text-xs mt-1">
+                                    {update.severity || "Standard"}
+                                  </Badge>
                                 </div>
                               </div>
                             ))}
@@ -1084,13 +988,10 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       )}
                     </div>
                   ) : (
-                    
-                    <div className="text-center py-12">
-                      <Package className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
-                      <p>No update information available</p>
-                      <p className="text-xs mt-1">Update data will appear when reported by the agent</p>
+                    <div className="text-center py-8">
+                      <Package className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
+                      <p className="text-xs">No update information</p>
                     </div>
-                    
                   )}
                 </CardContent>
               </Card>
@@ -1105,44 +1006,37 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {processedData?.raw_data?.security ? (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 gap-3 text-sm">
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 gap-2 text-sm">
                         <div className="flex justify-between">
-                          <span className="text-neutral-600">Windows Defender:</span>
-                          <Badge variant={processedData.raw_data.security.antivirus_status === "enabled" ? "default" : "destructive"}>
+                          <span className="text-neutral-600 text-xs">Windows Defender:</span>
+                          <Badge variant={processedData.raw_data.security.antivirus_status === "enabled" ? "default" : "destructive"} className="text-xs">
                             {processedData.raw_data.security.antivirus_status === "enabled" ? "Active" : "Inactive"}
                           </Badge>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-neutral-600">Firewall Status:</span>
-                          <Badge variant={processedData.raw_data.security.firewall_status === "enabled" ? "default" : "destructive"}>
+                          <span className="text-neutral-600 text-xs">Firewall:</span>
+                          <Badge variant={processedData.raw_data.security.firewall_status === "enabled" ? "default" : "destructive"} className="text-xs">
                             {processedData.raw_data.security.firewall_status === "enabled" ? "Enabled" : "Disabled"}
                           </Badge>
                         </div>
-                        <Stat 
-                          label="Real-time Protection" 
-                          value={processedData.raw_data.security.real_time_protection || 
-                                 (processedData.raw_data.security.antivirus_status === "enabled" ? "Active" : "Unknown")} 
-                        />
-                        <Stat 
-                          label="Last Virus Scan" 
-                          value={processedData.raw_data.security.last_virus_scan || 
-                                 processedData.raw_data.security.last_scan || "Not Available"} 
-                        />
-                        <Stat 
-                          label="Virus Definitions" 
-                          value={processedData.raw_data.security.virus_definitions_version || 
-                                 processedData.raw_data.security.definitions_version || "Not Available"} 
-                        />
                         <div className="flex justify-between">
-                          <span className="text-neutral-600">Windows Security Center:</span>
-                          <Badge variant={processedData.raw_data.security.security_center_service === "running" ? "default" : "secondary"}>
-                            {processedData.raw_data.security.security_center_service === "running" ? "Running" : "Not Running"}
-                          </Badge>
+                          <span className="text-neutral-600 text-xs">Real-time Protection:</span>
+                          <span className="font-medium text-xs">
+                            {processedData.raw_data.security.real_time_protection || 
+                             (processedData.raw_data.security.antivirus_status === "enabled" ? "Active" : "Unknown")}
+                          </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-neutral-600">UAC Status:</span>
-                          <Badge variant={processedData.raw_data.security.uac_enabled ? "default" : "destructive"}>
+                          <span className="text-neutral-600 text-xs">Last Virus Scan:</span>
+                          <span className="font-medium text-xs">
+                            {processedData.raw_data.security.last_virus_scan?.slice(0, 10) || 
+                             processedData.raw_data.security.last_scan?.slice(0, 10) || "N/A"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-neutral-600 text-xs">UAC Status:</span>
+                          <Badge variant={processedData.raw_data.security.uac_enabled ? "default" : "destructive"} className="text-xs">
                             {processedData.raw_data.security.uac_enabled ? "Enabled" : "Disabled"}
                           </Badge>
                         </div>
@@ -1151,17 +1045,88 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       {/* Security Services */}
                       {processedData.raw_data.security.security_services && (
                         <div className="mt-4">
-                          <h4 className="font-medium mb-3">Security Services</h4>
-                          <div className="space-y-2">
-                            {processedData.raw_data.security.security_services.slice(0, 5).map((service, index) => (
+                          <h4 className="font-medium mb-2 text-sm">Security Services</h4>
+                          <div className="space-y-1 max-h-32 overflow-y-auto">
+                            {processedData.raw_data.security.security_services.slice(0, 3).map((service, index) => (
                               <div key={index} className="p-2 border rounded bg-muted/20">
-                                <div className="text-sm">
-                                  <div className="font-medium">{service.name}</div>
-                                  <div className="flex justify-between items-center mt-1">
-                                    <span className="text-xs text-muted-foreground">{service.display_name}</span>
-                                    <Badge variant={service.status === "running" ? "default" : "secondary"} className="text-xs">
-                                      {service.status}
-                                    </Badge>
+                                <div className="text-xs">
+                                  <div className="font-medium">{service.name?.slice(0, 20)}...</div>
+                                  <Badge variant={service.status === "running" ? "default" : "secondary"} className="text-xs mt-1">
+                                    {service.status}
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Shield className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
+                      <p className="text-xs">No security information</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Installed Patches */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <CheckCircle className="w-5 h-5" />
+                    <span>Installed Patches</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {processedData?.raw_data?.os_info?.patches && processedData.raw_data.os_info.patches.length > 0 ? (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 gap-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-neutral-600 text-xs">Total Patches:</span>
+                          <span className="font-medium text-xs">{processedData.raw_data.os_info.patches.length}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-neutral-600 text-xs">Last Patch:</span>
+                          <span className="font-medium text-xs">
+                            {processedData.raw_data.os_info.patches[0]?.installed_on?.DateTime?.slice(0, 10) || 
+                             processedData.raw_data.os_info.patches[0]?.installed_on?.slice(0, 10) || "N/A"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <h4 className="font-medium mb-2 text-sm">Recent Patches</h4>
+                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                          {processedData.raw_data.os_info.patches.slice(0, 5).map((patch, index) => (
+                            <div key={index} className="p-2 border rounded-lg bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+                              <div className="text-xs">
+                                <div className="font-medium text-green-900 dark:text-green-100">
+                                  {(patch.id || `Patch ${index + 1}`).slice(0, 25)}...
+                                </div>
+                                <div className="text-green-600 dark:text-green-400 text-xs mt-1">
+                                  {patch.installed_on?.DateTime?.slice(0, 10) || patch.installed_on?.slice(0, 10) || "Unknown"}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Recent Updates */}
+                      {processedData.raw_data.extracted_update_info?.recent_updates && 
+                       processedData.raw_data.extracted_update_info.recent_updates.length > 0 && (
+                        <div className="mt-4">
+                          <h4 className="font-medium mb-2 text-sm">Recent Updates</h4>
+                          <div className="space-y-2 max-h-32 overflow-y-auto">
+                            {processedData.raw_data.extracted_update_info.recent_updates.slice(0, 3).map((update, index) => (
+                              <div key={index} className="p-2 border rounded-lg bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                                <div className="text-xs">
+                                  <div className="font-medium text-blue-900 dark:text-blue-100">
+                                    {(update.title || update.name || `Update ${index + 1}`).slice(0, 25)}...
+                                  </div>
+                                  <div className="text-blue-600 dark:text-blue-400 text-xs mt-1">
+                                    {update.installed_date?.slice(0, 10) || update.date?.slice(0, 10) || "Unknown"}
                                   </div>
                                 </div>
                               </div>
@@ -1171,10 +1136,9 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       )}
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-neutral-500">
-                      <Shield className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
-                      <p>No security information available</p>
-                      <p className="text-xs mt-1">Security data will appear when reported by the agent</p>
+                    <div className="text-center py-8">
+                      <CheckCircle className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
+                      <p className="text-xs">No patch information</p>
                     </div>
                   )}
                 </CardContent>
@@ -1190,115 +1154,45 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {processedData?.raw_data?.active_ports && processedData.raw_data.active_ports.length > 0 ? (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 gap-3 text-sm">
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 gap-2 text-sm">
                         <div className="flex justify-between">
-                          <span className="text-neutral-600">Total Active Connections:</span>
-                          <span className="font-medium">{processedData.raw_data.active_ports.length}</span>
+                          <span className="text-neutral-600 text-xs">Total Connections:</span>
+                          <span className="font-medium text-xs">{processedData.raw_data.active_ports.length}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-neutral-600">Unique Local Ports:</span>
-                          <span className="font-medium">
+                          <span className="text-neutral-600 text-xs">Local Ports:</span>
+                          <span className="font-medium text-xs">
                             {new Set(processedData.raw_data.active_ports.map(port => port.LocalPort)).size}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-neutral-600">Unique Remote Ports:</span>
-                          <span className="font-medium">
+                          <span className="text-neutral-600 text-xs">Remote Ports:</span>
+                          <span className="font-medium text-xs">
                             {new Set(processedData.raw_data.active_ports.map(port => port.RemotePort)).size}
                           </span>
                         </div>
                       </div>
 
-                      {/* Port Details */}
-                      <div className="mt-6">
-                        <h4 className="font-medium mb-3 flex items-center justify-between">
-                          Active Port Connections
-                          <Badge variant="outline" className="text-xs">
-                            {processedData.raw_data.active_ports.length} connections
-                          </Badge>
-                        </h4>
-                        <div className="space-y-2 max-h-64 overflow-y-auto">
-                          {processedData.raw_data.active_ports
-                            .sort((a, b) => a.LocalPort - b.LocalPort)
-                            .slice(0, 50) // Show first 50 connections
-                            .map((port, index) => {
-                              const isWellKnownRemote = port.RemotePort === 443 || port.RemotePort === 80 || port.RemotePort === 22 || port.RemotePort === 21;
-                              const isHighLocalPort = port.LocalPort > 49152; // Ephemeral port range
-
-                              return (
-                                <div key={index} className="p-3 border rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-4">
-                                      <div className="text-sm">
-                                        <div className="font-medium text-blue-900 dark:text-blue-100">
-                                          Local: {port.LocalPort}
-                                        </div>
-                                        <div className="text-neutral-600 dark:text-neutral-400 text-xs">
-                                          {isHighLocalPort ? "Ephemeral" : "System/User"}
-                                        </div>
-                                      </div>
-                                      <div className="text-neutral-400">→</div>
-                                      <div className="text-sm">
-                                        <div className="font-medium text-green-900 dark:text-green-100">
-                                          Remote: {port.RemotePort}
-                                        </div>
-                                        <div className="text-neutral-600 dark:text-neutral-400 text-xs">
-                                          {port.RemotePort === 443 ? "HTTPS" :
-                                           port.RemotePort === 80 ? "HTTP" :
-                                           port.RemotePort === 22 ? "SSH" :
-                                           port.RemotePort === 21 ? "FTP" :
-                                           port.RemotePort === 25 ? "SMTP" :
-                                           port.RemotePort === 53 ? "DNS" :
-                                           port.RemotePort === 3389 ? "RDP" :
-                                           port.RemotePort === 5228 ? "Google Services" :
-                                           port.RemotePort === 7680 ? "Windows Update" :
-                                           port.RemotePort === 8009 ? "Web Service" :
-                                           "Custom"}
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                      {isWellKnownRemote && (
-                                        <Badge variant="default" className="text-xs bg-green-100 text-green-800">
-                                          Standard
-                                        </Badge>
-                                      )}
-                                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Active Connection"></div>
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          {processedData.raw_data.active_ports.length > 50 && (
-                            <div className="text-center py-2">
-                              <span className="text-sm text-neutral-500">
-                                ... and {processedData.raw_data.active_ports.length - 50} more connections
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
                       {/* Port Analysis */}
-                      <div className="mt-4 p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-                        <h5 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Port Analysis</h5>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs">
-                          <div>
+                      <div className="mt-4 p-2 border rounded-lg bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                        <h5 className="font-medium text-blue-900 dark:text-blue-100 mb-2 text-sm">Port Analysis</h5>
+                        <div className="grid grid-cols-1 gap-2 text-xs">
+                          <div className="flex justify-between">
                             <span className="text-blue-600 dark:text-blue-400">HTTPS (443):</span>
-                            <span className="ml-1 font-medium">
+                            <span className="font-medium">
                               {processedData.raw_data.active_ports.filter(p => p.RemotePort === 443).length}
                             </span>
                           </div>
-                          <div>
+                          <div className="flex justify-between">
                             <span className="text-blue-600 dark:text-blue-400">HTTP (80):</span>
-                            <span className="ml-1 font-medium">
+                            <span className="font-medium">
                               {processedData.raw_data.active_ports.filter(p => p.RemotePort === 80).length}
                             </span>
                           </div>
-                          <div>
-                            <span className="text-blue-600 dark:text-blue-400">Custom Ports:</span>
-                            <span className="ml-1 font-medium">
+                          <div className="flex justify-between">
+                            <span className="text-blue-600 dark:text-blue-400">Custom:</span>
+                            <span className="font-medium">
                               {processedData.raw_data.active_ports.filter(p => 
                                 ![443, 80, 22, 21, 25, 53, 3389, 5228, 7680].includes(p.RemotePort)
                               ).length}
@@ -1306,12 +1200,39 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                           </div>
                         </div>
                       </div>
+
+                      {/* Top Port Connections */}
+                      <div className="mt-4">
+                        <h4 className="font-medium mb-2 text-sm">Top Connections</h4>
+                        <div className="space-y-1 max-h-32 overflow-y-auto">
+                          {processedData.raw_data.active_ports
+                            .sort((a, b) => a.LocalPort - b.LocalPort)
+                            .slice(0, 4)
+                            .map((port, index) => (
+                              <div key={index} className="p-2 border rounded-lg bg-muted/20">
+                                <div className="flex items-center justify-between text-xs">
+                                  <div>
+                                    <span className="font-medium text-blue-900 dark:text-blue-100">
+                                      {port.LocalPort} → {port.RemotePort}
+                                    </span>
+                                  </div>
+                                  <Badge variant="default" className="text-xs">
+                                    {port.RemotePort === 443 ? "HTTPS" :
+                                     port.RemotePort === 80 ? "HTTP" :
+                                     port.RemotePort === 22 ? "SSH" :
+                                     port.RemotePort === 3389 ? "RDP" :
+                                     "Custom"}
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-neutral-500">
-                      <Network className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
-                      <p>No active port information available</p>
-                      <p className="text-xs mt-1">Port data will appear when reported by the agent</p>
+                    <div className="text-center py-8">
+                      <Network className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
+                      <p className="text-xs">No port information</p>
                     </div>
                   )}
                 </CardContent>
