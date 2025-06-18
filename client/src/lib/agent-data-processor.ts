@@ -285,7 +285,17 @@ export class AgentDataProcessor {
       automatic_updates: rawData.security?.automatic_updates || rawData.automatic_updates,
       pending_reboot: rawData.pending_reboot || false,
       uptime: rawData.os_info?.uptime_formatted || rawData.uptime,
-      boot_time: rawData.os_info?.boot_time || rawData.boot_time
+      boot_time: rawData.os_info?.boot_time || rawData.boot_time,
+      // Enhanced Windows-specific update info
+      os_details: {
+        product_name: rawData.os_info?.product_name,
+        display_version: rawData.os_info?.display_version,
+        build_number: rawData.os_info?.build_number,
+        platform_string: rawData.os_info?.platform_string,
+        last_update: rawData.os_info?.last_update,
+        uptime_seconds: rawData.os_info?.uptime_seconds,
+        patches: rawData.os_info?.patches || []
+      }
     };
   }
 

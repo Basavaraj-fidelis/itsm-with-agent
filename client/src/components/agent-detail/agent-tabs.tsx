@@ -922,21 +922,41 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                   {processedData?.raw_data ? (
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 gap-3 text-sm">
-                        {/* Use actual security data from agent */}
+                        {/* Enhanced OS Information */}
+                        <Stat 
+                          label="Product Name" 
+                          value={processedData.raw_data.os_info?.product_name || 
+                                 `${systemInfo.osName} ${systemInfo.osVersion}`} 
+                        />
+                        <Stat 
+                          label="Display Version" 
+                          value={processedData.raw_data.os_info?.display_version || "N/A"} 
+                        />
+                        <Stat 
+                          label="Build Number" 
+                          value={processedData.raw_data.os_info?.build_number || 
+                                 processedData.raw_data.extracted_update_info?.windows_build || "N/A"} 
+                        />
+                        <Stat 
+                          label="Platform" 
+                          value={processedData.raw_data.os_info?.platform_string || "N/A"} 
+                        />
+                        
+                        {/* Last Update Information */}
+                        <div className="flex justify-between">
+                          <span className="text-neutral-600">Last Update:</span>
+                          <span className="font-medium">
+                            {processedData.raw_data.os_info?.last_update?.DateTime || 
+                             processedData.raw_data.os_info?.last_update || "N/A"}
+                          </span>
+                        </div>
+                        
                         <Stat 
                           label="Last Update Check" 
                           value={processedData.raw_data.security?.last_update_check || 
                                  processedData.raw_data.extracted_update_info?.last_update_check || "N/A"} 
                         />
-                        <Stat 
-                          label="Operating System" 
-                          value={`${systemInfo.osName} ${systemInfo.osVersion}`} 
-                        />
-                        <Stat 
-                          label="Windows Build" 
-                          value={processedData.raw_data.os_info?.build_number || 
-                                 processedData.raw_data.extracted_update_info?.windows_build || "N/A"} 
-                        />
+                        
                         <div className="flex justify-between">
                           <span className="text-neutral-600">Automatic Updates:</span>
                           <Badge variant={processedData.raw_data.security?.automatic_updates?.includes("Managed") ? "secondary" : "default"}>
@@ -949,6 +969,8 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             {processedData.raw_data.extracted_update_info?.pending_reboot ? "Required" : "Not Required"}
                           </Badge>
                         </div>
+                        
+                        {/* System Timing Information */}
                         <Stat 
                           label="System Boot Time" 
                           value={processedData.raw_data.os_info?.boot_time || 
@@ -956,13 +978,50 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                         />
                         <Stat 
                           label="System Uptime" 
-                          value={processedData.raw_data.os_info?.uptime_formatted || 
-                                 (processedData.raw_data.extracted_update_info?.system_uptime_hours ? 
-                                  `${processedData.raw_data.extracted_update_info.system_uptime_hours} hours` : "N/A")} 
+                          value={(() => {
+                            const uptimeSeconds = processedData.raw_data.os_info?.uptime_seconds;
+                            if (uptimeSeconds) {
+                              const days = Math.floor(uptimeSeconds / 86400);
+                              const hours = Math.floor((uptimeSeconds % 86400) / 3600);
+                              const minutes = Math.floor((uptimeSeconds % 3600) / 60);
+                              return `${days}d ${hours}h ${minutes}m`;
+                            }
+                            return processedData.raw_data.os_info?.uptime_formatted || 
+                                   (processedData.raw_data.extracted_update_info?.system_uptime_hours ? 
+                                    `${processedData.raw_data.extracted_update_info.system_uptime_hours} hours` : "N/A");
+                          })()} 
                         />
                       </div>
 
-                      {/* Windows Updates from Agent Data */}
+                      {/* Installed Windows Patches */}
+                      {processedData.raw_data.os_info?.patches && processedData.raw_data.os_info.patches.length > 0 && (
+                        <div className="mt-6">
+                          <h4 className="font-medium mb-3">Installed Patches ({processedData.raw_data.os_info.patches.length})</h4>
+                          <div className="space-y-2 max-h-64 overflow-y-auto">
+                            {processedData.raw_data.os_info.patches.slice(0, 10).map((patch, index) => (
+                              <div key={index} className="p-3 border rounded-lg bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+                                <div className="text-sm">
+                                  <div className="font-medium text-green-900 dark:text-green-100">
+                                    {patch.id || `Patch ${index + 1}`}
+                                  </div>
+                                  <div className="text-green-600 dark:text-green-400 text-xs mt-1">
+                                    Installed: {patch.installed_on?.DateTime || patch.installed_on || "Unknown date"}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                            {processedData.raw_data.os_info.patches.length > 10 && (
+                              <div className="text-center py-2">
+                                <span className="text-sm text-neutral-500">
+                                  ... and {processedData.raw_data.os_info.patches.length - 10} more patches
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Available Updates from Agent Data */}
                       {processedData.raw_data.updates && processedData.raw_data.updates.length > 0 && (
                         <div className="mt-6">
                           <h4 className="font-medium mb-3">Available Updates ({processedData.raw_data.updates.length})</h4>
