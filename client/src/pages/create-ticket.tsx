@@ -76,6 +76,7 @@ export default function CreateTicket() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [selectedType, setSelectedType] = useState<string>("");
   
   const [formData, setFormData] = useState<NewTicketFormData>({
     type: "",
@@ -91,45 +92,27 @@ export default function CreateTicket() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const validateStep = (step: number): boolean => {
+  const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (step === 1) {
-      if (!formData.type) newErrors.type = "Please select a ticket type";
+    if (!formData.type) newErrors.type = "Please select a ticket type";
+    if (!formData.title.trim()) newErrors.title = "Title is required";
+    if (!formData.description.trim()) newErrors.description = "Description is required";
+    if (!formData.requester_email.trim()) newErrors.requester_email = "Requester email is required";
+    if (formData.requester_email && !/\S+@\S+\.\S+/.test(formData.requester_email)) {
+      newErrors.requester_email = "Please enter a valid email address";
     }
 
-    if (step === 2) {
-      if (!formData.title.trim()) newErrors.title = "Title is required";
-      if (!formData.description.trim()) newErrors.description = "Description is required";
-      if (!formData.requester_email.trim()) newErrors.requester_email = "Requester email is required";
-      if (formData.requester_email && !/\S+@\S+\.\S+/.test(formData.requester_email)) {
-        newErrors.requester_email = "Please enter a valid email address";
-      }
-    }
-
-    if (step === 3) {
-      if (formData.type === "change" && !formData.change_type) {
-        newErrors.change_type = "Change type is required for change requests";
-      }
+    if (formData.type === "change" && !formData.change_type) {
+      newErrors.change_type = "Change type is required for change requests";
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleNext = () => {
-    if (validateStep(currentStep)) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const handlePrevious = () => {
-    setCurrentStep(currentStep - 1);
-    setErrors({});
-  };
-
   const handleSubmit = async () => {
-    if (!validateStep(3)) return;
+    if (!validateForm()) return;
 
     setLoading(true);
     try {
@@ -189,61 +172,387 @@ export default function CreateTicket() {
   );
 
   const renderStep1 = () => (
-    <Card className="max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle className="text-2xl text-center flex items-center justify-center">
-          <Ticket className="w-6 h-6 mr-2 text-blue-600" />
-          Select Ticket Type
-        </CardTitle>
-        <p className="text-center text-muted-foreground">
-          Choose the type of request or issue you need assistance with
-        </p>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {Object.entries(typeIcons).map(([type, IconComponent]) => (
-            <Card
-              key={type}
-              className={`cursor-pointer transition-all duration-200 hover:shadow-lg border-2 ${
-                formData.type === type 
-                  ? `bg-gradient-to-br ${typeColors[type as keyof typeof typeColors]} border-current` 
-                  : "border-gray-200 hover:border-gray-300"
-              }`}
-              onClick={() => updateFormData("type", type)}
-            >
-              <CardContent className="p-6">
-                <div className="text-center space-y-4">
-                  <div className={`mx-auto w-16 h-16 rounded-lg flex items-center justify-center ${
-                    type === 'request' ? 'bg-green-100 text-green-600' :
-                    type === 'incident' ? 'bg-red-100 text-red-600' :
-                    type === 'problem' ? 'bg-orange-100 text-orange-600' :
-                    'bg-blue-100 text-blue-600'
-                  }`}>
-                    <IconComponent className="w-8 h-8" />
+    <div className="space-y-8">
+      {/* Ticket Type Selection */}
+      <Card className="max-w-4xl mx-auto">
+        <CardHeader>
+          <CardTitle className="text-2xl text-center flex items-center justify-center">
+            <Ticket className="w-6 h-6 mr-2 text-blue-600" />
+            Select Ticket Type
+          </CardTitle>
+          <p className="text-center text-muted-foreground">
+            Choose the type of request or issue you need assistance with
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {Object.entries(typeIcons).map(([type, IconComponent]) => (
+              <Card
+                key={type}
+                className={`cursor-pointer transition-all duration-200 hover:shadow-lg border-2 ${
+                  selectedType === type 
+                    ? `bg-gradient-to-br ${typeColors[type as keyof typeof typeColors]} border-current` 
+                    : "border-gray-200 hover:border-gray-300"
+                }`}
+                onClick={() => {
+                  setSelectedType(type);
+                  updateFormData("type", type);
+                }}
+              >
+                <CardContent className="p-6">
+                  <div className="text-center space-y-4">
+                    <div className={`mx-auto w-16 h-16 rounded-lg flex items-center justify-center ${
+                      type === 'request' ? 'bg-green-100 text-green-600' :
+                      type === 'incident' ? 'bg-red-100 text-red-600' :
+                      type === 'problem' ? 'bg-orange-100 text-orange-600' :
+                      'bg-blue-100 text-blue-600'
+                    }`}>
+                      <IconComponent className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold capitalize mb-2">
+                        {type === 'request' ? 'Service Request' : type}
+                      </h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {typeDescriptions[type as keyof typeof typeDescriptions]}
+                      </p>
+                    </div>
+                    {selectedType === type && (
+                      <Badge className="bg-blue-600 text-white">
+                        Selected
+                      </Badge>
+                    )}
                   </div>
-                  <div>
-                    <h3 className="text-xl font-semibold capitalize mb-2">
-                      {type === 'request' ? 'Service Request' : type}
-                    </h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {typeDescriptions[type as keyof typeof typeDescriptions]}
-                    </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          {errors.type && (
+            <p className="text-red-600 text-sm mt-4 text-center">{errors.type}</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Dynamic Form Based on Selected Type */}
+      {selectedType && (
+        <Card className="max-w-4xl mx-auto">
+          <CardHeader>
+            <CardTitle className="text-xl flex items-center">
+              {selectedType === 'request' && <Ticket className="w-5 h-5 mr-2 text-green-600" />}
+              {selectedType === 'incident' && <AlertTriangle className="w-5 h-5 mr-2 text-red-600" />}
+              {selectedType === 'problem' && <Wrench className="w-5 h-5 mr-2 text-orange-600" />}
+              {selectedType === 'change' && <RefreshCw className="w-5 h-5 mr-2 text-blue-600" />}
+              {selectedType === 'request' ? 'Service Request' : selectedType.charAt(0).toUpperCase() + selectedType.slice(1)} Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Basic Details */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="title" className="text-sm font-medium">
+                  Title <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => updateFormData("title", e.target.value)}
+                  placeholder={`Brief description of the ${selectedType}`}
+                  className={errors.title ? "border-red-500" : ""}
+                />
+                {errors.title && <p className="text-red-600 text-xs">{errors.title}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="requester_email" className="text-sm font-medium">
+                  Requester Email <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="requester_email"
+                  type="email"
+                  value={formData.requester_email}
+                  onChange={(e) => updateFormData("requester_email", e.target.value)}
+                  placeholder="user@company.com"
+                  className={errors.requester_email ? "border-red-500" : ""}
+                />
+                {errors.requester_email && <p className="text-red-600 text-xs">{errors.requester_email}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="priority" className="text-sm font-medium">
+                  Priority
+                </Label>
+                <Select value={formData.priority} onValueChange={(value) => updateFormData("priority", value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">
+                      <div className="flex items-center">
+                        <Flag className="w-4 h-4 mr-2 text-blue-600" />
+                        Low
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="medium">
+                      <div className="flex items-center">
+                        <Flag className="w-4 h-4 mr-2 text-yellow-600" />
+                        Medium
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="high">
+                      <div className="flex items-center">
+                        <Flag className="w-4 h-4 mr-2 text-orange-600" />
+                        High
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="critical">
+                      <div className="flex items-center">
+                        <Flag className="w-4 h-4 mr-2 text-red-600" />
+                        Critical
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="category" className="text-sm font-medium">
+                  Category
+                </Label>
+                <Input
+                  id="category"
+                  value={formData.category}
+                  onChange={(e) => updateFormData("category", e.target.value)}
+                  placeholder={
+                    selectedType === 'request' ? 'e.g., Software, Hardware, Access' :
+                    selectedType === 'incident' ? 'e.g., System Outage, Performance' :
+                    selectedType === 'problem' ? 'e.g., Recurring Issue, Root Cause' :
+                    'e.g., Infrastructure, Application'
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description" className="text-sm font-medium">
+                Description <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => updateFormData("description", e.target.value)}
+                placeholder={
+                  selectedType === 'request' ? 'Describe what you need (software installation, hardware request, access permissions, etc.)' :
+                  selectedType === 'incident' ? 'Describe the issue, when it started, who is affected, and any error messages' :
+                  selectedType === 'problem' ? 'Describe the recurring issue pattern and any known related incidents' :
+                  'Describe the change requirements, business justification, and expected outcomes'
+                }
+                rows={4}
+                className={errors.description ? "border-red-500" : ""}
+              />
+              {errors.description && <p className="text-red-600 text-xs">{errors.description}</p>}
+            </div>
+
+            {/* Type-Specific Fields */}
+            {selectedType === 'incident' && (
+              <div className="border border-red-200 rounded-lg p-4 bg-red-50/50">
+                <h4 className="font-medium text-red-900 mb-3 flex items-center">
+                  <AlertTriangle className="w-4 h-4 mr-2" />
+                  Incident Details
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="impact" className="text-sm font-medium">
+                      Business Impact
+                    </Label>
+                    <Select value={formData.impact} onValueChange={(value) => updateFormData("impact", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select impact" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low - Single user affected</SelectItem>
+                        <SelectItem value="medium">Medium - Small group affected</SelectItem>
+                        <SelectItem value="high">High - Department affected</SelectItem>
+                        <SelectItem value="critical">Critical - Organization-wide impact</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  {formData.type === type && (
-                    <Badge className="bg-blue-600 text-white">
-                      Selected
-                    </Badge>
-                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="urgency" className="text-sm font-medium">
+                      Urgency
+                    </Label>
+                    <Select value={formData.urgency} onValueChange={(value) => updateFormData("urgency", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select urgency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low - Can wait for normal hours</SelectItem>
+                        <SelectItem value="medium">Medium - Should be resolved today</SelectItem>
+                        <SelectItem value="high">High - Needs immediate attention</SelectItem>
+                        <SelectItem value="critical">Critical - Emergency response needed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        {errors.type && (
-          <p className="text-red-600 text-sm mt-4 text-center">{errors.type}</p>
-        )}
-      </CardContent>
-    </Card>
+              </div>
+            )}
+
+            {selectedType === 'change' && (
+              <div className="border border-blue-200 rounded-lg p-4 bg-blue-50/50">
+                <h4 className="font-medium text-blue-900 mb-3 flex items-center">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Change Management Details
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="change_type" className="text-sm font-medium">
+                      Change Type <span className="text-red-500">*</span>
+                    </Label>
+                    <Select
+                      value={formData.change_type}
+                      onValueChange={(value) => updateFormData("change_type", value)}
+                    >
+                      <SelectTrigger className={errors.change_type ? "border-red-500" : ""}>
+                        <SelectValue placeholder="Select change type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="standard">Standard - Pre-approved</SelectItem>
+                        <SelectItem value="normal">Normal - Requires approval</SelectItem>
+                        <SelectItem value="emergency">Emergency - Immediate change</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {errors.change_type && <p className="text-red-600 text-xs">{errors.change_type}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="risk_level" className="text-sm font-medium">
+                      Risk Level
+                    </Label>
+                    <Select
+                      value={formData.risk_level}
+                      onValueChange={(value) => updateFormData("risk_level", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select risk level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low - Minimal risk</SelectItem>
+                        <SelectItem value="medium">Medium - Moderate risk</SelectItem>
+                        <SelectItem value="high">High - Significant risk</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="scheduled_start" className="text-sm font-medium">
+                      Preferred Implementation Date
+                    </Label>
+                    <Input
+                      id="scheduled_start"
+                      type="datetime-local"
+                      value={formData.scheduled_start}
+                      onChange={(e) => updateFormData("scheduled_start", e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="implementation_plan" className="text-sm font-medium">
+                      Implementation Plan
+                    </Label>
+                    <Textarea
+                      id="implementation_plan"
+                      value={formData.implementation_plan}
+                      onChange={(e) => updateFormData("implementation_plan", e.target.value)}
+                      placeholder="Describe the step-by-step implementation process"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="rollback_plan" className="text-sm font-medium">
+                      Rollback Plan
+                    </Label>
+                    <Textarea
+                      id="rollback_plan"
+                      value={formData.rollback_plan}
+                      onChange={(e) => updateFormData("rollback_plan", e.target.value)}
+                      placeholder="Describe how to rollback if the change fails"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selectedType === 'problem' && (
+              <div className="border border-orange-200 rounded-lg p-4 bg-orange-50/50">
+                <h4 className="font-medium text-orange-900 mb-3 flex items-center">
+                  <Wrench className="w-4 h-4 mr-2" />
+                  Problem Management Details
+                </h4>
+                <div className="space-y-2">
+                  <Label htmlFor="known_error" className="text-sm font-medium">
+                    Known Error Status
+                  </Label>
+                  <Select
+                    value={formData.known_error ? "true" : "false"}
+                    onValueChange={(value) => updateFormData("known_error", value === "true")}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Is this a known error?" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="false">New Problem - Requires investigation</SelectItem>
+                      <SelectItem value="true">Known Error - Workaround available</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {selectedType === 'request' && (
+              <div className="border border-green-200 rounded-lg p-4 bg-green-50/50">
+                <h4 className="font-medium text-green-900 mb-3 flex items-center">
+                  <Ticket className="w-4 h-4 mr-2" />
+                  Service Request Details
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="impact" className="text-sm font-medium">
+                      Business Justification
+                    </Label>
+                    <Select value={formData.impact} onValueChange={(value) => updateFormData("impact", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select justification" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Personal productivity</SelectItem>
+                        <SelectItem value="medium">Team requirement</SelectItem>
+                        <SelectItem value="high">Department initiative</SelectItem>
+                        <SelectItem value="critical">Critical business need</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="urgency" className="text-sm font-medium">
+                      Required By
+                    </Label>
+                    <Select value={formData.urgency} onValueChange={(value) => updateFormData("urgency", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select timeframe" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">No specific deadline</SelectItem>
+                        <SelectItem value="medium">Within 2 weeks</SelectItem>
+                        <SelectItem value="high">Within 1 week</SelectItem>
+                        <SelectItem value="critical">ASAP</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 
   const renderStep2 = () => (
@@ -549,71 +858,48 @@ export default function CreateTicket() {
               Create New Ticket
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Step {currentStep} of 3
+              Select a ticket type and fill in the details
             </p>
           </div>
           <div className="w-32"> {/* Spacer for centering */}
           </div>
         </div>
 
-        {/* Step Indicator */}
-        {renderStepIndicator()}
-
-        {/* Step Content */}
+        {/* Form Content */}
         <div className="mb-8">
-          {currentStep === 1 && renderStep1()}
-          {currentStep === 2 && renderStep2()}
-          {currentStep === 3 && renderStep3()}
+          {renderStep1()}
         </div>
 
-        {/* Navigation Buttons */}
-        <div className="flex justify-between max-w-4xl mx-auto">
-          <Button
-            variant="outline"
-            onClick={handlePrevious}
-            disabled={currentStep === 1}
-            className="min-w-24"
-          >
-            Previous
-          </Button>
-
-          <div className="flex space-x-4">
+        {/* Action Buttons */}
+        {selectedType && (
+          <div className="flex justify-center space-x-4 max-w-4xl mx-auto">
             <Button
               variant="outline"
               onClick={() => setLocation('/tickets')}
+              className="min-w-24"
             >
               Cancel
             </Button>
             
-            {currentStep < 3 ? (
-              <Button
-                onClick={handleNext}
-                disabled={!formData.type && currentStep === 1}
-                className="min-w-24"
-              >
-                Next
-              </Button>
-            ) : (
-              <Button
-                onClick={handleSubmit}
-                disabled={loading}
-                className="min-w-32 bg-green-600 hover:bg-green-700"
-              >
-                {loading ? (
-                  <div className="flex items-center">
-                    <Clock className="w-4 h-4 mr-2 animate-spin" />
-                    Creating...
-                  </div>
-                ) : (
-                  <div className="flex items-center">
-                    <CheckCircle2 className="w-4 h-4 mr-2" />
-                    Create Ticket
-                  </div>
-                )}
-              </Button>
-            )}
+            <Button
+              onClick={handleSubmit}
+              disabled={loading || !formData.title || !formData.description || !formData.requester_email}
+              className="min-w-32 bg-green-600 hover:bg-green-700"
+            >
+              {loading ? (
+                <div className="flex items-center">
+                  <Clock className="w-4 h-4 mr-2 animate-spin" />
+                  Creating...
+                </div>
+              ) : (
+                <div className="flex items-center">
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  Create Ticket
+                </div>
+              )}
+            </Button>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

@@ -1152,9 +1152,11 @@ export default function Tickets() {
                   }}
                 >
                   <CardContent className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
+                  {/* Compact Header */}
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1 space-y-2">
+                      {/* Priority and Status Badges */}
+                      <div className="flex items-center space-x-2 flex-wrap">
                         <Badge className={
                           ticket.type === 'incident' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
                           ticket.type === 'problem' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
@@ -1200,14 +1202,42 @@ export default function Tickets() {
                           return null;
                         })()}
                       </div>
-                      <h3 className="font-semibold text-lg text-neutral-900 dark:text-neutral-100">
+                      
+                      {/* Title */}
+                      <h3 className="font-semibold text-base text-neutral-900 dark:text-neutral-100 line-clamp-1">
                         {ticket.title}
                       </h3>
-                      <p className="text-sm text-neutral-600 dark:text-neutral-400 line-clamp-2">
-                        {ticket.description}
-                      </p>
+
+                      {/* Compact Info Row */}
+                      <div className="flex items-center space-x-3 text-xs text-neutral-500 dark:text-neutral-400">
+                        <span>#{ticket.ticket_number}</span>
+                        <span>•</span>
+                        <span>Created: {new Date(ticket.created_at).toLocaleDateString()}</span>
+                        {ticket.assigned_to && (
+                          <>
+                            <span>•</span>
+                            <span>Assigned: {ticket.assigned_to.split('@')[0]}</span>
+                          </>
+                        )}
+                        <span>•</span>
+                        <span className={`font-medium ${(() => {
+                          const now = new Date();
+                          const slaDate = ticket.sla_resolution_due || ticket.due_date;
+                          const isBreached = slaDate && new Date(slaDate) < now && !["resolved", "closed", "cancelled"].includes(ticket.status);
+                          return (ticket.sla_breached || isBreached) ? 'text-red-600' : 'text-green-600';
+                        })()}`}>
+                          {(() => {
+                            const now = new Date();
+                            const slaDate = ticket.sla_resolution_due || ticket.due_date;
+                            const isBreached = slaDate && new Date(slaDate) < now && !["resolved", "closed", "cancelled"].includes(ticket.status);
+                            return (ticket.sla_breached || isBreached) ? 'SLA Breached' : 'Within SLA';
+                          })()}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
+
+                    {/* Type Icon and Actions */}
+                    <div className="flex items-center space-x-3">
                       <div className={`p-2 rounded-lg ${
                         ticket.type === 'incident' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
                         ticket.type === 'problem' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' :
@@ -1216,65 +1246,69 @@ export default function Tickets() {
                       }`}>
                         <IconComponent className="w-5 h-5" />
                       </div>
-                    </div>
-                  </div>
-                  {/* SLA Information */}
-                  <div className="py-2 border-b border-gray-100 dark:border-gray-800">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-neutral-500">SLA: {ticket.sla_policy || 'Standard'}</span>
-                      <span className={`font-medium ${(() => {
-                        const now = new Date();
-                        const slaDate = ticket.sla_resolution_due || ticket.due_date;
-                        const isBreached = slaDate && new Date(slaDate) < now && !["resolved", "closed", "cancelled"].includes(ticket.status);
-                        return (ticket.sla_breached || isBreached) ? 'text-red-600' : 'text-green-600';
-                      })()}`}>
-                        {(() => {
-                          const now = new Date();
-                          const slaDate = ticket.sla_resolution_due || ticket.due_date;
-                          const isBreached = slaDate && new Date(slaDate) < now && !["resolved", "closed", "cancelled"].includes(ticket.status);
-                          return (ticket.sla_breached || isBreached) ? 'Breached' : 'Within SLA';
-                        })()}
-                      </span>
-                    </div>
-                    {ticket.sla_response_time && (
-                      <div className="text-xs text-neutral-400 mt-1">
-                        Response: {Math.floor(ticket.sla_response_time / 60)}h {ticket.sla_response_time % 60}m
-                        {ticket.sla_resolution_time && ` • Resolution: ${Math.floor(ticket.sla_resolution_time / 60)}h ${ticket.sla_resolution_time % 60}m`}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Ticket Details */}
-                  <div className="py-2 border-b border-gray-100 dark:border-gray-800">
-                    <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                      #{ticket.ticket_number} • {ticket.category && `${ticket.category} • `}
-                      Created: {new Date(ticket.created_at).toLocaleDateString()}
-                      {ticket.assigned_to && ` • Assigned to: ${ticket.assigned_to}`}
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-center pt-4">
-                    <div className="text-sm text-neutral-500 dark:text-neutral-400">
-                      Requester: {ticket.requester_email}
-                    </div>
-                    <div className="flex space-x-2">
-                      {renderWorkflowActions(ticket).slice(0, 1).map((action, index) => (
-                        <div key={index}>
-                          {action}
-                        </div>
-                      ))}
+                      
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setSelectedTicket(ticket);
+                          toggleWorkflow(ticket.id);
                         }}
                       >
-                        View Details
+                        {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                       </Button>
                     </div>
                   </div>
+
+                  {/* Expandable Details */}
+                  {isExpanded && (
+                    <div className="border-t border-gray-100 dark:border-gray-800 pt-3 space-y-3">
+                      {/* Description */}
+                      <div>
+                        <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                          {ticket.description}
+                        </p>
+                      </div>
+
+                      {/* SLA Details */}
+                      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
+                        <div className="flex justify-between items-center text-xs mb-1">
+                          <span className="text-neutral-500">SLA Policy: {ticket.sla_policy || 'Standard'}</span>
+                          <span className="text-neutral-500">
+                            Requester: {ticket.requester_email}
+                          </span>
+                        </div>
+                        {ticket.sla_response_time && (
+                          <div className="text-xs text-neutral-400">
+                            Response: {Math.floor(ticket.sla_response_time / 60)}h {ticket.sla_response_time % 60}m
+                            {ticket.sla_resolution_time && ` • Resolution: ${Math.floor(ticket.sla_resolution_time / 60)}h ${ticket.sla_resolution_time % 60}m`}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex justify-between items-center">
+                        <div className="flex space-x-2">
+                          {renderWorkflowActions(ticket).slice(0, 2).map((action, index) => (
+                            <div key={index}>
+                              {action}
+                            </div>
+                          ))}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedTicket(ticket);
+                          }}
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          View Details
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   </CardContent>
                 </Card>
               );
