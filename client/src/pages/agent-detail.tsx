@@ -349,62 +349,7 @@ export default function AgentDetail() {
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Button
-          variant="outline"
-          className="flex items-center space-x-2 h-auto p-4"
-          onClick={() => handleRemoteConnect("vnc")}
-        >
-          <Monitor className="w-5 h-5" />
-          <div className="text-left">
-            <div className="font-medium">Remote Desktop</div>
-            <div className="text-xs text-muted-foreground">Connect via VNC</div>
-          </div>
-        </Button>
-
-        <Button
-          variant="outline"
-          className="flex items-center space-x-2 h-auto p-4"
-          onClick={testConnectivity}
-          disabled={testingConnection}
-        >
-          <Network className="w-5 h-5" />
-          <div className="text-left">
-            <div className="font-medium">Test Connection</div>
-            <div className="text-xs text-muted-foreground">
-              {testingConnection ? "Testing..." : "Ping & Port Check"}
-            </div>
-          </div>
-        </Button>
-
-        <Button
-          variant="outline"
-          className="flex items-center space-x-2 h-auto p-4"
-          onClick={() => {
-            // Create ticket for this agent
-            window.open(`/tickets/new?agent=${agent.id}&hostname=${agent.hostname}`, '_blank');
-          }}
-        >
-          <AlertTriangle className="w-5 h-5" />
-          <div className="text-left">
-            <div className="font-medium">Create Ticket</div>
-            <div className="text-xs text-muted-foreground">Report Issue</div>
-          </div>
-        </Button>
-
-        <Button
-          variant="outline"
-          className="flex items-center space-x-2 h-auto p-4"
-          onClick={() => setShowConnectionInfo(true)}
-        >
-          <Info className="w-5 h-5" />
-          <div className="text-left">
-            <div className="font-medium">Agent Info</div>
-            <div className="text-xs text-muted-foreground">View Details</div>
-          </div>
-        </Button>
-      </div>
+      
 
       {/* Quick Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

@@ -1092,3 +1092,92 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Security Status */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Shield className="w-5 h-5" />
+                    <span>Security Status</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {processedData?.raw_data?.security ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 gap-3 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-neutral-600">Windows Defender:</span>
+                          <Badge variant={processedData.raw_data.security.antivirus_status === "enabled" ? "default" : "destructive"}>
+                            {processedData.raw_data.security.antivirus_status === "enabled" ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-neutral-600">Firewall Status:</span>
+                          <Badge variant={processedData.raw_data.security.firewall_status === "enabled" ? "default" : "destructive"}>
+                            {processedData.raw_data.security.firewall_status === "enabled" ? "Enabled" : "Disabled"}
+                          </Badge>
+                        </div>
+                        <Stat 
+                          label="Real-time Protection" 
+                          value={processedData.raw_data.security.real_time_protection || "Unknown"} 
+                        />
+                        <Stat 
+                          label="Last Virus Scan" 
+                          value={processedData.raw_data.security.last_virus_scan || "Unknown"} 
+                        />
+                        <Stat 
+                          label="Virus Definitions" 
+                          value={processedData.raw_data.security.virus_definitions_version || "Unknown"} 
+                        />
+                        <div className="flex justify-between">
+                          <span className="text-neutral-600">Windows Security Center:</span>
+                          <Badge variant={processedData.raw_data.security.security_center_service === "running" ? "default" : "secondary"}>
+                            {processedData.raw_data.security.security_center_service === "running" ? "Running" : "Not Running"}
+                          </Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-neutral-600">UAC Status:</span>
+                          <Badge variant={processedData.raw_data.security.uac_enabled ? "default" : "destructive"}>
+                            {processedData.raw_data.security.uac_enabled ? "Enabled" : "Disabled"}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {/* Security Services */}
+                      {processedData.raw_data.security.security_services && (
+                        <div className="mt-4">
+                          <h4 className="font-medium mb-3">Security Services</h4>
+                          <div className="space-y-2">
+                            {processedData.raw_data.security.security_services.slice(0, 5).map((service, index) => (
+                              <div key={index} className="p-2 border rounded bg-muted/20">
+                                <div className="text-sm">
+                                  <div className="font-medium">{service.name}</div>
+                                  <div className="flex justify-between items-center mt-1">
+                                    <span className="text-xs text-muted-foreground">{service.display_name}</span>
+                                    <Badge variant={service.status === "running" ? "default" : "secondary"} className="text-xs">
+                                      {service.status}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-neutral-500">
+                      <Shield className="w-12 h-12 mx-auto mb-2 text-neutral-400" />
+                      <p>No security information available</p>
+                      <p className="text-xs mt-1">Security data will appear when reported by the agent</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </SafeDataRenderer>
+        </TabsContent>
+      </Tabs>
+    </AgentErrorBoundary>
+  );
+}
