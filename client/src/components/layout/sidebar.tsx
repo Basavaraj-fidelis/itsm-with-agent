@@ -212,7 +212,7 @@ export function Sidebar() {
         activeColor: "bg-cyan-50 border-cyan-200 text-cyan-700",
         description: "Manage user accounts",
       },
-      
+
       {
         name: "Analytics",
         href: "/reports",
