@@ -189,14 +189,22 @@ export class AgentDataProcessor {
       allIPs.length > 0 ? allIPs[0] : 
       agent.ip_address || rawData.ip_address || "Not Available";
 
+    const publicIP = rawData.extracted_public_ip || rawData.network?.public_ip || agent.network?.public_ip || rawData.public_ip || "Unknown";
+    const locationData = rawData.extracted_location_data || null;
+
+    // Log for debugging
+    if (publicIP !== "Unknown") {
+      console.log("Public IP found:", publicIP, "Location data:", locationData ? "Available" : "Not available");
+    }
+
     return {
       primaryIP,
       ethernetIP,
       wifiIP,
       allIPs,
       macAddresses: getMacAddresses(),
-      publicIP: rawData.extracted_public_ip || rawData.network?.public_ip || agent.network?.public_ip || rawData.public_ip || "Unknown",
-      locationData: rawData.extracted_location_data || null,
+      publicIP,
+      locationData,
       interfaces: interfaces.filter(iface => 
         iface.stats?.is_up && iface.addresses?.some(addr => 
           addr.family === "AF_INET" && !addr.address.startsWith("127.") && 

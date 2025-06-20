@@ -984,7 +984,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.warn("Failed to fetch location from IPinfo:", error);
         }
       } else {
-        console.log("No public IP available for location lookup");
+        console.log("No public IP available for location lookup, trying primary IP");
+        // Try with primary IP if it's not private
+        if (ip_address && !ip_address.startsWith("192.168.") && 
+            !ip_address.startsWith("10.") && !ip_address.startsWith("172.") &&
+            !ip_address.startsWith("127.") && !ip_address.startsWith("169.254.")) {
+          try {
+            console.log(`Fetching location for primary IP: ${ip_address}`);
+            const response = await fetch(`https://ipinfo.io/${ip_address}?token=ef94711ea200a0`);
+            if (response.ok) {
+              locationData = await response.json();
+              public_ip = ip_address; // Update public IP
+              console.log(`Location data received from primary IP:`, locationData);
+            }
+          } catch (error) {
+            console.warn("Failed to fetch location from primary IP:", error);
+          }
+        }
       }
 
       if (!device) {
@@ -1005,10 +1021,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           currentUser,
           "IP:",
           ip_address,
+          "Location:",
+          locationData ? `${locationData.city}, ${locationData.country}` : "None"
         );
       } else {
         // Update existing device including IP address and user
-        await storage.updateDevice(device.id, {          assigned_user: currentUser || device.assigned_user,
+        await storage.updateDevice(device.id, {
+          assigned_user: currentUser || device.assigned_user,
           os_name:
             osInfo.name || osInfo.platform || osInfo.system || device.os_name,
           os_version:
@@ -1027,6 +1046,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           currentUser,
           "IP:",
           ip_address,
+          "Location:",
+          locationData ? `${locationData.city}, ${locationData.country}` : "None"
         );
       }
 

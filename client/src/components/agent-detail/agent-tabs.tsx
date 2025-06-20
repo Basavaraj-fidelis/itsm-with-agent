@@ -612,49 +612,51 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                           <div>
                             <h5 className="font-medium text-orange-900 mb-2">Location Information</h5>
                             <div className="space-y-2 text-sm">
-                              <div className="flex justify-between">
-                                <span className="text-orange-700">City:</span>
-                                <span className="font-medium">{networkInfo.locationData.city || "Unknown"}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-orange-700">Region:</span>
-                                <span className="font-medium">{networkInfo.locationData.region || "Unknown"}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-orange-700">Country:</span>
-                                <span className="font-medium">{networkInfo.locationData.country || "Unknown"}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-orange-700">Postal Code:</span>
-                                <span className="font-medium">{networkInfo.locationData.postal || "Unknown"}</span>
-                              </div>
+                              {networkInfo.locationData ? (
+                                <>
+                                  <div className="flex justify-between">
+                                    <span className="text-orange-700">City:</span>
+                                    <span className="font-medium">{networkInfo.locationData.city || "Unknown"}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-orange-700">Region:</span>
+                                    <span className="font-medium">{networkInfo.locationData.region || "Unknown"}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-orange-700">Country:</span>
+                                    <span className="font-medium">{networkInfo.locationData.country || "Unknown"}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-orange-700">Postal Code:</span>
+                                    <span className="font-medium">{networkInfo.locationData.postal || "Unknown"}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-orange-700">Coordinates:</span>
+                                    <span className="font-medium">{networkInfo.locationData.loc || "Unknown"}</span>
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="text-yellow-700 text-sm">
+                                  Location data is being fetched for IP: {networkInfo.publicIP}
+                                </div>
+                              )}
                             </div>
                           </div>
-                          <div>
-                            <h5 className="font-medium text-orange-900 mb-2">Network Information</h5>
-                            <div className="space-y-2 text-sm">
-                              <div className="flex justify-between">
-                                <span className="text-orange-700">Public IP:</span>
-                                <span className="font-medium font-mono">{networkInfo.locationData.ip}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-orange-700">Timezone:</span>
-                                <span className="font-medium">{networkInfo.locationData.timezone || "Unknown"}</span>
-                              </div>
-                              {networkInfo.locationData.location && (
+                          {networkInfo.locationData && (
+                            <div>
+                              <h5 className="font-medium text-orange-900 mb-2">Network Information</h5>
+                              <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
-                                  <span className="text-orange-700">Coordinates:</span>
-                                  <span className="font-medium font-mono">{networkInfo.locationData.location}</span>
-                                </div>
-                              )}
-                              {networkInfo.locationData.organization && (
-                                <div className="flex flex-col">
                                   <span className="text-orange-700">ISP/Organization:</span>
-                                  <span className="font-medium text-xs mt-1">{networkInfo.locationData.organization}</span>
+                                  <span className="font-medium">{networkInfo.locationData.org || "Unknown"}</span>
                                 </div>
-                              )}
+                                <div className="flex justify-between">
+                                  <span className="text-orange-700">Timezone:</span>
+                                  <span className="font-medium">{networkInfo.locationData.timezone || "Unknown"}</span>
+                                </div>
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1198,7 +1200,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             const startIndex = (patchesCurrentPage - 1) * itemsPerPage;
                             const endIndex = startIndex + itemsPerPage;
                             const currentPatches = patches.slice(startIndex, endIndex);
-                            
+
                             return currentPatches.map((patch, index) => (
                               <div key={startIndex + index} className="p-2 border rounded-lg bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
                                 <div className="text-xs">
@@ -1214,12 +1216,12 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             ));
                           })()}
                         </div>
-                        
+
                         {/* Patches Pagination */}
                         {(() => {
                           const patches = processedData.raw_data.os_info.patches;
                           const totalPages = Math.ceil(patches.length / itemsPerPage);
-                          
+
                           if (totalPages > 1) {
                             return (
                               <div className="mt-4">
@@ -1231,7 +1233,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                         className={patchesCurrentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                                       />
                                     </PaginationItem>
-                                    
+
                                     {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                                       <PaginationItem key={page}>
                                         <PaginationLink
@@ -1243,7 +1245,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                         </PaginationLink>
                                       </PaginationItem>
                                     ))}
-                                    
+
                                     <PaginationItem>
                                       <PaginationNext 
                                         onClick={() => setPatchesCurrentPage(Math.min(totalPages, patchesCurrentPage + 1))}
@@ -1334,7 +1336,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             const startIndex = (portsCurrentPage - 1) * itemsPerPage;
                             const endIndex = startIndex + itemsPerPage;
                             const currentPorts = ports.slice(startIndex, endIndex);
-                            
+
                             return currentPorts.map((port, index) => (
                               <div key={startIndex + index} className="p-2 border rounded-lg bg-muted/20">
                                 <div className="flex items-center justify-between text-xs">
@@ -1360,12 +1362,12 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             ));
                           })()}
                         </div>
-                        
+
                         {/* Ports Pagination */}
                         {(() => {
                           const ports = processedData.raw_data.active_ports;
                           const totalPages = Math.ceil(ports.length / itemsPerPage);
-                          
+
                           if (totalPages > 1) {
                             return (
                               <div className="mt-4">
@@ -1377,7 +1379,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                         className={portsCurrentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                                       />
                                     </PaginationItem>
-                                    
+
                                     {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                                       <PaginationItem key={page}>
                                         <PaginationLink
@@ -1389,7 +1391,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                         </PaginationLink>
                                       </PaginationItem>
                                     ))}
-                                    
+
                                     <PaginationItem>
                                       <PaginationNext 
                                         onClick={() => setPortsCurrentPage(Math.min(totalPages, portsCurrentPage + 1))}
