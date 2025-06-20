@@ -579,7 +579,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Fetching devices - checking for agent activity...");
       const devices = await storage.getDevices();
-      
+
       // Log device status summary
       const onlineCount = devices.filter(d => d.status === 'online').length;
       const offlineCount = devices.filter(d => d.status === 'offline').length;
@@ -1795,7 +1795,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         res.json({
           message: "Remediation initiated",
-          remediation_id: Date.now().toString(),
+          remediation_id: Date.now.toString(),
           status: "in_progress",
         });
       } catch (error) {
@@ -1868,7 +1868,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               devices.map(async (device) => {
                 const reports = await storage.getDeviceReports(device.id);
                 const latestReport = reports[0];
-                return {
+                return{
                   hostname: device.hostname,
                   cpu_usage: latestReport?.cpu_usage || "0",
                   memory_usage: latestReport?.memory_usage || "0",
@@ -2799,3 +2799,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
 import fs from 'fs';
 import path from 'path';
 import archiver from 'archiver';
+
+// Get location data from IPinfo API
+  const getLocationFromIP = async (ipAddress: string) => {
+    try {
+      if (!ipAddress || ipAddress === "unknown" || ipAddress.startsWith("192.168.") || 
+          ipAddress.startsWith("10.") || ipAddress.startsWith("172.")) {
+        return null; // Skip private IPs
+      }
+
+      const response = await fetch(`https://ipinfo.io/${ipAddress}?token=ef94711ea200a0`);
+      if (response.ok) {
+        const locationData = await response.json();
+        return {
+          ip: locationData.ip,
+          city: locationData.city,
+          region: locationData.region,
+          country: locationData.country,
+          location: locationData.loc, // lat,lng format
+          organization: locationData.org,
+          postal: locationData.postal,
+          timezone: locationData.timezone
+        };
+      }
+    } catch (error) {
+      console.warn("Failed to get location from IPinfo:", error);
+    }
+    return null;
+  };
+
+  // Get public IP address
+  const getPublicIP = (): string => {
+    const interfaces =
+      rawData.network?.interfaces ||
+      agent.network?.interfaces ||
+      [];
+    for (const iface of interfaces) {
+      const name = iface.name?.toLowerCase() || "";
+      if (
+        (name.includes("eth") ||
+          name.includes("ethernet") ||
+          name.includes("enet") ||
+          name.includes("local area connection")) &&
+        !name.includes("veth") &&
+        !name.includes("virtual") &&
+        iface.stats?.is_up !== false
+      ) {
+        for (const addr of iface.addresses || []) {
+          if (
+            addr.family === "AF_INET" &&
+            !addr.address.startsWith("127.") &&
+            !addr.address.startsWith("169.254.") &&
+            addr.address !== "0.0.0.0"
+          ) {
+            return addr.address;
+          }
+        }
+      }
+    }
+    return "Not Available";
+  };

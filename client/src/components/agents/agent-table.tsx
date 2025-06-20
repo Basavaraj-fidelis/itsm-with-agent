@@ -377,6 +377,34 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                           return rawData.ip_address || "N/A";
                         })()}
                       </div>
+                      <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                        {(() => {
+                          const latestReport = agent.latest_report;
+                          const rawData = latestReport?.raw_data
+                            ? typeof latestReport.raw_data === "string"
+                              ? JSON.parse(latestReport.raw_data)
+                              : latestReport.raw_data
+                            : {};
+
+                          // Show location if available
+                          if (rawData.extracted_location_data) {
+                            const location = rawData.extracted_location_data;
+                            return `📍 ${location.city}, ${location.country}`;
+                          }
+
+                          // Show MAC address or network info
+                          if (rawData.extracted_primary_mac) {
+                            return `MAC: ${rawData.extracted_primary_mac}`;
+                          }
+
+                          if (rawData.extracted_mac_addresses?.length > 0) {
+                            const firstMac = rawData.extracted_mac_addresses[0];
+                            return `MAC: ${typeof firstMac === 'object' ? firstMac.mac : firstMac}`;
+                          }
+
+                          return "Network info unavailable";
+                        })()}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <StatusBadge status={agent.status} />

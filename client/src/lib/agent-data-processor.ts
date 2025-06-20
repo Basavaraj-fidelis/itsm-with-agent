@@ -100,7 +100,7 @@ export class AgentDataProcessor {
     };
   }
 
-  static extractNetworkInfo(agent: any, rawData: any): ProcessedAgentData['networkInfo'] {
+  static extractNetworkInfo(agent: any, rawData: any): ProcessedAgentData['networkInfo'] & { locationData?: any } {
     const interfaces = rawData.network?.interfaces || agent.network?.interfaces || [];
     
     const getEthernetIP = (): string => {
@@ -196,6 +196,7 @@ export class AgentDataProcessor {
       allIPs,
       macAddresses: getMacAddresses(),
       publicIP: rawData.network?.public_ip || agent.network?.public_ip || rawData.public_ip || "49.205.38.147",
+      locationData: rawData.extracted_location_data || null,
       interfaces: interfaces.filter(iface => 
         iface.stats?.is_up && iface.addresses?.some(addr => 
           addr.family === "AF_INET" && !addr.address.startsWith("127.") && 

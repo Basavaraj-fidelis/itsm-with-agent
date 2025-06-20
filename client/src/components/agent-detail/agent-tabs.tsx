@@ -555,6 +555,31 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                         {networkInfo.wifiIP !== "Not Available" ? networkInfo.wifiIP : "Not Connected"}
                       </p>
                     </div>
+
+                    {/* Location Information Card */}
+                    <div className="p-4 border rounded-lg bg-orange-50 border-orange-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Globe className="h-4 w-4 text-orange-600" />
+                        <h4 className="font-medium text-orange-900">Geographic Location</h4>
+                      </div>
+                      {networkInfo.locationData ? (
+                        <div className="space-y-1">
+                          <p className="text-lg font-mono text-orange-800">
+                            {networkInfo.locationData.city}, {networkInfo.locationData.region}
+                          </p>
+                          <p className="text-sm text-orange-700">
+                            {networkInfo.locationData.country} • {networkInfo.locationData.timezone}
+                          </p>
+                          {networkInfo.locationData.organization && (
+                            <p className="text-xs text-orange-600">
+                              ISP: {networkInfo.locationData.organization}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-lg text-orange-800">Location not available</p>
+                      )}
+                    </div>
                   </div>
 
                   {/* All IP Addresses */}
@@ -575,6 +600,65 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       )}
                     </div>
                   </div>
+
+                  <Separator />
+
+                  {/* Detailed Location Information */}
+                  {networkInfo.locationData && (
+                    <div>
+                      <h4 className="font-medium mb-3">Geographic Location Details</h4>
+                      <div className="p-4 border rounded-lg bg-gradient-to-r from-orange-50 to-red-50 border-orange-200">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <h5 className="font-medium text-orange-900 mb-2">Location Information</h5>
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-orange-700">City:</span>
+                                <span className="font-medium">{networkInfo.locationData.city || "Unknown"}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-orange-700">Region:</span>
+                                <span className="font-medium">{networkInfo.locationData.region || "Unknown"}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-orange-700">Country:</span>
+                                <span className="font-medium">{networkInfo.locationData.country || "Unknown"}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-orange-700">Postal Code:</span>
+                                <span className="font-medium">{networkInfo.locationData.postal || "Unknown"}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div>
+                            <h5 className="font-medium text-orange-900 mb-2">Network Information</h5>
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-orange-700">Public IP:</span>
+                                <span className="font-medium font-mono">{networkInfo.locationData.ip}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-orange-700">Timezone:</span>
+                                <span className="font-medium">{networkInfo.locationData.timezone || "Unknown"}</span>
+                              </div>
+                              {networkInfo.locationData.location && (
+                                <div className="flex justify-between">
+                                  <span className="text-orange-700">Coordinates:</span>
+                                  <span className="font-medium font-mono">{networkInfo.locationData.location}</span>
+                                </div>
+                              )}
+                              {networkInfo.locationData.organization && (
+                                <div className="flex flex-col">
+                                  <span className="text-orange-700">ISP/Organization:</span>
+                                  <span className="font-medium text-xs mt-1">{networkInfo.locationData.organization}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <Separator />
 
