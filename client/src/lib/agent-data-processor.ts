@@ -1,4 +1,3 @@
-
 import { useMemo } from 'react';
 
 export interface ProcessedAgentData {
@@ -47,7 +46,7 @@ export class AgentDataProcessor {
   static processRawData(rawDataInput: string | object | undefined | null): any {
     try {
       if (!rawDataInput) return {};
-      
+
       return typeof rawDataInput === "string" 
         ? JSON.parse(rawDataInput) 
         : rawDataInput;
@@ -102,7 +101,7 @@ export class AgentDataProcessor {
 
   static extractNetworkInfo(agent: any, rawData: any): ProcessedAgentData['networkInfo'] & { locationData?: any } {
     const interfaces = rawData.network?.interfaces || agent.network?.interfaces || [];
-    
+
     const getEthernetIP = (): string => {
       for (const iface of interfaces) {
         const name = iface.name?.toLowerCase() || "";
@@ -328,6 +327,106 @@ export class AgentDataProcessor {
 
 // Custom hook for processed agent data with memoization
 export const useProcessedAgentData = (agent: any) => {
+  // Extract location data from the latest report - enhanced extraction
+  const locationData = useMemo(() => {
+    if (!agent?.latest_report?.raw_data) {
+      return null;
+    }
+
+    const rawData = agent.latest_report.raw_data;
+
+    // Try multiple sources for location data
+    let locationInfo = null;
+
+    // 1. Check extracted_location_data
+    if (rawData.extracted_location_data) {
+      try {
+        locationInfo = typeof rawData.extracted_location_data === 'string' 
+          ? JSON.parse(rawData.extracted_location_data) 
+          : rawData.extracted_location_data;
+      } catch (error) {
+        console.warn('Failed to parse extracted_location_data:', error);
+      }
+    }
+
+    // 2. Check database location columns
+    if (!locationInfo && agent.latest_report) {
+      const report = agent.latest_report;
+      if (report.location_city || report.location_country || report.location_coordinates) {
+        locationInfo = {
+          city: report.location_city,
+          country: report.location_country,
+          region: report.location_region,
+          loc: report.location_coordinates,
+          ip: report.public_ip || rawData.extracted_public_ip,
+        };
+      }
+    }
+
+    // 3. Check if location_data column exists
+    if (!locationInfo && agent.latest_report?.location_data) {
+      try {
+        locationInfo = typeof agent.latest_report.location_data === 'string'
+          ? JSON.parse(agent.latest_report.location_data)
+          : agent.latest_report.location_data;
+      } catch (error) {
+        console.warn('Failed to parse location_data column:', error);
+      }
+    }
+
+    return locationInfo;
+  }, [agent?.latest_report]);
+
+    // Get public IP address - enhanced extraction
+  const getPublicIP = (): string => {
+    const rawData = agent?.latest_report?.raw_data;
+
+    // 1. Check extracted public IP from server processing
+    if (rawData?.extracted_public_ip && rawData.extracted_public_ip !== "unknown") {
+      return rawData.extracted_public_ip;
+    }
+
+    // 2. Check database public_ip column
+    if (agent?.latest_report?.public_ip) {
+      return agent.latest_report.public_ip;
+    }
+
+    // 3. Check network data for public IP
+    if (rawData?.network?.public_ip && rawData.network.public_ip !== "unknown") {
+      return rawData.network.public_ip;
+    }
+
+    // 4. Try to extract from network interfaces
+    const interfaces = rawData?.network?.interfaces || [];
+    for (const iface of interfaces) {
+      const name = iface.name?.toLowerCase() || "";
+      if (
+        (name.includes("eth") ||
+          name.includes("ethernet") ||
+          name.includes("enet") ||
+          name.includes("local area connection")) &&
+        !name.includes("veth") &&
+        !name.includes("virtual") &&
+        iface.stats?.is_up !== false
+      ) {
+        for (const addr of iface.addresses || []) {
+          if (
+            addr.family === "AF_INET" &&
+            !addr.address.startsWith("127.") &&
+            !addr.address.startsWith("169.254.") &&
+            !addr.address.startsWith("192.168.") &&
+            !addr.address.startsWith("10.") &&
+            !addr.address.startsWith("172.") &&
+            addr.address !== "0.0.0.0"
+          ) {
+            return addr.address;
+          }
+        }
+      }
+    }
+
+    return "Not Available";
+  };
   return useMemo(() => {
     if (!agent) return null;
     return AgentDataProcessor.processAgent(agent);
