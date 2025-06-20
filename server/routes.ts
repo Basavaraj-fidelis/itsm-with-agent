@@ -968,20 +968,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Fetch location data from IPinfo API
+      // Fetch location data from IP-API.com (free service with 45 requests/minute)
       let locationData = null;
       if (public_ip && public_ip !== "unknown") {
         try {
           console.log(`Fetching location for IP: ${public_ip}`);
-          const response = await fetch(`https://ipinfo.io/${public_ip}?token=ef94711ea200a0`);
+          const response = await fetch(`http://ip-api.com/json/${public_ip}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query`);
           if (response.ok) {
-            locationData = await response.json();
-            console.log(`Location data received:`, locationData);
+            const data = await response.json();
+            if (data.status === "success") {
+              // Transform IP-API response to match our expected format
+              locationData = {
+                ip: data.query,
+                city: data.city,
+                region: data.regionName,
+                country: data.country,
+                countryCode: data.countryCode,
+                loc: `${data.lat},${data.lon}`, // lat,lng format for compatibility
+                postal: data.zip,
+                timezone: data.timezone,
+                org: data.org || data.isp,
+                isp: data.isp,
+                as: data.as
+              };
+              console.log(`Location data received:`, locationData);
+            } else {
+              console.warn(`IP-API returned error: ${data.message}`);
+            }
           } else {
-            console.warn(`IPinfo API returned status: ${response.status}`);
+            console.warn(`IP-API returned status: ${response.status}`);
           }
         } catch (error) {
-          console.warn("Failed to fetch location from IPinfo:", error);
+          console.warn("Failed to fetch location from IP-API:", error);
         }
       } else {
         console.log("No public IP available for location lookup, trying primary IP");
@@ -991,11 +1009,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
             !ip_address.startsWith("127.") && !ip_address.startsWith("169.254.")) {
           try {
             console.log(`Fetching location for primary IP: ${ip_address}`);
-            const response = await fetch(`https://ipinfo.io/${ip_address}?token=ef94711ea200a0`);
+            const response = await fetch(`http://ip-api.com/json/${ip_address}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query`);
             if (response.ok) {
-              locationData = await response.json();
-              public_ip = ip_address; // Update public IP
-              console.log(`Location data received from primary IP:`, locationData);
+              const data = await response.json();
+              if (data.status === "success") {
+                locationData = {
+                  ip: data.query,
+                  city: data.city,
+                  region: data.regionName,
+                  country: data.country,
+                  countryCode: data.countryCode,
+                  loc: `${data.lat},${data.lon}`,
+                  postal: data.zip,
+                  timezone: data.timezone,
+                  org: data.org || data.isp,
+                  isp: data.isp,
+                  as: data.as
+                };
+                public_ip = ip_address; // Update public IP
+                console.log(`Location data received from primary IP:`, locationData);
+              } else {
+                console.warn(`IP-API returned error for primary IP: ${data.message}`);
+              }
             }
           } catch (error) {
             console.warn("Failed to fetch location from primary IP:", error);
@@ -1240,13 +1275,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updateHistory = data.update_history || {};
       const windowsUpdates = securityInfo.windows_updates || {};
 
-      // Create device report with enhanced data
+      // Create device report with enhanced data including location columns
       await storage.createDeviceReport({
         device_id: device.id,
         cpu_usage: cpu_usage?.toString() || null,
         memory_usage: memory_usage?.toString() || null,
         disk_usage: disk_usage?.toString() || null,
         network_io: network_io?.toString() || null,
+        public_ip: public_ip,
+        location_city: locationData?.city || null,
+        location_country: locationData?.country || null,
+        location_coordinates: locationData?.loc || null,
+        location_data: locationData ? JSON.stringify(locationData) : null,
         raw_data: JSON.stringify({
           ...req.body,
           extracted_mac_addresses: mac_addresses,
@@ -1572,13 +1612,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Found active ports in location:`, activePorts);
       }
 
-       // Create device report with active ports
+       // Create device report with active ports and location data
        await storage.createDeviceReport({
         device_id: device.id,
         cpu_usage: cpu_usage?.toString() || null,
         memory_usage: memory_usage?.toString() || null,
         disk_usage: disk_usage?.toString() || null,
         network_io: network_io?.toString() || null,
+        public_ip: public_ip,
+        location_city: locationData?.city || null,
+        location_country: locationData?.country || null,
+        location_coordinates: locationData?.loc || null,
+        location_data: locationData ? JSON.stringify(locationData) : null,
         raw_data: JSON.stringify({
           ...req.body,
           extracted_mac_addresses: mac_addresses,
@@ -1586,6 +1631,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           extracted_usb_devices: usbDevices,
           extracted_current_user: currentUser,
           extracted_ip_address: ip_address,
+          extracted_public_ip: public_ip,
+          extracted_location_data: locationData,
           extracted_active_ports: activePorts, //added active ports
           extracted_update_info: {
             last_boot_time: updateHistory.last_boot_time || osInfo.boot_time,
