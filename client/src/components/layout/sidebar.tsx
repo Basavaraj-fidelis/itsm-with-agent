@@ -223,6 +223,17 @@ export function Sidebar() {
         activeColor: "bg-indigo-50 border-indigo-200 text-indigo-700",
         description: "Performance insights",
       },
+
+      {
+        name: "ITSM Comparison",
+        href: "/itsm-comparison",
+        icon: TrendingUp,
+        current: location === "/itsm-comparison",
+        roles: ["manager", "admin"],
+        iconColor: "text-purple-500",
+        activeColor: "bg-purple-50 border-purple-200 text-purple-700",
+        description: "Platform comparison analysis",
+      },
     ];
 
     const adminNavigation = [

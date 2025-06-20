@@ -26,6 +26,7 @@ import RDPPage from "@/pages/rdp";
 import SSHPage from "@/pages/ssh";
 import NotFound from "@/pages/not-found";
 import ActiveDirectory from "@/pages/active-directory";
+import ITSMComparison from "@/pages/itsm-comparison";
 
 
 // Layout
@@ -211,6 +212,14 @@ export default function App() {
               <ProtectedRoute requiredRole={["admin", "manager"]}>
                 <AuthenticatedLayout>
                   <Reports />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            </Route>
+
+            <Route path="/itsm-comparison">
+              <ProtectedRoute requiredRole={["admin", "manager"]}>
+                <AuthenticatedLayout>
+                  <ITSMComparison />
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>
