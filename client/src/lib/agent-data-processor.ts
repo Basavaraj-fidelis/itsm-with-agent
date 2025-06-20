@@ -195,7 +195,7 @@ export class AgentDataProcessor {
       wifiIP,
       allIPs,
       macAddresses: getMacAddresses(),
-      publicIP: rawData.network?.public_ip || agent.network?.public_ip || rawData.public_ip || "49.205.38.147",
+      publicIP: rawData.extracted_public_ip || rawData.network?.public_ip || agent.network?.public_ip || rawData.public_ip || "Unknown",
       locationData: rawData.extracted_location_data || null,
       interfaces: interfaces.filter(iface => 
         iface.stats?.is_up && iface.addresses?.some(addr => 

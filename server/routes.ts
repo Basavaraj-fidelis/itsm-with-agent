@@ -823,6 +823,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let ip_address =
         network.ip_address || network.ip || data.network?.primary_ip || null;
       let mac_addresses = [];
+      let public_ip = data.network?.public_ip || null;
 
       // Check for primary MAC from new system collector
       let primary_mac = data.network?.primary_mac || null;
@@ -955,6 +956,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!ip_address) {
         ip_address =
           data.ip_address || hardware.ip_address || osInfo.ip_address || null;
+      }
+
+      // Get public IP for location lookup - prefer collected public IP
+      if (!public_ip) {
+        // Try to determine if we have a public IP for location lookup
+        if (ip_address && !ip_address.startsWith("192.168.") && 
+            !ip_address.startsWith("10.") && !ip_address.startsWith("172.") &&
+            !ip_address.startsWith("127.") && !ip_address.startsWith("169.254.")) {
+          public_ip = ip_address;
+        }
+      }
+
+      // Fetch location data from IPinfo API
+      let locationData = null;
+      if (public_ip && public_ip !== "unknown") {
+        try {
+          console.log(`Fetching location for IP: ${public_ip}`);
+          const response = await fetch(`https://ipinfo.io/${public_ip}?token=ef94711ea200a0`);
+          if (response.ok) {
+            locationData = await response.json();
+            console.log(`Location data received:`, locationData);
+          } else {
+            console.warn(`IPinfo API returned status: ${response.status}`);
+          }
+        } catch (error) {
+          console.warn("Failed to fetch location from IPinfo:", error);
+        }
+      } else {
+        console.log("No public IP available for location lookup");
       }
 
       if (!device) {
@@ -1203,6 +1233,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           extracted_usb_devices: usbDevices,
           extracted_current_user: currentUser,
           extracted_ip_address: ip_address,
+          extracted_public_ip: public_ip,
+          extracted_location_data: locationData,
           extracted_update_info: {
             last_boot_time: updateHistory.last_boot_time || osInfo.boot_time,
             system_uptime_hours:

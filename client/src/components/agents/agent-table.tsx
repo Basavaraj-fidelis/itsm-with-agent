@@ -387,9 +387,14 @@ export function AgentTable({ agents, isLoading }: AgentTableProps) {
                             : {};
 
                           // Show location if available
-                          if (rawData.extracted_location_data) {
+                          if (rawData.extracted_location_data && rawData.extracted_location_data.city) {
                             const location = rawData.extracted_location_data;
-                            return `📍 ${location.city}, ${location.country}`;
+                            return `📍 ${location.city}, ${location.country || location.region}`;
+                          }
+
+                          // Show public IP if available
+                          if (rawData.extracted_public_ip) {
+                            return `Public IP: ${rawData.extracted_public_ip}`;
                           }
 
                           // Show MAC address or network info
