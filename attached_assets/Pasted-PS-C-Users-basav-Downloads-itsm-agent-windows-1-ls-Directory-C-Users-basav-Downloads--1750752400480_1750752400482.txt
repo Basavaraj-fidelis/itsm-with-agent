@@ -1,0 +1,186 @@
+PS C:\Users\basav\Downloads\itsm-agent-windows (1)> ls
+
+
+    Directory: C:\Users\basav\Downloads\itsm-agent-windows (1)
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----         6/24/2025   1:21 PM          13274 api_client.py
+-a----         6/24/2025   1:21 PM          27597 command_scheduler.py
+-a----         6/24/2025   1:21 PM           2267 config.ini
+-a----         6/24/2025   1:21 PM          24774 config_validator.py
+-a----         6/24/2025   1:25 PM           8300 fix_config_windows.py
+-a----         6/24/2025   1:21 PM           5245 fix_service_issue.py
+-a----         6/24/2025   1:21 PM          11709 fix_windows_service.py
+-a----         6/24/2025   1:21 PM          16747 install_windows.py
+-a----         6/24/2025   1:21 PM          16684 itsm_agent.py
+-a----         6/24/2025   1:21 PM          12567 network_monitor.py
+-a----         6/24/2025   1:21 PM          21303 operation_monitor.py
+-a----         6/24/2025   1:21 PM          31699 performance_baseline.py
+-a----         6/24/2025   1:21 PM            694 README.md
+-a----         6/24/2025   1:21 PM          14430 service_wrapper.py
+-a----         6/24/2025   1:21 PM          23417 smart_queue.py
+-a----         6/24/2025   1:21 PM          25165 system_collector.py
+
+
+PS C:\Users\basav\Downloads\itsm-agent-windows (1)> python .\fix_config_windows.py
+ITSM Agent Configuration Fix Utility
+==================================================
+[INFO] Stopping ITSM Agent service...
+[SUCCESS] Service stopped successfully
+[INFO] Backing up existing configuration...
+[SUCCESS] Backup created: C:\Program Files\ITSM Agent\config.ini.backup
+[INFO] Creating fixed configuration...
+[SUCCESS] Configuration file fixed
+[INFO] Validating fixed configuration...
+[SUCCESS] Section [agent]: OK
+[SUCCESS] Section [api]: OK
+[SUCCESS] Section [monitoring]: OK
+[SUCCESS] Section [scheduling]: OK
+[SUCCESS] Section [security]: OK
+[SUCCESS] Section [network]: OK
+[SUCCESS] Section [performance]: OK
+[SUCCESS] Configuration validation passed
+[INFO] Testing agent import...
+[SUCCESS] Agent import test passed
+[INFO] Starting ITSM Agent service...
+[SUCCESS] Service started successfully
+[SUCCESS] Service started successfully
+[INFO] Final service status:
+
+SERVICE_NAME: ITSMAgent
+        TYPE               : 10  WIN32_OWN_PROCESS
+        STATE              : 7  PAUSED
+                                (STOPPABLE, PAUSABLE, ACCEPTS_SHUTDOWN)
+        WIN32_EXIT_CODE    : 0  (0x0)
+        SERVICE_EXIT_CODE  : 0  (0x0)
+        CHECKPOINT         : 0x0
+        WAIT_HINT          : 0x0
+
+[ERROR] Service may not be running correctly. Check logs for details.
+Press Enter to exit...
+PS C:\Users\basav\Downloads\itsm-agent-windows (1)>
+PS C:\Users\basav\Downloads\itsm-agent-windows (1)> python .\fix_windows_service.py
+ITSM Agent Windows Service Repair Utility
+=========================================
+
+[INFO] Starting service repair process...
+[INFO] Stopping ITSM Agent service...
+[INFO] Service stopped successfully
+[INFO] Deleting ITSM Agent service...
+[INFO] Service deleted successfully
+[INFO] Cleaning registry entries...
+[WARNING] Registry key not found: SYSTEM\CurrentControlSet\Services\ITSMAgent
+[WARNING] Registry key not found: SYSTEM\CurrentControlSet\Services\EventLog\Application\ITSMAgent
+[INFO] Checking Python installation...
+[INFO] Python version: Python 3.10.0
+[INFO] Package psutil: OK
+[INFO] Package requests: OK
+[ERROR] Package pywin32: MISSING
+[WARNING] Missing packages: pywin32
+[INFO] Installing missing Python packages...
+[INFO] Installing psutil...
+[INFO] Successfully installed psutil
+[INFO] Installing requests...
+[INFO] Successfully installed requests
+[INFO] Installing pywin32...
+[INFO] Successfully installed pywin32
+[INFO] Checking Python installation...
+[INFO] Python version: Python 3.10.0
+[INFO] Package psutil: OK
+[INFO] Package requests: OK
+[ERROR] Package pywin32: MISSING
+[WARNING] Missing packages: pywin32
+[ERROR] Python setup failed. Please install required packages manually:
+pip install psutil requests pywin32
+PS C:\Users\basav\Downloads\itsm-agent-windows (1)> pip install psutil requests pywin32
+Requirement already satisfied: psutil in c:\users\basav\appdata\local\programs\python\python310\lib\site-packages (7.0.0)
+Requirement already satisfied: requests in c:\users\basav\appdata\local\programs\python\python310\lib\site-packages (2.32.4)
+Requirement already satisfied: pywin32 in c:\users\basav\appdata\local\programs\python\python310\lib\site-packages (310)
+Requirement already satisfied: charset_normalizer<4,>=2 in c:\users\basav\appdata\local\programs\python\python310\lib\site-packages (from requests) (3.4.2)
+Requirement already satisfied: idna<4,>=2.5 in c:\users\basav\appdata\local\programs\python\python310\lib\site-packages (from requests) (3.10)
+Requirement already satisfied: urllib3<3,>=1.21.1 in c:\users\basav\appdata\local\programs\python\python310\lib\site-packages (from requests) (2.4.0)
+Requirement already satisfied: certifi>=2017.4.17 in c:\users\basav\appdata\local\programs\python\python310\lib\site-packages (from requests) (2025.4.26)
+PS C:\Users\basav\Downloads\itsm-agent-windows (1)>
+PS C:\Users\basav\Downloads\itsm-agent-windows (1)>
+PS C:\Users\basav\Downloads\itsm-agent-windows (1)> python .\fix_windows_service.py
+ITSM Agent Windows Service Repair Utility
+=========================================
+
+[INFO] Starting service repair process...
+[INFO] Stopping ITSM Agent service...
+[WARNING] Service may not have been running
+[INFO] Deleting ITSM Agent service...
+[WARNING] Service may not have existed
+[INFO] Cleaning registry entries...
+[WARNING] Registry key not found: SYSTEM\CurrentControlSet\Services\ITSMAgent
+[WARNING] Registry key not found: SYSTEM\CurrentControlSet\Services\EventLog\Application\ITSMAgent
+[INFO] Checking Python installation...
+[INFO] Python version: Python 3.10.0
+[INFO] Package psutil: OK
+[INFO] Package requests: OK
+[ERROR] Package pywin32: MISSING
+[WARNING] Missing packages: pywin32
+[INFO] Installing missing Python packages...
+[INFO] Installing psutil...
+[INFO] Successfully installed psutil
+[INFO] Installing requests...
+[INFO] Successfully installed requests
+[INFO] Installing pywin32...
+[INFO] Successfully installed pywin32
+[INFO] Checking Python installation...
+[INFO] Python version: Python 3.10.0
+[INFO] Package psutil: OK
+[INFO] Package requests: OK
+[ERROR] Package pywin32: MISSING
+[WARNING] Missing packages: pywin32
+[ERROR] Python setup failed. Please install required packages manually:
+pip install psutil requests pywin32
+PS C:\Users\basav\Downloads\itsm-agent-windows (1)>
+PS C:\Users\basav\Downloads\itsm-agent-windows (1)>
+PS C:\Users\basav\Downloads\itsm-agent-windows (1)> python .\fix_config_windows.py
+ITSM Agent Configuration Fix Utility
+==================================================
+[INFO] Stopping ITSM Agent service...
+[ERROR] Failed to stop service:
+[INFO] Backing up existing configuration...
+[SUCCESS] Backup created: C:\Program Files\ITSM Agent\config.ini.backup
+[INFO] Creating fixed configuration...
+[SUCCESS] Configuration file fixed
+[INFO] Validating fixed configuration...
+[SUCCESS] Section [agent]: OK
+[SUCCESS] Section [api]: OK
+[SUCCESS] Section [monitoring]: OK
+[SUCCESS] Section [scheduling]: OK
+[SUCCESS] Section [security]: OK
+[SUCCESS] Section [network]: OK
+[SUCCESS] Section [performance]: OK
+[SUCCESS] Configuration validation passed
+[INFO] Testing agent import...
+[SUCCESS] Agent import test passed
+[INFO] Starting ITSM Agent service...
+[ERROR] Failed to start service:
+[ERROR] Failed to start service
+Press Enter to exit...
+PS C:\Users\basav\Downloads\itsm-agent-windows (1)>
+PS C:\Users\basav\Downloads\itsm-agent-windows (1)>
+PS C:\Users\basav\Downloads\itsm-agent-windows (1)> python .\fix_service_issue.py
+ITSM Agent Service Fix Utility
+========================================
+
+Fixing ITSM Agent service issues...
+
+✓ config_validator.py already exists
+✓ network_monitor.py already exists
+✓ performance_baseline.py already exists
+Testing agent module imports...
+✓ All modules import successfully
+Stopping ITSM Agent service...
+Starting ITSM Agent service...
+✗ Failed to start service:
+Failed to restart service
+Press Enter to exit...
+PS C:\Users\basav\Downloads\itsm-agent-windows (1)>
+PS C:\Users\basav\Downloads\itsm-agent-windows (1)> python -c "import win32service; print('pywin32 is installed')"
+pywin32 is installed

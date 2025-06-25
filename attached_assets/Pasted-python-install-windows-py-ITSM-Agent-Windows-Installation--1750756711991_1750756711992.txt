@@ -1,0 +1,173 @@
+python .\install_windows.py
+ITSM Agent Windows Installation
+==================================================
+
+Python version: 3.10.0 (tags/v3.10.0:b494f59, Oct  4 2021, 19:00:18) [MSC v.1929 64 bit (AMD64)]
+Platform: Windows-10-10.0.26100-SP0
+
+Installing Python dependencies...
+Installing psutil>=5.8.0...
+✓ Installed psutil>=5.8.0
+Installing requests>=2.28.0...
+✓ Installed requests>=2.28.0
+Installing configparser>=5.0.0...
+✓ Installed configparser>=5.0.0
+Installing pywin32>=227...
+✓ Installed pywin32>=227
+Configuring pywin32...
+✓ pywin32 configured successfully
+
+Downloading NSSM for Windows service management...
+✓ NSSM already installed
+
+Creating installation directory: C:\Program Files\ITSM Agent
+Copying agent files...
+Copying agent files...
+✓ Copied itsm_agent.py
+✓ Copied system_collector.py
+✓ Copied api_client.py
+✓ Copied command_scheduler.py
+✓ Copied operation_monitor.py
+✓ Copied smart_queue.py
+✓ Copied service_wrapper.py
+✓ Copied config_validator.py
+✓ Copied network_monitor.py
+✓ Copied performance_baseline.py
+
+Agent configuration:
+- Configuration file: C:\Program Files\ITSM Agent\config.ini
+- Edit the config.ini file to set your API endpoint and authentication
+- Default API URL: http://localhost:5000
+- Default auth token: dashboard-api-token
+
+Installing Windows service...
+Cleaning up existing service...
+Installing service with NSSM...
+Set parameter "DisplayName" for service "ITSMAgent".
+Set parameter "Description" for service "ITSMAgent".
+Set parameter "Start" for service "ITSMAgent".
+Set parameter "AppDirectory" for service "ITSMAgent".
+✓ Windows service installed successfully with NSSM
+
+✓ Created start script: C:\Program Files\ITSM Agent\start_agent.bat
+Warning: Could not create shortcuts: [Errno 2] No such file or directory: 'C:\\Users\\basav\\Desktop\\Start ITSM Agent Service.bat'
+Configuring Windows Firewall...
+Note: Could not create firewall rule (this is optional)
+
+Testing installation...
+✓ Python modules test passed
+✓ Configuration test passed
+✓ Installation test completed successfully
+
+Installation completed successfully!
+
+Configuration:
+- Installation directory: C:\Program Files\ITSM Agent
+- Configuration file: C:\Program Files\ITSM Agent\config.ini
+- Log files: C:\Program Files\ITSM Agent\logs\
+
+Next steps:
+1. Edit config.ini to configure your API endpoint and authentication token
+2. Start the service: sc start ITSMAgent
+3. Check service status: sc query ITSMAgent
+4. View logs: Check the logs directory or Event Viewer
+
+Service management:
+- Start service:   sc start ITSMAgent
+- Stop service:    sc stop ITSMAgent
+- Service status:  sc query ITSMAgent
+- Restart service: sc stop ITSMAgent && sc start ITSMAgent
+
+Start the service now? (y/n): y
+✓ Service started successfully
+Service status:
+
+SERVICE_NAME: ITSMAgent
+        TYPE               : 10  WIN32_OWN_PROCESS
+        STATE              : 7  PAUSED
+                                (STOPPABLE, PAUSABLE, ACCEPTS_SHUTDOWN)
+        WIN32_EXIT_CODE    : 0  (0x0)
+        SERVICE_EXIT_CODE  : 0  (0x0)
+        CHECKPOINT         : 0x0
+        WAIT_HINT          : 0x0
+
+
+Press Enter to exit...
+PS C:\Users\basav\Downloads\itsm-agent-windows (1)>
+PS C:\Users\basav\Downloads\itsm-agent-windows (1)> sc qc ITSMAgent
+PS C:\Users\basav\Downloads\itsm-agent-windows (1)> sc start ITSMAgent
+PS C:\Users\basav\Downloads\itsm-agent-windows (1)> Get-Service ITSMAgent
+
+Status   Name               DisplayName
+------   ----               -----------
+Paused   ITSMAgent          ITSM Endpoint Agent
+
+
+PS C:\Users\basav\Downloads\itsm-agent-windows (1)>
+PS C:\Users\basav\Downloads\itsm-agent-windows (1)>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

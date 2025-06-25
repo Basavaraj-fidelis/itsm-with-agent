@@ -1,0 +1,30 @@
+Invalid JSON response from https://209e26fc-2931-458c-85b3-210b90c65ac7-00-36q1h5xyrtfab.pike.replit.dev/api/commands
+Error adding command to queue: 'str' object has no attribute 'get'
+Invalid JSON response from https://209e26fc-2931-458c-85b3-210b90c65ac7-00-36q1h5xyrtfab.pike.replit.dev/api/heartbeat
+Invalid JSON response from https://209e26fc-2931-458c-85b3-210b90c65ac7-00-36q1h5xyrtfab.pike.replit.dev/api/commands
+Error adding command to queue: 'str' object has no attribute 'get'
+Invalid JSON response from https://209e26fc-2931-458c-85b3-210b90c65ac7-00-36q1h5xyrtfab.pike.replit.dev/api/heartbeat
+Invalid JSON response from https://209e26fc-2931-458c-85b3-210b90c65ac7-00-36q1h5xyrtfab.pike.replit.dev/api/commands
+Error adding command to queue: 'str' object has no attribute 'get'
+Invalid JSON response from https://209e26fc-2931-458c-85b3-210b90c65ac7-00-36q1h5xyrtfab.pike.replit.dev/api/commands
+Error adding command to queue: 'str' object has no attribute 'get'
+Invalid JSON response from https://209e26fc-2931-458c-85b3-210b90c65ac7-00-36q1h5xyrtfab.pike.replit.dev/api/heartbeat
+Invalid JSON response from https://209e26fc-2931-458c-85b3-210b90c65ac7-00-36q1h5xyrtfab.pike.replit.dev/api/commands
+Error adding command to queue: 'str' object has no attribute 'get'
+Invalid JSON response from https://209e26fc-2931-458c-85b3-210b90c65ac7-00-36q1h5xyrtfab.pike.replit.dev/api/commands
+Error adding command to queue: 'str' object has no attribute 'get'
+Invalid JSON response from https://209e26fc-2931-458c-85b3-210b90c65ac7-00-36q1h5xyrtfab.pike.replit.dev/api/heartbeat
+Invalid JSON response from https://209e26fc-2931-458c-85b3-210b90c65ac7-00-36q1h5xyrtfab.pike.replit.dev/api/commands
+Error adding command to queue: 'str' object has no attribute 'get'
+Invalid JSON response from https://209e26fc-2931-458c-85b3-210b90c65ac7-00-36q1h5xyrtfab.pike.replit.dev/api/commands
+Error adding command to queue: 'str' object has no attribute 'get'
+Invalid JSON response from https://209e26fc-2931-458c-85b3-210b90c65ac7-00-36q1h5xyrtfab.pike.replit.dev/api/heartbeat
+Invalid JSON response from https://209e26fc-2931-458c-85b3-210b90c65ac7-00-36q1h5xyrtfab.pike.replit.dev/api/commands
+Error adding command to queue: 'str' object has no attribute 'get'
+Invalid JSON response from https://209e26fc-2931-458c-85b3-210b90c65ac7-00-36q1h5xyrtfab.pike.replit.dev/api/commands
+Error adding command to queue: 'str' object has no attribute 'get'
+Invalid JSON response from https://209e26fc-2931-458c-85b3-210b90c65ac7-00-36q1h5xyrtfab.pike.replit.dev/api/heartbeat
+Invalid JSON response from https://209e26fc-2931-458c-85b3-210b90c65ac7-00-36q1h5xyrtfab.pike.replit.dev/api/commands
+Error adding command to queue: 'str' object has no attribute 'get'
+Invalid JSON response from https://209e26fc-2931-458c-85b3-210b90c65ac7-00-36q1h5xyrtfab.pike.replit.dev/api/commands
+Error adding command to queue: 'str' object has no attribute 'get'

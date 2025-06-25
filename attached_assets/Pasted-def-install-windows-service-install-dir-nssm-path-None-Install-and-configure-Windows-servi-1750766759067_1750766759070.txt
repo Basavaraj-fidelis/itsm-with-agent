@@ -1,0 +1,186 @@
+def install_windows_service(install_dir, nssm_path=None):
+    """Install and configure Windows service"""
+    print("Installing Windows service...")
+
+    service_name = "ITSMAgent"
+    display_name = "ITSM Endpoint Agent"
+
+    try:
+        # First, clean up any existing service
+        print("Cleaning up existing service...")
+        subprocess.run(['sc', 'stop', service_name], capture_output=True)
+        subprocess.run(['sc', 'delete', service_name], capture_output=True)
+
+        # If NSSM is available, try to remove using NSSM too
+        if nssm_path:
+            nssm_exe = Path(nssm_path) / "nssm.exe"
+            if nssm_exe.exists():
+                subprocess.run([str(nssm_exe), 'remove', service_name, 'confirm'], capture_output=True)
+
+        # Wait a moment for cleanup
+        import time
+        time.sleep(2)
+
+        # Ensure we're in the correct directory
+        original_dir = os.getcwd()
+        os.chdir(install_dir)
+
+        try:
+            if nssm_path:
+                # Use NSSM for better service management
+                nssm_exe = Path(nssm_path) / "nssm.exe"
+
+                if nssm_exe.exists():
+                    print("Installing service with NSSM...")
+
+                    # Install service - THIS IS THE MODIFIED LINE
+                    install_cmd = [
+                        str(nssm_exe), 'install', service_name,
+                        sys.executable, f'"{str(install_dir / "itsm_agent.py")}"'
+                    ]
+
+                    result = subprocess.run(install_cmd, capture_output=True, text=True)
+
+                    if result.returncode == 0:
+                        # Configure service with comprehensive settings
+                        subprocess.run([str(nssm_exe), 'set', service_name, 'DisplayName', display_name])
+                        subprocess.run([str(nssm_exe), 'set', service_name, 'Description',
+                                          'ITSM Endpoint Agent - Collects and reports system information'])
+                        subprocess.run([str(nssm_exe), 'set', service_name, 'Start', 'SERVICE_AUTO_START'])
+                        subprocess.run([str(nssm_exe), 'set', service_name, 'AppDirectory', str(install_dir)])
+                        
+                        # Configure logging
+                        log_dir = install_dir / "logs"
+                        log_dir.mkdir(exist_ok=True)
+                        subprocess.run([str(nssm_exe), 'set', service_name, 'AppStdout', str(log_dir / 'stdout.log')])
+                        subprocess.run([str(nssm_exe), 'set', service_name, 'AppStderr', str(log_dir / 'stderr.log')])
+                        subprocess.run([str(nssm_exe), 'set', service_name, 'AppRotateFiles', '1'])
+                        
+                        # Set recovery options
+                        subprocess.run([str(nssm_exe), 'set', service_name, 'AppExit', 'Default', 'Restart'])
+                        subprocess.run([str(nssm_exe), 'set', service_name, 'AppRestartDelay', '60000'])  # 1 minute
+
+                        print("✓ Windows service installed successfully with NSSM")
+                        return True
+                    else:
+                        print(f"✗ NSSM service installation failed: {result.stderr}")
+
+            # Fallback to Python service installation
+            print("Installing service with Python service wrapper...")
+            result = subprocess.run([
+                sys.executable, 'itsm_agent.py', 'install'
+            ], capture_output=True, text=True)
+        finally:
+            # Restore original directory
+            os.chdir(original_dir)
+
+        if result.returncode == 0:
+            print("✓ Windows service installed successfully")
+
+            # Set service to start automatically
+            subprocess.run([
+                'sc', 'config', service_name, 'start=', 'auto'
+            ], capture_output=True)
+
+            print("✓ Service configured to start automatically")
+            return True
+        else:
+            print(f"✗ Service installation failed: {result.stderr}")
+            return False
+
+    except Exception as e:
+        print(f"✗ Error installing service: {e}")
+        return False
+
+    """Install and configure Windows service"""
+    print("Installing Windows service...")
+
+    service_name = "ITSMAgent"
+    display_name = "ITSM Endpoint Agent"
+
+    try:
+        # First, clean up any existing service
+        print("Cleaning up existing service...")
+        subprocess.run(['sc', 'stop', service_name], capture_output=True)
+        subprocess.run(['sc', 'delete', service_name], capture_output=True)
+
+        # If NSSM is available, try to remove using NSSM too
+        if nssm_path:
+            nssm_exe = Path(nssm_path) / "nssm.exe"
+            if nssm_exe.exists():
+                subprocess.run([str(nssm_exe), 'remove', service_name, 'confirm'], capture_output=True)
+
+        # Wait a moment for cleanup
+        import time
+        time.sleep(2)
+
+        # Ensure we're in the correct directory
+        original_dir = os.getcwd()
+        os.chdir(install_dir)
+
+        try:
+            if nssm_path:
+                # Use NSSM for better service management
+                nssm_exe = Path(nssm_path) / "nssm.exe"
+
+                if nssm_exe.exists():
+                    print("Installing service with NSSM...")
+
+                    # Install service
+                    install_cmd = [
+                        str(nssm_exe), 'install', service_name,
+                        sys.executable, str(install_dir / 'itsm_agent.py')
+                    ]
+
+                    result = subprocess.run(install_cmd, capture_output=True, text=True)
+
+                    if result.returncode == 0:
+                        # Configure service with comprehensive settings
+                        subprocess.run([str(nssm_exe), 'set', service_name, 'DisplayName', display_name])
+                        subprocess.run([str(nssm_exe), 'set', service_name, 'Description', 
+                                      'ITSM Endpoint Agent - Collects and reports system information'])
+                        subprocess.run([str(nssm_exe), 'set', service_name, 'Start', 'SERVICE_AUTO_START'])
+                        subprocess.run([str(nssm_exe), 'set', service_name, 'AppDirectory', str(install_dir)])
+                        
+                        # Configure logging
+                        log_dir = install_dir / "logs"
+                        log_dir.mkdir(exist_ok=True)
+                        subprocess.run([str(nssm_exe), 'set', service_name, 'AppStdout', str(log_dir / 'stdout.log')])
+                        subprocess.run([str(nssm_exe), 'set', service_name, 'AppStderr', str(log_dir / 'stderr.log')])
+                        subprocess.run([str(nssm_exe), 'set', service_name, 'AppRotateFiles', '1'])
+                        
+                        # Set recovery options
+                        subprocess.run([str(nssm_exe), 'set', service_name, 'AppExit', 'Default', 'Restart'])
+                        subprocess.run([str(nssm_exe), 'set', service_name, 'AppRestartDelay', '60000'])  # 1 minute
+
+                        print("✓ Windows service installed successfully with NSSM")
+                        return True
+                    else:
+                        print(f"✗ NSSM service installation failed: {result.stderr}")
+
+            # Fallback to Python service installation
+            print("Installing service with Python service wrapper...")
+            result = subprocess.run([
+                sys.executable, 'itsm_agent.py', 'install'
+            ], capture_output=True, text=True)
+        finally:
+            # Restore original directory
+            os.chdir(original_dir)
+
+        if result.returncode == 0:
+            print("✓ Windows service installed successfully")
+
+            # Set service to start automatically
+            subprocess.run([
+                'sc', 'config', service_name, 'start=', 'auto'
+            ], capture_output=True)
+
+            print("✓ Service configured to start automatically")
+            return True
+        else:
+            print(f"✗ Service installation failed: {result.stderr}")
+            return False
+
+    except Exception as e:
+        print(f"✗ Error installing service: {e}")
+        return False
