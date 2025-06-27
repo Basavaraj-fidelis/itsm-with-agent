@@ -18,6 +18,7 @@ import getpass
 import csv
 import io
 import re
+import shutil
 
 
 class SystemCollector:
