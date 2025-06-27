@@ -1,4 +1,3 @@
-
 import nodemailer from 'nodemailer';
 
 interface EmailConfig {
@@ -20,7 +19,7 @@ interface EmailOptions {
 
 export class EmailService {
   private transporter: nodemailer.Transporter;
-  
+
   constructor() {
     // Configure your email provider (Gmail, Outlook, etc.)
     const config: EmailConfig = {
@@ -103,7 +102,7 @@ export class EmailService {
             <h1 style="margin: 0;">🚨 SLA Escalation Alert</h1>
             <p style="margin: 5px 0 0 0; opacity: 0.9;">${escalationLevel} - Immediate Action Required</p>
           </div>
-          
+
           <div class="content">
             <div class="alert-box">
               <h3 style="margin: 0 0 10px 0; color: ${isOverdue ? '#dc2626' : '#ea580c'};">
@@ -199,7 +198,7 @@ export class EmailService {
             <h1 style="margin: 0;">📊 SLA Management Summary</h1>
             <p style="margin: 5px 0 0 0; opacity: 0.9;">Daily Report - ${new Date().toLocaleDateString()}</p>
           </div>
-          
+
           <div class="content">
             <div style="text-align: center; margin: 20px 0;">
               <h2 style="margin: 0;">SLA Compliance: 
@@ -269,6 +268,39 @@ export class EmailService {
       subject,
       html,
       priority: critical > 0 ? 'high' : 'normal'
+    });
+  }
+
+  async sendSLABreachEmail(
+    to: string,
+    ticket: any,
+    breachType: 'response' | 'resolution',
+    dueDate: Date
+  ): Promise<boolean> {
+    const subject = `🚨 SLA ${breachType.toUpperCase()} BREACH: ${ticket.ticket_number}`;
+    const now = new Date();
+    const overdueDuration = Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60));
+
+    const html = `
+      <h2 style="color: #dc2626;">🚨 SLA ${breachType.toUpperCase()} BREACH</h2>
+      <div style="background-color: #fef2f2; border: 1px solid #fecaca; padding: 15px; border-radius: 5px; margin: 10px 0;">
+        <p><strong>Ticket:</strong> ${ticket.ticket_number}</p>
+        <p><strong>Title:</strong> ${ticket.title}</p>
+        <p><strong>Priority:</strong> <span style="color: #dc2626; font-weight: bold;">${ticket.priority.toUpperCase()}</span></p>
+        <p><strong>Status:</strong> ${ticket.status}</p>
+        <p><strong>Assigned To:</strong> ${ticket.assigned_to || 'Unassigned'}</p>
+        <p><strong>${breachType.charAt(0).toUpperCase() + breachType.slice(1)} Due:</strong> ${dueDate.toLocaleString()}</p>
+        <p><strong>Overdue By:</strong> <span style="color: #dc2626; font-weight: bold;">${overdueDuration} minutes</span></p>
+      </div>
+      <p style="color: #dc2626; font-weight: bold;">⚠️ IMMEDIATE ATTENTION REQUIRED</p>
+      <p>This ticket has breached its SLA and requires urgent action. Please prioritize this ticket immediately.</p>
+    `;
+
+    return await this.sendEmail({
+      to: to,
+      subject: subject,
+      html: html,
+      priority: 'high'
     });
   }
 }

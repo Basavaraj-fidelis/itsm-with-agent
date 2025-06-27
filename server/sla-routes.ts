@@ -1,6 +1,8 @@
 
 import type { Express } from "express";
 import { slaEscalationService } from "./sla-escalation-service";
+import { slaMonitorService } from "./sla-monitor-service";
+import { slaPolicyService } from "./sla-policy-service";
 
 export function registerSLARoutes(app: Express) {
   // Get SLA dashboard data
@@ -44,6 +46,60 @@ export function registerSLARoutes(app: Express) {
     } catch (error) {
       console.error("Error generating SLA compliance report:", error);
       res.status(500).json({ error: "Failed to generate compliance report" });
+    }
+  });
+
+  // Get real-time SLA metrics
+  app.get("/api/sla/metrics", async (req, res) => {
+    try {
+      const metrics = await slaMonitorService.getSLAMetrics();
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error fetching SLA metrics:", error);
+      res.status(500).json({ error: "Failed to fetch SLA metrics" });
+    }
+  });
+
+  // Manual SLA breach check
+  app.post("/api/sla/check-breaches", async (req, res) => {
+    try {
+      await slaMonitorService.checkSLABreaches();
+      res.json({ message: "SLA breach check completed" });
+    } catch (error) {
+      console.error("Error running SLA breach check:", error);
+      res.status(500).json({ error: "Failed to run SLA breach check" });
+    }
+  });
+
+  // Create or update SLA policy
+  app.post("/api/sla/policies", async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { slaPolicies } = await import("@shared/sla-schema");
+      
+      const [policy] = await db
+        .insert(slaPolicies)
+        .values(req.body)
+        .returning();
+      
+      res.status(201).json(policy);
+    } catch (error) {
+      console.error("Error creating SLA policy:", error);
+      res.status(500).json({ error: "Failed to create SLA policy" });
+    }
+  });
+
+  // Get all SLA policies
+  app.get("/api/sla/policies", async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { slaPolicies } = await import("@shared/sla-schema");
+      
+      const policies = await db.select().from(slaPolicies);
+      res.json(policies);
+    } catch (error) {
+      console.error("Error fetching SLA policies:", error);
+      res.status(500).json({ error: "Failed to fetch SLA policies" });
     }
   });
 

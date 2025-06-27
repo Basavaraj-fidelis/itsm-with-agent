@@ -359,6 +359,11 @@ app.use((req, res, next) => {
     // It is the only port that is not firewalled.
     const port = 5000;
     const PORT = process.env.PORT || port;
+
+    // Start SLA monitoring service
+    const { slaMonitorService } = await import("./sla-monitor-service");
+    slaMonitorService.start(5); // Check every 5 minutes
+
     const serv = app.listen(PORT, "0.0.0.0", () => {
       log(`serving on port ${PORT}`);
       console.log(`🌐 Server accessible at http://0.0.0.0:${PORT}`);

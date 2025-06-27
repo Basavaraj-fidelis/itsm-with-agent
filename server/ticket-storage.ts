@@ -58,11 +58,39 @@ export class TicketStorage {
     // Auto-assign to available technician
     const assignedTechnician = await userStorage.getNextAvailableTechnician();
 
-    // Calculate SLA due dates based on priority and type
-    const slaTargets = this.calculateSLATargets(ticketData.priority, ticketData.type);
-    const now = new Date();
-    const slaResponseDue = new Date(now.getTime() + (slaTargets.responseTime * 60 * 1000));
-    const slaResolutionDue = new Date(now.getTime() + (slaTargets.resolutionTime * 60 * 1000));
+    // Calculate SLA due dates using policy service
+    const { slaPolicyService } = await import("./sla-policy-service");
+    await slaPolicyService.ensureDefaultSLAPolicies();
+    
+    const slaPolicy = await slaPolicyService.findMatchingSLAPolicy({
+      type: ticketData.type,
+      priority: ticketData.priority,
+      impact: ticketData.impact,
+      urgency: ticketData.urgency,
+      category: ticketData.category
+    });
+
+    let slaResponseDue: Date | null = null;
+    let slaResolutionDue: Date | null = null;
+    let slaTargets = { policy: 'Default', responseTime: 240, resolutionTime: 1440 };
+
+    if (slaPolicy) {
+      const dueDates = slaPolicyService.calculateSLADueDates(new Date(), slaPolicy);
+      slaResponseDue = dueDates.responseDue;
+      slaResolutionDue = dueDates.resolutionDue;
+      slaTargets = {
+        policy: slaPolicy.name,
+        responseTime: slaPolicy.response_time,
+        resolutionTime: slaPolicy.resolution_time
+      };
+    } else {
+      // Fallback to old logic if no policy found
+      const fallbackTargets = this.calculateSLATargets(ticketData.priority, ticketData.type);
+      const now = new Date();
+      slaResponseDue = new Date(now.getTime() + (fallbackTargets.responseTime * 60 * 1000));
+      slaResolutionDue = new Date(now.getTime() + (fallbackTargets.resolutionTime * 60 * 1000));
+      slaTargets = fallbackTargets;
+    }
 
     const [newTicket] = await db
       .insert(tickets)
@@ -71,13 +99,18 @@ export class TicketStorage {
         ticket_number,
         status: assignedTechnician ? "assigned" : "new",
         assigned_to: assignedTechnician?.email || null,
+        sla_policy_id: slaPolicy?.id || null,
         sla_policy: slaTargets.policy,
         sla_response_time: slaTargets.responseTime,
         sla_resolution_time: slaTargets.resolutionTime,
         sla_response_due: slaResponseDue,
         sla_resolution_due: slaResolutionDue,
+        response_due_at: slaResponseDue,
+        resolve_due_at: slaResolutionDue,
         due_date: slaResolutionDue,
         sla_breached: false,
+        sla_response_breached: false,
+        sla_resolution_breached: false,
       })
       .returning();
 
