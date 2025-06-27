@@ -263,6 +263,8 @@ var init_ticket_schema = __esm({
       tags: json2("tags").$type().default([]),
       custom_fields: json2("custom_fields").$type().default({}),
       // SLA fields
+      sla_policy_id: uuid2("sla_policy_id"),
+      // Reference to SLA policy
       sla_policy: varchar("sla_policy", { length: 100 }),
       sla_response_time: integer("sla_response_time"),
       // in minutes
@@ -270,8 +272,15 @@ var init_ticket_schema = __esm({
       // in minutes
       sla_response_due: timestamp2("sla_response_due"),
       sla_resolution_due: timestamp2("sla_resolution_due"),
+      response_due_at: timestamp2("response_due_at"),
+      // Alternative naming
+      resolve_due_at: timestamp2("resolve_due_at"),
+      // Alternative naming
       first_response_at: timestamp2("first_response_at"),
+      resolve_actual_at: timestamp2("resolve_actual_at"),
       sla_breached: boolean2("sla_breached").default(false),
+      sla_response_breached: boolean2("sla_response_breached").default(false),
+      sla_resolution_breached: boolean2("sla_resolution_breached").default(false),
       // Timestamps
       created_at: timestamp2("created_at").defaultNow().notNull(),
       updated_at: timestamp2("updated_at").defaultNow().notNull(),
@@ -2704,8 +2713,8 @@ smartphones
         try {
           const { db: db3 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { usb_devices: usb_devices2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-          const { eq: eq9, desc: desc8 } = await import("drizzle-orm");
-          const result = await db3.select().from(usb_devices2).where(eq9(usb_devices2.device_id, deviceId)).orderBy(desc8(usb_devices2.last_seen));
+          const { eq: eq11, desc: desc9 } = await import("drizzle-orm");
+          const result = await db3.select().from(usb_devices2).where(eq11(usb_devices2.device_id, deviceId)).orderBy(desc9(usb_devices2.last_seen));
           return result;
         } catch (error) {
           console.error("Error fetching USB devices for device:", error);
@@ -2716,8 +2725,8 @@ smartphones
         try {
           const { db: db3 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { usb_devices: usb_devices2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-          const { eq: eq9, and: and7 } = await import("drizzle-orm");
-          await db3.update(usb_devices2).set({ is_connected: false }).where(eq9(usb_devices2.device_id, deviceId));
+          const { eq: eq11, and: and9 } = await import("drizzle-orm");
+          await db3.update(usb_devices2).set({ is_connected: false }).where(eq11(usb_devices2.device_id, deviceId));
           for (const device of usbDevices) {
             let vendor_id = device.vendor_id;
             let product_id = device.product_id;
@@ -2735,9 +2744,9 @@ smartphones
             );
             const deviceIdentifier = vendor_id && product_id ? `${vendor_id}:${product_id}:${serial_number || "no-serial"}` : device.device_id || device.serial_number || `unknown-${Date.now()}`;
             const existingDevices = await db3.select().from(usb_devices2).where(
-              and7(
-                eq9(usb_devices2.device_id, deviceId),
-                eq9(usb_devices2.device_identifier, deviceIdentifier)
+              and9(
+                eq11(usb_devices2.device_id, deviceId),
+                eq11(usb_devices2.device_identifier, deviceIdentifier)
               )
             );
             if (existingDevices.length > 0) {
@@ -2753,7 +2762,7 @@ smartphones
                 last_seen: /* @__PURE__ */ new Date(),
                 is_connected: true,
                 raw_data: device
-              }).where(eq9(usb_devices2.id, existingDevices[0].id));
+              }).where(eq11(usb_devices2.id, existingDevices[0].id));
             } else {
               await db3.insert(usb_devices2).values({
                 device_id: deviceId,
@@ -3588,14 +3597,249 @@ var init_user_storage = __esm({
   }
 });
 
+// shared/sla-schema.ts
+var sla_schema_exports = {};
+__export(sla_schema_exports, {
+  slaBreaches: () => slaBreaches2,
+  slaPolicies: () => slaPolicies2
+});
+import { pgTable as pgTable5, text as text5, timestamp as timestamp5, integer as integer4, uuid as uuid5, varchar as varchar4, boolean as boolean5 } from "drizzle-orm/pg-core";
+var slaPolicies2, slaBreaches2;
+var init_sla_schema = __esm({
+  "shared/sla-schema.ts"() {
+    "use strict";
+    slaPolicies2 = pgTable5("sla_policies", {
+      id: uuid5("id").primaryKey().defaultRandom(),
+      name: varchar4("name", { length: 100 }).notNull(),
+      description: text5("description"),
+      // Conditions
+      ticket_type: varchar4("ticket_type", { length: 20 }),
+      // request, incident, problem, change
+      priority: varchar4("priority", { length: 20 }),
+      // low, medium, high, critical
+      impact: varchar4("impact", { length: 20 }),
+      // low, medium, high, critical
+      urgency: varchar4("urgency", { length: 20 }),
+      // low, medium, high, critical
+      category: varchar4("category", { length: 100 }),
+      // SLA Targets (in minutes)
+      response_time: integer4("response_time").notNull(),
+      // Time to first response
+      resolution_time: integer4("resolution_time").notNull(),
+      // Time to resolve
+      // Business hours
+      business_hours_only: boolean5("business_hours_only").default(true),
+      business_start: varchar4("business_start", { length: 5 }).default("09:00"),
+      // HH:MM format
+      business_end: varchar4("business_end", { length: 5 }).default("17:00"),
+      // HH:MM format
+      business_days: varchar4("business_days", { length: 20 }).default("1,2,3,4,5"),
+      // 1=Monday, 7=Sunday
+      // Status
+      is_active: boolean5("is_active").default(true),
+      // Metadata
+      created_at: timestamp5("created_at").defaultNow().notNull(),
+      updated_at: timestamp5("updated_at").defaultNow().notNull()
+    });
+    slaBreaches2 = pgTable5("sla_breaches", {
+      id: uuid5("id").primaryKey().defaultRandom(),
+      ticket_id: uuid5("ticket_id").notNull(),
+      sla_policy_id: uuid5("sla_policy_id").notNull(),
+      breach_type: varchar4("breach_type", { length: 20 }).notNull(),
+      // response, resolution
+      target_time: timestamp5("target_time").notNull(),
+      actual_time: timestamp5("actual_time"),
+      breach_duration: integer4("breach_duration"),
+      // minutes over SLA
+      created_at: timestamp5("created_at").defaultNow().notNull()
+    });
+  }
+});
+
+// server/sla-policy-service.ts
+var sla_policy_service_exports = {};
+__export(sla_policy_service_exports, {
+  SLAPolicyService: () => SLAPolicyService,
+  slaPolicyService: () => slaPolicyService
+});
+import { eq as eq3, and as and3, isNull as isNull2, desc as desc3 } from "drizzle-orm";
+var SLAPolicyService, slaPolicyService;
+var init_sla_policy_service = __esm({
+  "server/sla-policy-service.ts"() {
+    "use strict";
+    init_db();
+    init_sla_schema();
+    SLAPolicyService = class {
+      // Find the best matching SLA policy for a ticket
+      async findMatchingSLAPolicy(ticket) {
+        try {
+          const exactMatch = await db.select().from(slaPolicies2).where(
+            and3(
+              eq3(slaPolicies2.is_active, true),
+              eq3(slaPolicies2.ticket_type, ticket.type),
+              eq3(slaPolicies2.priority, ticket.priority),
+              ticket.impact ? eq3(slaPolicies2.impact, ticket.impact) : isNull2(slaPolicies2.impact),
+              ticket.urgency ? eq3(slaPolicies2.urgency, ticket.urgency) : isNull2(slaPolicies2.urgency),
+              ticket.category ? eq3(slaPolicies2.category, ticket.category) : isNull2(slaPolicies2.category)
+            )
+          ).orderBy(desc3(slaPolicies2.created_at)).limit(1);
+          if (exactMatch.length > 0) {
+            return exactMatch[0];
+          }
+          const partialMatch = await db.select().from(slaPolicies2).where(
+            and3(
+              eq3(slaPolicies2.is_active, true),
+              eq3(slaPolicies2.ticket_type, ticket.type),
+              eq3(slaPolicies2.priority, ticket.priority),
+              isNull2(slaPolicies2.impact),
+              isNull2(slaPolicies2.urgency),
+              isNull2(slaPolicies2.category)
+            )
+          ).orderBy(desc3(slaPolicies2.created_at)).limit(1);
+          if (partialMatch.length > 0) {
+            return partialMatch[0];
+          }
+          const priorityMatch = await db.select().from(slaPolicies2).where(
+            and3(
+              eq3(slaPolicies2.is_active, true),
+              eq3(slaPolicies2.priority, ticket.priority),
+              isNull2(slaPolicies2.ticket_type),
+              isNull2(slaPolicies2.impact),
+              isNull2(slaPolicies2.urgency),
+              isNull2(slaPolicies2.category)
+            )
+          ).orderBy(desc3(slaPolicies2.created_at)).limit(1);
+          return priorityMatch.length > 0 ? priorityMatch[0] : null;
+        } catch (error) {
+          console.error("Error finding matching SLA policy:", error);
+          return null;
+        }
+      }
+      // Calculate SLA due dates based on policy and business hours
+      calculateSLADueDates(createdAt, policy) {
+        const baseTime = new Date(createdAt);
+        if (policy.business_hours_only) {
+          const responseDue = this.addBusinessMinutes(baseTime, policy.response_time, policy);
+          const resolutionDue = this.addBusinessMinutes(baseTime, policy.resolution_time, policy);
+          return { responseDue, resolutionDue };
+        } else {
+          const responseDue = new Date(baseTime.getTime() + policy.response_time * 60 * 1e3);
+          const resolutionDue = new Date(baseTime.getTime() + policy.resolution_time * 60 * 1e3);
+          return { responseDue, resolutionDue };
+        }
+      }
+      // Add business minutes to a date, respecting business hours
+      addBusinessMinutes(startDate, minutes, policy) {
+        const businessStart = this.parseTime(policy.business_start || "09:00");
+        const businessEnd = this.parseTime(policy.business_end || "17:00");
+        const businessDays = (policy.business_days || "1,2,3,4,5").split(",").map((d) => parseInt(d));
+        let currentDate = new Date(startDate);
+        let remainingMinutes = minutes;
+        while (remainingMinutes > 0) {
+          const dayOfWeek = currentDate.getDay() === 0 ? 7 : currentDate.getDay();
+          if (businessDays.includes(dayOfWeek)) {
+            const currentHour = currentDate.getHours();
+            const currentMinute = currentDate.getMinutes();
+            const currentTimeMinutes = currentHour * 60 + currentMinute;
+            const businessStartMinutes = businessStart.hour * 60 + businessStart.minute;
+            const businessEndMinutes = businessEnd.hour * 60 + businessEnd.minute;
+            if (currentTimeMinutes < businessStartMinutes) {
+              currentDate.setHours(businessStart.hour, businessStart.minute, 0, 0);
+            } else if (currentTimeMinutes >= businessEndMinutes) {
+              currentDate.setDate(currentDate.getDate() + 1);
+              currentDate.setHours(businessStart.hour, businessStart.minute, 0, 0);
+            } else {
+              const remainingBusinessMinutesToday = businessEndMinutes - currentTimeMinutes;
+              const minutesToAdd = Math.min(remainingMinutes, remainingBusinessMinutesToday);
+              currentDate.setMinutes(currentDate.getMinutes() + minutesToAdd);
+              remainingMinutes -= minutesToAdd;
+              if (remainingMinutes > 0) {
+                currentDate.setDate(currentDate.getDate() + 1);
+                currentDate.setHours(businessStart.hour, businessStart.minute, 0, 0);
+              }
+            }
+          } else {
+            currentDate.setDate(currentDate.getDate() + 1);
+            currentDate.setHours(businessStart.hour, businessStart.minute, 0, 0);
+          }
+        }
+        return currentDate;
+      }
+      parseTime(timeStr) {
+        const [hour, minute] = timeStr.split(":").map((n) => parseInt(n));
+        return { hour, minute };
+      }
+      // Create default SLA policies if none exist
+      async ensureDefaultSLAPolicies() {
+        try {
+          const existingPolicies = await db.select().from(slaPolicies2).limit(1);
+          if (existingPolicies.length === 0) {
+            console.log("Creating default SLA policies...");
+            const defaultPolicies = [
+              {
+                name: "Critical Incident",
+                description: "Critical priority incidents require immediate attention",
+                ticket_type: "incident",
+                priority: "critical",
+                response_time: 15,
+                // 15 minutes
+                resolution_time: 240,
+                // 4 hours
+                business_hours_only: false
+              },
+              {
+                name: "High Priority Incident",
+                description: "High priority incidents",
+                ticket_type: "incident",
+                priority: "high",
+                response_time: 60,
+                // 1 hour
+                resolution_time: 480,
+                // 8 hours
+                business_hours_only: true
+              },
+              {
+                name: "Medium Priority Request",
+                description: "Standard service requests",
+                ticket_type: "request",
+                priority: "medium",
+                response_time: 240,
+                // 4 hours
+                resolution_time: 1440,
+                // 24 hours
+                business_hours_only: true
+              },
+              {
+                name: "Low Priority Request",
+                description: "Low priority service requests",
+                ticket_type: "request",
+                priority: "low",
+                response_time: 480,
+                // 8 hours
+                resolution_time: 2880,
+                // 48 hours
+                business_hours_only: true
+              }
+            ];
+            await db.insert(slaPolicies2).values(defaultPolicies);
+            console.log(`\u2705 Created ${defaultPolicies.length} default SLA policies`);
+          }
+        } catch (error) {
+          console.error("Error ensuring default SLA policies:", error);
+        }
+      }
+    };
+    slaPolicyService = new SLAPolicyService();
+  }
+});
+
 // server/ticket-storage.ts
 var ticket_storage_exports = {};
 __export(ticket_storage_exports, {
   TicketStorage: () => TicketStorage,
   ticketStorage: () => ticketStorage
 });
-import { eq as eq3, desc as desc3, and as and3, or as or3, like as like3, sql as sql4, count as count3 } from "drizzle-orm";
-import { device_reports as device_reports2, alerts as alerts2, devices as devices2 } from "@shared/device-schema";
+import { eq as eq4, desc as desc4, and as and4, or as or4, like as like3, sql as sql4, count as count3 } from "drizzle-orm";
 var TicketStorage, ticketStorage;
 var init_ticket_storage = __esm({
   "server/ticket-storage.ts"() {
@@ -3604,14 +3848,15 @@ var init_ticket_storage = __esm({
     init_ticket_schema();
     init_admin_schema();
     init_user_storage();
+    init_schema();
     TicketStorage = class {
       // Generate unique ticket number
       async generateTicketNumber(type) {
         const year = (/* @__PURE__ */ new Date()).getFullYear();
         const prefix = type.toUpperCase().substring(0, 3);
         const [result] = await db.select({ count: count3() }).from(tickets).where(
-          and3(
-            eq3(tickets.type, type),
+          and4(
+            eq4(tickets.type, type),
             sql4`EXTRACT(YEAR FROM ${tickets.created_at}) = ${year}`
           )
         );
@@ -3622,22 +3867,51 @@ var init_ticket_storage = __esm({
       async createTicket(ticketData, userEmail) {
         const ticket_number = await this.generateTicketNumber(ticketData.type);
         const assignedTechnician = await userStorage.getNextAvailableTechnician();
-        const slaTargets = this.calculateSLATargets(ticketData.priority, ticketData.type);
-        const now = /* @__PURE__ */ new Date();
-        const slaResponseDue = new Date(now.getTime() + slaTargets.responseTime * 60 * 1e3);
-        const slaResolutionDue = new Date(now.getTime() + slaTargets.resolutionTime * 60 * 1e3);
+        const { slaPolicyService: slaPolicyService2 } = await Promise.resolve().then(() => (init_sla_policy_service(), sla_policy_service_exports));
+        await slaPolicyService2.ensureDefaultSLAPolicies();
+        const slaPolicy = await slaPolicyService2.findMatchingSLAPolicy({
+          type: ticketData.type,
+          priority: ticketData.priority,
+          impact: ticketData.impact,
+          urgency: ticketData.urgency,
+          category: ticketData.category
+        });
+        let slaResponseDue = null;
+        let slaResolutionDue = null;
+        let slaTargets = { policy: "Default", responseTime: 240, resolutionTime: 1440 };
+        if (slaPolicy) {
+          const dueDates = slaPolicyService2.calculateSLADueDates(/* @__PURE__ */ new Date(), slaPolicy);
+          slaResponseDue = dueDates.responseDue;
+          slaResolutionDue = dueDates.resolutionDue;
+          slaTargets = {
+            policy: slaPolicy.name,
+            responseTime: slaPolicy.response_time,
+            resolutionTime: slaPolicy.resolution_time
+          };
+        } else {
+          const fallbackTargets = this.calculateSLATargets(ticketData.priority, ticketData.type);
+          const now = /* @__PURE__ */ new Date();
+          slaResponseDue = new Date(now.getTime() + fallbackTargets.responseTime * 60 * 1e3);
+          slaResolutionDue = new Date(now.getTime() + fallbackTargets.resolutionTime * 60 * 1e3);
+          slaTargets = fallbackTargets;
+        }
         const [newTicket] = await db.insert(tickets).values({
           ...ticketData,
           ticket_number,
           status: assignedTechnician ? "assigned" : "new",
           assigned_to: assignedTechnician?.email || null,
+          sla_policy_id: slaPolicy?.id || null,
           sla_policy: slaTargets.policy,
           sla_response_time: slaTargets.responseTime,
           sla_resolution_time: slaTargets.resolutionTime,
           sla_response_due: slaResponseDue,
           sla_resolution_due: slaResolutionDue,
+          response_due_at: slaResponseDue,
+          resolve_due_at: slaResolutionDue,
           due_date: slaResolutionDue,
-          sla_breached: false
+          sla_breached: false,
+          sla_response_breached: false,
+          sla_resolution_breached: false
         }).returning();
         await this.logAudit("ticket", newTicket.id, "create", void 0, userEmail, null, newTicket);
         if (assignedTechnician) {
@@ -3653,26 +3927,26 @@ var init_ticket_storage = __esm({
         const offset = (page - 1) * limit;
         const conditions = [];
         if (filters.type) {
-          conditions.push(eq3(tickets.type, filters.type));
+          conditions.push(eq4(tickets.type, filters.type));
         }
         if (filters.status) {
-          conditions.push(eq3(tickets.status, filters.status));
+          conditions.push(eq4(tickets.status, filters.status));
         }
         if (filters.priority) {
-          conditions.push(eq3(tickets.priority, filters.priority));
+          conditions.push(eq4(tickets.priority, filters.priority));
         }
         if (filters.search) {
           conditions.push(
-            or3(
+            or4(
               like3(tickets.title, `%${filters.search}%`),
               like3(tickets.description, `%${filters.search}%`),
               like3(tickets.ticket_number, `%${filters.search}%`)
             )
           );
         }
-        const whereClause = conditions.length > 0 ? and3(...conditions) : void 0;
+        const whereClause = conditions.length > 0 ? and4(...conditions) : void 0;
         const [{ total }] = await db.select({ total: count3() }).from(tickets).where(whereClause);
-        const data = await db.select().from(tickets).where(whereClause).orderBy(desc3(tickets.created_at)).limit(limit).offset(offset);
+        const data = await db.select().from(tickets).where(whereClause).orderBy(desc4(tickets.created_at)).limit(limit).offset(offset);
         return {
           data,
           total,
@@ -3682,7 +3956,7 @@ var init_ticket_storage = __esm({
         };
       }
       async getTicketById(id) {
-        const [ticket] = await db.select().from(tickets).where(eq3(tickets.id, id));
+        const [ticket] = await db.select().from(tickets).where(eq4(tickets.id, id));
         return ticket || null;
       }
       async updateTicket(id, updates, userEmail = "admin@company.com", comment) {
@@ -3727,7 +4001,7 @@ var init_ticket_storage = __esm({
           }
           if (updates.status === "resolved" && !updates.resolved_at) {
             updates.resolved_at = /* @__PURE__ */ new Date();
-            const [currentTicket2] = await db.select().from(tickets).where(eq3(tickets.id, id));
+            const [currentTicket2] = await db.select().from(tickets).where(eq4(tickets.id, id));
             if (currentTicket2?.sla_resolution_due) {
               const wasBreached = /* @__PURE__ */ new Date() > new Date(currentTicket2.sla_resolution_due);
               updates.sla_breached = wasBreached;
@@ -3753,7 +4027,7 @@ var init_ticket_storage = __esm({
             updates.sla_breached = /* @__PURE__ */ new Date() > slaResolutionDue;
           }
           updates.updated_at = /* @__PURE__ */ new Date();
-          const [updatedTicket] = await db.update(tickets).set(updates).where(eq3(tickets.id, id)).returning();
+          const [updatedTicket] = await db.update(tickets).set(updates).where(eq4(tickets.id, id)).returning();
           if (!updatedTicket) {
             return null;
           }
@@ -3771,7 +4045,7 @@ var init_ticket_storage = __esm({
         }
       }
       async deleteTicket(id) {
-        const result = await db.delete(tickets).where(eq3(tickets.id, id));
+        const result = await db.delete(tickets).where(eq4(tickets.id, id));
         return result.rowCount > 0;
       }
       // Comment Operations
@@ -3783,7 +4057,7 @@ var init_ticket_storage = __esm({
         return comment;
       }
       async getTicketComments(ticketId) {
-        return await db.select().from(ticketComments).where(eq3(ticketComments.ticket_id, ticketId)).orderBy(desc3(ticketComments.created_at));
+        return await db.select().from(ticketComments).where(eq4(ticketComments.ticket_id, ticketId)).orderBy(desc4(ticketComments.created_at));
       }
       // Knowledge Base Operations
       async createKBArticle(articleData) {
@@ -3794,22 +4068,22 @@ var init_ticket_storage = __esm({
         const offset = (page - 1) * limit;
         const conditions = [];
         if (filters.category) {
-          conditions.push(eq3(knowledgeBase.category, filters.category));
+          conditions.push(eq4(knowledgeBase.category, filters.category));
         }
         if (filters.status) {
-          conditions.push(eq3(knowledgeBase.status, filters.status));
+          conditions.push(eq4(knowledgeBase.status, filters.status));
         }
         if (filters.search) {
           conditions.push(
-            or3(
+            or4(
               like3(knowledgeBase.title, `%${filters.search}%`),
               like3(knowledgeBase.content, `%${filters.search}%`)
             )
           );
         }
-        const whereClause = conditions.length > 0 ? and3(...conditions) : void 0;
+        const whereClause = conditions.length > 0 ? and4(...conditions) : void 0;
         const [{ total }] = await db.select({ total: count3() }).from(knowledgeBase).where(whereClause);
-        const data = await db.select().from(knowledgeBase).where(whereClause).orderBy(desc3(knowledgeBase.created_at)).limit(limit).offset(offset);
+        const data = await db.select().from(knowledgeBase).where(whereClause).orderBy(desc4(knowledgeBase.created_at)).limit(limit).offset(offset);
         return {
           data,
           total,
@@ -3819,18 +4093,18 @@ var init_ticket_storage = __esm({
         };
       }
       async getKBArticleById(id) {
-        const [article] = await db.select().from(knowledgeBase).where(eq3(knowledgeBase.id, id));
+        const [article] = await db.select().from(knowledgeBase).where(eq4(knowledgeBase.id, id));
         return article || null;
       }
       async updateKBArticle(id, updates) {
         const [updatedArticle] = await db.update(knowledgeBase).set({
           ...updates,
           updated_at: /* @__PURE__ */ new Date()
-        }).where(eq3(knowledgeBase.id, id)).returning();
+        }).where(eq4(knowledgeBase.id, id)).returning();
         return updatedArticle || null;
       }
       async deleteKBArticle(id) {
-        const result = await db.delete(knowledgeBase).where(eq3(knowledgeBase.id, id));
+        const result = await db.delete(knowledgeBase).where(eq4(knowledgeBase.id, id));
         return result.rowCount > 0;
       }
       // Export functionality
@@ -3929,9 +4203,9 @@ var init_ticket_storage = __esm({
       // Device delete operation
       async deleteDevice(id) {
         try {
-          await db.delete(device_reports2).where(eq3(device_reports2.device_id, id));
-          await db.delete(alerts2).where(eq3(alerts2.device_id, id));
-          const result = await db.delete(devices2).where(eq3(devices2.id, id));
+          await db.delete(device_reports).where(eq4(device_reports.device_id, id));
+          await db.delete(alerts).where(eq4(alerts.device_id, id));
+          const result = await db.delete(devices).where(eq4(devices.id, id));
           return result.rowCount > 0;
         } catch (error) {
           console.error("Error deleting device:", error);
@@ -4074,8 +4348,8 @@ var init_automation_service = __esm({
         }
       }
       async updateDeploymentStatus(task) {
-        const alerts3 = await storage.getActiveAlerts();
-        const deploymentAlert = alerts3.find(
+        const alerts2 = await storage.getActiveAlerts();
+        const deploymentAlert = alerts2.find(
           (alert) => alert.metadata?.deployment_id === task.id
         );
         if (deploymentAlert) {
@@ -5417,7 +5691,7 @@ var init_email_service = __esm({
             <h1 style="margin: 0;">\u{1F6A8} SLA Escalation Alert</h1>
             <p style="margin: 5px 0 0 0; opacity: 0.9;">${escalationLevel} - Immediate Action Required</p>
           </div>
-          
+
           <div class="content">
             <div class="alert-box">
               <h3 style="margin: 0 0 10px 0; color: ${isOverdue ? "#dc2626" : "#ea580c"};">
@@ -5475,11 +5749,11 @@ var init_email_service = __esm({
           priority: isOverdue ? "high" : "normal"
         });
       }
-      async sendSLASummaryEmail(recipientEmail, alerts3, dashboardData) {
-        const critical = alerts3.filter((a) => a.escalationLevel === 3).length;
-        const high = alerts3.filter((a) => a.escalationLevel === 2).length;
-        const medium = alerts3.filter((a) => a.escalationLevel === 1).length;
-        const subject = `\u{1F4CA} Daily SLA Summary - ${alerts3.length} Active Alerts (${dashboardData.compliance}% Compliance)`;
+      async sendSLASummaryEmail(recipientEmail, alerts2, dashboardData) {
+        const critical = alerts2.filter((a) => a.escalationLevel === 3).length;
+        const high = alerts2.filter((a) => a.escalationLevel === 2).length;
+        const medium = alerts2.filter((a) => a.escalationLevel === 1).length;
+        const subject = `\u{1F4CA} Daily SLA Summary - ${alerts2.length} Active Alerts (${dashboardData.compliance}% Compliance)`;
         const html = `
       <!DOCTYPE html>
       <html>
@@ -5505,7 +5779,7 @@ var init_email_service = __esm({
             <h1 style="margin: 0;">\u{1F4CA} SLA Management Summary</h1>
             <p style="margin: 5px 0 0 0; opacity: 0.9;">Daily Report - ${(/* @__PURE__ */ new Date()).toLocaleDateString()}</p>
           </div>
-          
+
           <div class="content">
             <div style="text-align: center; margin: 20px 0;">
               <h2 style="margin: 0;">SLA Compliance: 
@@ -5530,19 +5804,19 @@ var init_email_service = __esm({
               </div>
               <div class="metric-card">
                 <h3 style="margin: 0; color: #6b7280;">\u{1F4CA} Total Alerts</h3>
-                <p style="font-size: 24px; font-weight: bold; margin: 5px 0;">${alerts3.length}</p>
+                <p style="font-size: 24px; font-weight: bold; margin: 5px 0;">${alerts2.length}</p>
               </div>
             </div>
 
             <div class="alert-list">
               <h3 style="margin: 0 0 15px 0;">Recent Escalations</h3>
-              ${alerts3.slice(0, 5).map((alert) => `
+              ${alerts2.slice(0, 5).map((alert) => `
                 <div class="alert-item">
                   <strong>${alert.ticketNumber}</strong> (${alert.priority.toUpperCase()}) - 
                   ${alert.minutesUntilBreach < 0 ? `<span style="color: #dc2626;">Overdue by ${Math.abs(alert.minutesUntilBreach)} minutes</span>` : `Due in ${alert.minutesUntilBreach} minutes`}
                 </div>
               `).join("")}
-              ${alerts3.length > 5 ? `<p style="text-align: center; margin: 15px 0;">... and ${alerts3.length - 5} more alerts</p>` : ""}
+              ${alerts2.length > 5 ? `<p style="text-align: center; margin: 15px 0;">... and ${alerts2.length - 5} more alerts</p>` : ""}
             </div>
 
             <div style="background: #f3f4f6; padding: 15px; border-radius: 6px; margin: 20px 0;">
@@ -5573,13 +5847,38 @@ var init_email_service = __esm({
           priority: critical > 0 ? "high" : "normal"
         });
       }
+      async sendSLABreachEmail(to, ticket, breachType, dueDate) {
+        const subject = `\u{1F6A8} SLA ${breachType.toUpperCase()} BREACH: ${ticket.ticket_number}`;
+        const now = /* @__PURE__ */ new Date();
+        const overdueDuration = Math.floor((now.getTime() - dueDate.getTime()) / (1e3 * 60));
+        const html = `
+      <h2 style="color: #dc2626;">\u{1F6A8} SLA ${breachType.toUpperCase()} BREACH</h2>
+      <div style="background-color: #fef2f2; border: 1px solid #fecaca; padding: 15px; border-radius: 5px; margin: 10px 0;">
+        <p><strong>Ticket:</strong> ${ticket.ticket_number}</p>
+        <p><strong>Title:</strong> ${ticket.title}</p>
+        <p><strong>Priority:</strong> <span style="color: #dc2626; font-weight: bold;">${ticket.priority.toUpperCase()}</span></p>
+        <p><strong>Status:</strong> ${ticket.status}</p>
+        <p><strong>Assigned To:</strong> ${ticket.assigned_to || "Unassigned"}</p>
+        <p><strong>${breachType.charAt(0).toUpperCase() + breachType.slice(1)} Due:</strong> ${dueDate.toLocaleString()}</p>
+        <p><strong>Overdue By:</strong> <span style="color: #dc2626; font-weight: bold;">${overdueDuration} minutes</span></p>
+      </div>
+      <p style="color: #dc2626; font-weight: bold;">\u26A0\uFE0F IMMEDIATE ATTENTION REQUIRED</p>
+      <p>This ticket has breached its SLA and requires urgent action. Please prioritize this ticket immediately.</p>
+    `;
+        return await this.sendEmail({
+          to,
+          subject,
+          html,
+          priority: "high"
+        });
+      }
     };
     emailService = new EmailService();
   }
 });
 
 // server/sla-escalation-service.ts
-import { eq as eq6, and as and5, not, inArray as inArray2 } from "drizzle-orm";
+import { eq as eq7, and as and6, not, inArray as inArray2 } from "drizzle-orm";
 var SLAEscalationService, slaEscalationService;
 var init_sla_escalation_service = __esm({
   "server/sla-escalation-service.ts"() {
@@ -5625,9 +5924,9 @@ var init_sla_escalation_service = __esm({
           console.log("\u{1F504} Starting SLA escalation check...");
           const now = /* @__PURE__ */ new Date();
           const openTickets = await db.select().from(tickets).where(
-            and5(
+            and6(
               not(inArray2(tickets.status, ["resolved", "closed", "cancelled"])),
-              not(eq6(tickets.sla_resolution_due, null))
+              not(eq7(tickets.sla_resolution_due, null))
             )
           );
           console.log(`Found ${openTickets.length} open tickets to check`);
@@ -5635,11 +5934,11 @@ var init_sla_escalation_service = __esm({
             if (ticket.sla_resolution_due) {
               const isBreached = now > new Date(ticket.sla_resolution_due);
               if (isBreached !== ticket.sla_breached) {
-                await db.update(tickets).set({ sla_breached: isBreached, updated_at: now }).where(eq6(tickets.id, ticket.id));
+                await db.update(tickets).set({ sla_breached: isBreached, updated_at: now }).where(eq7(tickets.id, ticket.id));
               }
             }
           }
-          const alerts3 = [];
+          const alerts2 = [];
           for (const ticket of openTickets) {
             if (!ticket.sla_resolution_due) continue;
             const timeDiff = new Date(ticket.sla_resolution_due).getTime() - now.getTime();
@@ -5647,7 +5946,7 @@ var init_sla_escalation_service = __esm({
             for (const rule of this.escalationRules) {
               if (this.shouldTriggerEscalation(minutesUntilBreach, rule)) {
                 const escalationLevel = this.getEscalationLevel(rule);
-                alerts3.push({
+                alerts2.push({
                   ticketId: ticket.id,
                   ticketNumber: ticket.ticket_number,
                   priority: ticket.priority,
@@ -5659,9 +5958,9 @@ var init_sla_escalation_service = __esm({
               }
             }
           }
-          if (alerts3.length > 0) {
-            console.log(`\u{1F6A8} Generated ${alerts3.length} SLA alerts`);
-            await this.sendEscalationSummary(alerts3);
+          if (alerts2.length > 0) {
+            console.log(`\u{1F6A8} Generated ${alerts2.length} SLA alerts`);
+            await this.sendEscalationSummary(alerts2);
           }
         } catch (error) {
           console.error("\u274C Error in SLA escalation check:", error);
@@ -5749,7 +6048,7 @@ var init_sla_escalation_service = __esm({
             default:
               role = "manager";
           }
-          const [target] = await db.select().from(users).where(eq6(users.role, role)).limit(1);
+          const [target] = await db.select().from(users).where(eq7(users.role, role)).limit(1);
           return target;
         } catch (error) {
           console.error("Error getting escalation target:", error);
@@ -5802,22 +6101,22 @@ Action required: Immediate attention needed`;
           console.error("Error adding escalation comment:", error);
         }
       }
-      async sendEscalationSummary(alerts3) {
+      async sendEscalationSummary(alerts2) {
         try {
           const [managers] = await db.select().from(users).where(inArray2(users.role, ["manager", "admin"]));
-          const summary = this.createEscalationSummary(alerts3);
+          const summary = this.createEscalationSummary(alerts2);
           const dashboardData = await this.getSLADashboardData();
           for (const manager of managers) {
             await notificationService.createNotification({
               user_email: manager.email,
-              title: `Daily SLA Escalation Summary (${alerts3.length} alerts)`,
+              title: `Daily SLA Escalation Summary (${alerts2.length} alerts)`,
               message: summary,
               type: "sla_summary",
               priority: "medium"
             });
             await emailService.sendSLASummaryEmail(
               manager.email,
-              alerts3,
+              alerts2,
               dashboardData
             );
           }
@@ -5825,19 +6124,19 @@ Action required: Immediate attention needed`;
           console.error("Error sending escalation summary:", error);
         }
       }
-      createEscalationSummary(alerts3) {
-        const critical = alerts3.filter((a) => a.escalationLevel === 3).length;
-        const high = alerts3.filter((a) => a.escalationLevel === 2).length;
-        const medium = alerts3.filter((a) => a.escalationLevel === 1).length;
+      createEscalationSummary(alerts2) {
+        const critical = alerts2.filter((a) => a.escalationLevel === 3).length;
+        const high = alerts2.filter((a) => a.escalationLevel === 2).length;
+        const medium = alerts2.filter((a) => a.escalationLevel === 1).length;
         return `\u{1F4CA} SLA Escalation Summary
 
-Total Alerts: ${alerts3.length}
+Total Alerts: ${alerts2.length}
 \u{1F534} Critical: ${critical}
 \u{1F7E1} High: ${high}
 \u{1F7E2} Medium: ${medium}
 
 Recent Escalations:
-${alerts3.slice(0, 5).map(
+${alerts2.slice(0, 5).map(
           (alert) => `\u2022 ${alert.ticketNumber} (${alert.priority}) - ${alert.minutesUntilBreach < 0 ? "Overdue" : "Due soon"}`
         ).join("\n")}
 
@@ -5847,9 +6146,9 @@ Please review and take appropriate action.`;
         try {
           const now = /* @__PURE__ */ new Date();
           const openTickets = await db.select().from(tickets).where(
-            and5(
+            and6(
               not(inArray2(tickets.status, ["resolved", "closed", "cancelled"])),
-              not(eq6(tickets.sla_resolution_due, null))
+              not(eq7(tickets.sla_resolution_due, null))
             )
           );
           let breached = 0;
@@ -6033,6 +6332,184 @@ var init_migrate_admin_tables = __esm({
   }
 });
 
+// server/sla-monitor-service.ts
+var sla_monitor_service_exports = {};
+__export(sla_monitor_service_exports, {
+  SLAMonitorService: () => SLAMonitorService,
+  slaMonitorService: () => slaMonitorService
+});
+import { eq as eq8, and as and7, not as not2, inArray as inArray3, isNotNull } from "drizzle-orm";
+var SLAMonitorService, slaMonitorService;
+var init_sla_monitor_service = __esm({
+  "server/sla-monitor-service.ts"() {
+    "use strict";
+    init_db();
+    init_ticket_schema();
+    init_notification_service();
+    init_email_service();
+    SLAMonitorService = class {
+      intervalId = null;
+      isRunning = false;
+      // Start the SLA monitoring service
+      start(intervalMinutes = 5) {
+        if (this.isRunning) {
+          console.log("SLA Monitor is already running");
+          return;
+        }
+        console.log(`\u{1F680} Starting SLA Monitor Service (checking every ${intervalMinutes} minutes)`);
+        this.isRunning = true;
+        this.checkSLABreaches().catch(console.error);
+        this.intervalId = setInterval(() => {
+          this.checkSLABreaches().catch(console.error);
+        }, intervalMinutes * 60 * 1e3);
+      }
+      // Stop the SLA monitoring service
+      stop() {
+        if (this.intervalId) {
+          clearInterval(this.intervalId);
+          this.intervalId = null;
+        }
+        this.isRunning = false;
+        console.log("\u{1F6D1} SLA Monitor Service stopped");
+      }
+      // Check for SLA breaches and update tickets
+      async checkSLABreaches() {
+        try {
+          console.log("\u{1F50D} Checking for SLA breaches...");
+          const now = /* @__PURE__ */ new Date();
+          const openTickets = await db.select().from(tickets).where(
+            and7(
+              not2(inArray3(tickets.status, ["resolved", "closed", "cancelled"])),
+              isNotNull(tickets.resolve_due_at)
+            )
+          );
+          let responseBreaches = 0;
+          let resolutionBreaches = 0;
+          let updates = 0;
+          for (const ticket of openTickets) {
+            let needsUpdate = false;
+            const updateData = {};
+            if (ticket.response_due_at && !ticket.first_response_at && !ticket.sla_response_breached) {
+              if (now > new Date(ticket.response_due_at)) {
+                updateData.sla_response_breached = true;
+                needsUpdate = true;
+                responseBreaches++;
+                await this.sendSLABreachNotification(ticket, "response");
+              }
+            }
+            if (ticket.resolve_due_at && !ticket.sla_resolution_breached) {
+              if (now > new Date(ticket.resolve_due_at)) {
+                updateData.sla_resolution_breached = true;
+                updateData.sla_breached = true;
+                needsUpdate = true;
+                resolutionBreaches++;
+                await this.sendSLABreachNotification(ticket, "resolution");
+              }
+            }
+            if (needsUpdate) {
+              updateData.updated_at = now;
+              await db.update(tickets).set(updateData).where(eq8(tickets.id, ticket.id));
+              updates++;
+              console.log(`\u26A0\uFE0F  SLA breach detected for ticket ${ticket.ticket_number}`);
+            }
+          }
+          if (updates > 0) {
+            console.log(`\u{1F4CA} SLA Check Complete: ${updates} tickets updated, ${responseBreaches} response breaches, ${resolutionBreaches} resolution breaches`);
+          } else {
+            console.log("\u2705 SLA Check Complete: No breaches detected");
+          }
+        } catch (error) {
+          console.error("\u274C Error checking SLA breaches:", error);
+        }
+      }
+      // Send SLA breach notification
+      async sendSLABreachNotification(ticket, breachType) {
+        try {
+          const title = `SLA ${breachType.toUpperCase()} Breach: ${ticket.ticket_number}`;
+          const message = `Ticket ${ticket.ticket_number} has breached its ${breachType} SLA.
+      
+Title: ${ticket.title}
+Priority: ${ticket.priority.toUpperCase()}
+Status: ${ticket.status}
+Assigned To: ${ticket.assigned_to || "Unassigned"}
+${breachType === "response" ? "Response" : "Resolution"} Due: ${new Date(ticket[breachType === "response" ? "response_due_at" : "resolve_due_at"]).toLocaleString()}
+
+Immediate attention required!`;
+          if (ticket.assigned_to) {
+            await notificationService.createNotification({
+              user_email: ticket.assigned_to,
+              title,
+              message,
+              type: "sla_breach",
+              priority: "critical",
+              related_entity_type: "ticket",
+              related_entity_id: ticket.id
+            });
+            await emailService.sendSLABreachEmail(
+              ticket.assigned_to,
+              ticket,
+              breachType,
+              new Date(ticket[breachType === "response" ? "response_due_at" : "resolve_due_at"])
+            );
+          }
+          const { userStorage: userStorage2 } = await Promise.resolve().then(() => (init_user_storage(), user_storage_exports));
+          const managers = await userStorage2.getUsersByRole("manager");
+          for (const manager of managers) {
+            await notificationService.createNotification({
+              user_email: manager.email,
+              title,
+              message,
+              type: "sla_breach",
+              priority: "high",
+              related_entity_type: "ticket",
+              related_entity_id: ticket.id
+            });
+          }
+        } catch (error) {
+          console.error(`Error sending SLA breach notification for ticket ${ticket.ticket_number}:`, error);
+        }
+      }
+      // Get SLA metrics for dashboard
+      async getSLAMetrics() {
+        try {
+          const openTickets = await db.select().from(tickets).where(
+            and7(
+              not2(inArray3(tickets.status, ["resolved", "closed", "cancelled"])),
+              isNotNull(tickets.resolve_due_at)
+            )
+          );
+          const responseBreaches = openTickets.filter((t) => t.sla_response_breached).length;
+          const resolutionBreaches = openTickets.filter((t) => t.sla_resolution_breached).length;
+          const totalBreaches = (/* @__PURE__ */ new Set([
+            ...openTickets.filter((t) => t.sla_response_breached).map((t) => t.id),
+            ...openTickets.filter((t) => t.sla_resolution_breached).map((t) => t.id)
+          ])).size;
+          const totalTicketsWithSLA = openTickets.length;
+          const onTrackTickets = totalTicketsWithSLA - totalBreaches;
+          const slaCompliance = totalTicketsWithSLA > 0 ? Math.round(onTrackTickets / totalTicketsWithSLA * 100) : 100;
+          return {
+            totalTicketsWithSLA,
+            responseBreaches,
+            resolutionBreaches,
+            onTrackTickets,
+            slaCompliance
+          };
+        } catch (error) {
+          console.error("Error getting SLA metrics:", error);
+          return {
+            totalTicketsWithSLA: 0,
+            responseBreaches: 0,
+            resolutionBreaches: 0,
+            onTrackTickets: 0,
+            slaCompliance: 100
+          };
+        }
+      }
+    };
+    slaMonitorService = new SLAMonitorService();
+  }
+});
+
 // server/sla-routes.ts
 var sla_routes_exports = {};
 __export(sla_routes_exports, {
@@ -6073,12 +6550,52 @@ function registerSLARoutes(app2) {
       res.status(500).json({ error: "Failed to generate compliance report" });
     }
   });
+  app2.get("/api/sla/metrics", async (req, res) => {
+    try {
+      const metrics = await slaMonitorService.getSLAMetrics();
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error fetching SLA metrics:", error);
+      res.status(500).json({ error: "Failed to fetch SLA metrics" });
+    }
+  });
+  app2.post("/api/sla/check-breaches", async (req, res) => {
+    try {
+      await slaMonitorService.checkSLABreaches();
+      res.json({ message: "SLA breach check completed" });
+    } catch (error) {
+      console.error("Error running SLA breach check:", error);
+      res.status(500).json({ error: "Failed to run SLA breach check" });
+    }
+  });
+  app2.post("/api/sla/policies", async (req, res) => {
+    try {
+      const { db: db3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const { slaPolicies: slaPolicies3 } = await Promise.resolve().then(() => (init_sla_schema(), sla_schema_exports));
+      const [policy] = await db3.insert(slaPolicies3).values(req.body).returning();
+      res.status(201).json(policy);
+    } catch (error) {
+      console.error("Error creating SLA policy:", error);
+      res.status(500).json({ error: "Failed to create SLA policy" });
+    }
+  });
+  app2.get("/api/sla/policies", async (req, res) => {
+    try {
+      const { db: db3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const { slaPolicies: slaPolicies3 } = await Promise.resolve().then(() => (init_sla_schema(), sla_schema_exports));
+      const policies = await db3.select().from(slaPolicies3);
+      res.json(policies);
+    } catch (error) {
+      console.error("Error fetching SLA policies:", error);
+      res.status(500).json({ error: "Failed to fetch SLA policies" });
+    }
+  });
   app2.post("/api/sla/sync-tickets", async (req, res) => {
     try {
       const { db: db3 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-      const { eq: eq9, isNull: isNull2 } = await import("drizzle-orm");
-      const ticketsToUpdate = await db3.select().from(tickets2).where(isNull2(tickets2.sla_resolution_due));
+      const { eq: eq11, isNull: isNull3 } = await import("drizzle-orm");
+      const ticketsToUpdate = await db3.select().from(tickets2).where(isNull3(tickets2.sla_resolution_due));
       let updated = 0;
       for (const ticket of ticketsToUpdate) {
         const { ticketStorage: ticketStorage2 } = await Promise.resolve().then(() => (init_ticket_storage(), ticket_storage_exports));
@@ -6096,7 +6613,7 @@ function registerSLARoutes(app2) {
           due_date: slaResolutionDue,
           sla_breached: isBreached,
           updated_at: /* @__PURE__ */ new Date()
-        }).where(eq9(tickets2.id, ticket.id));
+        }).where(eq11(tickets2.id, ticket.id));
         updated++;
       }
       res.json({
@@ -6113,11 +6630,12 @@ var init_sla_routes = __esm({
   "server/sla-routes.ts"() {
     "use strict";
     init_sla_escalation_service();
+    init_sla_monitor_service();
   }
 });
 
 // server/analytics-service.ts
-import { sql as sql8, desc as desc6, count as count4 } from "drizzle-orm";
+import { sql as sql8, desc as desc7, count as count4 } from "drizzle-orm";
 import {
   subDays,
   format
@@ -6454,7 +6972,7 @@ var init_analytics_service = __esm({
           let alertCounts = [];
           try {
             recentReports = await Promise.race([
-              db.select().from(device_reports).orderBy(desc6(device_reports.created_at)).limit(50),
+              db.select().from(device_reports).orderBy(desc7(device_reports.created_at)).limit(50),
               timeout
             ]);
           } catch (reportsError) {
@@ -7710,7 +8228,7 @@ ${csvData}`;
       }
       generateValidPDF(textContent, reportType) {
         const title = this.getReportTitle(reportType);
-        const timestamp5 = format(/* @__PURE__ */ new Date(), "PPpp");
+        const timestamp6 = format(/* @__PURE__ */ new Date(), "PPpp");
         const lines = textContent.split("\n").slice(0, 50);
         let streamContent = `BT
 /F1 16 Tf
@@ -7719,7 +8237,7 @@ ${csvData}`;
 `;
         streamContent += `0 -30 Td
 /F1 12 Tf
-(Generated: ${timestamp5}) Tj
+(Generated: ${timestamp6}) Tj
 `;
         streamContent += `0 -40 Td
 `;
@@ -8679,7 +9197,7 @@ var init_patch_compliance_service = __esm({
             console.log("Table error:", tableError?.message || "Unknown error");
             return this.getMockDashboardData();
           }
-          let devices3;
+          let devices2;
           try {
             console.log("Fetching devices from database...");
             const devicesResult = await db.execute(sql`
@@ -8689,9 +9207,9 @@ var init_patch_compliance_service = __esm({
           ORDER BY d.last_seen DESC
           LIMIT 50
         `);
-            devices3 = devicesResult.rows || [];
-            console.log(`Found ${devices3.length} online devices`);
-            if (devices3.length === 0) {
+            devices2 = devicesResult.rows || [];
+            console.log(`Found ${devices2.length} online devices`);
+            if (devices2.length === 0) {
               console.log("No online devices found, checking all devices...");
               const allDevicesResult = await db.execute(sql`
             SELECT d.id, d.hostname, d.os_name, d.os_version, d.status, d.last_seen
@@ -8699,8 +9217,8 @@ var init_patch_compliance_service = __esm({
             ORDER BY d.last_seen DESC
             LIMIT 10
           `);
-              devices3 = allDevicesResult.rows || [];
-              console.log(`Found ${devices3.length} total devices`);
+              devices2 = allDevicesResult.rows || [];
+              console.log(`Found ${devices2.length} total devices`);
             }
           } catch (deviceFetchError) {
             console.error("Error fetching devices:", deviceFetchError);
@@ -8708,7 +9226,7 @@ var init_patch_compliance_service = __esm({
             return this.getMockDashboardData();
           }
           const deviceReports = [];
-          for (const device of devices3) {
+          for (const device of devices2) {
             try {
               console.log(`Processing patches for device ${device.id} (${device.hostname})`);
               const deviceUuid = typeof device.id === "string" ? device.id : device.id.toString();
@@ -9491,14 +10009,14 @@ var SecurityService = class {
     return match ? match[1].toLowerCase() : "unknown";
   }
   categorizeUSBDevice(description) {
-    const desc8 = description.toLowerCase();
-    if (desc8.includes("mass storage") || desc8.includes("storage")) return "mass_storage";
-    if (desc8.includes("keyboard")) return "keyboard";
-    if (desc8.includes("mouse")) return "mouse";
-    if (desc8.includes("webcam") || desc8.includes("camera")) return "webcam";
-    if (desc8.includes("wireless") || desc8.includes("wifi")) return "wireless_adapter";
-    if (desc8.includes("audio") || desc8.includes("speaker")) return "audio";
-    if (desc8.includes("composite")) return "composite";
+    const desc9 = description.toLowerCase();
+    if (desc9.includes("mass storage") || desc9.includes("storage")) return "mass_storage";
+    if (desc9.includes("keyboard")) return "keyboard";
+    if (desc9.includes("mouse")) return "mouse";
+    if (desc9.includes("webcam") || desc9.includes("camera")) return "webcam";
+    if (desc9.includes("wireless") || desc9.includes("wifi")) return "wireless_adapter";
+    if (desc9.includes("audio") || desc9.includes("speaker")) return "audio";
+    if (desc9.includes("composite")) return "composite";
     return "unknown";
   }
   async checkSoftwareLicenseCompliance(deviceId, installedSoftware) {
@@ -10218,8 +10736,8 @@ var AIService = class {
   }
   analyzeHourlyPatterns(values, timestamps) {
     const hourlyBuckets = new Array(24).fill(0).map(() => []);
-    timestamps.forEach((timestamp5, index) => {
-      const hour = timestamp5.getHours();
+    timestamps.forEach((timestamp6, index) => {
+      const hour = timestamp6.getHours();
       hourlyBuckets[hour].push(values[index]);
     });
     const hourlyAverages = hourlyBuckets.map(
@@ -10232,8 +10750,8 @@ var AIService = class {
   }
   analyzeWeeklyPatterns(values, timestamps) {
     const weeklyBuckets = new Array(7).fill(0).map(() => []);
-    timestamps.forEach((timestamp5, index) => {
-      const dayOfWeek = timestamp5.getDay();
+    timestamps.forEach((timestamp6, index) => {
+      const dayOfWeek = timestamp6.getDay();
       weeklyBuckets[dayOfWeek].push(values[index]);
     });
     const weeklyAverages = weeklyBuckets.map(
@@ -10610,10 +11128,10 @@ async function registerRoutes(app2) {
   app2.get("/api/alerts", authenticateToken, async (req, res) => {
     try {
       console.log("Fetching alerts for user:", req.user?.email);
-      const alerts3 = await storage.getActiveAlerts();
-      console.log(`Found ${alerts3.length} alerts`);
+      const alerts2 = await storage.getActiveAlerts();
+      console.log(`Found ${alerts2.length} alerts`);
       const enhancedAlerts = await Promise.all(
-        alerts3.map(async (alert) => {
+        alerts2.map(async (alert) => {
           try {
             const device = await storage.getDevice(alert.device_id);
             return {
@@ -10722,12 +11240,12 @@ async function registerRoutes(app2) {
   app2.get("/api/devices", authenticateToken, async (req, res) => {
     try {
       console.log("Fetching devices - checking for agent activity...");
-      const devices3 = await storage.getDevices();
-      const onlineCount = devices3.filter((d) => d.status === "online").length;
-      const offlineCount = devices3.filter((d) => d.status === "offline").length;
-      console.log(`Device Status Summary: ${onlineCount} online, ${offlineCount} offline, ${devices3.length} total`);
+      const devices2 = await storage.getDevices();
+      const onlineCount = devices2.filter((d) => d.status === "online").length;
+      const offlineCount = devices2.filter((d) => d.status === "offline").length;
+      console.log(`Device Status Summary: ${onlineCount} online, ${offlineCount} offline, ${devices2.length} total`);
       const devicesWithReports = await Promise.all(
-        devices3.map(async (device) => {
+        devices2.map(async (device) => {
           const latestReport = await storage.getLatestDeviceReport(device.id);
           const now = /* @__PURE__ */ new Date();
           const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
@@ -11519,8 +12037,8 @@ async function registerRoutes(app2) {
         const decoded = jwt2.verify(token, JWT_SECRET2);
         const userId = decoded.id;
         const { db: db3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-        const { desc: desc8 } = await import("drizzle-orm");
-        const ticketsList = await db3.select().from(tickets).orderBy(desc8(tickets.updated_at));
+        const { desc: desc9 } = await import("drizzle-orm");
+        const ticketsList = await db3.select().from(tickets).orderBy(desc9(tickets.updated_at));
         const userTickets = ticketsList.filter(
           (ticket) => ticket.assigned_to === userId || ticket.requester_email === decoded.email
         );
@@ -11691,8 +12209,8 @@ async function registerRoutes(app2) {
     authenticateToken,
     async (req, res) => {
       try {
-        const alerts3 = await storage.getActiveAlerts();
-        const deployments = alerts3.filter(
+        const alerts2 = await storage.getActiveAlerts();
+        const deployments = alerts2.filter(
           (alert) => alert.category === "automation" && alert.metadata?.automation_type === "software_deployment"
         );
         res.json(deployments);
@@ -11704,9 +12222,9 @@ async function registerRoutes(app2) {
   );
   app2.get("/api/network/topology", authenticateToken, async (req, res) => {
     try {
-      const devices3 = await storage.getDevices();
+      const devices2 = await storage.getDevices();
       const topology = {
-        nodes: devices3.map((device) => ({
+        nodes: devices2.map((device) => ({
           id: device.id,
           hostname: device.hostname,
           ip_address: device.ip_address,
@@ -11735,9 +12253,9 @@ async function registerRoutes(app2) {
         let reportData = {};
         switch (type) {
           case "performance":
-            const devices3 = await storage.getDevices();
+            const devices2 = await storage.getDevices();
             const performanceData = await Promise.all(
-              devices3.map(async (device) => {
+              devices2.map(async (device) => {
                 const reports = await storage.getDeviceReports(device.id);
                 const latestReport = reports[0];
                 return {
@@ -11771,13 +12289,13 @@ async function registerRoutes(app2) {
             };
             break;
           case "alerts":
-            const alerts3 = await storage.getActiveAlerts();
+            const alerts2 = await storage.getActiveAlerts();
             reportData = {
               title: "Alert History Report",
               period,
               generated_at: (/* @__PURE__ */ new Date()).toISOString(),
-              total_alerts: alerts3.length,
-              alerts: alerts3.slice(0, 100)
+              total_alerts: alerts2.length,
+              alerts: alerts2.slice(0, 100)
               //```text
             };
             break;
@@ -11986,9 +12504,9 @@ ${reportData.content}`;
   });
   app2.get("/api/debug/devices", authenticateToken, async (req, res) => {
     try {
-      const devices3 = await storage.getDevices();
+      const devices2 = await storage.getDevices();
       const now = /* @__PURE__ */ new Date();
-      const deviceDetails = devices3.map((device) => {
+      const deviceDetails = devices2.map((device) => {
         const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
         const minutesAgo = lastSeen ? Math.floor((now.getTime() - lastSeen.getTime()) / (1e3 * 60)) : null;
         return {
@@ -12004,7 +12522,7 @@ ${reportData.content}`;
         };
       });
       res.json({
-        total_devices: devices3.length,
+        total_devices: devices2.length,
         devices: deviceDetails,
         summary: {
           online: deviceDetails.filter((d) => d.status === "online").length,
@@ -12234,8 +12752,8 @@ ${reportData.content}`;
     async (req, res) => {
       try {
         console.log("Fetching automation deployments");
-        const alerts3 = await storage.getActiveAlerts();
-        const deployments = alerts3.filter(
+        const alerts2 = await storage.getActiveAlerts();
+        const deployments = alerts2.filter(
           (alert) => alert.category === "automation"
         );
         console.log(`Found ${deployments.length} automation deployments`);
@@ -13549,14 +14067,14 @@ async function createTicketTables() {
 // server/index.ts
 init_db();
 init_ticket_schema();
-import { eq as eq8, desc as desc7 } from "drizzle-orm";
+import { eq as eq10, desc as desc8 } from "drizzle-orm";
 
 // server/knowledge-routes.ts
 init_db();
 init_ticket_schema();
 init_ticket_storage();
 import { Router as Router4 } from "express";
-import { eq as eq5 } from "drizzle-orm";
+import { eq as eq6 } from "drizzle-orm";
 import jwt3 from "jsonwebtoken";
 var router4 = Router4();
 var storage2 = new TicketStorage();
@@ -13587,7 +14105,7 @@ router4.get("/", authenticateToken2, async (req, res) => {
     console.log("KB Search filters:", filters);
     let query = db.select().from(knowledgeBase);
     if (filters.status) {
-      query = query.where(eq5(knowledgeBase.status, filters.status));
+      query = query.where(eq6(knowledgeBase.status, filters.status));
     }
     const articles = await query;
     console.log(`Found ${articles.length} articles in database`);
@@ -14016,7 +14534,7 @@ app.use((req, res, next) => {
           status: req.query.status || "published"
         };
         console.log("KB API - Filters:", filters);
-        const articles = await db.select().from(knowledgeBase).where(eq8(knowledgeBase.status, filters.status)).orderBy(desc7(knowledgeBase.created_at));
+        const articles = await db.select().from(knowledgeBase).where(eq10(knowledgeBase.status, filters.status)).orderBy(desc8(knowledgeBase.created_at));
         console.log(`KB API - Found ${articles.length} articles in database`);
         let filteredArticles = articles;
         if (filters.search) {
@@ -14135,6 +14653,8 @@ app.use((req, res, next) => {
     }
     const port = 5e3;
     const PORT = process.env.PORT || port;
+    const { slaMonitorService: slaMonitorService2 } = await Promise.resolve().then(() => (init_sla_monitor_service(), sla_monitor_service_exports));
+    slaMonitorService2.start(5);
     const serv = app.listen(PORT, "0.0.0.0", () => {
       log(`serving on port ${PORT}`);
       console.log(`\u{1F310} Server accessible at http://0.0.0.0:${PORT}`);

@@ -46,7 +46,7 @@ import {
   ChevronDown,
   Settings,
   Download,
-  Eye
+  Eye,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -168,9 +168,9 @@ export default function Tickets() {
   // Handle URL filter parameters
   React.useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
-    const filterParam = searchParams.get('filter');
+    const filterParam = searchParams.get("filter");
 
-    if (filterParam === 'sla_violated') {
+    if (filterParam === "sla_violated") {
       setSlaViolationFilter(true);
       setActiveTab("overview");
       toast({
@@ -207,9 +207,9 @@ export default function Tickets() {
       console.log("API URL:", `/api/tickets?${params}`);
 
       const response = await fetch(`/api/tickets?${params}`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
 
@@ -219,7 +219,9 @@ export default function Tickets() {
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Response error:", errorText);
-        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+        throw new Error(
+          `HTTP ${response.status}: ${response.statusText} - ${errorText}`,
+        );
       }
 
       const data = await response.json();
@@ -234,14 +236,20 @@ export default function Tickets() {
         setTotalPages(1);
       } else if (data.data) {
         // Paginated response
-        console.log("Data is paginated, setting tickets:", data.data?.length || 0);
+        console.log(
+          "Data is paginated, setting tickets:",
+          data.data?.length || 0,
+        );
         setTickets(data.data || []);
         setTotalTickets(data.total || 0);
         setCurrentPage(data.page || 1);
         setTotalPages(data.totalPages || 1);
       } else {
         // Direct ticket array response
-        console.log("Data is direct object, setting tickets:", Object.keys(data).length);
+        console.log(
+          "Data is direct object, setting tickets:",
+          Object.keys(data).length,
+        );
         setTickets(data || []);
         setTotalTickets((data || []).length);
         setCurrentPage(1);
@@ -274,7 +282,6 @@ export default function Tickets() {
           title: "Error",
           description: "Failed to load tickets. Please refresh the page.",
           variant: "destructive",
-          
         });
       }
     };
@@ -600,7 +607,7 @@ export default function Tickets() {
   const getSLAMetrics = () => {
     const now = new Date();
     const openTickets = tickets.filter(
-      (t) => !["resolved", "closed", "cancelled"].includes(t.status)
+      (t) => !["resolved", "closed", "cancelled"].includes(t.status),
     );
 
     let breached = 0;
@@ -621,7 +628,8 @@ export default function Tickets() {
       }
 
       // Use sla_resolution_due instead of due_date for consistency
-      const slaDate = ticket.sla_resolution_due || ticket.resolve_due_at || ticket.due_date;
+      const slaDate =
+        ticket.sla_resolution_due || ticket.resolve_due_at || ticket.due_date;
       if (!slaDate) {
         onTrack++;
         return;
@@ -643,7 +651,12 @@ export default function Tickets() {
 
     const totalSLATickets = openTickets.length;
     const totalViolations = breached + responseBreached;
-    const compliance = totalSLATickets > 0 ? Math.round(((totalSLATickets - totalViolations) / totalSLATickets) * 100) : 100;
+    const compliance =
+      totalSLATickets > 0
+        ? Math.round(
+            ((totalSLATickets - totalViolations) / totalSLATickets) * 100,
+          )
+        : 100;
 
     return {
       totalOpen: openTickets.length,
@@ -768,15 +781,15 @@ export default function Tickets() {
   const getTicketMetrics = () => {
     const totalTickets = tickets.length;
     const openTickets = tickets.filter(
-      (t) => !["resolved", "closed", "cancelled"].includes(t.status)
+      (t) => !["resolved", "closed", "cancelled"].includes(t.status),
     ).length;
-    const resolvedTickets = tickets.filter((t) => 
-      ["resolved", "closed"].includes(t.status)
+    const resolvedTickets = tickets.filter((t) =>
+      ["resolved", "closed"].includes(t.status),
     ).length;
     const criticalTickets = tickets.filter(
       (t) =>
         t.priority === "critical" &&
-        !["resolved", "closed", "cancelled"].includes(t.status)
+        !["resolved", "closed", "cancelled"].includes(t.status),
     ).length;
 
     return {
@@ -862,14 +875,18 @@ export default function Tickets() {
 
     // Handle closed tickets visibility
     if (!showClosed) {
-      filtered = filtered.filter(ticket => !["resolved", "closed", "cancelled"].includes(ticket.status));
+      filtered = filtered.filter(
+        (ticket) =>
+          !["resolved", "closed", "cancelled"].includes(ticket.status),
+      );
     }
 
     // Handle SLA violation filter
     if (slaViolationFilter) {
       const now = new Date();
-      filtered = filtered.filter(ticket => {
-        if (["resolved", "closed", "cancelled"].includes(ticket.status)) return false;
+      filtered = filtered.filter((ticket) => {
+        if (["resolved", "closed", "cancelled"].includes(ticket.status))
+          return false;
         const slaDate = ticket.sla_resolution_due || ticket.due_date;
         const isBreached = slaDate && new Date(slaDate) < now;
         return ticket.sla_breached || isBreached;
@@ -881,24 +898,39 @@ export default function Tickets() {
 
   const getStatusCountsByType = () => {
     const typeData = {
-      request: { name: 'Service Requests', icon: Ticket, color: 'green', statuses: {} },
-      incident: { name: 'Incidents', icon: AlertTriangle, color: 'red', statuses: {} },
-      problem: { name: 'Problems', icon: Wrench, color: 'orange', statuses: {} },
-      change: { name: 'Changes', icon: RefreshCw, color: 'blue', statuses: {} }
+      request: {
+        name: "Service Requests",
+        icon: Ticket,
+        color: "green",
+        statuses: {},
+      },
+      incident: {
+        name: "Incidents",
+        icon: AlertTriangle,
+        color: "red",
+        statuses: {},
+      },
+      problem: {
+        name: "Problems",
+        icon: Wrench,
+        color: "orange",
+        statuses: {},
+      },
+      change: { name: "Changes", icon: RefreshCw, color: "blue", statuses: {} },
     };
 
     // Always count all tickets for overview, but consider current context for tab-specific views
     let relevantTickets = tickets;
 
     // For tab-specific views, filter by type
-    if (activeTab === 'requests') {
-      relevantTickets = tickets.filter(ticket => ticket.type === 'request');
-    } else if (activeTab === 'incidents') {
-      relevantTickets = tickets.filter(ticket => ticket.type === 'incident');
-    } else if (activeTab === 'problems') {
-      relevantTickets = tickets.filter(ticket => ticket.type === 'problem');
-    } else if (activeTab === 'changes') {
-      relevantTickets = tickets.filter(ticket => ticket.type === 'change');
+    if (activeTab === "requests") {
+      relevantTickets = tickets.filter((ticket) => ticket.type === "request");
+    } else if (activeTab === "incidents") {
+      relevantTickets = tickets.filter((ticket) => ticket.type === "incident");
+    } else if (activeTab === "problems") {
+      relevantTickets = tickets.filter((ticket) => ticket.type === "problem");
+    } else if (activeTab === "changes") {
+      relevantTickets = tickets.filter((ticket) => ticket.type === "change");
     }
 
     // Apply search filter if active
@@ -914,8 +946,9 @@ export default function Tickets() {
     // Apply SLA filter if active
     if (slaViolationFilter) {
       const now = new Date();
-      relevantTickets = relevantTickets.filter(ticket => {
-        if (["resolved", "closed", "cancelled"].includes(ticket.status)) return false;
+      relevantTickets = relevantTickets.filter((ticket) => {
+        if (["resolved", "closed", "cancelled"].includes(ticket.status))
+          return false;
         const slaDate = ticket.sla_resolution_due || ticket.due_date;
         const isBreached = slaDate && new Date(slaDate) < now;
         return ticket.sla_breached || isBreached;
@@ -924,13 +957,17 @@ export default function Tickets() {
 
     // Handle closed tickets visibility - this affects the count
     if (!showClosed) {
-      relevantTickets = relevantTickets.filter(ticket => !["resolved", "closed", "cancelled"].includes(ticket.status));
+      relevantTickets = relevantTickets.filter(
+        (ticket) =>
+          !["resolved", "closed", "cancelled"].includes(ticket.status),
+      );
     }
 
     // Count statuses for each type
-    relevantTickets.forEach(ticket => {
+    relevantTickets.forEach((ticket) => {
       if (!typeData[ticket.type]) return;
-      typeData[ticket.type].statuses[ticket.status] = (typeData[ticket.type].statuses[ticket.status] || 0) + 1;
+      typeData[ticket.type].statuses[ticket.status] =
+        (typeData[ticket.type].statuses[ticket.status] || 0) + 1;
     });
 
     return typeData;
@@ -938,7 +975,7 @@ export default function Tickets() {
 
   const renderQuickStats = () => (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-      <Card 
+      <Card
         className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 cursor-pointer hover:shadow-lg transition-all duration-200"
         onClick={() => {
           setSelectedStatus("all");
@@ -961,7 +998,7 @@ export default function Tickets() {
         </CardContent>
       </Card>
 
-      <Card 
+      <Card
         className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 cursor-pointer hover:shadow-lg transition-all duration-200"
         onClick={() => {
           setSelectedStatus("all");
@@ -1008,7 +1045,7 @@ export default function Tickets() {
         </CardContent>
       </Card>
 
-      <Card 
+      <Card
         className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200 cursor-pointer hover:shadow-lg transition-all duration-200"
         onClick={() => {
           toast({
@@ -1052,84 +1089,130 @@ export default function Tickets() {
             Ticket Status Overview by Type
           </h2>
           <div className="text-sm text-gray-500">
-            {showClosed ? 'Showing all tickets' : 'Hiding closed tickets'} | Total in system: {tickets.length}
+            {showClosed ? "Showing all tickets" : "Hiding closed tickets"} |
+            Total in system: {tickets.length}
           </div>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
           {Object.entries(statusCounts).map(([type, data]) => {
             const IconComponent = data.icon;
-            const totalForType = Object.values(data.statuses).reduce((sum: number, count: number) => sum + count, 0);
+            const totalForType = Object.values(data.statuses).reduce(
+              (sum: number, count: number) => sum + count,
+              0,
+            );
 
             // Get the actual count from all tickets for this type
-            const actualTypeCount = tickets.filter(t => t.type === type).length;
+            const actualTypeCount = tickets.filter(
+              (t) => t.type === type,
+            ).length;
             const visibleTypeCount = totalForType;
 
             return (
-              <Card key={type} className={`border-l-4 border-l-${data.color}-500 hover:shadow-md transition-shadow`}>
+              <Card
+                key={type}
+                className={`border-l-4 border-l-${data.color}-500 hover:shadow-md transition-shadow`}
+              >
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center text-lg">
-                    <IconComponent className={`w-5 h-5 mr-2 text-${data.color}-600`} />
+                    <IconComponent
+                      className={`w-5 h-5 mr-2 text-${data.color}-600`}
+                    />
                     {data.name}
                   </CardTitle>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Showing: {visibleTypeCount} {!showClosed && actualTypeCount !== visibleTypeCount && `of ${actualTypeCount}`} tickets
+                    Showing: {visibleTypeCount}{" "}
+                    {!showClosed &&
+                      actualTypeCount !== visibleTypeCount &&
+                      `of ${actualTypeCount}`}{" "}
+                    tickets
                   </p>
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="space-y-3">
-                    {['new', 'assigned', 'in_progress', 'pending', 'resolved', 'closed'].map(status => {
-                          const count = data.statuses[status] || 0;
+                    {[
+                      "new",
+                      "assigned",
+                      "in_progress",
+                      "pending",
+                      "resolved",
+                      "closed",
+                    ].map((status) => {
+                      const count = data.statuses[status] || 0;
 
-                          // Show all statuses but indicate when count is 0
-                          return (
-                            <div key={status} className="flex items-center justify-between">
-                              <div className="flex items-center space-x-2">
-                                <div className={`w-2 h-2 rounded-full ${
-                                  status === 'new' ? 'bg-blue-500' :
-                                  status === 'assigned' ? 'bg-purple-500' :
-                                  status === 'in_progress' ? 'bg-yellow-500' :
-                                  status === 'pending' ? 'bg-orange-500' :
-                                  status === 'resolved' ? 'bg-green-500' :
-                                  'bg-gray-500'
-                                }`} />
-                                <span className={`text-sm capitalize ${count > 0 ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400 dark:text-gray-600'}`}>
-                                  {status.replace('_', ' ')}
-                                </span>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <span className={`text-sm font-medium ${count > 0 ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-600'}`}>
-                                  {count}
-                                </span>
-                                {count > 0 && (
-                                  <Badge 
-                                    variant="outline" 
-                                    className={`cursor-pointer hover:bg-opacity-80 ${
-                                      statusColors[status as keyof typeof statusColors] || "bg-gray-100 text-gray-800"
-                                    }`}
-                                    onClick={() => {
-                                      // If same status is already selected, clear it to show all statuses for this type
-                                      if (selectedStatus === status && selectedType === type) {
-                                        setSelectedStatus("all");
-                                      } else {
-                                        setSelectedStatus(status);
-                                      }
-                                      // Don't change the type filter - keep current tab context
-                                      if (activeTab === 'overview') {
-                                        setSelectedType(type);
-                                      }
-                                    }}
-                                  >
-                                    {totalForType > 0 ? Math.round((count / totalForType) * 100) : 0}%
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
+                      // Show all statuses but indicate when count is 0
+                      return (
+                        <div
+                          key={status}
+                          className="flex items-center justify-between"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <div
+                              className={`w-2 h-2 rounded-full ${
+                                status === "new"
+                                  ? "bg-blue-500"
+                                  : status === "assigned"
+                                    ? "bg-purple-500"
+                                    : status === "in_progress"
+                                      ? "bg-yellow-500"
+                                      : status === "pending"
+                                        ? "bg-orange-500"
+                                        : status === "resolved"
+                                          ? "bg-green-500"
+                                          : "bg-gray-500"
+                              }`}
+                            />
+                            <span
+                              className={`text-sm capitalize ${count > 0 ? "text-gray-700 dark:text-gray-300" : "text-gray-400 dark:text-gray-600"}`}
+                            >
+                              {status.replace("_", " ")}
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span
+                              className={`text-sm font-medium ${count > 0 ? "text-gray-900 dark:text-gray-100" : "text-gray-400 dark:text-gray-600"}`}
+                            >
+                              {count}
+                            </span>
+                            {count > 0 && (
+                              <Badge
+                                variant="outline"
+                                className={`cursor-pointer hover:bg-opacity-80 ${
+                                  statusColors[
+                                    status as keyof typeof statusColors
+                                  ] || "bg-gray-100 text-gray-800"
+                                }`}
+                                onClick={() => {
+                                  // If same status is already selected, clear it to show all statuses for this type
+                                  if (
+                                    selectedStatus === status &&
+                                    selectedType === type
+                                  ) {
+                                    setSelectedStatus("all");
+                                  } else {
+                                    setSelectedStatus(status);
+                                  }
+                                  // Don't change the type filter - keep current tab context
+                                  if (activeTab === "overview") {
+                                    setSelectedType(type);
+                                  }
+                                }}
+                              >
+                                {totalForType > 0
+                                  ? Math.round((count / totalForType) * 100)
+                                  : 0}
+                                %
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
 
                     {totalForType === 0 && (
                       <p className="text-sm text-gray-500 dark:text-gray-400 italic text-center py-4">
-                        {showClosed ? 'No tickets found' : 'No open tickets (check "Show Closed" to see all)'}
+                        {showClosed
+                          ? "No tickets found"
+                          : 'No open tickets (check "Show Closed" to see all)'}
                       </p>
                     )}
                   </div>
@@ -1146,9 +1229,9 @@ export default function Tickets() {
     const filteredTickets = getFilteredTickets();
 
     const toggleWorkflow = (ticketId: string) => {
-      setExpandedTickets(prev => {
+      setExpandedTickets((prev) => {
         if (prev.includes(ticketId)) {
-          return prev.filter(id => id !== ticketId);
+          return prev.filter((id) => id !== ticketId);
         } else {
           return [...prev, ticketId];
         }
@@ -1209,35 +1292,35 @@ export default function Tickets() {
               <SelectItem value="change">Changes</SelectItem>
             </SelectContent>
           </Select>
-           <Button
-                variant={showClosed ? "default" : "outline"}
-                size="sm"
-                onClick={() => setShowClosed(!showClosed)}
-                className="flex items-center gap-2"
-              >
-                <Eye className="w-4 h-4" />
-                {showClosed ? "Hide Closed" : "Show Closed"}
-              </Button>
+          <Button
+            variant={showClosed ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowClosed(!showClosed)}
+            className="flex items-center gap-2"
+          >
+            <Eye className="w-4 h-4" />
+            {showClosed ? "Hide Closed" : "Show Closed"}
+          </Button>
 
-              <Button
-                variant={slaViolationFilter ? "destructive" : "outline"}
-                size="sm"
-                onClick={() => setSlaViolationFilter(!slaViolationFilter)}
-                className="flex items-center gap-2"
-              >
-                <AlertTriangle className="w-4 h-4" />
-                {slaViolationFilter ? "Clear SLA Filter" : "SLA Violations Only"}
-              </Button>
+          <Button
+            variant={slaViolationFilter ? "destructive" : "outline"}
+            size="sm"
+            onClick={() => setSlaViolationFilter(!slaViolationFilter)}
+            className="flex items-center gap-2"
+          >
+            <AlertTriangle className="w-4 h-4" />
+            {slaViolationFilter ? "Clear SLA Filter" : "SLA Violations Only"}
+          </Button>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearAllFilters}
-                className="flex items-center gap-2"
-              >
-                <Filter className="w-4 h-4" />
-                Clear All Filters
-              </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={clearAllFilters}
+            className="flex items-center gap-2"
+          >
+            <Filter className="w-4 h-4" />
+            Clear All Filters
+          </Button>
 
           <Button variant="outline" size="sm">
             <Download className="w-4 h-4 mr-2" />
@@ -1285,163 +1368,234 @@ export default function Tickets() {
                   }}
                 >
                   <CardContent className="p-6">
-                  {/* Compact Header */}
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1 space-y-2">
-                      {/* Priority and Status Badges */}
-                      <div className="flex items-center space-x-2 flex-wrap">
-                        <Badge className={
-                          ticket.type === 'incident' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
-                          ticket.type === 'problem' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
-                          ticket.type === 'change' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                          'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                        }>
-                          {ticket.type === 'incident' ? 'INC' :
-                           ticket.type === 'problem' ? 'PRO' :
-                           ticket.type === 'change' ? 'CHA' : 'SR'}
-                        </Badge>
-                        <Badge className={priorityColors[ticket.priority as keyof typeof priorityColors]}>
-                          {ticket.priority.toUpperCase()}
-                        </Badge>
-                        <Badge className={statusColors[ticket.status as keyof typeof statusColors]}>
-                          {ticket.status.replace('_', ' ').toUpperCase()}
-                        </Badge>
-                        {(() => {
-                          const now = new Date();
-                          const slaDate = ticket.sla_resolution_due || ticket.due_date;
-                          const isBreached = slaDate && new Date(slaDate) < now && !["resolved", "closed", "cancelled"].includes(ticket.status);
+                    {/* Compact Header */}
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1 space-y-2">
+                        {/* Priority and Status Badges */}
+                        <div className="flex items-center space-x-2 flex-wrap">
+                          <Badge
+                            className={
+                              ticket.type === "incident"
+                                ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                                : ticket.type === "problem"
+                                  ? "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+                                  : ticket.type === "change"
+                                    ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                                    : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                            }
+                          >
+                            {ticket.type === "incident"
+                              ? "INC"
+                              : ticket.type === "problem"
+                                ? "PRO"
+                                : ticket.type === "change"
+                                  ? "CHA"
+                                  : "SR"}
+                          </Badge>
+                          <Badge
+                            className={
+                              priorityColors[
+                                ticket.priority as keyof typeof priorityColors
+                              ]
+                            }
+                          >
+                            {ticket.priority.toUpperCase()}
+                          </Badge>
+                          <Badge
+                            className={
+                              statusColors[
+                                ticket.status as keyof typeof statusColors
+                              ]
+                            }
+                          >
+                            {ticket.status.replace("_", " ").toUpperCase()}
+                          </Badge>
+                          {(() => {
+                            const now = new Date();
+                            const slaDate =
+                              ticket.sla_resolution_due || ticket.due_date;
+                            const isBreached =
+                              slaDate &&
+                              new Date(slaDate) < now &&
+                              !["resolved", "closed", "cancelled"].includes(
+                                ticket.status,
+                              );
 
-                          if (ticket.sla_breached || isBreached) {
-                            return (
-                              <Badge variant="destructive" className="animate-pulse">
-                                SLA BREACHED
-                              </Badge>
-                            );
-                          }
-
-                          if (slaDate) {
-                            const timeDiff = new Date(slaDate).getTime() - now.getTime();
-                            const hoursDiff = timeDiff / (1000 * 3600);
-
-                            if (hoursDiff <= 2 && hoursDiff > 0) {
+                            if (ticket.sla_breached || isBreached) {
                               return (
-                                <Badge variant="destructive" className="bg-orange-500">
-                                  DUE IN {Math.round(hoursDiff)}H
+                                <Badge
+                                  variant="destructive"
+                                  className="animate-pulse"
+                                >
+                                  SLA BREACHED
                                 </Badge>
                               );
                             }
-                          }
 
-                          return null;
-                        })()}
-                      </div>
+                            if (slaDate) {
+                              const timeDiff =
+                                new Date(slaDate).getTime() - now.getTime();
+                              const hoursDiff = timeDiff / (1000 * 3600);
 
-                      {/* Title */}
-                      <h3 className="font-semibold text-base text-neutral-900 dark:text-neutral-100 line-clamp-1">
-                        {ticket.title}
-                      </h3>
+                              if (hoursDiff <= 2 && hoursDiff > 0) {
+                                return (
+                                  <Badge
+                                    variant="destructive"
+                                    className="bg-orange-500"
+                                  >
+                                    DUE IN {Math.round(hoursDiff)}H
+                                  </Badge>
+                                );
+                              }
+                            }
 
-                      {/* Compact Info Row */}
-                      <div className="flex items-center space-x-3 text-xs text-neutral-500 dark:text-neutral-400">
-                        <span>#{ticket.ticket_number}</span>
-                        <span>•</span>
-                        <span>Created: {new Date(ticket.created_at).toLocaleDateString()}</span>
-                        {ticket.assigned_to && (
-                          <>
-                            <span>•</span>
-                            <span>Assigned: {ticket.assigned_to.split('@')[0]}</span>
-                          </>
-                        )}
-                        <span>•</span>
-                        <span className={`font-medium ${(() => {
-                          const now = new Date();
-                          const slaDate = ticket.sla_resolution_due || ticket.due_date;
-                          const isBreached = slaDate && new Date(slaDate) < now && !["resolved", "closed", "cancelled"].includes(ticket.status);
-                          return (ticket.sla_breached || isBreached) ? 'text-red-600' : 'text-green-600';
-                        })()}`}>
-                          {(() => {
-                            const now = new Date();
-                            const slaDate = ticket.sla_resolution_due || ticket.due_date;
-                            const isBreached = slaDate && new Date(slaDate) < now && !["resolved", "closed", "cancelled"].includes(ticket.status);
-                            return (ticket.sla_breached || isBreached) ? 'SLA Breached' : 'Within SLA';
+                            return null;
                           })()}
-                        </span>
-                      </div>
-                    </div>
+                        </div>
 
-                    {/* Type Icon and Actions */}
-                    <div className="flex items-center space-x-3">
-                      <div className={`p-2 rounded-lg ${
-                        ticket.type === 'incident' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
-                        ticket.type === 'problem' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' :
-                        ticket.type === 'change' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
-                        'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
-                      }`}>
-                        <IconComponent className="w-5 h-5" />
-                      </div>
+                        {/* Title */}
+                        <h3 className="font-semibold text-base text-neutral-900 dark:text-neutral-100 line-clamp-1">
+                          {ticket.title}
+                        </h3>
 
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleWorkflow(ticket.id);
-                        }}
-                      >
-                        {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Expandable Details */}
-                  {isExpanded && (
-                    <div className="border-t border-gray-100 dark:border-gray-800 pt-3 space-y-3">
-                      {/* Description */}
-                      <div>
-                        <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                          {ticket.description}
-                        </p>
-                      </div>
-
-                      {/* SLA Details */}
-                      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
-                        <div className="flex justify-between items-center text-xs mb-1">
-                          <span className="text-neutral-500">SLA Policy: {ticket.sla_policy || 'Standard'}</span>
-                          <span className="text-neutral-500">
-                            Requester: {ticket.requester_email}
+                        {/* Compact Info Row */}
+                        <div className="flex items-center space-x-3 text-xs text-neutral-500 dark:text-neutral-400">
+                          <span>#{ticket.ticket_number}</span>
+                          <span>•</span>
+                          <span>
+                            Created:{" "}
+                            {new Date(ticket.created_at).toLocaleDateString()}
+                          </span>
+                          {ticket.assigned_to && (
+                            <>
+                              <span>•</span>
+                              <span>
+                                Assigned: {ticket.assigned_to.split("@")[0]}
+                              </span>
+                            </>
+                          )}
+                          <span>•</span>
+                          <span
+                            className={`font-medium ${(() => {
+                              const now = new Date();
+                              const slaDate =
+                                ticket.sla_resolution_due || ticket.due_date;
+                              const isBreached =
+                                slaDate &&
+                                new Date(slaDate) < now &&
+                                !["resolved", "closed", "cancelled"].includes(
+                                  ticket.status,
+                                );
+                              return ticket.sla_breached || isBreached
+                                ? "text-red-600"
+                                : "text-green-600";
+                            })()}`}
+                          >
+                            {(() => {
+                              const now = new Date();
+                              const slaDate =
+                                ticket.sla_resolution_due || ticket.due_date;
+                              const isBreached =
+                                slaDate &&
+                                new Date(slaDate) < now &&
+                                !["resolved", "closed", "cancelled"].includes(
+                                  ticket.status,
+                                );
+                              return ticket.sla_breached || isBreached
+                                ? "SLA Breached"
+                                : "Within SLA";
+                            })()}
                           </span>
                         </div>
-                        {ticket.sla_response_time && (
-                          <div className="text-xs text-neutral-400">
-                            Response: {Math.floor(ticket.sla_response_time / 60)}h {ticket.sla_response_time % 60}m
-                            {ticket.sla_resolution_time && ` • Resolution: ${Math.floor(ticket.sla_resolution_time / 60)}h ${ticket.sla_resolution_time % 60}m`}
-                          </div>
-                        )}
                       </div>
 
-                      {/* Actions */}
-                      <div className="flex justify-between items-center">
-                        <div className="flex space-x-2">
-                          {renderWorkflowActions(ticket).slice(0, 2).map((action, index) => (
-                            <div key={index}>
-                              {action}
-                            </div>
-                          ))}
+                      {/* Type Icon and Actions */}
+                      <div className="flex items-center space-x-3">
+                        <div
+                          className={`p-2 rounded-lg ${
+                            ticket.type === "incident"
+                              ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                              : ticket.type === "problem"
+                                ? "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400"
+                                : ticket.type === "change"
+                                  ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                                  : "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
+                          }`}
+                        >
+                          <IconComponent className="w-5 h-5" />
                         </div>
+
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedTicket(ticket);
+                            toggleWorkflow(ticket.id);
                           }}
                         >
-                          <Eye className="w-4 h-4 mr-2" />
-                          View Details
+                          {isExpanded ? (
+                            <ChevronUp className="w-4 h-4" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4" />
+                          )}
                         </Button>
                       </div>
                     </div>
-                  )}
+
+                    {/* Expandable Details */}
+                    {isExpanded && (
+                      <div className="border-t border-gray-100 dark:border-gray-800 pt-3 space-y-3">
+                        {/* Description */}
+                        <div>
+                          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                            {ticket.description}
+                          </p>
+                        </div>
+
+                        {/* SLA Details */}
+                        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
+                          <div className="flex justify-between items-center text-xs mb-1">
+                            <span className="text-neutral-500">
+                              SLA Policy: {ticket.sla_policy || "Standard"}
+                            </span>
+                            <span className="text-neutral-500">
+                              Requester: {ticket.requester_email}
+                            </span>
+                          </div>
+                          {ticket.sla_response_time && (
+                            <div className="text-xs text-neutral-400">
+                              Response:{" "}
+                              {Math.floor(ticket.sla_response_time / 60)}h{" "}
+                              {ticket.sla_response_time % 60}m
+                              {ticket.sla_resolution_time &&
+                                ` • Resolution: ${Math.floor(ticket.sla_resolution_time / 60)}h ${ticket.sla_resolution_time % 60}m`}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex justify-between items-center">
+                          <div className="flex space-x-2">
+                            {renderWorkflowActions(ticket)
+                              .slice(0, 2)
+                              .map((action, index) => (
+                                <div key={index}>{action}</div>
+                              ))}
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedTicket(ticket);
+                            }}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Details
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );
@@ -1604,70 +1758,101 @@ export default function Tickets() {
     if (!data) return null;
 
     const IconComponent = data.icon;
-    const totalForType = Object.values(data.statuses).reduce((sum: number, count: number) => sum + count, 0);
+    const totalForType = Object.values(data.statuses).reduce(
+      (sum: number, count: number) => sum + count,
+      0,
+    );
 
     return (
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              {data.name} Status Overview
-              {selectedStatus !== "all" && (
-                <span className="text-sm font-normal text-gray-500 ml-2">
-                  (Filtered by: {selectedStatus.replace('_', ' ')})
-                </span>
-              )}
-            </h2>
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-500">
-                Showing: {totalForType} {selectedStatus !== "all" ? `${selectedStatus.replace('_', ' ')} ` : ''}tickets
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            {data.name} Status Overview
+            {selectedStatus !== "all" && (
+              <span className="text-sm font-normal text-gray-500 ml-2">
+                (Filtered by: {selectedStatus.replace("_", " ")})
               </span>
-              {selectedStatus !== "all" && (
-                <Badge 
-                  variant="outline" 
-                  className="cursor-pointer hover:bg-red-50 hover:text-red-700 hover:border-red-200"
-                  onClick={() => setSelectedStatus("all")}
-                >
-                  Clear Filter ✕
-                </Badge>
-              )}
-            </div>
+            )}
+          </h2>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-500">
+              Showing: {totalForType}{" "}
+              {selectedStatus !== "all"
+                ? `${selectedStatus.replace("_", " ")} `
+                : ""}
+              tickets
+            </span>
+            {selectedStatus !== "all" && (
+              <Badge
+                variant="outline"
+                className="cursor-pointer hover:bg-red-50 hover:text-red-700 hover:border-red-200"
+                onClick={() => setSelectedStatus("all")}
+              >
+                Clear Filter ✕
+              </Badge>
+            )}
           </div>
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {['new', 'assigned', 'in_progress', 'pending', 'resolved', 'closed'].map(status => {
+          {[
+            "new",
+            "assigned",
+            "in_progress",
+            "pending",
+            "resolved",
+            "closed",
+          ].map((status) => {
             const count = data.statuses[status] || 0;
             const isSelected = selectedStatus === status;
 
             return (
-              <Card 
-                key={status} 
+              <Card
+                key={status}
                 className={`hover:shadow-md transition-shadow cursor-pointer ${
-                  isSelected ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' : ''
-                }`} 
+                  isSelected
+                    ? "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                    : ""
+                }`}
                 onClick={() => {
                   setSelectedStatus(isSelected ? "all" : status);
                 }}
               >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <div className={`w-3 h-3 rounded-full ${
-                      status === 'new' ? 'bg-blue-500' :
-                      status === 'assigned' ? 'bg-purple-500' :
-                      status === 'in_progress' ? 'bg-yellow-500' :
-                      status === 'pending' ? 'bg-orange-500' :
-                      status === 'resolved' ? 'bg-green-500' :
-                      'bg-gray-500'
-                    }`} />
-                    <span className={`text-2xl font-bold ${
-                      isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-gray-100'
-                    }`}>
+                    <div
+                      className={`w-3 h-3 rounded-full ${
+                        status === "new"
+                          ? "bg-blue-500"
+                          : status === "assigned"
+                            ? "bg-purple-500"
+                            : status === "in_progress"
+                              ? "bg-yellow-500"
+                              : status === "pending"
+                                ? "bg-orange-500"
+                                : status === "resolved"
+                                  ? "bg-green-500"
+                                  : "bg-gray-500"
+                      }`}
+                    />
+                    <span
+                      className={`text-2xl font-bold ${
+                        isSelected
+                          ? "text-blue-600 dark:text-blue-400"
+                          : "text-gray-900 dark:text-gray-100"
+                      }`}
+                    >
                       {count}
                     </span>
                   </div>
                   <div className="text-center">
-                    <p className={`text-sm font-medium capitalize ${
-                      isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'
-                    }`}>
-                      {status.replace('_', ' ')}
+                    <p
+                      className={`text-sm font-medium capitalize ${
+                        isSelected
+                          ? "text-blue-700 dark:text-blue-300"
+                          : "text-gray-700 dark:text-gray-300"
+                      }`}
+                    >
+                      {status.replace("_", " ")}
                     </p>
                     {totalForType > 0 && (
                       <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -1684,7 +1869,9 @@ export default function Tickets() {
         {totalForType === 0 && (
           <Card className="border-dashed">
             <CardContent className="p-8 text-center">
-              <IconComponent className={`w-12 h-12 mx-auto mb-3 text-${data.color}-400`} />
+              <IconComponent
+                className={`w-12 h-12 mx-auto mb-3 text-${data.color}-400`}
+              />
               <p className="text-gray-500 dark:text-gray-400">
                 No {data.name.toLowerCase()} found
               </p>
@@ -1708,28 +1895,28 @@ export default function Tickets() {
       case "requests":
         return (
           <>
-            {renderTypeSpecificStatusCards('request')}
+            {renderTypeSpecificStatusCards("request")}
             {renderTicketTable()}
           </>
         );
       case "incidents":
         return (
           <>
-            {renderTypeSpecificStatusCards('incident')}
+            {renderTypeSpecificStatusCards("incident")}
             {renderTicketTable()}
           </>
         );
       case "problems":
         return (
           <>
-            {renderTypeSpecificStatusCards('problem')}
+            {renderTypeSpecificStatusCards("problem")}
             {renderTicketTable()}
           </>
         );
       case "changes":
         return (
           <>
-            {renderTypeSpecificStatusCards('change')}
+            {renderTypeSpecificStatusCards("change")}
             {renderTicketTable()}
           </>
         );
@@ -1739,7 +1926,7 @@ export default function Tickets() {
         return renderTicketTable();
     }
   };
-    const getInitialStatus = (type: string) => {
+  const getInitialStatus = (type: string) => {
     switch (type) {
       case "request":
         return "new"; // Request Submitted
@@ -1788,7 +1975,7 @@ export default function Tickets() {
               </div>
               <div className="flex items-center space-x-3">
                 <Button
-                  onClick={() => setLocation('/create-ticket')}
+                  onClick={() => setLocation("/create-ticket")}
                   className="bg-green-600 hover:bg-green-700 text-white flex items-center space-x-2"
                 >
                   <Plus className="w-4 h-4" />
@@ -1913,105 +2100,128 @@ export default function Tickets() {
                 rows={4}
               />
             </div>
-                 <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="impact">Impact</Label>
-                      <Select
-                        value={newTicketData.impact}
-                        onValueChange={(value) => setNewTicketData({ ...newTicketData, impact: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select impact" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="low">Low</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="high">High</SelectItem>
-                          <SelectItem value="critical">Critical</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="urgency">Urgency</Label>
-                      <Select
-                        value={newTicketData.urgency}
-                        onValueChange={(value) => setNewTicketData({ ...newTicketData, urgency: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select urgency" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="low">Low</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="high">High</SelectItem>
-                          <SelectItem value="critical">Critical</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="impact">Impact</Label>
+                <Select
+                  value={newTicketData.impact}
+                  onValueChange={(value) =>
+                    setNewTicketData({ ...newTicketData, impact: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select impact" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="critical">Critical</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="urgency">Urgency</Label>
+                <Select
+                  value={newTicketData.urgency}
+                  onValueChange={(value) =>
+                    setNewTicketData({ ...newTicketData, urgency: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select urgency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="critical">Critical</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Change Management Specific Fields */}
+            {newTicketData.type === "change" && (
+              <div className="space-y-4 border-t pt-4">
+                <h4 className="font-medium text-sm text-muted-foreground">
+                  Change Management Details
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="change_type">Change Type *</Label>
+                    <Select
+                      value={newTicketData.change_type}
+                      onValueChange={(value) =>
+                        setNewTicketData({
+                          ...newTicketData,
+                          change_type: value,
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select change type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="standard">Standard</SelectItem>
+                        <SelectItem value="normal">Normal</SelectItem>
+                        <SelectItem value="emergency">Emergency</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
+                  <div>
+                    <Label htmlFor="risk_level">Risk Level</Label>
+                    <Select
+                      value={newTicketData.risk_level}
+                      onValueChange={(value) =>
+                        setNewTicketData({
+                          ...newTicketData,
+                          risk_level: value,
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select risk level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            )}
 
-                  {/* Change Management Specific Fields */}
-                  {newTicketData.type === "change" && (
-                    <div className="space-y-4 border-t pt-4">
-                      <h4 className="font-medium text-sm text-muted-foreground">Change Management Details</h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="change_type">Change Type *</Label>
-                          <Select
-                            value={newTicketData.change_type}
-                            onValueChange={(value) => setNewTicketData({ ...newTicketData, change_type: value })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select change type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="standard">Standard</SelectItem>
-                              <SelectItem value="normal">Normal</SelectItem>
-                              <SelectItem value="emergency">Emergency</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="risk_level">Risk Level</Label>
-                          <Select
-                            value={newTicketData.risk_level}
-                            onValueChange={(value) => setNewTicketData({ ...newTicketData, risk_level: value })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select risk level" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="low">Low</SelectItem>
-                              <SelectItem value="medium">Medium</SelectItem>
-                              <SelectItem value="high">High</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Problem Management Specific Fields */}
-                  {newTicketData.type === "problem" && (
-                    <div className="space-y-4 border-t pt-4">
-                      <h4 className="font-medium text-sm text-muted-foreground">Problem Management Details</h4>
-                      <div>
-                        <Label htmlFor="known_error">Known Error</Label>
-                        <Select
-                          value={newTicketData.known_error ? "true" : "false"}
-                          onValueChange={(value) => setNewTicketData({ ...newTicketData, known_error: value === "true" })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Is this a known error?" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="false">No</SelectItem>
-                            <SelectItem value="true">Yes</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  )}
+            {/* Problem Management Specific Fields */}
+            {newTicketData.type === "problem" && (
+              <div className="space-y-4 border-t pt-4">
+                <h4 className="font-medium text-sm text-muted-foreground">
+                  Problem Management Details
+                </h4>
+                <div>
+                  <Label htmlFor="known_error">Known Error</Label>
+                  <Select
+                    value={newTicketData.known_error ? "true" : "false"}
+                    onValueChange={(value) =>
+                      setNewTicketData({
+                        ...newTicketData,
+                        known_error: value === "true",
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Is this a known error?" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="false">No</SelectItem>
+                      <SelectItem value="true">Yes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
             <div className="flex justify-end space-x-2">
               <Button
                 variant="outline"
@@ -2074,7 +2284,8 @@ export default function Tickets() {
                     <SelectItem value="high">High</SelectItem>
                     <SelectItem value="critical">Critical</SelectItem>
                   </SelectContent>
-                            </div>
+                </Select>
+              </div>
             </div>
             <div>
               <Label htmlFor="title">Title</Label>
@@ -2177,7 +2388,7 @@ export default function Tickets() {
       {/* Floating Action Button */}
       <div className="fixed bottom-6 right-6 z-50">
         <Button
-          onClick={() => setLocation('/create-ticket')}
+          onClick={() => setLocation("/create-ticket")}
           size="lg"
           className="rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-all duration-200 bg-green-600 hover:bg-green-700"
         >
