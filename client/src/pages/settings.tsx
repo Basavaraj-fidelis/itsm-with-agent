@@ -906,44 +906,14 @@ export default function Settings() {
 
   const downloadAgent = async (platform: string) => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        toast({
-          title: "Authentication Required",
-          description: "Please log in to download the agent.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Create proper zip archive endpoint
+      // Direct download without authentication
       const response = await fetch(`/api/download/agent/${platform}`, {
         method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Download error response:", errorText);
-
-        if (response.status === 401) {
-          toast({
-            title: "Authentication Failed",
-            description: "Please log in again to download the agent.",
-            variant: "destructive",
-          });
-          return;
-        }
-        if (response.status === 403) {
-          toast({
-            title: "Access Denied",
-            description: "Admin access required to download agents.",
-            variant: "destructive",
-          });
-          return;
-        }
         throw new Error(`Download failed: ${response.status} ${errorText}`);
       }
 

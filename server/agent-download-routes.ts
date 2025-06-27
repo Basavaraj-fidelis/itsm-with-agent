@@ -1,4 +1,3 @@
-
 import { Router } from "express";
 import path from "path";
 import fs from "fs";
@@ -129,18 +128,18 @@ For technical support, contact your system administrator.`;
   }
 }
 
-// Agent download endpoints for all platforms
-router.get("/:platform", authenticateToken, requireDownloadPermission, async (req, res) => {
+// Agent download endpoints for all platforms - NO AUTHENTICATION REQUIRED
+router.get("/:platform", async (req, res) => {
   try {
     const { platform } = req.params;
-    console.log(`${platform} agent download requested by:`, req.user.email, `(${req.user.role})`);
+    console.log(`${platform} agent download requested - no auth required`);
 
     if (!['windows', 'linux', 'macos'].includes(platform)) {
       return res.status(400).json({ error: 'Invalid platform' });
     }
 
     const agentPath = path.join(process.cwd(), 'Agent');
-    
+
     if (!fs.existsSync(agentPath)) {
       console.error('Agent directory not found at:', agentPath);
       return res.status(404).json({ error: 'Agent files not found' });
@@ -191,7 +190,7 @@ router.get("/:platform", authenticateToken, requireDownloadPermission, async (re
 
     // Finalize the archive
     await archive.finalize();
-    console.log(`${platform} agent download completed successfully for ${req.user.email}`);
+    console.log(`${platform} agent download completed successfully - no auth required`);
 
   } catch (error) {
     console.error(`${req.params.platform} agent download error:`, error);
