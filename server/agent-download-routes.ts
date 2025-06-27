@@ -73,6 +73,26 @@ const requireAdmin = (req: any, res: any, next: any) => {
   next();
 };
 
+// Helper function to safely add file to archive
+const addFileToArchive = (archive: any, filePath: string, fileName: string): boolean => {
+  try {
+    if (fs.existsSync(filePath)) {
+      const stats = fs.statSync(filePath);
+      const fileContent = fs.readFileSync(filePath);
+      
+      console.log(`Adding file ${fileName}: ${stats.size} bytes`);
+      archive.append(fileContent, { name: fileName });
+      return true;
+    } else {
+      console.warn(`File not found: ${filePath}`);
+      return false;
+    }
+  } catch (error) {
+    console.error(`Error adding file ${fileName}:`, error);
+    return false;
+  }
+};
+
 // Agent download endpoints
 router.get('/download/windows', authenticateToken, requireAdmin, async (req, res) => {
   try {
@@ -126,34 +146,19 @@ router.get('/download/windows', authenticateToken, requireAdmin, async (req, res
 
     let filesAdded = 0;
     
-    // Use archive.file() instead of archive.append() for proper file handling
+    // Add each Windows file
     windowsFiles.forEach(fileName => {
       const filePath = path.join(agentPath, fileName);
-      console.log(`Checking file: ${filePath}, exists: ${fs.existsSync(filePath)}`);
-      if (fs.existsSync(filePath)) {
-        const stats = fs.statSync(filePath);
-        console.log(`File ${fileName} size: ${stats.size} bytes`);
-        
-        // Use archive.file() to add the file directly from filesystem
-        archive.file(filePath, { name: fileName });
-        console.log(`Added ${fileName} to Windows archive`);
+      if (addFileToArchive(archive, filePath, fileName)) {
         filesAdded++;
-      } else {
-        console.warn(`Windows file not found: ${fileName}`);
       }
     });
 
-    // Add any additional files that exist in the Agent directory
+    // Add any additional Python files that exist in the Agent directory
     availableFiles.forEach(fileName => {
       if (!windowsFiles.includes(fileName) && (fileName.endsWith('.py') || fileName.endsWith('.ini'))) {
         const filePath = path.join(agentPath, fileName);
-        if (fs.existsSync(filePath)) {
-          const stats = fs.statSync(filePath);
-          console.log(`Additional file ${fileName} size: ${stats.size} bytes`);
-          
-          // Use archive.file() to add the file directly from filesystem
-          archive.file(filePath, { name: fileName });
-          console.log(`Added additional file ${fileName} to Windows archive`);
+        if (addFileToArchive(archive, filePath, fileName)) {
           filesAdded++;
         }
       }
@@ -267,16 +272,8 @@ router.get('/download/linux', authenticateToken, requireAdmin, async (req, res) 
     let filesAdded = 0;
     linuxFiles.forEach(fileName => {
       const filePath = path.join(agentPath, fileName);
-      if (fs.existsSync(filePath)) {
-        const stats = fs.statSync(filePath);
-        console.log(`File ${fileName} size: ${stats.size} bytes`);
-        
-        // Use archive.file() to add the file directly from filesystem
-        archive.file(filePath, { name: fileName });
-        console.log(`Added ${fileName} to Linux archive`);
+      if (addFileToArchive(archive, filePath, fileName)) {
         filesAdded++;
-      } else {
-        console.warn(`Linux file not found: ${fileName}`);
       }
     });
 
@@ -412,16 +409,8 @@ router.get('/download/macos', authenticateToken, requireAdmin, async (req, res) 
     let filesAdded = 0;
     macosFiles.forEach(fileName => {
       const filePath = path.join(agentPath, fileName);
-      if (fs.existsSync(filePath)) {
-        const stats = fs.statSync(filePath);
-        console.log(`File ${fileName} size: ${stats.size} bytes`);
-        
-        // Use archive.file() to add the file directly from filesystem
-        archive.file(filePath, { name: fileName });
-        console.log(`Added ${fileName} to macOS archive`);
+      if (addFileToArchive(archive, filePath, fileName)) {
         filesAdded++;
-      } else {
-        console.warn(`macOS file not found: ${fileName}`);
       }
     });
 
