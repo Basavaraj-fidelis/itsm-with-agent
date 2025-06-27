@@ -1,5 +1,5 @@
 
-import { db, sql } from "./db.js";
+import { db, sql } from "./db.ts";
 
 async function migrateSLAFields() {
   try {
