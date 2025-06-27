@@ -9,7 +9,6 @@ import { knowledgeBase } from "@shared/ticket-schema";
 import { eq, desc } from "drizzle-orm";
 import { knowledgeRoutes } from "./knowledge-routes";
 import { agentADSyncRoutes } from "./agent-ad-sync-routes";
-import agentDownloadRoutes from "./agent-download-routes";
 import expressWs from "express-ws";
 
 const app = express();
@@ -332,9 +331,6 @@ app.use((req, res, next) => {
 
     // Register agent sync routes
     app.use("/api/agent-sync", agentADSyncRoutes);
-
-    // Register agent download routes
-    app.use("/api/download", agentDownloadRoutes);
 
     // Health check
     app.get("/api/health", (req, res) => {
