@@ -1,4 +1,3 @@
-
 import pg from 'pg';
 const { Pool } = pg;
 
@@ -146,46 +145,6 @@ Contact IT Support at support@company.com or call extension 1234.`,
 Use "CompanyGuest" network for personal devices with password: Guest2024`,
     category: "Network",
     tags: ["wifi", "network", "connection", "troubleshooting"],
-    author_email: "support@company.com",
-    status: "published"
-  },
-  {
-    title: "VPN Setup and Connection Guide",
-    content: `# VPN Setup for Remote Work
-
-## Windows VPN Setup
-1. Go to Settings > Network & Internet > VPN
-2. Click "Add a VPN connection"
-3. Fill in the details:
-   - **VPN provider**: Windows (built-in)
-   - **Connection name**: Company VPN
-   - **Server name**: vpn.company.com
-   - **VPN type**: IKEv2
-   - **Username**: Your company username
-   - **Password**: Your company password
-
-## Connecting to VPN
-1. Click network icon in system tray
-2. Select "Company VPN"
-3. Click "Connect"
-4. Enter credentials if prompted
-
-## Troubleshooting VPN Issues
-- **Can't connect**: Check internet connection first
-- **Slow connection**: Try different VPN server
-- **Blocked websites**: Clear browser cache and cookies
-- **Connection drops**: Enable "Connect automatically"
-
-## Mobile VPN Setup
-Download "Company VPN" app from your device's app store and use your work credentials.
-
-## When to Use VPN
-- Working from home
-- Using public WiFi
-- Accessing company resources remotely
-- Required for all remote connections`,
-    category: "Network Access",
-    tags: ["vpn", "remote", "security", "connection"],
     author_email: "support@company.com",
     status: "published"
   },
@@ -760,11 +719,11 @@ Report these immediately to IT:
 async function createKBArticles() {
   try {
     console.log("📚 Creating 15 comprehensive knowledge base articles...\n");
-    
+
     // Check if articles already exist
     const existingResult = await pool.query('SELECT COUNT(*) FROM knowledge_base');
     const existingCount = parseInt(existingResult.rows[0].count);
-    
+
     if (existingCount >= 15) {
       console.log(`⚠️  Found ${existingCount} existing articles. Skipping creation to avoid duplicates.`);
       return;
@@ -779,7 +738,7 @@ async function createKBArticles() {
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING id, title, category;
       `;
-      
+
       const values = [
         article.title,
         article.content,
@@ -790,16 +749,16 @@ async function createKBArticles() {
         0, // initial views
         0  // initial helpful votes
       ];
-      
+
       const result = await pool.query(insertQuery, values);
       const created = result.rows[0];
-      
+
       console.log(`✅ Created article: ${created.title} (${created.category})`);
       createdCount++;
     }
-    
+
     console.log(`\n🎉 Successfully created ${createdCount} knowledge base articles!`);
-    
+
     // Show article count by category
     const categoryResult = await pool.query(`
       SELECT category, COUNT(*) as count 
@@ -807,12 +766,12 @@ async function createKBArticles() {
       GROUP BY category 
       ORDER BY category;
     `);
-    
+
     console.log("\n📊 Articles by category:");
     categoryResult.rows.forEach(row => {
       console.log(`  ${row.category}: ${row.count} articles`);
     });
-    
+
   } catch (error) {
     console.error("❌ Error creating knowledge base articles:", error);
   } finally {

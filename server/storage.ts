@@ -1831,34 +1831,7 @@ netsh int ip reset
           views: 334,
           helpful_votes: 87,
         },
-        {
-          title: "VPN Setup Instructions",
-          content: `# VPN Configuration Guide
-
-## Windows Setup
-1. Download the VPN client from the IT portal
-2. Install the application
-3. Use your domain credentials to connect
-4. Select the appropriate server location
-
-## macOS Setup
-1. Open System Preferences > Network
-2. Click the + button to add a new connection
-3. Choose VPN from the Interface dropdown
-4. Enter the server details provided by IT
-
-## Troubleshooting
-- Check your internet connection
-- Verify your credentials
-- Try different server locations
-- Contact IT if connection fails`,
-          category: "Technical",
-          tags: ["vpn", "network", "remote-access"],
-          author_email: "tech@company.com",
-          status: "published",
-          views: 78,
-          helpful_votes: 25,
-        },
+        
         {
           title: "Software Installation Policy",
           content: `# Software Installation Guidelines
