@@ -2082,34 +2082,6 @@ netsh int ip reset
               helpful_votes: 87
             },
             {
-              title: "VPN Setup Instructions",
-              content: `# VPN Configuration Guide
-
-## Windows Setup
-1. Download the VPN client from the IT portal
-2. Install the application
-3. Use your domain credentials to connect
-4. Select the appropriate server location
-
-## macOS Setup
-1. Open System Preferences > Network
-2. Click the + button to add a new connection
-3. Choose VPN from the Interface dropdown
-4. Enter the server details provided by IT
-
-## Troubleshooting
-- Check your internet connection
-- Verify your credentials
-- Try different server locations
-- Contact IT if connection fails`,
-              category: "Technical",
-              tags: ["vpn", "network", "remote-access"],
-              author_email: "tech@company.com",
-              status: "published",
-              views: 78,
-              helpful_votes: 25
-            },
-            {
               title: "Software Installation Policy",
               content: `# Software Installation Guidelines
 
@@ -5148,140 +5120,6 @@ var init_ad_routes = __esm({
   }
 });
 
-// server/migrate-admin-tables.ts
-var migrate_admin_tables_exports = {};
-__export(migrate_admin_tables_exports, {
-  createAdminTables: () => createAdminTables
-});
-import { drizzle as drizzle2 } from "drizzle-orm/node-postgres";
-import { sql as sql7 } from "drizzle-orm";
-async function createAdminTables() {
-  try {
-    console.log("\u{1F680} Creating admin tables...");
-    await db2.execute(sql7`
-      CREATE TABLE IF NOT EXISTS groups (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(100) NOT NULL,
-        description TEXT,
-        type VARCHAR(20) DEFAULT 'team',
-        parent_group_id UUID REFERENCES groups(id),
-        manager_id UUID,
-        email VARCHAR(255),
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
-        updated_at TIMESTAMP DEFAULT NOW() NOT NULL
-      )
-    `);
-    await db2.execute(sql7`
-      CREATE TABLE IF NOT EXISTS group_members (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        group_id UUID REFERENCES groups(id) NOT NULL,
-        user_id UUID NOT NULL,
-        role VARCHAR(20) DEFAULT 'member',
-        joined_at TIMESTAMP DEFAULT NOW() NOT NULL,
-        is_active BOOLEAN DEFAULT true
-      )
-    `);
-    await db2.execute(sql7`
-      CREATE TABLE IF NOT EXISTS audit_log (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        entity_type VARCHAR(50) NOT NULL,
-        entity_id UUID NOT NULL,
-        action VARCHAR(20) NOT NULL,
-        user_id UUID,
-        user_email VARCHAR(255),
-        old_values JSON,
-        new_values JSON,
-        changes JSON,
-        ip_address VARCHAR(45),
-        user_agent TEXT,
-        timestamp TIMESTAMP DEFAULT NOW() NOT NULL
-      )
-    `);
-    await db2.execute(sql7`
-      CREATE TABLE IF NOT EXISTS sla_policies (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(100) NOT NULL,
-        description TEXT,
-        ticket_type VARCHAR(20),
-        priority VARCHAR(20),
-        impact VARCHAR(20),
-        urgency VARCHAR(20),
-        category VARCHAR(100),
-        response_time INTEGER NOT NULL,
-        resolution_time INTEGER NOT NULL,
-        business_hours_only BOOLEAN DEFAULT true,
-        business_start VARCHAR(5) DEFAULT '09:00',
-        business_end VARCHAR(5) DEFAULT '17:00',
-        business_days VARCHAR(20) DEFAULT '1,2,3,4,5',
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
-        updated_at TIMESTAMP DEFAULT NOW() NOT NULL
-      )
-    `);
-    await db2.execute(sql7`
-      CREATE TABLE IF NOT EXISTS sla_breaches (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        ticket_id UUID NOT NULL,
-        sla_policy_id UUID REFERENCES sla_policies(id) NOT NULL,
-        breach_type VARCHAR(20) NOT NULL,
-        target_time TIMESTAMP NOT NULL,
-        actual_time TIMESTAMP,
-        breach_duration INTEGER,
-        created_at TIMESTAMP DEFAULT NOW() NOT NULL
-      )
-    `);
-    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_groups_type ON groups(type)`);
-    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_groups_parent ON groups(parent_group_id)`);
-    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_group_members_group ON group_members(group_id)`);
-    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_group_members_user ON group_members(user_id)`);
-    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_log(entity_type, entity_id)`);
-    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_log(user_id)`);
-    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp)`);
-    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_sla_policies_active ON sla_policies(is_active)`);
-    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_sla_breaches_ticket ON sla_breaches(ticket_id)`);
-    await db2.execute(sql7`
-      INSERT INTO sla_policies (name, description, priority, response_time, resolution_time)
-      VALUES 
-        ('Critical Priority SLA', 'Critical issues requiring immediate attention', 'critical', 15, 240),
-        ('High Priority SLA', 'High priority issues', 'high', 60, 480),
-        ('Medium Priority SLA', 'Standard business issues', 'medium', 240, 1440),
-        ('Low Priority SLA', 'Low priority requests', 'low', 480, 2880)
-      ON CONFLICT DO NOTHING
-    `);
-    await db2.execute(sql7`
-      INSERT INTO groups (name, description, type, email)
-      VALUES 
-        ('IT Support', 'Primary IT support team', 'team', 'itsupport@company.com'),
-        ('Network Team', 'Network infrastructure team', 'team', 'network@company.com'),
-        ('Security Team', 'Information security team', 'team', 'security@company.com'),
-        ('Help Desk', 'Level 1 support desk', 'team', 'helpdesk@company.com')
-      ON CONFLICT DO NOTHING
-    `);
-    console.log("\u2705 Admin tables created successfully!");
-  } catch (error) {
-    console.error("\u274C Error creating admin tables:", error);
-    throw error;
-  }
-}
-var db2;
-var init_migrate_admin_tables = __esm({
-  "server/migrate-admin-tables.ts"() {
-    "use strict";
-    init_db();
-    db2 = drizzle2(pool);
-    if (import.meta.url === `file://${process.argv[1]}`) {
-      createAdminTables().then(() => {
-        console.log("Migration completed successfully!");
-        process.exit(0);
-      }).catch((error) => {
-        console.error("Migration failed:", error);
-        process.exit(1);
-      });
-    }
-  }
-});
-
 // server/notification-service.ts
 var NotificationService, notificationService;
 var init_notification_service = __esm({
@@ -5867,6 +5705,140 @@ Please review and take appropriate action.`;
       }
     };
     slaEscalationService = new SLAEscalationService();
+  }
+});
+
+// server/migrate-admin-tables.ts
+var migrate_admin_tables_exports = {};
+__export(migrate_admin_tables_exports, {
+  createAdminTables: () => createAdminTables
+});
+import { drizzle as drizzle2 } from "drizzle-orm/node-postgres";
+import { sql as sql7 } from "drizzle-orm";
+async function createAdminTables() {
+  try {
+    console.log("\u{1F680} Creating admin tables...");
+    await db2.execute(sql7`
+      CREATE TABLE IF NOT EXISTS groups (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(100) NOT NULL,
+        description TEXT,
+        type VARCHAR(20) DEFAULT 'team',
+        parent_group_id UUID REFERENCES groups(id),
+        manager_id UUID,
+        email VARCHAR(255),
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+        updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+      )
+    `);
+    await db2.execute(sql7`
+      CREATE TABLE IF NOT EXISTS group_members (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        group_id UUID REFERENCES groups(id) NOT NULL,
+        user_id UUID NOT NULL,
+        role VARCHAR(20) DEFAULT 'member',
+        joined_at TIMESTAMP DEFAULT NOW() NOT NULL,
+        is_active BOOLEAN DEFAULT true
+      )
+    `);
+    await db2.execute(sql7`
+      CREATE TABLE IF NOT EXISTS audit_log (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        entity_type VARCHAR(50) NOT NULL,
+        entity_id UUID NOT NULL,
+        action VARCHAR(20) NOT NULL,
+        user_id UUID,
+        user_email VARCHAR(255),
+        old_values JSON,
+        new_values JSON,
+        changes JSON,
+        ip_address VARCHAR(45),
+        user_agent TEXT,
+        timestamp TIMESTAMP DEFAULT NOW() NOT NULL
+      )
+    `);
+    await db2.execute(sql7`
+      CREATE TABLE IF NOT EXISTS sla_policies (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(100) NOT NULL,
+        description TEXT,
+        ticket_type VARCHAR(20),
+        priority VARCHAR(20),
+        impact VARCHAR(20),
+        urgency VARCHAR(20),
+        category VARCHAR(100),
+        response_time INTEGER NOT NULL,
+        resolution_time INTEGER NOT NULL,
+        business_hours_only BOOLEAN DEFAULT true,
+        business_start VARCHAR(5) DEFAULT '09:00',
+        business_end VARCHAR(5) DEFAULT '17:00',
+        business_days VARCHAR(20) DEFAULT '1,2,3,4,5',
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+        updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+      )
+    `);
+    await db2.execute(sql7`
+      CREATE TABLE IF NOT EXISTS sla_breaches (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        ticket_id UUID NOT NULL,
+        sla_policy_id UUID REFERENCES sla_policies(id) NOT NULL,
+        breach_type VARCHAR(20) NOT NULL,
+        target_time TIMESTAMP NOT NULL,
+        actual_time TIMESTAMP,
+        breach_duration INTEGER,
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL
+      )
+    `);
+    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_groups_type ON groups(type)`);
+    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_groups_parent ON groups(parent_group_id)`);
+    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_group_members_group ON group_members(group_id)`);
+    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_group_members_user ON group_members(user_id)`);
+    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_log(entity_type, entity_id)`);
+    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_log(user_id)`);
+    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp)`);
+    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_sla_policies_active ON sla_policies(is_active)`);
+    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_sla_breaches_ticket ON sla_breaches(ticket_id)`);
+    await db2.execute(sql7`
+      INSERT INTO sla_policies (name, description, priority, response_time, resolution_time)
+      VALUES 
+        ('Critical Priority SLA', 'Critical issues requiring immediate attention', 'critical', 15, 240),
+        ('High Priority SLA', 'High priority issues', 'high', 60, 480),
+        ('Medium Priority SLA', 'Standard business issues', 'medium', 240, 1440),
+        ('Low Priority SLA', 'Low priority requests', 'low', 480, 2880)
+      ON CONFLICT DO NOTHING
+    `);
+    await db2.execute(sql7`
+      INSERT INTO groups (name, description, type, email)
+      VALUES 
+        ('IT Support', 'Primary IT support team', 'team', 'itsupport@company.com'),
+        ('Network Team', 'Network infrastructure team', 'team', 'network@company.com'),
+        ('Security Team', 'Information security team', 'team', 'security@company.com'),
+        ('Help Desk', 'Level 1 support desk', 'team', 'helpdesk@company.com')
+      ON CONFLICT DO NOTHING
+    `);
+    console.log("\u2705 Admin tables created successfully!");
+  } catch (error) {
+    console.error("\u274C Error creating admin tables:", error);
+    throw error;
+  }
+}
+var db2;
+var init_migrate_admin_tables = __esm({
+  "server/migrate-admin-tables.ts"() {
+    "use strict";
+    init_db();
+    db2 = drizzle2(pool);
+    if (import.meta.url === `file://${process.argv[1]}`) {
+      createAdminTables().then(() => {
+        console.log("Migration completed successfully!");
+        process.exit(0);
+      }).catch((error) => {
+        console.error("Migration failed:", error);
+        process.exit(1);
+      });
+    }
   }
 });
 
@@ -13600,7 +13572,7 @@ var requireAdmin = (req, res, next) => {
   console.log("Admin access granted");
   next();
 };
-router5.get("/download/windows", authenticateToken3, requireAdmin, async (req, res) => {
+router5.get("/windows", authenticateToken3, requireAdmin, async (req, res) => {
   try {
     console.log("Windows agent download requested by:", req.user.email);
     const agentPath = path3.join(process.cwd(), "Agent");
@@ -13610,83 +13582,116 @@ router5.get("/download/windows", authenticateToken3, requireAdmin, async (req, r
       console.error("Agent directory not found at:", agentPath);
       return res.status(404).json({ error: "Agent files not found" });
     }
-    const files = fs2.readdirSync(agentPath);
-    console.log("Files in Agent directory:", files);
+    const availableFiles = fs2.readdirSync(agentPath);
+    console.log("Available files in Agent directory:", availableFiles);
+    const windowsFiles = [
+      "itsm_agent.py",
+      "api_client.py",
+      "system_collector.py",
+      "service_wrapper.py",
+      "config.ini",
+      "install_windows.py",
+      "fix_windows_service.py",
+      "agent_websocket_client.py"
+    ];
+    const existingFiles = windowsFiles.filter((fileName) => {
+      const filePath = path3.join(agentPath, fileName);
+      const exists = fs2.existsSync(filePath);
+      console.log(`Checking ${fileName}: ${exists ? "EXISTS" : "NOT FOUND"}`);
+      return exists;
+    });
+    if (existingFiles.length === 0) {
+      console.error("No Windows agent files found!");
+      return res.status(404).json({ error: "No Windows agent files found" });
+    }
+    console.log(`Found ${existingFiles.length} Windows files:`, existingFiles);
     res.setHeader("Content-Type", "application/zip");
     res.setHeader("Content-Disposition", "attachment; filename=itsm-agent-windows.zip");
     const archive = archiver("zip", {
       zlib: { level: 9 }
       // Maximum compression
     });
+    let archiveError = false;
     archive.on("error", (err) => {
       console.error("Archive error:", err);
+      archiveError = true;
       if (!res.headersSent) {
         res.status(500).json({ error: "Failed to create archive" });
       }
     });
-    archive.pipe(res);
-    const windowsFiles = [
-      { src: "Windows/itsm_agent.py", dest: "itsm_agent.py" },
-      { src: "Windows/config.ini", dest: "config.ini" },
-      { src: "Windows/service_wrapper.py", dest: "service_wrapper.py" },
-      { src: "Windows/install_windows.py", dest: "install_windows.py" },
-      { src: "Windows/fix_windows_service.py", dest: "fix_windows_service.py" },
-      { src: "Windows/fix_service_issue.py", dest: "fix_service_issue.py" },
-      { src: "Windows/config_validator.py", dest: "config_validator.py" }
-    ];
-    const commonFiles = [
-      { src: "Common/system_collector.py", dest: "system_collector.py" },
-      { src: "Common/api_client.py", dest: "api_client.py" },
-      { src: "Common/operation_monitor.py", dest: "operation_monitor.py" },
-      { src: "Common/smart_queue.py", dest: "smart_queue.py" },
-      { src: "Common/command_scheduler.py", dest: "command_scheduler.py" },
-      { src: "Common/network_monitor.py", dest: "network_monitor.py" },
-      { src: "Common/performance_baseline.py", dest: "performance_baseline.py" },
-      { src: "Common/config_validator.py", dest: "config_validator.py" }
-    ];
-    [...windowsFiles, ...commonFiles].forEach(({ src, dest }) => {
-      const filePath = path3.join(agentPath, src);
-      if (fs2.existsSync(filePath)) {
-        archive.file(filePath, { name: dest });
-        console.log(`Added ${src} to Windows archive as ${dest}`);
-      } else {
-        const fallbackPath = path3.join(agentPath, dest);
-        if (fs2.existsSync(fallbackPath)) {
-          archive.file(fallbackPath, { name: dest });
-          console.log(`Added ${dest} to Windows archive (fallback)`);
-        } else {
-          console.warn(`Windows file not found: ${src} or ${dest}`);
-        }
-      }
+    archive.on("end", () => {
+      console.log("Archive has been finalized and the output file descriptor has closed.");
     });
-    const instructions = `# ITSM Agent Installation Instructions
+    archive.pipe(res);
+    let filesAdded = 0;
+    for (const fileName of existingFiles) {
+      try {
+        const filePath = path3.join(agentPath, fileName);
+        const stats = fs2.statSync(filePath);
+        if (stats.isFile() && stats.size > 0) {
+          archive.file(filePath, { name: fileName });
+          console.log(`Added ${fileName} to archive (${stats.size} bytes)`);
+          filesAdded++;
+        } else {
+          console.warn(`Skipping ${fileName}: not a valid file or empty`);
+        }
+      } catch (fileError) {
+        console.error(`Error processing file ${fileName}:`, fileError);
+      }
+    }
+    console.log(`Total files added to Windows archive: ${filesAdded}`);
+    if (filesAdded === 0) {
+      console.error("No files were successfully added to the archive!");
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "No valid agent files found to package" });
+      }
+    }
+    const instructions = `# ITSM Agent Installation Instructions - Windows
 
-## Windows Installation
-
-### Prerequisites
+## Prerequisites
 - Python 3.7 or higher
 - Administrator privileges
 
-### Installation Steps
-1. Extract this archive to your target directory
-2. Edit config.ini and set your ITSM server URL and authentication token
-3. Run the installation script as Administrator:
+## Installation Steps
+1. Extract this archive to your target directory (e.g., C:\\itsm-agent)
+2. Edit config.ini and set your ITSM server URL and authentication token:
+   - api.base_url: Your ITSM server URL (e.g., http://your-server:5000)
+   - api.auth_token: Authentication token from admin panel
+   - agent.collection_interval: Data collection frequency (seconds)
+
+3. Open Command Prompt as Administrator
+4. Navigate to the extracted directory
+5. Run the installation script:
    python install_windows.py
-4. Start the service:
+
+6. Start the service:
    python itsm_agent.py start
 
-### Configuration
-Edit config.ini before installation:
-- api.base_url: Your ITSM server URL
-- api.auth_token: Authentication token from admin panel
-- agent.collection_interval: Data collection frequency (seconds)
+## Configuration
+Before installation, edit config.ini:
+\`\`\`ini
+[api]
+base_url = http://your-itsm-server:5000
+auth_token = your-auth-token-here
 
-### Support
+[agent]
+collection_interval = 300
+hostname = auto
+\`\`\`
+
+## Troubleshooting
+If you encounter service issues, run:
+python fix_windows_service.py
+
+## Support
 For technical support, contact your system administrator.
 `;
     archive.append(instructions, { name: "README.md" });
+    console.log("Added README.md to archive");
     await archive.finalize();
-    console.log("Windows agent download completed");
+    if (!archiveError) {
+      console.log("Windows agent download completed successfully - archive finalized");
+    }
   } catch (error) {
     console.error("Windows agent download error:", error);
     if (!res.headersSent) {
@@ -13694,7 +13699,7 @@ For technical support, contact your system administrator.
     }
   }
 });
-router5.get("/download/linux", authenticateToken3, requireAdmin, async (req, res) => {
+router5.get("/linux", authenticateToken3, requireAdmin, async (req, res) => {
   try {
     console.log("Linux agent download requested by:", req.user.email);
     const agentPath = path3.join(process.cwd(), "Agent");
@@ -13702,50 +13707,103 @@ router5.get("/download/linux", authenticateToken3, requireAdmin, async (req, res
       console.error("Agent directory not found at:", agentPath);
       return res.status(404).json({ error: "Agent files not found" });
     }
+    const availableFiles = fs2.readdirSync(agentPath);
+    console.log("Available files for Linux:", availableFiles);
+    const linuxFiles = [
+      "itsm_agent.py",
+      "api_client.py",
+      "system_collector.py",
+      "service_wrapper.py",
+      "config.ini",
+      "agent_websocket_client.py"
+    ];
+    const existingFiles = linuxFiles.filter((fileName) => {
+      const filePath = path3.join(agentPath, fileName);
+      const exists = fs2.existsSync(filePath);
+      console.log(`Checking ${fileName}: ${exists ? "EXISTS" : "NOT FOUND"}`);
+      return exists;
+    });
+    if (existingFiles.length === 0) {
+      console.error("No Linux agent files found!");
+      return res.status(404).json({ error: "No Linux agent files found" });
+    }
     res.setHeader("Content-Type", "application/zip");
     res.setHeader("Content-Disposition", "attachment; filename=itsm-agent-linux.zip");
     const archive = archiver("zip", {
       zlib: { level: 9 }
     });
+    let archiveError = false;
     archive.on("error", (err) => {
       console.error("Archive error:", err);
+      archiveError = true;
       if (!res.headersSent) {
         res.status(500).json({ error: "Failed to create archive" });
       }
     });
     archive.pipe(res);
-    const linuxFiles = [
-      { src: "Linux/itsm_agent.py", dest: "itsm_agent.py" },
-      { src: "Linux/config.ini", dest: "config.ini" },
-      { src: "Linux/service_wrapper.py", dest: "service_wrapper.py" },
-      { src: "Linux/install_linux.sh", dest: "install_linux.sh" },
-      { src: "Linux/config_validator.py", dest: "config_validator.py" }
-    ];
-    const commonFiles = [
-      { src: "Common/system_collector.py", dest: "system_collector.py" },
-      { src: "Common/api_client.py", dest: "api_client.py" },
-      { src: "Common/operation_monitor.py", dest: "operation_monitor.py" },
-      { src: "Common/smart_queue.py", dest: "smart_queue.py" },
-      { src: "Common/command_scheduler.py", dest: "command_scheduler.py" },
-      { src: "Common/network_monitor.py", dest: "network_monitor.py" },
-      { src: "Common/performance_baseline.py", dest: "performance_baseline.py" },
-      { src: "Common/config_validator.py", dest: "config_validator.py" }
-    ];
-    [...linuxFiles, ...commonFiles].forEach(({ src, dest }) => {
-      const filePath = path3.join(agentPath, src);
-      if (fs2.existsSync(filePath)) {
-        archive.file(filePath, { name: dest });
-        console.log(`Added ${src} to Linux archive as ${dest}`);
-      } else {
-        const fallbackPath = path3.join(agentPath, dest);
-        if (fs2.existsSync(fallbackPath)) {
-          archive.file(fallbackPath, { name: dest });
-          console.log(`Added ${dest} to Linux archive (fallback)`);
-        } else {
-          console.warn(`Linux file not found: ${src} or ${dest}`);
+    let filesAdded = 0;
+    for (const fileName of existingFiles) {
+      try {
+        const filePath = path3.join(agentPath, fileName);
+        const stats = fs2.statSync(filePath);
+        if (stats.isFile() && stats.size > 0) {
+          archive.file(filePath, { name: fileName });
+          console.log(`Added ${fileName} to archive (${stats.size} bytes)`);
+          filesAdded++;
         }
+      } catch (fileError) {
+        console.error(`Error processing file ${fileName}:`, fileError);
       }
-    });
+    }
+    console.log(`Total files added to Linux archive: ${filesAdded}`);
+    const installScript = `#!/bin/bash
+# ITSM Agent Linux Installation Script
+
+echo "Installing ITSM Agent for Linux..."
+
+# Check if running as root
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root (use sudo)"
+   exit 1
+fi
+
+# Install Python dependencies
+pip3 install psutil requests configparser websocket-client
+
+# Copy files to /opt/itsm-agent
+mkdir -p /opt/itsm-agent
+cp *.py /opt/itsm-agent/
+cp config.ini /opt/itsm-agent/
+chmod +x /opt/itsm-agent/*.py
+
+# Create systemd service
+cat > /etc/systemd/system/itsm-agent.service << EOF
+[Unit]
+Description=ITSM Agent
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/itsm-agent
+ExecStart=/usr/bin/python3 /opt/itsm-agent/itsm_agent.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Enable and start service
+systemctl daemon-reload
+systemctl enable itsm-agent
+systemctl start itsm-agent
+
+echo "ITSM Agent installed and started successfully!"
+echo "Check status with: systemctl status itsm-agent"
+echo "View logs with: journalctl -u itsm-agent -f"
+`;
+    archive.append(installScript, { name: "install_linux.sh" });
     const linuxInstructions = `# ITSM Agent Installation Instructions - Linux
 
 ## Prerequisites
@@ -13758,12 +13816,21 @@ router5.get("/download/linux", authenticateToken3, requireAdmin, async (req, res
 3. Run: chmod +x install_linux.sh
 4. Run: sudo ./install_linux.sh
 
+## Manual Installation
+If the script fails, install manually:
+1. sudo pip3 install psutil requests configparser websocket-client
+2. sudo mkdir -p /opt/itsm-agent
+3. sudo cp *.py config.ini /opt/itsm-agent/
+4. Create systemd service (see install_linux.sh for reference)
+
 ## Configuration
 Edit config.ini before installation.
 `;
     archive.append(linuxInstructions, { name: "README.md" });
     await archive.finalize();
-    console.log("Linux agent download completed");
+    if (!archiveError) {
+      console.log("Linux agent download completed successfully");
+    }
   } catch (error) {
     console.error("Linux agent download error:", error);
     if (!res.headersSent) {
@@ -13771,7 +13838,7 @@ Edit config.ini before installation.
     }
   }
 });
-router5.get("/download/macos", authenticateToken3, requireAdmin, async (req, res) => {
+router5.get("/macos", authenticateToken3, requireAdmin, async (req, res) => {
   try {
     console.log("macOS agent download requested by:", req.user.email);
     const agentPath = path3.join(process.cwd(), "Agent");
@@ -13779,34 +13846,55 @@ router5.get("/download/macos", authenticateToken3, requireAdmin, async (req, res
       console.error("Agent directory not found at:", agentPath);
       return res.status(404).json({ error: "Agent files not found" });
     }
+    const availableFiles = fs2.readdirSync(agentPath);
+    console.log("Available files for macOS:", availableFiles);
+    const macosFiles = [
+      "itsm_agent.py",
+      "api_client.py",
+      "system_collector.py",
+      "service_wrapper.py",
+      "config.ini",
+      "agent_websocket_client.py"
+    ];
+    const existingFiles = macosFiles.filter((fileName) => {
+      const filePath = path3.join(agentPath, fileName);
+      const exists = fs2.existsSync(filePath);
+      console.log(`Checking ${fileName}: ${exists ? "EXISTS" : "NOT FOUND"}`);
+      return exists;
+    });
+    if (existingFiles.length === 0) {
+      console.error("No macOS agent files found!");
+      return res.status(404).json({ error: "No macOS agent files found" });
+    }
     res.setHeader("Content-Type", "application/zip");
     res.setHeader("Content-Disposition", "attachment; filename=itsm-agent-macos.zip");
     const archive = archiver("zip", {
       zlib: { level: 9 }
     });
+    let archiveError = false;
     archive.on("error", (err) => {
       console.error("Archive error:", err);
+      archiveError = true;
       if (!res.headersSent) {
         res.status(500).json({ error: "Failed to create archive" });
       }
     });
     archive.pipe(res);
-    const macosFiles = [
-      "itsm_agent.py",
-      "system_collector.py",
-      "api_client.py",
-      "service_wrapper.py",
-      "config.ini"
-    ];
-    macosFiles.forEach((file) => {
-      const filePath = path3.join(agentPath, file);
-      if (fs2.existsSync(filePath)) {
-        archive.file(filePath, { name: file });
-        console.log(`Added ${file} to macOS archive`);
-      } else {
-        console.warn(`macOS file not found: ${file}`);
+    let filesAdded = 0;
+    for (const fileName of existingFiles) {
+      try {
+        const filePath = path3.join(agentPath, fileName);
+        const stats = fs2.statSync(filePath);
+        if (stats.isFile() && stats.size > 0) {
+          archive.file(filePath, { name: fileName });
+          console.log(`Added ${fileName} to archive (${stats.size} bytes)`);
+          filesAdded++;
+        }
+      } catch (fileError) {
+        console.error(`Error processing file ${fileName}:`, fileError);
       }
-    });
+    }
+    console.log(`Total files added to macOS archive: ${filesAdded}`);
     const macosInstructions = `# ITSM Agent Installation Instructions - macOS
 
 ## Prerequisites
@@ -13816,15 +13904,36 @@ router5.get("/download/macos", authenticateToken3, requireAdmin, async (req, res
 ## Installation Steps
 1. Extract this archive
 2. Edit config.ini with your server details
-3. Run: sudo python3 itsm_agent.py install
-4. Start: sudo python3 itsm_agent.py start
+3. Install Python dependencies:
+   pip3 install psutil requests configparser websocket-client
+4. Run: sudo python3 itsm_agent.py install
+5. Start: sudo python3 itsm_agent.py start
 
 ## Configuration
-Edit config.ini before installation.
+Edit config.ini before installation:
+\`\`\`ini
+[api]
+base_url = http://your-itsm-server:5000
+auth_token = your-auth-token-here
+
+[agent]
+collection_interval = 300
+hostname = auto
+\`\`\`
+
+## Manual Service Setup
+If automatic service setup fails:
+1. Create launchd plist in /Library/LaunchDaemons/
+2. Use launchctl to load and start the service
+
+## Support
+For technical support, contact your system administrator.
 `;
     archive.append(macosInstructions, { name: "README.md" });
     await archive.finalize();
-    console.log("macOS agent download completed");
+    if (!archiveError) {
+      console.log("macOS agent download completed successfully");
+    }
   } catch (error) {
     console.error("macOS agent download error:", error);
     if (!res.headersSent) {
@@ -13835,6 +13944,7 @@ Edit config.ini before installation.
 var agent_download_routes_default = router5;
 
 // server/index.ts
+init_sla_escalation_service();
 import expressWs2 from "express-ws";
 var app = express2();
 var wsInstance2 = expressWs2(app);
@@ -13879,8 +13989,12 @@ app.use((req, res, next) => {
         process.exit(1);
       }
       if (process.env.DATABASE_URL.includes("base")) {
-        console.error("\u274C Invalid DATABASE_URL detected - contains 'base' hostname");
-        console.log("\u{1F4A1} This usually means the database URL is corrupted or incomplete");
+        console.error(
+          "\u274C Invalid DATABASE_URL detected - contains 'base' hostname"
+        );
+        console.log(
+          "\u{1F4A1} This usually means the database URL is corrupted or incomplete"
+        );
         console.log("\u{1F527} Please check your database configuration in Replit");
         process.exit(1);
       }
@@ -13899,8 +14013,12 @@ app.use((req, res, next) => {
       if (error.code === "ENOTFOUND") {
         console.log("\u{1F527} To fix this issue:");
         console.log("1. Go to the Database tab in Replit");
-        console.log("2. Create a new PostgreSQL database if you don't have one");
-        console.log("3. The DATABASE_URL environment variable will be automatically configured");
+        console.log(
+          "2. Create a new PostgreSQL database if you don't have one"
+        );
+        console.log(
+          "3. The DATABASE_URL environment variable will be automatically configured"
+        );
         console.log("4. Restart your application");
       }
       process.exit(1);
@@ -13979,7 +14097,10 @@ app.use((req, res, next) => {
           );
         }
         const startIndex = (page - 1) * limit;
-        const paginatedArticles = filteredArticles.slice(startIndex, startIndex + limit);
+        const paginatedArticles = filteredArticles.slice(
+          startIndex,
+          startIndex + limit
+        );
         console.log(`KB API - Returning ${paginatedArticles.length} articles`);
         res.json(paginatedArticles);
       } catch (error) {
@@ -14031,7 +14152,10 @@ app.use((req, res, next) => {
     app.put("/api/tickets/:id", async (req, res) => {
       try {
         const { ticketStorage: ticketStorage2 } = await Promise.resolve().then(() => (init_ticket_storage(), ticket_storage_exports));
-        const ticket = await ticketStorage2.updateTicket(req.params.id, req.body);
+        const ticket = await ticketStorage2.updateTicket(
+          req.params.id,
+          req.body
+        );
         if (!ticket) {
           return res.status(404).json({ message: "Ticket not found" });
         }
@@ -14080,7 +14204,10 @@ app.use((req, res, next) => {
     app.use((req, res, next) => {
       res.header("Access-Control-Allow-Origin", "*");
       res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
-      res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Content-Length, X-Requested-With");
+      res.header(
+        "Access-Control-Allow-Headers",
+        "Content-Type, Authorization, Content-Length, X-Requested-With"
+      );
       if (req.method === "OPTIONS") {
         res.sendStatus(200);
       } else {
@@ -14115,3 +14242,14 @@ app.use((req, res, next) => {
   console.error("\u274C Unhandled server error:", error);
   process.exit(1);
 });
+var startSLAMonitoring = () => {
+  console.log("\u{1F504} Starting SLA escalation monitoring...");
+  slaEscalationService.checkAndEscalateTickets().catch(console.error);
+  setInterval(
+    () => {
+      slaEscalationService.checkAndEscalateTickets().catch(console.error);
+    },
+    15 * 60 * 1e3
+  );
+};
+setTimeout(startSLAMonitoring, 5e3);
