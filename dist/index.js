@@ -588,44 +588,44 @@ var init_storage = __esm({
           return userWithoutPassword;
         });
       }
-      async getUserById(id2) {
-        const user = this.users.get(id2);
+      async getUserById(id) {
+        const user = this.users.get(id);
         if (!user) return null;
         const { password_hash, ...userWithoutPassword } = user;
         return userWithoutPassword;
       }
       async createUser(data) {
-        const id2 = this.generateId();
+        const id = this.generateId();
         const newUser = {
           ...data,
-          id: id2,
+          id,
           created_at: /* @__PURE__ */ new Date(),
           updated_at: /* @__PURE__ */ new Date()
         };
-        this.users.set(id2, newUser);
+        this.users.set(id, newUser);
         const { password_hash, ...userWithoutPassword } = newUser;
         return userWithoutPassword;
       }
-      async updateUser(id2, updates) {
-        const existing = this.users.get(id2);
+      async updateUser(id, updates) {
+        const existing = this.users.get(id);
         if (!existing) return null;
         const updated = {
           ...existing,
           ...updates,
           updated_at: /* @__PURE__ */ new Date()
         };
-        this.users.set(id2, updated);
+        this.users.set(id, updated);
         const { password_hash, ...userWithoutPassword } = updated;
         return userWithoutPassword;
       }
-      async deleteUser(id2) {
-        return this.users.delete(id2);
+      async deleteUser(id) {
+        return this.users.delete(id);
       }
       async getDevices() {
         return Array.from(this.devices.values());
       }
-      async getDevice(id2) {
-        return this.devices.get(id2);
+      async getDevice(id) {
+        return this.devices.get(id);
       }
       async getDeviceByHostname(hostname) {
         return Array.from(this.devices.values()).find(
@@ -633,35 +633,35 @@ var init_storage = __esm({
         );
       }
       async createDevice(device) {
-        const id2 = this.generateId();
+        const id = this.generateId();
         const newDevice = {
           ...device,
-          id: id2,
+          id,
           created_at: /* @__PURE__ */ new Date(),
           updated_at: /* @__PURE__ */ new Date()
         };
-        this.devices.set(id2, newDevice);
+        this.devices.set(id, newDevice);
         return newDevice;
       }
-      async updateDevice(id2, device) {
-        const existing = this.devices.get(id2);
+      async updateDevice(id, device) {
+        const existing = this.devices.get(id);
         if (!existing) return void 0;
         const updated = {
           ...existing,
           ...device,
           updated_at: /* @__PURE__ */ new Date()
         };
-        this.devices.set(id2, updated);
+        this.devices.set(id, updated);
         return updated;
       }
       async createDeviceReport(report) {
-        const id2 = this.generateId();
+        const id = this.generateId();
         const newReport = {
           ...report,
-          id: id2,
+          id,
           collected_at: /* @__PURE__ */ new Date()
         };
-        this.deviceReports.set(id2, newReport);
+        this.deviceReports.set(id, newReport);
         return newReport;
       }
       async getDeviceReports(deviceId) {
@@ -679,13 +679,13 @@ var init_storage = __esm({
         );
       }
       async createAlert(alert) {
-        const id2 = this.generateId();
+        const id = this.generateId();
         const newAlert = {
           ...alert,
-          id: id2,
+          id,
           triggered_at: /* @__PURE__ */ new Date()
         };
-        this.alerts.set(id2, newAlert);
+        this.alerts.set(id, newAlert);
         return newAlert;
       }
       async getActiveAlertByDeviceAndMetric(deviceId, metric) {
@@ -2638,8 +2638,8 @@ smartphones
         const allDevices = await db.select().from(devices2);
         return allDevices;
       }
-      async getDevice(id2) {
-        const [device] = await db.select().from(devices2).where(eq(devices2.id, id2));
+      async getDevice(id) {
+        const [device] = await db.select().from(devices2).where(eq(devices2.id, id));
         return device || void 0;
       }
       async getDeviceByHostname(hostname) {
@@ -2658,11 +2658,11 @@ smartphones
         }).returning();
         return newDevice;
       }
-      async updateDevice(id2, device) {
+      async updateDevice(id, device) {
         const [updatedDevice] = await db.update(devices2).set({
           ...device,
           updated_at: /* @__PURE__ */ new Date()
-        }).where(eq(devices2.id, id2)).returning();
+        }).where(eq(devices2.id, id)).returning();
         return updatedDevice || void 0;
       }
       async createDeviceReport(report) {
@@ -2809,7 +2809,7 @@ smartphones
         }
       }
       // Knowledge Base methods - Database storage
-      async getKBArticle(id2) {
+      async getKBArticle(id) {
         try {
           const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const result = await pool3.query(
@@ -2820,7 +2820,7 @@ smartphones
         FROM knowledge_base 
         WHERE id = $1
       `,
-            [id2]
+            [id]
           );
           if (result.rows.length > 0) {
             const article = result.rows[0];
@@ -2838,7 +2838,7 @@ smartphones
         }
         return null;
       }
-      async incrementArticleViews(id2) {
+      async incrementArticleViews(id) {
         try {
           const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
           await pool3.query(
@@ -2847,7 +2847,7 @@ smartphones
         SET views = COALESCE(views, 0) + 1 
         WHERE id = $1
       `,
-            [id2]
+            [id]
           );
         } catch (error) {
           console.warn("Failed to increment article views in database:", error);
@@ -2947,7 +2947,7 @@ smartphones
           return [];
         }
       }
-      async getUserById(id2) {
+      async getUserById(id) {
         try {
           const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const result = await pool3.query(
@@ -2958,7 +2958,7 @@ smartphones
         FROM users 
         WHERE id = $1
       `,
-            [id2]
+            [id]
           );
           if (result.rows.length === 0) return null;
           const user = result.rows[0];
@@ -3011,7 +3011,7 @@ smartphones
           throw error;
         }
       }
-      async updateUser(id2, updates) {
+      async updateUser(id, updates) {
         try {
           const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const setClause = [];
@@ -3029,7 +3029,7 @@ smartphones
           setClause.push(`updated_at = $${paramCount}`);
           params.push(/* @__PURE__ */ new Date());
           paramCount++;
-          params.push(id2);
+          params.push(id);
           const query = `
         UPDATE users 
         SET ${setClause.join(", ")}
@@ -3043,14 +3043,14 @@ smartphones
           return null;
         }
       }
-      async deleteUser(id2) {
+      async deleteUser(id) {
         try {
           const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const result = await pool3.query(
             `
         UPDATE users SET is_active = false WHERE id = $1
       `,
-            [id2]
+            [id]
           );
           return result.rowCount > 0;
         } catch (error) {
@@ -3417,29 +3417,29 @@ var init_user_storage = __esm({
           totalPages: Math.ceil(total / limit)
         };
       }
-      async getUserById(id2) {
-        const [user] = await db.select().from(users).where(eq2(users.id, id2));
+      async getUserById(id) {
+        const [user] = await db.select().from(users).where(eq2(users.id, id));
         return user || null;
       }
       async getUserByEmail(email) {
         const [user] = await db.select().from(users).where(eq2(users.email, email));
         return user || null;
       }
-      async updateUser(id2, updates) {
+      async updateUser(id, updates) {
         updates.updated_at = /* @__PURE__ */ new Date();
-        const [updatedUser] = await db.update(users).set(updates).where(eq2(users.id, id2)).returning();
+        const [updatedUser] = await db.update(users).set(updates).where(eq2(users.id, id)).returning();
         if (updatedUser) {
-          await this.logUserActivity(id2, "user_updated", "User profile updated");
+          await this.logUserActivity(id, "user_updated", "User profile updated");
         }
         return updatedUser || null;
       }
-      async deleteUser(id2) {
+      async deleteUser(id) {
         const result = await db.update(users).set({
           is_active: false,
           updated_at: /* @__PURE__ */ new Date()
-        }).where(eq2(users.id, id2));
+        }).where(eq2(users.id, id));
         if (result.rowCount > 0) {
-          await this.logUserActivity(id2, "user_deleted", "User account deactivated");
+          await this.logUserActivity(id, "user_deleted", "User account deactivated");
           return true;
         }
         return false;
@@ -3455,13 +3455,13 @@ var init_user_storage = __esm({
       async getDepartments() {
         return await db.select().from(departments).where(eq2(departments.is_active, true)).orderBy(departments.name);
       }
-      async getDepartmentById(id2) {
-        const [department] = await db.select().from(departments).where(eq2(departments.id, id2));
+      async getDepartmentById(id) {
+        const [department] = await db.select().from(departments).where(eq2(departments.id, id));
         return department || null;
       }
-      async updateDepartment(id2, updates) {
+      async updateDepartment(id, updates) {
         updates.updated_at = /* @__PURE__ */ new Date();
-        const [updatedDept] = await db.update(departments).set(updates).where(eq2(departments.id, id2)).returning();
+        const [updatedDept] = await db.update(departments).set(updates).where(eq2(departments.id, id)).returning();
         return updatedDept || null;
       }
       // Role-based queries
@@ -3707,13 +3707,13 @@ var init_ticket_storage = __esm({
           totalPages: Math.ceil(total / limit)
         };
       }
-      async getTicketById(id2) {
-        const [ticket] = await db.select().from(tickets).where(eq3(tickets.id, id2));
+      async getTicketById(id) {
+        const [ticket] = await db.select().from(tickets).where(eq3(tickets.id, id));
         return ticket || null;
       }
-      async updateTicket(id2, updates, userEmail = "admin@company.com", comment) {
+      async updateTicket(id, updates, userEmail = "admin@company.com", comment) {
         try {
-          const currentTicket = await this.getTicketById(id2);
+          const currentTicket = await this.getTicketById(id);
           if (!currentTicket) {
             throw new Error("Ticket not found");
           }
@@ -3739,7 +3739,7 @@ var init_ticket_storage = __esm({
             updates.closed_at = /* @__PURE__ */ new Date();
           }
           if (updates.workflow_step || updates.workflow_stage) {
-            const currentTicket2 = await this.getTicketById(id2);
+            const currentTicket2 = await this.getTicketById(id);
             if (currentTicket2) {
               const customFields = currentTicket2.custom_fields || {};
               if (updates.workflow_step) {
@@ -3752,12 +3752,12 @@ var init_ticket_storage = __esm({
             }
           }
           updates.updated_at = /* @__PURE__ */ new Date();
-          const [updatedTicket] = await db.update(tickets).set(updates).where(eq3(tickets.id, id2)).returning();
+          const [updatedTicket] = await db.update(tickets).set(updates).where(eq3(tickets.id, id)).returning();
           if (!updatedTicket) {
             return null;
           }
           if (comment) {
-            await this.addComment(id2, {
+            await this.addComment(id, {
               comment,
               author_email: userEmail,
               is_internal: false
@@ -3769,8 +3769,8 @@ var init_ticket_storage = __esm({
           throw error;
         }
       }
-      async deleteTicket(id2) {
-        const result = await db.delete(tickets).where(eq3(tickets.id, id2));
+      async deleteTicket(id) {
+        const result = await db.delete(tickets).where(eq3(tickets.id, id));
         return result.rowCount > 0;
       }
       // Comment Operations
@@ -3817,19 +3817,19 @@ var init_ticket_storage = __esm({
           totalPages: Math.ceil(total / limit)
         };
       }
-      async getKBArticleById(id2) {
-        const [article] = await db.select().from(knowledgeBase).where(eq3(knowledgeBase.id, id2));
+      async getKBArticleById(id) {
+        const [article] = await db.select().from(knowledgeBase).where(eq3(knowledgeBase.id, id));
         return article || null;
       }
-      async updateKBArticle(id2, updates) {
+      async updateKBArticle(id, updates) {
         const [updatedArticle] = await db.update(knowledgeBase).set({
           ...updates,
           updated_at: /* @__PURE__ */ new Date()
-        }).where(eq3(knowledgeBase.id, id2)).returning();
+        }).where(eq3(knowledgeBase.id, id)).returning();
         return updatedArticle || null;
       }
-      async deleteKBArticle(id2) {
-        const result = await db.delete(knowledgeBase).where(eq3(knowledgeBase.id, id2));
+      async deleteKBArticle(id) {
+        const result = await db.delete(knowledgeBase).where(eq3(knowledgeBase.id, id));
         return result.rowCount > 0;
       }
       // Export functionality
@@ -3926,11 +3926,11 @@ var init_ticket_storage = __esm({
         return Object.keys(changes).length > 0 ? changes : null;
       }
       // Device delete operation
-      async deleteDevice(id2) {
+      async deleteDevice(id) {
         try {
-          await db.delete(device_reports).where(eq3(device_reports.device_id, id2));
-          await db.delete(alerts).where(eq3(alerts.device_id, id2));
-          const result = await db.delete(devices).where(eq3(devices.id, id2));
+          await db.delete(device_reports).where(eq3(device_reports.device_id, id));
+          await db.delete(alerts).where(eq3(alerts.device_id, id));
+          const result = await db.delete(devices).where(eq3(devices.id, id));
           return result.rowCount > 0;
         } catch (error) {
           console.error("Error deleting device:", error);
@@ -5289,11 +5289,11 @@ var init_notification_service = __esm({
     "use strict";
     NotificationService = class {
       subscribers = /* @__PURE__ */ new Map();
-      subscribe(id2, callback) {
-        this.subscribers.set(id2, callback);
+      subscribe(id, callback) {
+        this.subscribers.set(id, callback);
       }
-      unsubscribe(id2) {
-        this.subscribers.delete(id2);
+      unsubscribe(id) {
+        this.subscribers.delete(id);
       }
       notify(data) {
         for (const callback of this.subscribers.values()) {
@@ -7964,12 +7964,12 @@ var init_reports_storage = __esm({
           return [];
         }
       }
-      async getReportById(id2) {
+      async getReportById(id) {
         try {
           const result = await db.execute(sql9`
         SELECT id, title, type, data, generated_at, time_range, user_id
         FROM reports
-        WHERE id = ${id2}
+        WHERE id = ${id}
       `);
           if (result.rows.length === 0) return null;
           const row = result.rows[0];
@@ -7987,10 +7987,10 @@ var init_reports_storage = __esm({
           return null;
         }
       }
-      async deleteReport(id2) {
+      async deleteReport(id) {
         try {
-          await db.execute(sql9`DELETE FROM reports WHERE id = ${id2}`);
-          console.log(`Report ${id2} deleted successfully`);
+          await db.execute(sql9`DELETE FROM reports WHERE id = ${id}`);
+          console.log(`Report ${id} deleted successfully`);
           return true;
         } catch (error) {
           console.error("Error deleting report:", error);
@@ -8407,9 +8407,9 @@ var init_analytics_routes = __esm({
     });
     router6.get("/report/:id", async (req, res) => {
       try {
-        const { id: id2 } = req.params;
-        console.log(`Fetching report with ID: ${id2}`);
-        const report = await reportsStorage.getReportById(id2);
+        const { id } = req.params;
+        console.log(`Fetching report with ID: ${id}`);
+        const report = await reportsStorage.getReportById(id);
         if (!report) {
           return res.status(404).json({
             success: false,
@@ -8430,9 +8430,9 @@ var init_analytics_routes = __esm({
     });
     router6.delete("/report/:id", async (req, res) => {
       try {
-        const { id: id2 } = req.params;
-        console.log(`Deleting report with ID: ${id2}`);
-        const success = await reportsStorage.deleteReport(id2);
+        const { id } = req.params;
+        console.log(`Deleting report with ID: ${id}`);
+        const success = await reportsStorage.deleteReport(id);
         if (!success) {
           return res.status(404).json({
             success: false,
@@ -11757,8 +11757,8 @@ ${reportData.content}`;
   });
   app2.post("/api/agents/:id/test-connectivity", authenticateToken, async (req, res) => {
     try {
-      const { id: id2 } = req.params;
-      const device = await storage.getDevice(id2);
+      const { id } = req.params;
+      const device = await storage.getDevice(id);
       if (!device || !device.ip_address) {
         return res.status(404).json({ message: "Agent not found or no IP address" });
       }
@@ -12432,8 +12432,8 @@ For technical support, contact your system administrator.
   });
   app2.get("/api/devices/:id/performance-insights", authenticateToken, async (req, res) => {
     try {
-      const { id: id2 } = req.params;
-      const insights = await performanceService.getApplicationPerformanceInsights(id2);
+      const { id } = req.params;
+      const insights = await performanceService.getApplicationPerformanceInsights(id);
       res.json(insights);
     } catch (error) {
       console.error("Error fetching performance insights:", error);
@@ -12451,8 +12451,8 @@ For technical support, contact your system administrator.
   });
   app2.get("/api/devices/:id/ai-insights", authenticateToken, async (req, res) => {
     try {
-      const { id: id2 } = req.params;
-      const insights = await aiService.generateDeviceInsights(id2);
+      const { id } = req.params;
+      const insights = await aiService.generateDeviceInsights(id);
       res.json(insights);
     } catch (error) {
       console.error("Error generating AI insights:", error);
@@ -12464,8 +12464,8 @@ For technical support, contact your system administrator.
   });
   app2.get("/api/devices/:id/ai-recommendations", authenticateToken, async (req, res) => {
     try {
-      const { id: id2 } = req.params;
-      const recommendations = await aiService.getDeviceRecommendations(id2);
+      const { id } = req.params;
+      const recommendations = await aiService.getDeviceRecommendations(id);
       res.json({ recommendations });
     } catch (error) {
       console.error("Error getting AI recommendations:", error);
@@ -13329,489 +13329,216 @@ router3.post("/", authenticateToken2, async (req, res) => {
   }
 });
 
-// server/vpn-routes.ts
+// server/agent-ad-sync-routes.ts
 import { Router as Router4 } from "express";
-import { v4 as uuidv4 } from "uuid";
-var router4 = Router4();
-var vpnConnections = [
-  {
-    id: "vpn-1",
-    name: "Fidelis Group AD Access",
-    server: "192.168.1.195",
-    port: 1194,
-    protocol: "OpenVPN",
-    username: "test",
-    password: "Fidelis@123",
-    status: "disconnected",
-    autoConnect: false,
-    description: "VPN connection required for Active Directory integration",
-    created_at: (/* @__PURE__ */ new Date()).toISOString()
+
+// server/agent-tunnel-service.ts
+import { EventEmitter } from "events";
+var AgentTunnelService = class extends EventEmitter {
+  connections = /* @__PURE__ */ new Map();
+  registerAgent(agentId, ws, capabilities) {
+    const connection = {
+      agentId,
+      websocket: ws,
+      lastPing: /* @__PURE__ */ new Date(),
+      capabilities
+    };
+    this.connections.set(agentId, connection);
+    ws.on("message", (data) => {
+      try {
+        const message = JSON.parse(data.toString());
+        this.handleAgentMessage(agentId, message);
+      } catch (error) {
+        console.error(`Invalid message from agent ${agentId}:`, error);
+      }
+    });
+    ws.on("close", () => {
+      this.connections.delete(agentId);
+      console.log(`Agent ${agentId} disconnected`);
+    });
+    console.log(`Agent ${agentId} connected with capabilities:`, capabilities);
   }
-];
-router4.get("/connections", async (req, res) => {
-  try {
-    const safeConnections = vpnConnections.map((conn) => ({
-      ...conn,
-      password: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
+  async executeRemoteCommand(agentId, command, params = {}) {
+    const connection = this.connections.get(agentId);
+    if (!connection) {
+      throw new Error(`Agent ${agentId} not connected`);
+    }
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error("Command timeout"));
+      }, 3e4);
+      const responseHandler = (response) => {
+        if (response.requestId === requestId) {
+          clearTimeout(timeout);
+          this.removeListener("commandResponse", responseHandler);
+          if (response.success) {
+            resolve(response.data);
+          } else {
+            reject(new Error(response.error || "Command failed"));
+          }
+        }
+      };
+      this.on("commandResponse", responseHandler);
+      connection.websocket.send(JSON.stringify({
+        type: "command",
+        requestId,
+        command,
+        params
+      }));
+    });
+  }
+  handleAgentMessage(agentId, message) {
+    switch (message.type) {
+      case "ping":
+        const connection = this.connections.get(agentId);
+        if (connection) {
+          connection.lastPing = /* @__PURE__ */ new Date();
+          connection.websocket.send(JSON.stringify({ type: "pong" }));
+        }
+        break;
+      case "commandResponse":
+        this.emit("commandResponse", message);
+        break;
+      case "adSync":
+        this.handleADSync(agentId, message.data);
+        break;
+      default:
+        console.warn(`Unknown message type from agent ${agentId}:`, message.type);
+    }
+  }
+  async handleADSync(agentId, adData) {
+    try {
+      console.log(`Processing AD sync from agent ${agentId}:`, adData);
+      this.emit("adSyncReceived", { agentId, data: adData });
+    } catch (error) {
+      console.error(`Error processing AD sync from agent ${agentId}:`, error);
+    }
+  }
+  getConnectedAgents() {
+    return Array.from(this.connections.entries()).map(([agentId, connection]) => ({
+      agentId,
+      lastPing: connection.lastPing,
+      capabilities: connection.capabilities,
+      connected: true
     }));
-    res.json(safeConnections);
-  } catch (error) {
-    res.status(500).json({
-      message: "Error fetching VPN connections",
-      error: error.message
-    });
   }
+  isAgentConnected(agentId) {
+    return this.connections.has(agentId);
+  }
+};
+var agentTunnelService = new AgentTunnelService();
+
+// server/agent-ad-sync-routes.ts
+import expressWs from "express-ws";
+var router4 = Router4();
+var wsInstance = expressWs(router4);
+wsInstance.app.ws("/agent-tunnel/:agentId", (ws, req) => {
+  const agentId = req.params.agentId;
+  const capabilities = req.query.capabilities?.toString().split(",") || [];
+  agentTunnelService.registerAgent(agentId, ws, capabilities);
 });
-router4.post("/connections", async (req, res) => {
+router4.post("/agents/:id/sync-ad", async (req, res) => {
   try {
-    const {
-      name,
-      server,
-      port,
-      protocol,
-      username,
-      password,
-      certificate,
-      privateKey,
-      autoConnect,
-      description
-    } = req.body;
-    if (!name || !server || !username || !password) {
-      return res.status(400).json({
-        message: "Name, server, username, and password are required"
+    const agentId = req.params.id;
+    if (!agentTunnelService.isAgentConnected(agentId)) {
+      return res.status(404).json({
+        success: false,
+        message: "Agent not connected"
       });
     }
-    const newConnection = {
-      id: uuidv4(),
-      name,
-      server,
-      port: port || 1194,
-      protocol: protocol || "OpenVPN",
-      username,
-      password,
-      certificate: certificate || "",
-      privateKey: privateKey || "",
-      status: "disconnected",
-      autoConnect: autoConnect || false,
-      description: description || "",
-      created_at: (/* @__PURE__ */ new Date()).toISOString()
+    const adConfig = req.body.adConfig || {
+      server: "ldap://192.168.1.195:389",
+      searchBase: "CN=Users,DC=fidelisgroup,DC=local",
+      bindDN: "CN=test,CN=Users,DC=fidelisgroup,DC=local",
+      bindPassword: "Fidelis@123"
     };
-    vpnConnections.push(newConnection);
-    res.status(201).json({
-      message: "VPN connection created successfully",
-      connection: { ...newConnection, password: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" }
+    const result = await agentTunnelService.executeRemoteCommand(agentId, "syncAD", {
+      config: adConfig,
+      syncUsers: true,
+      syncGroups: true
     });
-  } catch (error) {
-    res.status(500).json({
-      message: "Error creating VPN connection",
-      error: error.message
-    });
-  }
-});
-router4.put("/connections/:id", async (req, res) => {
-  try {
-    const { id: id2 } = req.params;
-    const connectionIndex = vpnConnections.findIndex((conn) => conn.id === id2);
-    if (connectionIndex === -1) {
-      return res.status(404).json({ message: "VPN connection not found" });
-    }
-    const {
-      name,
-      server,
-      port,
-      protocol,
-      username,
-      password,
-      certificate,
-      privateKey,
-      autoConnect,
-      description
-    } = req.body;
-    vpnConnections[connectionIndex] = {
-      ...vpnConnections[connectionIndex],
-      name,
-      server,
-      port,
-      protocol,
-      username,
-      password,
-      certificate: certificate || "",
-      privateKey: privateKey || "",
-      autoConnect,
-      description,
-      updated_at: (/* @__PURE__ */ new Date()).toISOString()
-    };
     res.json({
-      message: "VPN connection updated successfully",
-      connection: { ...vpnConnections[connectionIndex], password: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" }
+      success: true,
+      message: "AD sync initiated via agent",
+      data: result
     });
   } catch (error) {
+    console.error("Agent AD sync error:", error);
     res.status(500).json({
-      message: "Error updating VPN connection",
-      error: error.message
+      success: false,
+      message: error.message || "Failed to sync AD via agent"
     });
   }
 });
-router4.delete("/connections/:id", async (req, res) => {
+router4.get("/agents/:id/ad-status", async (req, res) => {
   try {
-    const { id: id2 } = req.params;
-    const connectionIndex = vpnConnections.findIndex((conn) => conn.id === id2);
-    if (connectionIndex === -1) {
-      return res.status(404).json({ message: "VPN connection not found" });
-    }
-    if (vpnConnections[connectionIndex].status === "connected") {
-      vpnConnections[connectionIndex].status = "disconnected";
-    }
-    vpnConnections.splice(connectionIndex, 1);
-    res.json({ message: "VPN connection deleted successfully" });
-  } catch (error) {
-    res.status(500).json({
-      message: "Error deleting VPN connection",
-      error: error.message
-    });
-  }
-});
-router4.post("/test", async (req, res) => {
-  try {
-    const { protocol, server, port, username, password } = req.body;
-    if (!protocol || !server) {
-      return res.status(400).json({
-        message: "Protocol and server are required for testing"
+    const agentId = req.params.id;
+    if (!agentTunnelService.isAgentConnected(agentId)) {
+      return res.status(404).json({
+        success: false,
+        message: "Agent not connected"
       });
     }
-    let testResult = { success: false, message: "" };
-    switch (protocol) {
-      case "OpenVPN":
-        testResult = await testOpenVPNConnection(req.body);
-        break;
-      case "WireGuard":
-        testResult = await testWireGuardConnection(req.body);
-        break;
-      case "IKEv2":
-        testResult = await testIKEv2Connection(req.body);
-        break;
-      default:
-        testResult = await testGenericConnection(req.body);
-    }
-    if (testResult.success) {
-      res.json({
-        message: testResult.message || `${protocol} connection test successful`,
-        details: testResult
-      });
-    } else {
-      res.status(400).json({
-        message: testResult.message || "Connection test failed"
-      });
-    }
-  } catch (error) {
-    res.status(500).json({
-      message: "Error testing VPN connection",
-      error: error.message
-    });
-  }
-});
-async function testOpenVPNConnection(config) {
-  if (!config.username || !config.password) {
-    return { success: false, message: "Username and password required for OpenVPN" };
-  }
-  return {
-    success: true,
-    message: "OpenVPN configuration validated successfully",
-    details: "Server reachable, credentials format valid"
-  };
-}
-async function testWireGuardConnection(config) {
-  if (!config.privateKey || !config.peerPublicKey) {
-    return { success: false, message: "Private key and peer public key required for WireGuard" };
-  }
-  return {
-    success: true,
-    message: "WireGuard configuration validated successfully",
-    details: "Key format valid, peer endpoint reachable"
-  };
-}
-async function testIKEv2Connection(config) {
-  if (!config.username || !config.password) {
-    return { success: false, message: "Username and password required for IKEv2" };
-  }
-  return {
-    success: true,
-    message: "IKEv2 configuration validated successfully",
-    details: "Server reachable, authentication method supported"
-  };
-}
-async function testGenericConnection(config) {
-  return {
-    success: true,
-    message: "Basic configuration validation passed",
-    details: "Server address format valid"
-  };
-}
-router4.post("/connect/:id", async (req, res) => {
-  try {
-    const { id: id2 } = req.params;
-    const connection = vpnConnections.find((conn) => conn.id === id2);
-    if (!connection) {
-      return res.status(404).json({ message: "VPN connection not found" });
-    }
-    connection.status = "connecting";
-    const connectionResult = await attemptVPNConnection(connection);
-    if (connectionResult.success) {
-      connection.status = "connected";
-      connection.last_connected = (/* @__PURE__ */ new Date()).toISOString();
-      res.json({
-        message: `Successfully connected to ${connection.name}`,
-        status: "connected",
-        details: connectionResult.details
-      });
-    } else {
-      connection.status = "error";
-      res.status(400).json({
-        message: connectionResult.message || "Failed to establish VPN connection",
-        error: connectionResult.error
-      });
-    }
-  } catch (error) {
-    const connection = vpnConnections.find((conn) => conn.id === id);
-    if (connection) connection.status = "error";
-    res.status(500).json({
-      message: "Error connecting to VPN",
-      error: error.message
-    });
-  }
-});
-router4.post("/disconnect/:id", async (req, res) => {
-  try {
-    const { id: id2 } = req.params;
-    const connection = vpnConnections.find((conn) => conn.id === id2);
-    if (!connection) {
-      return res.status(404).json({ message: "VPN connection not found" });
-    }
-    connection.status = "disconnected";
-    console.log(`VPN connection "${connection.name}" disconnected`);
+    const status = await agentTunnelService.executeRemoteCommand(agentId, "getADStatus");
     res.json({
-      message: `Disconnected from ${connection.name}`,
-      status: "disconnected"
+      success: true,
+      status
     });
   } catch (error) {
+    console.error("Agent AD status error:", error);
     res.status(500).json({
-      message: "Error disconnecting from VPN",
-      error: error.message
+      success: false,
+      message: error.message || "Failed to get AD status from agent"
     });
   }
 });
-router4.get("/status/:id", async (req, res) => {
+router4.post("/agents/:id/test-ad", async (req, res) => {
   try {
-    const { id: id2 } = req.params;
-    const connection = vpnConnections.find((conn) => conn.id === id2);
-    if (!connection) {
-      return res.status(404).json({ message: "VPN connection not found" });
+    const agentId = req.params.id;
+    if (!agentTunnelService.isAgentConnected(agentId)) {
+      return res.status(404).json({
+        success: false,
+        message: "Agent not connected"
+      });
     }
+    const adConfig = req.body;
+    const result = await agentTunnelService.executeRemoteCommand(agentId, "testADConnection", adConfig);
     res.json({
-      id: connection.id,
-      name: connection.name,
-      status: connection.status,
-      last_connected: connection.last_connected
+      success: true,
+      result
     });
   } catch (error) {
+    console.error("Agent AD test error:", error);
     res.status(500).json({
-      message: "Error getting VPN status",
-      error: error.message
+      success: false,
+      message: error.message || "Failed to test AD connection via agent"
     });
   }
 });
-router4.get("/logs/:id", async (req, res) => {
+router4.post("/agents/:id/remote-command", async (req, res) => {
   try {
-    const { id: id2 } = req.params;
-    const connection = vpnConnections.find((conn) => conn.id === id2);
-    if (!connection) {
-      return res.status(404).json({ message: "VPN connection not found" });
+    const agentId = req.params.id;
+    const { command, params } = req.body;
+    if (!agentTunnelService.isAgentConnected(agentId)) {
+      return res.status(404).json({
+        success: false,
+        message: "Agent not connected"
+      });
     }
-    const logs = [
-      { timestamp: (/* @__PURE__ */ new Date()).toISOString(), level: "INFO", message: "VPN client initialized" },
-      { timestamp: (/* @__PURE__ */ new Date()).toISOString(), level: "INFO", message: `Connecting to ${connection.server}:${connection.port}` },
-      { timestamp: (/* @__PURE__ */ new Date()).toISOString(), level: "INFO", message: "Authentication successful" },
-      { timestamp: (/* @__PURE__ */ new Date()).toISOString(), level: "INFO", message: "VPN tunnel established" }
-    ];
-    res.json(logs);
+    const result = await agentTunnelService.executeRemoteCommand(agentId, command, params);
+    res.json({
+      success: true,
+      result
+    });
   } catch (error) {
+    console.error("Remote command error:", error);
     res.status(500).json({
-      message: "Error fetching VPN logs",
-      error: error.message
+      success: false,
+      message: error.message || "Failed to execute remote command"
     });
   }
 });
-async function attemptVPNConnection(connection) {
-  try {
-    switch (connection.protocol) {
-      case "OpenVPN":
-        return await connectOpenVPN(connection);
-      case "WireGuard":
-        return await connectWireGuard(connection);
-      case "IKEv2":
-        return await connectIKEv2(connection);
-      case "L2TP":
-        return await connectL2TP(connection);
-      default:
-        return { success: false, message: `Unsupported protocol: ${connection.protocol}` };
-    }
-  } catch (error) {
-    return {
-      success: false,
-      message: "Connection failed",
-      error: error.message
-    };
-  }
-}
-async function connectOpenVPN(connection) {
-  const { spawn } = __require("child_process");
-  const fs3 = __require("fs").promises;
-  const path4 = __require("path");
-  try {
-    const configPath = path4.join("/tmp", `openvpn_${connection.id}.conf`);
-    const authPath = path4.join("/tmp", `openvpn_${connection.id}_auth.txt`);
-    const config = generateOpenVPNConfig(connection);
-    await fs3.writeFile(configPath, config);
-    if (connection.username && connection.password) {
-      await fs3.writeFile(authPath, `${connection.username}
-${connection.password}`);
-    }
-    const connectivityTest = await testNetworkConnectivity(connection.server, connection.port);
-    if (!connectivityTest.success) {
-      return {
-        success: false,
-        message: `Cannot reach VPN server ${connection.server}:${connection.port}`,
-        error: connectivityTest.error
-      };
-    }
-    return {
-      success: true,
-      message: "OpenVPN connection established",
-      details: `Connected to ${connection.server}:${connection.port}`
-    };
-  } catch (error) {
-    return {
-      success: false,
-      message: "OpenVPN connection failed",
-      error: error.message
-    };
-  }
-}
-async function connectWireGuard(connection) {
-  try {
-    const connectivityTest = await testNetworkConnectivity(connection.server, connection.port);
-    if (!connectivityTest.success) {
-      return {
-        success: false,
-        message: `Cannot reach WireGuard server ${connection.server}:${connection.port}`,
-        error: connectivityTest.error
-      };
-    }
-    return {
-      success: true,
-      message: "WireGuard connection established",
-      details: `Connected to ${connection.server}:${connection.port}`
-    };
-  } catch (error) {
-    return {
-      success: false,
-      message: "WireGuard connection failed",
-      error: error.message
-    };
-  }
-}
-async function connectIKEv2(connection) {
-  try {
-    const connectivityTest = await testNetworkConnectivity(connection.server, connection.port);
-    if (!connectivityTest.success) {
-      return {
-        success: false,
-        message: `Cannot reach IKEv2 server ${connection.server}:${connection.port}`,
-        error: connectivityTest.error
-      };
-    }
-    return {
-      success: true,
-      message: "IKEv2 connection established",
-      details: `Connected to ${connection.server}:${connection.port}`
-    };
-  } catch (error) {
-    return {
-      success: false,
-      message: "IKEv2 connection failed",
-      error: error.message
-    };
-  }
-}
-async function connectL2TP(connection) {
-  try {
-    const connectivityTest = await testNetworkConnectivity(connection.server, connection.port);
-    if (!connectivityTest.success) {
-      return {
-        success: false,
-        message: `Cannot reach L2TP server ${connection.server}:${connection.port}`,
-        error: connectivityTest.error
-      };
-    }
-    return {
-      success: true,
-      message: "L2TP connection established",
-      details: `Connected to ${connection.server}:${connection.port}`
-    };
-  } catch (error) {
-    return {
-      success: false,
-      message: "L2TP connection failed",
-      error: error.message
-    };
-  }
-}
-function generateOpenVPNConfig(connection) {
-  return `
-client
-dev tun
-proto udp
-remote ${connection.server} ${connection.port}
-resolv-retry infinite
-nobind
-persist-key
-persist-tun
-ca ca.crt
-cert client.crt
-key client.key
-remote-cert-tls server
-cipher AES-256-CBC
-verb 3
-${connection.username && connection.password ? "auth-user-pass auth.txt" : ""}
-`.trim();
-}
-async function testNetworkConnectivity(host, port) {
-  const net = __require("net");
-  return new Promise((resolve) => {
-    const socket = new net.Socket();
-    const timeout = 5e3;
-    socket.setTimeout(timeout);
-    socket.on("connect", () => {
-      socket.destroy();
-      resolve({ success: true });
-    });
-    socket.on("timeout", () => {
-      socket.destroy();
-      resolve({
-        success: false,
-        error: `Connection timeout after ${timeout}ms`
-      });
-    });
-    socket.on("error", (error) => {
-      socket.destroy();
-      resolve({
-        success: false,
-        error: error.message
-      });
-    });
-    socket.connect(port, host);
-  });
-}
 
 // server/agent-download-routes.ts
 import { Router as Router5 } from "express";
@@ -14108,7 +13835,9 @@ Edit config.ini before installation.
 var agent_download_routes_default = router5;
 
 // server/index.ts
+import expressWs2 from "express-ws";
 var app = express2();
+var wsInstance2 = expressWs2(app);
 app.use(express2.json());
 app.use(express2.urlencoded({ extended: false }));
 app.use((req, res, next) => {
@@ -14326,8 +14055,8 @@ app.use((req, res, next) => {
       }
     });
     app.use("/api/knowledge", router3);
-    app.use("/api/vpn", router4);
-    app.use("/api/agent-download", agent_download_routes_default);
+    app.use("/api/agent-sync", router4);
+    app.use("/api/download", agent_download_routes_default);
     app.get("/api/health", (req, res) => {
       res.json({ status: "ok", timestamp: /* @__PURE__ */ new Date() });
     });
