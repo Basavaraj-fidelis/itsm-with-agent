@@ -1,3 +1,4 @@
+typescript
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -752,7 +753,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                     {device.is_connected && isRecentlyActive
                                       ? "Active Now"
                                       : device.isconnected
-                                        ? "Connected"
+                                        ? ""Connected"
                                         : "Inactive"}
                                   </div>
                                   <div className="text-xs text-neutral-500 dark:text-neutral-400 text-right">
@@ -1362,6 +1363,11 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             )}
                           </div>
                         </div>
+                      </div>
+                    ) : null;
+                  })()}
+                </CardContent>
+              </Card>
 
               {/* Security Status */}
               <Card>
@@ -1523,7 +1529,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                         </div>
                       );
                     }
-                    
+
                     // For Linux systems without patch_summary, show basic info
                     if (isLinux) {
                       return (
