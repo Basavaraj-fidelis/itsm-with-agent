@@ -274,6 +274,7 @@ export default function Tickets() {
           title: "Error",
           description: "Failed to load tickets. Please refresh the page.",
           variant: "destructive",
+          
         });
       }
     };
@@ -287,7 +288,7 @@ export default function Tickets() {
     setSelectedPriority("all");
     setSearchTerm("");
     setSlaViolationFilter(false);
-    
+
     // Set type filter based on active tab
     switch (activeTab) {
       case "requests":
@@ -888,7 +889,7 @@ export default function Tickets() {
 
     // Always count all tickets for overview, but consider current context for tab-specific views
     let relevantTickets = tickets;
-    
+
     // For tab-specific views, filter by type
     if (activeTab === 'requests') {
       relevantTickets = tickets.filter(ticket => ticket.type === 'request');
@@ -1058,7 +1059,7 @@ export default function Tickets() {
           {Object.entries(statusCounts).map(([type, data]) => {
             const IconComponent = data.icon;
             const totalForType = Object.values(data.statuses).reduce((sum: number, count: number) => sum + count, 0);
-            
+
             // Get the actual count from all tickets for this type
             const actualTypeCount = tickets.filter(t => t.type === type).length;
             const visibleTypeCount = totalForType;
@@ -1078,7 +1079,7 @@ export default function Tickets() {
                   <div className="space-y-3">
                     {['new', 'assigned', 'in_progress', 'pending', 'resolved', 'closed'].map(status => {
                           const count = data.statuses[status] || 0;
-                          
+
                           // Show all statuses but indicate when count is 0
                           return (
                             <div key={status} className="flex items-center justify-between">
@@ -1106,12 +1107,16 @@ export default function Tickets() {
                                       statusColors[status as keyof typeof statusColors] || "bg-gray-100 text-gray-800"
                                     }`}
                                     onClick={() => {
-                                      setSelectedStatus(status);
-                                      setSelectedType(type);
-                                      if (type === 'request' && activeTab !== 'requests') setActiveTab('requests');
-                                      else if (type === 'incident' && activeTab !== 'incidents') setActiveTab('incidents');
-                                      else if (type === 'problem' && activeTab !== 'problems') setActiveTab('problems');
-                                      else if (type === 'change' && activeTab !== 'changes') setActiveTab('changes');
+                                      // If same status is already selected, clear it to show all statuses for this type
+                                      if (selectedStatus === status && selectedType === type) {
+                                        setSelectedStatus("all");
+                                      } else {
+                                        setSelectedStatus(status);
+                                      }
+                                      // Don't change the type filter - keep current tab context
+                                      if (activeTab === 'overview') {
+                                        setSelectedType(type);
+                                      }
                                     }}
                                   >
                                     {totalForType > 0 ? Math.round((count / totalForType) * 100) : 0}%
@@ -1604,22 +1609,29 @@ export default function Tickets() {
     return (
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            {data.name} Status Overview
-          </h2>
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-500">Total: {totalForType}</span>
-            {selectedStatus !== "all" && (
-              <Badge 
-                variant="outline" 
-                className="cursor-pointer"
-                onClick={() => setSelectedStatus("all")}
-              >
-                Clear Status Filter ✕
-              </Badge>
-            )}
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              {data.name} Status Overview
+              {selectedStatus !== "all" && (
+                <span className="text-sm font-normal text-gray-500 ml-2">
+                  (Filtered by: {selectedStatus.replace('_', ' ')})
+                </span>
+              )}
+            </h2>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-500">
+                Showing: {totalForType} {selectedStatus !== "all" ? `${selectedStatus.replace('_', ' ')} ` : ''}tickets
+              </span>
+              {selectedStatus !== "all" && (
+                <Badge 
+                  variant="outline" 
+                  className="cursor-pointer hover:bg-red-50 hover:text-red-700 hover:border-red-200"
+                  onClick={() => setSelectedStatus("all")}
+                >
+                  Clear Filter ✕
+                </Badge>
+              )}
+            </div>
           </div>
-        </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {['new', 'assigned', 'in_progress', 'pending', 'resolved', 'closed'].map(status => {
             const count = data.statuses[status] || 0;
@@ -2062,7 +2074,6 @@ export default function Tickets() {
                     <SelectItem value="high">High</SelectItem>
                     <SelectItem value="critical">Critical</SelectItem>
                   </SelectContent>
-                </Select>
                             </div>
             </div>
             <div>
