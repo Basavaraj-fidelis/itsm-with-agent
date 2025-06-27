@@ -124,15 +124,21 @@ router.get('/download/windows', authenticateToken, requireAdmin, async (req, res
       'api_client.py'
     ];
 
+    let filesAdded = 0;
     windowsFiles.forEach(fileName => {
       const filePath = path.join(agentPath, fileName);
+      console.log(`Checking file: ${filePath}, exists: ${fs.existsSync(filePath)}`);
       if (fs.existsSync(filePath)) {
-        archive.file(filePath, { name: fileName });
-        console.log(`Added ${fileName} to Windows archive`);
+        const fileContent = fs.readFileSync(filePath);
+        archive.append(fileContent, { name: fileName });
+        console.log(`Added ${fileName} to Windows archive (${fileContent.length} bytes)`);
+        filesAdded++;
       } else {
         console.warn(`Windows file not found: ${fileName}`);
       }
     });
+
+    console.log(`Total files added to Windows archive: ${filesAdded}`);
 
     // Add installation instructions
     const instructions = `# ITSM Agent Installation Instructions
@@ -210,15 +216,20 @@ router.get('/download/linux', authenticateToken, requireAdmin, async (req, res) 
       'api_client.py'
     ];
 
+    let filesAdded = 0;
     linuxFiles.forEach(fileName => {
       const filePath = path.join(agentPath, fileName);
       if (fs.existsSync(filePath)) {
-        archive.file(filePath, { name: fileName });
-        console.log(`Added ${fileName} to Linux archive`);
+        const fileContent = fs.readFileSync(filePath);
+        archive.append(fileContent, { name: fileName });
+        console.log(`Added ${fileName} to Linux archive (${fileContent.length} bytes)`);
+        filesAdded++;
       } else {
         console.warn(`Linux file not found: ${fileName}`);
       }
     });
+
+    console.log(`Total files added to Linux archive: ${filesAdded}`);
 
     // Add Linux install script
     const installScript = `#!/bin/bash
@@ -331,15 +342,20 @@ router.get('/download/macos', authenticateToken, requireAdmin, async (req, res) 
       'config.ini'
     ];
 
+    let filesAdded = 0;
     macosFiles.forEach(fileName => {
       const filePath = path.join(agentPath, fileName);
       if (fs.existsSync(filePath)) {
-        archive.file(filePath, { name: fileName });
-        console.log(`Added ${fileName} to macOS archive`);
+        const fileContent = fs.readFileSync(filePath);
+        archive.append(fileContent, { name: fileName });
+        console.log(`Added ${fileName} to macOS archive (${fileContent.length} bytes)`);
+        filesAdded++;
       } else {
         console.warn(`macOS file not found: ${fileName}`);
       }
     });
+
+    console.log(`Total files added to macOS archive: ${filesAdded}`);
 
     const macosInstructions = `# ITSM Agent Installation Instructions - macOS
 
