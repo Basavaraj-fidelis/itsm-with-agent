@@ -17,10 +17,10 @@ var __export = (target, all) => {
 // shared/schema.ts
 var schema_exports = {};
 __export(schema_exports, {
-  alerts: () => alerts2,
+  alerts: () => alerts,
   deviceReportRequestSchema: () => deviceReportRequestSchema,
-  device_reports: () => device_reports2,
-  devices: () => devices2,
+  device_reports: () => device_reports,
+  devices: () => devices,
   insertAlertSchema: () => insertAlertSchema,
   insertDeviceReportSchema: () => insertDeviceReportSchema,
   insertDeviceSchema: () => insertDeviceSchema,
@@ -33,11 +33,11 @@ __export(schema_exports, {
 import { pgTable, text, timestamp, json, numeric, uuid, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-var devices2, device_reports2, alerts2, usb_devices, reportDataSchema, deviceReportRequestSchema, insertDeviceSchema, insertDeviceReportSchema, insertAlertSchema, installed_software, patch_management, user_sessions;
+var devices, device_reports, alerts, usb_devices, reportDataSchema, deviceReportRequestSchema, insertDeviceSchema, insertDeviceReportSchema, insertAlertSchema, installed_software, patch_management, user_sessions;
 var init_schema = __esm({
   "shared/schema.ts"() {
     "use strict";
-    devices2 = pgTable("devices", {
+    devices = pgTable("devices", {
       id: uuid("id").primaryKey().defaultRandom(),
       hostname: text("hostname").notNull().unique(),
       assigned_user: text("assigned_user"),
@@ -49,9 +49,9 @@ var init_schema = __esm({
       created_at: timestamp("created_at").defaultNow(),
       updated_at: timestamp("updated_at").defaultNow()
     });
-    device_reports2 = pgTable("device_reports", {
+    device_reports = pgTable("device_reports", {
       id: uuid("id").primaryKey().defaultRandom(),
-      device_id: uuid("device_id").references(() => devices2.id).notNull(),
+      device_id: uuid("device_id").references(() => devices.id).notNull(),
       collected_at: timestamp("collected_at").defaultNow(),
       cpu_usage: numeric("cpu_usage"),
       memory_usage: numeric("memory_usage"),
@@ -59,9 +59,9 @@ var init_schema = __esm({
       network_io: numeric("network_io"),
       raw_data: json("raw_data").notNull()
     });
-    alerts2 = pgTable("alerts", {
+    alerts = pgTable("alerts", {
       id: uuid("id").primaryKey().defaultRandom(),
-      device_id: uuid("device_id").references(() => devices2.id).notNull(),
+      device_id: uuid("device_id").references(() => devices.id).notNull(),
       category: text("category").notNull(),
       severity: text("severity").notNull(),
       message: text("message").notNull(),
@@ -72,7 +72,7 @@ var init_schema = __esm({
     });
     usb_devices = pgTable("usb_devices", {
       id: uuid("id").primaryKey().defaultRandom(),
-      device_id: uuid("device_id").references(() => devices2.id).notNull(),
+      device_id: uuid("device_id").references(() => devices.id).notNull(),
       device_identifier: text("device_identifier").notNull(),
       // device_id or vid:pid combo
       description: text("description"),
@@ -112,22 +112,22 @@ var init_schema = __esm({
       os_info: z.record(z.any()).optional(),
       system_health: z.record(z.any()).optional()
     }).passthrough();
-    insertDeviceSchema = createInsertSchema(devices2).omit({
+    insertDeviceSchema = createInsertSchema(devices).omit({
       id: true,
       created_at: true,
       updated_at: true
     });
-    insertDeviceReportSchema = createInsertSchema(device_reports2).omit({
+    insertDeviceReportSchema = createInsertSchema(device_reports).omit({
       id: true,
       collected_at: true
     });
-    insertAlertSchema = createInsertSchema(alerts2).omit({
+    insertAlertSchema = createInsertSchema(alerts).omit({
       id: true,
       triggered_at: true
     });
     installed_software = pgTable("installed_software", {
       id: uuid("id").primaryKey().defaultRandom(),
-      device_id: uuid("device_id").references(() => devices2.id).notNull(),
+      device_id: uuid("device_id").references(() => devices.id).notNull(),
       name: text("name").notNull(),
       version: text("version"),
       publisher: text("publisher"),
@@ -139,7 +139,7 @@ var init_schema = __esm({
     });
     patch_management = pgTable("patch_management", {
       id: uuid("id").primaryKey().defaultRandom(),
-      device_id: uuid("device_id").references(() => devices2.id).notNull(),
+      device_id: uuid("device_id").references(() => devices.id).notNull(),
       patch_id: text("patch_id").notNull(),
       title: text("title").notNull(),
       description: text("description"),
@@ -152,7 +152,7 @@ var init_schema = __esm({
     user_sessions = pgTable("user_sessions", {
       id: uuid("id").primaryKey().defaultRandom(),
       user_id: uuid("user_id").notNull(),
-      device_id: uuid("device_id").references(() => devices2.id),
+      device_id: uuid("device_id").references(() => devices.id),
       session_start: timestamp("session_start").defaultNow(),
       session_end: timestamp("session_end"),
       duration_minutes: numeric("duration_minutes"),
@@ -2607,19 +2607,19 @@ smartphones
         }
       }
       async getDevices() {
-        const allDevices = await db.select().from(devices2);
+        const allDevices = await db.select().from(devices);
         return allDevices;
       }
       async getDevice(id) {
-        const [device] = await db.select().from(devices2).where(eq(devices2.id, id));
+        const [device] = await db.select().from(devices).where(eq(devices.id, id));
         return device || void 0;
       }
       async getDeviceByHostname(hostname) {
-        const [device] = await db.select().from(devices2).where(eq(devices2.hostname, hostname));
+        const [device] = await db.select().from(devices).where(eq(devices.hostname, hostname));
         return device || void 0;
       }
       async createDevice(device) {
-        const [newDevice] = await db.insert(devices2).values({
+        const [newDevice] = await db.insert(devices).values({
           ...device,
           assigned_user: device.assigned_user || null,
           os_name: device.os_name || null,
@@ -2631,14 +2631,14 @@ smartphones
         return newDevice;
       }
       async updateDevice(id, device) {
-        const [updatedDevice] = await db.update(devices2).set({
+        const [updatedDevice] = await db.update(devices).set({
           ...device,
           updated_at: /* @__PURE__ */ new Date()
-        }).where(eq(devices2.id, id)).returning();
+        }).where(eq(devices.id, id)).returning();
         return updatedDevice || void 0;
       }
       async createDeviceReport(report) {
-        const [newReport] = await db.insert(device_reports2).values({
+        const [newReport] = await db.insert(device_reports).values({
           ...report,
           cpu_usage: report.cpu_usage || null,
           memory_usage: report.memory_usage || null,
@@ -2648,41 +2648,41 @@ smartphones
         return newReport;
       }
       async getDeviceReports(deviceId) {
-        const reports = await db.select().from(device_reports2).where(eq(device_reports2.device_id, deviceId)).orderBy(desc(device_reports2.collected_at));
+        const reports = await db.select().from(device_reports).where(eq(device_reports.device_id, deviceId)).orderBy(desc(device_reports.collected_at));
         return reports;
       }
       async getLatestDeviceReport(deviceId) {
-        const [report] = await db.select().from(device_reports2).where(eq(device_reports2.device_id, deviceId)).orderBy(desc(device_reports2.collected_at)).limit(1);
+        const [report] = await db.select().from(device_reports).where(eq(device_reports.device_id, deviceId)).orderBy(desc(device_reports.collected_at)).limit(1);
         return report || void 0;
       }
       async getActiveAlerts() {
-        const activeAlerts = await db.select().from(alerts2).where(eq(alerts2.is_active, true)).orderBy(desc(alerts2.triggered_at));
+        const activeAlerts = await db.select().from(alerts).where(eq(alerts.is_active, true)).orderBy(desc(alerts.triggered_at));
         return activeAlerts;
       }
       async getActiveAlertByDeviceAndMetric(deviceId, metric) {
-        const result = await db.select().from(alerts2).where(
+        const result = await db.select().from(alerts).where(
           and(
-            eq(alerts2.device_id, deviceId),
-            eq(alerts2.is_active, true),
-            sql2`${alerts2.metadata}->>'metric' = ${metric}`
+            eq(alerts.device_id, deviceId),
+            eq(alerts.is_active, true),
+            sql2`${alerts.metadata}->>'metric' = ${metric}`
           )
         ).limit(1);
         return result[0] || null;
       }
       async getRecentDeviceReports(deviceId, limit = 30) {
-        const result = await db.select().from(device_reports2).where(eq(device_reports2.device_id, deviceId)).orderBy(desc(device_reports2.collected_at)).limit(limit);
+        const result = await db.select().from(device_reports).where(eq(device_reports.device_id, deviceId)).orderBy(desc(device_reports.collected_at)).limit(limit);
         return result;
       }
       async updateAlert(alertId, updates) {
-        await db.update(alerts2).set({
+        await db.update(alerts).set({
           ...updates,
           triggered_at: /* @__PURE__ */ new Date()
           // Update timestamp when alert is updated
-        }).where(eq(alerts2.id, alertId));
+        }).where(eq(alerts.id, alertId));
       }
       async getAlertById(alertId) {
         try {
-          const [alert] = await db.select().from(alerts2).where(eq(alerts2.id, alertId));
+          const [alert] = await db.select().from(alerts).where(eq(alerts.id, alertId));
           return alert || null;
         } catch (error) {
           console.error("Error fetching alert by ID:", error);
@@ -2691,10 +2691,10 @@ smartphones
       }
       async resolveAlert(alertId) {
         console.log(`Resolving alert in database: ${alertId}`);
-        const result = await db.update(alerts2).set({
+        const result = await db.update(alerts).set({
           is_active: false,
           resolved_at: /* @__PURE__ */ new Date()
-        }).where(eq(alerts2.id, alertId)).returning();
+        }).where(eq(alerts.id, alertId)).returning();
         if (result.length === 0) {
           throw new Error(`Alert with ID ${alertId} not found`);
         }
@@ -3085,7 +3085,7 @@ smartphones
         }
       }
       async createAlert(alert) {
-        const [newAlert] = await db.insert(alerts2).values({
+        const [newAlert] = await db.insert(alerts).values({
           ...alert,
           triggered_at: /* @__PURE__ */ new Date()
         }).returning();
@@ -3595,6 +3595,7 @@ __export(ticket_storage_exports, {
   ticketStorage: () => ticketStorage
 });
 import { eq as eq3, desc as desc3, and as and3, or as or3, like as like3, sql as sql4, count as count3 } from "drizzle-orm";
+import { device_reports as device_reports2, alerts as alerts2, devices as devices2 } from "@shared/device-schema";
 var TicketStorage, ticketStorage;
 var init_ticket_storage = __esm({
   "server/ticket-storage.ts"() {
@@ -3635,7 +3636,8 @@ var init_ticket_storage = __esm({
           sla_resolution_time: slaTargets.resolutionTime,
           sla_response_due: slaResponseDue,
           sla_resolution_due: slaResolutionDue,
-          due_date: slaResolutionDue
+          due_date: slaResolutionDue,
+          sla_breached: false
         }).returning();
         await this.logAudit("ticket", newTicket.id, "create", void 0, userEmail, null, newTicket);
         if (assignedTechnician) {
@@ -3722,6 +3724,33 @@ var init_ticket_storage = __esm({
               }
               updates.custom_fields = customFields;
             }
+          }
+          if (updates.status === "resolved" && !updates.resolved_at) {
+            updates.resolved_at = /* @__PURE__ */ new Date();
+            const [currentTicket2] = await db.select().from(tickets).where(eq3(tickets.id, id));
+            if (currentTicket2?.sla_resolution_due) {
+              const wasBreached = /* @__PURE__ */ new Date() > new Date(currentTicket2.sla_resolution_due);
+              updates.sla_breached = wasBreached;
+              if (!currentTicket2.first_response_at && currentTicket2.sla_response_due) {
+                updates.first_response_at = /* @__PURE__ */ new Date();
+              }
+            }
+          }
+          if (updates.status === "closed" && !updates.closed_at) {
+            updates.closed_at = /* @__PURE__ */ new Date();
+          }
+          if (updates.priority && updates.priority !== currentTicket.priority) {
+            const slaTargets = this.calculateSLATargets(updates.priority, currentTicket.type);
+            const baseTime = new Date(currentTicket.created_at);
+            const slaResponseDue = new Date(baseTime.getTime() + slaTargets.responseTime * 60 * 1e3);
+            const slaResolutionDue = new Date(baseTime.getTime() + slaTargets.resolutionTime * 60 * 1e3);
+            updates.sla_policy = slaTargets.policy;
+            updates.sla_response_time = slaTargets.responseTime;
+            updates.sla_resolution_time = slaTargets.resolutionTime;
+            updates.sla_response_due = slaResponseDue;
+            updates.sla_resolution_due = slaResolutionDue;
+            updates.due_date = slaResolutionDue;
+            updates.sla_breached = /* @__PURE__ */ new Date() > slaResolutionDue;
           }
           updates.updated_at = /* @__PURE__ */ new Date();
           const [updatedTicket] = await db.update(tickets).set(updates).where(eq3(tickets.id, id)).returning();
@@ -3858,6 +3887,20 @@ var init_ticket_storage = __esm({
           console.error("Error logging audit event:", error);
         }
       }
+      calculateChanges(oldValues, newValues) {
+        if (!oldValues || !newValues) return null;
+        const changes = {};
+        const allKeys = /* @__PURE__ */ new Set([...Object.keys(oldValues), ...Object.keys(newValues)]);
+        for (const key of allKeys) {
+          if (oldValues[key] !== newValues[key]) {
+            changes[key] = {
+              from: oldValues[key],
+              to: newValues[key]
+            };
+          }
+        }
+        return Object.keys(changes).length > 0 ? changes : null;
+      }
       calculateSLATargets(priority, type) {
         const slaMatrix = {
           critical: {
@@ -3883,26 +3926,12 @@ var init_ticket_storage = __esm({
         };
         return slaMatrix[priority] || slaMatrix.medium;
       }
-      calculateChanges(oldValues, newValues) {
-        if (!oldValues || !newValues) return null;
-        const changes = {};
-        const allKeys = /* @__PURE__ */ new Set([...Object.keys(oldValues), ...Object.keys(newValues)]);
-        for (const key of allKeys) {
-          if (oldValues[key] !== newValues[key]) {
-            changes[key] = {
-              from: oldValues[key],
-              to: newValues[key]
-            };
-          }
-        }
-        return Object.keys(changes).length > 0 ? changes : null;
-      }
       // Device delete operation
       async deleteDevice(id) {
         try {
-          await db.delete(device_reports).where(eq3(device_reports.device_id, id));
-          await db.delete(alerts).where(eq3(alerts.device_id, id));
-          const result = await db.delete(devices).where(eq3(devices.id, id));
+          await db.delete(device_reports2).where(eq3(device_reports2.device_id, id));
+          await db.delete(alerts2).where(eq3(alerts2.device_id, id));
+          const result = await db.delete(devices2).where(eq3(devices2.id, id));
           return result.rowCount > 0;
         } catch (error) {
           console.error("Error deleting device:", error);
@@ -5120,6 +5149,160 @@ var init_ad_routes = __esm({
   }
 });
 
+// server/agent-download-routes.ts
+var agent_download_routes_exports = {};
+__export(agent_download_routes_exports, {
+  default: () => agent_download_routes_default
+});
+import { Router as Router2 } from "express";
+import path from "path";
+import fs from "fs";
+import archiver from "archiver";
+import jwt from "jsonwebtoken";
+function generateInstallationInstructions(platform2) {
+  const baseInstructions = `# ITSM Agent Installation Instructions - ${platform2.charAt(0).toUpperCase() + platform2.slice(1)}
+
+## Prerequisites
+- Python 3.7 or higher
+- Administrator/root privileges
+
+## Configuration
+Before installation, edit config.ini:
+\`\`\`ini
+[api]
+base_url = http://your-itsm-server:5000
+auth_token = your-auth-token-here
+
+[agent]
+collection_interval = 300
+hostname = auto
+\`\`\`
+
+## Installation Steps`;
+  switch (platform2) {
+    case "windows":
+      return `${baseInstructions}
+
+1. Extract this archive to your target directory (e.g., C:\\itsm-agent)
+2. Edit config.ini with your ITSM server details
+3. Open Command Prompt as Administrator
+4. Navigate to the extracted directory
+5. Install Python dependencies:
+   \`\`\`
+   pip install psutil requests configparser websocket-client
+   \`\`\`
+6. Run the installation script:
+   \`\`\`
+   python install_windows.py
+   \`\`\`
+7. Start the service:
+   \`\`\`
+   python itsm_agent.py start
+   \`\`\`
+
+## Support
+For technical support, contact your system administrator.`;
+    case "linux":
+      return `${baseInstructions}
+
+1. Extract this archive: \`unzip itsm-agent-linux.zip\`
+2. Edit config.ini with your server details
+3. Install Python dependencies:
+   \`\`\`
+   sudo pip3 install psutil requests configparser websocket-client
+   \`\`\`
+4. Copy files to system directory:
+   \`\`\`
+   sudo mkdir -p /opt/itsm-agent
+   sudo cp *.py config.ini /opt/itsm-agent/
+   sudo chmod +x /opt/itsm-agent/*.py
+   \`\`\`
+5. Start the agent:
+   \`\`\`
+   sudo python3 /opt/itsm-agent/itsm_agent.py
+   \`\`\`
+
+## Support
+For technical support, contact your system administrator.`;
+    case "macos":
+      return `${baseInstructions}
+
+1. Extract this archive
+2. Edit config.ini with your server details
+3. Install Python dependencies:
+   \`\`\`
+   pip3 install psutil requests configparser websocket-client
+   \`\`\`
+4. Run the agent:
+   \`\`\`
+   sudo python3 itsm_agent.py
+   \`\`\`
+
+## Support
+For technical support, contact your system administrator.`;
+    default:
+      return baseInstructions;
+  }
+}
+var router2, JWT_SECRET, agent_download_routes_default;
+var init_agent_download_routes = __esm({
+  "server/agent-download-routes.ts"() {
+    "use strict";
+    router2 = Router2();
+    JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+    router2.get("/:platform", async (req, res) => {
+      try {
+        const { platform: platform2 } = req.params;
+        console.log(`${platform2} agent download requested - no auth required`);
+        if (!["windows", "linux", "macos"].includes(platform2)) {
+          return res.status(400).json({ error: "Invalid platform" });
+        }
+        const agentPath = path.join(process.cwd(), "Agent");
+        if (!fs.existsSync(agentPath)) {
+          console.error("Agent directory not found at:", agentPath);
+          return res.status(404).json({ error: "Agent files not found" });
+        }
+        const availableFiles = fs.readdirSync(agentPath);
+        console.log("Available files in Agent directory:", availableFiles);
+        if (availableFiles.length === 0) {
+          console.error("Agent directory is empty!");
+          return res.status(404).json({ error: "Agent directory is empty" });
+        }
+        const filename = `itsm-agent-${platform2}.zip`;
+        res.setHeader("Content-Type", "application/zip");
+        res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
+        const archive = archiver("zip", {
+          zlib: { level: 9 }
+          // Maximum compression
+        });
+        archive.on("error", (err) => {
+          console.error("Archive error:", err);
+          if (!res.headersSent) {
+            res.status(500).json({ error: "Failed to create archive" });
+          }
+        });
+        archive.on("end", () => {
+          console.log(`${platform2} agent archive has been finalized successfully`);
+        });
+        archive.pipe(res);
+        console.log(`Adding entire Agent directory to ${platform2} archive`);
+        archive.directory(agentPath, false);
+        const instructions = generateInstallationInstructions(platform2);
+        archive.append(instructions, { name: "INSTALLATION_INSTRUCTIONS.md" });
+        console.log(`Added installation instructions for ${platform2}`);
+        await archive.finalize();
+        console.log(`${platform2} agent download completed successfully - no auth required`);
+      } catch (error) {
+        console.error(`${req.params.platform} agent download error:`, error);
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Failed to download agent" });
+        }
+      }
+    });
+    agent_download_routes_default = router2;
+  }
+});
+
 // server/notification-service.ts
 var NotificationService, notificationService;
 var init_notification_service = __esm({
@@ -5448,6 +5631,14 @@ var init_sla_escalation_service = __esm({
             )
           );
           console.log(`Found ${openTickets.length} open tickets to check`);
+          for (const ticket of openTickets) {
+            if (ticket.sla_resolution_due) {
+              const isBreached = now > new Date(ticket.sla_resolution_due);
+              if (isBreached !== ticket.sla_breached) {
+                await db.update(tickets).set({ sla_breached: isBreached, updated_at: now }).where(eq6(tickets.id, ticket.id));
+              }
+            }
+          }
           const alerts3 = [];
           for (const ticket of openTickets) {
             if (!ticket.sla_resolution_due) continue;
@@ -5882,6 +6073,41 @@ function registerSLARoutes(app2) {
       res.status(500).json({ error: "Failed to generate compliance report" });
     }
   });
+  app2.post("/api/sla/sync-tickets", async (req, res) => {
+    try {
+      const { db: db3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
+      const { eq: eq9, isNull: isNull2 } = await import("drizzle-orm");
+      const ticketsToUpdate = await db3.select().from(tickets2).where(isNull2(tickets2.sla_resolution_due));
+      let updated = 0;
+      for (const ticket of ticketsToUpdate) {
+        const { ticketStorage: ticketStorage2 } = await Promise.resolve().then(() => (init_ticket_storage(), ticket_storage_exports));
+        const slaTargets = ticketStorage2.calculateSLATargets(ticket.priority, ticket.type);
+        const baseTime = new Date(ticket.created_at);
+        const slaResponseDue = new Date(baseTime.getTime() + slaTargets.responseTime * 60 * 1e3);
+        const slaResolutionDue = new Date(baseTime.getTime() + slaTargets.resolutionTime * 60 * 1e3);
+        const isBreached = /* @__PURE__ */ new Date() > slaResolutionDue && !["resolved", "closed", "cancelled"].includes(ticket.status);
+        await db3.update(tickets2).set({
+          sla_policy: slaTargets.policy,
+          sla_response_time: slaTargets.responseTime,
+          sla_resolution_time: slaTargets.resolutionTime,
+          sla_response_due: slaResponseDue,
+          sla_resolution_due: slaResolutionDue,
+          due_date: slaResolutionDue,
+          sla_breached: isBreached,
+          updated_at: /* @__PURE__ */ new Date()
+        }).where(eq9(tickets2.id, ticket.id));
+        updated++;
+      }
+      res.json({
+        message: `SLA sync completed for ${updated} tickets`,
+        updated
+      });
+    } catch (error) {
+      console.error("Error syncing SLA data:", error);
+      res.status(500).json({ error: "Failed to sync SLA data" });
+    }
+  });
 }
 var init_sla_routes = __esm({
   "server/sla-routes.ts"() {
@@ -5921,7 +6147,7 @@ var init_analytics_service = __esm({
           );
           try {
             const totalDevicesResult = await Promise.race([
-              db.select({ count: sql8`count(*)` }).from(devices2),
+              db.select({ count: sql8`count(*)` }).from(devices),
               timeout
             ]);
             const totalDevices = Number(totalDevicesResult[0]?.count) || 0;
@@ -5932,9 +6158,9 @@ var init_analytics_service = __esm({
             try {
               devicesByOS = await Promise.race([
                 db.select({
-                  os_name: devices2.os_name,
+                  os_name: devices.os_name,
                   count: sql8`count(*)`
-                }).from(devices2).groupBy(devices2.os_name),
+                }).from(devices).groupBy(devices.os_name),
                 timeout
               ]);
             } catch (osError) {
@@ -5944,9 +6170,9 @@ var init_analytics_service = __esm({
             try {
               devicesByStatus = await Promise.race([
                 db.select({
-                  status: devices2.status,
+                  status: devices.status,
                   count: sql8`count(*)`
-                }).from(devices2).groupBy(devices2.status),
+                }).from(devices).groupBy(devices.status),
                 timeout
               ]);
             } catch (statusError) {
@@ -5955,7 +6181,7 @@ var init_analytics_service = __esm({
             }
             try {
               detailedDevices = await Promise.race([
-                db.select().from(devices2).limit(20),
+                db.select().from(devices).limit(20),
                 timeout
               ]);
             } catch (detailError) {
@@ -6033,7 +6259,7 @@ var init_analytics_service = __esm({
           } catch (dbError) {
             console.error("Database error in asset inventory report:", dbError);
             try {
-              const basicDeviceCount = await db.select({ count: sql8`count(*)` }).from(devices2);
+              const basicDeviceCount = await db.select({ count: sql8`count(*)` }).from(devices);
               const deviceCount = Number(basicDeviceCount[0]?.count) || 0;
               return {
                 total_devices: deviceCount,
@@ -6228,7 +6454,7 @@ var init_analytics_service = __esm({
           let alertCounts = [];
           try {
             recentReports = await Promise.race([
-              db.select().from(device_reports2).orderBy(desc6(device_reports2.created_at)).limit(50),
+              db.select().from(device_reports).orderBy(desc6(device_reports.created_at)).limit(50),
               timeout
             ]);
           } catch (reportsError) {
@@ -6238,9 +6464,9 @@ var init_analytics_service = __esm({
           try {
             alertCounts = await Promise.race([
               db.select({
-                severity: alerts2.severity,
+                severity: alerts.severity,
                 count: sql8`count(*)`
-              }).from(alerts2).groupBy(alerts2.severity).limit(10),
+              }).from(alerts).groupBy(alerts.severity).limit(10),
               timeout
             ]);
           } catch (alertsError) {
@@ -6312,7 +6538,7 @@ var init_analytics_service = __esm({
         } catch (dbError) {
           console.error("Database error in system health report:", dbError);
           try {
-            const basicDeviceCount = await db.select({ count: sql8`count(*)` }).from(devices2);
+            const basicDeviceCount = await db.select({ count: sql8`count(*)` }).from(devices);
             const deviceCount = Number(basicDeviceCount[0]?.count) || 0;
             return {
               overall_health: {
@@ -9203,7 +9429,7 @@ function registerTicketRoutes(app2) {
 init_ticket_schema();
 init_ticket_storage();
 import bcrypt2 from "bcrypt";
-import jwt from "jsonwebtoken";
+import jwt2 from "jsonwebtoken";
 
 // server/security-service.ts
 init_storage();
@@ -10059,8 +10285,9 @@ var AIService = class {
 var aiService = new AIService();
 
 // server/routes.ts
-import path from "path";
-var JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+import fs2 from "fs";
+import path2 from "path";
+var JWT_SECRET2 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 var authenticateToken = async (req, res, next) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
@@ -10068,7 +10295,7 @@ var authenticateToken = async (req, res, next) => {
     return res.status(401).json({ message: "Access token required" });
   }
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt2.verify(token, JWT_SECRET2);
     console.log("Decoded token:", decoded);
     try {
       const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
@@ -10156,7 +10383,7 @@ async function registerRoutes(app2) {
           const adUser = await adService2.authenticateUser(username, password);
           if (adUser) {
             const localUser = await adService2.syncUserToDatabase(adUser);
-            const token = jwt.sign(
+            const token = jwt2.sign(
               {
                 userId: localUser.id,
                 id: localUser.id,
@@ -10164,7 +10391,7 @@ async function registerRoutes(app2) {
                 role: localUser.role,
                 authMethod: "ad"
               },
-              JWT_SECRET,
+              JWT_SECRET2,
               { expiresIn: "24h" }
             );
             console.log("AD login successful for:", email);
@@ -10260,9 +10487,9 @@ async function registerRoutes(app2) {
             [user.id]
           );
         }
-        const token = jwt.sign(
+        const token = jwt2.sign(
           { userId: user.id, id: user.id, email: user.email, role: user.role },
-          JWT_SECRET,
+          JWT_SECRET2,
           { expiresIn: "24h" }
         );
         const { password_hash, ...userWithoutPassword } = user;
@@ -10305,9 +10532,9 @@ async function registerRoutes(app2) {
           if (!validPasswords.includes(password)) {
             return res.status(401).json({ message: "Invalid credentials" });
           }
-          const token = jwt.sign(
+          const token = jwt2.sign(
             { userId: user.id, id: user.email, role: user.role },
-            JWT_SECRET,
+            JWT_SECRET2,
             { expiresIn: "24h" }
           );
           console.log("File storage login successful for:", email);
@@ -11289,7 +11516,7 @@ async function registerRoutes(app2) {
       }
       const token = authHeader.substring(7);
       try {
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = jwt2.verify(token, JWT_SECRET2);
         const userId = decoded.id;
         const { db: db3 } = await Promise.resolve().then(() => (init_db(), db_exports));
         const { desc: desc8 } = await import("drizzle-orm");
@@ -11363,6 +11590,8 @@ async function registerRoutes(app2) {
   registerTicketRoutes(app2);
   const { adRoutes } = await Promise.resolve().then(() => (init_ad_routes(), ad_routes_exports));
   app2.use("/api/ad", authenticateToken, requireRole(["admin"]), adRoutes);
+  const agentDownloadRoutes = await Promise.resolve().then(() => (init_agent_download_routes(), agent_download_routes_exports));
+  app2.use("/api/download/agent", agentDownloadRoutes.default);
   app2.get(
     "/api/automation/software-packages",
     authenticateToken,
@@ -12312,7 +12541,7 @@ ${type},${period},${reportData.generatedAt}`
   app2.get("/api/download/agent/:platform", authenticateToken, async (req, res) => {
     try {
       console.log("Agent download request from user:", req.user?.email, "Platform:", req.params.platform);
-      const { platform } = req.params;
+      const { platform: platform2 } = req.params;
       const agentFiles = {
         windows: [
           "itsm_agent.py",
@@ -12338,11 +12567,11 @@ ${type},${period},${reportData.generatedAt}`
           "config.ini"
         ]
       };
-      if (!agentFiles[platform]) {
+      if (!agentFiles[platform2]) {
         return res.status(400).json({ error: "Invalid platform" });
       }
-      const files = agentFiles[platform];
-      const filename = `itsm-agent-${platform}.zip`;
+      const files = agentFiles[platform2];
+      const filename = `itsm-agent-${platform2}.zip`;
       res.setHeader("Content-Type", "application/zip");
       res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
       const archiver2 = __require("archiver");
@@ -12354,11 +12583,11 @@ ${type},${period},${reportData.generatedAt}`
         }
       });
       archive.pipe(res);
-      const agentPath = path.join(process.cwd(), "Agent");
-      const fs3 = __require("fs");
+      const agentPath = path2.join(process.cwd(), "Agent");
+      const fs4 = __require("fs");
       files.forEach((file) => {
-        const filePath = path.join(agentPath, file);
-        if (fs3.existsSync(filePath)) {
+        const filePath = path2.join(agentPath, file);
+        if (fs4.existsSync(filePath)) {
           archive.file(filePath, { name: file });
           console.log(`Added file to archive: ${file}`);
         } else {
@@ -12367,7 +12596,7 @@ ${type},${period},${reportData.generatedAt}`
       });
       const instructions = `# ITSM Agent Installation Instructions
 
-## ${platform.charAt(0).toUpperCase() + platform.slice(1)} Installation
+## ${platform2.charAt(0).toUpperCase() + platform2.slice(1)} Installation
 
 ### Prerequisites
 - Python 3.7 or higher
@@ -12378,10 +12607,10 @@ ${type},${period},${reportData.generatedAt}`
 2. Edit config.ini and set your ITSM server URL and authentication token
 3. Run the installation script:
 
-${platform === "windows" ? "   python install_windows.py" : "   sudo python3 itsm_agent.py install"}
+${platform2 === "windows" ? "   python install_windows.py" : "   sudo python3 itsm_agent.py install"}
 
 4. Start the service:
-${platform === "windows" ? "   python itsm_agent.py start" : "   sudo systemctl start itsm-agent"}
+${platform2 === "windows" ? "   python itsm_agent.py start" : "   sudo systemctl start itsm-agent"}
 
 ### Configuration
 Edit config.ini before installation:
@@ -12394,7 +12623,7 @@ For technical support, contact your system administrator.
 `;
       archive.append(instructions, { name: "README.md" });
       archive.finalize();
-      console.log(`Agent download completed for platform: ${platform}`);
+      console.log(`Agent download completed for platform: ${platform2}`);
     } catch (error) {
       console.error("Error in agent download:", error);
       if (!res.headersSent) {
@@ -12434,6 +12663,147 @@ For technical support, contact your system administrator.
       });
     }
   });
+  const requireAdmin = (req, res, next) => {
+    if (!req.user || req.user.role !== "admin") {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    next();
+  };
+  app2.get("/api/admin/agent-download/:platform", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const { platform: platform2 } = req.params;
+      console.log(`${platform2} agent download requested by:`, req.user.email);
+      if (!["windows", "linux", "macos"].includes(platform2)) {
+        return res.status(400).json({ error: "Invalid platform" });
+      }
+      const agentPath = path2.join(process.cwd(), "Agent");
+      if (!fs2.existsSync(agentPath)) {
+        console.error("Agent directory not found at:", agentPath);
+        return res.status(404).json({ error: "Agent files not found" });
+      }
+      const availableFiles = fs2.readdirSync(agentPath);
+      console.log("Available files in Agent directory:", availableFiles);
+      if (availableFiles.length === 0) {
+        console.error("Agent directory is empty!");
+        return res.status(404).json({ error: "Agent directory is empty" });
+      }
+      const filename = `itsm-agent-${platform2}.zip`;
+      res.setHeader("Content-Type", "application/zip");
+      res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
+      const archiver2 = __require("archiver");
+      const archive = archiver2("zip", {
+        zlib: { level: 9 }
+        // Maximum compression
+      });
+      archive.on("error", (err) => {
+        console.error("Archive error:", err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Failed to create archive" });
+        }
+      });
+      archive.on("end", () => {
+        console.log(`${platform2} agent archive has been finalized successfully`);
+      });
+      archive.pipe(res);
+      console.log(`Adding entire Agent directory to ${platform2} archive`);
+      archive.directory(agentPath, false);
+      const instructions = generateInstallationInstructions2(platform2);
+      archive.append(instructions, { name: "INSTALLATION_INSTRUCTIONS.md" });
+      console.log(`Added installation instructions for ${platform2}`);
+      await archive.finalize();
+      console.log(`${platform2} agent download completed successfully`);
+    } catch (error) {
+      console.error(`${platform} agent download error:`, error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to download agent" });
+      }
+    }
+  });
+  function generateInstallationInstructions2(platform2) {
+    const baseInstructions = `# ITSM Agent Installation Instructions - ${platform2.charAt(0).toUpperCase() + platform2.slice(1)}
+
+## Prerequisites
+- Python 3.7 or higher
+- Administrator/root privileges
+
+## Configuration
+Before installation, edit config.ini:
+\`\`\`ini
+[api]
+base_url = http://your-itsm-server:5000
+auth_token = your-auth-token-here
+
+[agent]
+collection_interval = 300
+hostname = auto
+\`\`\`
+
+## Installation Steps`;
+    switch (platform2) {
+      case "windows":
+        return `${baseInstructions}
+
+1. Extract this archive to your target directory (e.g., C:\\itsm-agent)
+2. Edit config.ini with your ITSM server details
+3. Open Command Prompt as Administrator
+4. Navigate to the extracted directory
+5. Install Python dependencies:
+   \`\`\`
+   pip install psutil requests configparser websocket-client
+   \`\`\`
+6. Run the installation script:
+   \`\`\`
+   python install_windows.py
+   \`\`\`
+7. Start the service:
+   \`\`\`
+   python itsm_agent.py start
+   \`\`\`
+
+## Support
+For technical support, contact your system administrator.`;
+      case "linux":
+        return `${baseInstructions}
+
+1. Extract this archive: \`unzip itsm-agent-linux.zip\`
+2. Edit config.ini with your server details
+3. Install Python dependencies:
+   \`\`\`
+   sudo pip3 install psutil requests configparser websocket-client
+   \`\`\`
+4. Copy files to system directory:
+   \`\`\`
+   sudo mkdir -p /opt/itsm-agent
+   sudo cp *.py config.ini /opt/itsm-agent/
+   sudo chmod +x /opt/itsm-agent/*.py
+   \`\`\`
+5. Start the agent:
+   \`\`\`
+   sudo python3 /opt/itsm-agent/itsm_agent.py
+   \`\`\`
+
+## Support
+For technical support, contact your system administrator.`;
+      case "macos":
+        return `${baseInstructions}
+
+1. Extract this archive
+2. Edit config.ini with your server details
+3. Install Python dependencies:
+   \`\`\`
+   pip3 install psutil requests configparser websocket-client
+   \`\`\`
+4. Run the agent:
+   \`\`\`
+   sudo python3 itsm_agent.py
+   \`\`\`
+
+## Support
+For technical support, contact your system administrator.`;
+      default:
+        return baseInstructions;
+    }
+  }
   app2.get("/api/devices/:id/ai-recommendations", authenticateToken, async (req, res) => {
     try {
       const { id } = req.params;
@@ -12474,10 +12844,10 @@ For technical support, contact your system administrator.
 
 // server/user-routes.ts
 init_db();
-import { Router as Router2 } from "express";
+import { Router as Router3 } from "express";
 import bcrypt3 from "bcrypt";
-var router2 = Router2();
-router2.get("/", async (req, res) => {
+var router3 = Router3();
+router3.get("/", async (req, res) => {
   try {
     const { search, role, department, status, page = 1, limit = 50, sync_source } = req.query;
     console.log("GET /api/users - Enhanced query with filters:", { search, role, department, status, sync_source });
@@ -12598,7 +12968,7 @@ router2.get("/", async (req, res) => {
     });
   }
 });
-router2.get("/departments", async (req, res) => {
+router3.get("/departments", async (req, res) => {
   try {
     const result = await db.query(`
       SELECT DISTINCT department 
@@ -12613,7 +12983,7 @@ router2.get("/departments", async (req, res) => {
     res.status(500).json({ message: "Failed to fetch departments" });
   }
 });
-router2.post("/bulk-ad-sync", async (req, res) => {
+router3.post("/bulk-ad-sync", async (req, res) => {
   try {
     const { userEmails } = req.body;
     if (!userEmails || !Array.isArray(userEmails)) {
@@ -12652,7 +13022,7 @@ router2.post("/bulk-ad-sync", async (req, res) => {
     res.status(500).json({ message: "Failed to perform bulk AD sync" });
   }
 });
-router2.get("/:id", async (req, res) => {
+router3.get("/:id", async (req, res) => {
   try {
     const result = await db.query(`
       SELECT 
@@ -12673,7 +13043,7 @@ router2.get("/:id", async (req, res) => {
     res.status(500).json({ message: "Failed to fetch user" });
   }
 });
-router2.post("/", async (req, res) => {
+router3.post("/", async (req, res) => {
   try {
     const { email, name, role, password, department, phone } = req.body;
     if (!password) {
@@ -12718,7 +13088,7 @@ router2.post("/", async (req, res) => {
     res.status(500).json({ message: "Failed to create user" });
   }
 });
-router2.put("/:id", async (req, res) => {
+router3.put("/:id", async (req, res) => {
   try {
     console.log("PUT /api/users/:id - Updating user:", req.params.id);
     console.log("Request body:", req.body);
@@ -12780,7 +13150,7 @@ router2.put("/:id", async (req, res) => {
     });
   }
 });
-router2.delete("/:id", async (req, res) => {
+router3.delete("/:id", async (req, res) => {
   try {
     const result = await db.query(`
       UPDATE users 
@@ -12797,7 +13167,7 @@ router2.delete("/:id", async (req, res) => {
     res.status(500).json({ message: "Failed to delete user" });
   }
 });
-router2.post("/:id/lock", async (req, res) => {
+router3.post("/:id/lock", async (req, res) => {
   try {
     const { reason } = req.body;
     const userId = req.params.id;
@@ -12856,7 +13226,7 @@ router2.post("/:id/lock", async (req, res) => {
     });
   }
 });
-router2.post("/:id/unlock", async (req, res) => {
+router3.post("/:id/unlock", async (req, res) => {
   try {
     const userId = req.params.id;
     console.log(`Attempting to unlock user ${userId}`);
@@ -12914,7 +13284,7 @@ router2.post("/:id/unlock", async (req, res) => {
     });
   }
 });
-router2.post("/change-password", async (req, res) => {
+router3.post("/change-password", async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     const authHeader = req.headers.authorization;
@@ -12960,15 +13330,15 @@ router2.post("/change-password", async (req, res) => {
 
 // server/vite.ts
 import express from "express";
-import fs from "fs";
-import path2 from "path";
+import fs3 from "fs";
+import path3 from "path";
 import { createServer as createViteServer, createLogger } from "vite";
 var viteLogger = createLogger();
 function serveStatic(app2) {
-  const distPath = path2.resolve(import.meta.dirname, "..", "dist", "public");
+  const distPath = path3.resolve(import.meta.dirname, "..", "dist", "public");
   app2.use(express.static(distPath));
   app2.get("*", (_req, res) => {
-    const indexPath = path2.resolve(distPath, "index.html");
+    const indexPath = path3.resolve(distPath, "index.html");
     res.sendFile(indexPath);
   });
 }
@@ -12983,7 +13353,7 @@ function log(message, source = "express") {
 }
 async function setupVite(app2, server) {
   const vite = await createViteServer({
-    configFile: path2.resolve(import.meta.dirname, "..", "vite.config.ts"),
+    configFile: path3.resolve(import.meta.dirname, "..", "vite.config.ts"),
     server: {
       middlewareMode: true,
       hmr: {
@@ -12998,13 +13368,13 @@ async function setupVite(app2, server) {
   app2.use("*", async (req, res, next) => {
     const url = req.originalUrl;
     try {
-      const clientTemplate = path2.resolve(
+      const clientTemplate = path3.resolve(
         import.meta.dirname,
         "..",
         "client",
         "index.html"
       );
-      let template = await fs.promises.readFile(clientTemplate, "utf-8");
+      let template = await fs3.promises.readFile(clientTemplate, "utf-8");
       template = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(template);
     } catch (e) {
@@ -13185,10 +13555,10 @@ import { eq as eq8, desc as desc7 } from "drizzle-orm";
 init_db();
 init_ticket_schema();
 init_ticket_storage();
-import { Router as Router3 } from "express";
+import { Router as Router4 } from "express";
 import { eq as eq5 } from "drizzle-orm";
-import jwt2 from "jsonwebtoken";
-var router3 = Router3();
+import jwt3 from "jsonwebtoken";
+var router4 = Router4();
 var storage2 = new TicketStorage();
 var authenticateToken2 = (req, res, next) => {
   const authHeader = req.headers["authorization"];
@@ -13196,7 +13566,7 @@ var authenticateToken2 = (req, res, next) => {
   if (!token) {
     return res.status(401).json({ message: "Access token required" });
   }
-  jwt2.verify(token, process.env.JWT_SECRET || "your-secret-key", (err, decoded) => {
+  jwt3.verify(token, process.env.JWT_SECRET || "your-secret-key", (err, decoded) => {
     if (err) {
       console.error("Token verification error:", err);
       return res.status(403).json({ message: "Invalid token" });
@@ -13205,7 +13575,7 @@ var authenticateToken2 = (req, res, next) => {
     next();
   });
 };
-router3.get("/", authenticateToken2, async (req, res) => {
+router4.get("/", authenticateToken2, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
@@ -13268,7 +13638,7 @@ function calculateRelevanceScore(article, searchTerms) {
   score += (article.views || 0) * 0.1;
   return score;
 }
-router3.get("/:id", authenticateToken2, async (req, res) => {
+router4.get("/:id", authenticateToken2, async (req, res) => {
   try {
     const article = await storage2.getKBArticleById(req.params.id);
     if (!article) {
@@ -13280,7 +13650,7 @@ router3.get("/:id", authenticateToken2, async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
-router3.post("/", authenticateToken2, async (req, res) => {
+router4.post("/", authenticateToken2, async (req, res) => {
   try {
     const { title, content, category } = req.body;
     const newArticle = {
@@ -13302,7 +13672,7 @@ router3.post("/", authenticateToken2, async (req, res) => {
 });
 
 // server/agent-ad-sync-routes.ts
-import { Router as Router4 } from "express";
+import { Router as Router5 } from "express";
 
 // server/agent-tunnel-service.ts
 import { EventEmitter } from "events";
@@ -13403,14 +13773,14 @@ var agentTunnelService = new AgentTunnelService();
 
 // server/agent-ad-sync-routes.ts
 import expressWs from "express-ws";
-var router4 = Router4();
-var wsInstance = expressWs(router4);
+var router5 = Router5();
+var wsInstance = expressWs(router5);
 wsInstance.app.ws("/agent-tunnel/:agentId", (ws, req) => {
   const agentId = req.params.agentId;
   const capabilities = req.query.capabilities?.toString().split(",") || [];
   agentTunnelService.registerAgent(agentId, ws, capabilities);
 });
-router4.post("/agents/:id/sync-ad", async (req, res) => {
+router5.post("/agents/:id/sync-ad", async (req, res) => {
   try {
     const agentId = req.params.id;
     if (!agentTunnelService.isAgentConnected(agentId)) {
@@ -13443,7 +13813,7 @@ router4.post("/agents/:id/sync-ad", async (req, res) => {
     });
   }
 });
-router4.get("/agents/:id/ad-status", async (req, res) => {
+router5.get("/agents/:id/ad-status", async (req, res) => {
   try {
     const agentId = req.params.id;
     if (!agentTunnelService.isAgentConnected(agentId)) {
@@ -13465,7 +13835,7 @@ router4.get("/agents/:id/ad-status", async (req, res) => {
     });
   }
 });
-router4.post("/agents/:id/test-ad", async (req, res) => {
+router5.post("/agents/:id/test-ad", async (req, res) => {
   try {
     const agentId = req.params.id;
     if (!agentTunnelService.isAgentConnected(agentId)) {
@@ -13488,7 +13858,7 @@ router4.post("/agents/:id/test-ad", async (req, res) => {
     });
   }
 });
-router4.post("/agents/:id/remote-command", async (req, res) => {
+router5.post("/agents/:id/remote-command", async (req, res) => {
   try {
     const agentId = req.params.id;
     const { command, params } = req.body;
@@ -13511,437 +13881,6 @@ router4.post("/agents/:id/remote-command", async (req, res) => {
     });
   }
 });
-
-// server/agent-download-routes.ts
-import { Router as Router5 } from "express";
-import path3 from "path";
-import fs2 from "fs";
-import archiver from "archiver";
-import jwt3 from "jsonwebtoken";
-var router5 = Router5();
-var JWT_SECRET2 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-var authenticateToken3 = async (req, res, next) => {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
-  console.log("Auth header:", authHeader);
-  console.log("Token:", token);
-  if (!token) {
-    console.log("No token provided");
-    return res.status(401).json({ error: "Access token required" });
-  }
-  try {
-    const decoded = jwt3.verify(token, JWT_SECRET2);
-    console.log("Decoded token:", decoded);
-    try {
-      const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-      const result = await pool3.query(
-        `SELECT id, email, role, first_name, last_name, username, is_active FROM users WHERE id = $1`,
-        [decoded.userId || decoded.id]
-      );
-      if (result.rows.length > 0) {
-        const user = result.rows[0];
-        if (!user.is_active) {
-          return res.status(403).json({ error: "User account is inactive" });
-        }
-        req.user = user;
-        console.log("User authenticated:", user.email, "Role:", user.role);
-        return next();
-      }
-    } catch (dbError) {
-      console.log("Database lookup failed, trying fallback:", dbError.message);
-    }
-    req.user = {
-      id: decoded.userId || decoded.id,
-      email: decoded.email,
-      role: decoded.role || "admin",
-      is_active: true
-    };
-    console.log("Fallback user authenticated:", req.user.email, "Role:", req.user.role);
-    next();
-  } catch (error) {
-    console.error("Token verification error:", error);
-    return res.status(403).json({ error: "Invalid token" });
-  }
-};
-var requireAdmin = (req, res, next) => {
-  console.log("Checking admin permissions for user:", req.user);
-  if (!req.user || req.user.role !== "admin") {
-    console.log("Admin access denied for user role:", req.user?.role);
-    return res.status(403).json({ error: "Admin access required" });
-  }
-  console.log("Admin access granted");
-  next();
-};
-router5.get("/windows", authenticateToken3, requireAdmin, async (req, res) => {
-  try {
-    console.log("Windows agent download requested by:", req.user.email);
-    const agentPath = path3.join(process.cwd(), "Agent");
-    console.log("Agent path:", agentPath);
-    console.log("Agent directory exists:", fs2.existsSync(agentPath));
-    if (!fs2.existsSync(agentPath)) {
-      console.error("Agent directory not found at:", agentPath);
-      return res.status(404).json({ error: "Agent files not found" });
-    }
-    const availableFiles = fs2.readdirSync(agentPath);
-    console.log("Available files in Agent directory:", availableFiles);
-    const windowsFiles = [
-      "itsm_agent.py",
-      "api_client.py",
-      "system_collector.py",
-      "service_wrapper.py",
-      "config.ini",
-      "install_windows.py",
-      "fix_windows_service.py",
-      "agent_websocket_client.py"
-    ];
-    const existingFiles = windowsFiles.filter((fileName) => {
-      const filePath = path3.join(agentPath, fileName);
-      const exists = fs2.existsSync(filePath);
-      console.log(`Checking ${fileName}: ${exists ? "EXISTS" : "NOT FOUND"}`);
-      return exists;
-    });
-    if (existingFiles.length === 0) {
-      console.error("No Windows agent files found!");
-      return res.status(404).json({ error: "No Windows agent files found" });
-    }
-    console.log(`Found ${existingFiles.length} Windows files:`, existingFiles);
-    res.setHeader("Content-Type", "application/zip");
-    res.setHeader("Content-Disposition", "attachment; filename=itsm-agent-windows.zip");
-    const archive = archiver("zip", {
-      zlib: { level: 9 }
-      // Maximum compression
-    });
-    let archiveError = false;
-    archive.on("error", (err) => {
-      console.error("Archive error:", err);
-      archiveError = true;
-      if (!res.headersSent) {
-        res.status(500).json({ error: "Failed to create archive" });
-      }
-    });
-    archive.on("end", () => {
-      console.log("Archive has been finalized and the output file descriptor has closed.");
-    });
-    archive.pipe(res);
-    let filesAdded = 0;
-    for (const fileName of existingFiles) {
-      try {
-        const filePath = path3.join(agentPath, fileName);
-        const stats = fs2.statSync(filePath);
-        if (stats.isFile() && stats.size > 0) {
-          archive.file(filePath, { name: fileName });
-          console.log(`Added ${fileName} to archive (${stats.size} bytes)`);
-          filesAdded++;
-        } else {
-          console.warn(`Skipping ${fileName}: not a valid file or empty`);
-        }
-      } catch (fileError) {
-        console.error(`Error processing file ${fileName}:`, fileError);
-      }
-    }
-    console.log(`Total files added to Windows archive: ${filesAdded}`);
-    if (filesAdded === 0) {
-      console.error("No files were successfully added to the archive!");
-      if (!res.headersSent) {
-        return res.status(500).json({ error: "No valid agent files found to package" });
-      }
-    }
-    const instructions = `# ITSM Agent Installation Instructions - Windows
-
-## Prerequisites
-- Python 3.7 or higher
-- Administrator privileges
-
-## Installation Steps
-1. Extract this archive to your target directory (e.g., C:\\itsm-agent)
-2. Edit config.ini and set your ITSM server URL and authentication token:
-   - api.base_url: Your ITSM server URL (e.g., http://your-server:5000)
-   - api.auth_token: Authentication token from admin panel
-   - agent.collection_interval: Data collection frequency (seconds)
-
-3. Open Command Prompt as Administrator
-4. Navigate to the extracted directory
-5. Run the installation script:
-   python install_windows.py
-
-6. Start the service:
-   python itsm_agent.py start
-
-## Configuration
-Before installation, edit config.ini:
-\`\`\`ini
-[api]
-base_url = http://your-itsm-server:5000
-auth_token = your-auth-token-here
-
-[agent]
-collection_interval = 300
-hostname = auto
-\`\`\`
-
-## Troubleshooting
-If you encounter service issues, run:
-python fix_windows_service.py
-
-## Support
-For technical support, contact your system administrator.
-`;
-    archive.append(instructions, { name: "README.md" });
-    console.log("Added README.md to archive");
-    await archive.finalize();
-    if (!archiveError) {
-      console.log("Windows agent download completed successfully - archive finalized");
-    }
-  } catch (error) {
-    console.error("Windows agent download error:", error);
-    if (!res.headersSent) {
-      res.status(500).json({ error: "Failed to download Windows agent" });
-    }
-  }
-});
-router5.get("/linux", authenticateToken3, requireAdmin, async (req, res) => {
-  try {
-    console.log("Linux agent download requested by:", req.user.email);
-    const agentPath = path3.join(process.cwd(), "Agent");
-    if (!fs2.existsSync(agentPath)) {
-      console.error("Agent directory not found at:", agentPath);
-      return res.status(404).json({ error: "Agent files not found" });
-    }
-    const availableFiles = fs2.readdirSync(agentPath);
-    console.log("Available files for Linux:", availableFiles);
-    const linuxFiles = [
-      "itsm_agent.py",
-      "api_client.py",
-      "system_collector.py",
-      "service_wrapper.py",
-      "config.ini",
-      "agent_websocket_client.py"
-    ];
-    const existingFiles = linuxFiles.filter((fileName) => {
-      const filePath = path3.join(agentPath, fileName);
-      const exists = fs2.existsSync(filePath);
-      console.log(`Checking ${fileName}: ${exists ? "EXISTS" : "NOT FOUND"}`);
-      return exists;
-    });
-    if (existingFiles.length === 0) {
-      console.error("No Linux agent files found!");
-      return res.status(404).json({ error: "No Linux agent files found" });
-    }
-    res.setHeader("Content-Type", "application/zip");
-    res.setHeader("Content-Disposition", "attachment; filename=itsm-agent-linux.zip");
-    const archive = archiver("zip", {
-      zlib: { level: 9 }
-    });
-    let archiveError = false;
-    archive.on("error", (err) => {
-      console.error("Archive error:", err);
-      archiveError = true;
-      if (!res.headersSent) {
-        res.status(500).json({ error: "Failed to create archive" });
-      }
-    });
-    archive.pipe(res);
-    let filesAdded = 0;
-    for (const fileName of existingFiles) {
-      try {
-        const filePath = path3.join(agentPath, fileName);
-        const stats = fs2.statSync(filePath);
-        if (stats.isFile() && stats.size > 0) {
-          archive.file(filePath, { name: fileName });
-          console.log(`Added ${fileName} to archive (${stats.size} bytes)`);
-          filesAdded++;
-        }
-      } catch (fileError) {
-        console.error(`Error processing file ${fileName}:`, fileError);
-      }
-    }
-    console.log(`Total files added to Linux archive: ${filesAdded}`);
-    const installScript = `#!/bin/bash
-# ITSM Agent Linux Installation Script
-
-echo "Installing ITSM Agent for Linux..."
-
-# Check if running as root
-if [[ $EUID -ne 0 ]]; then
-   echo "This script must be run as root (use sudo)"
-   exit 1
-fi
-
-# Install Python dependencies
-pip3 install psutil requests configparser websocket-client
-
-# Copy files to /opt/itsm-agent
-mkdir -p /opt/itsm-agent
-cp *.py /opt/itsm-agent/
-cp config.ini /opt/itsm-agent/
-chmod +x /opt/itsm-agent/*.py
-
-# Create systemd service
-cat > /etc/systemd/system/itsm-agent.service << EOF
-[Unit]
-Description=ITSM Agent
-After=network.target
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/opt/itsm-agent
-ExecStart=/usr/bin/python3 /opt/itsm-agent/itsm_agent.py
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-# Enable and start service
-systemctl daemon-reload
-systemctl enable itsm-agent
-systemctl start itsm-agent
-
-echo "ITSM Agent installed and started successfully!"
-echo "Check status with: systemctl status itsm-agent"
-echo "View logs with: journalctl -u itsm-agent -f"
-`;
-    archive.append(installScript, { name: "install_linux.sh" });
-    const linuxInstructions = `# ITSM Agent Installation Instructions - Linux
-
-## Prerequisites
-- Python 3.7 or higher
-- sudo privileges
-
-## Installation Steps
-1. Extract this archive: unzip itsm-agent-linux.zip
-2. Edit config.ini with your server details
-3. Run: chmod +x install_linux.sh
-4. Run: sudo ./install_linux.sh
-
-## Manual Installation
-If the script fails, install manually:
-1. sudo pip3 install psutil requests configparser websocket-client
-2. sudo mkdir -p /opt/itsm-agent
-3. sudo cp *.py config.ini /opt/itsm-agent/
-4. Create systemd service (see install_linux.sh for reference)
-
-## Configuration
-Edit config.ini before installation.
-`;
-    archive.append(linuxInstructions, { name: "README.md" });
-    await archive.finalize();
-    if (!archiveError) {
-      console.log("Linux agent download completed successfully");
-    }
-  } catch (error) {
-    console.error("Linux agent download error:", error);
-    if (!res.headersSent) {
-      res.status(500).json({ error: "Failed to download Linux agent" });
-    }
-  }
-});
-router5.get("/macos", authenticateToken3, requireAdmin, async (req, res) => {
-  try {
-    console.log("macOS agent download requested by:", req.user.email);
-    const agentPath = path3.join(process.cwd(), "Agent");
-    if (!fs2.existsSync(agentPath)) {
-      console.error("Agent directory not found at:", agentPath);
-      return res.status(404).json({ error: "Agent files not found" });
-    }
-    const availableFiles = fs2.readdirSync(agentPath);
-    console.log("Available files for macOS:", availableFiles);
-    const macosFiles = [
-      "itsm_agent.py",
-      "api_client.py",
-      "system_collector.py",
-      "service_wrapper.py",
-      "config.ini",
-      "agent_websocket_client.py"
-    ];
-    const existingFiles = macosFiles.filter((fileName) => {
-      const filePath = path3.join(agentPath, fileName);
-      const exists = fs2.existsSync(filePath);
-      console.log(`Checking ${fileName}: ${exists ? "EXISTS" : "NOT FOUND"}`);
-      return exists;
-    });
-    if (existingFiles.length === 0) {
-      console.error("No macOS agent files found!");
-      return res.status(404).json({ error: "No macOS agent files found" });
-    }
-    res.setHeader("Content-Type", "application/zip");
-    res.setHeader("Content-Disposition", "attachment; filename=itsm-agent-macos.zip");
-    const archive = archiver("zip", {
-      zlib: { level: 9 }
-    });
-    let archiveError = false;
-    archive.on("error", (err) => {
-      console.error("Archive error:", err);
-      archiveError = true;
-      if (!res.headersSent) {
-        res.status(500).json({ error: "Failed to create archive" });
-      }
-    });
-    archive.pipe(res);
-    let filesAdded = 0;
-    for (const fileName of existingFiles) {
-      try {
-        const filePath = path3.join(agentPath, fileName);
-        const stats = fs2.statSync(filePath);
-        if (stats.isFile() && stats.size > 0) {
-          archive.file(filePath, { name: fileName });
-          console.log(`Added ${fileName} to archive (${stats.size} bytes)`);
-          filesAdded++;
-        }
-      } catch (fileError) {
-        console.error(`Error processing file ${fileName}:`, fileError);
-      }
-    }
-    console.log(`Total files added to macOS archive: ${filesAdded}`);
-    const macosInstructions = `# ITSM Agent Installation Instructions - macOS
-
-## Prerequisites
-- Python 3.7 or higher
-- Administrator privileges
-
-## Installation Steps
-1. Extract this archive
-2. Edit config.ini with your server details
-3. Install Python dependencies:
-   pip3 install psutil requests configparser websocket-client
-4. Run: sudo python3 itsm_agent.py install
-5. Start: sudo python3 itsm_agent.py start
-
-## Configuration
-Edit config.ini before installation:
-\`\`\`ini
-[api]
-base_url = http://your-itsm-server:5000
-auth_token = your-auth-token-here
-
-[agent]
-collection_interval = 300
-hostname = auto
-\`\`\`
-
-## Manual Service Setup
-If automatic service setup fails:
-1. Create launchd plist in /Library/LaunchDaemons/
-2. Use launchctl to load and start the service
-
-## Support
-For technical support, contact your system administrator.
-`;
-    archive.append(macosInstructions, { name: "README.md" });
-    await archive.finalize();
-    if (!archiveError) {
-      console.log("macOS agent download completed successfully");
-    }
-  } catch (error) {
-    console.error("macOS agent download error:", error);
-    if (!res.headersSent) {
-      res.status(500).json({ error: "Failed to download macOS agent" });
-    }
-  }
-});
-var agent_download_routes_default = router5;
 
 // server/index.ts
 init_sla_escalation_service();
@@ -14028,7 +13967,7 @@ app.use((req, res, next) => {
     const server = await registerRoutes(app);
     const { registerSLARoutes: registerSLARoutes2 } = await Promise.resolve().then(() => (init_sla_routes(), sla_routes_exports));
     registerSLARoutes2(app);
-    app.use("/api/users", router2);
+    app.use("/api/users", router3);
     const analyticsRoutes = await Promise.resolve().then(() => (init_analytics_routes(), analytics_routes_exports));
     app.use("/api/analytics", analyticsRoutes.default);
     const patchRoutes = await Promise.resolve().then(() => (init_patch_routes(), patch_routes_exports));
@@ -14036,7 +13975,7 @@ app.use((req, res, next) => {
     const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
     const { reportsStorage: reportsStorage2 } = await Promise.resolve().then(() => (init_reports_storage(), reports_storage_exports));
     await reportsStorage2.createReportsTable();
-    const authenticateToken4 = async (req, res, next) => {
+    const authenticateToken3 = async (req, res, next) => {
       const authHeader = req.headers["authorization"];
       const token = authHeader && authHeader.split(" ")[1];
       if (!token) {
@@ -14178,9 +14117,8 @@ app.use((req, res, next) => {
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    app.use("/api/knowledge", router3);
-    app.use("/api/agent-sync", router4);
-    app.use("/api/download", agent_download_routes_default);
+    app.use("/api/knowledge", router4);
+    app.use("/api/agent-sync", router5);
     app.get("/api/health", (req, res) => {
       res.json({ status: "ok", timestamp: /* @__PURE__ */ new Date() });
     });
