@@ -1,0 +1,40 @@
+Uncaught ReferenceError: Laptop is not defined
+    at Settings (settings.tsx:987:13)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=2a5ba7e9:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=2a5ba7e9:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=2a5ba7e9:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=2a5ba7e9:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=2a5ba7e9:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=2a5ba7e9:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=2a5ba7e9:19765:15)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=2a5ba7e9:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=2a5ba7e9:19137:13)
+chunk-RPCDYKBN.js?v=2a5ba7e9:14032 The above error occurred in the <Settings> component:
+
+    at Settings (https://caaae280-6697-4b59-a2b3-387067bc9cd2-00-17oa2jhm33oec.pike.replit.dev/src/pages/settings.tsx:56:21)
+    at main
+    at div
+    at div
+    at AuthenticatedLayout (https://caaae280-6697-4b59-a2b3-387067bc9cd2-00-17oa2jhm33oec.pike.replit.dev/src/App.tsx:56:32)
+    at ProtectedRoute (https://caaae280-6697-4b59-a2b3-387067bc9cd2-00-17oa2jhm33oec.pike.replit.dev/src/components/auth/protected-route.tsx:76:3)
+    at Route (https://caaae280-6697-4b59-a2b3-387067bc9cd2-00-17oa2jhm33oec.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=2a5ba7e9:206:16)
+    at Switch (https://caaae280-6697-4b59-a2b3-387067bc9cd2-00-17oa2jhm33oec.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=2a5ba7e9:262:17)
+    at Router (https://caaae280-6697-4b59-a2b3-387067bc9cd2-00-17oa2jhm33oec.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=2a5ba7e9:161:17)
+    at AuthProvider (https://caaae280-6697-4b59-a2b3-387067bc9cd2-00-17oa2jhm33oec.pike.replit.dev/src/components/auth/protected-route.tsx:36:32)
+    at QueryClientProvider (https://caaae280-6697-4b59-a2b3-387067bc9cd2-00-17oa2jhm33oec.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=2a5ba7e9:2933:3)
+    at App (https://caaae280-6697-4b59-a2b3-387067bc9cd2-00-17oa2jhm33oec.pike.replit.dev/src/App.tsx:88:49)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-RPCDYKBN.js?v=2a5ba7e9:14032
+chunk-RPCDYKBN.js?v=2a5ba7e9:9129 Uncaught ReferenceError: Laptop is not defined
+    at Settings (settings.tsx:987:13)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=2a5ba7e9:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=2a5ba7e9:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=2a5ba7e9:15914:22)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=2a5ba7e9:19753:22)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=2a5ba7e9:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=2a5ba7e9:19137:13)
+    at renderRootSync (chunk-RPCDYKBN.js?v=2a5ba7e9:19116:15)
+    at recoverFromConcurrentError (chunk-RPCDYKBN.js?v=2a5ba7e9:18736:28)
+    at performSyncWorkOnRoot (chunk-RPCDYKBN.js?v=2a5ba7e9:18879:28)

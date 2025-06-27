@@ -1,22 +1,34 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import SettingsSidebar from "@/components/layout/settings-sidebar";
 import {
-  TrendingUp, 
-  AlertTriangle, 
-  Clock, 
-  CheckCircle, 
+  TrendingUp,
+  AlertTriangle,
+  Clock,
+  CheckCircle,
   RefreshCw,
   Users,
   Shield,
@@ -41,7 +53,8 @@ import {
   Link,
   UserCheck,
   Users2,
-  Info
+  Info,
+  Laptop,
 } from "lucide-react";
 
 export default function Settings() {
@@ -148,7 +161,7 @@ export default function Settings() {
   };
 
   // Get active section from URL or default to general
-  const activeSection = location.split('/')[2] || 'general';
+  const activeSection = location.split("/")[2] || "general";
 
   const renderGeneralSettings = () => (
     <div className="space-y-6">
@@ -166,7 +179,7 @@ export default function Settings() {
               <Input
                 id="orgName"
                 value={settings.orgName}
-                onChange={(e) => updateSetting('orgName', e.target.value)}
+                onChange={(e) => updateSetting("orgName", e.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -175,7 +188,7 @@ export default function Settings() {
                 id="adminEmail"
                 type="email"
                 value={settings.adminEmail}
-                onChange={(e) => updateSetting('adminEmail', e.target.value)}
+                onChange={(e) => updateSetting("adminEmail", e.target.value)}
                 placeholder="admin@company.com"
               />
             </div>
@@ -187,22 +200,25 @@ export default function Settings() {
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>Dark Mode</Label>
-                  <p className="text-sm text-muted-foreground">Enable dark theme</p>
+                  <p className="text-sm text-muted-foreground">
+                    Enable dark theme
+                  </p>
                 </div>
-                <Switch
-                  checked={darkMode}
-                  onCheckedChange={setDarkMode}
-                />
+                <Switch checked={darkMode} onCheckedChange={setDarkMode} />
               </div>
 
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>Auto-refresh Dashboard</Label>
-                  <p className="text-sm text-muted-foreground">Refresh data automatically every 30 seconds</p>
+                  <p className="text-sm text-muted-foreground">
+                    Refresh data automatically every 30 seconds
+                  </p>
                 </div>
                 <Switch
                   checked={settings.autoRefresh}
-                  onCheckedChange={(checked) => updateSetting('autoRefresh', checked)}
+                  onCheckedChange={(checked) =>
+                    updateSetting("autoRefresh", checked)
+                  }
                 />
               </div>
             </div>
@@ -257,10 +273,14 @@ export default function Settings() {
                   updateSetting("cpuThreshold", parseInt(e.target.value))
                 }
               />
-              <p className="text-xs text-muted-foreground">Alert when CPU usage exceeds this threshold</p>
+              <p className="text-xs text-muted-foreground">
+                Alert when CPU usage exceeds this threshold
+              </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="memory-threshold">Memory Alert Threshold (%)</Label>
+              <Label htmlFor="memory-threshold">
+                Memory Alert Threshold (%)
+              </Label>
               <Input
                 id="memory-threshold"
                 type="number"
@@ -271,7 +291,9 @@ export default function Settings() {
                   updateSetting("memoryThreshold", parseInt(e.target.value))
                 }
               />
-              <p className="text-xs text-muted-foreground">Alert when memory usage exceeds this threshold</p>
+              <p className="text-xs text-muted-foreground">
+                Alert when memory usage exceeds this threshold
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="disk-threshold">Disk Alert Threshold (%)</Label>
@@ -285,12 +307,16 @@ export default function Settings() {
                   updateSetting("diskThreshold", parseInt(e.target.value))
                 }
               />
-              <p className="text-xs text-muted-foreground">Alert when disk usage exceeds this threshold</p>
+              <p className="text-xs text-muted-foreground">
+                Alert when disk usage exceeds this threshold
+              </p>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="collection-interval">Data Collection Interval</Label>
+            <Label htmlFor="collection-interval">
+              Data Collection Interval
+            </Label>
             <Select
               value={settings.collectionInterval}
               onValueChange={(value) =>
@@ -335,7 +361,9 @@ export default function Settings() {
               </div>
               <Switch
                 checked={settings.emailNotifications}
-                onCheckedChange={(checked) => updateSetting('emailNotifications', checked)}
+                onCheckedChange={(checked) =>
+                  updateSetting("emailNotifications", checked)
+                }
               />
             </div>
 
@@ -361,7 +389,9 @@ export default function Settings() {
               id="notification-email"
               type="email"
               value={settings.notificationEmail}
-              onChange={(e) => updateSetting('notificationEmail', e.target.value)}
+              onChange={(e) =>
+                updateSetting("notificationEmail", e.target.value)
+              }
               placeholder="admin@company.com"
             />
           </div>
@@ -437,7 +467,9 @@ export default function Settings() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="min-password-length">Minimum Password Length</Label>
+              <Label htmlFor="min-password-length">
+                Minimum Password Length
+              </Label>
               <Input
                 id="min-password-length"
                 type="number"
@@ -468,20 +500,24 @@ export default function Settings() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="business-start">Business Hours Start</Label>
-              <Input 
+              <Input
                 id="business-start"
-                type="time" 
+                type="time"
                 value={settings.businessHoursStart}
-                onChange={(e) => updateSetting('businessHoursStart', e.target.value)}
+                onChange={(e) =>
+                  updateSetting("businessHoursStart", e.target.value)
+                }
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="business-end">Business Hours End</Label>
-              <Input 
+              <Input
                 id="business-end"
-                type="time" 
+                type="time"
                 value={settings.businessHoursEnd}
-                onChange={(e) => updateSetting('businessHoursEnd', e.target.value)}
+                onChange={(e) =>
+                  updateSetting("businessHoursEnd", e.target.value)
+                }
               />
             </div>
           </div>
@@ -505,19 +541,27 @@ export default function Settings() {
             <h4 className="font-medium mb-2">SLA Response Times</h4>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <Badge variant="destructive" className="mb-1">Critical</Badge>
+                <Badge variant="destructive" className="mb-1">
+                  Critical
+                </Badge>
                 <p>Response: 15 minutes | Resolution: 4 hours</p>
               </div>
               <div>
-                <Badge variant="secondary" className="mb-1">High</Badge>
+                <Badge variant="secondary" className="mb-1">
+                  High
+                </Badge>
                 <p>Response: 2 hours | Resolution: 24 hours</p>
               </div>
               <div>
-                <Badge variant="outline" className="mb-1">Medium</Badge>
+                <Badge variant="outline" className="mb-1">
+                  Medium
+                </Badge>
                 <p>Response: 8 hours | Resolution: 72 hours</p>
               </div>
               <div>
-                <Badge variant="outline" className="mb-1">Low</Badge>
+                <Badge variant="outline" className="mb-1">
+                  Low
+                </Badge>
                 <p>Response: 24 hours | Resolution: 7 days</p>
               </div>
             </div>
@@ -540,19 +584,24 @@ export default function Settings() {
         <CardContent className="space-y-4">
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Download the ITSM agent for your target systems. The agent collects system information and enables remote management capabilities.
+              Download the ITSM agent for your target systems. The agent
+              collects system information and enables remote management
+              capabilities.
             </p>
 
             <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
               <div className="flex items-start space-x-3">
                 <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
                 <div>
-                  <h4 className="font-medium text-blue-900 dark:text-blue-100">Agent Download Moved</h4>
+                  <h4 className="font-medium text-blue-900 dark:text-blue-100">
+                    Agent Download Moved
+                  </h4>
                   <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                    Agent download functionality has been moved to the Admin Panel for better security and management.
+                    Agent download functionality has been moved to the Admin
+                    Panel for better security and management.
                   </p>
-                  <Button 
-                    variant="link" 
+                  <Button
+                    variant="link"
                     className="text-blue-600 dark:text-blue-400 p-0 h-auto font-medium mt-2"
                   >
                     Go to Admin Panel →
@@ -565,12 +614,15 @@ export default function Settings() {
               <div className="flex items-start space-x-3">
                 <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
                 <div>
-                  <h4 className="font-medium text-blue-900 dark:text-blue-100">Agent Download Moved</h4>
+                  <h4 className="font-medium text-blue-900 dark:text-blue-100">
+                    Agent Download Moved
+                  </h4>
                   <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                    Agent download functionality has been moved to the Admin Panel for better security and management.
+                    Agent download functionality has been moved to the Admin
+                    Panel for better security and management.
                   </p>
-                  <Button 
-                    variant="link" 
+                  <Button
+                    variant="link"
                     className="text-blue-600 dark:text-blue-400 p-0 h-auto font-medium mt-2"
                   >
                     Go to Admin Panel →
@@ -595,22 +647,30 @@ export default function Settings() {
             <div className="flex items-center justify-between">
               <div>
                 <Label>Auto-assignment</Label>
-                <p className="text-sm text-muted-foreground">Automatically assign tickets to available agents</p>
+                <p className="text-sm text-muted-foreground">
+                  Automatically assign tickets to available agents
+                </p>
               </div>
-              <Switch 
+              <Switch
                 checked={settings.autoAssignment}
-                onCheckedChange={(checked) => updateSetting('autoAssignment', checked)}
+                onCheckedChange={(checked) =>
+                  updateSetting("autoAssignment", checked)
+                }
               />
             </div>
 
             <div className="flex items-center justify-between">
               <div>
                 <Label>Agent Health Monitoring</Label>
-                <p className="text-sm text-muted-foreground">Monitor agent system performance and connectivity</p>
+                <p className="text-sm text-muted-foreground">
+                  Monitor agent system performance and connectivity
+                </p>
               </div>
-              <Switch 
+              <Switch
                 checked={settings.agentMonitoring}
-                onCheckedChange={(checked) => updateSetting('agentMonitoring', checked)}
+                onCheckedChange={(checked) =>
+                  updateSetting("agentMonitoring", checked)
+                }
               />
             </div>
           </div>
@@ -618,24 +678,30 @@ export default function Settings() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="agent-port">Default Agent Port</Label>
-              <Input 
+              <Input
                 id="agent-port"
                 type="number"
                 min="1024"
                 max="65535"
                 value={settings.agentPort}
-                onChange={(e) => updateSetting('agentPort', parseInt(e.target.value))}
+                onChange={(e) =>
+                  updateSetting("agentPort", parseInt(e.target.value))
+                }
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="heartbeat-interval">Heartbeat Interval (seconds)</Label>
-              <Input 
+              <Label htmlFor="heartbeat-interval">
+                Heartbeat Interval (seconds)
+              </Label>
+              <Input
                 id="heartbeat-interval"
                 type="number"
                 min="10"
                 max="300"
                 value={settings.heartbeatInterval}
-                onChange={(e) => updateSetting('heartbeatInterval', parseInt(e.target.value))}
+                onChange={(e) =>
+                  updateSetting("heartbeatInterval", parseInt(e.target.value))
+                }
               />
             </div>
           </div>
@@ -652,7 +718,9 @@ export default function Settings() {
             <Shield className="h-5 w-5" />
             Active Directory Integration
           </CardTitle>
-          <CardDescription>Configure Active Directory settings to sync users and groups</CardDescription>
+          <CardDescription>
+            Configure Active Directory settings to sync users and groups
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -662,7 +730,7 @@ export default function Settings() {
                 id="adServer"
                 placeholder="ldap://your-ad-server.com"
                 value={settings.adServer}
-                onChange={(e) => updateSetting('adServer', e.target.value)}
+                onChange={(e) => updateSetting("adServer", e.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -671,7 +739,7 @@ export default function Settings() {
                 id="adBaseDN"
                 placeholder="OU=Users,DC=your-domain,DC=com"
                 value={settings.adBaseDN}
-                onChange={(e) => updateSetting('adBaseDN', e.target.value)}
+                onChange={(e) => updateSetting("adBaseDN", e.target.value)}
               />
             </div>
           </div>
@@ -683,7 +751,7 @@ export default function Settings() {
                 id="adBindDN"
                 placeholder="CN=Bind User,OU=Service Accounts,DC=your-domain,DC=com"
                 value={settings.adBindDN}
-                onChange={(e) => updateSetting('adBindDN', e.target.value)}
+                onChange={(e) => updateSetting("adBindDN", e.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -692,7 +760,9 @@ export default function Settings() {
                 id="adBindPassword"
                 type="password"
                 value={settings.adBindPassword}
-                onChange={(e) => updateSetting('adBindPassword', e.target.value)}
+                onChange={(e) =>
+                  updateSetting("adBindPassword", e.target.value)
+                }
               />
             </div>
           </div>
@@ -700,11 +770,13 @@ export default function Settings() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Enable Active Directory</Label>
-              <p className="text-sm text-muted-foreground">Enable synchronization with Active Directory</p>
+              <p className="text-sm text-muted-foreground">
+                Enable synchronization with Active Directory
+              </p>
             </div>
             <Switch
               checked={settings.adEnabled}
-              onCheckedChange={(checked) => updateSetting('adEnabled', checked)}
+              onCheckedChange={(checked) => updateSetting("adEnabled", checked)}
             />
           </div>
         </CardContent>
@@ -714,19 +786,19 @@ export default function Settings() {
 
   const renderContent = () => {
     switch (activeSection) {
-      case 'general':
+      case "general":
         return renderGeneralSettings();
-      case 'monitoring':
+      case "monitoring":
         return renderMonitoringSettings();
-      case 'notifications':
+      case "notifications":
         return renderNotificationSettings();
-      case 'security':
+      case "security":
         return renderSecuritySettings();
-      case 'sla':
+      case "sla":
         return <SLAManagementContent />;
-      case 'agent':
+      case "agent":
         return renderAgentSettings();
-      case 'active-directory':
+      case "active-directory":
         return renderActiveDirectorySettings();
       default:
         return renderGeneralSettings();
@@ -741,7 +813,9 @@ export default function Settings() {
             <Clock className="h-5 w-5" />
             Business Hours & SLA
           </CardTitle>
-          <CardDescription>Configure service level agreement policies</CardDescription>
+          <CardDescription>
+            Configure service level agreement policies
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -751,7 +825,9 @@ export default function Settings() {
                 id="business-start"
                 type="time"
                 value={settings.businessHoursStart}
-                onChange={(e) => updateSetting('businessHoursStart', e.target.value)}
+                onChange={(e) =>
+                  updateSetting("businessHoursStart", e.target.value)
+                }
               />
             </div>
             <div className="space-y-2">
@@ -760,7 +836,9 @@ export default function Settings() {
                 id="business-end"
                 type="time"
                 value={settings.businessHoursEnd}
-                onChange={(e) => updateSetting('businessHoursEnd', e.target.value)}
+                onChange={(e) =>
+                  updateSetting("businessHoursEnd", e.target.value)
+                }
               />
             </div>
           </div>
@@ -784,19 +862,27 @@ export default function Settings() {
             <h4 className="font-medium mb-2">SLA Response Times</h4>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <Badge variant="destructive" className="mb-1">Critical</Badge>
+                <Badge variant="destructive" className="mb-1">
+                  Critical
+                </Badge>
                 <p>Response: 15 minutes | Resolution: 4 hours</p>
               </div>
               <div>
-                <Badge variant="secondary" className="mb-1">High</Badge>
+                <Badge variant="secondary" className="mb-1">
+                  High
+                </Badge>
                 <p>Response: 2 hours | Resolution: 24 hours</p>
               </div>
               <div>
-                <Badge variant="outline" className="mb-1">Medium</Badge>
+                <Badge variant="outline" className="mb-1">
+                  Medium
+                </Badge>
                 <p>Response: 8 hours | Resolution: 72 hours</p>
               </div>
               <div>
-                <Badge variant="outline" className="mb-1">Low</Badge>
+                <Badge variant="outline" className="mb-1">
+                  Low
+                </Badge>
                 <p>Response: 24 hours | Resolution: 7 days</p>
               </div>
             </div>
@@ -808,33 +894,33 @@ export default function Settings() {
 
   const downloadAgent = async (platform: string) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       if (!token) {
         toast({
           title: "Authentication Required",
           description: "Please log in to download the agent.",
-          variant: "destructive"
+          variant: "destructive",
         });
         return;
       }
 
       // Create proper zip archive endpoint
       const response = await fetch(`/api/admin/agent-download/${platform}`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Download error response:', errorText);
+        console.error("Download error response:", errorText);
 
         if (response.status === 401) {
           toast({
             title: "Authentication Failed",
             description: "Please log in again to download the agent.",
-            variant: "destructive"
+            variant: "destructive",
           });
           return;
         }
@@ -842,7 +928,7 @@ export default function Settings() {
           toast({
             title: "Access Denied",
             description: "Admin access required to download agents.",
-            variant: "destructive"
+            variant: "destructive",
           });
           return;
         }
@@ -854,11 +940,11 @@ export default function Settings() {
 
       // Check if blob is empty
       if (blob.size === 0) {
-        throw new Error('Downloaded file is empty');
+        throw new Error("Downloaded file is empty");
       }
 
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
       link.download = `itsm-agent-${platform}.zip`;
       document.body.appendChild(link);
@@ -871,37 +957,37 @@ export default function Settings() {
         description: `ITSM Agent for ${platform} is downloading...`,
       });
     } catch (error) {
-      console.error('Download error:', error);
+      console.error("Download error:", error);
       toast({
         title: "Download Failed",
         description: "Failed to download the agent. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   const agentOptions = [
     {
-      platform: 'windows',
-      name: 'Windows Agent',
-      description: 'For Windows 10/11 and Server',
+      platform: "windows",
+      name: "Windows Agent",
+      description: "For Windows 10/11 and Server",
       icon: Monitor,
-      filename: 'itsm-agent-windows.zip'
+      filename: "itsm-agent-windows.zip",
     },
     {
-      platform: 'linux',
-      name: 'Linux Agent', 
-      description: 'For Ubuntu, CentOS, RHEL',
+      platform: "linux",
+      name: "Linux Agent",
+      description: "For Ubuntu, CentOS, RHEL",
       icon: Server,
-      filename: 'itsm-agent-linux.zip'
+      filename: "itsm-agent-linux.zip",
     },
     {
-      platform: 'macos',
-      name: 'macOS Agent',
-      description: 'For macOS 10.15+',
+      platform: "macos",
+      name: "macOS Agent",
+      description: "For macOS 10.15+",
       icon: Laptop,
-      filename: 'itsm-agent-macos.zip'
-    }
+      filename: "itsm-agent-macos.zip",
+    },
   ];
 
   const renderAdminSettings = () => (
@@ -917,12 +1003,17 @@ export default function Settings() {
         <CardContent className="space-y-4">
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Download ITSM agents for deployment across your organization. These agents collect system information and enable remote management capabilities.
+              Download ITSM agents for deployment across your organization.
+              These agents collect system information and enable remote
+              management capabilities.
             </p>
 
             <div className="grid gap-4 md:grid-cols-3">
               {agentOptions.map((agent) => (
-                <Card key={agent.platform} className="cursor-pointer hover:bg-accent transition-colors">
+                <Card
+                  key={agent.platform}
+                  className="cursor-pointer hover:bg-accent transition-colors"
+                >
                   <CardContent className="p-4">
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -930,12 +1021,14 @@ export default function Settings() {
                       </div>
                       <div className="flex-1">
                         <h3 className="font-medium">{agent.name}</h3>
-                        <p className="text-sm text-muted-foreground">{agent.description}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {agent.description}
+                        </p>
                       </div>
                     </div>
-                    <Button 
-                      className="w-full mt-3" 
-                      variant="outline" 
+                    <Button
+                      className="w-full mt-3"
+                      variant="outline"
                       size="sm"
                       onClick={() => downloadAgent(agent.platform)}
                     >
@@ -951,11 +1044,18 @@ export default function Settings() {
               <div className="flex items-start space-x-3">
                 <Info className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
                 <div>
-                  <h4 className="font-medium text-yellow-900 dark:text-yellow-100">InstallationNotes</h4>
+                  <h4 className="font-medium text-yellow-900 dark:text-yellow-100">
+                    InstallationNotes
+                  </h4>
                   <ul className="text-sm text-yellow-700 dark:text-yellow-300 mt-1 space-y-1">
-                    <li>• Configure config.ini with your server details before deployment</li>
+                    <li>
+                      • Configure config.ini with your server details before
+                      deployment
+                    </li>
                     <li>• Ensure Python 3.7+ is installed on target systems</li>
-                    <li>• Administrator/root privileges required for installation</li>
+                    <li>
+                      • Administrator/root privileges required for installation
+                    </li>
                     <li>• Check firewall settings for outbound connectivity</li>
                   </ul>
                 </div>
@@ -979,7 +1079,9 @@ export default function Settings() {
               <Database className="w-4 h-4 mr-2" />
               <div className="text-left">
                 <div className="font-medium">Database Management</div>
-                <div className="text-sm text-muted-foreground">Manage database connections and migrations</div>
+                <div className="text-sm text-muted-foreground">
+                  Manage database connections and migrations
+                </div>
               </div>
             </Button>
 
@@ -987,7 +1089,9 @@ export default function Settings() {
               <Shield className="w-4 h-4 mr-2" />
               <div className="text-left">
                 <div className="font-medium">Security Settings</div>
-                <div className="text-sm text-muted-foreground">Configure security policies and access controls</div>
+                <div className="text-sm text-muted-foreground">
+                  Configure security policies and access controls
+                </div>
               </div>
             </Button>
           </div>
@@ -996,101 +1100,115 @@ export default function Settings() {
     </div>
   );
 
-  const renderContent = () => {
-    switch (activeSection) {
-      case 'general':
-        return renderGeneralSettings();
-      case 'monitoring':
-        return renderMonitoringSettings();
-      case 'notifications':
-        return renderNotificationSettings();
-      case 'security':
-        return renderSecuritySettings();
-      case 'sla':
-        return renderSLAPolicies();
-      case 'agent':
-        return renderAgentSettings();
-      case 'active-directory':
-        return renderActiveDirectorySettings();
-      case 'admin':
-        return renderAdminSettings();
-      default:
-        return renderGeneralSettings();
-    }
-  };
+  // const renderContent = () => {
+  //   switch (activeSection) {
+  //     case 'general':
+  //       return renderGeneralSettings();
+  //     case 'monitoring':
+  //       return renderMonitoringSettings();
+  //     case 'notifications':
+  //       return renderNotificationSettings();
+  //     case 'security':
+  //       return renderSecuritySettings();
+  //     case 'sla':
+  //       return renderSLAPolicies();
+  //     case 'agent':
+  //       return renderAgentSettings();
+  //     case 'active-directory':
+  //       return renderActiveDirectorySettings();
+  //     case 'admin':
+  //       return renderAdminSettings();
+  //     default:
+  //       return renderGeneralSettings();
+  //   }
+  // };
 
-  const SLAManagementContent = () => (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Business Hours & SLA
-          </CardTitle>
-          <CardDescription>Configure service level agreement policies</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="business-start">Business Hours Start</Label>
-              <Input
-                id="business-start"
-                type="time"
-                value={settings.businessHoursStart}
-                onChange={(e) => updateSetting('businessHoursStart', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="business-end">Business Hours End</Label>
-              <Input
-                id="business-end"
-                type="time"
-                value={settings.businessHoursEnd}
-                onChange={(e) => updateSetting('businessHoursEnd', e.target.value)}
-              />
-            </div>
-          </div>
+  // const SLAManagementContent = () => (
+  //   <div className="space-y-6">
+  //     <Card>
+  //       <CardHeader>
+  //         <CardTitle className="flex items-center gap-2">
+  //           <Clock className="h-5 w-5" />
+  //           Business Hours & SLA
+  //         </CardTitle>
+  //         <CardDescription>
+  //           Configure service level agreement policies
+  //         </CardDescription>
+  //       </CardHeader>
+  //       <CardContent className="space-y-4">
+  //         <div className="grid grid-cols-2 gap-4">
+  //           <div className="space-y-2">
+  //             <Label htmlFor="business-start">Business Hours Start</Label>
+  //             <Input
+  //               id="business-start"
+  //               type="time"
+  //               value={settings.businessHoursStart}
+  //               onChange={(e) =>
+  //                 updateSetting("businessHoursStart", e.target.value)
+  //               }
+  //             />
+  //           </div>
+  //           <div className="space-y-2">
+  //             <Label htmlFor="business-end">Business Hours End</Label>
+  //             <Input
+  //               id="business-end"
+  //               type="time"
+  //               value={settings.businessHoursEnd}
+  //               onChange={(e) =>
+  //                 updateSetting("businessHoursEnd", e.target.value)
+  //               }
+  //             />
+  //           </div>
+  //         </div>
 
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Auto-Escalation</Label>
-              <p className="text-sm text-muted-foreground">
-                Automatically escalate tickets approaching SLA breach
-              </p>
-            </div>
-            <Switch
-              checked={settings.autoEscalation}
-              onCheckedChange={(checked) =>
-                updateSetting("autoEscalation", checked)
-              }
-            />
-          </div>
+  //         <div className="flex items-center justify-between">
+  //           <div className="space-y-0.5">
+  //             <Label>Auto-Escalation</Label>
+  //             <p className="text-sm text-muted-foreground">
+  //               Automatically escalate tickets approaching SLA breach
+  //             </p>
+  //           </div>
+  //           <Switch
+  //             checked={settings.autoEscalation}
+  //             onCheckedChange={(checked) =>
+  //               updateSetting("autoEscalation", checked)
+  //             }
+  //           />
+  //         </div>
 
-          <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/10">
-            <h4 className="font-medium mb-2">SLA Response Times</h4>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <Badge variant="destructive" className="mb-1">Critical</Badge>
-                <p>Response: 15 minutes | Resolution: 4 hours</p>
-              </div>
-              <div>
-                <Badge variant="secondary" className="mb-1">High</Badge>
-                <p>Response: 2 hours | Resolution: 24 hours</p>
-              </div>
-              <div>
-                <Badge variant="outline" className="mb-1">Medium</Badge>
-                <p>Response: 8 hours | Resolution: 72 hours</p>
-              </div>
-              <div>
-                <Badge variant="outline" className="mb-1">Low</Badge>
-                <p>Response: 24 hours | Resolution: 7 days</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  //         <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/10">
+  //           <h4 className="font-medium mb-2">SLA Response Times</h4>
+  //           <div className="grid grid-cols-2 gap-4 text-sm">
+  //             <div>
+  //               <Badge variant="destructive" className="mb-1">
+  //                 Critical
+  //               </Badge>
+  //               <p>Response: 15 minutes | Resolution: 4 hours</p>
+  //             </div>
+  //             <div>
+  //               <Badge variant="secondary" className="mb-1">
+  //                 High
+  //               </Badge>
+  //               <p>Response: 2 hours | Resolution: 24 hours</p>
+  //             </div>
+  //             <div>
+  //               <Badge variant="outline" className="mb-1">
+  //                 Medium
+  //               </Badge>
+  //               <p>Response: 8 hours | Resolution: 72 hours</p>
+  //             </div>
+  //             <div>
+  //               <Badge variant="outline" className="mb-1">
+  //                 Low
+  //               </Badge>
+  //               <p>Response: 24 hours | Resolution: 7 days</p>
+  //             </div>
+  //           </div>
+  //         </div>
+  //       </CardContent>
+  //     </Card>
+  //   </div>
+  // );
 
   return (
     <div className="flex h-screen bg-neutral-50 dark:bg-neutral-900">
@@ -1098,8 +1216,12 @@ export default function Settings() {
       <div className="flex-1 overflow-auto">
         <div className="p-6 space-y-6">
           <div className="mb-8">
-            <h1 className="text-2xl font-semibold text-[#201F1E] dark:text-[#F3F2F1] mb-2">Admin Panel</h1>
-            <p className="text-neutral-600">Essential system configuration and preferences</p>
+            <h1 className="text-2xl font-semibold text-[#201F1E] dark:text-[#F3F2F1] mb-2">
+              Admin Panel
+            </h1>
+            <p className="text-neutral-600">
+              Essential system configuration and preferences
+            </p>
           </div>
           {renderContent()}
 
