@@ -1,5 +1,5 @@
 
-import { db } from "./db.js";
+import { db, sql } from "./db.js";
 
 async function migrateSLAFields() {
   try {
@@ -17,7 +17,7 @@ async function migrateSLAFields() {
 
     for (const query of alterQueries) {
       try {
-        await db.execute(query);
+        await db.execute(sql.raw(query));
         console.log(`✅ Executed: ${query}`);
       } catch (error) {
         if (error.message.includes('already exists')) {
@@ -38,7 +38,7 @@ async function migrateSLAFields() {
 
     for (const query of indexQueries) {
       try {
-        await db.execute(query);
+        await db.execute(sql.raw(query));
         console.log(`✅ Created index: ${query}`);
       } catch (error) {
         if (error.message.includes('already exists')) {
