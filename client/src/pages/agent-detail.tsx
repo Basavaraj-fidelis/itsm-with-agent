@@ -16,33 +16,39 @@ import {
 import { useAgent } from "@/hooks/use-agents";
 import { useState, useMemo } from "react";
 import {
-  Activity,
-  AlertTriangle,
   ArrowLeft,
-  Calendar,
-  CheckCircle,
-  Clock,
-  Cpu,
   Download,
-  HardDrive,
-  HelpCircle,
-  Info,
-  Memory,
-  MemoryStick,
   Monitor,
-  Network,
   RefreshCw,
-  Settings,
-  Shield,
-  Usb,
   Wifi,
+  AlertTriangle,
+  Users,
+  HardDrive,
+  Cpu,
+  MemoryStick,
+  Network,
+  Shield,
+  Clock,
+  Info,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  Activity,
+  Package,
+  Settings,
+  CheckCircle,
   XCircle,
-  Zap,
-  TrendingUp,
-  TrendingDown,
-  Minus,
   AlertCircle,
-  X,
+  Globe,
+  Calendar,
+  MapPin,
+  Building,
+  User,
+  Database,
+  Server,
+  Zap,
+  Gauge,
+  FileText,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useEffect } from "react";
@@ -50,10 +56,10 @@ import { useEffect } from "react";
 export default function AgentDetail() {
   const { id } = useParams();
   const { data: agent, isLoading, error, refetch } = useAgent(id || "");
-  
+
   // Always call this hook at the top, regardless of loading/error state
   const processedData = useProcessedAgentData(agent);
-  
+
   const [showVNCModal, setShowVNCModal] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState(null);
@@ -77,7 +83,7 @@ export default function AgentDetail() {
       alert('Agent data not available. Please refresh the page.');
       return;
     }
-    
+
     if (agent.status !== 'online') {
       alert(`Cannot connect: Agent is ${agent?.status || 'offline'}. Only online agents support remote connections.`);
       return;
@@ -146,13 +152,13 @@ export default function AgentDetail() {
       const result = await response.json();
       if (result.success) {
         const { connection_info } = result;
-        
+
         // Enhanced private IP handling
         if (connection_info.is_private_ip && connection_info.tunnel_required) {
           const tunnelMethods = connection_info.tunnel_suggestions?.map(s => 
             `• ${s.method.toUpperCase()}: ${s.description}${s.command ? `\n  Command: ${s.command}` : ''}`
           ).join('\n');
-          
+
           const proceed = confirm(
             `🔒 NETWORK SECURITY NOTICE\n\n` +
             `Target: ${connection_info.ip_address} (Private Network)\n` +
@@ -161,13 +167,13 @@ export default function AgentDetail() {
             `⚠️  Ensure you have proper authorization before proceeding.\n\n` +
             `Continue with connection attempt?`
           );
-          
+
           if (!proceed) {
             await logConnectionAttempt(connectionType, false, 'User cancelled due to private IP');
             return;
           }
         }
-        
+
         // Enhanced connection handling with better UX
         switch (connectionType) {
           case "vnc":
@@ -197,7 +203,7 @@ export default function AgentDetail() {
 
         // Show success notification
         console.log(`✅ ${connectionType.toUpperCase()} connection initiated successfully`);
-        
+
       } else {
         await logConnectionAttempt(connectionType, false, result.message);
         alert(`Connection Failed\n\n${result.message}\n\nPlease check agent connectivity and try again.`);
@@ -333,7 +339,7 @@ export default function AgentDetail() {
               </h1>
               <div className="flex items-center space-x-4 text-sm text-neutral-600">
                 <StatusBadge status={agent.status} />
-                
+
                 {/* Data freshness indicator */}
                 {processedData?.hasRecentData ? (
                   <div className="flex items-center space-x-1">
@@ -353,7 +359,7 @@ export default function AgentDetail() {
                     <span className="text-red-600">No recent data</span>
                   </div>
                 )}
-                
+
                 <span>
                   Last seen{" "}
                   {agent.latest_report?.collected_at
@@ -430,7 +436,7 @@ export default function AgentDetail() {
         </div>
       </div>
 
-      
+
 
       {/* Quick Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -478,3 +484,7 @@ export default function AgentDetail() {
     </AgentErrorBoundary>
   );
 }
+```
+
+```
+</replit_final_file>
