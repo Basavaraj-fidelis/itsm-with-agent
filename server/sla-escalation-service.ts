@@ -76,6 +76,19 @@ export class SLAEscalationService {
 
       console.log(`Found ${openTickets.length} open tickets to check`);
 
+      // Update SLA breach status for all tickets in real-time
+      for (const ticket of openTickets) {
+        if (ticket.sla_resolution_due) {
+          const isBreached = now > new Date(ticket.sla_resolution_due);
+          if (isBreached !== ticket.sla_breached) {
+            await db
+              .update(tickets)
+              .set({ sla_breached: isBreached, updated_at: now })
+              .where(eq(tickets.id, ticket.id));
+          }
+        }
+      }
+
       const alerts: SLAAlert[] = [];
       
       for (const ticket of openTickets) {

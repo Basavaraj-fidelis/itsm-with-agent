@@ -13,6 +13,7 @@ import {
 import { auditLog } from "@shared/admin-schema";
 import { eq, desc, and, or, like, sql, count } from "drizzle-orm";
 import { userStorage } from "./user-storage";
+import { device_reports, alerts, devices } from "@shared/device-schema"; // Import device related schemas
 
 interface TicketFilters {
   type?: string;
@@ -75,7 +76,8 @@ export class TicketStorage {
         sla_resolution_time: slaTargets.resolutionTime,
         sla_response_due: slaResponseDue,
         sla_resolution_due: slaResolutionDue,
-        due_date: slaResolutionDue
+        due_date: slaResolutionDue,
+        sla_breached: false,
       })
       .returning();
 
@@ -218,6 +220,42 @@ export class TicketStorage {
           }
           updates.custom_fields = customFields;
         }
+      }
+
+       // Set resolved/closed timestamps and check SLA breach
+      if (updates.status === 'resolved' && !updates.resolved_at) {
+        updates.resolved_at = new Date();
+
+        // Check if resolution was within SLA
+        const [currentTicket] = await db.select().from(tickets).where(eq(tickets.id, id));
+        if (currentTicket?.sla_resolution_due) {
+          const wasBreached = new Date() > new Date(currentTicket.sla_resolution_due);
+          updates.sla_breached = wasBreached;
+
+          if (!currentTicket.first_response_at && currentTicket.sla_response_due) {
+            updates.first_response_at = new Date();
+          }
+        }
+      }
+
+      if (updates.status === 'closed' && !updates.closed_at) {
+        updates.closed_at = new Date();
+      }
+
+      // If priority changed, recalculate SLA
+      if (updates.priority && updates.priority !== currentTicket.priority) {
+        const slaTargets = this.calculateSLATargets(updates.priority, currentTicket.type);
+        const baseTime = new Date(currentTicket.created_at);
+        const slaResponseDue = new Date(baseTime.getTime() + (slaTargets.responseTime * 60 * 1000));
+        const slaResolutionDue = new Date(baseTime.getTime() + (slaTargets.resolutionTime * 60 * 1000));
+
+        updates.sla_policy = slaTargets.policy;
+        updates.sla_response_time = slaTargets.responseTime;
+        updates.sla_resolution_time = slaTargets.resolutionTime;
+        updates.sla_response_due = slaResponseDue;
+        updates.sla_resolution_due = slaResolutionDue;
+        updates.due_date = slaResolutionDue;
+        updates.sla_breached = new Date() > slaResolutionDue;
       }
 
       updates.updated_at = new Date();
@@ -435,6 +473,24 @@ export class TicketStorage {
     }
   }
 
+  private calculateChanges(oldValues: any, newValues: any): any {
+    if (!oldValues || !newValues) return null;
+
+    const changes: any = {};
+    const allKeys = new Set([...Object.keys(oldValues), ...Object.keys(newValues)]);
+
+    for (const key of allKeys) {
+      if (oldValues[key] !== newValues[key]) {
+        changes[key] = {
+          from: oldValues[key],
+          to: newValues[key]
+        };
+      }
+    }
+
+    return Object.keys(changes).length > 0 ? changes : null;
+  }
+
   private calculateSLATargets(priority: string, type: string): { 
     policy: string, 
     responseTime: number, 
@@ -465,24 +521,6 @@ export class TicketStorage {
     };
 
     return slaMatrix[priority as keyof typeof slaMatrix] || slaMatrix.medium;
-  }
-
-  private calculateChanges(oldValues: any, newValues: any): any {
-    if (!oldValues || !newValues) return null;
-
-    const changes: any = {};
-    const allKeys = new Set([...Object.keys(oldValues), ...Object.keys(newValues)]);
-
-    for (const key of allKeys) {
-      if (oldValues[key] !== newValues[key]) {
-        changes[key] = {
-          from: oldValues[key],
-          to: newValues[key]
-        };
-      }
-    }
-
-    return Object.keys(changes).length > 0 ? changes : null;
   }
 
   // Device delete operation
