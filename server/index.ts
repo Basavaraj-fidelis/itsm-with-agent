@@ -405,3 +405,28 @@ app.use((req, res, next) => {
   console.error("❌ Unhandled server error:", error);
   process.exit(1);
 });
+
+// Start the server
+const PORT = process.env.PORT || 5000;
+// Start the server
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on http://0.0.0.0:${PORT}`);
+});
+
+// Start SLA escalation monitoring (check every 15 minutes)
+import { slaEscalationService } from "./sla-escalation-service";
+
+const startSLAMonitoring = () => {
+  console.log("🔄 Starting SLA escalation monitoring...");
+
+  // Run immediately on startup
+  slaEscalationService.checkAndEscalateTickets().catch(console.error);
+
+  // Then run every 15 minutes
+  setInterval(() => {
+    slaEscalationService.checkAndEscalateTickets().catch(console.error);
+  }, 15 * 60 * 1000); // 15 minutes
+};
+
+// Start SLA monitoring after a short delay to ensure everything is initialized
+setTimeout(startSLAMonitoring, 5000);

@@ -113,44 +113,24 @@ router.get('/download/windows', authenticateToken, requireAdmin, async (req, res
 
     // Add specific files for Windows
 
-    // Add Windows-specific files
+    // Add Windows agent files (using actual file structure)
     const windowsFiles = [
-      { src: 'Windows/itsm_agent.py', dest: 'itsm_agent.py' },
-      { src: 'Windows/config.ini', dest: 'config.ini' },
-      { src: 'Windows/service_wrapper.py', dest: 'service_wrapper.py' },
-      { src: 'Windows/install_windows.py', dest: 'install_windows.py' },
-      { src: 'Windows/fix_windows_service.py', dest: 'fix_windows_service.py' },
-      { src: 'Windows/fix_service_issue.py', dest: 'fix_service_issue.py' },
-      { src: 'Windows/config_validator.py', dest: 'config_validator.py' }
+      'itsm_agent.py',
+      'config.ini',
+      'service_wrapper.py',
+      'install_windows.py',
+      'fix_windows_service.py',
+      'system_collector.py',
+      'api_client.py'
     ];
 
-    // Add common files
-    const commonFiles = [
-      { src: 'Common/system_collector.py', dest: 'system_collector.py' },
-      { src: 'Common/api_client.py', dest: 'api_client.py' },
-      { src: 'Common/operation_monitor.py', dest: 'operation_monitor.py' },
-      { src: 'Common/smart_queue.py', dest: 'smart_queue.py' },
-      { src: 'Common/command_scheduler.py', dest: 'command_scheduler.py' },
-      { src: 'Common/network_monitor.py', dest: 'network_monitor.py' },
-      { src: 'Common/performance_baseline.py', dest: 'performance_baseline.py' },
-      { src: 'Common/config_validator.py', dest: 'config_validator.py' }
-    ];
-
-    // Add all files to archive
-    [...windowsFiles, ...commonFiles].forEach(({ src, dest }) => {
-      const filePath = path.join(agentPath, src);
+    windowsFiles.forEach(fileName => {
+      const filePath = path.join(agentPath, fileName);
       if (fs.existsSync(filePath)) {
-        archive.file(filePath, { name: dest });
-        console.log(`Added ${src} to Windows archive as ${dest}`);
+        archive.file(filePath, { name: fileName });
+        console.log(`Added ${fileName} to Windows archive`);
       } else {
-        // Fallback to old structure for backward compatibility
-        const fallbackPath = path.join(agentPath, dest);
-        if (fs.existsSync(fallbackPath)) {
-          archive.file(fallbackPath, { name: dest });
-          console.log(`Added ${dest} to Windows archive (fallback)`);
-        } else {
-          console.warn(`Windows file not found: ${src} or ${dest}`);
-        }
+        console.warn(`Windows file not found: ${fileName}`);
       }
     });
 
@@ -221,44 +201,72 @@ router.get('/download/linux', authenticateToken, requireAdmin, async (req, res) 
 
     archive.pipe(res);
 
-    // Add Linux-specific files
+    // Add Linux agent files (using actual file structure)
     const linuxFiles = [
-      { src: 'Linux/itsm_agent.py', dest: 'itsm_agent.py' },
-      { src: 'Linux/config.ini', dest: 'config.ini' },
-      { src: 'Linux/service_wrapper.py', dest: 'service_wrapper.py' },
-      { src: 'Linux/install_linux.sh', dest: 'install_linux.sh' },
-      { src: 'Linux/config_validator.py', dest: 'config_validator.py' }
+      'itsm_agent.py',
+      'config.ini',
+      'service_wrapper.py',
+      'system_collector.py',
+      'api_client.py'
     ];
 
-    // Add common files
-    const commonFiles = [
-      { src: 'Common/system_collector.py', dest: 'system_collector.py' },
-      { src: 'Common/api_client.py', dest: 'api_client.py' },
-      { src: 'Common/operation_monitor.py', dest: 'operation_monitor.py' },
-      { src: 'Common/smart_queue.py', dest: 'smart_queue.py' },
-      { src: 'Common/command_scheduler.py', dest: 'command_scheduler.py' },
-      { src: 'Common/network_monitor.py', dest: 'network_monitor.py' },
-      { src: 'Common/performance_baseline.py', dest: 'performance_baseline.py' },
-      { src: 'Common/config_validator.py', dest: 'config_validator.py' }
-    ];
-
-    // Add all files to archive
-    [...linuxFiles, ...commonFiles].forEach(({ src, dest }) => {
-      const filePath = path.join(agentPath, src);
+    linuxFiles.forEach(fileName => {
+      const filePath = path.join(agentPath, fileName);
       if (fs.existsSync(filePath)) {
-        archive.file(filePath, { name: dest });
-        console.log(`Added ${src} to Linux archive as ${dest}`);
+        archive.file(filePath, { name: fileName });
+        console.log(`Added ${fileName} to Linux archive`);
       } else {
-        // Fallback to old structure for backward compatibility
-        const fallbackPath = path.join(agentPath, dest);
-        if (fs.existsSync(fallbackPath)) {
-          archive.file(fallbackPath, { name: dest });
-          console.log(`Added ${dest} to Linux archive (fallback)`);
-        } else {
-          console.warn(`Linux file not found: ${src} or ${dest}`);
-        }
+        console.warn(`Linux file not found: ${fileName}`);
       }
     });
+
+    // Add Linux install script
+    const installScript = `#!/bin/bash
+# ITSM Agent Linux Installation Script
+
+echo "Installing ITSM Agent for Linux..."
+
+# Check if running as root
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root (use sudo)"
+   exit 1
+fi
+
+# Install Python dependencies
+pip3 install psutil requests configparser
+
+# Copy files to /opt/itsm-agent
+mkdir -p /opt/itsm-agent
+cp *.py /opt/itsm-agent/
+cp config.ini /opt/itsm-agent/
+
+# Create systemd service
+cat > /etc/systemd/system/itsm-agent.service << EOF
+[Unit]
+Description=ITSM Agent
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/itsm-agent
+ExecStart=/usr/bin/python3 /opt/itsm-agent/itsm_agent.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Enable and start service
+systemctl daemon-reload
+systemctl enable itsm-agent
+systemctl start itsm-agent
+
+echo "ITSM Agent installed and started successfully!"
+echo "Check status with: systemctl status itsm-agent"
+`;
+
+    archive.append(installScript, { name: 'install_linux.sh' });
 
     const linuxInstructions = `# ITSM Agent Installation Instructions - Linux
 
@@ -314,7 +322,7 @@ router.get('/download/macos', authenticateToken, requireAdmin, async (req, res) 
 
     archive.pipe(res);
 
-    // Add specific files for macOS
+    // Add macOS agent files (using actual file structure)
     const macosFiles = [
       'itsm_agent.py',
       'system_collector.py',
@@ -323,13 +331,13 @@ router.get('/download/macos', authenticateToken, requireAdmin, async (req, res) 
       'config.ini'
     ];
 
-    macosFiles.forEach(file => {
-      const filePath = path.join(agentPath, file);
+    macosFiles.forEach(fileName => {
+      const filePath = path.join(agentPath, fileName);
       if (fs.existsSync(filePath)) {
-        archive.file(filePath, { name: file });
-        console.log(`Added ${file} to macOS archive`);
+        archive.file(filePath, { name: fileName });
+        console.log(`Added ${fileName} to macOS archive`);
       } else {
-        console.warn(`macOS file not found: ${file}`);
+        console.warn(`macOS file not found: ${fileName}`);
       }
     });
 
