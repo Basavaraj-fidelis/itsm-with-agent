@@ -51,7 +51,7 @@ export class SLAMonitorService {
         .where(
           and(
             not(inArray(tickets.status, ['resolved', 'closed', 'cancelled'])),
-            not(eq(tickets.sla_resolution_due, null))
+            isNotNull(tickets.resolve_due_at)
           )
         );
 
