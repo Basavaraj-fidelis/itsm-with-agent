@@ -1,3 +1,4 @@
+
 import express from 'express';
 import { Router } from 'express';
 import path from 'path';
@@ -87,9 +88,9 @@ router.get('/download/windows', authenticateToken, requireAdmin, async (req, res
       return res.status(404).json({ error: 'Agent files not found' });
     }
 
-    // List files in Agent directory
-    const files = fs.readdirSync(agentPath);
-    console.log('Files in Agent directory:', files);
+    // List all files in Agent directory
+    const availableFiles = fs.readdirSync(agentPath);
+    console.log('Available files in Agent directory:', availableFiles);
 
     // Set response headers for zip download
     res.setHeader('Content-Type', 'application/zip');
@@ -111,17 +112,16 @@ router.get('/download/windows', authenticateToken, requireAdmin, async (req, res
     // Pipe archive to response
     archive.pipe(res);
 
-    // Add specific files for Windows
-
-    // Add Windows agent files (using actual file structure)
+    // Add all available files from Agent directory
     const windowsFiles = [
       'itsm_agent.py',
-      'config.ini',
+      'api_client.py',
+      'system_collector.py',
       'service_wrapper.py',
+      'config.ini',
       'install_windows.py',
       'fix_windows_service.py',
-      'system_collector.py',
-      'api_client.py'
+      'agent_websocket_client.py'
     ];
 
     let filesAdded = 0;
@@ -138,53 +138,76 @@ router.get('/download/windows', authenticateToken, requireAdmin, async (req, res
       }
     });
 
+    // Add any additional files that exist in the Agent directory
+    availableFiles.forEach(fileName => {
+      if (!windowsFiles.includes(fileName) && fileName.endsWith('.py') || fileName.endsWith('.ini')) {
+        const filePath = path.join(agentPath, fileName);
+        if (fs.existsSync(filePath)) {
+          const fileContent = fs.readFileSync(filePath);
+          archive.append(fileContent, { name: fileName });
+          console.log(`Added additional file ${fileName} to Windows archive (${fileContent.length} bytes)`);
+          filesAdded++;
+        }
+      }
+    });
+
     console.log(`Total files added to Windows archive: ${filesAdded}`);
 
+    if (filesAdded === 0) {
+      console.error('No files were added to the archive!');
+      if (!res.headersSent) {
+        return res.status(500).json({ error: 'No agent files found to package' });
+      }
+    }
+
     // Add installation instructions
-    const instructions = `# ITSM Agent Installation Instructions
+    const instructions = `# ITSM Agent Installation Instructions - Windows
 
-## Windows Installation
-
-### Prerequisites
+## Prerequisites
 - Python 3.7 or higher
 - Administrator privileges
 
-### Installation Steps
-1. Extract this archive to your target directory
-2. Edit config.ini and set your ITSM server URL and authentication token
-3. Run the installation script as Administrator:
+## Installation Steps
+1. Extract this archive to your target directory (e.g., C:\\itsm-agent)
+2. Edit config.ini and set your ITSM server URL and authentication token:
+   - api.base_url: Your ITSM server URL (e.g., http://your-server:5000)
+   - api.auth_token: Authentication token from admin panel
+   - agent.collection_interval: Data collection frequency (seconds)
+
+3. Open Command Prompt as Administrator
+4. Navigate to the extracted directory
+5. Run the installation script:
    python install_windows.py
-4. Start the service:
+
+6. Start the service:
    python itsm_agent.py start
 
-### Configuration
-Edit config.ini before installation:
-- api.base_url: Your ITSM server URL
-- api.auth_token: Authentication token from admin panel
-- agent.collection_interval: Data collection frequency (seconds)
+## Configuration
+Before installation, edit config.ini:
+\`\`\`ini
+[api]
+base_url = http://your-itsm-server:5000
+auth_token = your-auth-token-here
 
-### Support
+[agent]
+collection_interval = 300
+hostname = auto
+\`\`\`
+
+## Troubleshooting
+If you encounter service issues, run:
+python fix_windows_service.py
+
+## Support
 For technical support, contact your system administrator.
 `;
 
     archive.append(instructions, { name: 'README.md' });
 
-    // Finalize the archive and wait for it to complete
-    archive.finalize();
+    // Finalize the archive
+    await archive.finalize();
     
-    // Wait for the archive to finish
-    archive.on('end', () => {
-      console.log('Windows agent download completed - archive data has been drained');
-    });
-    
-    archive.on('warning', (err) => {
-      if (err.code === 'ENOENT') {
-        console.warn('Archive warning:', err);
-      } else {
-        console.error('Archive error:', err);
-        throw err;
-      }
-    });
+    console.log('Windows agent download completed - archive finalized');
 
   } catch (error) {
     console.error('Windows agent download error:', error);
@@ -204,6 +227,9 @@ router.get('/download/linux', authenticateToken, requireAdmin, async (req, res) 
       return res.status(404).json({ error: 'Agent files not found' });
     }
 
+    const availableFiles = fs.readdirSync(agentPath);
+    console.log('Available files for Linux:', availableFiles);
+
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', 'attachment; filename=itsm-agent-linux.zip');
 
@@ -220,13 +246,14 @@ router.get('/download/linux', authenticateToken, requireAdmin, async (req, res) 
 
     archive.pipe(res);
 
-    // Add Linux agent files (using actual file structure)
+    // Add Linux agent files
     const linuxFiles = [
       'itsm_agent.py',
-      'config.ini',
-      'service_wrapper.py',
+      'api_client.py',
       'system_collector.py',
-      'api_client.py'
+      'service_wrapper.py',
+      'config.ini',
+      'agent_websocket_client.py'
     ];
 
     let filesAdded = 0;
@@ -257,12 +284,13 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 # Install Python dependencies
-pip3 install psutil requests configparser
+pip3 install psutil requests configparser websocket-client
 
 # Copy files to /opt/itsm-agent
 mkdir -p /opt/itsm-agent
 cp *.py /opt/itsm-agent/
 cp config.ini /opt/itsm-agent/
+chmod +x /opt/itsm-agent/*.py
 
 # Create systemd service
 cat > /etc/systemd/system/itsm-agent.service << EOF
@@ -276,6 +304,7 @@ User=root
 WorkingDirectory=/opt/itsm-agent
 ExecStart=/usr/bin/python3 /opt/itsm-agent/itsm_agent.py
 Restart=always
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
@@ -288,6 +317,7 @@ systemctl start itsm-agent
 
 echo "ITSM Agent installed and started successfully!"
 echo "Check status with: systemctl status itsm-agent"
+echo "View logs with: journalctl -u itsm-agent -f"
 `;
 
     archive.append(installScript, { name: 'install_linux.sh' });
@@ -304,17 +334,22 @@ echo "Check status with: systemctl status itsm-agent"
 3. Run: chmod +x install_linux.sh
 4. Run: sudo ./install_linux.sh
 
+## Manual Installation
+If the script fails, install manually:
+1. sudo pip3 install psutil requests configparser websocket-client
+2. sudo mkdir -p /opt/itsm-agent
+3. sudo cp *.py config.ini /opt/itsm-agent/
+4. Create systemd service (see install_linux.sh for reference)
+
 ## Configuration
 Edit config.ini before installation.
 `;
 
     archive.append(linuxInstructions, { name: 'README.md' });
     
-    archive.finalize();
+    await archive.finalize();
     
-    archive.on('end', () => {
-      console.log('Linux agent download completed - archive data has been drained');
-    });
+    console.log('Linux agent download completed');
 
   } catch (error) {
     console.error('Linux agent download error:', error);
@@ -334,6 +369,9 @@ router.get('/download/macos', authenticateToken, requireAdmin, async (req, res) 
       return res.status(404).json({ error: 'Agent files not found' });
     }
 
+    const availableFiles = fs.readdirSync(agentPath);
+    console.log('Available files for macOS:', availableFiles);
+
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', 'attachment; filename=itsm-agent-macos.zip');
 
@@ -350,13 +388,14 @@ router.get('/download/macos', authenticateToken, requireAdmin, async (req, res) 
 
     archive.pipe(res);
 
-    // Add macOS agent files (using actual file structure)
+    // Add macOS agent files
     const macosFiles = [
       'itsm_agent.py',
-      'system_collector.py',
       'api_client.py',
+      'system_collector.py',
       'service_wrapper.py',
-      'config.ini'
+      'config.ini',
+      'agent_websocket_client.py'
     ];
 
     let filesAdded = 0;
@@ -383,20 +422,37 @@ router.get('/download/macos', authenticateToken, requireAdmin, async (req, res) 
 ## Installation Steps
 1. Extract this archive
 2. Edit config.ini with your server details
-3. Run: sudo python3 itsm_agent.py install
-4. Start: sudo python3 itsm_agent.py start
+3. Install Python dependencies:
+   pip3 install psutil requests configparser websocket-client
+4. Run: sudo python3 itsm_agent.py install
+5. Start: sudo python3 itsm_agent.py start
 
 ## Configuration
-Edit config.ini before installation.
+Edit config.ini before installation:
+\`\`\`ini
+[api]
+base_url = http://your-itsm-server:5000
+auth_token = your-auth-token-here
+
+[agent]
+collection_interval = 300
+hostname = auto
+\`\`\`
+
+## Manual Service Setup
+If automatic service setup fails:
+1. Create launchd plist in /Library/LaunchDaemons/
+2. Use launchctl to load and start the service
+
+## Support
+For technical support, contact your system administrator.
 `;
 
     archive.append(macosInstructions, { name: 'README.md' });
     
-    archive.finalize();
+    await archive.finalize();
     
-    archive.on('end', () => {
-      console.log('macOS agent download completed - archive data has been drained');
-    });
+    console.log('macOS agent download completed');
 
   } catch (error) {
     console.error('macOS agent download error:', error);
