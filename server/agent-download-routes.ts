@@ -108,7 +108,11 @@ router.get('/windows', authenticateToken, requireAdmin, async (req, res) => {
     const existingFiles = windowsFiles.filter(fileName => {
       const filePath = path.join(agentPath, fileName);
       const exists = fs.existsSync(filePath);
-      console.log(`Checking ${fileName}: ${exists ? 'EXISTS' : 'NOT FOUND'}`);
+      console.log(`Checking ${fileName}: ${exists ? 'EXISTS' : 'NOT FOUND'} at ${filePath}`);
+      if (exists) {
+        const stats = fs.statSync(filePath);
+        console.log(`File ${fileName} size: ${stats.size} bytes`);
+      }
       return exists;
     });
 
@@ -221,11 +225,14 @@ For technical support, contact your system administrator.
     console.log('Added README.md to archive');
 
     // Finalize the archive - this is crucial
-    await archive.finalize();
+    archive.finalize();
     
-    if (!archiveError) {
-      console.log('Windows agent download completed successfully - archive finalized');
-    }
+    // Wait for archive to complete
+    archive.on('end', () => {
+      if (!archiveError) {
+        console.log('Windows agent download completed successfully - archive finalized');
+      }
+    });
 
   } catch (error) {
     console.error('Windows agent download error:', error);
@@ -385,11 +392,13 @@ Edit config.ini before installation.
 
     archive.append(linuxInstructions, { name: 'README.md' });
     
-    await archive.finalize();
+    archive.finalize();
     
-    if (!archiveError) {
-      console.log('Linux agent download completed successfully');
-    }
+    archive.on('end', () => {
+      if (!archiveError) {
+        console.log('Linux agent download completed successfully');
+      }
+    });
 
   } catch (error) {
     console.error('Linux agent download error:', error);
@@ -510,11 +519,13 @@ For technical support, contact your system administrator.
 
     archive.append(macosInstructions, { name: 'README.md' });
     
-    await archive.finalize();
+    archive.finalize();
     
-    if (!archiveError) {
-      console.log('macOS agent download completed successfully');
-    }
+    archive.on('end', () => {
+      if (!archiveError) {
+        console.log('macOS agent download completed successfully');
+      }
+    });
 
   } catch (error) {
     console.error('macOS agent download error:', error);
