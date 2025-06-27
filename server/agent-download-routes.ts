@@ -125,13 +125,18 @@ router.get('/download/windows', authenticateToken, requireAdmin, async (req, res
     ];
 
     let filesAdded = 0;
+    
+    // Use archive.file() instead of archive.append() for proper file handling
     windowsFiles.forEach(fileName => {
       const filePath = path.join(agentPath, fileName);
       console.log(`Checking file: ${filePath}, exists: ${fs.existsSync(filePath)}`);
       if (fs.existsSync(filePath)) {
-        const fileContent = fs.readFileSync(filePath);
-        archive.append(fileContent, { name: fileName });
-        console.log(`Added ${fileName} to Windows archive (${fileContent.length} bytes)`);
+        const stats = fs.statSync(filePath);
+        console.log(`File ${fileName} size: ${stats.size} bytes`);
+        
+        // Use archive.file() to add the file directly from filesystem
+        archive.file(filePath, { name: fileName });
+        console.log(`Added ${fileName} to Windows archive`);
         filesAdded++;
       } else {
         console.warn(`Windows file not found: ${fileName}`);
@@ -140,12 +145,15 @@ router.get('/download/windows', authenticateToken, requireAdmin, async (req, res
 
     // Add any additional files that exist in the Agent directory
     availableFiles.forEach(fileName => {
-      if (!windowsFiles.includes(fileName) && fileName.endsWith('.py') || fileName.endsWith('.ini')) {
+      if (!windowsFiles.includes(fileName) && (fileName.endsWith('.py') || fileName.endsWith('.ini'))) {
         const filePath = path.join(agentPath, fileName);
         if (fs.existsSync(filePath)) {
-          const fileContent = fs.readFileSync(filePath);
-          archive.append(fileContent, { name: fileName });
-          console.log(`Added additional file ${fileName} to Windows archive (${fileContent.length} bytes)`);
+          const stats = fs.statSync(filePath);
+          console.log(`Additional file ${fileName} size: ${stats.size} bytes`);
+          
+          // Use archive.file() to add the file directly from filesystem
+          archive.file(filePath, { name: fileName });
+          console.log(`Added additional file ${fileName} to Windows archive`);
           filesAdded++;
         }
       }
@@ -260,9 +268,12 @@ router.get('/download/linux', authenticateToken, requireAdmin, async (req, res) 
     linuxFiles.forEach(fileName => {
       const filePath = path.join(agentPath, fileName);
       if (fs.existsSync(filePath)) {
-        const fileContent = fs.readFileSync(filePath);
-        archive.append(fileContent, { name: fileName });
-        console.log(`Added ${fileName} to Linux archive (${fileContent.length} bytes)`);
+        const stats = fs.statSync(filePath);
+        console.log(`File ${fileName} size: ${stats.size} bytes`);
+        
+        // Use archive.file() to add the file directly from filesystem
+        archive.file(filePath, { name: fileName });
+        console.log(`Added ${fileName} to Linux archive`);
         filesAdded++;
       } else {
         console.warn(`Linux file not found: ${fileName}`);
@@ -402,9 +413,12 @@ router.get('/download/macos', authenticateToken, requireAdmin, async (req, res) 
     macosFiles.forEach(fileName => {
       const filePath = path.join(agentPath, fileName);
       if (fs.existsSync(filePath)) {
-        const fileContent = fs.readFileSync(filePath);
-        archive.append(fileContent, { name: fileName });
-        console.log(`Added ${fileName} to macOS archive (${fileContent.length} bytes)`);
+        const stats = fs.statSync(filePath);
+        console.log(`File ${fileName} size: ${stats.size} bytes`);
+        
+        // Use archive.file() to add the file directly from filesystem
+        archive.file(filePath, { name: fileName });
+        console.log(`Added ${fileName} to macOS archive`);
         filesAdded++;
       } else {
         console.warn(`macOS file not found: ${fileName}`);
