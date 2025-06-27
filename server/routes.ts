@@ -1791,6 +1791,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const { adRoutes } = await import("./ad-routes");
   app.use("/api/ad", authenticateToken, requireRole(["admin"]), adRoutes);
 
+  // Register agent download routes
+  const agentDownloadRoutes = await import("./agent-download-routes");
+  app.use("/api/download/agent", agentDownloadRoutes.default);
+
   // Automation & Orchestration Endpoints
   app.get(
     "/api/automation/software-packages",

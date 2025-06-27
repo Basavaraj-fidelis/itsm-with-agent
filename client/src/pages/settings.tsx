@@ -905,7 +905,7 @@ export default function Settings() {
       }
 
       // Create proper zip archive endpoint
-      const response = await fetch(`/api/admin/agent-download/${platform}`, {
+      const response = await fetch(`/api/download/agent/${platform}`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
