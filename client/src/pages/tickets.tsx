@@ -599,17 +599,28 @@ export default function Tickets() {
   const getSLAMetrics = () => {
     const now = new Date();
     const openTickets = tickets.filter(
-      (t) => !["resolved", "closed", "cancelled"].includes(t.status),
+      (t) => !["resolved", "closed", "cancelled"].includes(t.status)
     );
 
     let breached = 0;
+    let responseBreached = 0;
     let dueIn2Hours = 0;
     let dueToday = 0;
     let onTrack = 0;
 
     openTickets.forEach((ticket) => {
+      // Check SLA breach status from ticket data
+      if (ticket.sla_breached || ticket.sla_resolution_breached) {
+        breached++;
+        return;
+      }
+
+      if (ticket.sla_response_breached) {
+        responseBreached++;
+      }
+
       // Use sla_resolution_due instead of due_date for consistency
-      const slaDate = ticket.sla_resolution_due || ticket.due_date;
+      const slaDate = ticket.sla_resolution_due || ticket.resolve_due_at || ticket.due_date;
       if (!slaDate) {
         onTrack++;
         return;
@@ -630,15 +641,16 @@ export default function Tickets() {
     });
 
     const totalSLATickets = openTickets.length;
-    const compliance = totalSLATickets > 0 ? Math.round(((totalSLATickets - breached) / totalSLATickets) * 100) : 100;
+    const totalViolations = breached + responseBreached;
+    const compliance = totalSLATickets > 0 ? Math.round(((totalSLATickets - totalViolations) / totalSLATickets) * 100) : 100;
 
     return {
       totalOpen: openTickets.length,
-      slaViolations: breached,
+      slaViolations: totalViolations,
       dueIn2Hours,
       dueToday,
       onTrack,
-      slaCompliance: compliance,
+      slaCompliance: Math.max(0, compliance),
     };
   };
 
@@ -751,20 +763,30 @@ export default function Tickets() {
     return actions;
   };
 
-  // Calculate ticket metrics
-  const ticketMetrics = {
-    total: tickets.length,
-    open: tickets.filter(
-      (t) => !["resolved", "closed", "cancelled"].includes(t.status),
-    ).length,
-    resolved: tickets.filter((t) => ["resolved", "closed"].includes(t.status))
-      .length,
-    critical: tickets.filter(
+  // Calculate ticket metrics with proper filtering
+  const getTicketMetrics = () => {
+    const totalTickets = tickets.length;
+    const openTickets = tickets.filter(
+      (t) => !["resolved", "closed", "cancelled"].includes(t.status)
+    ).length;
+    const resolvedTickets = tickets.filter((t) => 
+      ["resolved", "closed"].includes(t.status)
+    ).length;
+    const criticalTickets = tickets.filter(
       (t) =>
         t.priority === "critical" &&
-        !["resolved", "closed", "cancelled"].includes(t.status),
-    ).length,
+        !["resolved", "closed", "cancelled"].includes(t.status)
+    ).length;
+
+    return {
+      total: totalTickets,
+      open: openTickets,
+      resolved: resolvedTickets,
+      critical: criticalTickets,
+    };
   };
+
+  const ticketMetrics = getTicketMetrics();
 
   const slaMetrics = getSLAMetrics();
   const statusDistribution = getStatusDistribution();
@@ -864,12 +886,18 @@ export default function Tickets() {
       change: { name: 'Changes', icon: RefreshCw, color: 'blue', statuses: {} }
     };
 
-    // Get filtered tickets based on current context
+    // Always count all tickets for overview, but consider current context for tab-specific views
     let relevantTickets = tickets;
     
-    // If we're on a specific tab, only count tickets of that type
-    if (selectedType !== "all") {
-      relevantTickets = tickets.filter(ticket => ticket.type === selectedType);
+    // For tab-specific views, filter by type
+    if (activeTab === 'requests') {
+      relevantTickets = tickets.filter(ticket => ticket.type === 'request');
+    } else if (activeTab === 'incidents') {
+      relevantTickets = tickets.filter(ticket => ticket.type === 'incident');
+    } else if (activeTab === 'problems') {
+      relevantTickets = tickets.filter(ticket => ticket.type === 'problem');
+    } else if (activeTab === 'changes') {
+      relevantTickets = tickets.filter(ticket => ticket.type === 'change');
     }
 
     // Apply search filter if active
@@ -893,11 +921,12 @@ export default function Tickets() {
       });
     }
 
-    // Handle closed tickets visibility
+    // Handle closed tickets visibility - this affects the count
     if (!showClosed) {
       relevantTickets = relevantTickets.filter(ticket => !["resolved", "closed", "cancelled"].includes(ticket.status));
     }
 
+    // Count statuses for each type
     relevantTickets.forEach(ticket => {
       if (!typeData[ticket.type]) return;
       typeData[ticket.type].statuses[ticket.status] = (typeData[ticket.type].statuses[ticket.status] || 0) + 1;
@@ -1017,31 +1046,40 @@ export default function Tickets() {
 
     return (
       <div className="space-y-6">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          Ticket Status Overview by Type
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Ticket Status Overview by Type
+          </h2>
+          <div className="text-sm text-gray-500">
+            {showClosed ? 'Showing all tickets' : 'Hiding closed tickets'} | Total in system: {tickets.length}
+          </div>
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
           {Object.entries(statusCounts).map(([type, data]) => {
             const IconComponent = data.icon;
             const totalForType = Object.values(data.statuses).reduce((sum: number, count: number) => sum + count, 0);
+            
+            // Get the actual count from all tickets for this type
+            const actualTypeCount = tickets.filter(t => t.type === type).length;
+            const visibleTypeCount = totalForType;
 
             return (
-              <Card key={type} className={`border-l-4 border-l-${data.color}-500`}>
+              <Card key={type} className={`border-l-4 border-l-${data.color}-500 hover:shadow-md transition-shadow`}>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center text-lg">
                     <IconComponent className={`w-5 h-5 mr-2 text-${data.color}-600`} />
                     {data.name}
                   </CardTitle>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Total: {totalForType} tickets
+                    Showing: {visibleTypeCount} {!showClosed && actualTypeCount !== visibleTypeCount && `of ${actualTypeCount}`} tickets
                   </p>
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="space-y-3">
                     {['new', 'assigned', 'in_progress', 'pending', 'resolved', 'closed'].map(status => {
                           const count = data.statuses[status] || 0;
-                          if (count === 0) return null;
-
+                          
+                          // Show all statuses but indicate when count is 0
                           return (
                             <div key={status} className="flex items-center justify-between">
                               <div className="flex items-center space-x-2">
@@ -1053,41 +1091,40 @@ export default function Tickets() {
                                   status === 'resolved' ? 'bg-green-500' :
                                   'bg-gray-500'
                                 }`} />
-                                <span className="text-sm capitalize text-gray-700 dark:text-gray-300">
+                                <span className={`text-sm capitalize ${count > 0 ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400 dark:text-gray-600'}`}>
                                   {status.replace('_', ' ')}
                                 </span>
                               </div>
                               <div className="flex items-center space-x-2">
-                                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                <span className={`text-sm font-medium ${count > 0 ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-600'}`}>
                                   {count}
                                 </span>
-                                <Badge 
-                                  variant="outline" 
-                                  className={`cursor-pointer hover:bg-opacity-80 ${
-                                    statusColors[status as keyof typeof statusColors] || "bg-gray-100 text-gray-800"
-                                  }`}
-                                  onClick={() => {
-                                    // Set status filter without clearing other filters
-                                    setSelectedStatus(status);
-                                    // Ensure we're filtering by the correct type
-                                    setSelectedType(type);
-                                    // Navigate to the specific tab if not already there
-                                    if (type === 'request' && activeTab !== 'requests') setActiveTab('requests');
-                                    else if (type === 'incident' && activeTab !== 'incidents') setActiveTab('incidents');
-                                    else if (type === 'problem' && activeTab !== 'problems') setActiveTab('problems');
-                                    else if (type === 'change' && activeTab !== 'changes') setActiveTab('changes');
-                                  }}
-                                >
-                                  {Math.round((count / totalForType) * 100)}%
-                                </Badge>
+                                {count > 0 && (
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`cursor-pointer hover:bg-opacity-80 ${
+                                      statusColors[status as keyof typeof statusColors] || "bg-gray-100 text-gray-800"
+                                    }`}
+                                    onClick={() => {
+                                      setSelectedStatus(status);
+                                      setSelectedType(type);
+                                      if (type === 'request' && activeTab !== 'requests') setActiveTab('requests');
+                                      else if (type === 'incident' && activeTab !== 'incidents') setActiveTab('incidents');
+                                      else if (type === 'problem' && activeTab !== 'problems') setActiveTab('problems');
+                                      else if (type === 'change' && activeTab !== 'changes') setActiveTab('changes');
+                                    }}
+                                  >
+                                    {totalForType > 0 ? Math.round((count / totalForType) * 100) : 0}%
+                                  </Badge>
+                                )}
                               </div>
                             </div>
                           );
                         })}
 
                     {totalForType === 0 && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                        No tickets found
+                      <p className="text-sm text-gray-500 dark:text-gray-400 italic text-center py-4">
+                        {showClosed ? 'No tickets found' : 'No open tickets (check "Show Closed" to see all)'}
                       </p>
                     )}
                   </div>
