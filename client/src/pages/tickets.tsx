@@ -160,12 +160,9 @@ export default function Tickets() {
   const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
 
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [priorityFilter, setPriorityFilter] = useState("all");
   const [activeTab, setActiveTab] = useState("overview");
   const [expandedTickets, setExpandedTickets] = useState<string[]>([]);
   const [slaViolationFilter, setSlaViolationFilter] = useState(false);
-
   const [showClosed, setShowClosed] = useState(false);
 
   // Handle URL filter parameters
@@ -283,6 +280,32 @@ export default function Tickets() {
 
     loadTickets();
   }, [selectedType, selectedStatus, selectedPriority, searchTerm]);
+
+  // Reset filters when switching tabs
+  useEffect(() => {
+    setSelectedStatus("all");
+    setSelectedPriority("all");
+    setSearchTerm("");
+    setSlaViolationFilter(false);
+    
+    // Set type filter based on active tab
+    switch (activeTab) {
+      case "requests":
+        setSelectedType("request");
+        break;
+      case "incidents":
+        setSelectedType("incident");
+        break;
+      case "problems":
+        setSelectedType("problem");
+        break;
+      case "changes":
+        setSelectedType("change");
+        break;
+      default:
+        setSelectedType("all");
+    }
+  }, [activeTab]);
 
   // Filter and sort tickets - active tickets first, then by updated_at desc
   const filteredTickets = tickets.sort((a, b) => {
@@ -787,23 +810,12 @@ export default function Tickets() {
   const getFilteredTickets = () => {
     let filtered = tickets;
 
-    switch (activeTab) {
-      case "requests":
-        filtered = tickets.filter((t) => t.type === "request");
-        break;
-      case "incidents":
-        filtered = tickets.filter((t) => t.type === "incident");
-        break;
-      case "problems":
-        filtered = tickets.filter((t) => t.type === "problem");
-        break;
-      case "changes":
-        filtered = tickets.filter((t) => t.type === "change");
-        break;
-      default:
-        filtered = tickets;
+    // Apply type filter first
+    if (selectedType !== "all") {
+      filtered = filtered.filter((t) => t.type === selectedType);
     }
 
+    // Apply search filter
     if (searchTerm) {
       filtered = filtered.filter(
         (ticket) =>
@@ -813,18 +825,25 @@ export default function Tickets() {
       );
     }
 
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((ticket) => ticket.status === statusFilter);
+    // Apply status filter
+    if (selectedStatus !== "all") {
+      filtered = filtered.filter((ticket) => ticket.status === selectedStatus);
     }
 
-    if (priorityFilter !== "all") {
+    // Apply priority filter
+    if (selectedPriority !== "all") {
       filtered = filtered.filter(
-        (ticket) => ticket.priority === priorityFilter,
+        (ticket) => ticket.priority === selectedPriority,
       );
     }
 
-     // Handle SLA violation filter
-     if (slaViolationFilter) {
+    // Handle closed tickets visibility
+    if (!showClosed) {
+      filtered = filtered.filter(ticket => !["resolved", "closed", "cancelled"].includes(ticket.status));
+    }
+
+    // Handle SLA violation filter
+    if (slaViolationFilter) {
       const now = new Date();
       filtered = filtered.filter(ticket => {
         if (["resolved", "closed", "cancelled"].includes(ticket.status)) return false;
@@ -845,7 +864,41 @@ export default function Tickets() {
       change: { name: 'Changes', icon: RefreshCw, color: 'blue', statuses: {} }
     };
 
-    tickets.forEach(ticket => {
+    // Get filtered tickets based on current context
+    let relevantTickets = tickets;
+    
+    // If we're on a specific tab, only count tickets of that type
+    if (selectedType !== "all") {
+      relevantTickets = tickets.filter(ticket => ticket.type === selectedType);
+    }
+
+    // Apply search filter if active
+    if (searchTerm) {
+      relevantTickets = relevantTickets.filter(
+        (ticket) =>
+          ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          ticket.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          ticket.ticket_number.toLowerCase().includes(searchTerm.toLowerCase()),
+      );
+    }
+
+    // Apply SLA filter if active
+    if (slaViolationFilter) {
+      const now = new Date();
+      relevantTickets = relevantTickets.filter(ticket => {
+        if (["resolved", "closed", "cancelled"].includes(ticket.status)) return false;
+        const slaDate = ticket.sla_resolution_due || ticket.due_date;
+        const isBreached = slaDate && new Date(slaDate) < now;
+        return ticket.sla_breached || isBreached;
+      });
+    }
+
+    // Handle closed tickets visibility
+    if (!showClosed) {
+      relevantTickets = relevantTickets.filter(ticket => !["resolved", "closed", "cancelled"].includes(ticket.status));
+    }
+
+    relevantTickets.forEach(ticket => {
       if (!typeData[ticket.type]) return;
       typeData[ticket.type].statuses[ticket.status] = (typeData[ticket.type].statuses[ticket.status] || 0) + 1;
     });
@@ -954,9 +1007,9 @@ export default function Tickets() {
     setSelectedStatus("all");
     setSelectedType("all");
     setSelectedPriority("all");
-    setStatusFilter("all");
-    setPriorityFilter("all");
     setSearchTerm("");
+    setSlaViolationFilter(false);
+    setShowClosed(false);
   };
 
   const renderStatusCards = () => {
@@ -1014,17 +1067,15 @@ export default function Tickets() {
                                     statusColors[status as keyof typeof statusColors] || "bg-gray-100 text-gray-800"
                                   }`}
                                   onClick={() => {
-                                    // Clear all filters first
-                                    clearAllFilters();
-                                    // Set specific filters
-                                    setSelectedType(type);
+                                    // Set status filter without clearing other filters
                                     setSelectedStatus(status);
-                                    setStatusFilter(status);
-                                    // Navigate to the specific tab
-                                    if (type === 'request') setActiveTab('requests');
-                                    else if (type === 'incident') setActiveTab('incidents');
-                                    else if (type === 'problem') setActiveTab('problems');
-                                    else if (type === 'change') setActiveTab('changes');
+                                    // Ensure we're filtering by the correct type
+                                    setSelectedType(type);
+                                    // Navigate to the specific tab if not already there
+                                    if (type === 'request' && activeTab !== 'requests') setActiveTab('requests');
+                                    else if (type === 'incident' && activeTab !== 'incidents') setActiveTab('incidents');
+                                    else if (type === 'problem' && activeTab !== 'problems') setActiveTab('problems');
+                                    else if (type === 'change' && activeTab !== 'changes') setActiveTab('changes');
                                   }}
                                 >
                                   {Math.round((count / totalForType) * 100)}%
@@ -1103,6 +1154,19 @@ export default function Tickets() {
               <SelectItem value="critical">Critical</SelectItem>
             </SelectContent>
           </Select>
+
+          <Select value={selectedType} onValueChange={setSelectedType}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="request">Requests</SelectItem>
+              <SelectItem value="incident">Incidents</SelectItem>
+              <SelectItem value="problem">Problems</SelectItem>
+              <SelectItem value="change">Changes</SelectItem>
+            </SelectContent>
+          </Select>
            <Button
                 variant={showClosed ? "default" : "outline"}
                 size="sm"
@@ -1122,6 +1186,17 @@ export default function Tickets() {
                 <AlertTriangle className="w-4 h-4" />
                 {slaViolationFilter ? "Clear SLA Filter" : "SLA Violations Only"}
               </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearAllFilters}
+                className="flex items-center gap-2"
+              >
+                <Filter className="w-4 h-4" />
+                Clear All Filters
+              </Button>
+
           <Button variant="outline" size="sm">
             <Download className="w-4 h-4 mr-2" />
             Export
@@ -1491,17 +1566,38 @@ export default function Tickets() {
 
     return (
       <div className="mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-          {data.name} Status Overview
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            {data.name} Status Overview
+          </h2>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-500">Total: {totalForType}</span>
+            {selectedStatus !== "all" && (
+              <Badge 
+                variant="outline" 
+                className="cursor-pointer"
+                onClick={() => setSelectedStatus("all")}
+              >
+                Clear Status Filter ✕
+              </Badge>
+            )}
+          </div>
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {['new', 'assigned', 'in_progress', 'pending', 'resolved', 'closed'].map(status => {
             const count = data.statuses[status] || 0;
+            const isSelected = selectedStatus === status;
 
             return (
-              <Card key={status} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => {
-                setSelectedStatus(status);
-              }}>
+              <Card 
+                key={status} 
+                className={`hover:shadow-md transition-shadow cursor-pointer ${
+                  isSelected ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' : ''
+                }`} 
+                onClick={() => {
+                  setSelectedStatus(isSelected ? "all" : status);
+                }}
+              >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className={`w-3 h-3 rounded-full ${
@@ -1512,12 +1608,16 @@ export default function Tickets() {
                       status === 'resolved' ? 'bg-green-500' :
                       'bg-gray-500'
                     }`} />
-                    <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    <span className={`text-2xl font-bold ${
+                      isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-gray-100'
+                    }`}>
                       {count}
                     </span>
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
+                    <p className={`text-sm font-medium capitalize ${
+                      isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'
+                    }`}>
                       {status.replace('_', ' ')}
                     </p>
                     {totalForType > 0 && (
