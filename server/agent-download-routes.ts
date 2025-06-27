@@ -73,28 +73,8 @@ const requireAdmin = (req: any, res: any, next: any) => {
   next();
 };
 
-// Helper function to safely add file to archive
-const addFileToArchive = (archive: any, filePath: string, fileName: string): boolean => {
-  try {
-    if (fs.existsSync(filePath)) {
-      const stats = fs.statSync(filePath);
-      const fileContent = fs.readFileSync(filePath);
-      
-      console.log(`Adding file ${fileName}: ${stats.size} bytes`);
-      archive.append(fileContent, { name: fileName });
-      return true;
-    } else {
-      console.warn(`File not found: ${filePath}`);
-      return false;
-    }
-  } catch (error) {
-    console.error(`Error adding file ${fileName}:`, error);
-    return false;
-  }
-};
-
 // Agent download endpoints
-router.get('/download/windows', authenticateToken, requireAdmin, async (req, res) => {
+router.get('/windows', authenticateToken, requireAdmin, async (req, res) => {
   try {
     console.log('Windows agent download requested by:', req.user.email);
     const agentPath = path.join(process.cwd(), 'Agent');
@@ -112,27 +92,7 @@ router.get('/download/windows', authenticateToken, requireAdmin, async (req, res
     const availableFiles = fs.readdirSync(agentPath);
     console.log('Available files in Agent directory:', availableFiles);
 
-    // Set response headers for zip download
-    res.setHeader('Content-Type', 'application/zip');
-    res.setHeader('Content-Disposition', 'attachment; filename=itsm-agent-windows.zip');
-
-    // Create zip archive
-    const archive = archiver('zip', {
-      zlib: { level: 9 } // Maximum compression
-    });
-
-    // Handle archive errors
-    archive.on('error', (err) => {
-      console.error('Archive error:', err);
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'Failed to create archive' });
-      }
-    });
-
-    // Pipe archive to response
-    archive.pipe(res);
-
-    // Add all available files from Agent directory
+    // Define Windows files that should be included
     const windowsFiles = [
       'itsm_agent.py',
       'api_client.py',
@@ -144,32 +104,74 @@ router.get('/download/windows', authenticateToken, requireAdmin, async (req, res
       'agent_websocket_client.py'
     ];
 
-    let filesAdded = 0;
-    
-    // Add each Windows file
-    windowsFiles.forEach(fileName => {
+    // Check which files actually exist
+    const existingFiles = windowsFiles.filter(fileName => {
       const filePath = path.join(agentPath, fileName);
-      if (addFileToArchive(archive, filePath, fileName)) {
-        filesAdded++;
+      const exists = fs.existsSync(filePath);
+      console.log(`Checking ${fileName}: ${exists ? 'EXISTS' : 'NOT FOUND'}`);
+      return exists;
+    });
+
+    if (existingFiles.length === 0) {
+      console.error('No Windows agent files found!');
+      return res.status(404).json({ error: 'No Windows agent files found' });
+    }
+
+    console.log(`Found ${existingFiles.length} Windows files:`, existingFiles);
+
+    // Set response headers for zip download
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', 'attachment; filename=itsm-agent-windows.zip');
+
+    // Create zip archive
+    const archive = archiver('zip', {
+      zlib: { level: 9 } // Maximum compression
+    });
+
+    let archiveError = false;
+
+    // Handle archive errors
+    archive.on('error', (err) => {
+      console.error('Archive error:', err);
+      archiveError = true;
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Failed to create archive' });
       }
     });
 
-    // Add any additional Python files that exist in the Agent directory
-    availableFiles.forEach(fileName => {
-      if (!windowsFiles.includes(fileName) && (fileName.endsWith('.py') || fileName.endsWith('.ini'))) {
-        const filePath = path.join(agentPath, fileName);
-        if (addFileToArchive(archive, filePath, fileName)) {
-          filesAdded++;
-        }
-      }
+    // Track when archive is done
+    archive.on('end', () => {
+      console.log('Archive has been finalized and the output file descriptor has closed.');
     });
+
+    // Pipe archive to response
+    archive.pipe(res);
+
+    // Add each existing file to the archive
+    let filesAdded = 0;
+    for (const fileName of existingFiles) {
+      try {
+        const filePath = path.join(agentPath, fileName);
+        const stats = fs.statSync(filePath);
+        
+        if (stats.isFile() && stats.size > 0) {
+          archive.file(filePath, { name: fileName });
+          console.log(`Added ${fileName} to archive (${stats.size} bytes)`);
+          filesAdded++;
+        } else {
+          console.warn(`Skipping ${fileName}: not a valid file or empty`);
+        }
+      } catch (fileError) {
+        console.error(`Error processing file ${fileName}:`, fileError);
+      }
+    }
 
     console.log(`Total files added to Windows archive: ${filesAdded}`);
 
     if (filesAdded === 0) {
-      console.error('No files were added to the archive!');
+      console.error('No files were successfully added to the archive!');
       if (!res.headersSent) {
-        return res.status(500).json({ error: 'No agent files found to package' });
+        return res.status(500).json({ error: 'No valid agent files found to package' });
       }
     }
 
@@ -216,11 +218,14 @@ For technical support, contact your system administrator.
 `;
 
     archive.append(instructions, { name: 'README.md' });
+    console.log('Added README.md to archive');
 
-    // Finalize the archive
+    // Finalize the archive - this is crucial
     await archive.finalize();
     
-    console.log('Windows agent download completed - archive finalized');
+    if (!archiveError) {
+      console.log('Windows agent download completed successfully - archive finalized');
+    }
 
   } catch (error) {
     console.error('Windows agent download error:', error);
@@ -230,7 +235,7 @@ For technical support, contact your system administrator.
   }
 });
 
-router.get('/download/linux', authenticateToken, requireAdmin, async (req, res) => {
+router.get('/linux', authenticateToken, requireAdmin, async (req, res) => {
   try {
     console.log('Linux agent download requested by:', req.user.email);
     const agentPath = path.join(process.cwd(), 'Agent');
@@ -243,23 +248,7 @@ router.get('/download/linux', authenticateToken, requireAdmin, async (req, res) 
     const availableFiles = fs.readdirSync(agentPath);
     console.log('Available files for Linux:', availableFiles);
 
-    res.setHeader('Content-Type', 'application/zip');
-    res.setHeader('Content-Disposition', 'attachment; filename=itsm-agent-linux.zip');
-
-    const archive = archiver('zip', {
-      zlib: { level: 9 }
-    });
-
-    archive.on('error', (err) => {
-      console.error('Archive error:', err);
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'Failed to create archive' });
-      }
-    });
-
-    archive.pipe(res);
-
-    // Add Linux agent files
+    // Define Linux files
     const linuxFiles = [
       'itsm_agent.py',
       'api_client.py',
@@ -269,13 +258,54 @@ router.get('/download/linux', authenticateToken, requireAdmin, async (req, res) 
       'agent_websocket_client.py'
     ];
 
-    let filesAdded = 0;
-    linuxFiles.forEach(fileName => {
+    // Check which files actually exist
+    const existingFiles = linuxFiles.filter(fileName => {
       const filePath = path.join(agentPath, fileName);
-      if (addFileToArchive(archive, filePath, fileName)) {
-        filesAdded++;
+      const exists = fs.existsSync(filePath);
+      console.log(`Checking ${fileName}: ${exists ? 'EXISTS' : 'NOT FOUND'}`);
+      return exists;
+    });
+
+    if (existingFiles.length === 0) {
+      console.error('No Linux agent files found!');
+      return res.status(404).json({ error: 'No Linux agent files found' });
+    }
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', 'attachment; filename=itsm-agent-linux.zip');
+
+    const archive = archiver('zip', {
+      zlib: { level: 9 }
+    });
+
+    let archiveError = false;
+
+    archive.on('error', (err) => {
+      console.error('Archive error:', err);
+      archiveError = true;
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Failed to create archive' });
       }
     });
+
+    archive.pipe(res);
+
+    // Add existing files
+    let filesAdded = 0;
+    for (const fileName of existingFiles) {
+      try {
+        const filePath = path.join(agentPath, fileName);
+        const stats = fs.statSync(filePath);
+        
+        if (stats.isFile() && stats.size > 0) {
+          archive.file(filePath, { name: fileName });
+          console.log(`Added ${fileName} to archive (${stats.size} bytes)`);
+          filesAdded++;
+        }
+      } catch (fileError) {
+        console.error(`Error processing file ${fileName}:`, fileError);
+      }
+    }
 
     console.log(`Total files added to Linux archive: ${filesAdded}`);
 
@@ -357,7 +387,9 @@ Edit config.ini before installation.
     
     await archive.finalize();
     
-    console.log('Linux agent download completed');
+    if (!archiveError) {
+      console.log('Linux agent download completed successfully');
+    }
 
   } catch (error) {
     console.error('Linux agent download error:', error);
@@ -367,7 +399,7 @@ Edit config.ini before installation.
   }
 });
 
-router.get('/download/macos', authenticateToken, requireAdmin, async (req, res) => {
+router.get('/macos', authenticateToken, requireAdmin, async (req, res) => {
   try {
     console.log('macOS agent download requested by:', req.user.email);
     const agentPath = path.join(process.cwd(), 'Agent');
@@ -380,23 +412,7 @@ router.get('/download/macos', authenticateToken, requireAdmin, async (req, res) 
     const availableFiles = fs.readdirSync(agentPath);
     console.log('Available files for macOS:', availableFiles);
 
-    res.setHeader('Content-Type', 'application/zip');
-    res.setHeader('Content-Disposition', 'attachment; filename=itsm-agent-macos.zip');
-
-    const archive = archiver('zip', {
-      zlib: { level: 9 }
-    });
-
-    archive.on('error', (err) => {
-      console.error('Archive error:', err);
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'Failed to create archive' });
-      }
-    });
-
-    archive.pipe(res);
-
-    // Add macOS agent files
+    // Define macOS files
     const macosFiles = [
       'itsm_agent.py',
       'api_client.py',
@@ -406,13 +422,54 @@ router.get('/download/macos', authenticateToken, requireAdmin, async (req, res) 
       'agent_websocket_client.py'
     ];
 
-    let filesAdded = 0;
-    macosFiles.forEach(fileName => {
+    // Check which files actually exist
+    const existingFiles = macosFiles.filter(fileName => {
       const filePath = path.join(agentPath, fileName);
-      if (addFileToArchive(archive, filePath, fileName)) {
-        filesAdded++;
+      const exists = fs.existsSync(filePath);
+      console.log(`Checking ${fileName}: ${exists ? 'EXISTS' : 'NOT FOUND'}`);
+      return exists;
+    });
+
+    if (existingFiles.length === 0) {
+      console.error('No macOS agent files found!');
+      return res.status(404).json({ error: 'No macOS agent files found' });
+    }
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', 'attachment; filename=itsm-agent-macos.zip');
+
+    const archive = archiver('zip', {
+      zlib: { level: 9 }
+    });
+
+    let archiveError = false;
+
+    archive.on('error', (err) => {
+      console.error('Archive error:', err);
+      archiveError = true;
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Failed to create archive' });
       }
     });
+
+    archive.pipe(res);
+
+    // Add existing files
+    let filesAdded = 0;
+    for (const fileName of existingFiles) {
+      try {
+        const filePath = path.join(agentPath, fileName);
+        const stats = fs.statSync(filePath);
+        
+        if (stats.isFile() && stats.size > 0) {
+          archive.file(filePath, { name: fileName });
+          console.log(`Added ${fileName} to archive (${stats.size} bytes)`);
+          filesAdded++;
+        }
+      } catch (fileError) {
+        console.error(`Error processing file ${fileName}:`, fileError);
+      }
+    }
 
     console.log(`Total files added to macOS archive: ${filesAdded}`);
 
@@ -455,7 +512,9 @@ For technical support, contact your system administrator.
     
     await archive.finalize();
     
-    console.log('macOS agent download completed');
+    if (!archiveError) {
+      console.log('macOS agent download completed successfully');
+    }
 
   } catch (error) {
     console.error('macOS agent download error:', error);
