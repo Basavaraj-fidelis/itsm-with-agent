@@ -1,0 +1,30 @@
+I'm building an ITSM (IT Service Management) web application.
+
+I have uploaded:
+- Agent files: They collect system info and POST it to `/api/report`
+- Backend API: Built with FastAPI and PostgreSQL
+  - `/api/report`: Receives system data from agents
+  - `/api/devices`: Returns list of all registered agents/devices
+  - `/api/devices/{id}`: Returns latest report for a device
+  - `/api/devices/{id}/reports`: Returns history of reports
+  - `/api/dashboard/summary`: Returns stats for dashboard (e.g. agent count, top CPU)
+
+The agent sends:
+- `hostname`
+- `assigned_user`
+- `data`: A JSON payload with system info (hardware, CPU, memory, storage, network, processes, etc.)
+
+I want you to help me:
+1. Build the **web frontend** using **React + TailwindCSS**
+2. Show:
+   - Dashboard with total agents, online/offline, top CPU usage
+   - Agent list (hostname, assigned user, last seen, status)
+   - Agent detail page (tabs or sections for CPU, RAM, storage, network, etc.)
+3. Use Axios to call the APIs
+
+Please generate:
+- Clean React folder structure (`pages`, `components`, `api`)
+- Routing using React Router
+- Use mock data if needed, but keep API endpoints ready for integration
+
+Keep the design minimal and clean.

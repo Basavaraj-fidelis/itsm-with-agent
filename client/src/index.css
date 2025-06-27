@@ -1,0 +1,159 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 16 6% 12%;
+  --muted: 30 5% 95%;
+  --muted-foreground: 16 6% 12%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 16 6% 12%;
+  --card: 0 0% 100%;
+  --card-foreground: 16 6% 12%;
+  --border: 30 5% 91%;
+  --input: 30 5% 91%;
+  --primary: 210 100% 42%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 30 5% 95%;
+  --secondary-foreground: 16 6% 12%;
+  --accent: 30 5% 95%;
+  --accent-foreground: 16 6% 12%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 98%;
+  --ring: 210 100% 42%;
+  --radius: 0.5rem;
+  --chart-1: 12 76% 61%;
+  --chart-2: 173 58% 39%;
+  --chart-3: 197 37% 24%;
+  --chart-4: 43 74% 66%;
+  --chart-5: 27 87% 67%;
+  --sidebar-background: 30 5% 95%;
+  --sidebar-foreground: 16 6% 12%;
+  --sidebar-primary: 210 100% 42%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 30 5% 91%;
+  --sidebar-accent-foreground: 16 6% 12%;
+  --sidebar-border: 30 5% 91%;
+  --sidebar-ring: 210 100% 42%;
+  
+  /* Custom ITSM colors */
+  --itsm-primary: 207 90% 54%;
+  --itsm-secondary: 240 5% 26%;
+  --itsm-success: 120 61% 50%;
+  --itsm-warning: 38 92% 50%;
+  --itsm-error: 0 84% 60%;
+  --itsm-neutral: 210 40% 98%;
+}
+
+.dark {
+  --background: 16 6% 12%;
+  --foreground: 30 5% 95%;
+  --muted: 16 6% 20%;
+  --muted-foreground: 30 5% 75%;
+  --popover: 16 6% 12%;
+  --popover-foreground: 30 5% 95%;
+  --card: 16 6% 12%;
+  --card-foreground: 30 5% 95%;
+  --border: 16 6% 20%;
+  --input: 16 6% 20%;
+  --primary: 210 100% 42%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 16 6% 20%;
+  --secondary-foreground: 30 5% 95%;
+  --accent: 16 6% 20%;
+  --accent-foreground: 30 5% 95%;
+  --destructive: 0 63% 31%;
+  --destructive-foreground: 210 40% 98%;
+  --ring: 210 100% 42%;
+  --chart-1: 220 70% 50%;
+  --chart-2: 160 60% 45%;
+  --chart-3: 30 80% 55%;
+  --chart-4: 280 65% 60%;
+  --chart-5: 340 75% 55%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+@layer components {
+  /* Typography Classes */
+  .text-h1 {
+    @apply text-3xl font-bold leading-tight tracking-tight;
+  }
+  
+  .text-h2 {
+    @apply text-2xl font-semibold leading-tight tracking-tight;
+  }
+  
+  .text-h3 {
+    @apply text-xl font-semibold leading-snug;
+  }
+  
+  .text-h4 {
+    @apply text-lg font-medium leading-snug;
+  }
+  
+  .text-body-large {
+    @apply text-base font-normal leading-relaxed;
+  }
+  
+  .text-body {
+    @apply text-sm font-normal leading-normal;
+  }
+  
+  .text-body-small {
+    @apply text-xs font-normal leading-normal;
+  }
+  
+  .text-caption {
+    @apply text-xs font-medium leading-tight uppercase tracking-wider;
+  }
+  
+  .text-label {
+    @apply text-sm font-medium leading-normal;
+  }
+  
+  .text-button {
+    @apply text-sm font-medium leading-none;
+  }
+
+  /* ITSM Color Classes */
+  .itsm-primary {
+    background-color: hsl(var(--itsm-primary));
+  }
+  
+  .itsm-primary-text {
+    color: hsl(var(--itsm-primary));
+  }
+  
+  .itsm-success {
+    background-color: hsl(var(--itsm-success));
+  }
+  
+  .itsm-success-text {
+    color: hsl(var(--itsm-success));
+  }
+  
+  .itsm-warning {
+    background-color: hsl(var(--itsm-warning));
+  }
+  
+  .itsm-warning-text {
+    color: hsl(var(--itsm-warning));
+  }
+  
+  .itsm-error {
+    background-color: hsl(var(--itsm-error));
+  }
+  
+  .itsm-error-text {
+    color: hsl(var(--itsm-error));
+  }
+}

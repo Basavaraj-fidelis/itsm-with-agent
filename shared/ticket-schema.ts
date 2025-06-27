@@ -1,0 +1,125 @@
+import { pgTable, text, timestamp, integer, json, uuid, varchar, boolean } from "drizzle-orm/pg-core";
+
+// Ticket types and statuses
+export const ticketTypes = ["request", "incident", "problem", "change"] as const;
+export const ticketPriorities = ["low", "medium", "high", "critical"] as const;
+export const ticketStatuses = ["new", "assigned", "in_progress", "pending", "resolved", "closed", "cancelled"] as const;
+
+// Main tickets table
+export const tickets = pgTable("tickets", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ticket_number: varchar("ticket_number", { length: 20 }).unique().notNull(),
+  type: varchar("type", { length: 20 }).notNull(), // request, incident, problem, change
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  priority: varchar("priority", { length: 20 }).notNull().default("medium"),
+  status: varchar("status", { length: 20 }).notNull().default("new"),
+
+  // Assignment
+  requester_email: varchar("requester_email", { length: 255 }).notNull(),
+  assigned_to: varchar("assigned_to", { length: 255 }),
+  assigned_group: varchar("assigned_group", { length: 100 }),
+
+  // Related entities
+  device_id: uuid("device_id"),
+  related_tickets: json("related_tickets").$type<string[]>().default([]),
+
+  // Workflow specific fields
+  impact: varchar("impact", { length: 20 }).default("medium"), // low, medium, high, critical
+  urgency: varchar("urgency", { length: 20 }).default("medium"), // low, medium, high, critical
+  category: varchar("category", { length: 100 }),
+  subcategory: varchar("subcategory", { length: 100 }),
+
+  // Change management specific
+  change_type: varchar("change_type", { length: 50 }), // standard, emergency, normal
+  risk_level: varchar("risk_level", { length: 20 }), // low, medium, high
+  approval_status: varchar("approval_status", { length: 20 }), // pending, approved, rejected
+  implementation_plan: text("implementation_plan"),
+  rollback_plan: text("rollback_plan"),
+  scheduled_start: timestamp("scheduled_start"),
+  scheduled_end: timestamp("scheduled_end"),
+
+  // Problem management specific
+  root_cause: text("root_cause"),
+  workaround: text("workaround"),
+  known_error: boolean("known_error").default(false),
+
+  // Metadata
+  tags: json("tags").$type<string[]>().default([]),
+  custom_fields: json("custom_fields").$type<Record<string, any>>().default({}),
+
+  // SLA fields
+  sla_policy: varchar("sla_policy", { length: 100 }),
+  sla_response_time: integer("sla_response_time"), // in minutes
+  sla_resolution_time: integer("sla_resolution_time"), // in minutes
+  sla_response_due: timestamp("sla_response_due"),
+  sla_resolution_due: timestamp("sla_resolution_due"),
+  first_response_at: timestamp("first_response_at"),
+  sla_breached: boolean("sla_breached").default(false),
+
+  // Timestamps
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+  resolved_at: timestamp("resolved_at"),
+  closed_at: timestamp("closed_at"),
+  due_date: timestamp("due_date"),
+});
+
+// Ticket comments/updates
+export const ticketComments = pgTable("ticket_comments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ticket_id: uuid("ticket_id").notNull(),
+  author_email: varchar("author_email", { length: 255 }).notNull(),
+  comment: text("comment").notNull(),
+  is_internal: boolean("is_internal").default(false),
+  attachments: json("attachments").$type<string[]>().default([]),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Ticket attachments
+export const ticketAttachments = pgTable("ticket_attachments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ticket_id: uuid("ticket_id").notNull(),
+  filename: varchar("filename", { length: 255 }).notNull(),
+  file_size: integer("file_size"),
+  mime_type: varchar("mime_type", { length: 100 }),
+  uploaded_by: varchar("uploaded_by", { length: 255 }).notNull(),
+  uploaded_at: timestamp("uploaded_at").defaultNow().notNull(),
+});
+
+// Ticket workflow/approval
+export const ticketApprovals = pgTable("ticket_approvals", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ticket_id: uuid("ticket_id").notNull(),
+  approver_email: varchar("approver_email", { length: 255 }).notNull(),
+  status: varchar("status", { length: 20 }).notNull(), // pending, approved, rejected
+  comments: text("comments"),
+  approved_at: timestamp("approved_at"),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Knowledge base articles
+export const knowledgeBase = pgTable("knowledge_base", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  category: varchar("category", { length: 100 }),
+  tags: json("tags").$type<string[]>().default([]),
+  author_email: varchar("author_email", { length: 255 }).notNull(),
+  status: varchar("status", { length: 20 }).default("draft"), // draft, published, archived
+  views: integer("views").default(0),
+  helpful_votes: integer("helpful_votes").default(0),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type Ticket = typeof tickets.$inferSelect;
+export type NewTicket = typeof tickets.$inferInsert;
+export type TicketComment = typeof ticketComments.$inferSelect;
+export type NewTicketComment = typeof ticketComments.$inferInsert;
+export type TicketAttachment = typeof ticketAttachments.$inferSelect;
+export type NewTicketAttachment = typeof ticketAttachments.$inferInsert;
+export type TicketApproval = typeof ticketApprovals.$inferSelect;
+export type NewTicketApproval = typeof ticketApprovals.$inferInsert;
+export type KnowledgeBaseArticle = typeof knowledgeBase.$inferSelect;
+export type NewKnowledgeBaseArticle = typeof knowledgeBase.$inferInsert;

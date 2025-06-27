@@ -1,0 +1,95 @@
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 2 (0x2)
+        Signature Algorithm: sha256WithRSAEncryption
+        Issuer: C=IN, ST=Karnataka, L=Bangalore, O=Fidelis Technologies, CN=Fidelis Technologies CA/emailAddress=techsupport@fidelisgroup.in
+        Validity
+            Not Before: Jun 18 18:30:00 2024 GMT
+            Not After : Jun 18 18:30:00 2034 GMT
+        Subject: C=IN, ST=Karnataka, L=Bangalore, O=Fidelis Technologies, CN=techsupport-2001/emailAddress=techspport@fidelisgroup.com
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (2048 bit)
+                Modulus:
+                    00:ef:30:72:f7:26:55:b7:59:88:b4:92:d0:15:b5:
+                    62:50:46:b7:5a:8d:a2:83:e0:7e:c6:59:dd:6f:b0:
+                    ca:ef:80:7b:18:00:a9:5a:cf:1d:25:52:ee:82:50:
+                    cd:27:85:c8:a6:7d:13:47:20:11:04:af:c8:d6:2a:
+                    7a:6b:9a:a8:0b:9e:01:a2:c4:52:f8:13:e4:b7:f4:
+                    72:86:57:15:3b:53:a5:13:ae:52:5c:db:e3:cf:db:
+                    c0:06:e4:7d:62:aa:da:0a:2b:f5:93:32:9e:3d:16:
+                    d8:d6:6e:12:64:dd:d0:dc:79:eb:67:4f:88:5b:cf:
+                    82:c3:61:c1:1c:c2:49:94:04:5c:05:f4:05:8c:8a:
+                    ec:e9:09:8d:df:37:15:95:34:72:3f:83:f5:d9:3e:
+                    bd:9e:31:dc:44:15:53:ff:31:2b:eb:2b:91:90:39:
+                    80:12:73:0e:d0:e1:4b:4c:f5:20:0b:19:87:97:8f:
+                    b8:71:f3:cf:33:4f:22:24:3c:f2:dc:92:9e:22:5b:
+                    cf:27:bf:f1:06:db:46:17:3c:87:bc:97:03:29:27:
+                    46:5a:8f:90:31:4e:de:32:62:e8:04:20:73:e6:f8:
+                    3d:35:04:77:93:0a:4c:2d:2d:3d:6c:21:d0:50:e7:
+                    ff:28:c5:6c:ae:16:06:3d:95:95:87:cc:40:df:3c:
+                    43:21
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Basic Constraints: 
+                CA:FALSE
+            Netscape Comment: 
+                Easy-RSA Generated Certificate
+            X509v3 Subject Key Identifier: 
+                DB:F5:EA:3E:A1:16:03:11:3D:64:97:8B:89:78:9E:7D:A5:C7:6A:38
+            X509v3 Authority Key Identifier: 
+                keyid:01:40:F9:D5:1C:61:F9:8F:41:00:61:DE:9A:B7:A4:30:B3:07:B8:B9
+                DirName:/C=IN/ST=Karnataka/L=Bangalore/O=Fidelis Technologies/CN=Fidelis Technologies CA/emailAddress=techsupport@fidelisgroup.in
+                serial:4A:CD:B8:E5:22:1B:12:74:9E:E0:96:F3:48:10:51:C8:19:36:8B:26
+            X509v3 Extended Key Usage: 
+                TLS Web Client Authentication
+            X509v3 Key Usage: 
+                Digital Signature
+    Signature Algorithm: sha256WithRSAEncryption
+    Signature Value:
+        88:4f:04:b4:37:63:a1:fd:93:e8:fb:c3:bd:df:3b:03:e8:14:
+        55:41:5b:4f:ba:5d:95:a3:1b:42:b5:42:c8:e7:7f:db:20:84:
+        01:18:11:e6:04:fd:e4:8b:cf:24:8c:b5:26:02:92:4c:25:2f:
+        4b:99:b4:dc:29:e3:88:14:79:6f:da:24:32:a2:62:61:d1:b0:
+        ff:8b:6b:08:46:a1:9d:fb:81:50:76:9b:68:39:d8:8d:f1:76:
+        73:8c:39:df:ac:5d:7e:0d:a4:c6:24:c9:cc:e0:a0:0b:76:0f:
+        c2:e5:c9:0d:b9:87:b6:ef:3c:62:94:a4:a9:ce:0f:1e:02:5d:
+        5a:90:c4:75:ad:14:cc:82:0c:bd:a3:a4:e6:d7:56:12:f6:23:
+        16:cd:30:47:68:a0:90:ef:29:aa:c5:98:82:9a:88:a8:71:97:
+        a6:40:27:56:85:f2:1e:11:c2:1b:72:d8:46:82:6d:5f:49:74:
+        ff:c3:68:7f:86:4b:9b:69:29:61:5f:2c:fa:e6:91:2f:e0:85:
+        88:1c:e2:cf:54:17:7e:fe:ff:ee:79:cb:ef:c4:3b:8e:03:4e:
+        34:18:01:67:b3:04:4b:62:4c:8f:e5:88:39:59:9e:76:6d:73:
+        35:fa:20:88:3a:de:af:2b:69:64:3c:a7:68:23:77:b7:39:57:
+        76:e4:c1:33
+-----BEGIN CERTIFICATE-----
+MIIFIDCCBAigAwIBAgIBAjANBgkqhkiG9w0BAQsFADCBojELMAkGA1UEBhMCSU4x
+EjAQBgNVBAgTCUthcm5hdGFrYTESMBAGA1UEBxMJQmFuZ2Fsb3JlMR0wGwYDVQQK
+ExRGaWRlbGlzIFRlY2hub2xvZ2llczEgMB4GA1UEAxMXRmlkZWxpcyBUZWNobm9s
+b2dpZXMgQ0ExKjAoBgkqhkiG9w0BCQEWG3RlY2hzdXBwb3J0QGZpZGVsaXNncm91
+cC5pbjAeFw0yNDA2MTgxODMwMDBaFw0zNDA2MTgxODMwMDBaMIGbMQswCQYDVQQG
+EwJJTjESMBAGA1UECBMJS2FybmF0YWthMRIwEAYDVQQHEwlCYW5nYWxvcmUxHTAb
+BgNVBAoTFEZpZGVsaXMgVGVjaG5vbG9naWVzMRkwFwYDVQQDExB0ZWNoc3VwcG9y
+dC0yMDAxMSowKAYJKoZIhvcNAQkBFht0ZWNoc3Bwb3J0QGZpZGVsaXNncm91cC5j
+b20wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDvMHL3JlW3WYi0ktAV
+tWJQRrdajaKD4H7GWd1vsMrvgHsYAKlazx0lUu6CUM0nhcimfRNHIBEEr8jWKnpr
+mqgLngGixFL4E+S39HKGVxU7U6UTrlJc2+PP28AG5H1iqtoKK/WTMp49FtjWbhJk
+3dDceetnT4hbz4LDYcEcwkmUBFwF9AWMiuzpCY3fNxWVNHI/g/XZPr2eMdxEFVP/
+MSvrK5GQOYAScw7Q4UtM9SALGYeXj7hx888zTyIkPPLckp4iW88nv/EG20YXPIe8
+lwMpJ0Zaj5AxTt4yYugEIHPm+D01BHeTCkwtLT1sIdBQ5/8oxWyuFgY9lZWHzEDf
+PEMhAgMBAAGjggFkMIIBYDAJBgNVHRMEAjAAMC0GCWCGSAGG+EIBDQQgFh5FYXN5
+LVJTQSBHZW5lcmF0ZWQgQ2VydGlmaWNhdGUwHQYDVR0OBBYEFNv16j6hFgMRPWSX
+i4l4nn2lx2o4MIHiBgNVHSMEgdowgdeAFAFA+dUcYfmPQQBh3pq3pDCzB7i5oYGo
+pIGlMIGiMQswCQYDVQQGEwJJTjESMBAGA1UECBMJS2FybmF0YWthMRIwEAYDVQQH
+EwlCYW5nYWxvcmUxHTAbBgNVBAoTFEZpZGVsaXMgVGVjaG5vbG9naWVzMSAwHgYD
+VQQDExdGaWRlbGlzIFRlY2hub2xvZ2llcyBDQTEqMCgGCSqGSIb3DQEJARYbdGVj
+aHN1cHBvcnRAZmlkZWxpc2dyb3VwLmlughRKzbjlIhsSdJ7glvNIEFHIGTaLJjAT
+BgNVHSUEDDAKBggrBgEFBQcDAjALBgNVHQ8EBAMCB4AwDQYJKoZIhvcNAQELBQAD
+ggEBAIhPBLQ3Y6H9k+j7w73fOwPoFFVBW0+6XZWjG0K1Qsjnf9sghAEYEeYE/eSL
+zySMtSYCkkwlL0uZtNwp44gUeW/aJDKiYmHRsP+LawhGoZ37gVB2m2g52I3xdnOM
+Od+sXX4NpMYkyczgoAt2D8LlyQ25h7bvPGKUpKnODx4CXVqQxHWtFMyCDL2jpObX
+VhL2IxbNMEdooJDvKarFmIKaiKhxl6ZAJ1aF8h4Rwhty2EaCbV9JdP/DaH+GS5tp
+KWFfLPrmkS/ghYgc4s9UF37+/+55y+/EO44DTjQYAWezBEtiTI/liDlZnnZtczX6
+IIg63q8raWQ8p2gjd7c5V3bkwTM=
+-----END CERTIFICATE-----
