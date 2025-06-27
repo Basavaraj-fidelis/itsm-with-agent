@@ -484,7 +484,5 @@ export default function AgentDetail() {
     </AgentErrorBoundary>
   );
 }
-```
 
-```
 </replit_final_file>
