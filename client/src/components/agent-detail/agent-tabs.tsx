@@ -1772,8 +1772,6 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
             </div>
           </SafeDataRenderer>
         </TabsContent>
-
-
       </Tabs>
     </AgentErrorBoundary>
   );

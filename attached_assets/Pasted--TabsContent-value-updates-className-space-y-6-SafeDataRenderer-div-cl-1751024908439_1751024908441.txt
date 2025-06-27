@@ -1,0 +1,498 @@
+<TabsContent value="updates" className="space-y-6">
+          <SafeDataRenderer>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Windows Update Status */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Download className="w-5 h-5" />
+                    <span>Windows Update Status</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {(() => {
+                    const rawData = agent?.latest_report?.raw_data;
+                    const parsedData = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+
+                    return parsedData ? (
+                      <div className="space-y-6">
+                        <div>
+                          <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-3 flex items-center">
+                            <Shield className="w-4 h-4 mr-2" />
+                            {agent.latest_report?.os_info?.name === 'Linux' ? 'Linux Update Status' : 'Windows Update Status'}
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {agent.latest_report?.os_info?.name === 'Linux' ? (
+                              <>
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">Distribution:</div>
+                                  <div className="text-sm font-medium">{agent.latest_report?.os_info?.name_pretty || agent.latest_report?.os_info?.name || 'N/A'}</div>
+                                </div>
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">Version:</div>
+                                  <div className="text-sm font-medium">{agent.latest_report?.os_info?.version_id || agent.latest_report?.os_info?.version || 'N/A'}</div>
+                                </div>
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">Kernel Version:</div>
+                                  <div className="text-sm font-medium">{agent.latest_report?.os_info?.kernel_version || 'N/A'}</div>
+                                </div>
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">Last Update:</div>
+                                  <div className="text-sm font-medium">{agent.latest_report?.os_info?.last_update || 'N/A'}</div>
+                                </div>
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">Package Manager:</div>
+                                  <div className="text-sm font-medium">{agent.latest_report?.os_info?.patch_summary?.system_type === 'debian' ? 'APT (Debian/Ubuntu)' : agent.latest_report?.os_info?.patch_summary?.system_type === 'redhat' ? 'RPM (RedHat/CentOS)' : 'Unknown'}</div>
+                                </div>
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">System Uptime:</div>
+                                  <div className="text-sm font-medium">{agent.latest_report?.os_info?.uptime_seconds ? `${Math.floor(agent.latest_report.os_info.uptime_seconds / 3600)} hours` : 'N/A'}</div>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">Product Name:</div>
+                                  <div className="text-sm font-medium">{agent.latest_report?.os_info?.product_name || 'N/A'}</div>
+                                </div>
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">Build Number:</div>
+                                  <div className="text-sm font-medium">{agent.latest_report?.os_info?.build_number || 'N/A'}</div>
+                                </div>
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">Last Update:</div>
+                                  <div className="text-sm font-medium">{agent.latest_report?.os_info?.last_update || 'N/A'}</div>
+                                </div>
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">Auto Updates:</div>
+                                  <Badge variant={agent.latest_report?.security?.automatic_updates?.includes('Auto') ? 'default' : 'secondary'}>
+                                    {agent.latest_report?.security?.automatic_updates || 'Unknown'}
+                                  </Badge>
+                                </div>
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">Pending Reboot:</div>
+                                  <div className="text-sm font-medium">{agent.latest_report?.os_info?.pending_reboot ? 'Yes' : 'No'}</div>
+                                </div>
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">System Uptime:</div>
+                                  <div className="text-sm font-medium">{agent.latest_report?.os_info?.uptime_seconds ? `${Math.floor(agent.latest_report.os_info.uptime_seconds / 3600)} hours` : 'N/A'}</div>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+              {/* Security Status */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Shield className="w-5 h-5" />
+                    <span>Security Status</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {(() => {
+                    const rawData = agent?.latest_report?.raw_data;
+                    const parsedData = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+                    const securityData = parsedData?.security;
+
+                    return securityData ? (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-1 gap-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-neutral-600 text-xs">Windows Defender:</span>
+                            <Badge variant={securityData.antivirus_status === "enabled" ? "default" : "destructive"} className="text-xs">
+                              {securityData.antivirus_status === "enabled" ? "Active" : "Inactive"}
+                            </Badge>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-neutral-600 text-xs">Firewall:</span>
+                            <Badge variant={securityData.firewall_status === "enabled" ? "default" : "destructive"} className="text-xs">
+                              {securityData.firewall_status === "enabled" ? "Enabled" : "Disabled"}
+                            </Badge>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-neutral-600 text-xs">Real-time Protection:</span>
+                            <span className="font-medium text-xs">
+                              {securityData.real_time_protection || 
+                               (securityData.antivirus_status === "enabled" ? "Active" : "Unknown")}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-neutral-600 text-xs">Last Virus Scan:</span>
+                            <span className="font-medium text-xs">
+                              {securityData.last_virus_scan?.slice(0, 10) || 
+                               securityData.last_scan?.slice(0, 10) || "N/A"}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-neutral-600 text-xs">UAC Status:</span>
+                            <Badge variant={securityData.uac_enabled ? "default" : "destructive"} className="text-xs">
+                              {securityData.uac_enabled ? "Enabled" : "Disabled"}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        {/* Security Services */}
+                        {securityData.security_services && (
+                          <div className="mt-4">
+                            <h4 className="font-medium mb-2 text-sm">Security Services</h4>
+                            <div className="space-y-1 max-h-32 overflow-y-auto">
+                              {securityData.security_services.slice(0, 3).map((service, index) => (
+                                <div key={index} className="p-2 border rounded bg-muted/20">
+                                  <div className="text-xs">
+                                    <div className="font-medium">{service.name?.slice(0, 20)}...</div>
+                                    <Badge variant={service.status === "running" ? "default" : "secondary"} className="text-xs mt-1">
+                                      {service.status}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Shield className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
+                        <p className="text-xs">No security information available</p>
+                        <p className="text-xs text-neutral-500 mt-1">
+                          Security data will appear when the agent reports system security information
+                        </p>
+                      </div>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+
+              {/* Installed Patches */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <CheckCircle className="w-5 h-5" />
+                    <span>Installed Patches</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {(() => {
+                    // For Linux systems, check patch_summary first
+                    const isLinux = agent.latest_report?.os_info?.name === 'Linux';
+                    const patches = isLinux 
+                      ? agent.latest_report?.os_info?.patch_summary?.recent_patches || agent.latest_report?.os_info?.patches
+                      : agent.latest_report?.os_info?.patches;
+
+                    const patchSummary = agent.latest_report?.os_info?.patch_summary;
+
+                    if (isLinux && patchSummary) {
+                      return (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                              <div className="text-xs text-green-600 mb-1">Total Packages</div>
+                              <div className="text-2xl font-bold text-green-700">{patchSummary.total_installed || 0}</div>
+                            </div>
+                            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                              <div className="text-xs text-blue-600 mb-1">Package System</div>
+                              <div className="text-sm font-medium text-blue-700">
+                                {patchSummary.system_type === 'debian' ? 'APT (Debian/Ubuntu)' : 
+                                 patchSummary.system_type === 'redhat' ? 'RPM (RedHat/CentOS)' : 'Unknown'}
+                              </div>
+                            </div>
+                            <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
+                              <div className="text-xs text-orange-600 mb-1">Last Update</div>
+                              <div className="text-sm font-medium text-orange-700">{patchSummary.last_update_date || 'N/A'}</div>
+                            </div>
+                          </div>
+
+                          {patches && patches.length > 0 ? (
+                            <div>
+                              <h4 className="text-sm font-medium mb-2">Recent Updates</h4>
+                              <div className="space-y-2 max-h-64 overflow-y-auto">
+                                {patches.slice(0, 10).map((patch, index) => (
+                                  <div key={index} className="bg-neutral-50 dark:bg-neutral-800 p-3 rounded border-l-4 border-green-500">
+                                    <div className="flex justify-between items-start">
+                                      <div>
+                                        <div className="text-sm font-medium">
+                                          {patch.package || patch.type || `Update ${index + 1}`}
+                                        </div>
+                                        <div className="text-xs text-neutral-600">{patch.date}</div>
+                                      </div>
+                                      <Badge variant="outline" className="text-xs">
+                                        {patch.type === 'system_update' ? 'System Update' : 'Package Update'}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="bg-neutral-50 dark:bg-neutral-800 p-6 rounded-lg text-center">
+                              <Package className="w-6 h-6 mx-auto mb-2 text-neutral-400" />
+                              <p className="text-sm text-neutral-600">Recent update history not available</p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    // Windows patch handling
+                    if (!patches || patches.length === 0) {
+                      return (
+                        <div className="bg-neutral-50 dark:bg-neutral-800 p-8 rounded-lg text-center">
+                          <AlertCircle className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
+                          <p className="text-sm text-neutral-600 mb-1">No patch information available</p>
+                          <p className="text-xs text-neutral-500">
+                            {isLinux ? 'Package update data will appear when available.' : 'Patch data will appear when the agent reports installed Windows updates.'}
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-1 gap-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-neutral-600 text-xs">Total Patches:</span>
+                            <span className="font-medium text-xs">{patches.length}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-neutral-600 text-xs">Last Patch:</span>
+                            <span className="font-medium text-xs">
+                              {patches[0]?.installed_on?.DateTime?.slice(0, 10) || 
+                               patches[0]?.installed_on?.slice(0, 10) || "N/A"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="mt-4">
+                          <h4 className="font-medium mb-2 text-sm">Patches (Page {patchesCurrentPage})</h4>
+                          <div className="space-y-2">
+                            {(() => {
+                              const startIndex = (patchesCurrentPage - 1) * itemsPerPage;
+                              const endIndex = startIndex + itemsPerPage;
+                              const currentPatches = patches.slice(startIndex, endIndex);
+
+                              return currentPatches.map((patch, index) => (
+                                <div key={startIndex + index} className="p-2 border rounded-lg bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+                                  <div className="text-xs">
+                                    <div className="font-medium text-green-900 dark:text-green-100">
+                                      {(patch.id || `Patch ${startIndex + index + 1}`).slice(0, 35)}
+                                      {(patch.id || `Patch ${startIndex + index + 1}`).length > 35 ? '...' : ''}
+                                    </div>
+                                    <div className="text-green-600 dark:text-green-400 text-xs mt-1">
+                                      {patch.installed_on?.DateTime?.slice(0, 10) || patch.installed_on?.slice(0, 10) || "Unknown"}
+                                    </div>
+                                  </div>
+                                </div>
+                              ));
+                            })()}
+                          </div>
+
+                          {/* Patches Pagination */}
+                          {(() => {
+                            const totalPages = Math.ceil(patches.length / itemsPerPage);
+
+                            if (totalPages > 1) {
+                              return (
+                                <div className="mt-4">
+                                  <Pagination>
+                                    <PaginationContent>
+                                      <PaginationItem>
+                                        <PaginationPrevious 
+                                          onClick={() => setPatchesCurrentPage(Math.max(1, patchesCurrentPage - 1))}
+                                          className={patchesCurrentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                        />
+                                      </PaginationItem>
+
+                                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                        <PaginationItem key={page}>
+                                          <PaginationLink
+                                            onClick={() => setPatchesCurrentPage(page)}
+                                            isActive={page === patchesCurrentPage}
+                                            className="cursor-pointer"
+                                          >
+                                            {page}
+                                          </PaginationLink>
+                                        </PaginationItem>
+                                      ))}
+
+                                      <PaginationItem>
+                                        <PaginationNext 
+                                          onClick={() => setPatchesCurrentPage(Math.min(totalPages, patchesCurrentPage + 1))}
+                                          className={patchesCurrentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                        />
+                                      </PaginationItem>
+                                    </PaginationContent>
+                                  </Pagination>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+
+              {/* Active Network Ports */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Network className="w-5 h-5" />
+                    <span>Active Network Ports</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {(() => {
+                    const rawData = agent?.latest_report?.raw_data;
+                    const parsedData = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+                    const activePorts = parsedData?.active_ports;
+
+                    return activePorts && activePorts.length > 0 ? (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-1 gap-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-neutral-600 text-xs">Total Connections:</span>
+                            <span className="font-medium text-xs">{activePorts.length}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-neutral-600 text-xs">Local Ports:</span>
+                            <span className="font-medium text-xs">
+                              {new Set(activePorts.map(port => port.LocalPort)).size}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-neutral-600 text-xs">Remote Ports:</span>
+                            <span className="font-medium text-xs">
+                              {new Set(activePorts.map(port => port.RemotePort)).size}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Port Analysis */}
+                        <div className="mt-4 p-2 border rounded-lg bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                          <h5 className="font-medium text-blue-900 dark:text-blue-100 mb-2 text-sm">Port Analysis</h5>
+                          <div className="grid grid-cols-1 gap-2 text-xs">
+                            <div className="flex justify-between">
+                              <span className="text-blue-600 dark:text-blue-400">HTTPS (443):</span>
+                              <span className="font-medium">
+                                {activePorts.filter(p => p.RemotePort === 443).length}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-blue-600 dark:text-blue-400">HTTP (80):</span>
+                              <span className="font-medium">
+                                {activePorts.filter(p => p.RemotePort === 80).length}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-blue-600 dark:text-blue-400">Custom:</span>
+                              <span className="font-medium">
+                                {activePorts.filter(p => 
+                                  ![443, 80, 22, 21, 25, 53, 3389, 5228, 7680].includes(p.RemotePort)
+                                ).length}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Port Connections */}
+                        <div className="mt-4">
+                          <h4 className="font-medium mb-2 text-sm">Port Connections (Page {portsCurrentPage})</h4>
+                          <div className="space-y-1">
+                            {(() => {
+                              const ports = activePorts.sort((a, b) => a.LocalPort - b.LocalPort);
+                              const startIndex = (portsCurrentPage - 1) * itemsPerPage;
+                              const endIndex = startIndex + itemsPerPage;
+                              const currentPorts = ports.slice(startIndex, endIndex);
+
+                              return currentPorts.map((port, index) => (
+                                <div key={startIndex + index} className="p-2 border rounded-lg bg-muted/20">
+                                  <div className="flex items-center justify-between text-xs">
+                                    <div>
+                                      <span className="font-medium text-blue-900 dark:text-blue-100">
+                                        {port.LocalPort} → {port.RemotePort}
+                                      </span>
+                                      {port.RemoteAddress && (
+                                        <div className="text-neutral-500 text-xs mt-1">
+                                          {port.RemoteAddress.slice(0, 20)}{port.RemoteAddress.length > 20 ? '...' : ''}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <Badge variant="default" className="text-xs">
+                                      {port.RemotePort === 443 ? "HTTPS" :
+                                       port.RemotePort === 80 ? "HTTP" :
+                                       port.RemotePort === 22 ? "SSH" :
+                                       port.RemotePort === 3389 ? "RDP" :
+                                       "Custom"}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              ));
+                            })()}
+                          </div>
+
+                          {/* Ports Pagination */}
+                          {(() => {
+                            const totalPages = Math.ceil(activePorts.length / itemsPerPage);
+
+                            if (totalPages > 1) {
+                              return (
+                                <div className="mt-4">
+                                  <Pagination>
+                                    <PaginationContent>
+                                      <PaginationItem>
+                                        <PaginationPrevious 
+                                          onClick={() => setPortsCurrentPage(Math.max(1, portsCurrentPage - 1))}
+                                          className={portsCurrentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                        />
+                                      </PaginationItem>
+
+                                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                        <PaginationItem key={page}>
+                                          <PaginationLink
+                                            onClick={() => setPortsCurrentPage(page)}
+                                            isActive={page === portsCurrentPage}
+                                            className="cursor-pointer"
+                                          >
+                                            {page}
+                                          </PaginationLink>
+                                        </PaginationItem>
+                                      ))}
+
+                                      <PaginationItem>
+                                        <PaginationNext 
+                                          onClick={() => setPortsCurrentPage(Math.min(totalPages, portsCurrentPage + 1))}
+                                          className={portsCurrentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                        />
+                                      </PaginationItem>
+                                    </PaginationContent>
+                                  </Pagination>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Network className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
+                        <p className="text-xs">No port information available</p>
+                        <p className="text-xs text-neutral-500 mt-1">
+                          Network port data will appear when the agent reports active connections
+                        </p>
+                      </div>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+            </div>
+          </SafeDataRenderer>
+        </TabsContent>
+      </Tabs>
+    </AgentErrorBoundary>
+  );
+}
