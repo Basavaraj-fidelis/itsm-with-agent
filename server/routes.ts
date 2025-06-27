@@ -2542,56 +2542,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Send specific command to agent - open notepad
-  app.post("/api/agents/:id/open-notepad", authenticateToken, requireRole(["admin", "manager"]), async (req, res) => {
-    try {
-      const agentId = req.params.id;
-      
-      // Check if agent exists and is online
-      const device = await storage.getDevice(agentId);
-      if (!device) {
-        return res.status(404).json({ 
-          success: false, 
-          message: "Agent not found" 
-        });
-      }
-
-      if (device.status !== 'online') {
-        return res.status(400).json({ 
-          success: false, 
-          message: `Agent is ${device.status}. Only online agents can execute commands.` 
-        });
-      }
-
-      // Queue the notepad command
-      const { pool } = await import("./db");
-      const result = await pool.query(
-        `INSERT INTO agent_commands (device_id, type, command, priority, status, created_by, created_at)
-         VALUES ($1, $2, $3, $4, 'pending', $5, NOW())
-         RETURNING id`,
-        [agentId, 'system_command', 'notepad.exe', 1, req.user.id]
-      );
-
-      // Log the command request
-      console.log(`Notepad command queued for agent ${device.hostname} (${agentId}) by ${req.user.email}`);
-
-      res.json({
-        success: true,
-        message: `Notepad command sent to ${device.hostname}`,
-        command_id: result.rows[0].id,
-        agent_hostname: device.hostname,
-        command: 'notepad.exe'
-      });
-
-    } catch (error) {
-      console.error("Error sending notepad command:", error);
-      res.status(500).json({ 
-        success: false, 
-        message: "Failed to send command to agent" 
-      });
-    }
-  });
-
   // Health check
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date() });
