@@ -169,9 +169,22 @@ For technical support, contact your system administrator.
 
     archive.append(instructions, { name: 'README.md' });
 
-    // Finalize the archive
-    await archive.finalize();
-    console.log('Windows agent download completed');
+    // Finalize the archive and wait for it to complete
+    archive.finalize();
+    
+    // Wait for the archive to finish
+    archive.on('end', () => {
+      console.log('Windows agent download completed - archive data has been drained');
+    });
+    
+    archive.on('warning', (err) => {
+      if (err.code === 'ENOENT') {
+        console.warn('Archive warning:', err);
+      } else {
+        console.error('Archive error:', err);
+        throw err;
+      }
+    });
 
   } catch (error) {
     console.error('Windows agent download error:', error);
@@ -296,8 +309,12 @@ Edit config.ini before installation.
 `;
 
     archive.append(linuxInstructions, { name: 'README.md' });
-    await archive.finalize();
-    console.log('Linux agent download completed');
+    
+    archive.finalize();
+    
+    archive.on('end', () => {
+      console.log('Linux agent download completed - archive data has been drained');
+    });
 
   } catch (error) {
     console.error('Linux agent download error:', error);
@@ -374,8 +391,12 @@ Edit config.ini before installation.
 `;
 
     archive.append(macosInstructions, { name: 'README.md' });
-    await archive.finalize();
-    console.log('macOS agent download completed');
+    
+    archive.finalize();
+    
+    archive.on('end', () => {
+      console.log('macOS agent download completed - archive data has been drained');
+    });
 
   } catch (error) {
     console.error('macOS agent download error:', error);
