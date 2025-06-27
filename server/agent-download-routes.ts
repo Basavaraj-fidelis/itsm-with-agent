@@ -124,9 +124,60 @@ router.get('/windows', authenticateToken, requireAdmin, async (req, res) => {
     // Pipe archive to response
     archive.pipe(res);
 
-    // Add the entire Agent directory to the archive
-    archive.directory(agentPath, false);
-    console.log('Added entire Agent directory to archive');
+    // Define specific Windows agent files to include
+    const windowsFiles = [
+      'itsm_agent.py',
+      'api_client.py',
+      'system_collector.py',
+      'service_wrapper.py',
+      'config.ini',
+      'install_windows.py',
+      'fix_windows_service.py',
+      'agent_websocket_client.py'
+    ];
+
+    // Check which files exist and add them individually
+    const existingFiles = windowsFiles.filter((fileName) => {
+      const filePath = path.join(agentPath, fileName);
+      const exists = fs.existsSync(filePath);
+      console.log(`Checking ${fileName}: ${exists ? 'EXISTS' : 'NOT FOUND'}`);
+      return exists;
+    });
+
+    if (existingFiles.length === 0) {
+      console.error('No Windows agent files found!');
+      return res.status(404).json({ error: 'No Windows agent files found' });
+    }
+
+    console.log(`Found ${existingFiles.length} Windows files:`, existingFiles);
+
+    // Add files individually to ensure they're properly included
+    let filesAdded = 0;
+    for (const fileName of existingFiles) {
+      try {
+        const filePath = path.join(agentPath, fileName);
+        const stats = fs.statSync(filePath);
+        
+        if (stats.isFile() && stats.size > 0) {
+          archive.file(filePath, { name: fileName });
+          console.log(`Added ${fileName} to archive (${stats.size} bytes)`);
+          filesAdded++;
+        } else {
+          console.warn(`Skipping ${fileName}: not a valid file or empty`);
+        }
+      } catch (fileError) {
+        console.error(`Error processing file ${fileName}:`, fileError);
+      }
+    }
+
+    console.log(`Total files added to Windows archive: ${filesAdded}`);
+
+    if (filesAdded === 0) {
+      console.error('No files were successfully added to the archive!');
+      if (!res.headersSent) {
+        return res.status(500).json({ error: 'No valid agent files found to package' });
+      }
+    }
 
     // Add installation instructions
     const instructions = `# ITSM Agent Installation Instructions - Windows
@@ -173,7 +224,7 @@ For technical support, contact your system administrator.
     archive.append(instructions, { name: 'README.md' });
     console.log('Added README.md to archive');
 
-    // Finalize the archive
+    // Finalize the archive (not async)
     archive.finalize();
 
   } catch (error) {
