@@ -305,28 +305,92 @@ class SystemCollector:
             except Exception:
                 pass
 
-            # Patch list (APT or RPM)
+            # Patch list (APT or RPM) - Show meaningful patch summary
             try:
-                patches = []
+                patch_summary = {
+                    "total_installed": 0,
+                    "recent_patches": [],
+                    "last_update_date": None,
+                    "system_type": "unknown"
+                }
+                
                 if shutil.which('dpkg'):
-                    result = subprocess.run(['grep', 'Start-Date:', '/var/log/apt/history.log'], 
-                                            capture_output=True, text=True, timeout=10)
-                    if result.returncode == 0:
-                        for i, line in enumerate(result.stdout.strip().split('\n')[-10:]):
-                            patches.append({"id": f"APT-{i+1}", "installed_on": line.replace('Start-Date:', '').strip()})
+                    patch_summary["system_type"] = "debian"
+                    
+                    # Get total package count
+                    try:
+                        result = subprocess.run(['dpkg', '-l'], capture_output=True, text=True, timeout=15)
+                        if result.returncode == 0:
+                            # Count installed packages (lines starting with 'ii')
+                            installed_count = len([line for line in result.stdout.split('\n') if line.startswith('ii')])
+                            patch_summary["total_installed"] = installed_count
+                    except Exception:
+                        pass
+                    
+                    # Get recent update history
+                    try:
+                        if os.path.exists('/var/log/apt/history.log'):
+                            result = subprocess.run(['grep', 'Start-Date:', '/var/log/apt/history.log'], 
+                                                    capture_output=True, text=True, timeout=10)
+                            if result.returncode == 0:
+                                recent_updates = []
+                                lines = result.stdout.strip().split('\n')[-5:]  # Last 5 updates
+                                for line in lines:
+                                    if line:
+                                        date_str = line.replace('Start-Date:', '').strip()
+                                        recent_updates.append({
+                                            "date": date_str,
+                                            "type": "system_update"
+                                        })
+                                
+                                if recent_updates:
+                                    patch_summary["recent_patches"] = recent_updates
+                                    patch_summary["last_update_date"] = recent_updates[-1]["date"]
+                    except Exception:
+                        pass
+                
                 elif shutil.which('rpm'):
-                    result = subprocess.run(['rpm', '-qa', '--last'], capture_output=True, text=True, timeout=15)
-                    if result.returncode == 0:
-                        for i, line in enumerate(result.stdout.strip().split('\n')[:10]):
-                            parts = line.split()
-                            patches.append({
-                                "id": parts[0],
-                                "installed_on": ' '.join(parts[1:4])
-                            })
-                if patches:
-                    info['patches'] = patches
+                    patch_summary["system_type"] = "redhat"
+                    
+                    # Get total package count
+                    try:
+                        result = subprocess.run(['rpm', '-qa'], capture_output=True, text=True, timeout=15)
+                        if result.returncode == 0:
+                            package_count = len(result.stdout.strip().split('\n'))
+                            patch_summary["total_installed"] = package_count
+                    except Exception:
+                        pass
+                    
+                    # Get recent packages
+                    try:
+                        result = subprocess.run(['rpm', '-qa', '--last'], capture_output=True, text=True, timeout=15)
+                        if result.returncode == 0:
+                            recent_updates = []
+                            lines = result.stdout.strip().split('\n')[:5]  # Most recent 5
+                            for line in lines:
+                                if line:
+                                    parts = line.split()
+                                    if len(parts) >= 4:
+                                        package_name = parts[0]
+                                        install_date = ' '.join(parts[1:4])
+                                        recent_updates.append({
+                                            "package": package_name,
+                                            "date": install_date,
+                                            "type": "package_update"
+                                        })
+                            
+                            if recent_updates:
+                                patch_summary["recent_patches"] = recent_updates
+                                patch_summary["last_update_date"] = recent_updates[0]["date"]
+                    except Exception:
+                        pass
+                
+                # Only add patch info if we have meaningful data
+                if patch_summary["total_installed"] > 0 or patch_summary["recent_patches"]:
+                    info['patch_summary'] = patch_summary
+                    
             except Exception as e:
-                self.logger.warning(f"Failed to collect Linux patch list: {e}")
+                self.logger.warning(f"Failed to collect Linux patch summary: {e}")
 
             return info
         except Exception as e:
@@ -1119,9 +1183,52 @@ class SystemCollector:
            
             
     def _get_current_user(self):
-        """Get the current logged-in user"""
+        """Get the current logged-in user - prefer actual logged in user over service account"""
         try:
-            return getpass.getuser()
+            # First try to get the actual logged-in user (not service accounts)
+            if self.is_linux:
+                try:
+                    # Try to get the user who is actually logged in to the desktop session
+                    result = subprocess.run(['who'], capture_output=True, text=True, timeout=10)
+                    if result.returncode == 0 and result.stdout.strip():
+                        lines = result.stdout.strip().split('\n')
+                        # Look for users on console or pts (actual login sessions)
+                        for line in lines:
+                            parts = line.split()
+                            if len(parts) >= 2 and ('console' in line or 'pts' in line or 'tty' in line):
+                                username = parts[0]
+                                # Skip system accounts
+                                if username not in ['root', 'mysql', 'postgres', 'redis', 'nginx', 'apache', 'www-data']:
+                                    return username
+                    
+                    # Fallback: check for users with home directories in /home
+                    import os
+                    if os.path.exists('/home'):
+                        home_users = [d for d in os.listdir('/home') 
+                                    if os.path.isdir(os.path.join('/home', d)) 
+                                    and not d.startswith('.')]
+                        if home_users:
+                            # Return the first regular user
+                            return home_users[0]
+                            
+                except Exception as e:
+                    self.logger.debug(f"Failed to get logged-in user: {e}")
+            
+            # Fallback to current process user
+            current_user = getpass.getuser()
+            
+            # If running as root, try to find the actual user
+            if current_user == 'root' and self.is_linux:
+                try:
+                    # Check SUDO_USER environment variable
+                    sudo_user = os.environ.get('SUDO_USER')
+                    if sudo_user and sudo_user != 'root':
+                        return sudo_user
+                except Exception:
+                    pass
+            
+            return current_user if current_user not in ['mysql', 'postgres', 'redis'] else "system"
+            
         except Exception as e:
             self.logger.warning(f"Failed to get current user: {e}")
             return "unknown"
