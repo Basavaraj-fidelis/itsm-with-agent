@@ -1,5 +1,5 @@
 
-const { db } = require("./db");
+import { db } from "./db.js";
 
 async function migrateSLAFields() {
   try {
@@ -33,7 +33,7 @@ async function migrateSLAFields() {
       `CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tickets_sla_response_due ON tickets(response_due_at) WHERE response_due_at IS NOT NULL`,
       `CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tickets_sla_resolve_due ON tickets(resolve_due_at) WHERE resolve_due_at IS NOT NULL`,
       `CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tickets_sla_breached ON tickets(sla_breached, sla_response_breached, sla_resolution_breached)`,
-      `CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tickets_status_sla ON tickets(status, sla_resolution_due) WHERE status NOT IN ('resolved', 'closed', 'cancelled')`,
+      `CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tickets_status_sla ON tickets(status, resolve_due_at) WHERE status NOT IN ('resolved', 'closed', 'cancelled')`,
     ];
 
     for (const query of indexQueries) {
@@ -57,7 +57,8 @@ async function migrateSLAFields() {
   }
 }
 
-if (require.main === module) {
+// Check if this script is being run directly
+if (process.argv[1] === new URL(import.meta.url).pathname) {
   migrateSLAFields()
     .then(() => {
       console.log("Migration completed");
@@ -69,4 +70,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { migrateSLAFields };
+export { migrateSLAFields };
