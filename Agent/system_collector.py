@@ -327,21 +327,38 @@ class SystemCollector:
                     except Exception:
                         pass
                     
-                    # Get recent update history
+                    # Get recent update history with more details
                     try:
                         if os.path.exists('/var/log/apt/history.log'):
-                            result = subprocess.run(['grep', 'Start-Date:', '/var/log/apt/history.log'], 
-                                                    capture_output=True, text=True, timeout=10)
+                            result = subprocess.run(['grep', '-E', '(Start-Date|Install|Upgrade):', '/var/log/apt/history.log'], 
+                                                    capture_output=True, text=True, timeout=15)
                             if result.returncode == 0:
                                 recent_updates = []
-                                lines = result.stdout.strip().split('\n')[-5:]  # Last 5 updates
-                                for line in lines:
-                                    if line:
-                                        date_str = line.replace('Start-Date:', '').strip()
-                                        recent_updates.append({
-                                            "date": date_str,
-                                            "type": "system_update"
-                                        })
+                                lines = result.stdout.strip().split('\n')
+                                
+                                # Parse the log to get meaningful update entries
+                                current_update = None
+                                for line in lines[-50:]:  # Last 50 lines for context
+                                    if line.startswith('Start-Date:'):
+                                        if current_update:
+                                            recent_updates.append(current_update)
+                                        current_update = {
+                                            "date": line.replace('Start-Date:', '').strip(),
+                                            "type": "system_update",
+                                            "packages": []
+                                        }
+                                    elif current_update and (line.startswith('Install:') or line.startswith('Upgrade:')):
+                                        # Extract package names from install/upgrade lines
+                                        action = "Install" if line.startswith('Install:') else "Upgrade"
+                                        packages = line.split(':', 1)[1].strip()
+                                        current_update["action"] = action
+                                        current_update["package"] = f"{action}: {packages[:100]}..."  # Truncate long lists
+                                
+                                if current_update:
+                                    recent_updates.append(current_update)
+                                
+                                # Keep only the last 5 updates
+                                recent_updates = recent_updates[-5:] if recent_updates else []
                                 
                                 if recent_updates:
                                     patch_summary["recent_patches"] = recent_updates

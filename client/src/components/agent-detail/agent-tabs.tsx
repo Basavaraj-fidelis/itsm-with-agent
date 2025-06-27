@@ -751,7 +751,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                   >
                                     {device.is_connected && isRecentlyActive
                                       ? "Active Now"
-                                      : device.is_connected
+                                      : device.isconnected
                                         ? "Connected"
                                         : "Inactive"}
                                   </div>
@@ -1293,87 +1293,74 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                   {(() => {
                     const rawData = agent?.latest_report?.raw_data;
                     const parsedData = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
-                    
-                    return parsedData ? (
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-1 gap-2 text-sm">
-                          <Stat 
-                            label="Product Name" 
-                            value={parsedData.os_info?.product_name || 
-                                   `${systemInfo.osName} ${systemInfo.osVersion}`} 
-                          />
-                          <Stat 
-                            label="Build Number" 
-                            value={parsedData.os_info?.build_number || 
-                                   parsedData.extracted_update_info?.windows_build || "N/A"} 
-                          />
-                          <div className="flex justify-between">
-                            <span className="text-neutral-600 text-xs">Last Update:</span>
-                            <span className="font-medium text-xs">
-                              {parsedData.os_info?.last_update?.DateTime || 
-                               parsedData.os_info?.last_update || "N/A"}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-neutral-600 text-xs">Auto Updates:</span>
-                            <Badge variant={parsedData.security?.automatic_updates?.includes("Managed") ? "secondary" : "default"} className="text-xs">
-                              {parsedData.security?.automatic_updates?.slice(0, 8) || "Unknown"}
-                            </Badge>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-neutral-600 text-xs">Pending Reboot:</span>
-                            <Badge variant={parsedData.extracted_update_info?.pending_reboot ? "destructive" : "default"} className="text-xs">
-                              {parsedData.extracted_update_info?.pending_reboot ? "Required" : "No"}
-                            </Badge>
-                          </div>
-                          <Stat 
-                            label="System Uptime" 
-                            value={(() => {
-                              const uptimeSeconds = parsedData.os_info?.uptime_seconds;
-                              if (uptimeSeconds) {
-                                const days = Math.floor(uptimeSeconds / 86400);
-                                const hours = Math.floor((uptimeSeconds % 86400) / 3600);
-                                return `${days}d ${hours}h`;
-                              }
-                              return parsedData.extracted_update_info?.system_uptime_hours ? 
-                                     `${parsedData.extracted_update_info.system_uptime_hours}h` : "N/A";
-                            })()} 
-                          />
-                        </div>
 
-                        {/* Available Updates */}
-                        {parsedData.updates && parsedData.updates.length > 0 && (
-                          <div className="mt-4">
-                            <h4 className="font-medium mb-2 text-sm">Available Updates ({parsedData.updates.length})</h4>
-                            <div className="space-y-2 max-h-32 overflow-y-auto">
-                              {parsedData.updates.slice(0, 3).map((update, index) => (
-                                <div key={index} className="p-2 border rounded-lg bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800">
-                                  <div className="text-xs">
-                                    <div className="font-medium text-orange-900 dark:text-orange-100">
-                                      {(update.title || update.name || `Update ${index + 1}`).slice(0, 30)}...
-                                    </div>
-                                    <Badge variant={update.severity === "critical" ? "destructive" : "outline"} className="text-xs mt-1">
-                                      {update.severity || "Standard"}
-                                    </Badge>
-                                  </div>
+                    return parsedData ? (
+                      <div className="space-y-6">
+                        <div>
+                          <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-3 flex items-center">
+                            <Shield className="w-4 h-4 mr-2" />
+                            {agent.latest_report?.os_info?.name === 'Linux' ? 'Linux Update Status' : 'Windows Update Status'}
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {agent.latest_report?.os_info?.name === 'Linux' ? (
+                              <>
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">Distribution:</div>
+                                  <div className="text-sm font-medium">{agent.latest_report?.os_info?.name_pretty || agent.latest_report?.os_info?.name || 'N/A'}</div>
                                 </div>
-                              ))}
-                            </div>
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">Version:</div>
+                                  <div className="text-sm font-medium">{agent.latest_report?.os_info?.version_id || agent.latest_report?.os_info?.version || 'N/A'}</div>
+                                </div>
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">Kernel Version:</div>
+                                  <div className="text-sm font-medium">{agent.latest_report?.os_info?.kernel_version || 'N/A'}</div>
+                                </div>
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">Last Update:</div>
+                                  <div className="text-sm font-medium">{agent.latest_report?.os_info?.last_update || 'N/A'}</div>
+                                </div>
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">Package Manager:</div>
+                                  <div className="text-sm font-medium">{agent.latest_report?.os_info?.patch_summary?.system_type === 'debian' ? 'APT (Debian/Ubuntu)' : agent.latest_report?.os_info?.patch_summary?.system_type === 'redhat' ? 'RPM (RedHat/CentOS)' : 'Unknown'}</div>
+                                </div>
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">System Uptime:</div>
+                                  <div className="text-sm font-medium">{agent.latest_report?.os_info?.uptime_seconds ? `${Math.floor(agent.latest_report.os_info.uptime_seconds / 3600)} hours` : 'N/A'}</div>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">Product Name:</div>
+                                  <div className="text-sm font-medium">{agent.latest_report?.os_info?.product_name || 'N/A'}</div>
+                                </div>
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">Build Number:</div>
+                                  <div className="text-sm font-medium">{agent.latest_report?.os_info?.build_number || 'N/A'}</div>
+                                </div>
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">Last Update:</div>
+                                  <div className="text-sm font-medium">{agent.latest_report?.os_info?.last_update || 'N/A'}</div>
+                                </div>
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">Auto Updates:</div>
+                                  <Badge variant={agent.latest_report?.security?.automatic_updates?.includes('Auto') ? 'default' : 'secondary'}>
+                                    {agent.latest_report?.security?.automatic_updates || 'Unknown'}
+                                  </Badge>
+                                </div>
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">Pending Reboot:</div>
+                                  <div className="text-sm font-medium">{agent.latest_report?.os_info?.pending_reboot ? 'Yes' : 'No'}</div>
+                                </div>
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">System Uptime:</div>
+                                  <div className="text-sm font-medium">{agent.latest_report?.os_info?.uptime_seconds ? `${Math.floor(agent.latest_report.os_info.uptime_seconds / 3600)} hours` : 'N/A'}</div>
+                                </div>
+                              </>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <Package className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
-                        <p className="text-xs">No update information available</p>
-                        <p className="text-xs text-neutral-500 mt-1">
-                          Update data will appear when the agent reports system update information
-                        </p>
-                      </div>
-                    );
-                  })()}
-                </CardContent>
-              </Card>
+                        </div>
 
               {/* Security Status */}
               <Card>
@@ -1388,7 +1375,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                     const rawData = agent?.latest_report?.raw_data;
                     const parsedData = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
                     const securityData = parsedData?.security;
-                    
+
                     return securityData ? (
                       <div className="space-y-3">
                         <div className="grid grid-cols-1 gap-2 text-sm">
@@ -1468,11 +1455,80 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {(() => {
-                    const rawData = agent?.latest_report?.raw_data;
-                    const parsedData = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
-                    const patches = parsedData?.os_info?.patches;
-                    
-                    return patches && patches.length > 0 ? (
+                    // For Linux systems, check patch_summary first
+                    const isLinux = agent.latest_report?.os_info?.name === 'Linux';
+                    const patches = isLinux 
+                      ? agent.latest_report?.os_info?.patch_summary?.recent_patches || agent.latest_report?.os_info?.patches
+                      : agent.latest_report?.os_info?.patches;
+
+                    const patchSummary = agent.latest_report?.os_info?.patch_summary;
+
+                    if (isLinux && patchSummary) {
+                      return (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                              <div className="text-xs text-green-600 mb-1">Total Packages</div>
+                              <div className="text-2xl font-bold text-green-700">{patchSummary.total_installed || 0}</div>
+                            </div>
+                            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                              <div className="text-xs text-blue-600 mb-1">Package System</div>
+                              <div className="text-sm font-medium text-blue-700">
+                                {patchSummary.system_type === 'debian' ? 'APT (Debian/Ubuntu)' : 
+                                 patchSummary.system_type === 'redhat' ? 'RPM (RedHat/CentOS)' : 'Unknown'}
+                              </div>
+                            </div>
+                            <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
+                              <div className="text-xs text-orange-600 mb-1">Last Update</div>
+                              <div className="text-sm font-medium text-orange-700">{patchSummary.last_update_date || 'N/A'}</div>
+                            </div>
+                          </div>
+
+                          {patches && patches.length > 0 ? (
+                            <div>
+                              <h4 className="text-sm font-medium mb-2">Recent Updates</h4>
+                              <div className="space-y-2 max-h-64 overflow-y-auto">
+                                {patches.slice(0, 10).map((patch, index) => (
+                                  <div key={index} className="bg-neutral-50 dark:bg-neutral-800 p-3 rounded border-l-4 border-green-500">
+                                    <div className="flex justify-between items-start">
+                                      <div>
+                                        <div className="text-sm font-medium">
+                                          {patch.package || patch.type || `Update ${index + 1}`}
+                                        </div>
+                                        <div className="text-xs text-neutral-600">{patch.date}</div>
+                                      </div>
+                                      <Badge variant="outline" className="text-xs">
+                                        {patch.type === 'system_update' ? 'System Update' : 'Package Update'}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="bg-neutral-50 dark:bg-neutral-800 p-6 rounded-lg text-center">
+                              <Package className="w-6 h-6 mx-auto mb-2 text-neutral-400" />
+                              <p className="text-sm text-neutral-600">Recent update history not available</p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    // Windows patch handling
+                    if (!patches || patches.length === 0) {
+                      return (
+                        <div className="bg-neutral-50 dark:bg-neutral-800 p-8 rounded-lg text-center">
+                          <AlertCircle className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
+                          <p className="text-sm text-neutral-600 mb-1">No patch information available</p>
+                          <p className="text-xs text-neutral-500">
+                            {isLinux ? 'Package update data will appear when available.' : 'Patch data will appear when the agent reports installed Windows updates.'}
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    return (
                       <div className="space-y-3">
                         <div className="grid grid-cols-1 gap-2 text-sm">
                           <div className="flex justify-between">
@@ -1555,14 +1611,6 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                           })()}
                         </div>
                       </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <CheckCircle className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
-                        <p className="text-xs">No patch information available</p>
-                        <p className="text-xs text-neutral-500 mt-1">
-                          Patch data will appear when the agent reports installed Windows updates
-                        </p>
-                      </div>
                     );
                   })()}
                 </CardContent>
@@ -1581,7 +1629,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                     const rawData = agent?.latest_report?.raw_data;
                     const parsedData = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
                     const activePorts = parsedData?.active_ports;
-                    
+
                     return activePorts && activePorts.length > 0 ? (
                       <div className="space-y-3">
                         <div className="grid grid-cols-1 gap-2 text-sm">
@@ -1725,7 +1773,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
           </SafeDataRenderer>
         </TabsContent>
 
-        
+
       </Tabs>
     </AgentErrorBoundary>
   );
