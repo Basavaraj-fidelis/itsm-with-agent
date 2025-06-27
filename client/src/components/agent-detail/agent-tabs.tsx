@@ -1281,25 +1281,26 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
         <TabsContent value="updates" className="space-y-6">
           <SafeDataRenderer>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Windows Update Status */}
+              {/* System Update Status */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Download className="w-5 h-5" />
-                    <span>Windows Update Status</span>
+                    <span>{agent.latest_report?.os_info?.name === 'Linux' ? 'Linux System Status' : 'Windows Update Status'}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {(() => {
                     const rawData = agent?.latest_report?.raw_data;
                     const parsedData = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+                    const isLinux = agent.latest_report?.os_info?.name === 'Linux';
 
                     return parsedData ? (
                       <div className="space-y-6">
                         <div>
                           <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-3 flex items-center">
                             <Shield className="w-4 h-4 mr-2" />
-                            {agent.latest_report?.os_info?.name === 'Linux' ? 'Linux Update Status' : 'Windows Update Status'}
+                            {isLinux ? 'Linux System Information' : 'Windows Update Status'}
                           </h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {agent.latest_report?.os_info?.name === 'Linux' ? (
@@ -1480,20 +1481,20 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             </div>
                             <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
                               <div className="text-xs text-orange-600 mb-1">Last Update</div>
-                              <div className="text-sm font-medium text-orange-700">{patchSummary.last_update_date || 'N/A'}</div>
+                              <div className="text-sm font-medium text-orange-700">{patchSummary.last_update_date || agent.latest_report?.os_info?.last_update || 'N/A'}</div>
                             </div>
                           </div>
 
                           {patches && patches.length > 0 ? (
                             <div>
-                              <h4 className="text-sm font-medium mb-2">Recent Updates</h4>
+                              <h4 className="text-sm font-medium mb-2">Recent Updates ({patches.length} available)</h4>
                               <div className="space-y-2 max-h-64 overflow-y-auto">
                                 {patches.slice(0, 10).map((patch, index) => (
                                   <div key={index} className="bg-neutral-50 dark:bg-neutral-800 p-3 rounded border-l-4 border-green-500">
                                     <div className="flex justify-between items-start">
                                       <div>
                                         <div className="text-sm font-medium">
-                                          {patch.package || patch.type || `Update ${index + 1}`}
+                                          {patch.package || patch.action || patch.type || `Update ${index + 1}`}
                                         </div>
                                         <div className="text-xs text-neutral-600">{patch.date}</div>
                                       </div>
@@ -1504,13 +1505,36 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                   </div>
                                 ))}
                               </div>
+                              {patches.length > 10 && (
+                                <div className="text-xs text-neutral-500 mt-2 text-center">
+                                  Showing 10 of {patches.length} recent updates
+                                </div>
+                              )}
                             </div>
                           ) : (
                             <div className="bg-neutral-50 dark:bg-neutral-800 p-6 rounded-lg text-center">
                               <Package className="w-6 h-6 mx-auto mb-2 text-neutral-400" />
-                              <p className="text-sm text-neutral-600">Recent update history not available</p>
+                              <p className="text-sm text-neutral-600">No recent update history available</p>
+                              <p className="text-xs text-neutral-500 mt-1">
+                                Package updates will appear here when the system performs updates
+                              </p>
                             </div>
                           )}
+                        </div>
+                      );
+                    }
+                    
+                    // For Linux systems without patch_summary, show basic info
+                    if (isLinux) {
+                      return (
+                        <div className="space-y-4">
+                          <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg text-center">
+                            <Package className="w-8 h-8 mx-auto mb-2 text-blue-600" />
+                            <p className="text-sm text-blue-900 dark:text-blue-100 mb-1">Linux Package Management</p>
+                            <p className="text-xs text-blue-700 dark:text-blue-300">
+                              Package information is being collected. Check back after the next agent report.
+                            </p>
+                          </div>
                         </div>
                       );
                     }
