@@ -1,4 +1,3 @@
-
 import express from 'express';
 import { Router } from 'express';
 import path from 'path';
@@ -73,7 +72,7 @@ const requireAdmin = (req: any, res: any, next: any) => {
   next();
 };
 
-// Agent download endpoints
+// Windows Agent download - simplified approach
 router.get('/windows', authenticateToken, requireAdmin, async (req, res) => {
   try {
     console.log('Windows agent download requested by:', req.user.email);
@@ -92,36 +91,10 @@ router.get('/windows', authenticateToken, requireAdmin, async (req, res) => {
     const availableFiles = fs.readdirSync(agentPath);
     console.log('Available files in Agent directory:', availableFiles);
 
-    // Define Windows files that should be included
-    const windowsFiles = [
-      'itsm_agent.py',
-      'api_client.py',
-      'system_collector.py',
-      'service_wrapper.py',
-      'config.ini',
-      'install_windows.py',
-      'fix_windows_service.py',
-      'agent_websocket_client.py'
-    ];
-
-    // Check which files actually exist
-    const existingFiles = windowsFiles.filter(fileName => {
-      const filePath = path.join(agentPath, fileName);
-      const exists = fs.existsSync(filePath);
-      console.log(`Checking ${fileName}: ${exists ? 'EXISTS' : 'NOT FOUND'} at ${filePath}`);
-      if (exists) {
-        const stats = fs.statSync(filePath);
-        console.log(`File ${fileName} size: ${stats.size} bytes`);
-      }
-      return exists;
-    });
-
-    if (existingFiles.length === 0) {
-      console.error('No Windows agent files found!');
-      return res.status(404).json({ error: 'No Windows agent files found' });
+    if (availableFiles.length === 0) {
+      console.error('Agent directory is empty!');
+      return res.status(404).json({ error: 'Agent directory is empty' });
     }
-
-    console.log(`Found ${existingFiles.length} Windows files:`, existingFiles);
 
     // Set response headers for zip download
     res.setHeader('Content-Type', 'application/zip');
@@ -145,39 +118,15 @@ router.get('/windows', authenticateToken, requireAdmin, async (req, res) => {
 
     // Track when archive is done
     archive.on('end', () => {
-      console.log('Archive has been finalized and the output file descriptor has closed.');
+      console.log('Windows agent archive has been finalized successfully');
     });
 
     // Pipe archive to response
     archive.pipe(res);
 
-    // Add each existing file to the archive
-    let filesAdded = 0;
-    for (const fileName of existingFiles) {
-      try {
-        const filePath = path.join(agentPath, fileName);
-        const stats = fs.statSync(filePath);
-        
-        if (stats.isFile() && stats.size > 0) {
-          archive.file(filePath, { name: fileName });
-          console.log(`Added ${fileName} to archive (${stats.size} bytes)`);
-          filesAdded++;
-        } else {
-          console.warn(`Skipping ${fileName}: not a valid file or empty`);
-        }
-      } catch (fileError) {
-        console.error(`Error processing file ${fileName}:`, fileError);
-      }
-    }
-
-    console.log(`Total files added to Windows archive: ${filesAdded}`);
-
-    if (filesAdded === 0) {
-      console.error('No files were successfully added to the archive!');
-      if (!res.headersSent) {
-        return res.status(500).json({ error: 'No valid agent files found to package' });
-      }
-    }
+    // Add the entire Agent directory to the archive
+    archive.directory(agentPath, false);
+    console.log('Added entire Agent directory to archive');
 
     // Add installation instructions
     const instructions = `# ITSM Agent Installation Instructions - Windows
@@ -224,15 +173,8 @@ For technical support, contact your system administrator.
     archive.append(instructions, { name: 'README.md' });
     console.log('Added README.md to archive');
 
-    // Finalize the archive - this is crucial
+    // Finalize the archive
     archive.finalize();
-    
-    // Wait for archive to complete
-    archive.on('end', () => {
-      if (!archiveError) {
-        console.log('Windows agent download completed successfully - archive finalized');
-      }
-    });
 
   } catch (error) {
     console.error('Windows agent download error:', error);
@@ -242,6 +184,7 @@ For technical support, contact your system administrator.
   }
 });
 
+// Linux Agent download - simplified approach
 router.get('/linux', authenticateToken, requireAdmin, async (req, res) => {
   try {
     console.log('Linux agent download requested by:', req.user.email);
@@ -255,27 +198,9 @@ router.get('/linux', authenticateToken, requireAdmin, async (req, res) => {
     const availableFiles = fs.readdirSync(agentPath);
     console.log('Available files for Linux:', availableFiles);
 
-    // Define Linux files
-    const linuxFiles = [
-      'itsm_agent.py',
-      'api_client.py',
-      'system_collector.py',
-      'service_wrapper.py',
-      'config.ini',
-      'agent_websocket_client.py'
-    ];
-
-    // Check which files actually exist
-    const existingFiles = linuxFiles.filter(fileName => {
-      const filePath = path.join(agentPath, fileName);
-      const exists = fs.existsSync(filePath);
-      console.log(`Checking ${fileName}: ${exists ? 'EXISTS' : 'NOT FOUND'}`);
-      return exists;
-    });
-
-    if (existingFiles.length === 0) {
-      console.error('No Linux agent files found!');
-      return res.status(404).json({ error: 'No Linux agent files found' });
+    if (availableFiles.length === 0) {
+      console.error('Agent directory is empty!');
+      return res.status(404).json({ error: 'Agent directory is empty' });
     }
 
     res.setHeader('Content-Type', 'application/zip');
@@ -295,26 +220,15 @@ router.get('/linux', authenticateToken, requireAdmin, async (req, res) => {
       }
     });
 
+    archive.on('end', () => {
+      console.log('Linux agent archive has been finalized successfully');
+    });
+
     archive.pipe(res);
 
-    // Add existing files
-    let filesAdded = 0;
-    for (const fileName of existingFiles) {
-      try {
-        const filePath = path.join(agentPath, fileName);
-        const stats = fs.statSync(filePath);
-        
-        if (stats.isFile() && stats.size > 0) {
-          archive.file(filePath, { name: fileName });
-          console.log(`Added ${fileName} to archive (${stats.size} bytes)`);
-          filesAdded++;
-        }
-      } catch (fileError) {
-        console.error(`Error processing file ${fileName}:`, fileError);
-      }
-    }
-
-    console.log(`Total files added to Linux archive: ${filesAdded}`);
+    // Add the entire Agent directory
+    archive.directory(agentPath, false);
+    console.log('Added entire Agent directory to archive');
 
     // Add Linux install script
     const installScript = `#!/bin/bash
@@ -391,14 +305,8 @@ Edit config.ini before installation.
 `;
 
     archive.append(linuxInstructions, { name: 'README.md' });
-    
+
     archive.finalize();
-    
-    archive.on('end', () => {
-      if (!archiveError) {
-        console.log('Linux agent download completed successfully');
-      }
-    });
 
   } catch (error) {
     console.error('Linux agent download error:', error);
@@ -408,6 +316,7 @@ Edit config.ini before installation.
   }
 });
 
+// macOS Agent download - simplified approach
 router.get('/macos', authenticateToken, requireAdmin, async (req, res) => {
   try {
     console.log('macOS agent download requested by:', req.user.email);
@@ -421,27 +330,9 @@ router.get('/macos', authenticateToken, requireAdmin, async (req, res) => {
     const availableFiles = fs.readdirSync(agentPath);
     console.log('Available files for macOS:', availableFiles);
 
-    // Define macOS files
-    const macosFiles = [
-      'itsm_agent.py',
-      'api_client.py',
-      'system_collector.py',
-      'service_wrapper.py',
-      'config.ini',
-      'agent_websocket_client.py'
-    ];
-
-    // Check which files actually exist
-    const existingFiles = macosFiles.filter(fileName => {
-      const filePath = path.join(agentPath, fileName);
-      const exists = fs.existsSync(filePath);
-      console.log(`Checking ${fileName}: ${exists ? 'EXISTS' : 'NOT FOUND'}`);
-      return exists;
-    });
-
-    if (existingFiles.length === 0) {
-      console.error('No macOS agent files found!');
-      return res.status(404).json({ error: 'No macOS agent files found' });
+    if (availableFiles.length === 0) {
+      console.error('Agent directory is empty!');
+      return res.status(404).json({ error: 'Agent directory is empty' });
     }
 
     res.setHeader('Content-Type', 'application/zip');
@@ -461,26 +352,15 @@ router.get('/macos', authenticateToken, requireAdmin, async (req, res) => {
       }
     });
 
+    archive.on('end', () => {
+      console.log('macOS agent archive has been finalized successfully');
+    });
+
     archive.pipe(res);
 
-    // Add existing files
-    let filesAdded = 0;
-    for (const fileName of existingFiles) {
-      try {
-        const filePath = path.join(agentPath, fileName);
-        const stats = fs.statSync(filePath);
-        
-        if (stats.isFile() && stats.size > 0) {
-          archive.file(filePath, { name: fileName });
-          console.log(`Added ${fileName} to archive (${stats.size} bytes)`);
-          filesAdded++;
-        }
-      } catch (fileError) {
-        console.error(`Error processing file ${fileName}:`, fileError);
-      }
-    }
-
-    console.log(`Total files added to macOS archive: ${filesAdded}`);
+    // Add the entire Agent directory
+    archive.directory(agentPath, false);
+    console.log('Added entire Agent directory to archive');
 
     const macosInstructions = `# ITSM Agent Installation Instructions - macOS
 
@@ -518,14 +398,8 @@ For technical support, contact your system administrator.
 `;
 
     archive.append(macosInstructions, { name: 'README.md' });
-    
+
     archive.finalize();
-    
-    archive.on('end', () => {
-      if (!archiveError) {
-        console.log('macOS agent download completed successfully');
-      }
-    });
 
   } catch (error) {
     console.error('macOS agent download error:', error);
