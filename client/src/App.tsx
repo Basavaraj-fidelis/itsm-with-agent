@@ -28,7 +28,7 @@ import NotFound from "@/pages/not-found";
 import ActiveDirectory from "@/pages/active-directory";
 import ITSMComparison from "@/pages/itsm-comparison";
 import PatchCompliancePage from "@/pages/patch-compliance";
-import VPNManagement from "@/pages/vpn-management";
+
 
 
 // Layout
@@ -256,13 +256,7 @@ export default function App() {
               </ProtectedRoute>
             </Route>
 
-            <Route path="/vpn-management">
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <VPNManagement />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
+            
 
 
             {/* Default redirect */}

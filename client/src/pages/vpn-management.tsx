@@ -1,13 +1,14 @@
+
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "wouter";
 
 export default function VPNManagement() {
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     // Redirect to dashboard since VPN management is deprecated
-    navigate("/dashboard");
-  }, [navigate]);
+    setLocation("/dashboard");
+  }, [setLocation]);
 
   return (
     <div className="p-6">
