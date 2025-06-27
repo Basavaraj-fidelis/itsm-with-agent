@@ -201,16 +201,6 @@ export function Sidebar() {
         notification:
           notifications.alerts > 0 ? notifications.alerts : undefined,
       },
-      {
-        name: "VPN Management",
-        href: "/vpn-management",
-        icon: Wifi,
-        current: location === "/vpn-management",
-        roles: ["admin"],
-        iconColor: "text-indigo-500",
-        activeColor: "bg-indigo-50 border-indigo-200 text-indigo-700",
-        description: "Manage VPN connections",
-      },
     ];
 
     const managerNavigation = [
