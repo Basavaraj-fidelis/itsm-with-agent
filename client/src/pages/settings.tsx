@@ -589,44 +589,56 @@ export default function Settings() {
               capabilities.
             </p>
 
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-              <div className="flex items-start space-x-3">
-                <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
-                <div>
-                  <h4 className="font-medium text-blue-900 dark:text-blue-100">
-                    Agent Download Moved
-                  </h4>
-                  <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                    Agent download functionality has been moved to the Admin
-                    Panel for better security and management.
-                  </p>
-                  <Button
-                    variant="link"
-                    className="text-blue-600 dark:text-blue-400 p-0 h-auto font-medium mt-2"
-                  >
-                    Go to Admin Panel →
-                  </Button>
-                </div>
-              </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              {agentOptions.map((agent) => (
+                <Card
+                  key={agent.platform}
+                  className="cursor-pointer hover:bg-accent transition-colors"
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                        <agent.icon className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium">{agent.name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {agent.description}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      className="w-full mt-3"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => downloadAgent(agent.platform)}
+                    >
+                      <Monitor className="w-4 h-4 mr-2" />
+                      Download
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
 
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
               <div className="flex items-start space-x-3">
-                <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                <Info className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
                 <div>
-                  <h4 className="font-medium text-blue-900 dark:text-blue-100">
-                    Agent Download Moved
+                  <h4 className="font-medium text-yellow-900 dark:text-yellow-100">
+                    Installation Notes
                   </h4>
-                  <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                    Agent download functionality has been moved to the Admin
-                    Panel for better security and management.
-                  </p>
-                  <Button
-                    variant="link"
-                    className="text-blue-600 dark:text-blue-400 p-0 h-auto font-medium mt-2"
-                  >
-                    Go to Admin Panel →
-                  </Button>
+                  <ul className="text-sm text-yellow-700 dark:text-yellow-300 mt-1 space-y-1">
+                    <li>
+                      • Configure config.ini with your server details before
+                      deployment
+                    </li>
+                    <li>• Ensure Python 3.7+ is installed on target systems</li>
+                    <li>
+                      • Administrator/root privileges required for installation
+                    </li>
+                    <li>• Check firewall settings for outbound connectivity</li>
+                  </ul>
                 </div>
               </div>
             </div>
@@ -1217,10 +1229,10 @@ export default function Settings() {
         <div className="p-6 space-y-6">
           <div className="mb-8">
             <h1 className="text-2xl font-semibold text-[#201F1E] dark:text-[#F3F2F1] mb-2">
-              Admin Panel
+              Settings
             </h1>
             <p className="text-neutral-600">
-              Essential system configuration and preferences
+              System configuration and agent management
             </p>
           </div>
           {renderContent()}
