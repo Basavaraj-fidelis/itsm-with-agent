@@ -179,6 +179,27 @@ router.get("/:platform", async (req, res) => {
     // Pipe archive to response
     archive.pipe(res);
 
+    // Agent files to include in download
+    const agentFiles = [
+      'itsm_agent.py',
+      'system_collector.py',
+      'windows_collector.py',
+      'linux_collector.py', 
+      'macos_collector.py',
+      'api_client.py',
+      'service_wrapper.py',
+      'config.ini'
+    ];
+
+    // Add platform-specific files
+    if (platform === 'windows') {
+      agentFiles.push('install_windows.py', 'fix_windows_service.py');
+    } else if (platform === 'linux') {
+      agentFiles.push('install_linux.py');
+    } else if (platform === 'macos') {
+      agentFiles.push('install_macos.py');
+    }
+
     // Add the entire Agent directory to the archive
     console.log(`Adding entire Agent directory to ${platform} archive`);
     archive.directory(agentPath, false);
