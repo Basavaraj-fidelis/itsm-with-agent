@@ -1810,151 +1810,188 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                   : "System Information"}
                           </h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {agent.latest_report?.os_info?.name === "Linux" ? (
+                            {isLinux ? (
                               <>
-                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
                                   <div className="text-xs text-neutral-600 mb-1">
-                                    Distribution:
+                                    OS Name:
                                   </div>
                                   <div className="text-sm font-medium">
-                                    {agent.latest_report?.os_info
-                                      ?.name_pretty ||
+                                    {agent.latest_report?.os_info?.name_pretty ||
                                       agent.latest_report?.os_info?.name ||
-                                      "N/A"}
+                                      "Linux"}
                                   </div>
                                 </div>
-                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
                                   <div className="text-xs text-neutral-600 mb-1">
                                     Version:
                                   </div>
                                   <div className="text-sm font-medium">
                                     {agent.latest_report?.os_info?.version_id ||
                                       agent.latest_report?.os_info?.version ||
-                                      "N/A"}
+                                      systemInfo.osVersion ||
+                                      "Unknown"}
                                   </div>
                                 </div>
-                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
                                   <div className="text-xs text-neutral-600 mb-1">
                                     Kernel Version:
                                   </div>
                                   <div className="text-sm font-medium">
-                                    {agent.latest_report?.os_info
-                                      ?.kernel_version || "N/A"}
+                                    {agent.latest_report?.os_info?.kernel_version ||
+                                      agent.latest_report?.os_info?.release ||
+                                      "Unknown"}
                                   </div>
                                 </div>
-                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">
+                                    Architecture:
+                                  </div>
+                                  <div className="text-sm font-medium">
+                                    {agent.latest_report?.os_info?.architecture ||
+                                      systemInfo.architecture ||
+                                      "Unknown"}
+                                  </div>
+                                </div>
+                                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
                                   <div className="text-xs text-neutral-600 mb-1">
                                     Last Update:
                                   </div>
                                   <div className="text-sm font-medium">
-                                    {agent.latest_report?.os_info
-                                      ?.last_update || "N/A"}
+                                    {agent.latest_report?.os_info?.last_update || "Unknown"}
                                   </div>
                                 </div>
-                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
-                                  <div className="text-xs text-neutral-600 mb-1">
-                                    Package Manager:
-                                  </div>
-                                  <div className="text-sm font-medium">
-                                    {agent.latest_report?.os_info?.patch_summary
-                                      ?.system_type === "debian"
-                                      ? "APT (Debian/Ubuntu)"
-                                      : agent.latest_report?.os_info
-                                            ?.patch_summary?.system_type ===
-                                          "redhat"
-                                        ? "RPM (RedHat/CentOS)"
-                                        : "Unknown"}
-                                  </div>
-                                </div>
-                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
                                   <div className="text-xs text-neutral-600 mb-1">
                                     System Uptime:
                                   </div>
                                   <div className="text-sm font-medium">
-                                    {agent.latest_report?.os_info
-                                      ?.uptime_seconds
+                                    {agent.latest_report?.os_info?.uptime_seconds
                                       ? `${Math.floor(agent.latest_report.os_info.uptime_seconds / 3600)} hours`
-                                      : "N/A"}
+                                      : "Unknown"}
                                   </div>
                                 </div>
                               </>
                             ) : isWindows ? (
                               <>
-                                <div className={`p-4 rounded-lg ${getOSColorScheme()}`}>
+                                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
                                   <div className="text-xs text-neutral-600 mb-1">
                                     Product Name:
                                   </div>
                                   <div className="text-sm font-medium">
-                                    {agent.latest_report?.os_info
-                                      ?.product_name || "N/A"}
+                                    {agent.latest_report?.os_info?.product_name || 
+                                     systemInfo.osName ||
+                                     "Windows"}
                                   </div>
                                 </div>
-                                <div className={`p-4 rounded-lg ${getOSColorScheme()}`}>
+                                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
                                   <div className="text-xs text-neutral-600 mb-1">
                                     Build Number:
                                   </div>
                                   <div className="text-sm font-medium">
-                                    {agent.latest_report?.os_info
-                                      ?.build_number || "N/A"}
+                                    {agent.latest_report?.os_info?.build_number || 
+                                     agent.latest_report?.os_info?.version ||
+                                     systemInfo.osVersion ||
+                                     "Unknown"}
                                   </div>
                                 </div>
-                                <div className={`p-4 rounded-lg ${getOSColorScheme()}`}>
+                                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
                                   <div className="text-xs text-neutral-600 mb-1">
                                     Display Version:
                                   </div>
                                   <div className="text-sm font-medium">
-                                    {agent.latest_report?.os_info
-                                      ?.display_version || "N/A"}
+                                    {agent.latest_report?.os_info?.display_version || 
+                                     agent.latest_report?.os_info?.release ||
+                                     "Unknown"}
                                   </div>
                                 </div>
-                                <div className={`p-4 rounded-lg ${getOSColorScheme()}`}>
+                                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">
+                                    Architecture:
+                                  </div>
+                                  <div className="text-sm font-medium">
+                                    {agent.latest_report?.os_info?.architecture ||
+                                     systemInfo.architecture ||
+                                     "Unknown"}
+                                  </div>
+                                </div>
+                                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
                                   <div className="text-xs text-neutral-600 mb-1">
                                     Last Update:
                                   </div>
                                   <div className="text-sm font-medium">
-                                    {agent.latest_report?.os_info
-                                      ?.last_update || "N/A"}
+                                    {agent.latest_report?.os_info?.last_update || "Unknown"}
+                                  </div>
+                                </div>
+                                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">
+                                    System Uptime:
+                                  </div>
+                                  <div className="text-sm font-medium">
+                                    {agent.latest_report?.os_info?.uptime_seconds
+                                      ? `${Math.floor(agent.latest_report.os_info.uptime_seconds / 3600)} hours`
+                                      : "Unknown"}
                                   </div>
                                 </div>
                               </>
                             ) : isMacOS ? (
                               <>
-                                <div className={`p-4 rounded-lg ${getOSColorScheme()}`}>
+                                <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
                                   <div className="text-xs text-neutral-600 mb-1">
                                     Product Name:
                                   </div>
                                   <div className="text-sm font-medium">
-                                    {agent.latest_report?.os_info
-                                      ?.product_name || "N/A"}
+                                    {agent.latest_report?.os_info?.product_name || 
+                                     systemInfo.osName ||
+                                     "macOS"}
                                   </div>
                                 </div>
-                                <div className={`p-4 rounded-lg ${getOSColorScheme()}`}>
+                                <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
                                   <div className="text-xs text-neutral-600 mb-1">
                                     Version:
                                   </div>
                                   <div className="text-sm font-medium">
-                                    {agent.latest_report?.os_info
-                                      ?.version || "N/A"}
+                                    {agent.latest_report?.os_info?.version ||
+                                     systemInfo.osVersion ||
+                                     "Unknown"}
                                   </div>
                                 </div>
-                                <div className={`p-4 rounded-lg ${getOSColorScheme()}`}>
+                                <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
                                   <div className="text-xs text-neutral-600 mb-1">
                                     Build:
                                   </div>
                                   <div className="text-sm font-medium">
-                                    {agent.latest_report?.os_info
-                                      ?.build || "N/A"}
+                                    {agent.latest_report?.os_info?.build ||
+                                     agent.latest_report?.os_info?.release ||
+                                     "Unknown"}
                                   </div>
                                 </div>
-                                <div className={`p-4 rounded-lg ${getOSColorScheme()}`}>
+                                <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">
+                                    Architecture:
+                                  </div>
+                                  <div className="text-sm font-medium">
+                                    {agent.latest_report?.os_info?.architecture ||
+                                     systemInfo.architecture ||
+                                     "Unknown"}
+                                  </div>
+                                </div>
+                                <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">
+                                    Last Update:
+                                  </div>
+                                  <div className="text-sm font-medium">
+                                    {agent.latest_report?.os_info?.last_update || "Unknown"}
+                                  </div>
+                                </div>
+                                <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
                                   <div className="text-xs text-neutral-600 mb-1">
                                     System Uptime:
                                   </div>
                                   <div className="text-sm font-medium">
-                                    {agent.latest_report?.os_info
-                                      ?.uptime_seconds
+                                    {agent.latest_report?.os_info?.uptime_seconds
                                       ? `${Math.floor(agent.latest_report.os_info.uptime_seconds / 3600)} hours`
-                                      : "N/A"}
+                                      : "Unknown"}
                                   </div>
                                 </div>
                               </>
@@ -1965,7 +2002,9 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                     OS Name:
                                   </div>
                                   <div className="text-sm font-medium">
-                                    {agent.latest_report?.os_info?.name || "N/A"}
+                                    {agent.latest_report?.os_info?.name || 
+                                     systemInfo.osName || 
+                                     "Unknown"}
                                   </div>
                                 </div>
                                 <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
@@ -1973,31 +2012,47 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                     Version:
                                   </div>
                                   <div className="text-sm font-medium">
-                                    {agent.latest_report?.os_info?.version || "N/A"}
+                                    {agent.latest_report?.os_info?.version ||
+                                     systemInfo.osVersion ||
+                                     "Unknown"}
                                   </div>
                                 </div>
-                                 <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
                                   <div className="text-xs text-neutral-600 mb-1">
                                     Architecture:
                                   </div>
                                   <div className="text-sm font-medium">
-                                    {systemInfo.architecture || "N/A"}
+                                    {agent.latest_report?.os_info?.architecture ||
+                                     systemInfo.architecture ||
+                                     "Unknown"}
                                   </div>
                                 </div>
-                                 <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
                                   <div className="text-xs text-neutral-600 mb-1">
                                     Kernel Version:
                                   </div>
                                   <div className="text-sm font-medium">
-                                    {agent.latest_report?.os_info?.kernel_version || "N/A"}
+                                    {agent.latest_report?.os_info?.kernel_version ||
+                                     agent.latest_report?.os_info?.release ||
+                                     "Unknown"}
                                   </div>
                                 </div>
-                                 <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
+                                  <div className="text-xs text-neutral-600 mb-1">
+                                    Last Update:
+                                  </div>
+                                  <div className="text-sm font-medium">
+                                    {agent.latest_report?.os_info?.last_update || "Unknown"}
+                                  </div>
+                                </div>
+                                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
                                   <div className="text-xs text-neutral-600 mb-1">
                                     System Uptime:
                                   </div>
                                   <div className="text-sm font-medium">
-                                    {agent.latest_report?.os_info?.uptime_seconds ? `${Math.floor(agent.latest_report?.os_info?.uptime_seconds / 3600)} hours` : "N/A"}
+                                    {agent.latest_report?.os_info?.uptime_seconds 
+                                      ? `${Math.floor(agent.latest_report.os_info.uptime_seconds / 3600)} hours` 
+                                      : "Unknown"}
                                   </div>
                                 </div>
                               </>
@@ -2005,7 +2060,15 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                           </div>
                         </div>
                       </div>
-                    ) : null;
+                    ) : (
+                      <div className="text-center py-8">
+                        <Download className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
+                        <p className="text-xs">No system information available</p>
+                        <p className="text-xs text-neutral-500 mt-1">
+                          System data will appear when the agent reports OS information
+                        </p>
+                      </div>
+                    );
                   })()}
                 </CardContent>
               </Card>
@@ -2046,79 +2109,88 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             </div>
                             <Badge
                               variant={
-                                securityData.firewall_status ===
-                                "enabled"
+                                securityData.firewall_status === "enabled"
                                   ? "default"
                                   : "destructive"
                               }
                             >
-                              {securityData.firewall_status ||
-                                "Unknown"}
+                              {securityData.firewall_status === "enabled" ? "Enabled" :
+                               securityData.firewall_status === "disabled" ? "Disabled" :
+                               "Unknown"}
                             </Badge>
                           </div>
                           <div className={`p-4 rounded-lg ${getOSColorScheme()}`}>
                             <div className="text-xs text-neutral-600 mb-1">
-                              {isLinux ? "Security Software:" : 
+                              {isLinux ? "Antivirus/Security Software:" : 
                                isMacOS ? "Security Software:" : 
                                "Windows Defender:"}
                             </div>
                             <Badge
                               variant={
-                                securityData.antivirus_status ===
-                                "enabled"
+                                securityData.antivirus_status === "enabled"
                                   ? "default"
-                                  : "destructive"
+                                  : securityData.antivirus_status === "unknown"
+                                    ? "secondary"
+                                    : "destructive"
                               }
                             >
-                              {securityData.antivirus_status ||
-                                "Unknown"}
+                              {securityData.antivirus_status === "enabled" ? "Active" :
+                               securityData.antivirus_status === "disabled" ? "Inactive" :
+                               securityData.antivirus_status === "unknown" ? "Not Detected" :
+                               "Unknown"}
                             </Badge>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-neutral-600 text-xs">
-                              Real-time Protection:
-                            </span>
-                            <span className="font-medium text-xs">
-                              {securityData.real_time_protection ||
-                                (securityData.antivirus_status === "enabled"
-                                  ? "Active"
-                                  : "Unknown")}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-neutral-600 text-xs">
-                              Last Virus Scan:
-                            </span>
-                            <span className="font-medium text-xs">
-                              {securityData.last_virus_scan?.slice(0, 10) ||
-                                securityData.last_scan?.slice(0, 10) ||
-                                "N/A"}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-neutral-600 text-xs">
-                              UAC Status:
-                            </span>
-                            <Badge
-                              variant={
-                                securityData.uac_enabled
-                                  ? "default"
-                                  : "destructive"
-                              }
-                              className="text-xs"
-                            >
-                              {securityData.uac_enabled
-                                ? "Enabled"
-                                : "Disabled"}
-                            </Badge>
-                          </div>
+                          {!isLinux && (
+                            <>
+                              <div className="flex justify-between">
+                                <span className="text-neutral-600 text-xs">
+                                  Real-time Protection:
+                                </span>
+                                <span className="font-medium text-xs">
+                                  {securityData.real_time_protection ||
+                                    (securityData.antivirus_status === "enabled"
+                                      ? "Active"
+                                      : "Unknown")}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-neutral-600 text-xs">
+                                  Last Virus Scan:
+                                </span>
+                                <span className="font-medium text-xs">
+                                  {securityData.last_virus_scan?.slice(0, 10) ||
+                                    securityData.last_scan?.slice(0, 10) ||
+                                    "N/A"}
+                                </span>
+                              </div>
+                              {isWindows && (
+                                <div className="flex justify-between">
+                                  <span className="text-neutral-600 text-xs">
+                                    UAC Status:
+                                  </span>
+                                  <Badge
+                                    variant={
+                                      securityData.uac_enabled
+                                        ? "default"
+                                        : "destructive"
+                                    }
+                                    className="text-xs"
+                                  >
+                                    {securityData.uac_enabled !== undefined
+                                      ? (securityData.uac_enabled ? "Enabled" : "Disabled")
+                                      : "Unknown"}
+                                  </Badge>
+                                </div>
+                              )}
+                            </>
+                          )}
                         </div>
 
                         {/* Security Services */}
-                        {securityData.security_services && (
+                        {securityData.security_services && securityData.security_services.length > 0 && (
                           <div className="mt-4">
                             <h4 className="font-medium mb-2 text-sm">
-                              Security Services
+                              {isLinux ? "Security Services" : "Security Services"}
                             </h4>
                             <div className="space-y-1 max-h-32 overflow-y-auto">
                               {securityData.security_services
@@ -2130,7 +2202,8 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                   >
                                     <div className="text-xs">
                                       <div className="font-medium">
-                                        {service.name?.slice(0, 20)}...
+                                        {service.name?.slice(0, 20)}
+                                        {service.name?.length > 20 ? "..." : ""}
                                       </div>
                                       <Badge
                                         variant={
