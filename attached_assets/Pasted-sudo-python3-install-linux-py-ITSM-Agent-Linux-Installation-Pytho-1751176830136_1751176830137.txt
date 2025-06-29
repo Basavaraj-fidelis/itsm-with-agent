@@ -1,0 +1,74 @@
+sudo python3 install_linux.py
+ITSM Agent Linux Installation
+=============================
+
+Python version: 3.8.10 (default, Mar 18 2025, 20:04:55) 
+[GCC 9.4.0]
+
+Installing system dependencies...
+Warning: System package installation issues: Command '['apt', 'update']' returned non-zero exit status 100.
+Continuing with Python package installation...
+
+Installing Python dependencies...
+✓ Installed psutil
+✓ Installed requests
+⚠ Warning: Could not install configparser using any method
+Warning: Only 2/3 packages installed successfully
+The agent may still work with reduced functionality
+
+Creating installation directory: /opt/itsm-agent
+Copying agent files...
+✓ Copied itsm_agent.py
+✓ Copied system_collector.py
+✓ Copied windows_collector.py
+✓ Copied linux_collector.py
+✓ Copied macos_collector.py
+✓ Copied api_client.py
+✓ Copied service_wrapper.py
+✓ Copied config.ini
+Successfully copied 8/8 files
+
+Testing agent imports...
+Import test results:
+[OK] psutil imported
+[OK] requests imported
+[OK] system_collector imported
+[OK] Import test completed
+
+
+✓ Created systemd service file
+✓ Service enabled for auto-start
+
+Installation completed successfully!
+
+Configuration:
+- Edit /opt/itsm-agent/config.ini to configure API endpoint and authentication
+
+Service management:
+- Start service:   sudo systemctl start itsm-agent
+- Stop service:    sudo systemctl stop itsm-agent
+- Service status:  sudo systemctl status itsm-agent
+- View logs:       sudo journalctl -u itsm-agent -f
+
+Start the service now? (y/n): y
+✓ Service started successfully
+root@Inventory:/home/azadmin/itsm# sudo systemctl status itsm-agent
+● itsm-agent.service - ITSM Endpoint Agent
+     Loaded: loaded (/etc/systemd/system/itsm-agent.service; enabled; vendor>
+     Active: active (running) since Sun 2025-06-29 05:51:15 UTC; 1min 17s ago
+   Main PID: 205116 (python3)
+      Tasks: 1 (limit: 2270)
+     Memory: 22.0M
+     CGroup: /system.slice/itsm-agent.service
+             └─205116 /usr/bin/python3 /opt/itsm-agent/itsm_agent.py
+
+Jun 29 05:51:32 Inventory python3[205116]:         </svg>
+Jun 29 05:51:32 Inventory python3[205116]:       </div>
+Jun 29 05:51:32 Inventory python3[205116]:       <div class="repl-links">
+Jun 29 05:51:32 Inventory python3[205116]:         <a href="https://docs.rep>
+Jun 29 05:51:32 Inventory python3[205116]:       </div>
+Jun 29 05:51:32 Inventory python3[205116]:       <div></div>
+Jun 29 05:51:32 Inventory python3[205116]:     </div>
+Jun 29 05:51:32 Inventory python3[205116]:   </div>
+Jun 29 05:51:32 Inventory python3[205116]: </body>
+Jun 29 05:51:32 Inventory python3[205116]: </html>
