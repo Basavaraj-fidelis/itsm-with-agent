@@ -60,6 +60,9 @@ def create_installation_directory():
     files_to_copy = [
         'itsm_agent.py',
         'system_collector.py',
+        'windows_collector.py',
+        'linux_collector.py',
+        'macos_collector.py',
         'api_client.py',
         'service_wrapper.py',
         'config.ini'
