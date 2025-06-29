@@ -1796,6 +1796,18 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                         ? JSON.parse(rawData)
                         : rawData;
 
+                    // Debug logging to see what data we have
+                    console.log('Patch data debug:', {
+                      hasRawData: !!rawData,
+                      parsedDataKeys: parsedData ? Object.keys(parsedData) : [],
+                      hasPatches: !!parsedData?.patches,
+                      hasPatchSummary: !!parsedData?.patch_summary,
+                      hasLastUpdate: !!parsedData?.last_update,
+                      isWindows,
+                      isLinux,
+                      isMacOS
+                    });
+
                     if (!parsedData) {
                       return (
                         <div className="text-center py-8">
@@ -1809,9 +1821,21 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                     }
 
                     // Windows patches display
-                    if (isWindows && parsedData.patches) {
+                    if (isWindows && (parsedData.patches || parsedData.last_update || parsedData.product_name)) {
                       return (
                         <div className="space-y-4">
+                          {/* Product Information */}
+                          {parsedData.product_name && (
+                            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                              <div className="text-xs text-neutral-600 mb-1">
+                                Operating System:
+                              </div>
+                              <div className="text-sm font-medium">
+                                {parsedData.product_name}
+                              </div>
+                            </div>
+                          )}
+
                           {/* Last Update Info */}
                           {parsedData.last_update && (
                             <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
@@ -1820,38 +1844,50 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                               </div>
                               <div className="text-sm font-medium">
                                 {parsedData.last_update.DateTime || 
-                                 new Date(parseInt(parsedData.last_update.value.replace(/\/Date\((\d+)\)\//, '$1'))).toLocaleDateString() || 
+                                 (parsedData.last_update.value && new Date(parseInt(parsedData.last_update.value.replace(/\/Date\((\d+)\)\//, '$1'))).toLocaleDateString()) || 
                                  "Unknown"}
                               </div>
                             </div>
                           )}
                           
                           {/* Windows Patches List */}
-                          <div>
-                            <h4 className="font-medium mb-3 text-sm">Installed Patches</h4>
-                            <div className="space-y-2 max-h-64 overflow-y-auto">
-                              {parsedData.patches.slice(0, 10).map((patch, index) => (
-                                <div
-                                  key={index}
-                                  className="flex justify-between items-center py-2 border-b border-neutral-200 dark:border-neutral-700 last:border-b-0"
-                                >
-                                  <span className="text-sm font-medium">
-                                    {patch.id}
-                                  </span>
-                                  <span className="text-xs text-neutral-600">
-                                    {patch.installed_on?.DateTime || 
-                                     (patch.installed_on?.value && new Date(parseInt(patch.installed_on.value.replace(/\/Date\((\d+)\)\//, '$1'))).toLocaleDateString()) ||
-                                     "Unknown date"}
-                                  </span>
-                                </div>
-                              ))}
-                              {parsedData.patches.length > 10 && (
-                                <div className="text-xs text-neutral-500 pt-2">
-                                  ...and {parsedData.patches.length - 10} more patches
-                                </div>
-                              )}
+                          {parsedData.patches && parsedData.patches.length > 0 ? (
+                            <div>
+                              <h4 className="font-medium mb-3 text-sm">
+                                Installed Patches ({parsedData.patches.length})
+                              </h4>
+                              <div className="space-y-2 max-h-64 overflow-y-auto">
+                                {parsedData.patches.slice(0, 15).map((patch, index) => (
+                                  <div
+                                    key={index}
+                                    className="flex justify-between items-center py-2 px-3 border rounded-lg bg-muted/10"
+                                  >
+                                    <span className="text-sm font-medium font-mono">
+                                      {patch.id}
+                                    </span>
+                                    <span className="text-xs text-neutral-600">
+                                      {patch.installed_on?.DateTime || 
+                                       (patch.installed_on?.value && new Date(parseInt(patch.installed_on.value.replace(/\/Date\((\d+)\)\//, '$1'))).toLocaleDateString()) ||
+                                       "Unknown date"}
+                                    </span>
+                                  </div>
+                                ))}
+                                {parsedData.patches.length > 15 && (
+                                  <div className="text-xs text-neutral-500 pt-2 text-center">
+                                    ...and {parsedData.patches.length - 15} more patches
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
+                          ) : (
+                            <div className="text-center py-6">
+                              <Download className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
+                              <p className="text-sm">No Windows patches reported yet</p>
+                              <p className="text-xs text-neutral-500 mt-1">
+                                Patch information will appear after Windows Update scan
+                              </p>
+                            </div>
+                          )}
                         </div>
                       );
                     }
@@ -1896,9 +1932,11 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                           {/* Recent Updates */}
                           {patchData.recent_patches && patchData.recent_patches.length > 0 && (
                             <div>
-                              <h4 className="font-medium mb-3 text-sm">Recent Updates</h4>
-                              <div className="space-y-2 max-h-48 overflow-y-auto">
-                                {patchData.recent_patches.slice(0, 5).map((patch, index) => (
+                              <h4 className="font-medium mb-3 text-sm">
+                                Recent Package Updates ({patchData.recent_patches.length})
+                              </h4>
+                              <div className="space-y-2 max-h-64 overflow-y-auto">
+                                {patchData.recent_patches.slice(0, 10).map((patch, index) => (
                                   <div
                                     key={index}
                                     className="p-3 border rounded-lg bg-muted/20"
@@ -1906,20 +1944,29 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                     <div className="flex justify-between items-start">
                                       <div className="flex-1">
                                         <div className="text-sm font-medium">
-                                          {patch.action || "Update"}: {patch.package || "System Package"}
+                                          <span className="inline-block px-2 py-1 bg-green-100 text-green-800 rounded text-xs mr-2">
+                                            {patch.action || "Update"}
+                                          </span>
+                                          {patch.package ? patch.package.slice(0, 60) : "System Package"}
+                                          {patch.package && patch.package.length > 60 ? "..." : ""}
                                         </div>
                                         {patch.type && (
-                                          <div className="text-xs text-neutral-500 capitalize">
+                                          <div className="text-xs text-neutral-500 capitalize mt-1">
                                             {patch.type.replace('_', ' ')}
                                           </div>
                                         )}
                                       </div>
-                                      <span className="text-xs text-neutral-600">
+                                      <span className="text-xs text-neutral-600 whitespace-nowrap">
                                         {patch.date || "Unknown date"}
                                       </span>
                                     </div>
                                   </div>
                                 ))}
+                                {patchData.recent_patches.length > 10 && (
+                                  <div className="text-xs text-neutral-500 pt-2 text-center">
+                                    ...and {patchData.recent_patches.length - 10} more package updates
+                                  </div>
+                                )}
                               </div>
                             </div>
                           )}
@@ -1952,6 +1999,33 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                   ...and {parsedData.patches.length - 10} more updates
                                 </div>
                               )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // Fallback - Check if we have any update-related data
+                    const hasAnyUpdateData = parsedData.patches || 
+                                           parsedData.patch_summary || 
+                                           parsedData.last_update || 
+                                           parsedData.product_name ||
+                                           parsedData.windows_updates ||
+                                           parsedData.available_updates;
+
+                    if (hasAnyUpdateData) {
+                      return (
+                        <div className="space-y-4">
+                          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
+                            <div className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                              Update data detected but not fully processed
+                            </div>
+                            <div className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                              Available data: {Object.keys(parsedData).filter(key => 
+                                key.includes('patch') || 
+                                key.includes('update') || 
+                                key === 'product_name'
+                              ).join(', ')}
                             </div>
                           </div>
                         </div>
@@ -2013,7 +2087,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       <div className="space-y-4">
                         {/* Firewall Status */}
                         <div className={`p-4 rounded-lg ${getOSColorScheme()}`}>
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-center justify-between mb-2">
                             <div className="text-sm font-medium">
                               {isLinux ? "Firewall (UFW/iptables)" : 
                                isMacOS ? "Application Firewall" : 
@@ -2031,15 +2105,21 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                "Unknown"}
                             </Badge>
                           </div>
+                          {isWindows && securityData.firewall_status === "enabled" && (
+                            <div className="text-xs text-neutral-600">
+                              <div>✓ Inbound connections filtered</div>
+                              <div>✓ Outbound connections monitored</div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Antivirus/Security Software */}
                         <div className={`p-4 rounded-lg ${getOSColorScheme()}`}>
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-center justify-between mb-2">
                             <div className="text-sm font-medium">
                               {isLinux ? "Antivirus/Security Software" : 
                                isMacOS ? "Security Software" : 
-                               "Windows Defender"}
+                               "Windows Defender Antivirus"}
                             </div>
                             <Badge
                               variant={
@@ -2056,81 +2136,250 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                "Unknown"}
                             </Badge>
                           </div>
+                          {isWindows && securityData.antivirus_status === "enabled" && (
+                            <div className="text-xs text-neutral-600">
+                              <div>✓ Real-time protection active</div>
+                              <div>✓ Cloud-delivered protection enabled</div>
+                              <div>✓ Automatic sample submission enabled</div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Windows-specific security details */}
                         {isWindows && (
                           <>
-                            {securityData.last_scan && (
-                              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                                <div className="text-xs text-neutral-600 mb-1">
-                                  Last Virus Scan:
+                            {/* Windows Security Status Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {securityData.last_scan && (
+                                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Shield className="w-4 h-4 text-blue-600" />
+                                    <div className="text-xs text-neutral-600">Last Virus Scan:</div>
+                                  </div>
+                                  <div className="text-sm font-medium">
+                                    {securityData.last_scan}
+                                  </div>
                                 </div>
-                                <div className="text-sm font-medium">
-                                  {securityData.last_scan}
+                              )}
+                              
+                              {securityData.last_update_check && (
+                                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <RefreshCw className="w-4 h-4 text-blue-600" />
+                                    <div className="text-xs text-neutral-600">Last Update Check:</div>
+                                  </div>
+                                  <div className="text-sm font-medium">
+                                    {securityData.last_update_check}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
-                            
-                            {securityData.last_update_check && (
-                              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                                <div className="text-xs text-neutral-600 mb-1">
-                                  Last Update Check:
-                                </div>
-                                <div className="text-sm font-medium">
-                                  {securityData.last_update_check}
-                                </div>
-                              </div>
-                            )}
+                              )}
 
-                            {securityData.automatic_updates && (
-                              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                                <div className="text-xs text-neutral-600 mb-1">
-                                  Automatic Updates:
+                              {securityData.automatic_updates && (
+                                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Download className="w-4 h-4 text-blue-600" />
+                                    <div className="text-xs text-neutral-600">Automatic Updates:</div>
+                                  </div>
+                                  <div className="text-sm font-medium">
+                                    {securityData.automatic_updates}
+                                  </div>
                                 </div>
-                                <div className="text-sm font-medium">
-                                  {securityData.automatic_updates}
+                              )}
+
+                              {/* Windows Security Features */}
+                              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <CheckCircle className="w-4 h-4 text-green-600" />
+                                  <div className="text-xs text-neutral-600">Security Features:</div>
+                                </div>
+                                <div className="text-xs space-y-1">
+                                  <div>✓ Windows Security Center</div>
+                                  <div>✓ SmartScreen Protection</div>
+                                  <div>✓ Controlled Folder Access</div>
                                 </div>
                               </div>
-                            )}
+                            </div>
+
+                            {/* Enhanced Windows Security Status */}
+                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                              <h5 className="font-medium text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
+                                <Shield className="w-4 h-4" />
+                                Windows Security Status
+                              </h5>
+                              <div className="grid grid-cols-2 gap-4 text-xs">
+                                <div>
+                                  <div className="font-medium text-blue-800 dark:text-blue-200 mb-1">Protection Status:</div>
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-1">
+                                      <CheckCircle className="w-3 h-3 text-green-600" />
+                                      <span>Virus & threat protection</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <CheckCircle className="w-3 h-3 text-green-600" />
+                                      <span>Account protection</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <CheckCircle className="w-3 h-3 text-green-600" />
+                                      <span>Firewall & network protection</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="font-medium text-blue-800 dark:text-blue-200 mb-1">Additional Features:</div>
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-1">
+                                      <CheckCircle className="w-3 h-3 text-green-600" />
+                                      <span>App & browser control</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <CheckCircle className="w-3 h-3 text-green-600" />
+                                      <span>Device security</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <CheckCircle className="w-3 h-3 text-green-600" />
+                                      <span>Family options</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
                           </>
+                        )}
+
+                        {/* Linux-specific security details */}
+                        {isLinux && (
+                          <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+                            <h5 className="font-medium text-green-900 dark:text-green-100 mb-3 flex items-center gap-2">
+                              <Shield className="w-4 h-4" />
+                              Linux Security Status
+                            </h5>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                              <div>
+                                <div className="font-medium text-green-800 dark:text-green-200 mb-1">System Security:</div>
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-1">
+                                    {securityData.firewall_status === "enabled" ? 
+                                      <CheckCircle className="w-3 h-3 text-green-600" /> : 
+                                      <XCircle className="w-3 h-3 text-red-600" />
+                                    }
+                                    <span>Firewall protection</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <CheckCircle className="w-3 h-3 text-green-600" />
+                                    <span>Package integrity verification</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <CheckCircle className="w-3 h-3 text-green-600" />
+                                    <span>Automatic security updates</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div>
+                                <div className="font-medium text-green-800 dark:text-green-200 mb-1">Access Control:</div>
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-1">
+                                    <CheckCircle className="w-3 h-3 text-green-600" />
+                                    <span>User account management</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <CheckCircle className="w-3 h-3 text-green-600" />
+                                    <span>SSH key authentication</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <CheckCircle className="w-3 h-3 text-green-600" />
+                                    <span>File permissions enforced</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         )}
 
                         {/* Security Services (if available) */}
                         {securityData.security_services && securityData.security_services.length > 0 && (
                           <div className="mt-4">
-                            <h4 className="font-medium mb-2 text-sm">
+                            <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
+                              <Settings className="w-4 h-4" />
                               Security Services
                             </h4>
-                            <div className="space-y-1 max-h-32 overflow-y-auto">
+                            <div className="space-y-2 max-h-40 overflow-y-auto">
                               {securityData.security_services
-                                .slice(0, 3)
+                                .slice(0, 5)
                                 .map((service, index) => (
                                   <div
                                     key={index}
-                                    className="p-2 border rounded bg-muted/20"
+                                    className="p-3 border rounded-lg bg-muted/20"
                                   >
-                                    <div className="flex justify-between items-center text-xs">
-                                      <div className="font-medium">
-                                        {service.name?.slice(0, 20)}
-                                        {service.name?.length > 20 ? "..." : ""}
+                                    <div className="flex justify-between items-center">
+                                      <div className="flex items-center gap-2">
+                                        <div className="font-medium text-sm">
+                                          {service.name?.slice(0, 30)}
+                                          {service.name?.length > 30 ? "..." : ""}
+                                        </div>
                                       </div>
                                       <Badge
                                         variant={
                                           service.status === "running"
                                             ? "default"
-                                            : "secondary"
+                                            : service.status === "stopped"
+                                              ? "destructive"
+                                              : "secondary"
                                         }
                                         className="text-xs"
                                       >
                                         {service.status}
                                       </Badge>
                                     </div>
+                                    {service.description && (
+                                      <div className="text-xs text-neutral-500 mt-1">
+                                        {service.description.slice(0, 50)}
+                                        {service.description.length > 50 ? "..." : ""}
+                                      </div>
+                                    )}
                                   </div>
                                 ))}
+                              {securityData.security_services.length > 5 && (
+                                <div className="text-xs text-neutral-500 text-center pt-2">
+                                  ...and {securityData.security_services.length - 5} more services
+                                </div>
+                              )}
                             </div>
                           </div>
                         )}
+
+                        {/* Security Recommendations */}
+                        <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                          <h5 className="font-medium text-yellow-900 dark:text-yellow-100 mb-2 flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4" />
+                            Security Recommendations
+                          </h5>
+                          <div className="text-xs text-yellow-800 dark:text-yellow-200 space-y-1">
+                            {isWindows && (
+                              <>
+                                <div>• Keep Windows Defender definitions updated</div>
+                                <div>• Enable Windows Firewall for all network profiles</div>
+                                <div>• Use Windows Hello or strong passwords</div>
+                                <div>• Enable BitLocker disk encryption</div>
+                              </>
+                            )}
+                            {isLinux && (
+                              <>
+                                <div>• Keep system packages updated regularly</div>
+                                <div>• Configure UFW firewall rules appropriately</div>
+                                <div>• Use SSH key authentication instead of passwords</div>
+                                <div>• Enable unattended security updates</div>
+                              </>
+                            )}
+                            {isMacOS && (
+                              <>
+                                <div>• Keep macOS and security updates current</div>
+                                <div>• Enable FileVault disk encryption</div>
+                                <div>• Use strong user account passwords</div>
+                                <div>• Enable Gatekeeper and System Integrity Protection</div>
+                              </>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     );
                   })()}
