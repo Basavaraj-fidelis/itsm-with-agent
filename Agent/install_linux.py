@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 """
 ITSM Agent Linux Installation Script
@@ -16,6 +17,34 @@ def check_root_privileges():
     return os.geteuid() == 0
 
 
+def install_system_dependencies():
+    """Install system-level dependencies"""
+    print("Installing system dependencies...")
+    
+    try:
+        # Update package lists
+        subprocess.run(['apt', 'update'], check=True, capture_output=True)
+        
+        # Install required system packages
+        packages = [
+            'python3-pip',
+            'python3-dev',
+            'build-essential',
+            'gcc'
+        ]
+        
+        for package in packages:
+            try:
+                subprocess.run(['apt', 'install', '-y', package], check=True, capture_output=True)
+                print(f"✓ Installed {package}")
+            except subprocess.CalledProcessError:
+                print(f"⚠ Warning: Could not install {package}")
+                
+    except subprocess.CalledProcessError as e:
+        print(f"Warning: System package installation issues: {e}")
+        print("Continuing with Python package installation...")
+
+
 def install_dependencies():
     """Install required Python packages"""
     print("Installing Python dependencies...")
@@ -26,16 +55,46 @@ def install_dependencies():
         'configparser'
     ]
 
+    success_count = 0
+    
     for package in packages:
-        try:
-            subprocess.run([
-                sys.executable, '-m', 'pip', 'install', package
-            ], check=True, capture_output=True)
-            print(f"✓ Installed {package}")
-        except subprocess.CalledProcessError as e:
-            print(f"✗ Failed to install {package}: {e}")
-            return False
-
+        # Try multiple installation methods
+        methods = [
+            [sys.executable, '-m', 'pip', 'install', package],
+            [sys.executable, '-m', 'pip', 'install', '--user', package],
+            ['pip3', 'install', package],
+            ['pip3', 'install', '--user', package],
+            ['python3', '-m', 'pip', 'install', package],
+            ['apt', 'install', '-y', f'python3-{package.lower()}']
+        ]
+        
+        installed = False
+        for method in methods:
+            try:
+                subprocess.run(method, check=True, capture_output=True)
+                print(f"✓ Installed {package}")
+                success_count += 1
+                installed = True
+                break
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                continue
+        
+        if not installed:
+            print(f"⚠ Warning: Could not install {package} using any method")
+            # Try to continue anyway
+    
+    # Check if at least some packages were installed
+    if success_count == 0:
+        print("Error: Could not install any Python packages")
+        print("Please try manually:")
+        print("  sudo apt update")
+        print("  sudo apt install python3-pip python3-dev build-essential")
+        print("  pip3 install psutil requests configparser")
+        return False
+    elif success_count < len(packages):
+        print(f"Warning: Only {success_count}/{len(packages)} packages installed successfully")
+        print("The agent may still work with reduced functionality")
+    
     return True
 
 
@@ -64,6 +123,7 @@ def create_installation_directory():
     ]
 
     print("Copying agent files...")
+    copied_files = 0
     for file_name in files_to_copy:
         src_file = script_dir / file_name
         dst_file = install_dir / file_name
@@ -72,10 +132,15 @@ def create_installation_directory():
             shutil.copy2(src_file, dst_file)
             os.chmod(dst_file, 0o755)
             print(f"✓ Copied {file_name}")
+            copied_files += 1
         else:
-            print(f"✗ Source file not found: {file_name}")
-            return None
+            print(f"⚠ Warning: Source file not found: {file_name}")
 
+    if copied_files == 0:
+        print("Error: No files were copied")
+        return None
+    
+    print(f"Successfully copied {copied_files}/{len(files_to_copy)} files")
     return install_dir
 
 
@@ -92,6 +157,7 @@ WorkingDirectory={install_dir}
 ExecStart={sys.executable} {install_dir}/itsm_agent.py
 Restart=always
 RestartSec=10
+Environment=PYTHONUNBUFFERED=1
 
 [Install]
 WantedBy=multi-user.target
@@ -117,6 +183,61 @@ WantedBy=multi-user.target
         return False
 
 
+def test_agent_imports(install_dir):
+    """Test if the agent can import required modules"""
+    print("Testing agent imports...")
+    
+    try:
+        # Change to install directory and test imports
+        original_dir = os.getcwd()
+        os.chdir(install_dir)
+        
+        test_script = f"""
+import sys
+sys.path.insert(0, '{install_dir}')
+
+try:
+    import psutil
+    print('[OK] psutil imported')
+except ImportError as e:
+    print('[ERROR] psutil import failed:', e)
+
+try:
+    import requests
+    print('[OK] requests imported')
+except ImportError as e:
+    print('[ERROR] requests import failed:', e)
+
+try:
+    import system_collector
+    print('[OK] system_collector imported')
+except ImportError as e:
+    print('[ERROR] system_collector import failed:', e)
+
+print('[OK] Import test completed')
+"""
+        
+        result = subprocess.run([
+            sys.executable, '-c', test_script
+        ], capture_output=True, text=True, cwd=install_dir)
+        
+        os.chdir(original_dir)
+        
+        print("Import test results:")
+        print(result.stdout)
+        if result.stderr:
+            print("Errors:")
+            print(result.stderr)
+            
+        return result.returncode == 0
+        
+    except Exception as e:
+        print(f"Could not test imports: {e}")
+        if 'original_dir' in locals():
+            os.chdir(original_dir)
+        return False
+
+
 def main():
     """Main installation function"""
     print("ITSM Agent Linux Installation")
@@ -137,10 +258,17 @@ def main():
     print(f"Python version: {sys.version}")
     print()
 
-    # Install dependencies
+    # Install system dependencies first
+    install_system_dependencies()
+    print()
+
+    # Install Python dependencies
     if not install_dependencies():
-        print("Error: Failed to install dependencies")
-        return 1
+        print("Warning: Some dependencies failed to install")
+        choice = input("Continue anyway? (y/n): ").lower().strip()
+        if choice not in ['y', 'yes']:
+            print("Installation aborted")
+            return 1
 
     print()
 
@@ -149,6 +277,16 @@ def main():
     if not install_dir:
         print("Error: Failed to create installation directory")
         return 1
+
+    print()
+
+    # Test imports
+    if not test_agent_imports(install_dir):
+        print("Warning: Import test failed")
+        choice = input("Continue with service installation anyway? (y/n): ").lower().strip()
+        if choice not in ['y', 'yes']:
+            print("Installation aborted")
+            return 1
 
     print()
 
@@ -178,6 +316,7 @@ def main():
             print("✓ Service started successfully")
         except subprocess.CalledProcessError:
             print("✗ Failed to start service")
+            print("Check logs with: sudo journalctl -u itsm-agent")
 
     return 0
 
