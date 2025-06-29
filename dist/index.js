@@ -12725,6 +12725,66 @@ ${reportData.content}`;
       res.status(500).json({ error: "Internal server error" });
     }
   });
+  app2.post("/api/agents/:id/execute-command", authenticateToken, requireRole(["admin", "manager"]), async (req, res) => {
+    try {
+      const agentId = req.params.id;
+      const { command, description = "Remote command execution" } = req.body;
+      if (!command || typeof command !== "string") {
+        return res.status(400).json({
+          success: false,
+          message: "Command is required and must be a string"
+        });
+      }
+      const device = await storage.getDevice(agentId);
+      if (!device) {
+        return res.status(404).json({
+          success: false,
+          message: "Agent not found"
+        });
+      }
+      if (device.status !== "online") {
+        return res.status(400).json({
+          success: false,
+          message: `Agent is ${device.status}. Only online agents can execute commands.`
+        });
+      }
+      const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const result = await pool3.query(
+        `INSERT INTO agent_commands (device_id, type, command, priority, status, created_by, created_at)
+         VALUES ($1, $2, $3, $4, 'pending', $5, NOW())
+         RETURNING id`,
+        [agentId, "execute_command", command, 1, req.user.id]
+      );
+      await storage.createAlert({
+        device_id: agentId,
+        category: "remote_command",
+        severity: "info",
+        message: `Remote command executed by ${req.user.email}: ${command}`,
+        metadata: {
+          command,
+          description,
+          user: req.user.email,
+          timestamp: (/* @__PURE__ */ new Date()).toISOString()
+        },
+        is_active: true
+      });
+      console.log(`Command "${command}" queued for agent ${device.hostname} (${agentId}) by ${req.user.email}`);
+      res.json({
+        success: true,
+        message: `Command sent to ${device.hostname}`,
+        command_id: result.rows[0].id,
+        agent_hostname: device.hostname,
+        command,
+        description
+      });
+    } catch (error) {
+      console.error("Error executing remote command:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to execute command on agent"
+      });
+    }
+  });
   app2.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: /* @__PURE__ */ new Date() });
   });
