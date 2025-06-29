@@ -1778,9 +1778,13 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                   <CardTitle className="flex items-center space-x-2">
                     <Download className="w-5 h-5" />
                     <span>
-                      {agent.latest_report?.os_info?.name === "Linux"
+                      {isLinux
                         ? "Linux System Status"
-                        : "Windows Update Status"}
+                        : isWindows
+                          ? "Windows Update Status"
+                          : isMacOS
+                            ? "macOS System Status"
+                            : "System Update Status"}
                     </span>
                   </CardTitle>
                 </CardHeader>
@@ -1791,8 +1795,6 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       typeof rawData === "string"
                         ? JSON.parse(rawData)
                         : rawData;
-                    const isLinux =
-                      agent.latest_report?.os_info?.name === "Linux";
 
                     return parsedData ? (
                       <div className="space-y-6">
@@ -1801,7 +1803,11 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             <Shield className="w-4 h-4 mr-2" />
                             {isLinux
                               ? "Linux System Information"
-                              : "Windows Update Status"}
+                              : isWindows
+                                ? "Windows Update Status"
+                                : isMacOS
+                                  ? "macOS System Information"
+                                  : "System Information"}
                           </h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {agent.latest_report?.os_info?.name === "Linux" ? (
@@ -2009,7 +2015,15 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Shield className="w-5 h-5" />
-                    <span>Security Status</span>
+                    <span>
+                      {isLinux
+                        ? "Linux Security Status"
+                        : isWindows
+                          ? "Windows Security Status"
+                          : isMacOS
+                            ? "macOS Security Status"
+                            : "Security Status"}
+                    </span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -2155,10 +2169,13 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                         <div>
                           <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-3 flex items-center">
                             <Package className="w-4 h-4 mr-2" />
-                            {isLinux && "Package Updates"}
-                            {isWindows && "Installed Patches"}
-                            {isMacOS && "System Updates"}
-                            {!isLinux && !isWindows && !isMacOS && "System Updates"}
+                            {isLinux
+                              ? "Package Updates & System Packages"
+                              : isWindows
+                                ? "Installed Windows Patches"
+                                : isMacOS
+                                  ? "macOS System Updates"
+                                  : "System Updates"}
                           </h3>
                           <div className={`p-4 rounded-lg ${getOSColorScheme()}`}>
                             <SafeDataRenderer
@@ -2230,6 +2247,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                 if (!Array.isArray(updateData) || updateData.length === 0) {
                                   return (
                                     <div className="text-center text-neutral-500 py-4">
+                                      {isLinux && "No package update data available from agent reports"}
                                       {isWindows && "No patch data available from agent reports"}
                                       {isMacOS && "No system update data available"}
                                       {!isLinux && !isWindows && !isMacOS && "No update data available"}
@@ -2269,7 +2287,15 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Network className="w-5 h-5" />
-                    <span>Active Network Ports</span>
+                    <span>
+                      {isLinux
+                        ? "Active Network Connections (Linux)"
+                        : isWindows
+                          ? "Active Network Ports (Windows)"
+                          : isMacOS
+                            ? "Active Network Connections (macOS)"
+                            : "Active Network Ports"}
+                    </span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
