@@ -28,7 +28,8 @@ import { ResponseUtils } from "./utils/response";
 import { UserUtils } from "./utils/user";
 import { AlertUtils } from "./utils/alerts";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+const JWT_SECRET =
+  process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
 // Auth middleware
 const authenticateToken = async (req: any, res: any, next: any) => {
@@ -122,10 +123,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Active Directory Authentication
       if (useActiveDirectory) {
         try {
-          const { adService } = await import('./ad-service');
+          const { adService } = await import("./ad-service");
 
           // Extract username from email if needed
-          const username = email.includes('@') ? email.split('@')[0] : email;
+          const username = email.includes("@") ? email.split("@")[0] : email;
 
           console.log("Attempting AD authentication for:", username);
           const adUser = await adService.authenticateUser(username, password);
@@ -136,15 +137,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             // Generate JWT token
             const token = jwt.sign(
-              { 
-                userId: localUser.id, 
-                id: localUser.id, 
-                email: localUser.email, 
+              {
+                userId: localUser.id,
+                id: localUser.id,
+                email: localUser.email,
                 role: localUser.role,
-                authMethod: 'ad'
+                authMethod: "ad",
               },
               JWT_SECRET,
-              { expiresIn: "24h" }
+              { expiresIn: "24h" },
             );
 
             console.log("AD login successful for:", email);
@@ -157,24 +158,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 name: localUser.name,
                 role: localUser.role,
                 department: localUser.department,
-                authMethod: 'ad'
-              }
+                authMethod: "ad",
+              },
             });
             return;
           } else {
             console.log("AD authentication failed for:", username);
-            return res.status(401).json({ message: "Invalid Active Directory credentials" });
+            return res
+              .status(401)
+              .json({ message: "Invalid Active Directory credentials" });
           }
         } catch (adError) {
           console.error("AD authentication error:", adError);
-          return res.status(500).json({ message: "Active Directory authentication failed" });
+          return res
+            .status(500)
+            .json({ message: "Active Directory authentication failed" });
         }
       }
 
       try {
         // Try database query using raw SQL - use only columns that definitely exist
         const availableColumns = await DatabaseUtils.getTableColumns("users");
-        const columnNames = availableColumns.map(col => col.column_name);
+        const columnNames = availableColumns.map((col) => col.column_name);
         console.log("Available columns in users table:", columnNames);
 
         // Build query with only available columns
@@ -198,10 +203,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         });
 
-        const query = DatabaseUtils.buildSelectQuery("users", columnNames, selectColumns) + " WHERE email = $1";
+        const query =
+          DatabaseUtils.buildSelectQuery("users", columnNames, selectColumns) +
+          " WHERE email = $1";
         console.log("Executing query:", query);
 
-        const result = await DatabaseUtils.executeQuery(query, [email.toLowerCase()]);
+        const result = await DatabaseUtils.executeQuery(query, [
+          email.toLowerCase(),
+        ]);
 
         if (result.rows.length === 0) {
           console.log("User not found in database:", email);
@@ -259,10 +268,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Generate JWT token
         const token = AuthUtils.generateToken({
-          userId: user.id, 
-          id: user.id, 
-          email: user.email, 
-          role: user.role
+          userId: user.id,
+          id: user.id,
+          email: user.email,
+          role: user.role,
         });
 
         // Return user data without password
@@ -393,7 +402,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Dashboard summary endpoint - uses only real database data
-  app.get('/api/dashboard/summary', authenticateToken, async (req, res) => {
+  app.get("/api/dashboard/summary", authenticateToken, async (req, res) => {
     try {
       const summary = await storage.getDashboardSummary();
       res.json(summary);
@@ -420,7 +429,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
               device_hostname: device?.hostname || "Unknown Device",
             };
           } catch (deviceError) {
-            console.warn(`Failed to get device for alert ${alert.id}:`, deviceError);
+            console.warn(
+              `Failed to get device for alert ${alert.id}:`,
+              deviceError,
+            );
             return {
               ...alert,
               device_hostname: "Unknown Device",
@@ -433,9 +445,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(enhancedAlerts);
     } catch (error) {
       console.error("Error fetching alerts:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Internal server error",
-        error: error.message 
+        error: error.message,
       });
     }
   });
@@ -534,17 +546,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-
-
   // Report endpoint (from ITSM agents) - moved to ensure proper routing
   app.post("/api/report", async (req, res) => {
     try {
       console.log("=== AGENT REPORT RECEIVED ===");
       console.log("Timestamp:", new Date().toISOString());
       console.log("Agent IP:", req.ip);
-      console.log("User-Agent:", req.headers['user-agent']);
+      console.log("User-Agent:", req.headers["user-agent"]);
       console.log("Report data keys:", Object.keys(req.body));
-      console.log("Hostname:", req.body.hostname || 'NOT PROVIDED');
+      console.log("Hostname:", req.body.hostname || "NOT PROVIDED");
       console.log("================================");
       console.log("Full report data:", JSON.stringify(req.body, null, 2));
 
@@ -788,7 +798,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ip_address = (iface as any).ip;
               break;
             }
-                    }
+          }
         }
       }
 
@@ -801,9 +811,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get public IP for location lookup - prefer collected public IP
       if (!public_ip) {
         // Try to determine if we have a public IP for location lookup
-        if (ip_address && !ip_address.startsWith("192.168.") && 
-            !ip_address.startsWith("10.") && !ip_address.startsWith("172.") &&
-            !ip_address.startsWith("127.") && !ip_address.startsWith("169.254.")) {
+        if (
+          ip_address &&
+          !ip_address.startsWith("192.168.") &&
+          !ip_address.startsWith("10.") &&
+          !ip_address.startsWith("172.") &&
+          !ip_address.startsWith("127.") &&
+          !ip_address.startsWith("169.254.")
+        ) {
           public_ip = ip_address;
         }
       }
@@ -813,7 +828,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (public_ip && public_ip !== "unknown") {
         try {
           console.log(`Fetching location for IP: ${public_ip}`);
-          const response = await fetch(`http://ip-api.com/json/${public_ip}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query`);
+          const response = await fetch(
+            `http://ip-api.com/json/${public_ip}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query`,
+          );
           if (response.ok) {
             const data = await response.json();
             if (data.status === "success") {
@@ -829,7 +846,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 timezone: data.timezone,
                 org: data.org || data.isp,
                 isp: data.isp,
-                as: data.as
+                as: data.as,
               };
               console.log(`Location data received:`, locationData);
             } else {
@@ -842,14 +859,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.warn("Failed to fetch location from IP-API:", error);
         }
       } else {
-        console.log("No public IP available for location lookup, trying primary IP");
+        console.log(
+          "No public IP available for location lookup, trying primary IP",
+        );
         // Try with primary IP if it's not private
-        if (ip_address && !ip_address.startsWith("192.168.") && 
-            !ip_address.startsWith("10.") && !ip_address.startsWith("172.") &&
-            !ip_address.startsWith("127.") && !ip_address.startsWith("169.254.")) {
+        if (
+          ip_address &&
+          !ip_address.startsWith("192.168.") &&
+          !ip_address.startsWith("10.") &&
+          !ip_address.startsWith("172.") &&
+          !ip_address.startsWith("127.") &&
+          !ip_address.startsWith("169.254.")
+        ) {
           try {
             console.log(`Fetching location for primary IP: ${ip_address}`);
-            const response = await fetch(`http://ip-api.com/json/${ip_address}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query`);
+            const response = await fetch(
+              `http://ip-api.com/json/${ip_address}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query`,
+            );
             if (response.ok) {
               const data = await response.json();
               if (data.status === "success") {
@@ -864,12 +890,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   timezone: data.timezone,
                   org: data.org || data.isp,
                   isp: data.isp,
-                  as: data.as
+                  as: data.as,
                 };
                 public_ip = ip_address; // Update public IP
-                console.log(`Location data received from primary IP:`, locationData);
+                console.log(
+                  `Location data received from primary IP:`,
+                  locationData,
+                );
               } else {
-                console.warn(`IP-API returned error for primary IP: ${data.message}`);
+                console.warn(
+                  `IP-API returned error for primary IP: ${data.message}`,
+                );
               }
             }
           } catch (error) {
@@ -897,7 +928,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "IP:",
           ip_address,
           "Location:",
-          locationData ? `${locationData.city}, ${locationData.country}` : "None"
+          locationData
+            ? `${locationData.city}, ${locationData.country}`
+            : "None",
         );
       } else {
         // Update existing device including IP address and user
@@ -922,7 +955,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "IP:",
           ip_address,
           "Location:",
-          locationData ? `${locationData.city}, ${locationData.country}` : "None"
+          locationData
+            ? `${locationData.city}, ${locationData.country}`
+            : "None",
         );
       }
 
@@ -963,7 +998,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Memory usage extraction
       memory_usage =
-        extractNumericValue(systemHealth.memory_percent) ||        extractNumericValue(systemHealth.memory_usage) ||
+        extractNumericValue(systemHealth.memory_percent) ||
+        extractNumericValue(systemHealth.memory_usage) ||
         extractNumericValue(hardware.memory_percent) ||
         extractNumericValue(hardware.memory) ||
         extractNumericValue(data.memory_percent) ||
@@ -1239,16 +1275,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Get the last reported value
             const lastValue = existingAlert.metadata?.[metric + "_usage"] || 0;
             const valueChange = Math.abs(value - lastValue);
-            const timeSinceLastUpdate = new Date().getTime() - new Date(existingAlert.metadata?.last_updated || existingAlert.triggered_at).getTime();
+            const timeSinceLastUpdate =
+              new Date().getTime() -
+              new Date(
+                existingAlert.metadata?.last_updated ||
+                  existingAlert.triggered_at,
+              ).getTime();
             const minutesSinceUpdate = timeSinceLastUpdate / (1000 * 60);
 
             // Only update if:
             // 1. Severity changed, OR
-            // 2. Value changed significantly (>3%), OR  
+            // 2. Value changed significantly (>3%), OR
             // 3. It's been more than 30 minutes since last update (to prevent stale alerts)
-            const shouldUpdate = 
-              existingAlert.severity !== currentSeverity || 
-              valueChange > 3 || 
+            const shouldUpdate =
+              existingAlert.severity !== currentSeverity ||
+              valueChange > 3 ||
               minutesSinceUpdate > 30;
 
             if (shouldUpdate) {
@@ -1264,8 +1305,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   last_updated: new Date().toISOString(),
                   previous_value: lastValue,
                   value_change: valueChange.toFixed(1),
-                  update_reason: existingAlert.severity !== currentSeverity ? 'severity_change' : 
-                                valueChange > 3 ? 'significant_change' : 'periodic_update'
+                  update_reason:
+                    existingAlert.severity !== currentSeverity
+                      ? "severity_change"
+                      : valueChange > 3
+                        ? "significant_change"
+                        : "periodic_update",
                 },
               });
               console.log(
@@ -1288,7 +1333,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                  AND metadata->>'metric' = $3
                  AND resolved_at > NOW() - INTERVAL '10 minutes'
                  ORDER BY resolved_at DESC LIMIT 1`,
-                [device.id, category, metric]
+                [device.id, category, metric],
               );
 
               if (recentResolvedAlert.rows.length === 0) {
@@ -1379,7 +1424,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { pool } = await import("./db");
 
         // Find and resolve duplicate alerts (same device, same metric, same severity)
-        await pool.query(`
+        await pool.query(
+          `
           UPDATE alerts 
           SET is_active = false, resolved_at = NOW()
           WHERE id IN (
@@ -1393,9 +1439,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ) t 
             WHERE t.rn > 1
           )
-        `, [device.id]);
+        `,
+          [device.id],
+        );
 
-        console.log(`Cleaned up duplicate alerts for device ${device.hostname}`);
+        console.log(
+          `Cleaned up duplicate alerts for device ${device.hostname}`,
+        );
       } catch (cleanupError) {
         console.warn("Failed to cleanup duplicate alerts:", cleanupError);
       }
@@ -1448,12 +1498,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       //Add agent active ports to the device reports
       const activePorts = data.active_ports;
-       if (activePorts && Array.isArray(activePorts) && activePorts.length > 0) {
+      if (activePorts && Array.isArray(activePorts) && activePorts.length > 0) {
         console.log(`Found active ports in location:`, activePorts);
       }
 
-       // Create device report with active ports and location data
-       await storage.createDeviceReport({
+      // Create device report with active ports and location data
+      await storage.createDeviceReport({
         device_id: device.id,
         cpu_usage: cpu_usage?.toString() || null,
         memory_usage: memory_usage?.toString() || null,
@@ -1643,7 +1693,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     authenticateToken,
     async (req, res) => {
       try {
-        const { automationService } = await import("./services/automation-service");
+        const { automationService } = await import(
+          "./services/automation-service"
+        );
         const packages = automationService.getSoftwarePackages();
         res.json(packages);
       } catch (error) {
@@ -1667,7 +1719,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .json({ message: "device_ids and package_id are required" });
         }
 
-        const { automationService } = await import("./services/automation-service");
+        const { automationService } = await import(
+          "./services/automation-service"
+        );
         const scheduledTime = scheduled_time
           ? new Date(scheduled_time)
           : new Date();
@@ -1698,7 +1752,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     authenticateToken,
     async (req, res) => {
       try {
-        const { automationService } = await import("./services/automation-service");
+        const { automationService } = await import(
+          "./services/automation-service"
+        );
         const deployment = await automationService.getDeploymentStatus(
           req.params.deploymentId,
         );
@@ -1814,7 +1870,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               devices.map(async (device) => {
                 const reports = await storage.getDeviceReports(device.id);
                 const latestReport = reports[0];
-                return{
+                return {
                   hostname: device.hostname,
                   cpu_usage: latestReport?.cpu_usage || "0",
                   memory_usage: latestReport?.memory_usage || "0",
@@ -1839,13 +1895,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             reportData = {
               title: "Availability Report",
               period: period,
-              generated_at: new Date().toISOString(),<replit_final_file>
+              generated_at: new Date().toISOString(),
               total_devices: allDevices.length,
               online_devices: onlineDevices.length,
               availability_percentage: (
                 (onlineDevices.length / allDevices.length) *
                 100
-              ).toFixed(2),            };
+              ).toFixed(2),
+            };
             break;
 
           case "alerts":
@@ -1856,7 +1913,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               generated_at: new Date().toISOString(),
               total_alerts: alerts.length,
               alerts: alerts.slice(0, 100), //```text
-
             };
             break;
 
@@ -1962,160 +2018,204 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Remote Connection Endpoints
-  app.post("/api/agents/:id/remote-connect", authenticateToken, async (req, res) => {
-    try {
-      const agentId = req.params.id;
-      const { connection_type = "vnc", port = 5900, use_tunnel = false, jump_host = null } = req.body;
+  app.post(
+    "/api/agents/:id/remote-connect",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const agentId = req.params.id;
+        const {
+          connection_type = "vnc",
+          port = 5900,
+          use_tunnel = false,
+          jump_host = null,
+        } = req.body;
 
-      const device = await storage.getDevice(agentId);
-      if (!device) {
-        return res.status(404).json({ message: "Agent not found" });
-      }
+        const device = await storage.getDevice(agentId);
+        if (!device) {
+          return res.status(404).json({ message: "Agent not found" });
+        }
 
-      if (device.status !== "online") {
-        return res.status(400).json({ 
-          message: "Agent is not online", 
-          status: device.status 
+        if (device.status !== "online") {
+          return res.status(400).json({
+            message: "Agent is not online",
+            status: device.status,
+          });
+        }
+
+        // Check if device IP is private
+        const isPrivateIP =
+          device.ip_address &&
+          (device.ip_address.startsWith("10.") ||
+            device.ip_address.startsWith("172.") ||
+            device.ip_address.startsWith("192.168.") ||
+            device.ip_address.startsWith("169.254."));
+
+        // Log connection attempt
+        await storage.createAlert({
+          device_id: agentId,
+          category: "remote_access",
+          severity: "info",
+          message: `Remote connection initiated by ${req.user.email}`,
+          metadata: {
+            connection_type,
+            port,
+            user: req.user.email,
+            timestamp: new Date().toISOString(),
+          },
+          is_active: true,
         });
-      }
 
-      // Check if device IP is private
-      const isPrivateIP = device.ip_address && (
-        device.ip_address.startsWith("10.") ||
-        device.ip_address.startsWith("172.") ||
-        device.ip_address.startsWith("192.168.") ||
-        device.ip_address.startsWith("169.254.")
-      );
+        const instructions = {
+          vnc: "Ensure VNC server and websockify are running on the target machine",
+          rdp: "Ensure Remote Desktop is enabled and user has RDP permissions",
+          ssh: "Ensure SSH service is running and firewall allows SSH connections",
+          teamviewer:
+            "Ensure TeamViewer is installed and running on the target machine",
+        };
 
-      // Log connection attempt
-      await storage.createAlert({
-        device_id: agentId,
-        category: "remote_access",
-        severity: "info",
-        message: `Remote connection initiated by ${req.user.email}`,
-        metadata: {
+        const connectionInfo = {
+          hostname: device.hostname,
+          ip_address: device.ip_address,
+          port: port,
           connection_type,
-          port,
-          user: req.user.email,
-          timestamp: new Date().toISOString()
-        },
-        is_active: true
-      });
+          instructions:
+            instructions[connection_type] ||
+            "Ensure remote access is enabled on the target machine",
+          teamviewer_id:
+            connection_type === "teamviewer" ? device.teamviewer_id : undefined,
+          is_private_ip: isPrivateIP,
+        };
 
-      const instructions = {
-        vnc: "Ensure VNC server and websockify are running on the target machine",
-        rdp: "Ensure Remote Desktop is enabled and user has RDP permissions", 
-        ssh: "Ensure SSH service is running and firewall allows SSH connections",
-        teamviewer: "Ensure TeamViewer is installed and running on the target machine"
-      };
+        // Add tunnel guidance for private IPs
+        if (isPrivateIP) {
+          connectionInfo.tunnel_required = true;
+          connectionInfo.tunnel_suggestions = [
+            {
+              method: "ssh_tunnel",
+              command: `ssh -L ${port}:${device.ip_address}:${port} ${jump_host || "your_jump_host"}`,
+              description: "Create SSH tunnel via jump host",
+            },
+            {
+              method: "vpn",
+              description:
+                "Connect to company VPN first, then access private IP directly",
+            },
+            {
+              method: "reverse_proxy",
+              description: "Deploy reverse proxy on public server",
+            },
+          ];
+        }
 
-      const connectionInfo = {
-        hostname: device.hostname,
-        ip_address: device.ip_address,
-        port: port,
-        connection_type,
-        instructions: instructions[connection_type] || "Ensure remote access is enabled on the target machine",
-        teamviewer_id: connection_type === "teamviewer" ? device.teamviewer_id : undefined,
-        is_private_ip: isPrivateIP
-      };
-
-      // Add tunnel guidance for private IPs
-      if (isPrivateIP) {
-        connectionInfo.tunnel_required = true;
-        connectionInfo.tunnel_suggestions = [
-          {
-            method: "ssh_tunnel",
-            command: `ssh -L ${port}:${device.ip_address}:${port} ${jump_host || 'your_jump_host'}`,
-            description: "Create SSH tunnel via jump host"
-          },
-          {
-            method: "vpn",
-            description: "Connect to company VPN first, then access private IP directly"
-          },
-          {
-            method: "reverse_proxy",
-            description: "Deploy reverse proxy on public server"
-          }
-        ];
+        res.json({
+          success: true,
+          connection_info: connectionInfo,
+        });
+      } catch (error) {
+        console.error("Error initiating remote connection:", error);
+        res
+          .status(500)
+          .json({ message: "Failed to initiate remote connection" });
       }
+    },
+  );
 
-      res.json({
-        success: true,
-        connection_info: connectionInfo
-      });
-    } catch (error) {
-      console.error("Error initiating remote connection:", error);
-      res.status(500).json({ message: "Failed to initiate remote connection" });
-    }
-  });
+  app.get(
+    "/api/agents/:id/connection-status",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const agentId = req.params.id;
+        const device = await storage.getDevice(agentId);
 
-  app.get("/api/agents/:id/connection-status", authenticateToken, async (req, res) => {
-    try {
-      const agentId = req.params.id;
-      const device = await storage.getDevice(agentId);
+        if (!device) {
+          return res.status(404).json({ message: "Agent not found" });
+        }
 
-      if (!device) {
-        return res.status(404).json({ message: "Agent not found" });
+        // Check if agent is online and responsive
+        const lastSeen = new Date(device.last_seen);
+        const now = new Date();
+        const timeDiff = now.getTime() - lastSeen.getTime();
+        const minutesOffline = Math.floor(timeDiff / (1000 * 60));
+
+        const connectionStatus = {
+          agent_online: device.status === "online" && minutesOffline < 5,
+          last_seen: device.last_seen,
+          minutes_since_contact: minutesOffline,
+          ip_address: device.ip_address,
+          hostname: device.hostname,
+          ready_for_connection:
+            device.status === "online" && minutesOffline < 5,
+        };
+
+        res.json(connectionStatus);
+      } catch (error) {
+        console.error("Error checking connection status:", error);
+        res.status(500).json({ message: "Failed to check connection status" });
       }
-
-      // Check if agent is online and responsive
-      const lastSeen = new Date(device.last_seen);
-      const now = new Date();
-      const timeDiff = now.getTime() - lastSeen.getTime();
-      const minutesOffline = Math.floor(timeDiff / (1000 * 60));
-
-      const connectionStatus = {
-        agent_online: device.status === "online" && minutesOffline < 5,
-        last_seen: device.last_seen,
-        minutes_since_contact: minutesOffline,
-        ip_address: device.ip_address,
-        hostname: device.hostname,
-        ready_for_connection: device.status === "online" && minutesOffline < 5
-      };
-
-      res.json(connectionStatus);
-    } catch (error) {
-      console.error("Error checking connection status:", error);
-      res.status(500).json({ message: "Failed to check connection status" });
-    }
-  });
+    },
+  );
 
   // Test connectivity endpoint
-  app.post('/api/agents/:id/test-connectivity', authenticateToken, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const device = await storage.getDevice(id);
+  app.post(
+    "/api/agents/:id/test-connectivity",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const { id } = req.params;
+        const device = await storage.getDevice(id);
 
-      if (!device || !device.ip_address) {
-        return res.status(404).json({ message: 'Agent not found or no IP address' });
+        if (!device || !device.ip_address) {
+          return res
+            .status(404)
+            .json({ message: "Agent not found or no IP address" });
+        }
+
+        // Real connectivity test using actual device data
+        const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
+        const now = new Date();
+        const minutesSinceLastSeen = lastSeen
+          ? Math.floor((now.getTime() - lastSeen.getTime()) / (1000 * 60))
+          : null;
+
+        // Check if device has recent reports (within last 5 minutes)
+        const hasRecentData =
+          device.latest_report && device.latest_report.collected_at;
+        const lastReportTime = hasRecentData
+          ? new Date(device.latest_report.collected_at)
+          : null;
+        const minutesSinceLastReport = lastReportTime
+          ? Math.floor((now.getTime() - lastReportTime.getTime()) / (1000 * 60))
+          : null;
+
+        const connectivity = {
+          reachable:
+            device.status === "online" &&
+            minutesSinceLastSeen !== null &&
+            minutesSinceLastSeen < 5,
+          port_open:
+            device.status === "online" &&
+            hasRecentData &&
+            minutesSinceLastReport !== null &&
+            minutesSinceLastReport < 10,
+          response_time:
+            minutesSinceLastSeen !== null
+              ? Math.min(minutesSinceLastSeen * 1000, 30000)
+              : 30000,
+          tested_at: now.toISOString(),
+          last_seen_minutes_ago: minutesSinceLastSeen,
+          last_report_minutes_ago: minutesSinceLastReport,
+          has_recent_data: hasRecentData,
+        };
+
+        res.json(connectivity);
+      } catch (error) {
+        console.error("Error testing connectivity:", error);
+        res.status(500).json({ message: "Failed to test connectivity" });
       }
-
-      // Real connectivity test using actual device data
-      const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
-      const now = new Date();
-      const minutesSinceLastSeen = lastSeen ? Math.floor((now.getTime() - lastSeen.getTime()) / (1000 * 60)) : null;
-
-      // Check if device has recent reports (within last 5 minutes)
-      const hasRecentData = device.latest_report && device.latest_report.collected_at;
-      const lastReportTime = hasRecentData ? new Date(device.latest_report.collected_at) : null;
-      const minutesSinceLastReport = lastReportTime ? Math.floor((now.getTime() - lastReportTime.getTime()) / (1000 * 60)) : null;
-
-      const connectivity = {
-        reachable: device.status === 'online' && minutesSinceLastSeen !== null && minutesSinceLastSeen < 5,
-        port_open: device.status === 'online' && hasRecentData && minutesSinceLastReport !== null && minutesSinceLastReport < 10,
-        response_time: minutesSinceLastSeen !== null ? Math.min(minutesSinceLastSeen * 1000, 30000) : 30000,
-        tested_at: now.toISOString(),
-        last_seen_minutes_ago: minutesSinceLastSeen,
-        last_report_minutes_ago: minutesSinceLastReport,
-        has_recent_data: hasRecentData
-      };
-
-      res.json(connectivity);
-    } catch (error) {
-      console.error('Error testing connectivity:', error);
-      res.status(500).json({ message: 'Failed to test connectivity' });
-    }
-  });
+    },
+  );
 
   // Debug endpoint to check device status
   app.get("/api/debug/devices", authenticateToken, async (req, res) => {
@@ -2123,9 +2223,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const devices = await storage.getDevices();
       const now = new Date();
 
-      const deviceDetails = devices.map(device => {
+      const deviceDetails = devices.map((device) => {
         const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
-        const minutesAgo = lastSeen ? Math.floor((now.getTime() - lastSeen.getTime()) / (1000 * 60)) : null;
+        const minutesAgo = lastSeen
+          ? Math.floor((now.getTime() - lastSeen.getTime()) / (1000 * 60))
+          : null;
 
         return {
           id: device.id,
@@ -2136,7 +2238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           last_seen: device.last_seen,
           minutes_since_last_report: minutesAgo,
           is_recently_active: minutesAgo !== null && minutesAgo < 5,
-          created_at: device.created_at
+          created_at: device.created_at,
         };
       });
 
@@ -2144,10 +2246,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         total_devices: devices.length,
         devices: deviceDetails,
         summary: {
-          online: deviceDetails.filter(d => d.status === 'online').length,
-          offline: deviceDetails.filter(d => d.status === 'offline').length,
-          recently_active: deviceDetails.filter(d => d.is_recently_active).length
-        }
+          online: deviceDetails.filter((d) => d.status === "online").length,
+          offline: deviceDetails.filter((d) => d.status === "offline").length,
+          recently_active: deviceDetails.filter((d) => d.is_recently_active)
+            .length,
+        },
       });
     } catch (error) {
       console.error("Error in debug devices endpoint:", error);
@@ -2156,43 +2259,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Command Management API endpoints
-  app.post("/api/commands/queue", authenticateToken, requireRole(["admin", "manager"]), async (req, res) => {
-    try {
-      const { device_id, type, command, priority = 5, scheduled_for } = req.body;
+  app.post(
+    "/api/commands/queue",
+    authenticateToken,
+    requireRole(["admin", "manager"]),
+    async (req, res) => {
+      try {
+        const {
+          device_id,
+          type,
+          command,
+          priority = 5,
+          scheduled_for,
+        } = req.body;
 
-      if (!device_id || !type || !command) {
-        return res.status(400).json({ error: "device_id, type, and command are required" });
-      }
+        if (!device_id || !type || !command) {
+          return res
+            .status(400)
+            .json({ error: "device_id, type, and command are required" });
+        }
 
-      // Validate device exists and is online
-      const device = await storage.getDevice(device_id);
-      if (!device) {
-        return res.status(404).json({ error: "Device not found" });
-      }
+        // Validate device exists and is online
+        const device = await storage.getDevice(device_id);
+        if (!device) {
+          return res.status(404).json({ error: "Device not found" });
+        }
 
-      if (device.status !== 'online') {
-        return res.status(400).json({ error: "Device is not online" });
-      }
+        if (device.status !== "online") {
+          return res.status(400).json({ error: "Device is not online" });
+        }
 
-      // Create command in database
-      const { pool } = await import("./db");
-      const result = await pool.query(
-        `INSERT INTO agent_commands (device_id, type, command, priority, status, created_by, created_at, scheduled_for)
+        // Create command in database
+        const { pool } = await import("./db");
+        const result = await pool.query(
+          `INSERT INTO agent_commands (device_id, type, command, priority, status, created_by, created_at, scheduled_for)
          VALUES ($1, $2, $3, $4, 'pending', $5, NOW(), $6)
          RETURNING id`,
-        [device_id, type, command, priority, req.user.id, scheduled_for || null]
-      );
+          [
+            device_id,
+            type,
+            command,
+            priority,
+            req.user.id,
+            scheduled_for || null,
+          ],
+        );
 
-      res.json({ 
-        success: true, 
-        command_id: result.rows[0].id,
-        message: "Command queued successfully" 
-      });
-    } catch (error) {
-      console.error("Error queuing command:", error);
-      res.status(500).json({ error: "Failed to queue command" });
-    }
-  });
+        res.json({
+          success: true,
+          command_id: result.rows[0].id,
+          message: "Command queued successfully",
+        });
+      } catch (error) {
+        console.error("Error queuing command:", error);
+        res.status(500).json({ error: "Failed to queue command" });
+      }
+    },
+  );
 
   app.get("/api/commands/history", authenticateToken, async (req, res) => {
     try {
@@ -2202,7 +2325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
          FROM agent_commands c
          JOIN devices d ON c.device_id = d.id
          ORDER BY c.created_at DESC
-         LIMIT 100`
+         LIMIT 100`,
       );
 
       res.json(result.rows);
@@ -2223,7 +2346,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
          AND (scheduled_for IS NULL OR scheduled_for <= NOW())
          ORDER BY priority ASC, created_at ASC
          LIMIT 1`,
-        [deviceId]
+        [deviceId],
       );
 
       if (result.rows.length > 0) {
@@ -2232,7 +2355,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Update status to executing
         await pool.query(
           "UPDATE agent_commands SET status = 'executing', started_at = NOW() WHERE id = $1",
-          [command.id]
+          [command.id],
         );
 
         res.json({
@@ -2241,8 +2364,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             type: command.type,
             command: command.command,
             priority: command.priority,
-            parameters: command.parameters || {}
-          }
+            parameters: command.parameters || {},
+          },
         });
       } else {
         res.json({ command: null });
@@ -2263,9 +2386,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `UPDATE agent_commands 
          SET status = $1, output = $2, error = $3, completed_at = $4, updated_at = NOW()
          WHERE id = $5`,
-        [status, output || null, error || null, 
-         (status === 'completed' || status === 'failed') ? new Date() : null, 
-         commandId]
+        [
+          status,
+          output || null,
+          error || null,
+          status === "completed" || status === "failed" ? new Date() : null,
+          commandId,
+        ],
       );
 
       res.json({ success: true });
@@ -2320,10 +2447,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      res.json({ 
-        message: "Heartbeat received", 
+      res.json({
+        message: "Heartbeat received",
         agentId: device.id,
-        status: "success" 
+        status: "success",
       });
     } catch (error) {
       console.error("Error processing heartbeat:", error);
@@ -2337,9 +2464,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // For now, return empty commands array
       // In a full implementation, this would check for pending commands
-      res.json({ 
+      res.json({
         commands: [],
-        message: "No pending commands" 
+        message: "No pending commands",
       });
     } catch (error) {
       console.error("Error getting commands:", error);
@@ -2354,9 +2481,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // For now, return no commands
       // In a full implementation, this would return the next queued command
-      res.json({ 
+      res.json({
         command: null,
-        message: "No pending commands" 
+        message: "No pending commands",
       });
     } catch (error) {
       console.error("Error getting next command:", error);
@@ -2369,14 +2496,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const commandId = req.params.commandId;
       const { status, output, errorMessage } = req.body;
 
-      console.log(`Command ${commandId} status update:`, { status, output, errorMessage });
+      console.log(`Command ${commandId} status update:`, {
+        status,
+        output,
+        errorMessage,
+      });
 
       // For now, just acknowledge the update
       // In a full implementation, this would update command status in database
-      res.json({ 
+      res.json({
         message: "Command status updated",
         commandId: commandId,
-        status: status
+        status: status,
       });
     } catch (error) {
       console.error("Error updating command status:", error);
@@ -2385,78 +2516,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Execute remote command on agent
-  app.post("/api/agents/:id/execute-command", authenticateToken, requireRole(["admin", "manager"]), async (req, res) => {
-    try {
-      const agentId = req.params.id;
-      const { command, description = "Remote command execution" } = req.body;
+  app.post(
+    "/api/agents/:id/execute-command",
+    authenticateToken,
+    requireRole(["admin", "manager"]),
+    async (req, res) => {
+      try {
+        const agentId = req.params.id;
+        const { command, description = "Remote command execution" } = req.body;
 
-      // Validate input
-      if (!command || typeof command !== 'string') {
-        return res.status(400).json({ 
-          success: false, 
-          message: "Command is required and must be a string" 
-        });
-      }
+        // Validate input
+        if (!command || typeof command !== "string") {
+          return res.status(400).json({
+            success: false,
+            message: "Command is required and must be a string",
+          });
+        }
 
-      // Check if agent exists and is online
-      const device = await storage.getDevice(agentId);
-      if (!device) {
-        return res.status(404).json({ 
-          success: false, 
-          message: "Agent not found" 
-        });
-      }
+        // Check if agent exists and is online
+        const device = await storage.getDevice(agentId);
+        if (!device) {
+          return res.status(404).json({
+            success: false,
+            message: "Agent not found",
+          });
+        }
 
-      if (device.status !== 'online') {
-        return res.status(400).json({ 
-          success: false, 
-          message: `Agent is ${device.status}. Only online agents can execute commands.` 
-        });
-      }
+        if (device.status !== "online") {
+          return res.status(400).json({
+            success: false,
+            message: `Agent is ${device.status}. Only online agents can execute commands.`,
+          });
+        }
 
-      // Use existing command infrastructure
-      const { pool } = await import("./db");
-      const result = await pool.query(
-        `INSERT INTO agent_commands (device_id, type, command, priority, status, created_by, created_at)
+        // Use existing command infrastructure
+        const { pool } = await import("./db");
+        const result = await pool.query(
+          `INSERT INTO agent_commands (device_id, type, command, priority, status, created_by, created_at)
          VALUES ($1, $2, $3, $4, 'pending', $5, NOW())
          RETURNING id`,
-        [agentId, 'execute_command', command, 1, req.user.id]
-      );
+          [agentId, "execute_command", command, 1, req.user.id],
+        );
 
-      // Create alert for audit trail
-      await storage.createAlert({
-        device_id: agentId,
-        category: "remote_command",
-        severity: "info",
-        message: `Remote command executed by ${req.user.email}: ${command}`,
-        metadata: {
-          command,
-          description,
-          user: req.user.email,
-          timestamp: new Date().toISOString()
-        },
-        is_active: true
-      });
+        // Create alert for audit trail
+        await storage.createAlert({
+          device_id: agentId,
+          category: "remote_command",
+          severity: "info",
+          message: `Remote command executed by ${req.user.email}: ${command}`,
+          metadata: {
+            command,
+            description,
+            user: req.user.email,
+            timestamp: new Date().toISOString(),
+          },
+          is_active: true,
+        });
 
-      console.log(`Command "${command}" queued for agent ${device.hostname} (${agentId}) by ${req.user.email}`);
+        console.log(
+          `Command "${command}" queued for agent ${device.hostname} (${agentId}) by ${req.user.email}`,
+        );
 
-      res.json({
-        success: true,
-        message: `Command sent to ${device.hostname}`,
-        command_id: result.rows[0].id,
-        agent_hostname: device.hostname,
-        command: command,
-        description: description
-      });
-
-    } catch (error) {
-      console.error("Error executing remote command:", error);
-      res.status(500).json({ 
-        success: false, 
-        message: "Failed to execute command on agent" 
-      });
-    }
-  });
+        res.json({
+          success: true,
+          message: `Command sent to ${device.hostname}`,
+          command_id: result.rows[0].id,
+          agent_hostname: device.hostname,
+          command: command,
+          description: description,
+        });
+      } catch (error) {
+        console.error("Error executing remote command:", error);
+        res.status(500).json({
+          success: false,
+          message: "Failed to execute command on agent",
+        });
+      }
+    },
+  );
 
   // Health check
   app.get("/api/health", (req, res) => {
@@ -2660,10 +2797,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Remove undefined values
-      Object.keys(updates).forEach((key) =>{
+      Object.keys(updates).forEach((key) => {
         if (updates[key] === undefined) {
           delete updates[key];
-        }});
+        }
+      });
 
       const updatedUser = await storage.updateUser(req.params.id, updates);
       if (!updatedUser) {
@@ -2876,76 +3014,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Agent download endpoint
-  app.get('/api/download/agent/:platform', authenticateToken, async (req: any, res) => {
-    try {
-      console.log('Agent download request from user:', req.user?.email, 'Platform:', req.params.platform);
+  app.get(
+    "/api/download/agent/:platform",
+    authenticateToken,
+    async (req: any, res) => {
+      try {
+        console.log(
+          "Agent download request from user:",
+          req.user?.email,
+          "Platform:",
+          req.params.platform,
+        );
 
-      const { platform } = req.params;
+        const { platform } = req.params;
 
-      const agentFiles = {
-        windows: [
-          'itsm_agent.py',
-          'system_collector.py',
-          'api_client.py', 
-          'service_wrapper.py',
-          'config.ini',
-          'install_windows.py',
-          'fix_windows_service.py'
-        ],
-        linux: [
-          'itsm_agent.py',
-          'system_collector.py',
-          'api_client.py',
-          'service_wrapper.py', 
-          'config.ini'
-        ],
-        macos: [
-          'itsm_agent.py',
-          'system_collector.py',
-          'api_client.py',
-          'service_wrapper.py',
-          'config.ini'
-        ]
-      };
+        const agentFiles = {
+          windows: [
+            "itsm_agent.py",
+            "system_collector.py",
+            "api_client.py",
+            "service_wrapper.py",
+            "config.ini",
+            "install_windows.py",
+            "fix_windows_service.py",
+          ],
+          linux: [
+            "itsm_agent.py",
+            "system_collector.py",
+            "api_client.py",
+            "service_wrapper.py",
+            "config.ini",
+          ],
+          macos: [
+            "itsm_agent.py",
+            "system_collector.py",
+            "api_client.py",
+            "service_wrapper.py",
+            "config.ini",
+          ],
+        };
 
-      if (!agentFiles[platform as keyof typeof agentFiles]) {
-        return res.status(400).json({ error: 'Invalid platform' });
-      }
-
-      const files = agentFiles[platform as keyof typeof agentFiles];
-      const filename = `itsm-agent-${platform}.zip`;
-
-      res.setHeader('Content-Type', 'application/zip');
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-
-      const archiver = require('archiver');
-      const archive = archiver('zip', { zlib: { level: 9 } });
-
-      archive.on('error', (err: any) => {
-        console.error('Archive error:', err);
-        if (!res.headersSent) {
-          res.status(500).json({ error: 'Failed to create archive' });
+        if (!agentFiles[platform as keyof typeof agentFiles]) {
+          return res.status(400).json({ error: "Invalid platform" });
         }
-      });
 
-      archive.pipe(res);
+        const files = agentFiles[platform as keyof typeof agentFiles];
+        const filename = `itsm-agent-${platform}.zip`;
 
-      // Add agent files from Agent directory
-      const agentPath = path.join(process.cwd(), 'Agent');
-      const fs = require('fs');
+        res.setHeader("Content-Type", "application/zip");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="${filename}"`,
+        );
 
-      files.forEach(file => {
-        const filePath = path.join(agentPath, file);
-        if (fs.existsSync(filePath)) {
-          archive.file(filePath, { name: file });
-          console.log(`Added file to archive: ${file}`);
-        } else {
-          console.warn(`Agent file not found: ${file} at ${filePath}`);
-        }
-      });
+        const archiver = require("archiver");
+        const archive = archiver("zip", { zlib: { level: 9 } });
 
-      // Add installation instructions
-      const instructions = `# ITSM Agent Installation Instructions
+        archive.on("error", (err: any) => {
+          console.error("Archive error:", err);
+          if (!res.headersSent) {
+            res.status(500).json({ error: "Failed to create archive" });
+          }
+        });
+
+        archive.pipe(res);
+
+        // Add agent files from Agent directory
+        const agentPath = path.join(process.cwd(), "Agent");
+        const fs = require("fs");
+
+        files.forEach((file) => {
+          const filePath = path.join(agentPath, file);
+          if (fs.existsSync(filePath)) {
+            archive.file(filePath, { name: file });
+            console.log(`Added file to archive: ${file}`);
+          } else {
+            console.warn(`Agent file not found: ${file} at ${filePath}`);
+          }
+        });
+
+        // Add installation instructions
+        const instructions = `# ITSM Agent Installation Instructions
 
 ## ${platform.charAt(0).toUpperCase() + platform.slice(1)} Installation
 
@@ -2958,15 +3107,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 2. Edit config.ini and set your ITSM server URL and authentication token
 3. Run the installation script:
 
-${platform === 'windows' ? 
-  '   python install_windows.py' : 
-  '   sudo python3 itsm_agent.py install'
+${
+  platform === "windows"
+    ? "   python install_windows.py"
+    : "   sudo python3 itsm_agent.py install"
 }
 
 4. Start the service:
-${platform === 'windows' ? 
-  '   python itsm_agent.py start' : 
-  '   sudo systemctl start itsm-agent'
+${
+  platform === "windows"
+    ? "   python itsm_agent.py start"
+    : "   sudo systemctl start itsm-agent"
 }
 
 ### Configuration
@@ -2979,134 +3130,153 @@ Edit config.ini before installation:
 For technical support, contact your system administrator.
 `;
 
-      archive.append(instructions, { name: 'README.md' });
+        archive.append(instructions, { name: "README.md" });
 
-      archive.finalize();
-      console.log(`Agent download completed for platform: ${platform}`);
-    } catch (error) {
-      console.error('Error in agent download:', error);
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'Failed to generate agent package' });
+        archive.finalize();
+        console.log(`Agent download completed for platform: ${platform}`);
+      } catch (error) {
+        console.error("Error in agent download:", error);
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Failed to generate agent package" });
+        }
       }
-    }
-  });
+    },
+  );
 
   // Get application performance insights
-  app.get("/api/devices/:id/performance-insights", authenticateToken, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const insights = await performanceService.getApplicationPerformanceInsights(id);
-      res.json(insights);
-    } catch (error) {
-      console.error("Error fetching performance insights:", error);
-      res.status(500).json({ 
-        error: "Failed to fetch performance insights",
-        top_cpu_consumers: [],
-        top_memory_consumers: [],
-        total_processes: 0,
-        system_load_analysis: {
-          high_cpu_processes: 0,
-          high_memory_processes: 0
-        }
-      });
-    }
-  });
+  app.get(
+    "/api/devices/:id/performance-insights",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const { id } = req.params;
+        const insights =
+          await performanceService.getApplicationPerformanceInsights(id);
+        res.json(insights);
+      } catch (error) {
+        console.error("Error fetching performance insights:", error);
+        res.status(500).json({
+          error: "Failed to fetch performance insights",
+          top_cpu_consumers: [],
+          top_memory_consumers: [],
+          total_processes: 0,
+          system_load_analysis: {
+            high_cpu_processes: 0,
+            high_memory_processes: 0,
+          },
+        });
+      }
+    },
+  );
 
   // Get AI-powered insights for a device
-  app.get("/api/devices/:id/ai-insights", authenticateToken, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const insights = await aiService.generateDeviceInsights(id);
-      res.json(insights);
-    } catch (error) {
-      console.error("Error generating AI insights:", error);
-      res.status(500).json({ 
-        error: "Failed to generate AI insights",
-        insights: []
-      });
-    }
-  });
+  app.get(
+    "/api/devices/:id/ai-insights",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const { id } = req.params;
+        const insights = await aiService.generateDeviceInsights(id);
+        res.json(insights);
+      } catch (error) {
+        console.error("Error generating AI insights:", error);
+        res.status(500).json({
+          error: "Failed to generate AI insights",
+          insights: [],
+        });
+      }
+    },
+  );
 
   // Admin-only agent download endpoints
   const requireAdmin = (req: any, res: any, next: any) => {
-    if (!req.user || req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
+    if (!req.user || req.user.role !== "admin") {
+      return res.status(403).json({ error: "Admin access required" });
     }
     next();
   };
 
   // Agent download endpoints
-  app.get("/api/admin/agent-download/:platform", authenticateToken, requireAdmin, async (req, res) => {
-    try {
-      const { platform } = req.params;
-      console.log(`${platform} agent download requested by:`, req.user.email);
+  app.get(
+    "/api/admin/agent-download/:platform",
+    authenticateToken,
+    requireAdmin,
+    async (req, res) => {
+      try {
+        const { platform } = req.params;
+        console.log(`${platform} agent download requested by:`, req.user.email);
 
-      if (!['windows', 'linux', 'macos'].includes(platform)) {
-        return res.status(400).json({ error: 'Invalid platform' });
-      }
-
-      const agentPath = path.join(process.cwd(), 'Agent');
-
-      if (!fs.existsSync(agentPath)) {
-        console.error('Agent directory not found at:', agentPath);
-        return res.status(404).json({ error: 'Agent files not found' });
-      }
-
-      const availableFiles = fs.readdirSync(agentPath);
-      console.log('Available files in Agent directory:', availableFiles);
-
-      if (availableFiles.length === 0) {
-        console.error('Agent directory is empty!');
-        return res.status(404).json({ error: 'Agent directory is empty' });
-      }
-
-      // Set response headers for zip download
-      const filename = `itsm-agent-${platform}.zip`;
-      res.setHeader('Content-Type', 'application/zip');
-      res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
-
-      // Create zip archive
-      const archiver = require('archiver');
-      const archive = archiver('zip', {
-        zlib: { level: 9 } // Maximum compression
-      });
-
-      // Handle archive errors
-      archive.on('error', (err: any) => {
-        console.error('Archive error:', err);
-        if (!res.headersSent) {
-          res.status(500).json({ error: 'Failed to create archive' });
+        if (!["windows", "linux", "macos"].includes(platform)) {
+          return res.status(400).json({ error: "Invalid platform" });
         }
-      });
 
-      // Track when archive is done
-      archive.on('end', () => {
-        console.log(`${platform} agent archive has been finalized successfully`);
-      });
+        const agentPath = path.join(process.cwd(), "Agent");
 
-      // Pipe archive to response
-      archive.pipe(res);
+        if (!fs.existsSync(agentPath)) {
+          console.error("Agent directory not found at:", agentPath);
+          return res.status(404).json({ error: "Agent files not found" });
+        }
 
-      // Add the entire Agent directory to the archive
-      console.log(`Adding entire Agent directory to ${platform} archive`);
-      archive.directory(agentPath, false);
+        const availableFiles = fs.readdirSync(agentPath);
+        console.log("Available files in Agent directory:", availableFiles);
 
-      // Add platform-specific installation instructions
-      const instructions = generateInstallationInstructions(platform);
-      archive.append(instructions, { name: 'INSTALLATION_INSTRUCTIONS.md' });
-      console.log(`Added installation instructions for ${platform}`);
+        if (availableFiles.length === 0) {
+          console.error("Agent directory is empty!");
+          return res.status(404).json({ error: "Agent directory is empty" });
+        }
 
-      // Finalize the archive
-      await archive.finalize();
-      console.log(`${platform} agent download completed successfully`);
+        // Set response headers for zip download
+        const filename = `itsm-agent-${platform}.zip`;
+        res.setHeader("Content-Type", "application/zip");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename=${filename}`,
+        );
 
-    } catch (error) {
-      console.error(`${platform} agent download error:`, error);
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'Failed to download agent' });
+        // Create zip archive
+        const archiver = require("archiver");
+        const archive = archiver("zip", {
+          zlib: { level: 9 }, // Maximum compression
+        });
+
+        // Handle archive errors
+        archive.on("error", (err: any) => {
+          console.error("Archive error:", err);
+          if (!res.headersSent) {
+            res.status(500).json({ error: "Failed to create archive" });
+          }
+        });
+
+        // Track when archive is done
+        archive.on("end", () => {
+          console.log(
+            `${platform} agent archive has been finalized successfully`,
+          );
+        });
+
+        // Pipe archive to response
+        archive.pipe(res);
+
+        // Add the entire Agent directory to the archive
+        console.log(`Adding entire Agent directory to ${platform} archive`);
+        archive.directory(agentPath, false);
+
+        // Add platform-specific installation instructions
+        const instructions = generateInstallationInstructions(platform);
+        archive.append(instructions, { name: "INSTALLATION_INSTRUCTIONS.md" });
+        console.log(`Added installation instructions for ${platform}`);
+
+        // Finalize the archive
+        await archive.finalize();
+        console.log(`${platform} agent download completed successfully`);
+      } catch (error) {
+        console.error(`${platform} agent download error:`, error);
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Failed to download agent" });
+        }
       }
-    }
-  });
+    },
+  );
 
   // Generate platform-specific installation instructions
   function generateInstallationInstructions(platform: string): string {
@@ -3131,7 +3301,7 @@ hostname = auto
 ## Installation Steps`;
 
     switch (platform) {
-      case 'windows':
+      case "windows":
         return `${baseInstructions}
 
 1. Extract this archive to your target directory (e.g., C:\\itsm-agent)
@@ -3154,7 +3324,7 @@ hostname = auto
 ## Support
 For technical support, contact your system administrator.`;
 
-      case 'linux':
+      case "linux":
         return `${baseInstructions}
 
 1. Extract this archive: \`unzip itsm-agent-linux.zip\`
@@ -3177,7 +3347,7 @@ For technical support, contact your system administrator.`;
 ## Support
 For technical support, contact your system administrator.`;
 
-      case 'macos':
+      case "macos":
         return `${baseInstructions}
 
 1. Extract this archive
@@ -3200,19 +3370,23 @@ For technical support, contact your system administrator.`;
   }
 
   // Get AI recommendations for a device
-  app.get("/api/devices/:id/ai-recommendations", authenticateToken, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const recommendations = await aiService.getDeviceRecommendations(id);
-      res.json({ recommendations });
-    } catch (error) {
-      console.error("Error getting AI recommendations:", error);
-      res.status(500).json({ 
-        error: "Failed to get AI recommendations",
-        recommendations: []
-      });
-    }
-  });
+  app.get(
+    "/api/devices/:id/ai-recommendations",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const { id } = req.params;
+        const recommendations = await aiService.getDeviceRecommendations(id);
+        res.json({ recommendations });
+      } catch (error) {
+        console.error("Error getting AI recommendations:", error);
+        res.status(500).json({
+          error: "Failed to get AI recommendations",
+          recommendations: [],
+        });
+      }
+    },
+  );
 
   // Ticket routes
   app.get("/api/tickets", authenticateToken, async (req, res) => {
@@ -3227,9 +3401,15 @@ For technical support, contact your system administrator.`;
 
       const filters = {
         type: type && type !== "all" && type.trim() !== "" ? type : undefined,
-        status: status && status !== "all" && status.trim() !== "" ? status : undefined,
-        priority: priority && priority !== "all" && priority.trim() !== "" ? priority : undefined,
-        search: search && search.trim() !== "" ? search.trim() : undefined
+        status:
+          status && status !== "all" && status.trim() !== ""
+            ? status
+            : undefined,
+        priority:
+          priority && priority !== "all" && priority.trim() !== ""
+            ? priority
+            : undefined,
+        search: search && search.trim() !== "" ? search.trim() : undefined,
       };
 
       const tickets = await ticketStorage.getTickets(page, limit, filters);
@@ -3243,65 +3423,70 @@ For technical support, contact your system administrator.`;
   const httpServer = createServer(app);
   return httpServer;
 }
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
 
 // Get location data from IPinfo API
-  const getLocationFromIP = async (ipAddress: string) => {
-    try {
-      if (!ipAddress || ipAddress === "unknown" || ipAddress.startsWith("192.168.") || 
-          ipAddress.startsWith("10.") || ipAddress.startsWith("172.")) {
-        return null; // Skip private IPs
-      }
-
-      const response = await fetch(`https://ipinfo.io/${ipAddress}?token=ef94711ea200a0`);
-      if (response.ok) {
-        const locationData = await response.json();
-        return {
-          ip: locationData.ip,
-          city: locationData.city,
-          region: locationData.region,
-          country: locationData.country,
-          location: locationData.loc, // lat,lng format
-          organization: locationData.org,
-          postal: locationData.postal,
-          timezone: locationData.timezone
-        };
-      }
-    } catch (error) {
-      console.warn("Failed to get location from IPinfo:", error);
+const getLocationFromIP = async (ipAddress: string) => {
+  try {
+    if (
+      !ipAddress ||
+      ipAddress === "unknown" ||
+      ipAddress.startsWith("192.168.") ||
+      ipAddress.startsWith("10.") ||
+      ipAddress.startsWith("172.")
+    ) {
+      return null; // Skip private IPs
     }
-    return null;
-  };
 
-  // Get public IP address
-  const getPublicIP = (): string => {
-    const interfaces =
-      rawData.network?.interfaces ||
-      agent.network?.interfaces ||
-      [];
-    for (const iface of interfaces) {
-      const name = iface.name?.toLowerCase() || "";
-      if (
-        (name.includes("eth") ||
-          name.includes("ethernet") ||
-          name.includes("enet") ||
-          name.includes("local area connection")) &&
-        !name.includes("veth") &&
-        !name.includes("virtual") &&
-        iface.stats?.is_up !== false
-      ) {
-        for (const addr of iface.addresses || []) {
-          if (
-            addr.family === "AF_INET" &&
-            !addr.address.startsWith("127.") &&
-            !addr.address.startsWith("169.254.") &&
-            addr.address !== "0.0.0.0"
-          ) {
-            return addr.address;
-          }
+    const response = await fetch(
+      `https://ipinfo.io/${ipAddress}?token=ef94711ea200a0`,
+    );
+    if (response.ok) {
+      const locationData = await response.json();
+      return {
+        ip: locationData.ip,
+        city: locationData.city,
+        region: locationData.region,
+        country: locationData.country,
+        location: locationData.loc, // lat,lng format
+        organization: locationData.org,
+        postal: locationData.postal,
+        timezone: locationData.timezone,
+      };
+    }
+  } catch (error) {
+    console.warn("Failed to get location from IPinfo:", error);
+  }
+  return null;
+};
+
+// Get public IP address
+const getPublicIP = (): string => {
+  const interfaces =
+    rawData.network?.interfaces || agent.network?.interfaces || [];
+  for (const iface of interfaces) {
+    const name = iface.name?.toLowerCase() || "";
+    if (
+      (name.includes("eth") ||
+        name.includes("ethernet") ||
+        name.includes("enet") ||
+        name.includes("local area connection")) &&
+      !name.includes("veth") &&
+      !name.includes("virtual") &&
+      iface.stats?.is_up !== false
+    ) {
+      for (const addr of iface.addresses || []) {
+        if (
+          addr.family === "AF_INET" &&
+          !addr.address.startsWith("127.") &&
+          !addr.address.startsWith("169.254.") &&
+          addr.address !== "0.0.0.0"
+        ) {
+          return addr.address;
         }
       }
     }
-    return "Not Available";
-  };
+  }
+  return "Not Available";
+};
