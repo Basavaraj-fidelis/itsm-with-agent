@@ -261,7 +261,7 @@ app.use((req, res, next) => {
           search: req.query.search as string,
         };
 
-        const { ticketStorage } = await import("./ticket-storage");
+        const { ticketStorage } = await import("./services/ticket-storage");
         const result = await ticketStorage.getTickets(page, limit, filters);
         res.json(result);
       } catch (error) {
@@ -272,7 +272,7 @@ app.use((req, res, next) => {
 
     app.get("/api/tickets/:id", async (req, res) => {
       try {
-        const { ticketStorage } = await import("./ticket-storage");
+        const { ticketStorage } = await import("./services/ticket-storage");
         const ticket = await ticketStorage.getTicketById(req.params.id);
         if (!ticket) {
           return res.status(404).json({ message: "Ticket not found" });
@@ -286,7 +286,7 @@ app.use((req, res, next) => {
 
     app.post("/api/tickets", async (req, res) => {
       try {
-        const { ticketStorage } = await import("./ticket-storage");
+        const { ticketStorage } = await import("./services/ticket-storage");
         const ticket = await ticketStorage.createTicket(req.body);
         res.status(201).json(ticket);
       } catch (error) {
@@ -297,7 +297,7 @@ app.use((req, res, next) => {
 
     app.put("/api/tickets/:id", async (req, res) => {
       try {
-        const { ticketStorage } = await import("./ticket-storage");
+        const { ticketStorage } = await import("./services/ticket-storage");
         const ticket = await ticketStorage.updateTicket(
           req.params.id,
           req.body,
@@ -314,7 +314,7 @@ app.use((req, res, next) => {
 
     app.delete("/api/tickets/:id", async (req, res) => {
       try {
-        const { ticketStorage } = await import("./ticket-storage");
+        const { ticketStorage } = await import("./services/ticket-storage");
         const success = await ticketStorage.deleteTicket(req.params.id);
         if (!success) {
           return res.status(404).json({ message: "Ticket not found" });
