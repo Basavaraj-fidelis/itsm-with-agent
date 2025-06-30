@@ -1786,142 +1786,149 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                 <CardContent className="space-y-6">
                   {/* OS-specific patch information */}
                   {(() => {
-                    // Get raw data from the agent
-                    const rawData = agent?.latest_report?.raw_data;
-                    const parsedData = typeof rawData === "string" ? JSON.parse(rawData) : rawData;
-                    
-                    const osName = agent?.latest_report?.os_info?.name?.toLowerCase() || "";
-                    const patches = parsedData?.patches || [];
-                    const patchSummary = parsedData?.os_info?.patch_summary || null;
-                    const lastUpdate = parsedData?.os_info?.last_update;
+                    try {
+                      // Get raw data from the agent
+                      const rawData = agent?.latest_report?.raw_data;
+                      if (!rawData) {
+                        return (
+                          <div className="text-center py-6 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-800">
+                            <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-gray-600" />
+                            <p className="text-sm text-gray-800 dark:text-gray-200">
+                              No agent data available
+                            </p>
+                          </div>
+                        );
+                      }
 
-                    console.log("Debug - OS Name:", osName);
-                    console.log("Debug - Raw Data:", parsedData);
-                    console.log("Debug - Patches:", patches);
-                    console.log("Debug - Patch Summary:", patchSummary);
-                    console.log("Debug - Last Update:", lastUpdate);
+                      const parsedData = typeof rawData === "string" ? JSON.parse(rawData) : rawData;
+                      
+                      // Get OS name from multiple possible locations
+                      const osName = (
+                        agent?.latest_report?.os_info?.name ||
+                        parsedData?.os_info?.name ||
+                        parsedData?.system_info?.os ||
+                        ""
+                      ).toLowerCase();
 
-                    // Windows patches
-                    if (osName.includes("windows")) {
-                      return (
-                        <div className="space-y-4">
-                          {/* Last Update Info */}
-                          {lastUpdate && (
-                            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Clock className="w-4 h-4 text-blue-600" />
-                                <span className="font-medium text-sm text-blue-800 dark:text-blue-200">
-                                  Last Update
-                                </span>
+                      // Get patch data from correct locations
+                      const patches = parsedData?.patches || [];
+                      const patchSummary = parsedData?.os_info?.patch_summary || null;
+                      const lastUpdate = parsedData?.os_info?.last_update;
+
+                      console.log("Updates Tab Debug:", {
+                        osName,
+                        hasPatches: patches.length > 0,
+                        hasPatchSummary: !!patchSummary,
+                        patchCount: patches.length,
+                        parsedDataKeys: Object.keys(parsedData || {}),
+                        osInfoKeys: Object.keys(parsedData?.os_info || {}),
+                      });
+
+                      // Windows patches
+                      if (osName.includes("windows")) {
+                        return (
+                          <div className="space-y-4">
+                            {/* Last Update Info */}
+                            {lastUpdate && (
+                              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Clock className="w-4 h-4 text-blue-600" />
+                                  <span className="font-medium text-sm text-blue-800 dark:text-blue-200">
+                                    Last Update
+                                  </span>
+                                </div>
+                                <div className="text-sm text-blue-700 dark:text-blue-300">
+                                  {typeof lastUpdate === "object" && lastUpdate.DateTime
+                                    ? lastUpdate.DateTime
+                                    : typeof lastUpdate === "string"
+                                      ? lastUpdate
+                                      : lastUpdate?.value
+                                        ? new Date(parseInt(lastUpdate.value.replace(/\/Date\((\d+)\)\//, "$1"))).toLocaleDateString()
+                                        : "Unknown"}
+                                </div>
                               </div>
-                              <div className="text-sm text-blue-700 dark:text-blue-300">
-                                {typeof lastUpdate === "object" &&
-                                lastUpdate.DateTime
-                                  ? lastUpdate.DateTime
-                                  : typeof lastUpdate === "string"
-                                    ? lastUpdate
-                                    : (lastUpdate?.value &&
-                                        new Date(
-                                          parseInt(
-                                            lastUpdate.value.replace(
-                                              /\/Date\((\d+)\)\//,
-                                              "$1",
-                                            ),
-                                          ),
-                                        ).toLocaleDateString()) ||
-                                      "Unknown"}
-                              </div>
-                            </div>
-                          )}
+                            )}
 
-                          {/* Windows Patches */}
-                          {patches && patches.length > 0 ? (
-                            <div>
-                              <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
-                                <Shield className="w-4 h-4 text-green-600" />
-                                Installed Windows Patches ({patches.length})
-                              </h4>
-                              <div className="space-y-2 max-h-64 overflow-y-auto">
-                                {patches.slice(0, 15).map((patch, index) => (
-                                  <div
-                                    key={index}
-                                    className="flex justify-between items-center py-3 px-4 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-800"
-                                  >
-                                    <span className="text-sm font-medium font-mono text-green-800 dark:texttext-green-200">
-                                      {patch.id ||
-                                        patch.HotFixID ||
-                                        patch.kb_number ||
-                                        `Patch ${index + 1}`}
-                                    </span>
-                                    <span className="text-xs text-green-600 dark:text-green-400">
-                                      {patch.installed_on?.DateTime ||
-                                        patch.installed_on ||
-                                        patch.InstalledOn ||
-                                        "Unknown date"}
-                                    </span>
-                                  </div>
-                                ))}
-                                {patches.length > 15 && (
-                                  <div className="text-xs text-neutral-500 pt-2 text-center">
-                                    ...and {patches.length - 15} more patches
+                            {/* Windows Patches */}
+                            {patches && patches.length > 0 ? (
+                              <div>
+                                <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
+                                  <Shield className="w-4 h-4 text-green-600" />
+                                  Installed Windows Patches ({patches.length})
+                                </h4>
+                                <div className="space-y-2 max-h-64 overflow-y-auto">
+                                  {patches.slice(0, 15).map((patch, index) => (
+                                    <div
+                                      key={index}
+                                      className="flex justify-between items-center py-3 px-4 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-800"
+                                    >
+                                      <span className="text-sm font-medium font-mono text-green-800 dark:text-green-200">
+                                        {patch.id || patch.HotFixID || patch.kb_number || `Patch ${index + 1}`}
+                                      </span>
+                                      <span className="text-xs text-green-600 dark:text-green-400">
+                                        {patch.installed_on?.DateTime || 
+                                         patch.installed_on || 
+                                         patch.InstalledOn || 
+                                         (patch.installed_on?.value && new Date(parseInt(patch.installed_on.value.replace(/\/Date\((\d+)\)\//, "$1"))).toLocaleDateString()) ||
+                                         "Unknown date"}
+                                      </span>
+                                    </div>
+                                  ))}
+                                  {patches.length > 15 && (
+                                    <div className="text-xs text-neutral-500 pt-2 text-center">
+                                      ...and {patches.length - 15} more patches
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-center py-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                                <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
+                                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                                  No Windows patch data found
+                                </p>
+                                <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                                  The agent may need to run Windows Update scan
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+
+                      // Linux patches
+                      if (osName.includes("linux") || osName.includes("ubuntu") || osName.includes("debian") || osName.includes("centos") || osName.includes("rhel")) {
+                        return (
+                          <div className="space-y-4">
+                            {/* Package Summary */}
+                            {patchSummary && (
+                              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Package className="w-4 h-4 text-blue-600" />
+                                  <span className="font-medium text-sm text-blue-800 dark:text-blue-200">
+                                    Package Summary ({patchSummary.system_type || "Linux"})
+                                  </span>
+                                </div>
+                                <div className="text-sm text-blue-700 dark:text-blue-300">
+                                  Total Installed: {patchSummary.total_installed || 0} packages
+                                </div>
+                                {patchSummary.last_update_date && (
+                                  <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                                    Last Update: {patchSummary.last_update_date}
                                   </div>
                                 )}
                               </div>
-                            </div>
-                          ) : (
-                            <div className="text-center py-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                              <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
-                              <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                                No Windows patch data found
-                              </p>
-                              <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
-                                The agent may need to run Windows Update scan
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    }
+                            )}
 
-                    // Linux patches
-                    if (osName.includes("linux")) {
-                      return (
-                        <div className="space-y-4">
-                          {/* Package Summary */}
-                          {patchSummary && (
-                            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Package className="w-4 h-4 text-blue-600" />
-                                <span className="font-medium text-sm text-blue-800 dark:text-blue-200">
-                                  Package Summary (
-                                  {patchSummary.system_type || "Linux"})
-                                </span>
-                              </div>
-                              <div className="text-sm text-blue-700 dark:text-blue-300">
-                                Total Installed:{" "}
-                                {patchSummary.total_installed || 0} packages
-                              </div>
-                              {patchSummary.last_update_date && (
-                                <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-                                  Last Update: {patchSummary.last_update_date}
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Linux Recent Updates */}
-                          {patchSummary &&
-                          patchSummary.recent_patches &&
-                          patchSummary.recent_patches.length > 0 ? (
-                            <div>
-                              <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
-                                <Package className="w-4 h-4 text-green-600" />
-                                Recent System Updates (
-                                {patchSummary.recent_patches.length})
-                              </h4>
-                              <div className="space-y-2 max-h-64 overflow-y-auto">
-                                {patchSummary.recent_patches.map(
-                                  (patch, index) => (
+                            {/* Linux Recent Updates */}
+                            {patchSummary && patchSummary.recent_patches && patchSummary.recent_patches.length > 0 ? (
+                              <div>
+                                <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
+                                  <Package className="w-4 h-4 text-green-600" />
+                                  Recent System Updates ({patchSummary.recent_patches.length})
+                                </h4>
+                                <div className="space-y-2 max-h-64 overflow-y-auto">
+                                  {patchSummary.recent_patches.map((patch, index) => (
                                     <div
                                       key={index}
                                       className="p-3 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-800"
@@ -1938,78 +1945,91 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                         {patch.package || "System update"}
                                       </div>
                                     </div>
-                                  ),
-                                )}
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          ) : (
-                            <div className="text-center py-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                              <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
-                              <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                                No Linux package update history found
-                              </p>
-                              <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
-                                Package manager logs may need to be checked
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    }
+                            ) : (
+                              <div className="text-center py-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                                <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
+                                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                                  No Linux package update history found
+                                </p>
+                                <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                                  Package manager logs may need to be checked
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
 
-                    // macOS patches
-                    if (osName.includes("darwin")) {
+                      // macOS patches
+                      if (osName.includes("darwin") || osName.includes("macos")) {
+                        return (
+                          <div className="space-y-4">
+                            {patches && patches.length > 0 ? (
+                              <div>
+                                <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
+                                  <Shield className="w-4 h-4 text-green-600" />
+                                  Installed macOS Updates ({patches.length})
+                                </h4>
+                                <div className="space-y-2 max-h-64 overflow-y-auto">
+                                  {patches.map((patch, index) => (
+                                    <div
+                                      key={index}
+                                      className="flex justify-between items-center py-3 px-4 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-800"
+                                    >
+                                      <span className="text-sm font-medium text-green-800 dark:text-green-200">
+                                        {patch.id || `Update ${index + 1}`}
+                                      </span>
+                                      <span className="text-xs text-green-600 dark:text-green-400">
+                                        {patch.installed_on || "Unknown date"}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-center py-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                                <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
+                                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                                  No macOS update data found
+                                </p>
+                                <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                                  Software Update history may be empty
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+
+                      // Unknown OS or no OS detected
                       return (
-                        <div className="space-y-4">
-                          {patches && patches.length > 0 ? (
-                            <div>
-                              <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
-                                <Shield className="w-4 h-4 text-green-600" />
-                                Installed macOS Updates ({patches.length})
-                              </h4>
-                              <div className="space-y-2 max-h-64 overflow-y-auto">
-                                {patches.map((patch, index) => (
-                                  <div
-                                    key={index}
-                                    className="flex justify-between items-center py-3 px-4 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-800"
-                                  >
-                                    <span className="text-sm font-medium text-green-800 dark:text-green-200">
-                                      {patch.id || `Update ${index + 1}`}
-                                    </span>
-                                    <span className="text-xs text-green-600 dark:text-green-400">
-                                      {patch.installed_on || "Unknown date"}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="text-center py-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                              <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
-                              <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                                No macOS update data found
-                              </p>
-                              <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
-                                Software Update history may be empty
-                              </p>
-                            </div>
-                          )}
+                        <div className="text-center py-6 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-800">
+                          <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-gray-600" />
+                          <p className="text-sm text-gray-800 dark:text-gray-200">
+                            Patch information not available
+                          </p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            OS: {osName || "Unknown"} | Patches: {patches.length} | Summary: {patchSummary ? "Yes" : "No"}
+                          </p>
+                        </div>
+                      );
+                    } catch (error) {
+                      console.error("Error parsing patch data:", error);
+                      return (
+                        <div className="text-center py-6 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                          <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-red-600" />
+                          <p className="text-sm text-red-800 dark:text-red-200">
+                            Error parsing patch data
+                          </p>
+                          <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                            {error.message}
+                          </p>
                         </div>
                       );
                     }
-
-                    // Unknown OS
-                    return (
-                      <div className="text-center py-6 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-800">
-                        <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-gray-600" />
-                        <p className="text-sm text-gray-800 dark:text-gray-200">
-                          Patch information not available
-                        </p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                          OS: {osName || "Unknown"}
-                        </p>
-                      </div>
-                    );
                   })()}
                 </CardContent>
               </Card>
@@ -2024,118 +2044,132 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                 </CardHeader>
                 <CardContent>
                   {(() => {
-                    // Get security data from raw_data
-                    const rawData = agent?.latest_report?.raw_data;
-                    const parsedData = typeof rawData === "string" ? JSON.parse(rawData) : rawData;
-                    const security = parsedData?.security || {};
+                    try {
+                      // Get security data from raw_data
+                      const rawData = agent?.latest_report?.raw_data;
+                      if (!rawData) {
+                        return (
+                          <div className="text-center py-6 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-800">
+                            <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-gray-600" />
+                            <p className="text-sm text-gray-800 dark:text-gray-200">
+                              No agent data available
+                            </p>
+                          </div>
+                        );
+                      }
 
-                    console.log("Debug - Security Data:", security);
+                      const parsedData = typeof rawData === "string" ? JSON.parse(rawData) : rawData;
+                      const security = parsedData?.security || {};
 
-                    if (Object.keys(security).length === 0) {
+                      console.log("Security Debug:", {
+                        hasSecurity: !!security,
+                        securityKeys: Object.keys(security),
+                        firewallStatus: security.firewall_status,
+                        antivirusStatus: security.antivirus_status,
+                      });
+
+                      if (Object.keys(security).length === 0) {
+                        return (
+                          <div className="text-center py-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                            <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
+                            <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                              No security information available
+                            </p>
+                          </div>
+                        );
+                      }
+
                       return (
-                        <div className="text-center py-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                          <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
-                          <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                            No security information available
-                          </p>
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div className="grid gap-4 md:grid-cols-2">
-                        {/* Firewall Status */}
-                        {security.firewall_status && (
-                          <div className="p-4 border rounded-lg">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Shield className="w-4 h-4 text-blue-600" />
-                              <span className="font-medium text-sm">
-                                Firewall
-                              </span>
-                            </div>
-                            <div
-                              className={`text-sm capitalize ${
+                        <div className="grid gap-4 md:grid-cols-2">
+                          {/* Firewall Status */}
+                          {security.firewall_status && (
+                            <div className="p-4 border rounded-lg">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Shield className="w-4 h-4 text-blue-600" />
+                                <span className="font-medium text-sm">Firewall</span>
+                              </div>
+                              <div className={`text-sm capitalize ${
                                 security.firewall_status === "enabled"
                                   ? "text-green-600"
                                   : security.firewall_status === "disabled"
                                     ? "text-red-600"
                                     : "text-yellow-600"
-                              }`}
-                            >
-                              {security.firewall_status}
+                              }`}>
+                                {security.firewall_status}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
 
-                        {/* Antivirus Status */}
-                        {security.antivirus_status && (
-                          <div className="p-4 border rounded-lg">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Shield className="w-4 h-4 text-purple-600" />
-                              <span className="font-medium text-sm">
-                                Antivirus
-                              </span>
-                            </div>
-                            <div
-                              className={`text-sm capitalize ${
+                          {/* Antivirus Status */}
+                          {security.antivirus_status && (
+                            <div className="p-4 border rounded-lg">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Shield className="w-4 h-4 text-purple-600" />
+                                <span className="font-medium text-sm">Antivirus</span>
+                              </div>
+                              <div className={`text-sm capitalize ${
                                 security.antivirus_status === "enabled"
                                   ? "text-green-600"
                                   : security.antivirus_status === "disabled"
                                     ? "text-red-600"
                                     : "text-yellow-600"
-                              }`}
-                            >
-                              {security.antivirus_status}
+                              }`}>
+                                {security.antivirus_status}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
 
-                        {/* Last Scan (Windows) */}
-                        {security.last_scan && (
-                          <div className="p-4 border rounded-lg">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Clock className="w-4 h-4 text-blue-600" />
-                              <span className="font-medium text-sm">
-                                Last Scan
-                              </span>
+                          {/* Last Scan (Windows) */}
+                          {security.last_scan && (
+                            <div className="p-4 border rounded-lg">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Clock className="w-4 h-4 text-blue-600" />
+                                <span className="font-medium text-sm">Last Scan</span>
+                              </div>
+                              <div className="text-sm text-gray-600 dark:text-gray-400">
+                                {security.last_scan}
+                              </div>
                             </div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400">
-                              {security.last_scan}
-                            </div>
-                          </div>
-                        )}
+                          )}
 
-                        {/* Last Update Check (Windows) */}
-                        {security.last_update_check && (
-                          <div className="p-4 border rounded-lg">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Download className="w-4 h-4 text-green-600" />
-                              <span className="font-medium text-sm">
-                                Last Update Check
-                              </span>
+                          {/* Last Update Check (Windows) */}
+                          {security.last_update_check && (
+                            <div className="p-4 border rounded-lg">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Download className="w-4 h-4 text-green-600" />
+                                <span className="font-medium text-sm">Last Update Check</span>
+                              </div>
+                              <div className="text-sm text-gray-600 dark:text-gray-400">
+                                {security.last_update_check}
+                              </div>
                             </div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400">
-                              {security.last_update_check}
-                            </div>
-                          </div>
-                        )}
+                          )}
 
-                        {/* Automatic Updates (Windows) */}
-                        {security.automatic_updates && (
-                          <div className="p-4 border rounded-lg md:col-span-2">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Settings className="w-4 h-4 text-orange-600" />
-                              <span className="font-medium text-sm">
-                                Automatic Updates
-                              </span>
+                          {/* Automatic Updates (Windows) */}
+                          {security.automatic_updates && (
+                            <div className="p-4 border rounded-lg md:col-span-2">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Settings className="w-4 h-4 text-orange-600" />
+                                <span className="font-medium text-sm">Automatic Updates</span>
+                              </div>
+                              <div className="text-sm text-gray-600 dark:text-gray-400">
+                                {security.automatic_updates}
+                              </div>
                             </div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400">
-                              {security.automatic_updates}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
+                          )}
+                        </div>
+                      );
+                    } catch (error) {
+                      console.error("Error parsing security data:", error);
+                      return (
+                        <div className="text-center py-6 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                          <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-red-600" />
+                          <p className="text-sm text-red-800 dark:text-red-200">
+                            Error parsing security data
+                          </p>
+                        </div>
+                      );
+                    }
                   })()}
                 </CardContent>
               </Card>
@@ -2150,51 +2184,78 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                 </CardHeader>
                 <CardContent>
                   {(() => {
-                    // Get active ports from raw_data
-                    const rawData = agent?.latest_report?.raw_data;
-                    const parsedData = typeof rawData === "string" ? JSON.parse(rawData) : rawData;
-                    const activePorts = parsedData?.active_ports || [];
+                    try {
+                      // Get active ports from raw_data
+                      const rawData = agent?.latest_report?.raw_data;
+                      if (!rawData) {
+                        return (
+                          <div className="text-center py-6 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-800">
+                            <Network className="w-8 h-8 mx-auto mb-2 text-gray-600" />
+                            <p className="text-sm text-gray-800 dark:text-gray-200">
+                              No agent data available
+                            </p>
+                          </div>
+                        );
+                      }
 
-                    console.log("Debug - Active Ports:", activePorts);
+                      const parsedData = typeof rawData === "string" ? JSON.parse(rawData) : rawData;
+                      const activePorts = parsedData?.active_ports || [];
 
-                    if (activePorts.length === 0) {
+                      console.log("Active Ports Debug:", {
+                        hasActivePorts: !!activePorts,
+                        portsCount: activePorts.length,
+                        firstPort: activePorts[0],
+                      });
+
+                      if (activePorts.length === 0) {
+                        return (
+                          <div className="text-center py-6 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-800">
+                            <Network className="w-8 h-8 mx-auto mb-2 text-gray-600" />
+                            <p className="text-sm text-gray-800 dark:text-gray-200">
+                              No active TCP ports found
+                            </p>
+                          </div>
+                        );
+                      }
+
                       return (
-                        <div className="text-center py-6 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-800">
-                          <Network className="w-8 h-8 mx-auto mb-2 text-gray-600" />
-                          <p className="text-sm text-gray-800 dark:text-gray-200">
-                            No active TCP ports found
+                        <div className="space-y-2">
+                          <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                            Showing {activePorts.length} active TCP connections
+                          </div>
+                          <div className="max-h-64 overflow-y-auto space-y-2">
+                            {activePorts.slice(0, 20).map((port, index) => (
+                              <div
+                                key={index}
+                                className="flex justify-between items-center py-2 px-4 border rounded-lg bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-purple-200 dark:border-purple-800"
+                              >
+                                <div className="text-sm font-medium text-purple-800 dark:text-purple-200">
+                                  Local Port: {port.LocalPort}
+                                </div>
+                                <div className="text-sm text-purple-600 dark:text-purple-400">
+                                  Remote Port: {port.RemotePort}
+                                </div>
+                              </div>
+                            ))}
+                            {activePorts.length > 20 && (
+                              <div className="text-xs text-gray-500 pt-2 text-center">
+                                ...and {activePorts.length - 20} more connections
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    } catch (error) {
+                      console.error("Error parsing active ports data:", error);
+                      return (
+                        <div className="text-center py-6 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                          <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-red-600" />
+                          <p className="text-sm text-red-800 dark:text-red-200">
+                            Error parsing active ports data
                           </p>
                         </div>
                       );
                     }
-
-                    return (
-                      <div className="space-y-2">
-                        <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                          Showing {activePorts.length} active TCP connections
-                        </div>
-                        <div className="max-h-64 overflow-y-auto space-y-2">
-                          {activePorts.slice(0, 20).map((port, index) => (
-                            <div
-                              key={index}
-                              className="flex justify-between items-center py-2 px-4 border rounded-lg bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-purple-200 dark:border-purple-800"
-                            >
-                              <div className="text-sm font-medium text-purple-800 dark:text-purple-200">
-                                Local Port: {port.LocalPort}
-                              </div>
-                              <div className="text-sm text-purple-600 dark:text-purple-400">
-                                Remote Port: {port.RemotePort}
-                              </div>
-                            </div>
-                          ))}
-                          {activePorts.length > 20 && (
-                            <div className="text-xs text-gray-500 pt-2 text-center">
-                              ...and {activePorts.length - 20} more connections
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
                   })()}
                 </CardContent>
               </Card>
