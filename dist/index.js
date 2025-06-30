@@ -5559,6 +5559,23 @@ var init_agent_download_routes = __esm({
           console.log(`${platform2} agent archive has been finalized successfully`);
         });
         archive.pipe(res);
+        const agentFiles = [
+          "itsm_agent.py",
+          "system_collector.py",
+          "windows_collector.py",
+          "linux_collector.py",
+          "macos_collector.py",
+          "api_client.py",
+          "service_wrapper.py",
+          "config.ini"
+        ];
+        if (platform2 === "windows") {
+          agentFiles.push("install_windows.py", "fix_windows_service.py");
+        } else if (platform2 === "linux") {
+          agentFiles.push("install_linux.py");
+        } else if (platform2 === "macos") {
+          agentFiles.push("install_macos.py");
+        }
         console.log(`Adding entire Agent directory to ${platform2} archive`);
         archive.directory(agentPath, false);
         const instructions = generateInstallationInstructions(platform2);
