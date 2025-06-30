@@ -1,4 +1,3 @@
-
 import { db } from "../db";
 import { tickets } from "@shared/ticket-schema";
 import { eq, and, not, inArray, lt, isNotNull } from "drizzle-orm";
@@ -69,7 +68,7 @@ export class SLAMonitorService {
             updateData.sla_response_breached = true;
             needsUpdate = true;
             responseBreaches++;
-            
+
             // Send response breach notification
             await this.sendSLABreachNotification(ticket, 'response');
           }
@@ -82,7 +81,7 @@ export class SLAMonitorService {
             updateData.sla_breached = true; // Legacy field
             needsUpdate = true;
             resolutionBreaches++;
-            
+
             // Send resolution breach notification
             await this.sendSLABreachNotification(ticket, 'resolution');
           }
@@ -95,7 +94,7 @@ export class SLAMonitorService {
             .update(tickets)
             .set(updateData)
             .where(eq(tickets.id, ticket.id));
-          
+
           updates++;
           console.log(`⚠️  SLA breach detected for ticket ${ticket.ticket_number}`);
         }
@@ -117,7 +116,7 @@ export class SLAMonitorService {
     try {
       const title = `SLA ${breachType.toUpperCase()} Breach: ${ticket.ticket_number}`;
       const message = `Ticket ${ticket.ticket_number} has breached its ${breachType} SLA.
-      
+
 Title: ${ticket.title}
 Priority: ${ticket.priority.toUpperCase()}
 Status: ${ticket.status}
@@ -150,7 +149,7 @@ Immediate attention required!`;
       // Notify managers
       const { userStorage } = await import("./user-storage");
       const managers = await userStorage.getUsersByRole('manager');
-      
+
       for (const manager of managers) {
         await notificationService.createNotification({
           user_email: manager.email,
