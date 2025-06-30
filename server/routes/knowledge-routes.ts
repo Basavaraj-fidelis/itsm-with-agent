@@ -1,9 +1,10 @@
 import { Router } from "express";
-import { db } from "./db";
-import { knowledgeBase } from "@shared/ticket-schema";
-import { eq, like, desc, or, ilike } from "drizzle-orm";
-import { TicketStorage } from "./ticket-storage";
+import { eq, desc, like, and, count } from "drizzle-orm";
 import jwt from "jsonwebtoken";
+
+import { db } from "../db";
+import { knowledgeBase } from "@shared/ticket-schema";
+import { TicketStorage } from "../services/ticket-storage";
 
 const router = Router();
 const storage = new TicketStorage();
@@ -42,17 +43,17 @@ router.get("/", authenticateToken, async (req, res) => {
 
     // Get articles directly from database
     let query = db.select().from(knowledgeBase);
-    
+
     // Apply status filter
     if (filters.status) {
       query = query.where(eq(knowledgeBase.status, filters.status));
     }
-    
+
     const articles = await query;
     console.log(`Found ${articles.length} articles in database`);
-    
+
     let filteredArticles = articles;
-    
+
     // Apply search filter
     if (filters.search) {
       const searchTerms = filters.search.toLowerCase().split(' ');
@@ -60,14 +61,14 @@ router.get("/", authenticateToken, async (req, res) => {
         const titleText = article.title.toLowerCase();
         const contentText = article.content.toLowerCase();
         const categoryText = (article.category || '').toLowerCase();
-        
+
         return searchTerms.some(term => 
           titleText.includes(term) || 
           contentText.includes(term) || 
           categoryText.includes(term)
         );
       });
-      
+
       // Sort by relevance
       filteredArticles.sort((a, b) => {
         const aRelevance = calculateRelevanceScore(a, searchTerms);
@@ -75,18 +76,18 @@ router.get("/", authenticateToken, async (req, res) => {
         return bRelevance - aRelevance;
       });
     }
-    
+
     // Apply category filter
     if (filters.category && filters.category !== 'all') {
       filteredArticles = filteredArticles.filter(article => 
         article.category === filters.category
       );
     }
-    
+
     // Apply pagination
     const startIndex = (page - 1) * limit;
     const paginatedArticles = filteredArticles.slice(startIndex, startIndex + limit);
-    
+
     console.log(`Returning ${paginatedArticles.length} articles after filtering`);
     res.json(paginatedArticles);
   } catch (error) {
@@ -99,9 +100,9 @@ function calculateRelevanceScore(article: any, searchTerms: string[]): number {
   const titleText = article.title.toLowerCase();
   const contentText = article.content.toLowerCase();
   const categoryText = (article.category || '').toLowerCase();
-  
+
   let score = 0;
-  
+
   searchTerms.forEach(term => {
     if (term.length > 2) {
       // Title matches are worth more
@@ -112,11 +113,11 @@ function calculateRelevanceScore(article: any, searchTerms: string[]): number {
       if (contentText.includes(term)) score += 2;
     }
   });
-  
+
   // Boost by helpful votes and views
   score += (article.helpful_votes || 0) * 0.5;
   score += (article.views || 0) * 0.1;
-  
+
   return score;
 }
 

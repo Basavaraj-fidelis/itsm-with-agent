@@ -1,4 +1,4 @@
-import { pool } from "./db";
+import { pool } from "../db";
 import { drizzle } from "drizzle-orm/node-postgres";
 
 const db = drizzle(pool);

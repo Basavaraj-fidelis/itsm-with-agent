@@ -1,4 +1,4 @@
-import { db, pool } from "./db";
+import { db, pool } from "../db";
 import { sql } from "drizzle-orm";
 import { tickets, ticketComments, ticketAttachments } from "@shared/ticket-schema";
 

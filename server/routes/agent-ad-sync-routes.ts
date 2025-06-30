@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { agentTunnelService } from "./agent-tunnel-service";
+import { agentTunnelService } from "../agent-tunnel-service";
 import { adService } from "./ad-service";
 import expressWs from 'express-ws';
 

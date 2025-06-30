@@ -1,5 +1,5 @@
 
-import { db } from "./db";
+import { db } from "../db";
 import { tickets } from "@shared/ticket-schema";
 import { eq, and, not, inArray, lt, isNotNull } from "drizzle-orm";
 import { notificationService } from "./notification-service";
