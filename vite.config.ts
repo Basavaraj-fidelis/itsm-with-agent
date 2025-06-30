@@ -37,7 +37,7 @@ export default defineConfig(async () => {
       allowedHosts: [
         /\.replit\.dev$/,
         /\.sisko\.replit\.dev$/,
-        "eaa6f19f-3021-4e2e-a739-963e7330f14a-00-1kjetjl70k3m2.sisko.replit.dev",
+        "c5d65b22-cdbc-439c-b2f4-62cde9de2ae9-00-2kdryhhktxf8u.pike.replit.dev",
       ],
     },
   };
