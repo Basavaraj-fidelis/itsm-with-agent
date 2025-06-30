@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -365,310 +366,308 @@ export default function ITSMComparison() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold">ITSM Platform Comparison</h1>
-              <p className="text-muted-foreground mt-2">
-                Compare your ITSM system with leading industry solutions
-              </p>
-            </div>
+    <div className="flex-1 p-8 ml-64 bg-gray-50 dark:bg-gray-900 min-h-screen">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">ITSM Platform Comparison</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">
+              Compare your ITSM system with leading industry solutions
+            </p>
           </div>
+        </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid grid-cols-4 w-full">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="features">Feature Matrix</TabsTrigger>
-          <TabsTrigger value="scoring">Detailed Scoring</TabsTrigger>
-          <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
-        </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid grid-cols-4 w-full">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="features">Feature Matrix</TabsTrigger>
+            <TabsTrigger value="scoring">Detailed Scoring</TabsTrigger>
+            <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {itsmTools.map((tool) => (
-              <Card 
-                key={tool.name} 
-                className={`cursor-pointer transition-all hover:shadow-lg ${
-                  tool.category === 'Your ITSM' ? 'ring-2 ring-blue-500 bg-blue-50' : ''
-                }`}
-                onClick={() => setSelectedTool(tool)}
-              >
-                <CardHeader className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{tool.name}</CardTitle>
-                    {tool.category === 'Your ITSM' && (
-                      <Badge variant="default" className="bg-blue-600">Your Platform</Badge>
-                    )}
-                  </div>
-                  <Badge variant="outline">{tool.category}</Badge>
-                  <ScoreBar score={tool.overallScore} category={tool.category} />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-3">{tool.description}</p>
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <DollarSign className="h-4 w-4 text-green-600" />
-                      <span className="text-sm">{tool.pricing}</span>
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {itsmTools.map((tool) => (
+                <Card 
+                  key={tool.name} 
+                  className={`cursor-pointer transition-all hover:shadow-lg bg-white dark:bg-gray-800 ${
+                    tool.category === 'Your ITSM' ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' : ''
+                  }`}
+                  onClick={() => setSelectedTool(tool)}
+                >
+                  <CardHeader className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg text-gray-900 dark:text-white">{tool.name}</CardTitle>
+                      {tool.category === 'Your ITSM' && (
+                        <Badge variant="default" className="bg-blue-600">Your Platform</Badge>
+                      )}
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Cloud className="h-4 w-4 text-blue-600" />
-                      <span className="text-sm">{tool.deploymentModel.join(', ')}</span>
-                    </div>
-                    {tool.marketShare && (
+                    <Badge variant="outline">{tool.category}</Badge>
+                    <ScoreBar score={tool.overallScore} category={tool.category} />
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{tool.description}</p>
+                    <div className="space-y-2">
                       <div className="flex items-center space-x-2">
-                        <TrendingUp className="h-4 w-4 text-purple-600" />
-                        <span className="text-sm">{tool.marketShare}</span>
+                        <DollarSign className="h-4 w-4 text-green-600" />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{tool.pricing}</span>
                       </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
+                      <div className="flex items-center space-x-2">
+                        <Cloud className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{tool.deploymentModel.join(', ')}</span>
+                      </div>
+                      {tool.marketShare && (
+                        <div className="flex items-center space-x-2">
+                          <TrendingUp className="h-4 w-4 text-purple-600" />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">{tool.marketShare}</span>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
 
-        <TabsContent value="features" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Feature Comparison Matrix</CardTitle>
-              <CardDescription>
-                ✅ Fully Supported | ⚠️ Partially Supported | ❌ Not Supported
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-2">Feature</th>
-                      {itsmTools.map((tool) => (
-                        <th key={tool.name} className="text-center p-2 min-w-[120px]">
-                          <div className="text-sm font-medium">{tool.name}</div>
-                          {tool.category === 'Your ITSM' && (
-                            <Badge variant="default" className="mt-1 bg-blue-600 text-xs">Yours</Badge>
-                          )}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {Object.entries(featureLabels).map(([key, label]) => (
-                      <tr key={key} className="border-b hover:bg-gray-50">
-                        <td className="p-2 font-medium text-sm">{label}</td>
+          <TabsContent value="features" className="space-y-6">
+            <Card className="bg-white dark:bg-gray-800">
+              <CardHeader>
+                <CardTitle className="text-gray-900 dark:text-white">Feature Comparison Matrix</CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-400">
+                  ✅ Fully Supported | ⚠️ Partially Supported | ❌ Not Supported
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b dark:border-gray-700">
+                        <th className="text-left p-2 text-gray-900 dark:text-white">Feature</th>
                         {itsmTools.map((tool) => (
-                          <td key={tool.name} className="text-center p-2">
-                            <FeatureIcon status={tool.features[key as keyof typeof tool.features]} />
-                          </td>
+                          <th key={tool.name} className="text-center p-2 min-w-[120px]">
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">{tool.name}</div>
+                            {tool.category === 'Your ITSM' && (
+                              <Badge variant="default" className="mt-1 bg-blue-600 text-xs">Yours</Badge>
+                            )}
+                          </th>
                         ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                    </thead>
+                    <tbody>
+                      {Object.entries(featureLabels).map(([key, label]) => (
+                        <tr key={key} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                          <td className="p-2 font-medium text-sm text-gray-900 dark:text-white">{label}</td>
+                          {itsmTools.map((tool) => (
+                            <td key={tool.name} className="text-center p-2">
+                              <FeatureIcon status={tool.features[key as keyof typeof tool.features]} />
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        <TabsContent value="scoring" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {itsmTools.map((tool) => (
-              <Card key={tool.name} className={tool.category === 'Your ITSM' ? 'ring-2 ring-blue-500' : ''}>
+          <TabsContent value="scoring" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {itsmTools.map((tool) => (
+                <Card key={tool.name} className={`bg-white dark:bg-gray-800 ${tool.category === 'Your ITSM' ? 'ring-2 ring-blue-500' : ''}`}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center space-x-2 text-gray-900 dark:text-white">
+                        <span>{tool.name}</span>
+                        {tool.category === 'Your ITSM' && <Star className="h-5 w-5 text-blue-600" />}
+                      </CardTitle>
+                      <ScoreBar score={tool.overallScore} category={tool.category} />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold text-green-700 dark:text-green-400 mb-2">Strengths</h4>
+                      <ul className="text-sm space-y-1">
+                        {tool.pros.slice(0, 3).map((pro, index) => (
+                          <li key={index} className="flex items-start space-x-2">
+                            <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                            <span className="text-gray-700 dark:text-gray-300">{pro}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-red-700 dark:text-red-400 mb-2">Limitations</h4>
+                      <ul className="text-sm space-y-1">
+                        {tool.cons.slice(0, 2).map((con, index) => (
+                          <li key={index} className="flex items-start space-x-2">
+                            <XCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                            <span className="text-gray-700 dark:text-gray-300">{con}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="recommendations" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800">
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center space-x-2">
-                      <span>{tool.name}</span>
-                      {tool.category === 'Your ITSM' && <Star className="h-5 w-5 text-blue-600" />}
-                    </CardTitle>
-                    <ScoreBar score={tool.overallScore} category={tool.category} />
-                  </div>
+                  <CardTitle className="flex items-center space-x-2 text-blue-800 dark:text-blue-300">
+                    <Zap className="h-6 w-6" />
+                    <span>Your ITSM Competitive Advantages</span>
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold text-green-700 mb-2">Strengths</h4>
-                    <ul className="text-sm space-y-1">
-                      {tool.pros.slice(0, 3).map((pro, index) => (
-                        <li key={index} className="flex items-start space-x-2">
-                          <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                          <span>{pro}</span>
-                        </li>
-                      ))}
-                    </ul>
+                <CardContent className="space-y-3">
+                  <div className="flex items-start space-x-3">
+                    <Shield className="h-5 w-5 text-blue-600 mt-1" />
+                    <div>
+                      <h4 className="font-semibold text-gray-900 dark:text-white">Modern Architecture</h4>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">React/TypeScript with real-time capabilities</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-semibold text-red-700 mb-2">Limitations</h4>
-                    <ul className="text-sm space-y-1">
-                      {tool.cons.slice(0, 2).map((con, index) => (
-                        <li key={index} className="flex items-start space-x-2">
-                          <XCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
-                          <span>{con}</span>
-                        </li>
-                      ))}
-                    </ul>
+                  <div className="flex items-start space-x-3">
+                    <Users className="h-5 w-5 text-blue-600 mt-1" />
+                    <div>
+                      <h4 className="font-semibold text-gray-900 dark:text-white">Comprehensive Monitoring</h4>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">Real-time agents with geolocation tracking</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <Cloud className="h-5 w-5 text-blue-600 mt-1" />
+                    <div>
+                      <h4 className="font-semibold text-gray-900 dark:text-white">Zero Infrastructure</h4>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">Deploy instantly on Replit with auto-scaling</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <Star className="h-5 w-5 text-blue-600 mt-1" />
+                    <div>
+                      <h4 className="font-semibold text-gray-900 dark:text-white">AI-Ready Platform</h4>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">Built for machine learning integration</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        </TabsContent>
 
-        <TabsContent value="recommendations" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+              <Card className="bg-white dark:bg-gray-800">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2 text-gray-900 dark:text-white">
+                    <TrendingUp className="h-6 w-6 text-green-600" />
+                    <span>Market Position Analysis</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div>
+                      <h4 className="font-semibold text-green-700 dark:text-green-400">Enterprise Ready</h4>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">Your platform matches enterprise features of tools costing $100+/user/month</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-blue-700 dark:text-blue-400">Innovation Leader</h4>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">Unique features like geolocation tracking and certificate pinning</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-purple-700 dark:text-purple-400">Deployment Flexibility</h4>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">Support for cloud, on-premises, and hybrid deployments</p>
+                    </div>
+                  </div>
+                  <div className="pt-3 border-t dark:border-gray-700">
+                    <h4 className="font-semibold mb-2 text-gray-900 dark:text-white">Recommended Target Markets:</h4>
+                    <div className="space-y-1">
+                      <Badge variant="outline">SMB seeking enterprise features</Badge>
+                      <Badge variant="outline">Organizations requiring real-time monitoring</Badge>
+                      <Badge variant="outline">Teams needing rapid deployment</Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="bg-white dark:bg-gray-800">
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2 text-blue-800">
-                  <Zap className="h-6 w-6" />
-                  <span>Your ITSM Competitive Advantages</span>
-                </CardTitle>
+                <CardTitle className="text-gray-900 dark:text-white">Strategic Recommendations</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-start space-x-3">
-                  <Shield className="h-5 w-5 text-blue-600 mt-1" />
-                  <div>
-                    <h4 className="font-semibold">Modern Architecture</h4>
-                    <p className="text-sm text-gray-700">React/TypeScript with real-time capabilities</p>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-green-700 dark:text-green-400">Immediate Strengths to Leverage</h4>
+                    <ul className="text-sm space-y-1 text-gray-700 dark:text-gray-300">
+                      <li>• Real-time monitoring capabilities</li>
+                      <li>• Modern user experience</li>
+                      <li>• Rapid deployment on Replit</li>
+                      <li>• Integrated remote access tools</li>
+                    </ul>
                   </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <Users className="h-5 w-5 text-blue-600 mt-1" />
-                  <div>
-                    <h4 className="font-semibold">Comprehensive Monitoring</h4>
-                    <p className="text-sm text-gray-700">Real-time agents with geolocation tracking</p>
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-blue-700 dark:text-blue-400">Development Priorities</h4>
+                    <ul className="text-sm space-y-1 text-gray-700 dark:text-gray-300">
+                      <li>• Complete AI insights implementation</li>
+                      <li>• Expand marketplace/plugin ecosystem</li>
+                      <li>• Add mobile applications</li>
+                      <li>• Enhance reporting capabilities</li>
+                    </ul>
                   </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <Cloud className="h-5 w-5 text-blue-600 mt-1" />
-                  <div>
-                    <h4 className="font-semibold">Zero Infrastructure</h4>
-                    <p className="text-sm text-gray-700">Deploy instantly on Replit with auto-scaling</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <Star className="h-5 w-5 text-blue-600 mt-1" />
-                  <div>
-                    <h4 className="font-semibold">AI-Ready Platform</h4>
-                    <p className="text-sm text-gray-700">Built for machine learning integration</p>
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-orange-700 dark:text-orange-400">Market Positioning</h4>
+                    <ul className="text-sm space-y-1 text-gray-700 dark:text-gray-300">
+                      <li>• Target mid-market seeking innovation</li>
+                      <li>• Emphasize TCO advantages</li>
+                      <li>• Highlight unique monitoring features</li>
+                      <li>• Build partner ecosystem</li>
+                    </ul>
                   </div>
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+        </Tabs>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <TrendingUp className="h-6 w-6 text-green-600" />
-                  <span>Market Position Analysis</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div>
-                    <h4 className="font-semibold text-green-700">Enterprise Ready</h4>
-                    <p className="text-sm">Your platform matches enterprise features of tools costing $100+/user/month</p>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-blue-700">Innovation Leader</h4>
-                    <p className="text-sm">Unique features like geolocation tracking and certificate pinning</p>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-purple-700">Deployment Flexibility</h4>
-                    <p className="text-sm">Support for cloud, on-premises, and hybrid deployments</p>
-                  </div>
-                </div>
-                <div className="pt-3 border-t">
-                  <h4 className="font-semibold mb-2">Recommended Target Markets:</h4>
-                  <div className="space-y-1">
-                    <Badge variant="outline">SMB seeking enterprise features</Badge>
-                    <Badge variant="outline">Organizations requiring real-time monitoring</Badge>
-                    <Badge variant="outline">Teams needing rapid deployment</Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card>
+        {selectedTool && (
+          <Card className="bg-white dark:bg-gray-800">
             <CardHeader>
-              <CardTitle>Strategic Recommendations</CardTitle>
+              <CardTitle className="text-gray-900 dark:text-white">Detailed Analysis: {selectedTool.name}</CardTitle>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setSelectedTool(null)}
+                className="w-fit"
+              >
+                Close Details
+              </Button>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-green-700">Immediate Strengths to Leverage</h4>
-                  <ul className="text-sm space-y-1">
-                    <li>• Real-time monitoring capabilities</li>
-                    <li>• Modern user experience</li>
-                    <li>• Rapid deployment on Replit</li>
-                    <li>• Integrated remote access tools</li>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold mb-3 text-gray-900 dark:text-white">Complete Strengths</h4>
+                  <ul className="space-y-2">
+                    {selectedTool.pros.map((pro, index) => (
+                      <li key={index} className="flex items-start space-x-2">
+                        <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{pro}</span>
+                      </li>
+                    ))}
                   </ul>
                 </div>
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-blue-700">Development Priorities</h4>
-                  <ul className="text-sm space-y-1">
-                    <li>• Complete AI insights implementation</li>
-                    <li>• Expand marketplace/plugin ecosystem</li>
-                    <li>• Add mobile applications</li>
-                    <li>• Enhance reporting capabilities</li>
-                  </ul>
-                </div>
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-orange-700">Market Positioning</h4>
-                  <ul className="text-sm space-y-1">
-                    <li>• Target mid-market seeking innovation</li>
-                    <li>• Emphasize TCO advantages</li>
-                    <li>• Highlight unique monitoring features</li>
-                    <li>• Build partner ecosystem</li>
+                <div>
+                  <h4 className="font-semibold mb-3 text-gray-900 dark:text-white">Complete Limitations</h4>
+                  <ul className="space-y-2">
+                    {selectedTool.cons.map((con, index) => (
+                      <li key={index} className="flex items-start space-x-2">
+                        <XCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{con}</span>
+                      </li>
+                    ))}
                   </ul>
                 </div>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
-
-      {selectedTool && (
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Detailed Analysis: {selectedTool.name}</CardTitle>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setSelectedTool(null)}
-              className="w-fit"
-            >
-              Close Details
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-semibold mb-3">Complete Strengths</h4>
-                <ul className="space-y-2">
-                  {selectedTool.pros.map((pro, index) => (
-                    <li key={index} className="flex items-start space-x-2">
-                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">{pro}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-3">Complete Limitations</h4>
-                <ul className="space-y-2">
-                  {selectedTool.cons.map((con, index) => (
-                    <li key={index} className="flex items-start space-x-2">
-                      <XCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">{con}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-        </div>
+        )}
       </div>
     </div>
   );
