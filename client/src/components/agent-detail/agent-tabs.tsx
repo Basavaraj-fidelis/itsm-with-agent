@@ -1771,8 +1771,8 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
         {/* Updates Tab */}
         <TabsContent value="updates" className="space-y-6">
           <SafeDataRenderer>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* System Patches & Updates */}
+            <div className="space-y-6">
+              {/* 1. Patch Information: Recent system updates with dates and package details */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
@@ -1796,23 +1796,11 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                         ? JSON.parse(rawData)
                         : rawData;
 
-                    // Debug logging to see what data we have
-                    console.log('Patch data debug:', {
-                      hasRawData: !!rawData,
-                      parsedDataKeys: parsedData ? Object.keys(parsedData) : [],
-                      hasPatches: !!parsedData?.patches,
-                      hasPatchSummary: !!parsedData?.patch_summary,
-                      hasLastUpdate: !!parsedData?.last_update,
-                      isWindows,
-                      isLinux,
-                      isMacOS
-                    });
-
                     if (!parsedData) {
                       return (
                         <div className="text-center py-8">
                           <Download className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
-                          <p className="text-xs">No patch data available</p>
+                          <p className="text-sm">No patch data available</p>
                           <p className="text-xs text-neutral-500 mt-1">
                             Patch information will appear when the agent reports update data
                           </p>
@@ -2005,38 +1993,11 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       );
                     }
 
-                    // Fallback - Check if we have any update-related data
-                    const hasAnyUpdateData = parsedData.patches || 
-                                           parsedData.patch_summary || 
-                                           parsedData.last_update || 
-                                           parsedData.product_name ||
-                                           parsedData.windows_updates ||
-                                           parsedData.available_updates;
-
-                    if (hasAnyUpdateData) {
-                      return (
-                        <div className="space-y-4">
-                          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
-                            <div className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                              Update data detected but not fully processed
-                            </div>
-                            <div className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
-                              Available data: {Object.keys(parsedData).filter(key => 
-                                key.includes('patch') || 
-                                key.includes('update') || 
-                                key === 'product_name'
-                              ).join(', ')}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
-
                     // Default fallback
                     return (
                       <div className="text-center py-8">
                         <Download className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
-                        <p className="text-xs">No patch data available</p>
+                        <p className="text-sm">No patch data available</p>
                         <p className="text-xs text-neutral-500 mt-1">
                           Patch information will appear when the agent reports update data
                         </p>
@@ -2046,7 +2007,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                 </CardContent>
               </Card>
 
-              {/* Security Status */}
+              {/* 2. Security Information */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
@@ -2075,7 +2036,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       return (
                         <div className="text-center py-8">
                           <Shield className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
-                          <p className="text-xs">No security information available</p>
+                          <p className="text-sm">No security information available</p>
                           <p className="text-xs text-neutral-500 mt-1">
                             Security data will appear when the agent reports system security information
                           </p>
@@ -2105,12 +2066,6 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                "Unknown"}
                             </Badge>
                           </div>
-                          {isWindows && securityData.firewall_status === "enabled" && (
-                            <div className="text-xs text-neutral-600">
-                              <div>✓ Inbound connections filtered</div>
-                              <div>✓ Outbound connections monitored</div>
-                            </div>
-                          )}
                         </div>
 
                         {/* Antivirus/Security Software */}
@@ -2136,114 +2091,47 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                "Unknown"}
                             </Badge>
                           </div>
-                          {isWindows && securityData.antivirus_status === "enabled" && (
-                            <div className="text-xs text-neutral-600">
-                              <div>✓ Real-time protection active</div>
-                              <div>✓ Cloud-delivered protection enabled</div>
-                              <div>✓ Automatic sample submission enabled</div>
-                            </div>
-                          )}
                         </div>
 
                         {/* Windows-specific security details */}
                         {isWindows && (
-                          <>
-                            {/* Windows Security Status Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                              {securityData.last_scan && (
-                                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <Shield className="w-4 h-4 text-blue-600" />
-                                    <div className="text-xs text-neutral-600">Last Virus Scan:</div>
-                                  </div>
-                                  <div className="text-sm font-medium">
-                                    {securityData.last_scan}
-                                  </div>
-                                </div>
-                              )}
-                              
-                              {securityData.last_update_check && (
-                                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <RefreshCw className="w-4 h-4 text-blue-600" />
-                                    <div className="text-xs text-neutral-600">Last Update Check:</div>
-                                  </div>
-                                  <div className="text-sm font-medium">
-                                    {securityData.last_update_check}
-                                  </div>
-                                </div>
-                              )}
-
-                              {securityData.automatic_updates && (
-                                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <Download className="w-4 h-4 text-blue-600" />
-                                    <div className="text-xs text-neutral-600">Automatic Updates:</div>
-                                  </div>
-                                  <div className="text-sm font-medium">
-                                    {securityData.automatic_updates}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Windows Security Features */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {securityData.last_scan && (
                               <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
                                 <div className="flex items-center gap-2 mb-1">
-                                  <CheckCircle className="w-4 h-4 text-green-600" />
-                                  <div className="text-xs text-neutral-600">Security Features:</div>
+                                  <Shield className="w-4 h-4 text-blue-600" />
+                                  <div className="text-xs text-neutral-600">Last Virus Scan:</div>
                                 </div>
-                                <div className="text-xs space-y-1">
-                                  <div>✓ Windows Security Center</div>
-                                  <div>✓ SmartScreen Protection</div>
-                                  <div>✓ Controlled Folder Access</div>
+                                <div className="text-sm font-medium">
+                                  {securityData.last_scan}
                                 </div>
                               </div>
-                            </div>
+                            )}
+                            
+                            {securityData.last_update_check && (
+                              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <RefreshCw className="w-4 h-4 text-blue-600" />
+                                  <div className="text-xs text-neutral-600">Last Update Check:</div>
+                                </div>
+                                <div className="text-sm font-medium">
+                                  {securityData.last_update_check}
+                                </div>
+                              </div>
+                            )}
 
-                            {/* Enhanced Windows Security Status */}
-                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                              <h5 className="font-medium text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
-                                <Shield className="w-4 h-4" />
-                                Windows Security Status
-                              </h5>
-                              <div className="grid grid-cols-2 gap-4 text-xs">
-                                <div>
-                                  <div className="font-medium text-blue-800 dark:text-blue-200 mb-1">Protection Status:</div>
-                                  <div className="space-y-1">
-                                    <div className="flex items-center gap-1">
-                                      <CheckCircle className="w-3 h-3 text-green-600" />
-                                      <span>Virus & threat protection</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <CheckCircle className="w-3 h-3 text-green-600" />
-                                      <span>Account protection</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <CheckCircle className="w-3 h-3 text-green-600" />
-                                      <span>Firewall & network protection</span>
-                                    </div>
-                                  </div>
+                            {securityData.automatic_updates && (
+                              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Download className="w-4 h-4 text-blue-600" />
+                                  <div className="text-xs text-neutral-600">Automatic Updates:</div>
                                 </div>
-                                <div>
-                                  <div className="font-medium text-blue-800 dark:text-blue-200 mb-1">Additional Features:</div>
-                                  <div className="space-y-1">
-                                    <div className="flex items-center gap-1">
-                                      <CheckCircle className="w-3 h-3 text-green-600" />
-                                      <span>App & browser control</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <CheckCircle className="w-3 h-3 text-green-600" />
-                                      <span>Device security</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <CheckCircle className="w-3 h-3 text-green-600" />
-                                      <span>Family options</span>
-                                    </div>
-                                  </div>
+                                <div className="text-sm font-medium">
+                                  {securityData.automatic_updates}
                                 </div>
                               </div>
-                            </div>
-                          </>
+                            )}
+                          </div>
                         )}
 
                         {/* Linux-specific security details */}
@@ -2251,7 +2139,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                           <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
                             <h5 className="font-medium text-green-900 dark:text-green-100 mb-3 flex items-center gap-2">
                               <Shield className="w-4 h-4" />
-                              Linux Security Status
+                              Linux Security Features
                             </h5>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                               <div>
@@ -2294,101 +2182,13 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             </div>
                           </div>
                         )}
-
-                        {/* Security Services (if available) */}
-                        {securityData.security_services && securityData.security_services.length > 0 && (
-                          <div className="mt-4">
-                            <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
-                              <Settings className="w-4 h-4" />
-                              Security Services
-                            </h4>
-                            <div className="space-y-2 max-h-40 overflow-y-auto">
-                              {securityData.security_services
-                                .slice(0, 5)
-                                .map((service, index) => (
-                                  <div
-                                    key={index}
-                                    className="p-3 border rounded-lg bg-muted/20"
-                                  >
-                                    <div className="flex justify-between items-center">
-                                      <div className="flex items-center gap-2">
-                                        <div className="font-medium text-sm">
-                                          {service.name?.slice(0, 30)}
-                                          {service.name?.length > 30 ? "..." : ""}
-                                        </div>
-                                      </div>
-                                      <Badge
-                                        variant={
-                                          service.status === "running"
-                                            ? "default"
-                                            : service.status === "stopped"
-                                              ? "destructive"
-                                              : "secondary"
-                                        }
-                                        className="text-xs"
-                                      >
-                                        {service.status}
-                                      </Badge>
-                                    </div>
-                                    {service.description && (
-                                      <div className="text-xs text-neutral-500 mt-1">
-                                        {service.description.slice(0, 50)}
-                                        {service.description.length > 50 ? "..." : ""}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              {securityData.security_services.length > 5 && (
-                                <div className="text-xs text-neutral-500 text-center pt-2">
-                                  ...and {securityData.security_services.length - 5} more services
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Security Recommendations */}
-                        <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                          <h5 className="font-medium text-yellow-900 dark:text-yellow-100 mb-2 flex items-center gap-2">
-                            <AlertTriangle className="w-4 h-4" />
-                            Security Recommendations
-                          </h5>
-                          <div className="text-xs text-yellow-800 dark:text-yellow-200 space-y-1">
-                            {isWindows && (
-                              <>
-                                <div>• Keep Windows Defender definitions updated</div>
-                                <div>• Enable Windows Firewall for all network profiles</div>
-                                <div>• Use Windows Hello or strong passwords</div>
-                                <div>• Enable BitLocker disk encryption</div>
-                              </>
-                            )}
-                            {isLinux && (
-                              <>
-                                <div>• Keep system packages updated regularly</div>
-                                <div>• Configure UFW firewall rules appropriately</div>
-                                <div>• Use SSH key authentication instead of passwords</div>
-                                <div>• Enable unattended security updates</div>
-                              </>
-                            )}
-                            {isMacOS && (
-                              <>
-                                <div>• Keep macOS and security updates current</div>
-                                <div>• Enable FileVault disk encryption</div>
-                                <div>• Use strong user account passwords</div>
-                                <div>• Enable Gatekeeper and System Integrity Protection</div>
-                              </>
-                            )}
-                          </div>
-                        </div>
                       </div>
                     );
                   })()}
                 </CardContent>
               </Card>
 
-              
-
-              {/* Active Network Ports */}
+              {/* 3. Active TCP Ports: Currently established connections (filtered) */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
@@ -2397,10 +2197,10 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       {isLinux
                         ? "Active Network Connections (Linux)"
                         : isWindows
-                          ? "Active Network Ports (Windows)"
+                          ? "Active TCP Ports (Windows)"
                           : isMacOS
                             ? "Active Network Connections (macOS)"
-                            : "Active Network Ports"}
+                            : "Active TCP Ports"}
                     </span>
                   </CardTitle>
                 </CardHeader>
@@ -2415,57 +2215,53 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
 
                     return activePorts && activePorts.length > 0 ? (
                       <div className="space-y-3">
-                        <div className="grid grid-cols-1 gap-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-neutral-600 text-xs">
+                        <div className="grid grid-cols-3 gap-4 text-sm">
+                          <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg text-center">
+                            <div className="text-xs text-neutral-600 mb-1">
                               Total Connections:
-                            </span>
-                            <span className="font-medium text-xs">
+                            </div>
+                            <div className="text-lg font-medium">
                               {activePorts.length}
-                            </span>
+                            </div>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-neutral-600 text-xs">
-                              Local Ports:
-                            </span>
-                            <span className="font-medium text-xs">
-                              {
-                                new Set(
-                                  activePorts.map((port) => port.LocalPort),
-                                ).size
-                              }
-                            </span>
+                          <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-center">
+                            <div className="text-xs text-neutral-600 mb-1">
+                              Unique Local Ports:
+                            </div>
+                            <div className="text-lg font-medium">
+                              {new Set(activePorts.map((port) => port.LocalPort)).size}
+                            </div>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-neutral-600 text-xs">
-                              Remote Ports:
-                            </span>
-                            <span className="font-medium text-xs">
-                              {
-                                new Set(
-                                  activePorts.map((port) => port.RemotePort),
-                                ).size
-                              }
-                            </span>
+                          <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg text-center">
+                            <div className="text-xs text-neutral-600 mb-1">
+                              Remote Services:
+                            </div>
+                            <div className="text-lg font-medium">
+                              {new Set(activePorts.map((port) => port.RemotePort)).size}
+                            </div>
                           </div>
                         </div>
 
-                        {/* Port Analysis */}
-                        <div className="mt-4 p-2 border rounded-lg bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                        {/* Port Analysis by Protocol */}
+                        <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
                           <h5 className="font-medium text-blue-900 dark:text-blue-100 mb-2 text-sm">
-                            Port Analysis
+                            Connection Analysis
                           </h5>
-                          <div className="grid grid-cols-1 gap-2 text-xs">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
                             <div className="flex justify-between">
                               <span className="text-blue-600 dark:text-blue-400">
                                 HTTPS (443):
                               </span>
                               <span className="font-medium">
-                                {
-                                  activePorts.filter(
-                                    (p) => p.RemotePort === 443,
-                                  ).length
-                                }
+                                {activePorts.filter((p) => p.RemotePort === 443).length}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-blue-600 dark:text-blue-400">
+                                SSH (22):
+                              </span>
+                              <span className="font-medium">
+                                {activePorts.filter((p) => p.RemotePort === 22 || p.LocalPort === 22).length}
                               </span>
                             </div>
                             <div className="flex justify-between">
@@ -2473,72 +2269,50 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                 HTTP (80):
                               </span>
                               <span className="font-medium">
-                                {
-                                  activePorts.filter((p) => p.RemotePort === 80)
-                                    .length
-                                }
+                                {activePorts.filter((p) => p.RemotePort === 80).length}
                               </span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-blue-600 dark:text-blue-400">
-                                Custom:
+                                Custom Ports:
                               </span>
                               <span className="font-medium">
-                                {
-                                  activePorts.filter(
-                                    (p) =>
-                                      ![
-                                        443, 80, 22, 21, 25, 53, 3389, 5228,
-                                        7680,
-                                      ].includes(p.RemotePort),
-                                  ).length
-                                }
+                                {activePorts.filter((p) => ![443, 80, 22, 21, 25, 53, 3389, 5228, 7680].includes(p.RemotePort)).length}
                               </span>
                             </div>
                           </div>
                         </div>
 
-                        {/* Port Connections */}
+                        {/* Active Port Connections */}
                         <div className="mt-4">
                           <h4 className="font-medium mb-2 text-sm">
-                            Port Connections (Page {portsCurrentPage})
+                            Active Connections (Page {portsCurrentPage})
                           </h4>
                           <div className="space-y-1">
                             {(() => {
-                              const ports = activePorts.sort(
-                                (a, b) => a.LocalPort - b.LocalPort,
-                              );
-                              const startIndex =
-                                (portsCurrentPage - 1) * itemsPerPage;
+                              const ports = activePorts.sort((a, b) => a.LocalPort - b.LocalPort);
+                              const startIndex = (portsCurrentPage - 1) * itemsPerPage;
                               const endIndex = startIndex + itemsPerPage;
-                              const currentPorts = ports.slice(
-                                startIndex,
-                                endIndex,
-                              );
+                              const currentPorts = ports.slice(startIndex, endIndex);
 
                               return currentPorts.map((port, index) => (
                                 <div
                                   key={startIndex + index}
-                                  className="p-2 border rounded-lg bg-muted/20"
+                                  className="p-3 border rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors"
                                 >
-                                  <div className="flex items-center justify-between text-xs">
-                                    <div>
-                                      <span className="font-medium text-blue-900 dark:text-blue-100">
-                                        {port.LocalPort} → {port.RemotePort}
-                                      </span>
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3">
+                                      <div className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                                        Local: {port.LocalPort} → Remote: {port.RemotePort}
+                                      </div>
                                       {port.RemoteAddress && (
-                                        <div className="text-neutral-500 text-xs mt-1">
-                                          {port.RemoteAddress.slice(0, 20)}
-                                          {port.RemoteAddress.length > 20
-                                            ? "..."
-                                            : ""}
+                                        <div className="text-xs text-neutral-500 font-mono">
+                                          {port.RemoteAddress.slice(0, 25)}
+                                          {port.RemoteAddress.length > 25 ? "..." : ""}
                                         </div>
                                       )}
                                     </div>
-                                    <Badge
-                                      variant="default"
-                                      className="text-xs"
-                                    >
+                                    <Badge variant="outline" className="text-xs">
                                       {port.RemotePort === 443
                                         ? "HTTPS"
                                         : port.RemotePort === 80
@@ -2547,7 +2321,9 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                             ? "SSH"
                                             : port.RemotePort === 3389
                                               ? "RDP"
-                                              : "Custom"}
+                                              : port.LocalPort === 22
+                                                ? "SSH Server"
+                                                : "Custom"}
                                     </Badge>
                                   </div>
                                 </div>
@@ -2555,11 +2331,9 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             })()}
                           </div>
 
-                          {/* Ports Pagination */}
+                          {/* Pagination for Port Connections */}
                           {(() => {
-                            const totalPages = Math.ceil(
-                              activePorts.length / itemsPerPage,
-                            );
+                            const totalPages = Math.ceil(activePorts.length / itemsPerPage);
 
                             if (totalPages > 1) {
                               return (
@@ -2569,9 +2343,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                       <PaginationItem>
                                         <PaginationPrevious
                                           onClick={() =>
-                                            setPortsCurrentPage(
-                                              Math.max(1, portsCurrentPage - 1),
-                                            )
+                                            setPortsCurrentPage(Math.max(1, portsCurrentPage - 1))
                                           }
                                           className={
                                             portsCurrentPage === 1
@@ -2581,15 +2353,10 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                         />
                                       </PaginationItem>
 
-                                      {Array.from(
-                                        { length: totalPages },
-                                        (_, i) => i + 1,
-                                      ).map((page) => (
+                                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                                         <PaginationItem key={page}>
                                           <PaginationLink
-                                            onClick={() =>
-                                              setPortsCurrentPage(page)
-                                            }
+                                            onClick={() => setPortsCurrentPage(page)}
                                             isActive={page === portsCurrentPage}
                                             className="cursor-pointer"
                                           >
@@ -2601,12 +2368,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                       <PaginationItem>
                                         <PaginationNext
                                           onClick={() =>
-                                            setPortsCurrentPage(
-                                              Math.min(
-                                                totalPages,
-                                                portsCurrentPage + 1,
-                                              ),
-                                            )
+                                            setPortsCurrentPage(Math.min(totalPages, portsCurrentPage + 1))
                                           }
                                           className={
                                             portsCurrentPage === totalPages
@@ -2627,10 +2389,9 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                     ) : (
                       <div className="text-center py-8">
                         <Network className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
-                        <p className="text-xs">No port information available</p>
+                        <p className="text-sm">No active TCP connections found</p>
                         <p className="text-xs text-neutral-500 mt-1">
-                          Network port data will appear when the agent reports
-                          active connections
+                          Network port data will appear when the agent reports active connections
                         </p>
                       </div>
                     );
