@@ -13,7 +13,7 @@ import {
 import { auditLog } from "@shared/admin-schema";
 import { eq, desc, and, or, like, sql, count } from "drizzle-orm";
 import { userStorage } from "./user-storage";
-import { device_reports, alerts, devices } from "../shared/schema";
+import { device_reports, alerts, devices } from "../../shared/schema";
 
 interface TicketFilters {
   type?: string;
