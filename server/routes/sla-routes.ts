@@ -1,4 +1,3 @@
-
 import type { Express } from "express";
 import { slaEscalationService } from "./sla-escalation-service";
 import { slaMonitorService } from "./sla-monitor-service";
@@ -31,11 +30,11 @@ export function registerSLARoutes(app: Express) {
   app.get("/api/sla/compliance-report", async (req, res) => {
     try {
       const { startDate, endDate } = req.query;
-      
+
       // This would fetch historical SLA data for reporting
       // For now, return current dashboard data
       const data = await slaEscalationService.getSLADashboardData();
-      
+
       res.json({
         period: { startDate, endDate },
         compliance: data.compliance,
@@ -74,14 +73,14 @@ export function registerSLARoutes(app: Express) {
   // Create or update SLA policy
   app.post("/api/sla/policies", async (req, res) => {
     try {
-      const { db } = await import("./db");
+      const { db } = await import("../db");
       const { slaPolicies } = await import("@shared/sla-schema");
-      
+
       const [policy] = await db
         .insert(slaPolicies)
         .values(req.body)
         .returning();
-      
+
       res.status(201).json(policy);
     } catch (error) {
       console.error("Error creating SLA policy:", error);
@@ -92,9 +91,9 @@ export function registerSLARoutes(app: Express) {
   // Get all SLA policies
   app.get("/api/sla/policies", async (req, res) => {
     try {
-      const { db } = await import("./db");
+      const { db } = await import("../db");
       const { slaPolicies } = await import("@shared/sla-schema");
-      
+
       const policies = await db.select().from(slaPolicies);
       res.json(policies);
     } catch (error) {
@@ -106,7 +105,7 @@ export function registerSLARoutes(app: Express) {
   // Manual SLA sync for existing tickets
   app.post("/api/sla/sync-tickets", async (req, res) => {
     try {
-      const { db } = await import("./db");
+      const { db } = await import("../db");
       const { tickets } = await import("@shared/ticket-schema");
       const { eq, isNull } = await import("drizzle-orm");
 
@@ -120,7 +119,7 @@ export function registerSLARoutes(app: Express) {
       for (const ticket of ticketsToUpdate) {
         const { ticketStorage } = await import("./ticket-storage");
         const slaTargets = (ticketStorage as any).calculateSLATargets(ticket.priority, ticket.type);
-        
+
         const baseTime = new Date(ticket.created_at);
         const slaResponseDue = new Date(baseTime.getTime() + (slaTargets.responseTime * 60 * 1000));
         const slaResolutionDue = new Date(baseTime.getTime() + (slaTargets.resolutionTime * 60 * 1000));
@@ -139,7 +138,7 @@ export function registerSLARoutes(app: Express) {
             updated_at: new Date()
           })
           .where(eq(tickets.id, ticket.id));
-        
+
         updated++;
       }
 

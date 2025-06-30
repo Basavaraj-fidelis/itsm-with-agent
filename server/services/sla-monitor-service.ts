@@ -147,7 +147,7 @@ Immediate attention required!`;
       }
 
       // Notify managers
-      const { userStorage } = await import("./user-storage");
+      const { userStorage } = await import("../services/user-storage");
       const managers = await userStorage.getUsersByRole('manager');
 
       for (const manager of managers) {

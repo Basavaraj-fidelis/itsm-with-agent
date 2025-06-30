@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { agentTunnelService } from "../agent-tunnel-service";
-import { adService } from "./ad-service";
+import { adService } from "../services/ad-service";
 import expressWs from 'express-ws';
 
 const router = Router();
@@ -144,3 +144,4 @@ router.post('/agents/:id/remote-command', async (req, res) => {
 });
 
 export { router as agentADSyncRoutes };
+```

@@ -1,4 +1,3 @@
-
 import { storage } from "./storage";
 
 export interface StoredAIInsight {
@@ -19,7 +18,7 @@ class AIInsightsStorage {
   async storeInsight(insight: Omit<StoredAIInsight, 'id' | 'created_at'>): Promise<StoredAIInsight> {
     try {
       const { pool } = await import("./db");
-      
+
       const result = await pool.query(`
         INSERT INTO ai_insights (
           device_id, insight_type, severity, title, description, 
@@ -48,7 +47,7 @@ class AIInsightsStorage {
   async getInsightsForDevice(deviceId: string, limit: number = 50): Promise<StoredAIInsight[]> {
     try {
       const { pool } = await import("./db");
-      
+
       const result = await pool.query(`
         SELECT * FROM ai_insights 
         WHERE device_id = $1 AND is_active = true
@@ -69,7 +68,7 @@ class AIInsightsStorage {
   async createAIInsightsTable(): Promise<void> {
     try {
       const { pool } = await import("./db");
-      
+
       await pool.query(`
         CREATE TABLE IF NOT EXISTS ai_insights (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -120,7 +119,7 @@ class AIInsightsStorage {
         severity: insight.severity,
         title: insight.title
       });
-      
+
       // In a real implementation, this would store in database
       // await db.insert(aiInsights).values(insight);
     } catch (error) {

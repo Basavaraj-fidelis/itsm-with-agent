@@ -286,7 +286,7 @@ Please take immediate action or reassign if necessary.`;
     minutesUntilBreach: number
   ): Promise<void> {
     try {
-      const { ticketStorage } = await import("./ticket-storage");
+      const { ticketStorage } = await import("../services/ticket-storage");
       
       const comment = `🚨 SLA Escalation: ${rule.name}
 ${minutesUntilBreach < 0 ? 'Overdue by' : 'Due in'} ${Math.abs(minutesUntilBreach)} minutes

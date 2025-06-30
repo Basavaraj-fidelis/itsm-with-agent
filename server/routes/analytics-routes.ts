@@ -1,6 +1,6 @@
 
 import { Router } from "express";
-import { analyticsService } from "./analytics-service";
+import { analyticsService } from "../services/analytics-service";
 import { reportsStorage } from "./reports-storage";
 
 const router = Router();
