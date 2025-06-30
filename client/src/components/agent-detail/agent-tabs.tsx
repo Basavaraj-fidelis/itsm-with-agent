@@ -275,19 +275,21 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
       </div>
     </div>
   );
-    // Determine the operating system
-    const osName = agent.latest_report?.os_info?.name || 'Unknown';
-    const isWindows = osName.toLowerCase().includes('windows');
-    const isLinux = osName.toLowerCase().includes('linux');
-    const isMacOS = osName.toLowerCase().includes('mac') || osName.toLowerCase().includes('darwin');
+  // Determine the operating system
+  const osName = agent.latest_report?.os_info?.name || "Unknown";
+  const isWindows = osName.toLowerCase().includes("windows");
+  const isLinux = osName.toLowerCase().includes("linux");
+  const isMacOS =
+    osName.toLowerCase().includes("mac") ||
+    osName.toLowerCase().includes("darwin");
 
-    // Function to provide OS-specific color schemes
-    const getOSColorScheme = () => {
-      if (isWindows) return 'bg-blue-50 dark:bg-blue-900/20';
-      if (isMacOS) return 'bg-purple-50 dark:bg-purple-900/20';
-      if (isLinux) return 'bg-green-50 dark:bg-green-900/20';
-      return 'bg-neutral-50 dark:bg-neutral-800';
-    };
+  // Function to provide OS-specific color schemes
+  const getOSColorScheme = () => {
+    if (isWindows) return "bg-blue-50 dark:bg-blue-900/20";
+    if (isMacOS) return "bg-purple-50 dark:bg-purple-900/20";
+    if (isLinux) return "bg-green-50 dark:bg-green-900/20";
+    return "bg-neutral-50 dark:bg-neutral-800";
+  };
 
   return (
     <AgentErrorBoundary>
@@ -968,9 +970,9 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       {usbHistory
                         .sort((a: any, b: any) => {
                           if (a.is_connected && !b.is_connected) return -1;
-                          if (!a.is_connected && b.is_connected) return 1;                          return (
-                            ```text
-new Date(b.last_seen).getTime() -
+                          if (!a.is_connected && b.is_connected) return 1;
+                          return (
+                            new Date(b.last_seen).getTime() -
                             new Date(a.last_seen).getTime()
                           );
                         })
@@ -1784,18 +1786,18 @@ new Date(b.last_seen).getTime() -
                 <CardContent className="space-y-6">
                   {/* OS-specific patch information */}
                   {(() => {
-                    const osName = agent?.os_info?.name?.toLowerCase() || '';
+                    const osName = agent?.os_info?.name?.toLowerCase() || "";
                     const patches = agent?.os_info?.patches || [];
                     const patchSummary = agent?.os_info?.patch_summary || null;
                     const lastUpdate = agent?.os_info?.last_update;
 
-                    console.log('Debug - OS Name:', osName);
-                    console.log('Debug - Patches:', patches);
-                    console.log('Debug - Patch Summary:', patchSummary);
-                    console.log('Debug - Last Update:', lastUpdate);
+                    console.log("Debug - OS Name:", osName);
+                    console.log("Debug - Patches:", patches);
+                    console.log("Debug - Patch Summary:", patchSummary);
+                    console.log("Debug - Last Update:", lastUpdate);
 
                     // Windows patches
-                    if (osName.includes('windows')) {
+                    if (osName.includes("windows")) {
                       return (
                         <div className="space-y-4">
                           {/* Last Update Info */}
@@ -1803,13 +1805,26 @@ new Date(b.last_seen).getTime() -
                             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                               <div className="flex items-center gap-2 mb-2">
                                 <Clock className="w-4 h-4 text-blue-600" />
-                                <span className="font-medium text-sm text-blue-800 dark:text-blue-200">Last Update</span>
+                                <span className="font-medium text-sm text-blue-800 dark:text-blue-200">
+                                  Last Update
+                                </span>
                               </div>
                               <div className="text-sm text-blue-700 dark:text-blue-300">
-                                {typeof lastUpdate === 'object' && lastUpdate.DateTime ? lastUpdate.DateTime :
-                                 typeof lastUpdate === 'string' ? lastUpdate :
-                                 (lastUpdate?.value && new Date(parseInt(lastUpdate.value.replace(/\/Date\((\d+)\)\//, '$1'))).toLocaleDateString()) ||
-                                 "Unknown"}
+                                {typeof lastUpdate === "object" &&
+                                lastUpdate.DateTime
+                                  ? lastUpdate.DateTime
+                                  : typeof lastUpdate === "string"
+                                    ? lastUpdate
+                                    : (lastUpdate?.value &&
+                                        new Date(
+                                          parseInt(
+                                            lastUpdate.value.replace(
+                                              /\/Date\((\d+)\)\//,
+                                              "$1",
+                                            ),
+                                          ),
+                                        ).toLocaleDateString()) ||
+                                      "Unknown"}
                               </div>
                             </div>
                           )}
@@ -1828,10 +1843,16 @@ new Date(b.last_seen).getTime() -
                                     className="flex justify-between items-center py-3 px-4 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-800"
                                   >
                                     <span className="text-sm font-medium font-mono text-green-800 dark:texttext-green-200">
-                                      {patch.id || patch.HotFixID || patch.kb_number || `Patch ${index + 1}`}
+                                      {patch.id ||
+                                        patch.HotFixID ||
+                                        patch.kb_number ||
+                                        `Patch ${index + 1}`}
                                     </span>
                                     <span className="text-xs text-green-600 dark:text-green-400">
-                                      {patch.installed_on?.DateTime || patch.installed_on || patch.InstalledOn || "Unknown date"}
+                                      {patch.installed_on?.DateTime ||
+                                        patch.installed_on ||
+                                        patch.InstalledOn ||
+                                        "Unknown date"}
                                     </span>
                                   </div>
                                 ))}
@@ -1845,8 +1866,12 @@ new Date(b.last_seen).getTime() -
                           ) : (
                             <div className="text-center py-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
                               <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
-                              <p className="text-sm text-yellow-800 dark:text-yellow-200">No Windows patch data found</p>
-                              <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">The agent may need to run Windows Update scan</p>
+                              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                                No Windows patch data found
+                              </p>
+                              <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                                The agent may need to run Windows Update scan
+                              </p>
                             </div>
                           )}
                         </div>
@@ -1854,7 +1879,7 @@ new Date(b.last_seen).getTime() -
                     }
 
                     // Linux patches
-                    if (osName.includes('linux')) {
+                    if (osName.includes("linux")) {
                       return (
                         <div className="space-y-4">
                           {/* Package Summary */}
@@ -1863,11 +1888,13 @@ new Date(b.last_seen).getTime() -
                               <div className="flex items-center gap-2 mb-2">
                                 <Package className="w-4 h-4 text-blue-600" />
                                 <span className="font-medium text-sm text-blue-800 dark:text-blue-200">
-                                  Package Summary ({patchSummary.system_type || 'Linux'})
+                                  Package Summary (
+                                  {patchSummary.system_type || "Linux"})
                                 </span>
                               </div>
                               <div className="text-sm text-blue-700 dark:text-blue-300">
-                                Total Installed: {patchSummary.total_installed || 0} packages
+                                Total Installed:{" "}
+                                {patchSummary.total_installed || 0} packages
                               </div>
                               {patchSummary.last_update_date && (
                                 <div className="text-xs text-green-600 dark:text-green-400 mt-1">
@@ -1878,38 +1905,47 @@ new Date(b.last_seen).getTime() -
                           )}
 
                           {/* Linux Recent Updates */}
-                          {patchSummary && patchSummary.recent_patches && patchSummary.recent_patches.length > 0 ? (
+                          {patchSummary &&
+                          patchSummary.recent_patches &&
+                          patchSummary.recent_patches.length > 0 ? (
                             <div>
                               <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
                                 <Package className="w-4 h-4 text-green-600" />
-                                Recent System Updates ({patchSummary.recent_patches.length})
+                                Recent System Updates (
+                                {patchSummary.recent_patches.length})
                               </h4>
                               <div className="space-y-2 max-h-64 overflow-y-auto">
-                                {patchSummary.recent_patches.map((patch, index) => (
-                                  <div
-                                    key={index}
-                                    className="p-3 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-800"
-                                  >
-                                    <div className="flex justify-between items-start mb-2">
-                                      <div className="text-sm font-medium text-green-800 dark:text-green-200">
-                                        {patch.action || "System Update"}
+                                {patchSummary.recent_patches.map(
+                                  (patch, index) => (
+                                    <div
+                                      key={index}
+                                      className="p-3 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-800"
+                                    >
+                                      <div className="flex justify-between items-start mb-2">
+                                        <div className="text-sm font-medium text-green-800 dark:text-green-200">
+                                          {patch.action || "System Update"}
+                                        </div>
+                                        <div className="text-xs text-green-600 dark:text-green-400">
+                                          {patch.date}
+                                        </div>
                                       </div>
-                                      <div className="text-xs text-green-600 dark:text-green-400">
-                                        {patch.date}
+                                      <div className="text-xs text-green-700 dark:text-green-300 break-all">
+                                        {patch.package || "System update"}
                                       </div>
                                     </div>
-                                    <div className="text-xs text-green-700 dark:text-green-300 break-all">
-                                      {patch.package || "System update"}
-                                    </div>
-                                  </div>
-                                ))}
+                                  ),
+                                )}
                               </div>
                             </div>
                           ) : (
                             <div className="text-center py-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
                               <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
-                              <p className="text-sm text-yellow-800 dark:text-yellow-200">No Linux package update history found</p>
-                              <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">Package manager logs may need to be checked</p>
+                              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                                No Linux package update history found
+                              </p>
+                              <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                                Package manager logs may need to be checked
+                              </p>
                             </div>
                           )}
                         </div>
@@ -1917,7 +1953,7 @@ new Date(b.last_seen).getTime() -
                     }
 
                     // macOS patches
-                    if (osName.includes('darwin')) {
+                    if (osName.includes("darwin")) {
                       return (
                         <div className="space-y-4">
                           {patches && patches.length > 0 ? (
@@ -1945,8 +1981,12 @@ new Date(b.last_seen).getTime() -
                           ) : (
                             <div className="text-center py-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
                               <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
-                              <p className="text-sm text-yellow-800 dark:text-yellow-200">No macOS update data found</p>
-                              <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">Software Update history may be empty</p>
+                              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                                No macOS update data found
+                              </p>
+                              <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                                Software Update history may be empty
+                              </p>
                             </div>
                           )}
                         </div>
@@ -1957,8 +1997,12 @@ new Date(b.last_seen).getTime() -
                     return (
                       <div className="text-center py-6 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-800">
                         <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-gray-600" />
-                        <p className="text-sm text-gray-800 dark:text-gray-200">Patch information not available</p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">OS: {osName || 'Unknown'}</p>
+                        <p className="text-sm text-gray-800 dark:text-gray-200">
+                          Patch information not available
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          OS: {osName || "Unknown"}
+                        </p>
                       </div>
                     );
                   })()}
@@ -1981,7 +2025,9 @@ new Date(b.last_seen).getTime() -
                       return (
                         <div className="text-center py-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
                           <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
-                          <p className="text-sm text-yellow-800 dark:text-yellow-200">No security information available</p>
+                          <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                            No security information available
+                          </p>
                         </div>
                       );
                     }
@@ -1993,12 +2039,19 @@ new Date(b.last_seen).getTime() -
                           <div className="p-4 border rounded-lg">
                             <div className="flex items-center gap-2 mb-2">
                               <Shield className="w-4 h-4 text-blue-600" />
-                              <span className="font-medium text-sm">Firewall</span>
+                              <span className="font-medium text-sm">
+                                Firewall
+                              </span>
                             </div>
-                            <div className={`text-sm capitalize ${
-                              security.firewall_status === 'enabled' ? 'text-green-600' : 
-                              security.firewall_status === 'disabled' ? 'text-red-600' : 'text-yellow-600'
-                            }`}>
+                            <div
+                              className={`text-sm capitalize ${
+                                security.firewall_status === "enabled"
+                                  ? "text-green-600"
+                                  : security.firewall_status === "disabled"
+                                    ? "text-red-600"
+                                    : "text-yellow-600"
+                              }`}
+                            >
                               {security.firewall_status}
                             </div>
                           </div>
@@ -2009,12 +2062,19 @@ new Date(b.last_seen).getTime() -
                           <div className="p-4 border rounded-lg">
                             <div className="flex items-center gap-2 mb-2">
                               <Shield className="w-4 h-4 text-purple-600" />
-                              <span className="font-medium text-sm">Antivirus</span>
+                              <span className="font-medium text-sm">
+                                Antivirus
+                              </span>
                             </div>
-                            <div className={`text-sm capitalize ${
-                              security.antivirus_status === 'enabled' ? 'text-green-600' : 
-                              security.antivirus_status === 'disabled' ? 'text-red-600' : 'text-yellow-600'
-                            }`}>
+                            <div
+                              className={`text-sm capitalize ${
+                                security.antivirus_status === "enabled"
+                                  ? "text-green-600"
+                                  : security.antivirus_status === "disabled"
+                                    ? "text-red-600"
+                                    : "text-yellow-600"
+                              }`}
+                            >
                               {security.antivirus_status}
                             </div>
                           </div>
@@ -2025,7 +2085,9 @@ new Date(b.last_seen).getTime() -
                           <div className="p-4 border rounded-lg">
                             <div className="flex items-center gap-2 mb-2">
                               <Clock className="w-4 h-4 text-blue-600" />
-                              <span className="font-medium text-sm">Last Scan</span>
+                              <span className="font-medium text-sm">
+                                Last Scan
+                              </span>
                             </div>
                             <div className="text-sm text-gray-600 dark:text-gray-400">
                               {security.last_scan}
@@ -2038,7 +2100,9 @@ new Date(b.last_seen).getTime() -
                           <div className="p-4 border rounded-lg">
                             <div className="flex items-center gap-2 mb-2">
                               <Download className="w-4 h-4 text-green-600" />
-                              <span className="font-medium text-sm">Last Update Check</span>
+                              <span className="font-medium text-sm">
+                                Last Update Check
+                              </span>
                             </div>
                             <div className="text-sm text-gray-600 dark:text-gray-400">
                               {security.last_update_check}
@@ -2051,7 +2115,9 @@ new Date(b.last_seen).getTime() -
                           <div className="p-4 border rounded-lg md:col-span-2">
                             <div className="flex items-center gap-2 mb-2">
                               <Settings className="w-4 h-4 text-orange-600" />
-                              <span className="font-medium text-sm">Automatic Updates</span>
+                              <span className="font-medium text-sm">
+                                Automatic Updates
+                              </span>
                             </div>
                             <div className="text-sm text-gray-600 dark:text-gray-400">
                               {security.automatic_updates}
@@ -2080,7 +2146,9 @@ new Date(b.last_seen).getTime() -
                       return (
                         <div className="text-center py-6 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-800">
                           <Network className="w-8 h-8 mx-auto mb-2 text-gray-600" />
-                          <p className="text-sm text-gray-800 dark:text-gray-200">No active TCP ports found</p>
+                          <p className="text-sm text-gray-800 dark:text-gray-200">
+                            No active TCP ports found
+                          </p>
                         </div>
                       );
                     }
