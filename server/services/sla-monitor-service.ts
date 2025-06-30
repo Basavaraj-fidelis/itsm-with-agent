@@ -97,7 +97,7 @@ export class SLAMonitorService {
             ticket.resolve_due_at = slaTargets.resolutionDue;
             ticket.sla_response_due = slaTargets.responseDue;
             ticket.sla_resolution_due = slaTargets.resolutionDue;
-            
+
             console.log(`🔧 Auto-fixed SLA data for ticket ${ticket.ticket_number}`);
           }
         }
@@ -194,7 +194,7 @@ Immediate attention required!`;
       const { db } = await import("../db");
       const { users } = await import("@shared/user-schema");
       const { eq } = await import("drizzle-orm");
-      
+
       const managers = await db
         .select()
         .from(users)
@@ -228,7 +228,7 @@ Immediate attention required!`;
     try {
       // Get all tickets (both open and closed) for proper SLA analysis
       const allTickets = await db.select().from(tickets);
-      
+
       const openTickets = allTickets.filter(t => 
         !['resolved', 'closed', 'cancelled'].includes(t.status)
       );
@@ -244,15 +244,15 @@ Immediate attention required!`;
       let actualResponseBreaches = 0;
       let actualResolutionBreaches = 0;
       let totalBreachedTickets = 0;
-      
+
       for (const ticket of ticketsWithSLA) {
         let needsUpdate = false;
         const updateData: any = {};
-        
+
         // Check if response is breached
         const responseDue = ticket.response_due_at || ticket.sla_response_due;
         const isResponseBreached = responseDue && !ticket.first_response_at && now > new Date(responseDue);
-        
+
         if (isResponseBreached) {
           actualResponseBreaches++;
           if (!ticket.sla_response_breached) {
@@ -260,11 +260,11 @@ Immediate attention required!`;
             needsUpdate = true;
           }
         }
-        
+
         // Check if resolution is breached
         const resolutionDue = ticket.resolve_due_at || ticket.sla_resolution_due;
         const isResolutionBreached = resolutionDue && now > new Date(resolutionDue);
-        
+
         if (isResolutionBreached) {
           actualResolutionBreaches++;
           if (!ticket.sla_resolution_breached || !ticket.sla_breached) {
@@ -273,12 +273,12 @@ Immediate attention required!`;
             needsUpdate = true;
           }
         }
-        
+
         // Count unique breached tickets
         if (isResponseBreached || isResolutionBreached) {
           totalBreachedTickets++;
         }
-        
+
         // Update database if needed
         if (needsUpdate) {
           updateData.updated_at = now;

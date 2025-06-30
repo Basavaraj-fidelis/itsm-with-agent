@@ -109,6 +109,15 @@ export class TicketStorage {
       slaTargets = fallbackTargets;
     }
 
+    // Process knowledge base integration
+    const relatedArticleIds = await this.processKnowledgeBaseIntegration({
+      title: ticketData.title,
+      description: ticketData.description,
+      category: ticketData.category,
+      type: ticketData.type,
+      tags: ticketData.tags || [],
+    });
+
     const [newTicket] = await db
       .insert(tickets)
       .values({
@@ -128,6 +137,7 @@ export class TicketStorage {
         sla_breached: false,
         sla_response_breached: false,
         sla_resolution_breached: false,
+        related_article_ids: relatedArticleIds,
       })
       .returning();
 
@@ -151,7 +161,45 @@ export class TicketStorage {
       });
     }
 
+    console.log(
+      `Created ticket ${ticket_number} with ${relatedArticleIds.length} related articles`,
+    );
     return newTicket;
+  }
+
+  private async processKnowledgeBaseIntegration(ticketData: {
+    title: string;
+    description: string;
+    category: string;
+    type: string;
+    tags: string[];
+  }): Promise<string[]> {
+    const { KnowledgeBaseAIService } = await import(
+      "./knowledge-base-ai-service"
+    );
+    const knowledgeBaseAIService = new KnowledgeBaseAIService();
+
+    // 1. Attempt to match existing articles
+    let relatedArticleIds = await knowledgeBaseAIService.matchArticles(
+      ticketData,
+    );
+
+    if (relatedArticleIds.length === 0) {
+      // 2. Generate a draft article if no matches are found
+      const draftArticle = await knowledgeBaseAIService.generateDraftArticle(
+        ticketData,
+      );
+
+      if (draftArticle) {
+        const newArticle = await this.createKBArticle(draftArticle);
+        relatedArticleIds = [newArticle.id]; // Set the newly created article ID
+        console.log(
+          `Generated draft article ${newArticle.id} for ticket ${ticketData.title}`,
+        );
+      }
+    }
+
+    return relatedArticleIds;
   }
 
   async getTickets(

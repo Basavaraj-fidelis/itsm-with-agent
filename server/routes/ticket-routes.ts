@@ -34,7 +34,7 @@ export function registerTicketRoutes(app: Express) {
     try {
       console.log("GET /api/tickets - Request received");
       console.log("Query parameters:", req.query);
-      
+
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
       const type = req.query.type as string;
@@ -53,7 +53,7 @@ export function registerTicketRoutes(app: Express) {
 
       const result = await ticketStorage.getTickets(page, limit, filters);
       console.log("Tickets fetched successfully:", result.total, "total tickets");
-      
+
       res.json(result);
     } catch (error) {
       console.error("Error fetching tickets:", error);
@@ -104,14 +104,14 @@ export function registerTicketRoutes(app: Express) {
       const validatedData = updateTicketSchema.parse(req.body);
       const { comment, ...ticketUpdates } = validatedData;
       const userEmail = req.headers['user-email'] as string || 'admin@company.com';
-      
+
       const ticket = await ticketStorage.updateTicket(
         req.params.id, 
         ticketUpdates, 
         userEmail,
         comment
       );
-      
+
       if (!ticket) {
         return res.status(404).json({ error: "Ticket not found" });
       }

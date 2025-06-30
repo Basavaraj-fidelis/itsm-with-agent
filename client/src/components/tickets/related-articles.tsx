@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,7 +35,7 @@ export default function RelatedArticles({ ticket }: RelatedArticlesProps) {
   const fetchRelatedArticles = async () => {
     try {
       setLoading(true);
-      
+
       // Create search terms from ticket title and description
       const searchTerms = [
         ticket.title,
@@ -63,9 +62,9 @@ export default function RelatedArticles({ ticket }: RelatedArticlesProps) {
         method: 'GET',
         headers
       });
-      
+
       console.log('Knowledge base API response status:', response.status);
-      
+
       if (response.ok) {
         const data = await response.json();
         console.log('Knowledge base articles data:', data);
@@ -112,11 +111,11 @@ export default function RelatedArticles({ ticket }: RelatedArticlesProps) {
   const getRelevanceScore = (article: Article) => {
     const ticketText = `${ticket.title} ${ticket.description}`.toLowerCase();
     const articleText = `${article.title} ${article.content}`.toLowerCase();
-    
+
     // Simple keyword matching for relevance
     const ticketWords = ticketText.split(' ').filter(word => word.length > 3);
     const matches = ticketWords.filter(word => articleText.includes(word));
-    
+
     return Math.min(100, Math.round((matches.length / ticketWords.length) * 100));
   };
 
@@ -197,11 +196,11 @@ export default function RelatedArticles({ ticket }: RelatedArticlesProps) {
                     {relevance}% match
                   </Badge>
                 </div>
-                
+
                 <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
                   {article.content.substring(0, 120)}...
                 </p>
-                
+
                 <div className="flex justify-between items-center">
                   <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                     <span>{article.category}</span>
@@ -210,7 +209,7 @@ export default function RelatedArticles({ ticket }: RelatedArticlesProps) {
                     <span>•</span>
                     <span>{article.helpful_votes} helpful</span>
                   </div>
-                  
+
                   <Button 
                     variant="ghost" 
                     size="sm" 
@@ -225,7 +224,7 @@ export default function RelatedArticles({ ticket }: RelatedArticlesProps) {
             );
           })}
         </div>
-        
+
         <div className="mt-4 pt-3 border-t">
           <Button 
             variant="outline" 

@@ -47,6 +47,7 @@ export const tickets = pgTable("tickets", {
   // Metadata
   tags: json("tags").$type<string[]>().default([]),
   custom_fields: json("custom_fields").$type<Record<string, any>>().default({}),
+  related_article_ids: json("related_article_ids").$type<string[]>().default([]),
 
   // SLA fields
   sla_policy_id: uuid("sla_policy_id"), // Reference to SLA policy

@@ -94,6 +94,7 @@ interface TicketData {
   sla_resolution_breached?: boolean;
   response_due_at?: string;
   resolve_due_at?: string;
+  related_article_ids?: string[];
 }
 
 export default function TicketDetail() {
@@ -865,7 +866,7 @@ export default function TicketDetail() {
               <Label className="text-xs text-muted-foreground">Assigned To</Label>
               <p className="font-medium">
                 {ticket.assigned_to && ticket.assigned_to.trim() !== '' ? ticket.assigned_to : 'Unassigned'}
-              </p>
+                            </p>
             </div>
             <div>              <Label className="text-xs text-muted-foreground">Created</Label>
               <p className="font-medium">{formatDate(ticket.created_at)}</p>
@@ -919,7 +920,14 @@ export default function TicketDetail() {
         </Card>
 
         {/* Related Knowledge Base Articles */}
-        <RelatedArticles ticket={ticket} />
+        <RelatedArticles ticket={{
+              id: ticket.id,
+              title: ticket.title,
+              description: ticket.description,
+              category: ticket.category,
+              type: ticket.type,
+              related_article_ids: ticket.related_article_ids
+            }} />
       </div>
 
       {/* Dialogs */}
