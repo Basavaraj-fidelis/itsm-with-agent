@@ -1,39 +1,42 @@
-
-import { db, sql } from "./db.js";
+import { db, sql } from "../db.js";
 import { tickets } from "../shared/ticket-schema.js";
 import { eq, isNull } from "drizzle-orm";
 
 const calculateSLATargets = (priority, type, createdAt) => {
   const slaMatrix = {
-    critical: { 
-      responseTime: 15, 
-      resolutionTime: type === 'incident' ? 240 : 480,
-      policy: 'P1 - Critical' 
+    critical: {
+      responseTime: 15,
+      resolutionTime: type === "incident" ? 240 : 480,
+      policy: "P1 - Critical",
     },
-    high: { 
-      responseTime: 60, 
-      resolutionTime: type === 'incident' ? 480 : 1440,
-      policy: 'P2 - High' 
+    high: {
+      responseTime: 60,
+      resolutionTime: type === "incident" ? 480 : 1440,
+      policy: "P2 - High",
     },
-    medium: { 
-      responseTime: 240, 
-      resolutionTime: type === 'incident' ? 1440 : 2880,
-      policy: 'P3 - Medium' 
+    medium: {
+      responseTime: 240,
+      resolutionTime: type === "incident" ? 1440 : 2880,
+      policy: "P3 - Medium",
     },
-    low: { 
-      responseTime: 480, 
-      resolutionTime: type === 'incident' ? 2880 : 5760,
-      policy: 'P4 - Low' 
-    }
+    low: {
+      responseTime: 480,
+      resolutionTime: type === "incident" ? 2880 : 5760,
+      policy: "P4 - Low",
+    },
   };
 
   const slaData = slaMatrix[priority] || slaMatrix.medium;
   const baseTime = new Date(createdAt);
-  
+
   return {
     ...slaData,
-    responseDue: new Date(baseTime.getTime() + (slaData.responseTime * 60 * 1000)),
-    resolutionDue: new Date(baseTime.getTime() + (slaData.resolutionTime * 60 * 1000))
+    responseDue: new Date(
+      baseTime.getTime() + slaData.responseTime * 60 * 1000,
+    ),
+    resolutionDue: new Date(
+      baseTime.getTime() + slaData.resolutionTime * 60 * 1000,
+    ),
   };
 };
 
@@ -49,12 +52,18 @@ async function updateAllTicketsSLA() {
     const now = new Date();
 
     for (const ticket of allTickets) {
-      const slaTargets = calculateSLATargets(ticket.priority, ticket.type, ticket.created_at);
-      
+      const slaTargets = calculateSLATargets(
+        ticket.priority,
+        ticket.type,
+        ticket.created_at,
+      );
+
       // Check if already breached
-      const isResponseBreached = !ticket.first_response_at && now > slaTargets.responseDue;
-      const isResolutionBreached = now > slaTargets.resolutionDue && 
-        !['resolved', 'closed', 'cancelled'].includes(ticket.status);
+      const isResponseBreached =
+        !ticket.first_response_at && now > slaTargets.responseDue;
+      const isResolutionBreached =
+        now > slaTargets.resolutionDue &&
+        !["resolved", "closed", "cancelled"].includes(ticket.status);
 
       await db
         .update(tickets)
@@ -68,16 +77,21 @@ async function updateAllTicketsSLA() {
           sla_response_breached: isResponseBreached,
           sla_resolution_breached: isResolutionBreached,
           sla_breached: isResolutionBreached, // Legacy field
-          updated_at: now
+          updated_at: now,
         })
         .where(eq(tickets.id, ticket.id));
 
       updated++;
-      
-      const breachStatus = isResolutionBreached ? '🔴 BREACHED' : 
-                          isResponseBreached ? '🟡 RESPONSE BREACH' : '✅ OK';
-      
-      console.log(`✅ Updated ${ticket.ticket_number} - ${slaTargets.policy} ${breachStatus}`);
+
+      const breachStatus = isResolutionBreached
+        ? "🔴 BREACHED"
+        : isResponseBreached
+          ? "🟡 RESPONSE BREACH"
+          : "✅ OK";
+
+      console.log(
+        `✅ Updated ${ticket.ticket_number} - ${slaTargets.policy} ${breachStatus}`,
+      );
     }
 
     console.log(`\n🎉 SLA update completed! Updated ${updated} tickets`);
@@ -96,8 +110,9 @@ async function updateAllTicketsSLA() {
     console.log("\n📊 Current SLA Status:");
     console.log(`  🔴 Resolution Breached: ${breachedTickets.length} tickets`);
     console.log(`  🟡 Response Breached: ${responseBreach.length} tickets`);
-    console.log(`  📅 Total Active Tickets: ${allTickets.filter(t => !['resolved', 'closed', 'cancelled'].includes(t.status)).length}`);
-
+    console.log(
+      `  📅 Total Active Tickets: ${allTickets.filter((t) => !["resolved", "closed", "cancelled"].includes(t.status)).length}`,
+    );
   } catch (error) {
     console.error("❌ Error updating ticket SLA:", error);
   } finally {
