@@ -1,6 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { userRoutes } from "./user-routes";
+import { userRoutes } from "./routes/user-routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { createTicketTables } from "./migrations/migrate-tickets";
 import analyticsRoutes from "./routes/analytics-routes";
@@ -113,7 +113,7 @@ app.use((req, res, next) => {
     }
 
     // Import and run admin tables migration
-    const { createAdminTables } = await import("./migrate-admin-tables");
+    const { createAdminTables } = await import("./migrations/migrate-admin-tables");
     await createAdminTables();
 
     const server = await registerRoutes(app);
@@ -137,7 +137,7 @@ app.use((req, res, next) => {
     const { storage } = await import("./storage");
 
     // Initialize reports table
-    const { reportsStorage } = await import("./reports-storage");
+    const { reportsStorage } = await import("./models/reports-storage");
     await reportsStorage.createReportsTable();
 
     // Auth middleware
@@ -361,7 +361,7 @@ app.use((req, res, next) => {
     const PORT = process.env.PORT || port;
 
     // Start SLA monitoring service
-    const { slaMonitorService } = await import("./sla-monitor-service");
+    const { slaMonitorService } = await import("./services/sla-monitor-service");
     slaMonitorService.start(5); // Check every 5 minutes
 
     const serv = app.listen(PORT, "0.0.0.0", () => {
@@ -446,7 +446,7 @@ app.use((req, res, next) => {
 // });
 
 // Start SLA escalation monitoring (check every 15 minutes)
-import { slaEscalationService } from "./sla-escalation-service";
+import { slaEscalationService } from "./services/sla-escalation-service";
 
 const startSLAMonitoring = () => {
   console.log("🔄 Starting SLA escalation monitoring...");
