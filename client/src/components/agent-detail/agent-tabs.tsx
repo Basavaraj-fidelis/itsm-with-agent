@@ -1778,52 +1778,102 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Download className="w-5 h-5" />
-                    <span>
-                      {isLinux
-                        ? "Package Updates & Patches"
-                        : isWindows
-                          ? "Windows Patches & Updates"
-                          : isMacOS
-                            ? "macOS System Updates"
-                            : "System Patches & Updates"}
-                    </span>
+                    <span>System Patches & Updates</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {(() => {
                     const rawData = agent?.latest_report?.raw_data;
-                    const parsedData =
-                      typeof rawData === "string"
-                        ? JSON.parse(rawData)
-                        : rawData;
+                    const parsedData = typeof rawData === "string" ? JSON.parse(rawData) : rawData;
 
-                    console.log("Checking patch data for OS:", { isWindows, isLinux, isMacOS });
+                    // Dynamic OS detection from actual agent data
+                    const osInfo = parsedData?.os_info || agent?.latest_report?.os_info || {};
+                    const osName = osInfo.name || osInfo.product_name || 'Unknown';
+                    const osVersion = osInfo.version || osInfo.display_version || 'Unknown';
+                    const osType = osName.toLowerCase();
+
+                    // Dynamic OS type detection
+                    const isDynamicWindows = osType.includes('windows') || osType.includes('microsoft');
+                    const isDynamicLinux = osType.includes('linux') || osType.includes('ubuntu') || osType.includes('debian') || osType.includes('centos') || osType.includes('rhel') || osType.includes('fedora') || osType.includes('mint');
+                    const isDynamicMacOS = osType.includes('mac') || osType.includes('darwin') || osType.includes('osx');
+
+                    console.log("=== DYNAMIC OS DETECTION ===");
+                    console.log("Agent hostname:", agent.hostname);
+                    console.log("OS Name from agent:", osName);
+                    console.log("OS Type (lowercase):", osType);
+                    console.log("Detected as:", { 
+                      Windows: isDynamicWindows, 
+                      Linux: isDynamicLinux, 
+                      macOS: isDynamicMacOS 
+                    });
                     console.log("Raw data keys:", parsedData ? Object.keys(parsedData) : "No data");
-                    console.log("OS info:", parsedData?.os_info);
-                    console.log("Patches:", parsedData?.patches);
 
                     if (!parsedData) {
                       return (
                         <div className="text-center py-8">
                           <Download className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
-                          <p className="text-sm">No patch data available</p>
+                          <p className="text-sm">No agent data available</p>
                           <p className="text-xs text-neutral-500 mt-1">
-                            Patch information will appear when the agent reports update data
+                            Waiting for agent to report system information
                           </p>
                         </div>
                       );
                     }
 
-                    // For Windows systems - check multiple possible data sources
-                    if (isWindows) {
-                      const osInfo = parsedData.os_info || agent.latest_report?.os_info || {};
+                    // Show detected OS and available data structure
+                    const debugInfo = (
+                      <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border mb-4">
+                        <h5 className="font-medium text-gray-900 dark:text-gray-100 mb-2">
+                          System Detection & Available Data
+                        </h5>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <span className="text-gray-600 dark:text-gray-400">Detected OS:</span>
+                            <div className="font-medium">
+                              {osName} {osVersion}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-gray-600 dark:text-gray-400">OS Type:</span>
+                            <div className="font-medium">
+                              {isDynamicWindows ? 'Windows' : isDynamicLinux ? 'Linux' : isDynamicMacOS ? 'macOS' : 'Unknown'}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-gray-600 dark:text-gray-400">Available Data:</span>
+                            <div className="text-xs font-mono">
+                              {Object.keys(parsedData).join(', ')}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-gray-600 dark:text-gray-400">Last Report:</span>
+                            <div className="text-xs">
+                              {agent.latest_report?.collected_at ? 
+                                new Date(agent.latest_report.collected_at).toLocaleString() : 
+                                'Never'
+                              }
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+
+                    // Handle Windows systems
+                    if (isDynamicWindows) {
+                      console.log("Processing Windows system data...");
                       const patches = parsedData.patches || [];
+                      const windowsUpdates = parsedData.windows_updates || {};
+                      const lastUpdate = parsedData.last_update || osInfo.last_update;
                       
-                      console.log("Windows data check:", { osInfo, patchesCount: patches.length });
+                      console.log("Windows patches found:", patches.length);
+                      console.log("Windows updates data:", windowsUpdates);
+                      console.log("Last update:", lastUpdate);
                       
                       return (
                         <div className="space-y-4">
-                          {/* System Information */}
+                          {debugInfo}
+                          
+                          {/* Windows System Information */}
                           <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                             <h5 className="font-medium text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
                               <Monitor className="w-4 h-4" />
@@ -1832,50 +1882,43 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                               <div>
                                 <span className="text-blue-700 dark:text-blue-300 font-medium">OS:</span>
-                                <div className="text-blue-800 dark:text-blue-200">
-                                  {osInfo.product_name || osInfo.name || agent.latest_report?.os_info?.name || "Windows"}
-                                </div>
+                                <div className="text-blue-800 dark:text-blue-200">{osName}</div>
                               </div>
                               <div>
                                 <span className="text-blue-700 dark:text-blue-300 font-medium">Version:</span>
-                                <div className="text-blue-800 dark:text-blue-200">
-                                  {osInfo.display_version || osInfo.version || agent.latest_report?.os_info?.version || "Unknown"}
-                                </div>
+                                <div className="text-blue-800 dark:text-blue-200">{osVersion}</div>
                               </div>
                               <div>
                                 <span className="text-blue-700 dark:text-blue-300 font-medium">Build:</span>
                                 <div className="text-blue-800 dark:text-blue-200">
-                                  {osInfo.build_number || agent.latest_report?.os_info?.build_number || "Unknown"}
+                                  {osInfo.build_number || "Unknown"}
                                 </div>
                               </div>
                               <div>
                                 <span className="text-blue-700 dark:text-blue-300 font-medium">Architecture:</span>
                                 <div className="text-blue-800 dark:text-blue-200">
-                                  {osInfo.architecture || agent.latest_report?.os_info?.architecture || "Unknown"}
+                                  {osInfo.architecture || "Unknown"}
                                 </div>
                               </div>
                             </div>
                           </div>
 
                           {/* Last Update Information */}
-                          {(parsedData.last_update || osInfo.last_update) && (
+                          {lastUpdate && (
                             <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
                               <div className="text-xs text-blue-700 dark:text-blue-300 mb-1">
-                                System Update Information:
+                                Last System Update:
                               </div>
                               <div className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                                Last Update: {
-                                  typeof parsedData.last_update === 'string' ? parsedData.last_update :
-                                  parsedData.last_update?.DateTime ||
-                                  (parsedData.last_update?.value && new Date(parseInt(parsedData.last_update.value.replace(/\/Date\((\d+)\)\//, '$1'))).toLocaleDateString()) ||
-                                  osInfo.last_update ||
-                                  "Unknown"
-                                }
+                                {typeof lastUpdate === 'string' ? lastUpdate :
+                                 lastUpdate?.DateTime ||
+                                 (lastUpdate?.value && new Date(parseInt(lastUpdate.value.replace(/\/Date\((\d+)\)\//, '$1'))).toLocaleDateString()) ||
+                                 "Unknown"}
                               </div>
                             </div>
                           )}
                           
-                          {/* Windows Patches List */}
+                          {/* Windows Patches */}
                           {patches.length > 0 ? (
                             <div>
                               <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
@@ -1889,14 +1932,10 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                     className="flex justify-between items-center py-3 px-4 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-800"
                                   >
                                     <span className="text-sm font-medium font-mono text-green-800 dark:text-green-200">
-                                      {patch.id || patch.HotFixID || `KB${patch.kb_number}` || `Patch ${index + 1}`}
+                                      {patch.id || patch.HotFixID || patch.kb_number || `Patch ${index + 1}`}
                                     </span>
                                     <span className="text-xs text-green-600 dark:text-green-400">
-                                      {typeof patch.installed_on === 'string' ? patch.installed_on :
-                                       patch.installed_on?.DateTime || 
-                                       (patch.installed_on?.value && new Date(parseInt(patch.installed_on.value.replace(/\/Date\((\d+)\)\//, '$1'))).toLocaleDateString()) ||
-                                       patch.InstalledOn ||
-                                       "Unknown date"}
+                                      {patch.installed_on || patch.InstalledOn || "Unknown date"}
                                     </span>
                                   </div>
                                 ))}
@@ -1907,12 +1946,19 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                 )}
                               </div>
                             </div>
+                          ) : windowsUpdates && Object.keys(windowsUpdates).length > 0 ? (
+                            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                              <h4 className="font-medium mb-3 text-sm">Windows Update Information</h4>
+                              <pre className="text-xs bg-white dark:bg-gray-800 p-3 rounded border overflow-auto max-h-32">
+                                {JSON.stringify(windowsUpdates, null, 2)}
+                              </pre>
+                            </div>
                           ) : (
                             <div className="text-center py-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
                               <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
-                              <p className="text-sm text-yellow-800 dark:text-yellow-200">Windows Update Data Not Available</p>
+                              <p className="text-sm text-yellow-800 dark:text-yellow-200">No Windows patch data found</p>
                               <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
-                                Run Windows Update scan or enable automatic updates reporting
+                                The agent may need to run Windows Update scan
                               </p>
                             </div>
                           )}
@@ -1920,15 +1966,19 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       );
                     }
 
-                    // For Linux systems - check multiple possible data sources
-                    if (isLinux) {
-                      const patchData = parsedData.patch_summary || {};
+                    // Handle Linux systems
+                    if (isDynamicLinux) {
+                      console.log("Processing Linux system data...");
+                      const patchSummary = parsedData.patch_summary || {};
                       const installedPackages = parsedData.software || software || [];
                       
-                      console.log("Linux data check:", { patchData, packageCount: installedPackages.length });
+                      console.log("Linux patch summary:", patchSummary);
+                      console.log("Installed packages:", installedPackages.length);
                       
                       return (
                         <div className="space-y-4">
+                          {debugInfo}
+                          
                           {/* Linux System Information */}
                           <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
                             <h5 className="font-medium text-green-900 dark:text-green-100 mb-3 flex items-center gap-2">
@@ -1938,28 +1988,24 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                               <div>
                                 <span className="text-green-700 dark:text-green-300 font-medium">Distribution:</span>
-                                <div className="text-green-800 dark:text-green-200">
-                                  {agent.latest_report?.os_info?.name || "Linux"}
-                                </div>
+                                <div className="text-green-800 dark:text-green-200">{osName}</div>
                               </div>
                               <div>
                                 <span className="text-green-700 dark:text-green-300 font-medium">Version:</span>
-                                <div className="text-green-800 dark:text-green-200">
-                                  {agent.latest_report?.os_info?.version || "Unknown"}
-                                </div>
+                                <div className="text-green-800 dark:text-green-200">{osVersion}</div>
                               </div>
                               <div>
                                 <span className="text-green-700 dark:text-green-300 font-medium">Kernel:</span>
                                 <div className="text-green-800 dark:text-green-200">
-                                  {agent.latest_report?.os_info?.kernel_version || "Unknown"}
+                                  {osInfo.kernel_version || "Unknown"}
                                 </div>
                               </div>
                               <div>
                                 <span className="text-green-700 dark:text-green-300 font-medium">Package Manager:</span>
                                 <div className="text-green-800 dark:text-green-200">
-                                  {patchData.system_type === 'debian' ? 'APT (Debian/Ubuntu)' : 
-                                   patchData.system_type === 'redhat' ? 'YUM/DNF (RedHat/CentOS)' : 
-                                   patchData.system_type || 'Auto-detected'}
+                                  {patchSummary.system_type === 'debian' ? 'APT (Debian/Ubuntu)' : 
+                                   patchSummary.system_type === 'redhat' ? 'YUM/DNF (RedHat/CentOS)' : 
+                                   patchSummary.system_type || 'Auto-detected'}
                                 </div>
                               </div>
                             </div>
@@ -1972,7 +2018,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                 Total Packages:
                               </div>
                               <div className="text-lg font-medium text-green-800 dark:text-green-200">
-                                {patchData.total_installed || installedPackages.length || 0}
+                                {patchSummary.total_installed || installedPackages.length || 0}
                               </div>
                             </div>
                             <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200">
@@ -1980,7 +2026,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                 Recent Updates:
                               </div>
                               <div className="text-lg font-medium text-green-800 dark:text-green-200">
-                                {patchData.recent_patches?.length || 0}
+                                {patchSummary.recent_patches?.length || 0}
                               </div>
                             </div>
                             <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200">
@@ -1988,20 +2034,20 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                 Last Update:
                               </div>
                               <div className="text-sm font-medium text-green-800 dark:text-green-200">
-                                {patchData.last_update_date || "Unknown"}
+                                {patchSummary.last_update_date || "Unknown"}
                               </div>
                             </div>
                           </div>
 
                           {/* Recent Package Updates */}
-                          {patchData.recent_patches && patchData.recent_patches.length > 0 ? (
+                          {patchSummary.recent_patches && patchSummary.recent_patches.length > 0 ? (
                             <div>
                               <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
                                 <Package className="w-4 h-4 text-green-600" />
-                                Recent Package Updates ({patchData.recent_patches.length})
+                                Recent Package Updates ({patchSummary.recent_patches.length})
                               </h4>
                               <div className="space-y-2 max-h-96 overflow-y-auto">
-                                {patchData.recent_patches.slice((patchesCurrentPage - 1) * itemsPerPage, patchesCurrentPage * itemsPerPage).map((patch, index) => (
+                                {patchSummary.recent_patches.slice((patchesCurrentPage - 1) * itemsPerPage, patchesCurrentPage * itemsPerPage).map((patch, index) => (
                                   <div
                                     key={index}
                                     className="p-3 border rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800"
@@ -2031,7 +2077,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
 
                               {/* Pagination for Recent Patches */}
                               {(() => {
-                                const totalPages = Math.ceil(patchData.recent_patches.length / itemsPerPage);
+                                const totalPages = Math.ceil(patchSummary.recent_patches.length / itemsPerPage);
                                 
                                 if (totalPages > 1) {
                                   return (
@@ -2121,9 +2167,9 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                           ) : (
                             <div className="text-center py-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
                               <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
-                              <p className="text-sm text-yellow-800 dark:text-yellow-200">Package Update Data Not Available</p>
+                              <p className="text-sm text-yellow-800 dark:text-yellow-200">No Linux package data found</p>
                               <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
-                                Enable package tracking or check agent logs for more information
+                                The agent may need time to collect package information
                               </p>
                             </div>
                           )}
@@ -2131,38 +2177,36 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       );
                     }
 
-                    // macOS systems
-                    if (isMacOS) {
+                    // Handle macOS systems
+                    if (isDynamicMacOS) {
+                      console.log("Processing macOS system data...");
                       const patches = parsedData.patches || [];
-                      console.log("macOS data check:", { patchesCount: patches.length });
+                      const systemUpdates = parsedData.system_updates || [];
                       
                       return (
                         <div className="space-y-4">
+                          {debugInfo}
+                          
                           <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
                             <h5 className="font-medium text-purple-900 dark:text-purple-100 mb-3 flex items-center gap-2">
                               <Monitor className="w-4 h-4" />
                               macOS System Updates
                             </h5>
-                            {patches.length > 0 ? (
+                            {(patches.length > 0 || systemUpdates.length > 0) ? (
                               <div className="space-y-2 max-h-64 overflow-y-auto">
-                                {patches.slice(0, 10).map((patch, index) => (
+                                {[...patches, ...systemUpdates].slice(0, 10).map((patch, index) => (
                                   <div
                                     key={index}
                                     className="flex justify-between items-center py-2 px-3 border rounded-lg bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800"
                                   >
                                     <span className="text-sm font-medium text-purple-800 dark:text-purple-200">
-                                      {patch.id || `macOS Update ${index + 1}`}
+                                      {patch.id || patch.name || `macOS Update ${index + 1}`}
                                     </span>
                                     <span className="text-xs text-purple-600 dark:text-purple-400">
-                                      {patch.installed_on || 'Unknown date'}
+                                      {patch.installed_on || patch.date || 'Unknown date'}
                                     </span>
                                   </div>
                                 ))}
-                                {patches.length > 10 && (
-                                  <div className="text-xs text-neutral-500 pt-2 text-center">
-                                    ...and {patches.length - 10} more updates
-                                  </div>
-                                )}
                               </div>
                             ) : (
                               <div className="text-center py-6">
@@ -2174,34 +2218,32 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       );
                     }
 
-                    // Enhanced fallback with more helpful information
+                    // Fallback for unknown OS or general data display
                     return (
-                      <div className="text-center py-8 bg-neutral-50 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700">
-                        <Download className="w-12 h-12 mx-auto mb-3 text-neutral-400" />
-                        <h4 className="text-lg font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-                          No Patch Data Available
-                        </h4>
-                        <div className="text-sm text-neutral-600 dark:text-neutral-400 space-y-1">
-                          <p>The agent hasn't reported update information yet.</p>
-                          <p className="text-xs">
-                            {isWindows && "Windows Update data will appear after running Windows Update scan."}
-                            {isLinux && "Package update data will appear after apt/yum/dnf updates are tracked."}
-                            {isMacOS && "System update data will appear after macOS Software Update runs."}
-                            {!isWindows && !isLinux && !isMacOS && "System update data will appear when the agent reports patch information."}
-                          </p>
-                        </div>
+                      <div className="space-y-4">
+                        {debugInfo}
                         
-                        {/* System Information from basic agent data */}
-                        {agent.latest_report?.os_info && (
-                          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
-                            <h5 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">Current System Info</h5>
-                            <div className="text-xs text-blue-600 dark:text-blue-400 space-y-1">
-                              <div>OS: {agent.latest_report.os_info.name || "Unknown"}</div>
-                              <div>Version: {agent.latest_report.os_info.version || "Unknown"}</div>
-                              <div>Architecture: {agent.latest_report.os_info.architecture || "Unknown"}</div>
-                            </div>
+                        <div className="text-center py-8 bg-neutral-50 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700">
+                          <Download className="w-12 h-12 mx-auto mb-3 text-neutral-400" />
+                          <h4 className="text-lg font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                            Patch Data Analysis
+                          </h4>
+                          <div className="text-sm text-neutral-600 dark:text-neutral-400 space-y-2">
+                            <p>Detected OS: <strong>{osName}</strong></p>
+                            <p>System Type: <strong>{isDynamicWindows ? 'Windows' : isDynamicLinux ? 'Linux' : isDynamicMacOS ? 'macOS' : 'Unknown'}</strong></p>
+                            <p>Available Data Fields: <strong>{Object.keys(parsedData).length}</strong></p>
+                            
+                            {/* Show raw data structure for debugging */}
+                            <details className="mt-4">
+                              <summary className="cursor-pointer text-blue-600 hover:text-blue-800">
+                                View Raw Agent Data Structure
+                              </summary>
+                              <pre className="mt-2 text-xs bg-white dark:bg-gray-800 p-3 rounded border overflow-auto max-h-64 text-left">
+                                {JSON.stringify(parsedData, null, 2)}
+                              </pre>
+                            </details>
                           </div>
-                        )}
+                        </div>
                       </div>
                     );
                   })()}
