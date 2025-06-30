@@ -8,9 +8,9 @@ import {
   installed_software,
   patch_management,
   user_sessions,
-} from "../shared/schema";
-import { tickets } from "../shared/ticket-schema";
-import { users } from "../shared/user-schema";
+} from "../../shared/schema";
+import { tickets } from "../../shared/ticket-schema";
+import { users } from "../../shared/user-schema";
 import { sql, eq, and, desc, count, avg, sum, between } from "drizzle-orm";
 import { gte } from "drizzle-orm";
 import {
