@@ -190,9 +190,15 @@ Immediate attention required!`;
         );
       }
 
-      // Notify managers
-      const { userStorage } = await import("../services/user-storage");
-      const managers = await userStorage.getUsersByRole('manager');
+      // Notify managers - get users with manager role
+      const { db } = await import("../db");
+      const { users } = await import("@shared/user-schema");
+      const { eq } = await import("drizzle-orm");
+      
+      const managers = await db
+        .select()
+        .from(users)
+        .where(eq(users.role, 'manager'));
 
       for (const manager of managers) {
         await notificationService.createNotification({
