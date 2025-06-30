@@ -107,7 +107,7 @@ export function registerSLARoutes(app: Express) {
     try {
       const { db } = await import("../db");
       const { tickets } = await import("@shared/ticket-schema");
-      const { eq, isNull } = await import("drizzle-orm");
+      const { eq, isNull, not, inArray } = await import("drizzle-orm");
 
       // Get tickets without SLA data
       const ticketsToUpdate = await db
@@ -149,6 +149,20 @@ export function registerSLARoutes(app: Express) {
     } catch (error) {
       console.error("Error syncing SLA data:", error);
       res.status(500).json({ error: "Failed to sync SLA data" });
+    }
+  });
+
+  // Sync SLA status for all tickets (fix inconsistencies)
+  app.post("/api/sla/sync-status", async (req, res) => {
+    try {
+      const metrics = await slaMonitorService.getSLAMetrics();
+      res.json({
+        message: "SLA status synchronized successfully",
+        metrics
+      });
+    } catch (error) {
+      console.error("Error syncing SLA status:", error);
+      res.status(500).json({ error: "Failed to sync SLA status" });
     }
   });
 }

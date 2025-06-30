@@ -239,39 +239,63 @@ Immediate attention required!`;
         t.response_due_at || t.sla_response_due
       );
 
-      // Calculate current breaches based on time
+      // Calculate current breaches based on time AND update database flags
       const now = new Date();
       let actualResponseBreaches = 0;
       let actualResolutionBreaches = 0;
+      let totalBreachedTickets = 0;
       
       for (const ticket of ticketsWithSLA) {
+        let needsUpdate = false;
+        const updateData: any = {};
+        
         // Check if response is breached
         const responseDue = ticket.response_due_at || ticket.sla_response_due;
-        if (responseDue && !ticket.first_response_at && now > new Date(responseDue)) {
+        const isResponseBreached = responseDue && !ticket.first_response_at && now > new Date(responseDue);
+        
+        if (isResponseBreached) {
           actualResponseBreaches++;
+          if (!ticket.sla_response_breached) {
+            updateData.sla_response_breached = true;
+            needsUpdate = true;
+          }
         }
         
         // Check if resolution is breached
         const resolutionDue = ticket.resolve_due_at || ticket.sla_resolution_due;
-        if (resolutionDue && now > new Date(resolutionDue)) {
+        const isResolutionBreached = resolutionDue && now > new Date(resolutionDue);
+        
+        if (isResolutionBreached) {
           actualResolutionBreaches++;
+          if (!ticket.sla_resolution_breached || !ticket.sla_breached) {
+            updateData.sla_resolution_breached = true;
+            updateData.sla_breached = true; // Legacy field
+            needsUpdate = true;
+          }
+        }
+        
+        // Count unique breached tickets
+        if (isResponseBreached || isResolutionBreached) {
+          totalBreachedTickets++;
+        }
+        
+        // Update database if needed
+        if (needsUpdate) {
+          updateData.updated_at = now;
+          await db
+            .update(tickets)
+            .set(updateData)
+            .where(eq(tickets.id, ticket.id));
         }
       }
 
-      const totalBreaches = new Set([
-        ...ticketsWithSLA.filter(t => {
-          const responseDue = t.response_due_at || t.sla_response_due;
-          const resolutionDue = t.resolve_due_at || t.sla_resolution_due;
-          return (responseDue && !t.first_response_at && now > new Date(responseDue)) ||
-                 (resolutionDue && now > new Date(resolutionDue));
-        }).map(t => t.id)
-      ]).size;
-
       const totalTicketsWithSLA = ticketsWithSLA.length;
-      const onTrackTickets = totalTicketsWithSLA - totalBreaches;
+      const onTrackTickets = totalTicketsWithSLA - totalBreachedTickets;
       const slaCompliance = totalTicketsWithSLA > 0 
         ? Math.round((onTrackTickets / totalTicketsWithSLA) * 100) 
         : 100;
+
+      console.log(`📊 SLA Metrics: ${totalTicketsWithSLA} total, ${totalBreachedTickets} breached, ${slaCompliance}% compliance`);
 
       return {
         totalTicketsWithSLA,
