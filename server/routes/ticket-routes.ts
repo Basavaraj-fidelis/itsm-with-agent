@@ -1,5 +1,5 @@
 import type { Express } from "express";
-import { ticketStorage } from "./ticket-storage";
+import { ticketStorage } from "../services/ticket-storage";
 import { z } from "zod";
 
 const createTicketSchema = z.object({
@@ -198,7 +198,7 @@ export function registerTicketRoutes(app: Express) {
   // Get available technicians for assignment
   app.get("/api/users/technicians", async (req, res) => {
     try {
-      const { userStorage } = await import("./user-storage");
+      const { userStorage } = await import("../services/user-storage");
       const technicians = await userStorage.getActiveTechnicians();
       res.json(technicians);
     } catch (error) {

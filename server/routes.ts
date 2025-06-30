@@ -45,7 +45,7 @@ const authenticateToken = async (req: any, res: any, next: any) => {
 
     // Try to get user from database first
     const user = await AuthUtils.getUserById(decoded.userId || decoded.id);
-    
+
     if (user) {
       const statusCheck = AuthUtils.validateUserStatus(user);
       if (!statusCheck.valid) {
@@ -79,7 +79,7 @@ const authenticateToken = async (req: any, res: any, next: any) => {
 const requireRole = (roles: string | string[]) => {
   return (req: any, res: any, next: any) => {
     const userRole = req.user?.role;
-    
+
     if (AuthUtils.hasRole(userRole, roles)) {
       next();
     } else {
@@ -534,7 +534,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  
+
 
   // Report endpoint (from ITSM agents) - moved to ensure proper routing
   app.post("/api/report", async (req, res) => {
@@ -1643,7 +1643,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     authenticateToken,
     async (req, res) => {
       try {
-        const { automationService } = await import("./automation-service");
+        const { automationService } = await import("./services/automation-service");
         const packages = automationService.getSoftwarePackages();
         res.json(packages);
       } catch (error) {
@@ -1667,7 +1667,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .json({ message: "device_ids and package_id are required" });
         }
 
-        const { automationService } = await import("./automation-service");
+        const { automationService } = await import("./services/automation-service");
         const scheduledTime = scheduled_time
           ? new Date(scheduled_time)
           : new Date();
@@ -1698,7 +1698,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     authenticateToken,
     async (req, res) => {
       try {
-        const { automationService } = await import("./automation-service");
+        const { automationService } = await import("./services/automation-service");
         const deployment = await automationService.getDeploymentStatus(
           req.params.deploymentId,
         );
@@ -1839,7 +1839,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             reportData = {
               title: "Availability Report",
               period: period,
-              generated_at: new Date().toISOString(),
+              generated_at: new Date().toISOString(),<replit_final_file>
               total_devices: allDevices.length,
               online_devices: onlineDevices.length,
               availability_percentage: (
@@ -2389,7 +2389,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const agentId = req.params.id;
       const { command, description = "Remote command execution" } = req.body;
-      
+
       // Validate input
       if (!command || typeof command !== 'string') {
         return res.status(400).json({ 
@@ -2755,7 +2755,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const { reportName, format } = req.body;
 
-        // Mock report download
+        //        // Mock report download
         res.setHeader("Content-Type", "application/pdf");
         res.setHeader(
           "Content-Disposition",
@@ -3046,7 +3046,7 @@ For technical support, contact your system administrator.
       }
 
       const agentPath = path.join(process.cwd(), 'Agent');
-      
+
       if (!fs.existsSync(agentPath)) {
         console.error('Agent directory not found at:', agentPath);
         return res.status(404).json({ error: 'Agent files not found' });
