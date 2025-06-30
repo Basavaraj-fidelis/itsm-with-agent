@@ -323,4 +323,26 @@ router.post("/api/sla/fix-tickets", async (req, res) => {
   }
 });
 
+// Manual SLA breach check endpoint
+router.post("/api/sla/check-breaches", async (req, res) => {
+  try {
+    const { slaMonitorService } = await import("../services/sla-monitor-service");
+    
+    console.log("🔍 Manual SLA breach check initiated...");
+    await slaMonitorService.checkSLABreaches();
+    
+    // Get updated metrics
+    const metrics = await slaMonitorService.getSLAMetrics();
+    
+    res.json({
+      message: "SLA breach check completed",
+      metrics,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error("Error in manual SLA check:", error);
+    res.status(500).json({ error: "Failed to perform SLA check" });
+  }
+});
+
 export default router;

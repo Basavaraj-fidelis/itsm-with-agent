@@ -43,7 +43,7 @@ export class SLAMonitorService {
       console.log("🔍 Checking for SLA breaches...");
       const now = new Date();
 
-      // Get all open tickets (check both resolve_due_at and sla_resolution_due)
+      // Get all open tickets
       const openTickets = await db
         .select()
         .from(tickets)
@@ -59,6 +59,49 @@ export class SLAMonitorService {
         let needsUpdate = false;
         const updateData: any = {};
 
+        // Ensure ticket has SLA data - if not, calculate it now
+        if (!ticket.resolve_due_at && !ticket.sla_resolution_due) {
+          const { slaPolicyService } = await import("./sla-policy-service");
+          const policy = await slaPolicyService.findMatchingSLAPolicy({
+            type: ticket.type,
+            priority: ticket.priority,
+            impact: ticket.impact,
+            urgency: ticket.urgency,
+            category: ticket.category
+          });
+
+          if (policy) {
+            const slaTargets = slaPolicyService.calculateSLADueDates(
+              new Date(ticket.created_at),
+              policy
+            );
+
+            // Update ticket with SLA data
+            await db
+              .update(tickets)
+              .set({
+                sla_policy_id: policy.id,
+                sla_policy: policy.name,
+                sla_response_time: policy.response_time,
+                sla_resolution_time: policy.resolution_time,
+                response_due_at: slaTargets.responseDue,
+                resolve_due_at: slaTargets.resolutionDue,
+                sla_response_due: slaTargets.responseDue,
+                sla_resolution_due: slaTargets.resolutionDue,
+                updated_at: now
+              })
+              .where(eq(tickets.id, ticket.id));
+
+            // Update local ticket object
+            ticket.response_due_at = slaTargets.responseDue;
+            ticket.resolve_due_at = slaTargets.resolutionDue;
+            ticket.sla_response_due = slaTargets.responseDue;
+            ticket.sla_resolution_due = slaTargets.resolutionDue;
+            
+            console.log(`🔧 Auto-fixed SLA data for ticket ${ticket.ticket_number}`);
+          }
+        }
+
         // Check response SLA breach
         const responseDue = ticket.response_due_at || ticket.sla_response_due;
         if (responseDue && !ticket.first_response_at && !ticket.sla_response_breached) {
@@ -66,6 +109,7 @@ export class SLAMonitorService {
             updateData.sla_response_breached = true;
             needsUpdate = true;
             responseBreaches++;
+            console.log(`🚨 Response SLA breached for ticket ${ticket.ticket_number}`);
 
             // Send response breach notification
             await this.sendSLABreachNotification(ticket, 'response');
@@ -80,6 +124,7 @@ export class SLAMonitorService {
             updateData.sla_breached = true; // Legacy field
             needsUpdate = true;
             resolutionBreaches++;
+            console.log(`🚨 Resolution SLA breached for ticket ${ticket.ticket_number}`);
 
             // Send resolution breach notification
             await this.sendSLABreachNotification(ticket, 'resolution');
@@ -175,15 +220,14 @@ Immediate attention required!`;
     slaCompliance: number;
   }> {
     try {
-      // Get all open tickets (not just those with resolve_due_at)
-      const openTickets = await db
-        .select()
-        .from(tickets)
-        .where(
-          not(inArray(tickets.status, ['resolved', 'closed', 'cancelled']))
-        );
+      // Get all tickets (both open and closed) for proper SLA analysis
+      const allTickets = await db.select().from(tickets);
+      
+      const openTickets = allTickets.filter(t => 
+        !['resolved', 'closed', 'cancelled'].includes(t.status)
+      );
 
-      // Filter tickets that have SLA due dates
+      // Filter open tickets that have SLA due dates
       const ticketsWithSLA = openTickets.filter(t => 
         t.resolve_due_at || t.sla_resolution_due || 
         t.response_due_at || t.sla_response_due
