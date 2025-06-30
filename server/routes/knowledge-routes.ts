@@ -3,7 +3,7 @@ import { eq, desc, like, and, count } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 
 import { db } from "../db";
-import { knowledgeBase } from "@shared/ticket-schema";
+import { knowledgeSchema } from "@shared/knowledge-schema";
 import { TicketStorage } from "../services/ticket-storage";
 
 const router = Router();

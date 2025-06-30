@@ -1,9 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { registerTicketRoutes } from "./ticket-routes";
-import { registerDeviceRoutes } from "./device-routes";
-import { registerAgentRoutes } from "./agent-routes";
+import { registerTicketRoutes } from "./routes/ticket-routes";
+import { registerDeviceRoutes } from "./routes/device-routes";
+import { registerAgentRoutes } from "./routes/agent-routes";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 // Removed validation schema import - using flexible data parsing
@@ -12,13 +12,13 @@ import { userSchema } from "@shared/user-schema";
 import { adminSchema } from "@shared/admin-schema";
 import { knowledgeSchema } from "@shared/knowledge-schema";
 import { tickets } from "@shared/ticket-schema";
-import { userStorage } from "./user-storage";
+import { userStorage } from "./services/user-storage";
 import { knowledgeStorage } from "./knowledge-storage";
-import { ticketStorage } from "./ticket-storage";
-import { securityService } from "./security-service";
-import { performanceService } from "./performance-service";
-import { automationService } from "./automation-service";
-import { aiService } from "./ai-service";
+import { ticketStorage } from "./services/ticket-storage";
+import { securityService } from "./services/security-service";
+import { performanceService } from "./services/performance-service";
+import { automationService } from "./services/automation-service";
+import { aiService } from "./services/ai-service";
 
 // Import utility functions
 import { DatabaseUtils } from "./utils/database";
@@ -100,7 +100,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Initialize enhanced storage tables
   try {
-    const { enhancedStorage } = await import("./enhanced-storage");
+    const { enhancedStorage } = await import("./models/enhanced-storage");
     await enhancedStorage.initializeEnhancedTables();
     console.log("Enhanced storage tables initialized successfully");
   } catch (error) {
@@ -1680,11 +1680,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerAgentRoutes(app, authenticateToken, requireRole);
 
   // Register Active Directory routes
-  const { adRoutes } = await import("./ad-routes");
+  const { adRoutes } = await import("./routes/ad-routes");
   app.use("/api/ad", authenticateToken, requireRole(["admin"]), adRoutes);
 
   // Register agent download routes
-  const agentDownloadRoutes = await import("./agent-download-routes");
+  const agentDownloadRoutes = await import("./routes/agent-download-routes");
   app.use("/api/download/agent", agentDownloadRoutes.default);
 
   // Automation & Orchestration Endpoints

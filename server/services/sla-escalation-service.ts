@@ -1,5 +1,5 @@
 
-import { db } from "./db";
+import { db } from "../db";
 import { tickets } from "@shared/ticket-schema";
 import { slaPolicies, slaBreaches } from "@shared/sla-schema";
 import { users } from "@shared/user-schema";
