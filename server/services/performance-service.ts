@@ -1,4 +1,4 @@
-import { storage } from "./storage";
+import { storage } from "../storage";
 
 export interface PerformanceBaseline {
   device_id: string;
@@ -37,29 +37,44 @@ class PerformanceService {
 
     // CPU baseline
     if (metrics.cpu_usage !== null) {
-      await this.updateMetricBaseline(deviceId, "cpu", parseFloat(metrics.cpu_usage), deviceBaselines);
+      await this.updateMetricBaseline(
+        deviceId,
+        "cpu",
+        parseFloat(metrics.cpu_usage),
+        deviceBaselines,
+      );
     }
 
     // Memory baseline
     if (metrics.memory_usage !== null) {
-      await this.updateMetricBaseline(deviceId, "memory", parseFloat(metrics.memory_usage), deviceBaselines);
+      await this.updateMetricBaseline(
+        deviceId,
+        "memory",
+        parseFloat(metrics.memory_usage),
+        deviceBaselines,
+      );
     }
 
     // Disk baseline
     if (metrics.disk_usage !== null) {
-      await this.updateMetricBaseline(deviceId, "disk", parseFloat(metrics.disk_usage), deviceBaselines);
+      await this.updateMetricBaseline(
+        deviceId,
+        "disk",
+        parseFloat(metrics.disk_usage),
+        deviceBaselines,
+      );
     }
 
     this.baselines.set(deviceId, deviceBaselines);
   }
 
   private async updateMetricBaseline(
-    deviceId: string, 
-    metricType: "cpu" | "memory" | "disk" | "network", 
-    currentValue: number, 
-    baselines: PerformanceBaseline[]
+    deviceId: string,
+    metricType: "cpu" | "memory" | "disk" | "network",
+    currentValue: number,
+    baselines: PerformanceBaseline[],
   ): Promise<void> {
-    let baseline = baselines.find(b => b.metric_type === metricType);
+    let baseline = baselines.find((b) => b.metric_type === metricType);
 
     if (!baseline) {
       baseline = {
@@ -69,12 +84,13 @@ class PerformanceService {
         variance_threshold: this.getDefaultThreshold(metricType),
         measurement_period: "7d",
         created_at: new Date(),
-        updated_at: new Date()
+        updated_at: new Date(),
       };
       baselines.push(baseline);
     } else {
       // Moving average with 20% weight for new value
-      baseline.baseline_value = (baseline.baseline_value * 0.8) + (currentValue * 0.2);
+      baseline.baseline_value =
+        baseline.baseline_value * 0.8 + currentValue * 0.2;
       baseline.updated_at = new Date();
     }
 
@@ -84,24 +100,37 @@ class PerformanceService {
 
   private getDefaultThreshold(metricType: string): number {
     switch (metricType) {
-      case "cpu": return 25; // 25% deviation
-      case "memory": return 20; // 20% deviation
-      case "disk": return 15; // 15% deviation
-      case "network": return 50; // 50% deviation
-      default: return 30;
+      case "cpu":
+        return 25; // 25% deviation
+      case "memory":
+        return 20; // 20% deviation
+      case "disk":
+        return 15; // 15% deviation
+      case "network":
+        return 50; // 50% deviation
+      default:
+        return 30;
     }
   }
 
   private async checkForAnomalies(
-    deviceId: string, 
-    metricType: string, 
-    currentValue: number, 
-    baseline: PerformanceBaseline
+    deviceId: string,
+    metricType: string,
+    currentValue: number,
+    baseline: PerformanceBaseline,
   ): Promise<void> {
-    const deviationPercentage = Math.abs((currentValue - baseline.baseline_value) / baseline.baseline_value) * 100;
+    const deviationPercentage =
+      Math.abs(
+        (currentValue - baseline.baseline_value) / baseline.baseline_value,
+      ) * 100;
 
     if (deviationPercentage > baseline.variance_threshold) {
-      const severity = deviationPercentage > 50 ? "high" : deviationPercentage > 30 ? "medium" : "low";
+      const severity =
+        deviationPercentage > 50
+          ? "high"
+          : deviationPercentage > 30
+            ? "medium"
+            : "low";
 
       const anomaly: PerformanceAnomaly = {
         device_id: deviceId,
@@ -110,7 +139,7 @@ class PerformanceService {
         baseline_value: baseline.baseline_value,
         deviation_percentage: deviationPercentage,
         severity: severity,
-        detected_at: new Date()
+        detected_at: new Date(),
       };
 
       await storage.createAlert({
@@ -123,57 +152,65 @@ class PerformanceService {
           metric_type: metricType,
           baseline_value: baseline.baseline_value,
           current_value: currentValue,
-          deviation_percentage: deviationPercentage
+          deviation_percentage: deviationPercentage,
         },
-        is_active: true
+        is_active: true,
       });
     }
   }
 
-  async generateResourcePredictions(deviceId: string): Promise<ResourcePrediction[]> {
+  async generateResourcePredictions(
+    deviceId: string,
+  ): Promise<ResourcePrediction[]> {
     try {
       console.log(`Generating resource predictions for device: ${deviceId}`);
 
-    const predictions: ResourcePrediction[] = [];
+      const predictions: ResourcePrediction[] = [];
 
-    // Get historical data for the last 30 days
-    const reports = await storage.getRecentDeviceReports(deviceId, 30);
-    const recentReports = reports; // Already limited to recent reports
+      // Get historical data for the last 30 days
+      const reports = await storage.getRecentDeviceReports(deviceId, 30);
+      const recentReports = reports; // Already limited to recent reports
 
-    if (recentReports.length < 7) {
-      return predictions; // Need at least a week of data
-    }
+      if (recentReports.length < 7) {
+        return predictions; // Need at least a week of data
+      }
 
-    // Analyze trends for each resource
-    const resources = ["cpu", "memory", "disk"];
+      // Analyze trends for each resource
+      const resources = ["cpu", "memory", "disk"];
 
-    for (const resource of resources) {
-      const values = recentReports
-        .map(r => parseFloat(r[`${resource}_usage`] || "0"))
-        .filter(v => !isNaN(v));
+      for (const resource of resources) {
+        const values = recentReports
+          .map((r) => parseFloat(r[`${resource}_usage`] || "0"))
+          .filter((v) => !isNaN(v));
 
-      if (values.length < 5) continue;
+        if (values.length < 5) continue;
 
-      const trend = this.calculateTrend(values);
+        const trend = this.calculateTrend(values);
 
-      if (trend > 0.1) { // Increasing trend > 0.1% per day
-        const currentAvg = values.slice(-7).reduce((a, b) => a + b, 0) / 7;
-        const daysToCapacity = (95 - currentAvg) / trend;
+        if (trend > 0.1) {
+          // Increasing trend > 0.1% per day
+          const currentAvg = values.slice(-7).reduce((a, b) => a + b, 0) / 7;
+          const daysToCapacity = (95 - currentAvg) / trend;
 
-        if (daysToCapacity > 0 && daysToCapacity < 365) {
-          predictions.push({
-            device_id: deviceId,
-            resource_type: resource as "cpu" | "memory" | "disk",
-            current_usage_trend: trend,
-            predicted_capacity_date: new Date(Date.now() + daysToCapacity * 24 * 60 * 60 * 1000),
-            confidence_level: Math.min(0.9, values.length / 30),
-            recommendation: this.getResourceRecommendation(resource, daysToCapacity)
-          });
+          if (daysToCapacity > 0 && daysToCapacity < 365) {
+            predictions.push({
+              device_id: deviceId,
+              resource_type: resource as "cpu" | "memory" | "disk",
+              current_usage_trend: trend,
+              predicted_capacity_date: new Date(
+                Date.now() + daysToCapacity * 24 * 60 * 60 * 1000,
+              ),
+              confidence_level: Math.min(0.9, values.length / 30),
+              recommendation: this.getResourceRecommendation(
+                resource,
+                daysToCapacity,
+              ),
+            });
+          }
         }
       }
-    }
 
-    return predictions;
+      return predictions;
     } catch (error) {
       console.error("Error in generateResourcePredictions:", error);
       return [];
@@ -193,7 +230,10 @@ class PerformanceService {
     return (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
   }
 
-  private getResourceRecommendation(resource: string, daysToCapacity: number): string {
+  private getResourceRecommendation(
+    resource: string,
+    daysToCapacity: number,
+  ): string {
     if (daysToCapacity < 30) {
       return `Urgent: ${resource} capacity will be reached in ${Math.round(daysToCapacity)} days. Immediate action required.`;
     } else if (daysToCapacity < 90) {
@@ -205,16 +245,19 @@ class PerformanceService {
 
   async getApplicationPerformanceInsights(deviceId: string) {
     try {
-      const { pool } = await import('./db');
+      const { pool } = await import("./db");
 
       // Get latest system report for the device
-      const reportResult = await pool.query(`
+      const reportResult = await pool.query(
+        `
         SELECT raw_data, collected_at, cpu_usage, memory_usage, disk_usage
         FROM device_reports 
         WHERE device_id = $1 
         ORDER BY collected_at DESC 
         LIMIT 1
-      `, [deviceId]);
+      `,
+        [deviceId],
+      );
 
       if (reportResult.rows.length === 0) {
         console.log(`No reports found for device ${deviceId}`);
@@ -228,7 +271,7 @@ class PerformanceService {
         hasRawData: !!rawData,
         reportTime: report.collected_at,
         cpu: report.cpu_usage,
-        memory: report.memory_usage
+        memory: report.memory_usage,
       });
 
       // Extract process information from raw_data
@@ -240,23 +283,29 @@ class PerformanceService {
         // If no processes but we have system metrics, create basic insights
         if (report.cpu_usage || report.memory_usage) {
           return {
-            top_cpu_consumers: [{
-              name: 'System Total',
-              cpu_percent: parseFloat(report.cpu_usage || '0'),
-              memory_percent: parseFloat(report.memory_usage || '0'),
-              pid: 0
-            }],
-            top_memory_consumers: [{
-              name: 'System Total',
-              cpu_percent: parseFloat(report.cpu_usage || '0'),
-              memory_percent: parseFloat(report.memory_usage || '0'),
-              pid: 0
-            }],
+            top_cpu_consumers: [
+              {
+                name: "System Total",
+                cpu_percent: parseFloat(report.cpu_usage || "0"),
+                memory_percent: parseFloat(report.memory_usage || "0"),
+                pid: 0,
+              },
+            ],
+            top_memory_consumers: [
+              {
+                name: "System Total",
+                cpu_percent: parseFloat(report.cpu_usage || "0"),
+                memory_percent: parseFloat(report.memory_usage || "0"),
+                pid: 0,
+              },
+            ],
             total_processes: 0,
             system_load_analysis: {
-              high_cpu_processes: parseFloat(report.cpu_usage || '0') > 80 ? 1 : 0,
-              high_memory_processes: parseFloat(report.memory_usage || '0') > 85 ? 1 : 0
-            }
+              high_cpu_processes:
+                parseFloat(report.cpu_usage || "0") > 80 ? 1 : 0,
+              high_memory_processes:
+                parseFloat(report.memory_usage || "0") > 85 ? 1 : 0,
+            },
           };
         }
 
@@ -267,46 +316,67 @@ class PerformanceService {
 
       // Sort processes by CPU usage
       const cpuSorted = processes
-        .filter(p => p.cpu_percent !== undefined && p.cpu_percent !== null && parseFloat(p.cpu_percent.toString()) > 0)
-        .sort((a, b) => parseFloat(b.cpu_percent.toString()) - parseFloat(a.cpu_percent.toString()))
+        .filter(
+          (p) =>
+            p.cpu_percent !== undefined &&
+            p.cpu_percent !== null &&
+            parseFloat(p.cpu_percent.toString()) > 0,
+        )
+        .sort(
+          (a, b) =>
+            parseFloat(b.cpu_percent.toString()) -
+            parseFloat(a.cpu_percent.toString()),
+        )
         .slice(0, 10);
 
-      // Sort processes by memory usage  
+      // Sort processes by memory usage
       const memorySorted = processes
-        .filter(p => p.memory_percent !== undefined && p.memory_percent !== null && parseFloat(p.memory_percent.toString()) > 0)
-        .sort((a, b) => parseFloat(b.memory_percent.toString()) - parseFloat(a.memory_percent.toString()))
+        .filter(
+          (p) =>
+            p.memory_percent !== undefined &&
+            p.memory_percent !== null &&
+            parseFloat(p.memory_percent.toString()) > 0,
+        )
+        .sort(
+          (a, b) =>
+            parseFloat(b.memory_percent.toString()) -
+            parseFloat(a.memory_percent.toString()),
+        )
         .slice(0, 10);
 
       const insights = {
-        top_cpu_consumers: cpuSorted.map(p => ({
-          name: p.name || p.process_name || 'Unknown',
-          cpu_percent: parseFloat(p.cpu_percent?.toString() || '0'),
-          memory_percent: parseFloat(p.memory_percent?.toString() || '0'),
-          pid: parseInt(p.pid?.toString() || '0')
+        top_cpu_consumers: cpuSorted.map((p) => ({
+          name: p.name || p.process_name || "Unknown",
+          cpu_percent: parseFloat(p.cpu_percent?.toString() || "0"),
+          memory_percent: parseFloat(p.memory_percent?.toString() || "0"),
+          pid: parseInt(p.pid?.toString() || "0"),
         })),
-        top_memory_consumers: memorySorted.map(p => ({
-          name: p.name || p.process_name || 'Unknown',
-          cpu_percent: parseFloat(p.cpu_percent?.toString() || '0'),
-          memory_percent: parseFloat(p.memory_percent?.toString() || '0'),
-          pid: parseInt(p.pid?.toString() || '0')
+        top_memory_consumers: memorySorted.map((p) => ({
+          name: p.name || p.process_name || "Unknown",
+          cpu_percent: parseFloat(p.cpu_percent?.toString() || "0"),
+          memory_percent: parseFloat(p.memory_percent?.toString() || "0"),
+          pid: parseInt(p.pid?.toString() || "0"),
         })),
         total_processes: processes.length,
         system_load_analysis: {
-          high_cpu_processes: processes.filter(p => parseFloat(p.cpu_percent?.toString() || '0') > 50).length,
-          high_memory_processes: processes.filter(p => parseFloat(p.memory_percent?.toString() || '0') > 10).length
-        }
+          high_cpu_processes: processes.filter(
+            (p) => parseFloat(p.cpu_percent?.toString() || "0") > 50,
+          ).length,
+          high_memory_processes: processes.filter(
+            (p) => parseFloat(p.memory_percent?.toString() || "0") > 10,
+          ).length,
+        },
       };
 
       console.log(`Performance insights for device ${deviceId}:`, {
         topCpuCount: insights.top_cpu_consumers.length,
         topMemoryCount: insights.top_memory_consumers.length,
-        totalProcesses: insights.total_processes
+        totalProcesses: insights.total_processes,
       });
 
       return insights;
-
     } catch (error) {
-      console.error('Error getting performance insights:', error);
+      console.error("Error getting performance insights:", error);
       return this.getDefaultInsights();
     }
   }
@@ -318,8 +388,8 @@ class PerformanceService {
       total_processes: 0,
       system_load_analysis: {
         high_cpu_processes: 0,
-        high_memory_processes: 0
-      }
+        high_memory_processes: 0,
+      },
     };
   }
 }

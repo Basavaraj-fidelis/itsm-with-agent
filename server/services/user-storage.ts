@@ -1,16 +1,15 @@
-
-import { db } from "./db";
-import { 
-  users, 
-  departments, 
-  userActivity, 
+import { db } from "../db";
+import {
+  users,
+  departments,
+  userActivity,
   userSessions,
-  type User, 
+  type User,
   type NewUser,
   type Department,
   type NewDepartment,
   type UserActivity,
-  type NewUserActivity
+  type NewUserActivity,
 } from "@shared/user-schema";
 import { eq, desc, and, or, like, sql, count, isNull } from "drizzle-orm";
 import { randomBytes } from "crypto";
@@ -32,17 +31,21 @@ interface PaginatedResult<T> {
 
 export class UserStorage {
   // User CRUD Operations
-  async createUser(userData: Omit<NewUser, 'id'>): Promise<User> {
+  async createUser(userData: Omit<NewUser, "id">): Promise<User> {
     const [newUser] = await db
       .insert(users)
       .values({
         ...userData,
-        updated_at: new Date()
+        updated_at: new Date(),
       })
       .returning();
 
     // Log user creation activity
-    await this.logUserActivity(newUser.id, 'user_created', 'User account created');
+    await this.logUserActivity(
+      newUser.id,
+      "user_created",
+      "User account created",
+    );
 
     return newUser;
   }
@@ -50,7 +53,7 @@ export class UserStorage {
   async getUsers(
     page: number = 1,
     limit: number = 20,
-    filters: UserFilters = {}
+    filters: UserFilters = {},
   ): Promise<PaginatedResult<User & { department_name?: string }>> {
     const offset = (page - 1) * limit;
 
@@ -76,8 +79,8 @@ export class UserStorage {
           like(users.last_name, `%${filters.search}%`),
           like(users.email, `%${filters.search}%`),
           like(users.username, `%${filters.search}%`),
-          like(users.employee_id, `%${filters.search}%`)
-        )
+          like(users.employee_id, `%${filters.search}%`),
+        ),
       );
     }
 
@@ -129,24 +132,18 @@ export class UserStorage {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(total / limit),
     };
   }
 
   async getUserById(id: string): Promise<User | null> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, id));
+    const [user] = await db.select().from(users).where(eq(users.id, id));
 
     return user || null;
   }
 
   async getUserByEmail(email: string): Promise<User | null> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email));
+    const [user] = await db.select().from(users).where(eq(users.email, email));
 
     return user || null;
   }
@@ -161,7 +158,7 @@ export class UserStorage {
       .returning();
 
     if (updatedUser) {
-      await this.logUserActivity(id, 'user_updated', 'User profile updated');
+      await this.logUserActivity(id, "user_updated", "User profile updated");
     }
 
     return updatedUser || null;
@@ -171,14 +168,18 @@ export class UserStorage {
     // Soft delete - mark as inactive instead of removing
     const result = await db
       .update(users)
-      .set({ 
-        is_active: false, 
-        updated_at: new Date() 
+      .set({
+        is_active: false,
+        updated_at: new Date(),
       })
       .where(eq(users.id, id));
 
     if (result.rowCount > 0) {
-      await this.logUserActivity(id, 'user_deleted', 'User account deactivated');
+      await this.logUserActivity(
+        id,
+        "user_deleted",
+        "User account deactivated",
+      );
       return true;
     }
 
@@ -186,12 +187,14 @@ export class UserStorage {
   }
 
   // Department Operations
-  async createDepartment(deptData: Omit<NewDepartment, 'id'>): Promise<Department> {
+  async createDepartment(
+    deptData: Omit<NewDepartment, "id">,
+  ): Promise<Department> {
     const [newDepartment] = await db
       .insert(departments)
       .values({
         ...deptData,
-        updated_at: new Date()
+        updated_at: new Date(),
       })
       .returning();
 
@@ -215,7 +218,10 @@ export class UserStorage {
     return department || null;
   }
 
-  async updateDepartment(id: string, updates: Partial<Department>): Promise<Department | null> {
+  async updateDepartment(
+    id: string,
+    updates: Partial<Department>,
+  ): Promise<Department | null> {
     updates.updated_at = new Date();
 
     const [updatedDept] = await db
@@ -232,12 +238,7 @@ export class UserStorage {
     return await db
       .select()
       .from(users)
-      .where(
-        and(
-          eq(users.role, 'technician'),
-          eq(users.is_active, true)
-        )
-      )
+      .where(and(eq(users.role, "technician"), eq(users.is_active, true)))
       .orderBy(users.first_name, users.last_name);
   }
 
@@ -247,12 +248,9 @@ export class UserStorage {
       .from(users)
       .where(
         and(
-          or(
-            eq(users.role, 'manager'),
-            eq(users.role, 'admin')
-          ),
-          eq(users.is_active, true)
-        )
+          or(eq(users.role, "manager"), eq(users.role, "admin")),
+          eq(users.is_active, true),
+        ),
       )
       .orderBy(users.first_name, users.last_name);
   }
@@ -263,10 +261,10 @@ export class UserStorage {
       .from(users)
       .where(
         and(
-          eq(users.role, 'technician'),
+          eq(users.role, "technician"),
           eq(users.is_active, true),
-          eq(users.is_locked, false)
-        )
+          eq(users.is_locked, false),
+        ),
       )
       .orderBy(users.first_name, users.last_name);
   }
@@ -274,7 +272,7 @@ export class UserStorage {
   async getNextAvailableTechnician(): Promise<User | null> {
     // Simple round-robin assignment - get technician with least active tickets
     const technicians = await this.getActiveTechnicians();
-    
+
     if (technicians.length === 0) return null;
 
     // For now, return the first available technician
@@ -289,7 +287,7 @@ export class UserStorage {
     description: string,
     ipAddress?: string,
     userAgent?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
   ): Promise<void> {
     try {
       await db.insert(userActivity).values({
@@ -298,7 +296,7 @@ export class UserStorage {
         description,
         ip_address: ipAddress || null,
         user_agent: userAgent || null,
-        metadata: metadata || {}
+        metadata: metadata || {},
       });
     } catch (error) {
       console.error("Error logging user activity:", error);
@@ -308,7 +306,7 @@ export class UserStorage {
   async getUserActivity(
     userId: string,
     page: number = 1,
-    limit: number = 20
+    limit: number = 20,
   ): Promise<PaginatedResult<UserActivity>> {
     const offset = (page - 1) * limit;
 
@@ -330,23 +328,29 @@ export class UserStorage {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(total / limit),
     };
   }
 
   // Bulk Operations
-  async bulkCreateUsers(usersData: Omit<NewUser, 'id'>[]): Promise<User[]> {
+  async bulkCreateUsers(usersData: Omit<NewUser, "id">[]): Promise<User[]> {
     const createdUsers = await db
       .insert(users)
-      .values(usersData.map(user => ({
-        ...user,
-        updated_at: new Date()
-      })))
+      .values(
+        usersData.map((user) => ({
+          ...user,
+          updated_at: new Date(),
+        })),
+      )
       .returning();
 
     // Log bulk creation
     for (const user of createdUsers) {
-      await this.logUserActivity(user.id, 'user_created', 'User account created via bulk import');
+      await this.logUserActivity(
+        user.id,
+        "user_created",
+        "User account created via bulk import",
+      );
     }
 
     return createdUsers;
@@ -356,45 +360,52 @@ export class UserStorage {
     const { data: users } = await this.getUsers(1, 10000, filters); // Get all matching users
 
     const headers = [
-      'Employee ID',
-      'Email',
-      'Username', 
-      'First Name',
-      'Last Name',
-      'Role',
-      'Department',
-      'Job Title',
-      'Phone',
-      'Location',
-      'Is Active',
-      'Last Login',
-      'Created At'
+      "Employee ID",
+      "Email",
+      "Username",
+      "First Name",
+      "Last Name",
+      "Role",
+      "Department",
+      "Job Title",
+      "Phone",
+      "Location",
+      "Is Active",
+      "Last Login",
+      "Created At",
     ];
 
     const csvRows = [
-      headers.join(','),
-      ...users.map(user => [
-        user.employee_id || '',
-        user.email,
-        user.username,
-        user.first_name || '',
-        user.last_name || '',
-        user.role,
-        user.department_name || '',
-        user.job_title || '',
-        user.phone || '',
-        user.location || '',
-        user.is_active ? 'Yes' : 'No',
-        user.last_login?.toISOString() || '',
-        user.created_at?.toISOString() || ''
-      ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
+      headers.join(","),
+      ...users.map((user) =>
+        [
+          user.employee_id || "",
+          user.email,
+          user.username,
+          user.first_name || "",
+          user.last_name || "",
+          user.role,
+          user.department_name || "",
+          user.job_title || "",
+          user.phone || "",
+          user.location || "",
+          user.is_active ? "Yes" : "No",
+          user.last_login?.toISOString() || "",
+          user.created_at?.toISOString() || "",
+        ]
+          .map((field) => `"${String(field).replace(/"/g, '""')}"`)
+          .join(","),
+      ),
     ];
 
-    return csvRows.join('\n');
+    return csvRows.join("\n");
   }
 
   // Password and Security
-  async updatePassword(userId: string, hashedPassword: string): Promise<boolean> {
+  async updatePassword(
+    userId: string,
+    hashedPassword: string,
+  ): Promise<boolean> {
     const result = await db
       .update(users)
       .set({
@@ -402,12 +413,16 @@ export class UserStorage {
         last_password_change: new Date(),
         password_reset_required: false,
         failed_login_attempts: 0,
-        updated_at: new Date()
+        updated_at: new Date(),
       })
       .where(eq(users.id, userId));
 
     if (result.rowCount > 0) {
-      await this.logUserActivity(userId, 'password_changed', 'User password updated');
+      await this.logUserActivity(
+        userId,
+        "password_changed",
+        "User password updated",
+      );
       return true;
     }
 
@@ -419,12 +434,16 @@ export class UserStorage {
       .update(users)
       .set({
         is_locked: true,
-        updated_at: new Date()
+        updated_at: new Date(),
       })
       .where(eq(users.id, userId));
 
     if (result.rowCount > 0) {
-      await this.logUserActivity(userId, 'user_locked', `User account locked: ${reason}`);
+      await this.logUserActivity(
+        userId,
+        "user_locked",
+        `User account locked: ${reason}`,
+      );
       return true;
     }
 
@@ -437,12 +456,16 @@ export class UserStorage {
       .set({
         is_locked: false,
         failed_login_attempts: 0,
-        updated_at: new Date()
+        updated_at: new Date(),
       })
       .where(eq(users.id, userId));
 
     if (result.rowCount > 0) {
-      await this.logUserActivity(userId, 'user_unlocked', 'User account unlocked');
+      await this.logUserActivity(
+        userId,
+        "user_unlocked",
+        "User account unlocked",
+      );
       return true;
     }
 

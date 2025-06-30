@@ -1,14 +1,14 @@
-import { db } from "./db";
-import { 
-  tickets, 
-  ticketComments, 
+import { db } from "../db";
+import {
+  tickets,
+  ticketComments,
   knowledgeBase,
-  type Ticket, 
+  type Ticket,
   type NewTicket,
   type TicketComment,
   type NewTicketComment,
   type KnowledgeBaseArticle,
-  type NewKnowledgeBaseArticle
+  type NewKnowledgeBaseArticle,
 } from "@shared/ticket-schema";
 import { auditLog } from "@shared/admin-schema";
 import { eq, desc, and, or, like, sql, count } from "drizzle-orm";
@@ -43,16 +43,19 @@ export class TicketStorage {
       .where(
         and(
           eq(tickets.type, type),
-          sql`EXTRACT(YEAR FROM ${tickets.created_at}) = ${year}`
-        )
+          sql`EXTRACT(YEAR FROM ${tickets.created_at}) = ${year}`,
+        ),
       );
 
     const nextNumber = (result.count || 0) + 1;
-    return `${prefix}-${year}-${nextNumber.toString().padStart(3, '0')}`;
+    return `${prefix}-${year}-${nextNumber.toString().padStart(3, "0")}`;
   }
 
   // CRUD Operations for Tickets
-  async createTicket(ticketData: Omit<NewTicket, 'ticket_number'>, userEmail?: string): Promise<Ticket> {
+  async createTicket(
+    ticketData: Omit<NewTicket, "ticket_number">,
+    userEmail?: string,
+  ): Promise<Ticket> {
     const ticket_number = await this.generateTicketNumber(ticketData.type);
 
     // Auto-assign to available technician
@@ -61,34 +64,48 @@ export class TicketStorage {
     // Calculate SLA due dates using policy service
     const { slaPolicyService } = await import("./sla-policy-service");
     await slaPolicyService.ensureDefaultSLAPolicies();
-    
+
     const slaPolicy = await slaPolicyService.findMatchingSLAPolicy({
       type: ticketData.type,
       priority: ticketData.priority,
       impact: ticketData.impact,
       urgency: ticketData.urgency,
-      category: ticketData.category
+      category: ticketData.category,
     });
 
     let slaResponseDue: Date | null = null;
     let slaResolutionDue: Date | null = null;
-    let slaTargets = { policy: 'Default', responseTime: 240, resolutionTime: 1440 };
+    let slaTargets = {
+      policy: "Default",
+      responseTime: 240,
+      resolutionTime: 1440,
+    };
 
     if (slaPolicy) {
-      const dueDates = slaPolicyService.calculateSLADueDates(new Date(), slaPolicy);
+      const dueDates = slaPolicyService.calculateSLADueDates(
+        new Date(),
+        slaPolicy,
+      );
       slaResponseDue = dueDates.responseDue;
       slaResolutionDue = dueDates.resolutionDue;
       slaTargets = {
         policy: slaPolicy.name,
         responseTime: slaPolicy.response_time,
-        resolutionTime: slaPolicy.resolution_time
+        resolutionTime: slaPolicy.resolution_time,
       };
     } else {
       // Fallback to old logic if no policy found
-      const fallbackTargets = this.calculateSLATargets(ticketData.priority, ticketData.type);
+      const fallbackTargets = this.calculateSLATargets(
+        ticketData.priority,
+        ticketData.type,
+      );
       const now = new Date();
-      slaResponseDue = new Date(now.getTime() + (fallbackTargets.responseTime * 60 * 1000));
-      slaResolutionDue = new Date(now.getTime() + (fallbackTargets.resolutionTime * 60 * 1000));
+      slaResponseDue = new Date(
+        now.getTime() + fallbackTargets.responseTime * 60 * 1000,
+      );
+      slaResolutionDue = new Date(
+        now.getTime() + fallbackTargets.resolutionTime * 60 * 1000,
+      );
       slaTargets = fallbackTargets;
     }
 
@@ -115,14 +132,22 @@ export class TicketStorage {
       .returning();
 
     // Log audit event
-    await this.logAudit('ticket', newTicket.id, 'create', undefined, userEmail, null, newTicket);
+    await this.logAudit(
+      "ticket",
+      newTicket.id,
+      "create",
+      undefined,
+      userEmail,
+      null,
+      newTicket,
+    );
 
     // Add auto-assignment comment if assigned
     if (assignedTechnician) {
       await this.addComment(newTicket.id, {
         comment: `Ticket automatically assigned to ${assignedTechnician.email}`,
         author_email: "system@company.com",
-        is_internal: true
+        is_internal: true,
       });
     }
 
@@ -130,9 +155,9 @@ export class TicketStorage {
   }
 
   async getTickets(
-    page: number = 1, 
-    limit: number = 20, 
-    filters: TicketFilters = {}
+    page: number = 1,
+    limit: number = 20,
+    filters: TicketFilters = {},
   ): Promise<PaginatedResult<Ticket>> {
     const offset = (page - 1) * limit;
 
@@ -156,8 +181,8 @@ export class TicketStorage {
         or(
           like(tickets.title, `%${filters.search}%`),
           like(tickets.description, `%${filters.search}%`),
-          like(tickets.ticket_number, `%${filters.search}%`)
-        )
+          like(tickets.ticket_number, `%${filters.search}%`),
+        ),
       );
     }
 
@@ -183,60 +208,73 @@ export class TicketStorage {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(total / limit),
     };
   }
 
   async getTicketById(id: string): Promise<Ticket | null> {
-    const [ticket] = await db
-      .select()
-      .from(tickets)
-      .where(eq(tickets.id, id));
+    const [ticket] = await db.select().from(tickets).where(eq(tickets.id, id));
 
     return ticket || null;
   }
 
   async updateTicket(
-    id: string, 
-    updates: Partial<Ticket>, 
-    userEmail: string = 'admin@company.com',
-    comment?: string
+    id: string,
+    updates: Partial<Ticket>,
+    userEmail: string = "admin@company.com",
+    comment?: string,
   ): Promise<Ticket | null> {
     try {
       // Get current ticket to check assignment
       const currentTicket = await this.getTicketById(id);
       if (!currentTicket) {
-        throw new Error('Ticket not found');
+        throw new Error("Ticket not found");
       }
 
       // Check if comment is required for certain status changes
-      if (updates.status && ['resolved', 'closed', 'cancelled'].includes(updates.status) && !comment) {
-        throw new Error('Comment required when resolving, closing, or cancelling tickets');
+      if (
+        updates.status &&
+        ["resolved", "closed", "cancelled"].includes(updates.status) &&
+        !comment
+      ) {
+        throw new Error(
+          "Comment required when resolving, closing, or cancelling tickets",
+        );
       }
 
       // Validate assignment for status changes that require it
       if (updates.status) {
-        const statusesRequiringAssignment = ['in_progress', 'pending', 'resolved'];
+        const statusesRequiringAssignment = [
+          "in_progress",
+          "pending",
+          "resolved",
+        ];
         if (statusesRequiringAssignment.includes(updates.status)) {
           const assignedTo = updates.assigned_to || currentTicket.assigned_to;
           if (!assignedTo) {
-            throw new Error(`Ticket must be assigned before moving to ${updates.status} status`);
+            throw new Error(
+              `Ticket must be assigned before moving to ${updates.status} status`,
+            );
           }
         }
       }
 
       // Auto-assign when status changes to 'assigned' without explicit assignment
-      if (updates.status === 'assigned' && !updates.assigned_to && !currentTicket.assigned_to) {
+      if (
+        updates.status === "assigned" &&
+        !updates.assigned_to &&
+        !currentTicket.assigned_to
+      ) {
         updates.assigned_to = userEmail;
       }
 
       // Set resolved_at timestamp when status changes to resolved
-      if (updates.status === 'resolved' && !updates.resolved_at) {
+      if (updates.status === "resolved" && !updates.resolved_at) {
         updates.resolved_at = new Date();
       }
 
       // Set closed_at timestamp when status changes to closed
-      if (updates.status === 'closed' && !updates.closed_at) {
+      if (updates.status === "closed" && !updates.closed_at) {
         updates.closed_at = new Date();
       }
 
@@ -255,32 +293,46 @@ export class TicketStorage {
         }
       }
 
-       // Set resolved/closed timestamps and check SLA breach
-      if (updates.status === 'resolved' && !updates.resolved_at) {
+      // Set resolved/closed timestamps and check SLA breach
+      if (updates.status === "resolved" && !updates.resolved_at) {
         updates.resolved_at = new Date();
 
         // Check if resolution was within SLA
-        const [currentTicket] = await db.select().from(tickets).where(eq(tickets.id, id));
+        const [currentTicket] = await db
+          .select()
+          .from(tickets)
+          .where(eq(tickets.id, id));
         if (currentTicket?.sla_resolution_due) {
-          const wasBreached = new Date() > new Date(currentTicket.sla_resolution_due);
+          const wasBreached =
+            new Date() > new Date(currentTicket.sla_resolution_due);
           updates.sla_breached = wasBreached;
 
-          if (!currentTicket.first_response_at && currentTicket.sla_response_due) {
+          if (
+            !currentTicket.first_response_at &&
+            currentTicket.sla_response_due
+          ) {
             updates.first_response_at = new Date();
           }
         }
       }
 
-      if (updates.status === 'closed' && !updates.closed_at) {
+      if (updates.status === "closed" && !updates.closed_at) {
         updates.closed_at = new Date();
       }
 
       // If priority changed, recalculate SLA
       if (updates.priority && updates.priority !== currentTicket.priority) {
-        const slaTargets = this.calculateSLATargets(updates.priority, currentTicket.type);
+        const slaTargets = this.calculateSLATargets(
+          updates.priority,
+          currentTicket.type,
+        );
         const baseTime = new Date(currentTicket.created_at);
-        const slaResponseDue = new Date(baseTime.getTime() + (slaTargets.responseTime * 60 * 1000));
-        const slaResolutionDue = new Date(baseTime.getTime() + (slaTargets.resolutionTime * 60 * 1000));
+        const slaResponseDue = new Date(
+          baseTime.getTime() + slaTargets.responseTime * 60 * 1000,
+        );
+        const slaResolutionDue = new Date(
+          baseTime.getTime() + slaTargets.resolutionTime * 60 * 1000,
+        );
 
         updates.sla_policy = slaTargets.policy;
         updates.sla_response_time = slaTargets.responseTime;
@@ -308,32 +360,33 @@ export class TicketStorage {
         await this.addComment(id, {
           comment,
           author_email: userEmail,
-          is_internal: false
+          is_internal: false,
         });
       }
 
       return updatedTicket;
     } catch (error) {
-      console.error('Error updating ticket:', error);
+      console.error("Error updating ticket:", error);
       throw error;
     }
   }
 
   async deleteTicket(id: string): Promise<boolean> {
-    const result = await db
-      .delete(tickets)
-      .where(eq(tickets.id, id));
+    const result = await db.delete(tickets).where(eq(tickets.id, id));
 
     return result.rowCount > 0;
   }
 
   // Comment Operations
-  async addComment(ticketId: string, commentData: Omit<NewTicketComment, 'ticket_id'>): Promise<TicketComment> {
+  async addComment(
+    ticketId: string,
+    commentData: Omit<NewTicketComment, "ticket_id">,
+  ): Promise<TicketComment> {
     const [comment] = await db
       .insert(ticketComments)
       .values({
         ...commentData,
-        ticket_id: ticketId
+        ticket_id: ticketId,
       })
       .returning();
 
@@ -349,7 +402,9 @@ export class TicketStorage {
   }
 
   // Knowledge Base Operations
-  async createKBArticle(articleData: NewKnowledgeBaseArticle): Promise<KnowledgeBaseArticle> {
+  async createKBArticle(
+    articleData: NewKnowledgeBaseArticle,
+  ): Promise<KnowledgeBaseArticle> {
     const [article] = await db
       .insert(knowledgeBase)
       .values(articleData)
@@ -361,7 +416,7 @@ export class TicketStorage {
   async getKBArticles(
     page: number = 1,
     limit: number = 20,
-    filters: { category?: string; search?: string; status?: string } = {}
+    filters: { category?: string; search?: string; status?: string } = {},
   ): Promise<PaginatedResult<KnowledgeBaseArticle>> {
     const offset = (page - 1) * limit;
 
@@ -379,8 +434,8 @@ export class TicketStorage {
       conditions.push(
         or(
           like(knowledgeBase.title, `%${filters.search}%`),
-          like(knowledgeBase.content, `%${filters.search}%`)
-        )
+          like(knowledgeBase.content, `%${filters.search}%`),
+        ),
       );
     }
 
@@ -404,7 +459,7 @@ export class TicketStorage {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(total / limit),
     };
   }
 
@@ -417,12 +472,15 @@ export class TicketStorage {
     return article || null;
   }
 
-  async updateKBArticle(id: string, updates: Partial<NewKnowledgeBaseArticle>): Promise<KnowledgeBaseArticle | null> {
+  async updateKBArticle(
+    id: string,
+    updates: Partial<NewKnowledgeBaseArticle>,
+  ): Promise<KnowledgeBaseArticle | null> {
     const [updatedArticle] = await db
       .update(knowledgeBase)
       .set({
         ...updates,
-        updated_at: new Date()
+        updated_at: new Date(),
       })
       .where(eq(knowledgeBase.id, id))
       .returning();
@@ -443,37 +501,39 @@ export class TicketStorage {
     const { data: tickets } = await this.getTickets(1, 10000, filters); // Get all matching tickets
 
     const headers = [
-      'Ticket Number',
-      'Type',
-      'Title',
-      'Description',
-      'Priority',
-      'Status',
-      'Requester Email',
-      'Assigned To',
-      'Category',
-      'Created At',
-      'Due Date'
+      "Ticket Number",
+      "Type",
+      "Title",
+      "Description",
+      "Priority",
+      "Status",
+      "Requester Email",
+      "Assigned To",
+      "Category",
+      "Created At",
+      "Due Date",
     ];
 
     const csvRows = [
-      headers.join(','),
-      ...tickets.map(ticket => [
-        ticket.ticket_number,
-        ticket.type,
-        `"${ticket.title.replace(/"/g, '""')}"`,
-        `"${ticket.description.replace(/"/g, '""')}"`,
-        ticket.priority,
-        ticket.status,
-        ticket.requester_email,
-        ticket.assigned_to || '',
-        ticket.category || '',
-        ticket.created_at?.toISOString() || '',
-        ticket.due_date?.toISOString() || ''
-      ].join(','))
+      headers.join(","),
+      ...tickets.map((ticket) =>
+        [
+          ticket.ticket_number,
+          ticket.type,
+          `"${ticket.title.replace(/"/g, '""')}"`,
+          `"${ticket.description.replace(/"/g, '""')}"`,
+          ticket.priority,
+          ticket.status,
+          ticket.requester_email,
+          ticket.assigned_to || "",
+          ticket.category || "",
+          ticket.created_at?.toISOString() || "",
+          ticket.due_date?.toISOString() || "",
+        ].join(","),
+      ),
     ];
 
-    return csvRows.join('\n');
+    return csvRows.join("\n");
   }
 
   // Audit logging functionality
@@ -484,7 +544,7 @@ export class TicketStorage {
     userId?: string,
     userEmail?: string,
     oldValues?: any,
-    newValues?: any
+    newValues?: any,
   ) {
     try {
       const changes = this.calculateChanges(oldValues, newValues);
@@ -499,7 +559,7 @@ export class TicketStorage {
         new_values: newValues ? JSON.stringify(newValues) : null,
         changes: changes ? JSON.stringify(changes) : null,
         ip_address: null,
-        user_agent: null
+        user_agent: null,
       });
     } catch (error) {
       console.error("Error logging audit event:", error);
@@ -510,13 +570,16 @@ export class TicketStorage {
     if (!oldValues || !newValues) return null;
 
     const changes: any = {};
-    const allKeys = new Set([...Object.keys(oldValues), ...Object.keys(newValues)]);
+    const allKeys = new Set([
+      ...Object.keys(oldValues),
+      ...Object.keys(newValues),
+    ]);
 
     for (const key of allKeys) {
       if (oldValues[key] !== newValues[key]) {
         changes[key] = {
           from: oldValues[key],
-          to: newValues[key]
+          to: newValues[key],
         };
       }
     }
@@ -524,33 +587,36 @@ export class TicketStorage {
     return Object.keys(changes).length > 0 ? changes : null;
   }
 
-  private calculateSLATargets(priority: string, type: string): { 
-    policy: string, 
-    responseTime: number, 
-    resolutionTime: number 
+  private calculateSLATargets(
+    priority: string,
+    type: string,
+  ): {
+    policy: string;
+    responseTime: number;
+    resolutionTime: number;
   } {
     // SLA targets in minutes based on priority and type
     const slaMatrix = {
-      critical: { 
-        responseTime: 15, 
-        resolutionTime: type === 'incident' ? 240 : 480,
-        policy: 'P1 - Critical' 
+      critical: {
+        responseTime: 15,
+        resolutionTime: type === "incident" ? 240 : 480,
+        policy: "P1 - Critical",
       },
-      high: { 
-        responseTime: 60, 
-        resolutionTime: type === 'incident' ? 480 : 1440,
-        policy: 'P2 - High' 
+      high: {
+        responseTime: 60,
+        resolutionTime: type === "incident" ? 480 : 1440,
+        policy: "P2 - High",
       },
-      medium: { 
-        responseTime: 240, 
-        resolutionTime: type === 'incident' ? 1440 : 2880,
-        policy: 'P3 - Medium' 
+      medium: {
+        responseTime: 240,
+        resolutionTime: type === "incident" ? 1440 : 2880,
+        policy: "P3 - Medium",
       },
-      low: { 
-        responseTime: 480, 
-        resolutionTime: type === 'incident' ? 2880 : 5760,
-        policy: 'P4 - Low' 
-      }
+      low: {
+        responseTime: 480,
+        resolutionTime: type === "incident" ? 2880 : 5760,
+        policy: "P4 - Low",
+      },
     };
 
     return slaMatrix[priority as keyof typeof slaMatrix] || slaMatrix.medium;

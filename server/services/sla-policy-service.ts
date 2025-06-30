@@ -1,5 +1,4 @@
-
-import { db } from "./db";
+import { db } from "../db";
 import { slaPolicies, type SLAPolicy } from "@shared/sla-schema";
 import { tickets, type Ticket } from "@shared/ticket-schema";
 import { eq, and, or, isNull, desc } from "drizzle-orm";
@@ -23,10 +22,16 @@ export class SLAPolicyService {
             eq(slaPolicies.is_active, true),
             eq(slaPolicies.ticket_type, ticket.type),
             eq(slaPolicies.priority, ticket.priority),
-            ticket.impact ? eq(slaPolicies.impact, ticket.impact) : isNull(slaPolicies.impact),
-            ticket.urgency ? eq(slaPolicies.urgency, ticket.urgency) : isNull(slaPolicies.urgency),
-            ticket.category ? eq(slaPolicies.category, ticket.category) : isNull(slaPolicies.category)
-          )
+            ticket.impact
+              ? eq(slaPolicies.impact, ticket.impact)
+              : isNull(slaPolicies.impact),
+            ticket.urgency
+              ? eq(slaPolicies.urgency, ticket.urgency)
+              : isNull(slaPolicies.urgency),
+            ticket.category
+              ? eq(slaPolicies.category, ticket.category)
+              : isNull(slaPolicies.category),
+          ),
         )
         .orderBy(desc(slaPolicies.created_at))
         .limit(1);
@@ -46,8 +51,8 @@ export class SLAPolicyService {
             eq(slaPolicies.priority, ticket.priority),
             isNull(slaPolicies.impact),
             isNull(slaPolicies.urgency),
-            isNull(slaPolicies.category)
-          )
+            isNull(slaPolicies.category),
+          ),
         )
         .orderBy(desc(slaPolicies.created_at))
         .limit(1);
@@ -67,14 +72,13 @@ export class SLAPolicyService {
             isNull(slaPolicies.ticket_type),
             isNull(slaPolicies.impact),
             isNull(slaPolicies.urgency),
-            isNull(slaPolicies.category)
-          )
+            isNull(slaPolicies.category),
+          ),
         )
         .orderBy(desc(slaPolicies.created_at))
         .limit(1);
 
       return priorityMatch.length > 0 ? priorityMatch[0] : null;
-
     } catch (error) {
       console.error("Error finding matching SLA policy:", error);
       return null;
@@ -84,7 +88,7 @@ export class SLAPolicyService {
   // Calculate SLA due dates based on policy and business hours
   calculateSLADueDates(
     createdAt: Date,
-    policy: SLAPolicy
+    policy: SLAPolicy,
   ): {
     responseDue: Date;
     resolutionDue: Date;
@@ -93,35 +97,54 @@ export class SLAPolicyService {
 
     if (policy.business_hours_only) {
       // Calculate business hours only
-      const responseDue = this.addBusinessMinutes(baseTime, policy.response_time, policy);
-      const resolutionDue = this.addBusinessMinutes(baseTime, policy.resolution_time, policy);
+      const responseDue = this.addBusinessMinutes(
+        baseTime,
+        policy.response_time,
+        policy,
+      );
+      const resolutionDue = this.addBusinessMinutes(
+        baseTime,
+        policy.resolution_time,
+        policy,
+      );
       return { responseDue, resolutionDue };
     } else {
       // 24/7 calculation
-      const responseDue = new Date(baseTime.getTime() + (policy.response_time * 60 * 1000));
-      const resolutionDue = new Date(baseTime.getTime() + (policy.resolution_time * 60 * 1000));
+      const responseDue = new Date(
+        baseTime.getTime() + policy.response_time * 60 * 1000,
+      );
+      const resolutionDue = new Date(
+        baseTime.getTime() + policy.resolution_time * 60 * 1000,
+      );
       return { responseDue, resolutionDue };
     }
   }
 
   // Add business minutes to a date, respecting business hours
-  private addBusinessMinutes(startDate: Date, minutes: number, policy: SLAPolicy): Date {
+  private addBusinessMinutes(
+    startDate: Date,
+    minutes: number,
+    policy: SLAPolicy,
+  ): Date {
     const businessStart = this.parseTime(policy.business_start || "09:00");
     const businessEnd = this.parseTime(policy.business_end || "17:00");
-    const businessDays = (policy.business_days || "1,2,3,4,5").split(",").map(d => parseInt(d));
+    const businessDays = (policy.business_days || "1,2,3,4,5")
+      .split(",")
+      .map((d) => parseInt(d));
 
     let currentDate = new Date(startDate);
     let remainingMinutes = minutes;
 
     while (remainingMinutes > 0) {
       const dayOfWeek = currentDate.getDay() === 0 ? 7 : currentDate.getDay(); // Convert Sunday from 0 to 7
-      
+
       if (businessDays.includes(dayOfWeek)) {
         const currentHour = currentDate.getHours();
         const currentMinute = currentDate.getMinutes();
         const currentTimeMinutes = currentHour * 60 + currentMinute;
-        
-        const businessStartMinutes = businessStart.hour * 60 + businessStart.minute;
+
+        const businessStartMinutes =
+          businessStart.hour * 60 + businessStart.minute;
         const businessEndMinutes = businessEnd.hour * 60 + businessEnd.minute;
 
         if (currentTimeMinutes < businessStartMinutes) {
@@ -133,16 +156,25 @@ export class SLAPolicyService {
           currentDate.setHours(businessStart.hour, businessStart.minute, 0, 0);
         } else {
           // During business hours - calculate remaining time in day
-          const remainingBusinessMinutesToday = businessEndMinutes - currentTimeMinutes;
-          const minutesToAdd = Math.min(remainingMinutes, remainingBusinessMinutesToday);
-          
+          const remainingBusinessMinutesToday =
+            businessEndMinutes - currentTimeMinutes;
+          const minutesToAdd = Math.min(
+            remainingMinutes,
+            remainingBusinessMinutesToday,
+          );
+
           currentDate.setMinutes(currentDate.getMinutes() + minutesToAdd);
           remainingMinutes -= minutesToAdd;
 
           if (remainingMinutes > 0) {
             // Move to next business day
             currentDate.setDate(currentDate.getDate() + 1);
-            currentDate.setHours(businessStart.hour, businessStart.minute, 0, 0);
+            currentDate.setHours(
+              businessStart.hour,
+              businessStart.minute,
+              0,
+              0,
+            );
           }
         }
       } else {
@@ -156,7 +188,7 @@ export class SLAPolicyService {
   }
 
   private parseTime(timeStr: string): { hour: number; minute: number } {
-    const [hour, minute] = timeStr.split(":").map(n => parseInt(n));
+    const [hour, minute] = timeStr.split(":").map((n) => parseInt(n));
     return { hour, minute };
   }
 
@@ -164,14 +196,15 @@ export class SLAPolicyService {
   async ensureDefaultSLAPolicies(): Promise<void> {
     try {
       const existingPolicies = await db.select().from(slaPolicies).limit(1);
-      
+
       if (existingPolicies.length === 0) {
         console.log("Creating default SLA policies...");
-        
+
         const defaultPolicies = [
           {
             name: "Critical Incident",
-            description: "Critical priority incidents require immediate attention",
+            description:
+              "Critical priority incidents require immediate attention",
             ticket_type: "incident",
             priority: "critical",
             response_time: 15, // 15 minutes
@@ -204,11 +237,13 @@ export class SLAPolicyService {
             response_time: 480, // 8 hours
             resolution_time: 2880, // 48 hours
             business_hours_only: true,
-          }
+          },
         ];
 
         await db.insert(slaPolicies).values(defaultPolicies);
-        console.log(`✅ Created ${defaultPolicies.length} default SLA policies`);
+        console.log(
+          `✅ Created ${defaultPolicies.length} default SLA policies`,
+        );
       }
     } catch (error) {
       console.error("Error ensuring default SLA policies:", error);

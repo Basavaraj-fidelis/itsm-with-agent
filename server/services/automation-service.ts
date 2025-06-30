@@ -1,5 +1,4 @@
-
-import { storage } from "./storage";
+import { storage } from "../storage";
 
 export interface SoftwarePackage {
   id: string;
@@ -45,17 +44,17 @@ class AutomationService {
       silent_install_args: "/silent /install",
       prerequisites: [],
       supported_os: ["Windows"],
-      size_mb: 95
+      size_mb: 95,
     },
     {
       id: "firefox-latest",
       name: "Mozilla Firefox",
-      version: "latest", 
+      version: "latest",
       installer_path: "/software/firefox_installer.exe",
       silent_install_args: "-ms",
       prerequisites: [],
       supported_os: ["Windows", "macOS", "Linux"],
-      size_mb: 85
+      size_mb: 85,
     },
     {
       id: "zoom-latest",
@@ -65,18 +64,20 @@ class AutomationService {
       silent_install_args: "/quiet",
       prerequisites: [],
       supported_os: ["Windows", "macOS"],
-      size_mb: 120
-    }
+      size_mb: 120,
+    },
   ];
 
   async scheduleDeployment(
-    deviceIds: string[], 
-    packageId: string, 
-    scheduledTime: Date
+    deviceIds: string[],
+    packageId: string,
+    scheduledTime: Date,
   ): Promise<string[]> {
     const deploymentIds: string[] = [];
-    const softwarePackage = this.softwarePackages.find(p => p.id === packageId);
-    
+    const softwarePackage = this.softwarePackages.find(
+      (p) => p.id === packageId,
+    );
+
     if (!softwarePackage) {
       throw new Error(`Software package ${packageId} not found`);
     }
@@ -92,14 +93,14 @@ class AutomationService {
       }
 
       const deploymentId = `deploy_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
       const task: DeploymentTask = {
         id: deploymentId,
         device_id: deviceId,
         package_id: packageId,
         status: "scheduled",
         scheduled_time: scheduledTime,
-        progress_percentage: 0
+        progress_percentage: 0,
       };
 
       // Add to queue
@@ -118,9 +119,9 @@ class AutomationService {
           deployment_id: deploymentId,
           package_info: softwarePackage,
           scheduled_time: scheduledTime.toISOString(),
-          status: "scheduled"
+          status: "scheduled",
         },
-        is_active: true
+        is_active: true,
       });
 
       deploymentIds.push(deploymentId);
@@ -131,10 +132,10 @@ class AutomationService {
 
   async processDeploymentQueue(): Promise<void> {
     const now = new Date();
-    
+
     for (const [deviceId, tasks] of this.deploymentQueue) {
-      const pendingTasks = tasks.filter(t => 
-        t.status === "scheduled" && t.scheduled_time <= now
+      const pendingTasks = tasks.filter(
+        (t) => t.status === "scheduled" && t.scheduled_time <= now,
       );
 
       for (const task of pendingTasks) {
@@ -169,7 +170,6 @@ class AutomationService {
       await this.updateDeploymentStatus(task);
 
       console.log(`Deployment ${task.id} completed successfully`);
-
     } catch (error) {
       task.status = "failed";
       task.error_message = error.message;
@@ -178,13 +178,17 @@ class AutomationService {
     }
   }
 
-  private async simulateProgress(task: DeploymentTask, start: number, end: number): Promise<void> {
+  private async simulateProgress(
+    task: DeploymentTask,
+    start: number,
+    end: number,
+  ): Promise<void> {
     const steps = 5;
     const increment = (end - start) / steps;
-    
+
     for (let i = 0; i < steps; i++) {
-      await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
-      task.progress_percentage = start + (increment * (i + 1));
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // 2 second delay
+      task.progress_percentage = start + increment * (i + 1);
       await this.updateDeploymentStatus(task);
     }
   }
@@ -192,8 +196,8 @@ class AutomationService {
   private async updateDeploymentStatus(task: DeploymentTask): Promise<void> {
     // Find and update the alert
     const alerts = await storage.getActiveAlerts();
-    const deploymentAlert = alerts.find(alert => 
-      alert.metadata?.deployment_id === task.id
+    const deploymentAlert = alerts.find(
+      (alert) => alert.metadata?.deployment_id === task.id,
     );
 
     if (deploymentAlert) {
@@ -203,15 +207,17 @@ class AutomationService {
           status: task.status,
           progress_percentage: task.progress_percentage,
           error_message: task.error_message,
-          last_updated: new Date().toISOString()
-        }
+          last_updated: new Date().toISOString(),
+        },
       });
     }
   }
 
-  async getDeploymentStatus(deploymentId: string): Promise<DeploymentTask | null> {
+  async getDeploymentStatus(
+    deploymentId: string,
+  ): Promise<DeploymentTask | null> {
     for (const tasks of this.deploymentQueue.values()) {
-      const task = tasks.find(t => t.id === deploymentId);
+      const task = tasks.find((t) => t.id === deploymentId);
       if (task) return task;
     }
     return null;
@@ -222,7 +228,7 @@ class AutomationService {
     description: string,
     targetOS: string[],
     settings: Record<string, any>,
-    createdBy: string
+    createdBy: string,
   ): Promise<ConfigurationTemplate> {
     const template: ConfigurationTemplate = {
       id: `config_${Date.now()}`,
@@ -231,18 +237,18 @@ class AutomationService {
       target_os: targetOS,
       settings,
       enforcement_mode: "advisory",
-      created_by: createdBy
+      created_by: createdBy,
     };
 
     // In a real implementation, this would be saved to database
     console.log("Configuration template created:", template);
-    
+
     return template;
   }
 
   async applyConfiguration(
     deviceId: string,
-    templateId: string
+    templateId: string,
   ): Promise<void> {
     // Create automation alert for configuration application
     await storage.createAlert({
@@ -254,9 +260,9 @@ class AutomationService {
         template_id: templateId,
         automation_type: "configuration_management",
         status: "applied",
-        applied_at: new Date().toISOString()
+        applied_at: new Date().toISOString(),
       },
-      is_active: true
+      is_active: true,
     });
   }
 

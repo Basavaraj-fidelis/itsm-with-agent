@@ -1,5 +1,4 @@
-
-import { db, sql } from './db';
+import { db, sql } from "../db";
 
 interface CompliancePolicy {
   id: string;
@@ -16,28 +15,32 @@ export class PatchComplianceService {
     IMPORTANT_MAX_DAYS: 30,
     MODERATE_MAX_DAYS: 60,
     LOW_MAX_DAYS: 90,
-    MINIMUM_COMPLIANCE_PERCENTAGE: 95
+    MINIMUM_COMPLIANCE_PERCENTAGE: 95,
   };
 
   async getDashboardData() {
     try {
-      console.log('Starting getDashboardData...');
-      
+      console.log("Starting getDashboardData...");
+
       // Check if patch tables exist with better error handling
       try {
-        console.log('Checking if patch_definitions table exists...');
-        const result = await db.execute(sql`SELECT 1 FROM patch_definitions LIMIT 1`);
-        console.log('patch_definitions table exists, proceeding with real data');
+        console.log("Checking if patch_definitions table exists...");
+        const result = await db.execute(
+          sql`SELECT 1 FROM patch_definitions LIMIT 1`,
+        );
+        console.log(
+          "patch_definitions table exists, proceeding with real data",
+        );
       } catch (tableError) {
-        console.log('Patch compliance tables not found, returning mock data');
-        console.log('Table error:', tableError?.message || 'Unknown error');
+        console.log("Patch compliance tables not found, returning mock data");
+        console.log("Table error:", tableError?.message || "Unknown error");
         return this.getMockDashboardData();
       }
 
       // Get all online devices
       let devices;
       try {
-        console.log('Fetching devices from database...');
+        console.log("Fetching devices from database...");
         const devicesResult = await db.execute(sql`
           SELECT d.id, d.hostname, d.os_name, d.os_version, d.status, d.last_seen
           FROM devices d 
@@ -47,9 +50,9 @@ export class PatchComplianceService {
         `);
         devices = devicesResult.rows || [];
         console.log(`Found ${devices.length} online devices`);
-        
+
         if (devices.length === 0) {
-          console.log('No online devices found, checking all devices...');
+          console.log("No online devices found, checking all devices...");
           const allDevicesResult = await db.execute(sql`
             SELECT d.id, d.hostname, d.os_name, d.os_version, d.status, d.last_seen
             FROM devices d 
@@ -60,8 +63,8 @@ export class PatchComplianceService {
           console.log(`Found ${devices.length} total devices`);
         }
       } catch (deviceFetchError) {
-        console.error('Error fetching devices:', deviceFetchError);
-        console.log('Returning mock data due to device fetch error');
+        console.error("Error fetching devices:", deviceFetchError);
+        console.log("Returning mock data due to device fetch error");
         return this.getMockDashboardData();
       }
 
@@ -70,13 +73,16 @@ export class PatchComplianceService {
       // Get patch compliance for each device
       for (const device of devices) {
         try {
-          console.log(`Processing patches for device ${device.id} (${device.hostname})`);
-          
+          console.log(
+            `Processing patches for device ${device.id} (${device.hostname})`,
+          );
+
           // Get patch statistics for this device using proper UUID comparison
-          const deviceUuid = typeof device.id === 'string' ? device.id : device.id.toString();
+          const deviceUuid =
+            typeof device.id === "string" ? device.id : device.id.toString();
           console.log(`Querying patches for device UUID: ${deviceUuid}`);
           console.log(`Device UUID type: ${typeof deviceUuid}`);
-          
+
           const patchStatusResult = await db.execute(sql`
             SELECT 
               COUNT(*) as total_patches,
@@ -96,15 +102,14 @@ export class PatchComplianceService {
             missing_critical: 0,
             missing_important: 0,
             failed_patches: 0,
-            last_scan: device.last_seen
+            last_scan: device.last_seen,
           };
 
           const totalPatches = Number(patchStats.total_patches) || 0;
           const installedPatches = Number(patchStats.installed_patches) || 0;
 
-          const compliance_percentage = totalPatches > 0 
-            ? (installedPatches / totalPatches) * 100 
-            : 100;
+          const compliance_percentage =
+            totalPatches > 0 ? (installedPatches / totalPatches) * 100 : 100;
 
           // Calculate risk score based on missing patches
           const missingCritical = Number(patchStats.missing_critical) || 0;
@@ -120,9 +125,9 @@ export class PatchComplianceService {
 
           deviceReports.push({
             device_id: device.id,
-            hostname: device.hostname || 'Unknown',
-            os_name: device.os_name || 'Unknown',
-            os_version: device.os_version || 'Unknown',
+            hostname: device.hostname || "Unknown",
+            os_name: device.os_name || "Unknown",
+            os_version: device.os_version || "Unknown",
             total_patches: totalPatches,
             installed_patches: installedPatches,
             missing_critical: missingCritical,
@@ -130,18 +135,23 @@ export class PatchComplianceService {
             failed_patches: failedPatches,
             compliance_percentage: Number(compliance_percentage.toFixed(1)),
             risk_score: risk_score,
-            last_scan: patchStats.last_scan || device.last_seen || new Date().toISOString()
+            last_scan:
+              patchStats.last_scan ||
+              device.last_seen ||
+              new Date().toISOString(),
           });
 
-          console.log(`Device ${device.hostname}: ${totalPatches} total, ${installedPatches} installed, ${compliance_percentage.toFixed(1)}% compliant`);
+          console.log(
+            `Device ${device.hostname}: ${totalPatches} total, ${installedPatches} installed, ${compliance_percentage.toFixed(1)}% compliant`,
+          );
         } catch (deviceError) {
           console.error(`Error processing device ${device.id}:`, deviceError);
           // Add a basic device report even if patch query fails
           deviceReports.push({
             device_id: device.id,
-            hostname: device.hostname || 'Unknown',
-            os_name: device.os_name || 'Unknown',
-            os_version: device.os_version || 'Unknown',
+            hostname: device.hostname || "Unknown",
+            os_name: device.os_name || "Unknown",
+            os_version: device.os_version || "Unknown",
             total_patches: 0,
             installed_patches: 0,
             missing_critical: 0,
@@ -149,7 +159,7 @@ export class PatchComplianceService {
             failed_patches: 0,
             compliance_percentage: 100,
             risk_score: 0,
-            last_scan: new Date().toISOString()
+            last_scan: new Date().toISOString(),
           });
         }
       }
@@ -157,52 +167,69 @@ export class PatchComplianceService {
       // Calculate summary statistics
       const totalDevices = deviceReports.length;
       const compliantDevices = deviceReports.filter(
-        r => r.compliance_percentage >= this.COMPLIANCE_THRESHOLDS.MINIMUM_COMPLIANCE_PERCENTAGE
+        (r) =>
+          r.compliance_percentage >=
+          this.COMPLIANCE_THRESHOLDS.MINIMUM_COMPLIANCE_PERCENTAGE,
       ).length;
-      const devicesWithCriticalGaps = deviceReports.filter(r => r.missing_critical > 0).length;
-      const averageCompliance = totalDevices > 0 
-        ? deviceReports.reduce((sum, r) => sum + (r.compliance_percentage || 0), 0) / totalDevices 
-        : 0;
+      const devicesWithCriticalGaps = deviceReports.filter(
+        (r) => r.missing_critical > 0,
+      ).length;
+      const averageCompliance =
+        totalDevices > 0
+          ? deviceReports.reduce(
+              (sum, r) => sum + (r.compliance_percentage || 0),
+              0,
+            ) / totalDevices
+          : 0;
 
       // Calculate risk distribution
-      const highRiskDevices = deviceReports.filter(r => r.risk_score > 75).length;
-      const mediumRiskDevices = deviceReports.filter(r => r.risk_score > 25 && r.risk_score <= 75).length;
-      const lowRiskDevices = deviceReports.filter(r => r.risk_score <= 25).length;
+      const highRiskDevices = deviceReports.filter(
+        (r) => r.risk_score > 75,
+      ).length;
+      const mediumRiskDevices = deviceReports.filter(
+        (r) => r.risk_score > 25 && r.risk_score <= 75,
+      ).length;
+      const lowRiskDevices = deviceReports.filter(
+        (r) => r.risk_score <= 25,
+      ).length;
 
       const result = {
         summary: {
           total_devices: totalDevices,
           compliant_devices: compliantDevices,
-          compliance_rate: totalDevices > 0 ? Number(((compliantDevices / totalDevices) * 100).toFixed(1)) : 0,
+          compliance_rate:
+            totalDevices > 0
+              ? Number(((compliantDevices / totalDevices) * 100).toFixed(1))
+              : 0,
           devices_with_critical_gaps: devicesWithCriticalGaps,
-          average_compliance: Number(averageCompliance.toFixed(1))
+          average_compliance: Number(averageCompliance.toFixed(1)),
         },
         devices: deviceReports,
         top_non_compliant: deviceReports
-          .filter(r => r.compliance_percentage < 90)
+          .filter((r) => r.compliance_percentage < 90)
           .sort((a, b) => a.compliance_percentage - b.compliance_percentage)
           .slice(0, 10),
         upcoming_maintenance: [],
         risk_distribution: {
           high_risk: highRiskDevices,
           medium_risk: mediumRiskDevices,
-          low_risk: lowRiskDevices
+          low_risk: lowRiskDevices,
         },
-        recommendations: this.generateRecommendations(deviceReports)
+        recommendations: this.generateRecommendations(deviceReports),
       };
 
-      console.log('Successfully generated dashboard data:', {
+      console.log("Successfully generated dashboard data:", {
         totalDevices,
         compliantDevices,
-        averageCompliance: averageCompliance.toFixed(1)
+        averageCompliance: averageCompliance.toFixed(1),
       });
 
       return result;
     } catch (error) {
-      console.error('Error fetching patch compliance dashboard:', error);
-      console.error('Error stack:', error.stack);
+      console.error("Error fetching patch compliance dashboard:", error);
+      console.error("Error stack:", error.stack);
       // Return mock data instead of throwing to prevent 500 errors
-      console.log('Returning mock data due to error');
+      console.log("Returning mock data due to error");
       return this.getMockDashboardData();
     }
   }
@@ -216,14 +243,18 @@ export class PatchComplianceService {
 
       // Process installed software for patch correlation
       if (patchData.installed_software) {
-        await this.processSoftwarePatches(deviceId, patchData.installed_software);
+        await this.processSoftwarePatches(
+          deviceId,
+          patchData.installed_software,
+        );
       }
 
       // Auto-deploy critical security patches
       await this.autoDeploySecurityPatches(deviceId);
 
       // Update last scan time
-      const deviceUuid = typeof deviceId === 'string' ? deviceId : deviceId.toString();
+      const deviceUuid =
+        typeof deviceId === "string" ? deviceId : deviceId.toString();
       await db.execute(sql`
         UPDATE devices 
         SET updated_at = NOW() 
@@ -232,7 +263,7 @@ export class PatchComplianceService {
 
       console.log(`Processed patch data for device ${deviceId}`);
     } catch (error) {
-      console.error('Error processing patch data:', error);
+      console.error("Error processing patch data:", error);
       throw error;
     }
   }
@@ -246,11 +277,11 @@ export class PatchComplianceService {
       const category = this.categorizePatch(patch);
       await this.upsertPatchStatus(deviceId, {
         patch_id: patch.kb_article || patch.id || patch.title,
-        status: 'missing',
+        status: "missing",
         title: patch.title,
         severity: this.mapSeverity(patch.importance || patch.severity),
         category: category,
-        requires_reboot: patch.reboot_required || false
+        requires_reboot: patch.reboot_required || false,
       });
     }
 
@@ -259,43 +290,72 @@ export class PatchComplianceService {
       const category = this.categorizePatch(patch);
       await this.upsertPatchStatus(deviceId, {
         patch_id: patch.kb_article || patch.id || patch.title,
-        status: 'installed',
+        status: "installed",
         title: patch.title,
         severity: this.mapSeverity(patch.importance || patch.severity),
         category: category,
-        install_date: patch.install_date ? new Date(patch.install_date) : new Date(),
-        requires_reboot: patch.reboot_required || false
+        install_date: patch.install_date
+          ? new Date(patch.install_date)
+          : new Date(),
+        requires_reboot: patch.reboot_required || false,
       });
     }
   }
 
   private categorizePatch(patch: any): string {
-    const title = (patch.title || '').toLowerCase();
-    const category = (patch.category || '').toLowerCase();
+    const title = (patch.title || "").toLowerCase();
+    const category = (patch.category || "").toLowerCase();
 
     // Security-related keywords
-    const securityKeywords = ['security', 'vulnerability', 'exploit', 'malware', 'defender', 'firewall'];
-    const applicationKeywords = ['office', 'outlook', 'word', 'excel', 'powerpoint', 'teams', 'skype', 'edge'];
+    const securityKeywords = [
+      "security",
+      "vulnerability",
+      "exploit",
+      "malware",
+      "defender",
+      "firewall",
+    ];
+    const applicationKeywords = [
+      "office",
+      "outlook",
+      "word",
+      "excel",
+      "powerpoint",
+      "teams",
+      "skype",
+      "edge",
+    ];
 
     // Check if it's a security patch
-    if (securityKeywords.some(keyword => title.includes(keyword) || category.includes(keyword))) {
-      return 'security_update';
+    if (
+      securityKeywords.some(
+        (keyword) => title.includes(keyword) || category.includes(keyword),
+      )
+    ) {
+      return "security_update";
     }
 
     // Check if it's an application patch
-    if (applicationKeywords.some(keyword => title.includes(keyword) || category.includes(keyword))) {
-      return 'application_update';
+    if (
+      applicationKeywords.some(
+        (keyword) => title.includes(keyword) || category.includes(keyword),
+      )
+    ) {
+      return "application_update";
     }
 
     // Default Windows updates are considered security
-    if (category.includes('windows') || title.includes('windows')) {
-      return 'security_update';
+    if (category.includes("windows") || title.includes("windows")) {
+      return "security_update";
     }
 
-    return patch.category || 'windows_update';
+    return patch.category || "windows_update";
   }
 
-  private async processSoftwarePatches(deviceId: string, installedSoftware: any[]) {
+  private async processSoftwarePatches(
+    deviceId: string,
+    installedSoftware: any[],
+  ) {
     // Correlate installed software with known vulnerabilities
     for (const software of installedSoftware) {
       if (software.version && software.name) {
@@ -305,10 +365,10 @@ export class PatchComplianceService {
         for (const patch of vulnPatches) {
           await this.upsertPatchStatus(deviceId, {
             patch_id: patch.id,
-            status: patch.is_installed ? 'installed' : 'missing',
+            status: patch.is_installed ? "installed" : "missing",
             title: patch.title,
             severity: patch.severity,
-            category: 'security_update'
+            category: "security_update",
           });
         }
       }
@@ -328,7 +388,8 @@ export class PatchComplianceService {
     `);
 
     // Insert or update device patch status using proper UUID
-    const deviceUuid = typeof deviceId === 'string' ? deviceId : deviceId.toString();
+    const deviceUuid =
+      typeof deviceId === "string" ? deviceId : deviceId.toString();
     await db.execute(sql`
       INSERT INTO device_patch_status (device_id, patch_id, status, install_date, last_scan_date)
       VALUES (${deviceUuid}::uuid, ${patchInfo.patch_id}, ${patchInfo.status}, ${patchInfo.install_date || null}, NOW())
@@ -341,12 +402,14 @@ export class PatchComplianceService {
   }
 
   private mapSeverity(importance: string): string {
-    if (!importance) return 'low';
+    if (!importance) return "low";
     const lower = importance.toLowerCase();
-    if (lower.includes('critical') || lower.includes('important')) return 'critical';
-    if (lower.includes('moderate') || lower.includes('recommended')) return 'important';
-    if (lower.includes('optional') || lower.includes('low')) return 'low';
-    return 'moderate';
+    if (lower.includes("critical") || lower.includes("important"))
+      return "critical";
+    if (lower.includes("moderate") || lower.includes("recommended"))
+      return "important";
+    if (lower.includes("optional") || lower.includes("low")) return "low";
+    return "moderate";
   }
 
   private async getVulnerabilityPatches(software: any): Promise<any[]> {
@@ -357,7 +420,8 @@ export class PatchComplianceService {
   private async autoDeploySecurityPatches(deviceId: string) {
     try {
       // Get critical security patches that are missing
-      const deviceUuid = typeof deviceId === 'string' ? deviceId : deviceId.toString();
+      const deviceUuid =
+        typeof deviceId === "string" ? deviceId : deviceId.toString();
       const criticalPatchesResult = await db.execute(sql`
         SELECT dps.patch_id, pd.title, pd.category, pd.severity
         FROM device_patch_status dps
@@ -376,11 +440,11 @@ export class PatchComplianceService {
         const deploymentId = await this.createPatchDeployment({
           name: `Auto Security Patch - Device ${deviceId}`,
           description: `Automatic deployment of ${criticalPatches.length} critical security patches`,
-          target_patches: criticalPatches.map(p => p.patch_id),
+          target_patches: criticalPatches.map((p) => p.patch_id),
           target_devices: [deviceId],
-          schedule_type: 'immediate',
+          schedule_type: "immediate",
           scheduled_date: new Date(),
-          created_by: 'system-auto'
+          created_by: "system-auto",
         });
 
         // Mark patches as pending deployment
@@ -394,23 +458,25 @@ export class PatchComplianceService {
           `);
         }
 
-        console.log(`Auto-deployed ${criticalPatches.length} security patches for device ${deviceId}`);
+        console.log(
+          `Auto-deployed ${criticalPatches.length} security patches for device ${deviceId}`,
+        );
       }
     } catch (error) {
-      console.error('Error auto-deploying security patches:', error);
+      console.error("Error auto-deploying security patches:", error);
     }
   }
 
   private getMockDashboardData() {
-    console.log('⚠️  RETURNING MOCK DATA - Database tables not accessible');
-    
+    console.log("⚠️  RETURNING MOCK DATA - Database tables not accessible");
+
     return {
       summary: {
         total_devices: 0,
         compliant_devices: 0,
         compliance_rate: 0,
         devices_with_critical_gaps: 0,
-        average_compliance: 0
+        average_compliance: 0,
       },
       devices: [],
       top_non_compliant: [],
@@ -418,38 +484,50 @@ export class PatchComplianceService {
       risk_distribution: {
         high_risk: 0,
         medium_risk: 0,
-        low_risk: 0
+        low_risk: 0,
       },
       recommendations: [
-        'System is currently offline',
-        'Please try again later'
+        "System is currently offline",
+        "Please try again later",
       ],
       mock_mode: true,
-      database_status: 'disconnected'
+      database_status: "disconnected",
     };
   }
 
   private generateRecommendations(deviceReports: any[]): string[] {
     const recommendations = [];
 
-    const criticalDevices = deviceReports.filter(d => d.missing_critical > 0);
+    const criticalDevices = deviceReports.filter((d) => d.missing_critical > 0);
     if (criticalDevices.length > 0) {
-      recommendations.push(`${criticalDevices.length} devices have missing critical patches - review application patches manually`);
+      recommendations.push(
+        `${criticalDevices.length} devices have missing critical patches - review application patches manually`,
+      );
     }
 
-    const lowCompliance = deviceReports.filter(d => d.compliance_percentage < 80);
+    const lowCompliance = deviceReports.filter(
+      (d) => d.compliance_percentage < 80,
+    );
     if (lowCompliance.length > 0) {
-      recommendations.push(`${lowCompliance.length} devices below 80% compliance - security patches auto-deployed, review application updates`);
+      recommendations.push(
+        `${lowCompliance.length} devices below 80% compliance - security patches auto-deployed, review application updates`,
+      );
     }
 
-    const failedPatches = deviceReports.filter(d => d.failed_patches > 0);
+    const failedPatches = deviceReports.filter((d) => d.failed_patches > 0);
     if (failedPatches.length > 0) {
-      recommendations.push(`${failedPatches.length} devices have failed patch installations - investigate and retry`);
+      recommendations.push(
+        `${failedPatches.length} devices have failed patch installations - investigate and retry`,
+      );
     }
 
     if (recommendations.length === 0) {
-      recommendations.push('Security patches are automatically deployed - only application patches require manual approval');
-      recommendations.push('All systems appear to be compliant - continue monitoring');
+      recommendations.push(
+        "Security patches are automatically deployed - only application patches require manual approval",
+      );
+      recommendations.push(
+        "All systems appear to be compliant - continue monitoring",
+      );
     }
 
     return recommendations;
@@ -499,7 +577,7 @@ export class PatchComplianceService {
 
       return result.rows;
     } catch (error) {
-      console.error('Error getting pending application patches:', error);
+      console.error("Error getting pending application patches:", error);
       throw error;
     }
   }

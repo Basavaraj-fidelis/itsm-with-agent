@@ -1,5 +1,5 @@
-import { storage } from "./storage";
-import { db } from "./db";
+import { storage } from "../storage";
+import { db } from "../db";
 import {
   devices,
   device_reports,
@@ -36,7 +36,7 @@ import {
   WidthType,
   TextRun,
   BorderStyle,
-  VerticalAlign
+  VerticalAlign,
 } from "docx";
 
 export interface AnalyticsReport {
@@ -1362,28 +1362,44 @@ class AnalyticsService {
       new Paragraph({
         children: [
           new TextRun({ text: `Total Tickets: `, size: 24 }),
-          new TextRun({ text: `${data.summary.total_tickets}`, bold: true, size: 24 }),
+          new TextRun({
+            text: `${data.summary.total_tickets}`,
+            bold: true,
+            size: 24,
+          }),
         ],
         spacing: { after: 100 },
       }),
       new Paragraph({
         children: [
           new TextRun({ text: `Open Tickets: `, size: 24 }),
-          new TextRun({ text: `${data.summary.open_tickets}`, bold: true, size: 24 }),
+          new TextRun({
+            text: `${data.summary.open_tickets}`,
+            bold: true,
+            size: 24,
+          }),
         ],
         spacing: { after: 100 },
       }),
       new Paragraph({
         children: [
           new TextRun({ text: `Resolved Tickets: `, size: 24 }),
-          new TextRun({ text: `${data.summary.resolved_tickets}`, bold: true, size: 24 }),
+          new TextRun({
+            text: `${data.summary.resolved_tickets}`,
+            bold: true,
+            size: 24,
+          }),
         ],
         spacing: { after: 100 },
       }),
       new Paragraph({
         children: [
           new TextRun({ text: `Average Resolution Time: `, size: 24 }),
-          new TextRun({ text: `${data.summary.avg_resolution_time} hours`, bold: true, size: 24 }),
+          new TextRun({
+            text: `${data.summary.avg_resolution_time} hours`,
+            bold: true,
+            size: 24,
+          }),
         ],
         spacing: { after: 300 },
       }),
@@ -1402,21 +1418,33 @@ class AnalyticsService {
       new Paragraph({
         children: [
           new TextRun({ text: `SLA Compliance Rate: `, size: 24 }),
-          new TextRun({ text: `${data.sla_performance.sla_compliance_rate}%`, bold: true, size: 24 }),
+          new TextRun({
+            text: `${data.sla_performance.sla_compliance_rate}%`,
+            bold: true,
+            size: 24,
+          }),
         ],
         spacing: { after: 100 },
       }),
       new Paragraph({
         children: [
           new TextRun({ text: `Tickets Meeting SLA: `, size: 24 }),
-          new TextRun({ text: `${data.sla_performance.met_sla}`, bold: true, size: 24 }),
+          new TextRun({
+            text: `${data.sla_performance.met_sla}`,
+            bold: true,
+            size: 24,
+          }),
         ],
         spacing: { after: 100 },
       }),
       new Paragraph({
         children: [
           new TextRun({ text: `SLA Breaches: `, size: 24 }),
-          new TextRun({ text: `${data.sla_performance.breached_sla}`, bold: true, size: 24 }),
+          new TextRun({
+            text: `${data.sla_performance.breached_sla}`,
+            bold: true,
+            size: 24,
+          }),
         ],
         spacing: { after: 300 },
       }),
@@ -1916,7 +1944,7 @@ class AnalyticsService {
   ): Promise<Buffer> {
     // Generate a properly formatted text document for PDF
     const textContent = this.generateEnhancedTextDocument(data, reportType);
-    
+
     // Create a simple but valid PDF with proper content
     const pdfContent = this.generateValidPDF(textContent, reportType);
     return Buffer.from(pdfContent, "binary");
@@ -1925,44 +1953,49 @@ class AnalyticsService {
   private generateValidPDF(textContent: string, reportType: string): string {
     const title = this.getReportTitle(reportType);
     const timestamp = format(new Date(), "PPpp");
-    
+
     // Split content into lines for better formatting
-    const lines = textContent.split('\n').slice(0, 50); // Limit to prevent oversized PDF
-    
+    const lines = textContent.split("\n").slice(0, 50); // Limit to prevent oversized PDF
+
     let streamContent = `BT\n/F1 16 Tf\n50 750 Td\n(${title}) Tj\n`;
     streamContent += `0 -30 Td\n/F1 12 Tf\n(Generated: ${timestamp}) Tj\n`;
     streamContent += `0 -40 Td\n`;
-    
+
     let yPosition = 0;
     for (let i = 0; i < Math.min(lines.length, 30); i++) {
-      const line = lines[i].replace(/[()\\]/g, '\\$&').substring(0, 80); // Escape special chars and limit length
+      const line = lines[i].replace(/[()\\]/g, "\\$&").substring(0, 80); // Escape special chars and limit length
       if (line.trim()) {
         streamContent += `0 -20 Td\n(${line}) Tj\n`;
         yPosition += 20;
         if (yPosition > 600) break; // Prevent overflow
       }
     }
-    
+
     streamContent += `ET\n`;
-    
+
     const streamLength = streamContent.length;
-    
+
     let pdf = `%PDF-1.4\n`;
     pdf += `1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n\n`;
     pdf += `2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n\n`;
     pdf += `3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n/Resources <<\n/Font <<\n/F1 <<\n/Type /Font\n/Subtype /Type1\n/BaseFont /Helvetica\n>>\n>>\n>>\n/Contents 4 0 R\n>>\nendobj\n\n`;
     pdf += `4 0 obj\n<<\n/Length ${streamLength}\n>>\nstream\n${streamContent}endstream\nendobj\n\n`;
-    
+
     const xrefPos = pdf.length;
     pdf += `xref\n0 5\n0000000000 65535 f \n`;
-    
-    const positions = [9, pdf.indexOf('2 0 obj'), pdf.indexOf('3 0 obj'), pdf.indexOf('4 0 obj')];
-    positions.forEach(pos => {
-      pdf += `${pos.toString().padStart(10, '0')} 00000 n \n`;
+
+    const positions = [
+      9,
+      pdf.indexOf("2 0 obj"),
+      pdf.indexOf("3 0 obj"),
+      pdf.indexOf("4 0 obj"),
+    ];
+    positions.forEach((pos) => {
+      pdf += `${pos.toString().padStart(10, "0")} 00000 n \n`;
     });
-    
+
     pdf += `trailer\n<<\n/Size 5\n/Root 1 0 R\n>>\nstartxref\n${xrefPos}\n%%EOF`;
-    
+
     return pdf;
   }
 
