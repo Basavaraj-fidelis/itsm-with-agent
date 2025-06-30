@@ -1,8 +1,7 @@
 
-import { createRequire } from 'module';
-import { db, sql } from "../db.js";
-import { tickets } from "../shared/ticket-schema.js";
-import { eq, isNull } from "drizzle-orm";
+import { db, sql } from "../db.ts";
+import { tickets } from "../shared/ticket-schema.ts";
+import { eq } from "drizzle-orm";
 
 const calculateSLATargets = (priority, type, createdAt) => {
   const slaMatrix = {
