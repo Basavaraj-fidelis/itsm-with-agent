@@ -190,7 +190,19 @@ export default function SLAManagement() {
                 </div>
                 <div className="text-center p-3 bg-red-50 dark:bg-red-900/10 rounded-lg">
                   <p className="text-lg font-bold text-red-600">{slaData.breached}</p>
-                  <p className="text-xs text-red-700 dark:text-red-300">Breached</p>
+                  <p className="text-xs text-red-700 dark:text-red-300">Total Breached</p>
+                </div>
+              </div>
+              
+              {/* Detailed Breach Breakdown */}
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div className="text-center p-3 bg-orange-50 dark:bg-orange-900/10 rounded-lg">
+                  <p className="text-lg font-bold text-orange-600">{slaData.responseBreaches || 0}</p>
+                  <p className="text-xs text-orange-700 dark:text-orange-300">Response Breaches</p>
+                </div>
+                <div className="text-center p-3 bg-red-50 dark:bg-red-900/10 rounded-lg">
+                  <p className="text-lg font-bold text-red-600">{slaData.resolutionBreaches || 0}</p>
+                  <p className="text-xs text-red-700 dark:text-red-300">Resolution Breaches</p>
                 </div>
               </div>
             </div>

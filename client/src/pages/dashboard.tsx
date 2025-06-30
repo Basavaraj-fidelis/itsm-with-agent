@@ -551,7 +551,14 @@ export default function Dashboard() {
                     <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
                     <div>
                       <p className="text-sm font-semibold text-red-800 dark:text-red-200">SLA Breached</p>
-                      <p className="text-xs text-red-600 dark:text-red-300">Immediate attention required</p>
+                      <p className="text-xs text-red-600 dark:text-red-300">
+                        {slaStatus.responseBreaches > 0 && slaStatus.resolutionBreaches > 0 
+                          ? `${slaStatus.responseBreaches} Response + ${slaStatus.resolutionBreaches} Resolution`
+                          : slaStatus.responseBreaches > 0 
+                          ? `${slaStatus.responseBreaches} Response Breach${slaStatus.responseBreaches > 1 ? 'es' : ''}`
+                          : `${slaStatus.resolutionBreaches} Resolution Breach${slaStatus.resolutionBreaches > 1 ? 'es' : ''}`
+                        }
+                      </p>
                     </div>
                   </div>
                   <span className="text-2xl font-bold text-red-600 dark:text-red-400 px-3 py-1 bg-white/70 dark:bg-gray-800/70 rounded-xl">

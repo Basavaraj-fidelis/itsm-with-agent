@@ -125,6 +125,8 @@ interface TicketData {
   sla_breached?: boolean;
   sla_response_time?: number;
   sla_resolution_time?: number;
+  sla_response_breached?: boolean;
+  sla_resolution_breached?: boolean;
   workflow_step?: number;
 }
 
@@ -1238,6 +1240,27 @@ export default function Tickets() {
       });
     };
 
+    const getStatusVariant = (status: string) => {
+      switch (status) {
+        case "new":
+          return "default";
+        case "assigned":
+          return "secondary";
+        case "in_progress":
+          return "accent";
+        case "pending":
+          return "warning";
+        case "resolved":
+          return "success";
+        case "closed":
+          return "muted";
+        case "cancelled":
+          return "destructive";
+        default:
+          return "default";
+      }
+    };
+
     return (
       <>
         {/* Filters */}
@@ -1410,47 +1433,25 @@ export default function Tickets() {
                           >
                             {ticket.status.replace("_", " ").toUpperCase()}
                           </Badge>
-                          {(() => {
-                            const now = new Date();
-                            const slaDate =
-                              ticket.sla_resolution_due || ticket.due_date;
-                            const isBreached =
-                              slaDate &&
-                              new Date(slaDate) < now &&
-                              !["resolved", "closed", "cancelled"].includes(
-                                ticket.status,
-                              );
-
-                            if (ticket.sla_breached || isBreached) {
-                              return (
-                                <Badge
-                                  variant="destructive"
-                                  className="animate-pulse"
-                                >
-                                  SLA BREACHED
+                          {(ticket.sla_response_breached || ticket.sla_resolution_breached) && (
+                            <div className="flex flex-col space-y-1">
+                              {ticket.sla_response_breached && (
+                                <Badge variant="destructive" className="text-xs">
+                                  Response SLA Breached
                                 </Badge>
-                              );
-                            }
-
-                            if (slaDate) {
-                              const timeDiff =
-                                new Date(slaDate).getTime() - now.getTime();
-                              const hoursDiff = timeDiff / (1000 * 3600);
-
-                              if (hoursDiff <= 2 && hoursDiff > 0) {
-                                return (
-                                  <Badge
-                                    variant="destructive"
-                                    className="bg-orange-500"
-                                  >
-                                    DUE IN {Math.round(hoursDiff)}H
-                                  </Badge>
-                                );
-                              }
-                            }
-
-                            return null;
-                          })()}
+                              )}
+                              {ticket.sla_resolution_breached && (
+                                <Badge variant="destructive" className="text-xs">
+                                  Resolution SLA Breached
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+                          {ticket.sla_breached && !ticket.sla_response_breached && !ticket.sla_resolution_breached && (
+                            <Badge variant="destructive" className="text-xs">
+                              SLA Breached (Legacy)
+                            </Badge>
+                          )}
                         </div>
 
                         {/* Title */}

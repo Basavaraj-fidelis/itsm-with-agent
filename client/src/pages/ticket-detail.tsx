@@ -90,6 +90,10 @@ interface TicketData {
   sla_response_time?: number;
   sla_resolution_time?: number;
   sla_breached?: boolean;
+  sla_response_breached?: boolean;
+  sla_resolution_breached?: boolean;
+  response_due_at?: string;
+  resolve_due_at?: string;
 }
 
 export default function TicketDetail() {
@@ -805,6 +809,45 @@ export default function TicketDetail() {
           </div>
         </CardContent>
       </Card>
+            {(ticket.sla_response_breached || ticket.sla_resolution_breached || ticket.sla_breached) && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <AlertTriangle className="h-5 w-5 text-red-600" />
+                    <span className="font-medium text-red-800 dark:text-red-200">
+                      SLA Breach Alert
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    {ticket.sla_response_breached && (
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                        <span className="text-sm text-red-600 dark:text-red-300">
+                          Response SLA breached {ticket.response_due_at ? `(was due: ${new Date(ticket.response_due_at).toLocaleString()})` : ''}
+                        </span>
+                      </div>
+                    )}
+                    {ticket.sla_resolution_breached && (
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                        <span className="text-sm text-red-600 dark:text-red-300">
+                          Resolution SLA breached {ticket.resolve_due_at ? `(was due: ${new Date(ticket.resolve_due_at).toLocaleString()})` : ''}
+                        </span>
+                      </div>
+                    )}
+                    {ticket.sla_breached && !ticket.sla_response_breached && !ticket.sla_resolution_breached && (
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                        <span className="text-sm text-red-600 dark:text-red-300">
+                          SLA breached (legacy tracking)
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-sm text-red-600 dark:text-red-300 mt-2 font-medium">
+                    Immediate attention required!
+                  </p>
+                </div>
+              )}
 
       {/* Details Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -824,8 +867,7 @@ export default function TicketDetail() {
                 {ticket.assigned_to && ticket.assigned_to.trim() !== '' ? ticket.assigned_to : 'Unassigned'}
               </p>
             </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Created</Label>
+            <div>              <Label className="text-xs text-muted-foreground">Created</Label>
               <p className="font-medium">{formatDate(ticket.created_at)}</p>
             </div>
             <div>

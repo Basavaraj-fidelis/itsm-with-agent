@@ -59,6 +59,54 @@ export function registerSLARoutes(app: Express) {
     }
   });
 
+  // Get detailed SLA breach information
+  app.get("/api/sla/breach-details", async (req, res) => {
+    try {
+      const { db } = await import("../db");
+      const { tickets } = await import("@shared/ticket-schema");
+      const { not, inArray, or, eq } = await import("drizzle-orm");
+
+      // Get all open tickets with SLA breaches
+      const breachedTickets = await db
+        .select()
+        .from(tickets)
+        .where(
+          and(
+            not(inArray(tickets.status, ['resolved', 'closed', 'cancelled'])),
+            or(
+              eq(tickets.sla_response_breached, true),
+              eq(tickets.sla_resolution_breached, true),
+              eq(tickets.sla_breached, true)
+            )
+          )
+        );
+
+      const breachDetails = breachedTickets.map(ticket => ({
+        ticketNumber: ticket.ticket_number,
+        title: ticket.title,
+        priority: ticket.priority,
+        assignedTo: ticket.assigned_to,
+        responseBreached: ticket.sla_response_breached,
+        resolutionBreached: ticket.sla_resolution_breached,
+        legacyBreached: ticket.sla_breached && !ticket.sla_response_breached && !ticket.sla_resolution_breached,
+        responseDue: ticket.response_due_at || ticket.sla_response_due,
+        resolutionDue: ticket.resolve_due_at || ticket.sla_resolution_due,
+        createdAt: ticket.created_at
+      }));
+
+      res.json({
+        totalBreached: breachedTickets.length,
+        responseBreaches: breachedTickets.filter(t => t.sla_response_breached).length,
+        resolutionBreaches: breachedTickets.filter(t => t.sla_resolution_breached).length,
+        legacyBreaches: breachedTickets.filter(t => t.sla_breached && !t.sla_response_breached && !t.sla_resolution_breached).length,
+        details: breachDetails
+      });
+    } catch (error) {
+      console.error("Error fetching SLA breach details:", error);
+      res.status(500).json({ error: "Failed to fetch SLA breach details" });
+    }
+  });
+
   // Manual SLA breach check
   app.post("/api/sla/check-breaches", async (req, res) => {
     try {
