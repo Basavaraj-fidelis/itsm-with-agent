@@ -1786,12 +1786,17 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                 <CardContent className="space-y-6">
                   {/* OS-specific patch information */}
                   {(() => {
-                    const osName = agent?.os_info?.name?.toLowerCase() || "";
-                    const patches = agent?.os_info?.patches || [];
-                    const patchSummary = agent?.os_info?.patch_summary || null;
-                    const lastUpdate = agent?.os_info?.last_update;
+                    // Get raw data from the agent
+                    const rawData = agent?.latest_report?.raw_data;
+                    const parsedData = typeof rawData === "string" ? JSON.parse(rawData) : rawData;
+                    
+                    const osName = agent?.latest_report?.os_info?.name?.toLowerCase() || "";
+                    const patches = parsedData?.patches || [];
+                    const patchSummary = parsedData?.os_info?.patch_summary || null;
+                    const lastUpdate = parsedData?.os_info?.last_update;
 
                     console.log("Debug - OS Name:", osName);
+                    console.log("Debug - Raw Data:", parsedData);
                     console.log("Debug - Patches:", patches);
                     console.log("Debug - Patch Summary:", patchSummary);
                     console.log("Debug - Last Update:", lastUpdate);
@@ -2019,7 +2024,12 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                 </CardHeader>
                 <CardContent>
                   {(() => {
-                    const security = agent?.security || {};
+                    // Get security data from raw_data
+                    const rawData = agent?.latest_report?.raw_data;
+                    const parsedData = typeof rawData === "string" ? JSON.parse(rawData) : rawData;
+                    const security = parsedData?.security || {};
+
+                    console.log("Debug - Security Data:", security);
 
                     if (Object.keys(security).length === 0) {
                       return (
@@ -2140,7 +2150,12 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                 </CardHeader>
                 <CardContent>
                   {(() => {
-                    const activePorts = agent?.active_ports || [];
+                    // Get active ports from raw_data
+                    const rawData = agent?.latest_report?.raw_data;
+                    const parsedData = typeof rawData === "string" ? JSON.parse(rawData) : rawData;
+                    const activePorts = parsedData?.active_ports || [];
+
+                    console.log("Debug - Active Ports:", activePorts);
 
                     if (activePorts.length === 0) {
                       return (
