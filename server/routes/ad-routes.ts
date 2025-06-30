@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { adService } from "./ad-service";
+import { adService } from "../services/ad-service";
 
 const router = Router();
 

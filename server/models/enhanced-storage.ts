@@ -7,7 +7,7 @@ import {
   softwareInventory,
   remoteAccess,
   deviceAlerts,
-} from "@shared/schema";
+} from "../../shared/schema";
 import { eq, desc, and, or, gte, lte, inArray, sql } from "drizzle-orm";
 import { ALERT_THRESHOLDS, getAlertLevel } from "@shared/alert-thresholds";
 
