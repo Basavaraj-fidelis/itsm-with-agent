@@ -20,78 +20,58 @@ import { performanceService } from "./performance-service";
 import { automationService } from "./automation-service";
 import { aiService } from "./ai-service";
 
-const JWT_SECRET =
-  process.env.JWT_SECRET || "your-secret-key-change-in-production";
+// Import utility functions
+import { DatabaseUtils } from "./utils/database";
+import { AuthUtils } from "./utils/auth";
+import { TimeUtils } from "./utils/time";
+import { ResponseUtils } from "./utils/response";
+import { UserUtils } from "./utils/user";
+import { AlertUtils } from "./utils/alerts";
+
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
 // Auth middleware
 const authenticateToken = async (req: any, res: any, next: any) => {
   const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
+  const token = AuthUtils.extractTokenFromHeader(authHeader || "");
 
   if (!token) {
-    return res.status(401).json({ message: "Access token required" });
+    return ResponseUtils.unauthorized(res, "Access token required");
   }
 
   try {
-    const decoded: any = jwt.verify(token, JWT_SECRET);
+    const decoded: any = AuthUtils.verifyToken(token);
     console.log("Decoded token:", decoded);
 
     // Try to get user from database first
-    try {
-      const { pool } = await import("./db");
-      const result = await pool.query(
-        `
-        SELECT id, email, role, first_name, last_name, username, is_active, phone, location 
-        FROM users WHERE id = $1
-      `,
-        [decoded.userId || decoded.id],
-      );
-
-      if (result.rows.length > 0) {
-        const user = result.rows[0];
-
-        // Build name from available fields
-        let displayName = "";
-        if (user.first_name || user.last_name) {
-          displayName =
-            `${user.first_name || ""} ${user.last_name || ""}`.trim();
-        } else if (user.username) {
-          displayName = user.username;
-        } else {
-          displayName = user.email.split("@")[0];
-        }
-
-        user.name = displayName;
-
-        if (!user.is_active) {
-          return res.status(403).json({ message: "User account is inactive" });
-        }
-
-        req.user = user;
-        return next();
+    const user = await AuthUtils.getUserById(decoded.userId || decoded.id);
+    
+    if (user) {
+      const statusCheck = AuthUtils.validateUserStatus(user);
+      if (!statusCheck.valid) {
+        return ResponseUtils.forbidden(res, statusCheck.message);
       }
-    } catch (dbError) {
-      console.log(
-        "Database lookup failed, trying file storage:",
-        dbError.message,
-      );
+
+      req.user = user;
+      return next();
     }
 
     // Fallback to file storage
-    const user = await storage.getUserById(decoded.userId || decoded.id);
-    if (!user) {
-      return res.status(403).json({ message: "User not found" });
+    const fileUser = await storage.getUserById(decoded.userId || decoded.id);
+    if (!fileUser) {
+      return ResponseUtils.forbidden(res, "User not found");
     }
 
-    if (user.is_active === false) {
-      return res.status(403).json({ message: "User account is inactive" });
+    const statusCheck = AuthUtils.validateUserStatus(fileUser);
+    if (!statusCheck.valid) {
+      return ResponseUtils.forbidden(res, statusCheck.message);
     }
 
-    req.user = user;
+    req.user = fileUser;
     next();
   } catch (error) {
     console.error("Token verification error:", error);
-    return res.status(403).json({ message: "Invalid token" });
+    return ResponseUtils.forbidden(res, "Invalid token");
   }
 };
 
@@ -99,12 +79,11 @@ const authenticateToken = async (req: any, res: any, next: any) => {
 const requireRole = (roles: string | string[]) => {
   return (req: any, res: any, next: any) => {
     const userRole = req.user?.role;
-    const allowedRoles = Array.isArray(roles) ? roles : [roles];
-
-    if (userRole === "admin" || allowedRoles.includes(userRole)) {
+    
+    if (AuthUtils.hasRole(userRole, roles)) {
       next();
     } else {
-      res.status(403).json({ message: "Insufficient permissions" });
+      ResponseUtils.forbidden(res, "Insufficient permissions");
     }
   };
 };
@@ -194,19 +173,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       try {
         // Try database query using raw SQL - use only columns that definitely exist
-        const { pool } = await import("./db");
-
-        // First check what columns exist in the users table
-        const columnsResult = await pool.query(`
-          SELECT column_name 
-          FROM information_schema.columns 
-          WHERE table_name = 'users' AND table_schema = 'public'
-        `);
-
-        const availableColumns = columnsResult.rows.map(
-          (row) => row.column_name,
-        );
-        console.log("Available columns in users table:", availableColumns);
+        const availableColumns = await DatabaseUtils.getTableColumns("users");
+        const columnNames = availableColumns.map(col => col.column_name);
+        console.log("Available columns in users table:", columnNames);
 
         // Build query with only available columns
         let selectColumns = ["id", "email", "role"];
@@ -224,15 +193,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ];
 
         optionalColumns.forEach((col) => {
-          if (availableColumns.includes(col)) {
+          if (columnNames.includes(col)) {
             selectColumns.push(col);
           }
         });
 
-        const query = `SELECT ${selectColumns.join(", ")} FROM users WHERE email = $1`;
+        const query = DatabaseUtils.buildSelectQuery("users", columnNames, selectColumns) + " WHERE email = $1";
         console.log("Executing query:", query);
 
-        const result = await pool.query(query, [email.toLowerCase()]);
+        const result = await DatabaseUtils.executeQuery(query, [email.toLowerCase()]);
 
         if (result.rows.length === 0) {
           console.log("User not found in database:", email);
@@ -289,29 +258,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Generate JWT token
-        const token = jwt.sign(
-          { userId: user.id, id: user.id, email: user.email, role: user.role },
-          JWT_SECRET,
-          { expiresIn: "24h" },
-        );
+        const token = AuthUtils.generateToken({
+          userId: user.id, 
+          id: user.id, 
+          email: user.email, 
+          role: user.role
+        });
 
         // Return user data without password
         const { password_hash, ...userWithoutPassword } = user;
 
-        // Build name from available fields
-        let displayName = "";
-        if (user.name) {
-          displayName = user.name;
-        } else if (user.first_name || user.last_name) {
-          displayName =
-            `${user.first_name || ""} ${user.last_name || ""}`.trim();
-        } else if (user.username) {
-          displayName = user.username;
-        } else {
-          displayName = user.email.split("@")[0];
-        }
-
-        userWithoutPassword.name = displayName;
+        // Build name from available fields using utility
+        userWithoutPassword.name = UserUtils.buildDisplayName(user);
 
         console.log("Login successful for:", email);
         res.json({
