@@ -1,4 +1,3 @@
-
 import { Router } from "express";
 import { db } from "../db";
 import { tickets } from "@shared/ticket-schema";
@@ -12,10 +11,10 @@ const router = Router();
 router.get("/api/sla/analysis", async (req, res) => {
   try {
     const now = new Date();
-    
+
     // Get all tickets for analysis
     const allTickets = await db.select().from(tickets);
-    
+
     const analysis = {
       summary: {
         totalTickets: allTickets.length,
@@ -39,7 +38,7 @@ router.get("/api/sla/analysis", async (req, res) => {
     for (const ticket of allTickets) {
       // Check if ticket has SLA data
       const hasSLA = ticket.resolve_due_at || ticket.sla_resolution_due;
-      
+
       if (hasSLA) {
         analysis.slaValidation.ticketsWithSLA++;
       } else {
@@ -87,7 +86,7 @@ router.get("/api/sla/analysis", async (req, res) => {
 
       // Validate SLA calculation
       const expectedSLA = await validateSLACalculation(ticket);
-      
+
       analysis.ticketDetails.push({
         ticketNumber: ticket.ticket_number,
         title: ticket.title,
@@ -210,11 +209,11 @@ async function testFutureTicketSLA() {
     for (const testCase of testCases) {
       // Find matching policy
       const policy = await slaPolicyService.findMatchingSLAPolicy(testCase);
-      
+
       if (policy) {
         // Calculate SLA targets
         const slaTargets = slaPolicyService.calculateSLADueDates(now, policy);
-        
+
         results.push({
           testCase,
           policy: policy.name,

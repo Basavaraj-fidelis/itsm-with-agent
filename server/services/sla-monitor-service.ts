@@ -43,15 +43,12 @@ export class SLAMonitorService {
       console.log("🔍 Checking for SLA breaches...");
       const now = new Date();
 
-      // Get all open tickets with SLA due dates
+      // Get all open tickets (check both resolve_due_at and sla_resolution_due)
       const openTickets = await db
         .select()
         .from(tickets)
         .where(
-          and(
-            not(inArray(tickets.status, ['resolved', 'closed', 'cancelled'])),
-            isNotNull(tickets.resolve_due_at)
-          )
+          not(inArray(tickets.status, ['resolved', 'closed', 'cancelled']))
         );
 
       let responseBreaches = 0;
@@ -63,8 +60,9 @@ export class SLAMonitorService {
         const updateData: any = {};
 
         // Check response SLA breach
-        if (ticket.response_due_at && !ticket.first_response_at && !ticket.sla_response_breached) {
-          if (now > new Date(ticket.response_due_at)) {
+        const responseDue = ticket.response_due_at || ticket.sla_response_due;
+        if (responseDue && !ticket.first_response_at && !ticket.sla_response_breached) {
+          if (now > new Date(responseDue)) {
             updateData.sla_response_breached = true;
             needsUpdate = true;
             responseBreaches++;
@@ -75,8 +73,9 @@ export class SLAMonitorService {
         }
 
         // Check resolution SLA breach
-        if (ticket.resolve_due_at && !ticket.sla_resolution_breached) {
-          if (now > new Date(ticket.resolve_due_at)) {
+        const resolutionDue = ticket.resolve_due_at || ticket.sla_resolution_due;
+        if (resolutionDue && !ticket.sla_resolution_breached) {
+          if (now > new Date(resolutionDue)) {
             updateData.sla_resolution_breached = true;
             updateData.sla_breached = true; // Legacy field
             needsUpdate = true;
@@ -96,14 +95,14 @@ export class SLAMonitorService {
             .where(eq(tickets.id, ticket.id));
 
           updates++;
-          console.log(`⚠️  SLA breach detected for ticket ${ticket.ticket_number}`);
+          console.log(`⚠️  SLA breach detected for ticket ${ticket.ticket_number} (Created: ${ticket.created_at})`);
         }
       }
 
       if (updates > 0) {
         console.log(`📊 SLA Check Complete: ${updates} tickets updated, ${responseBreaches} response breaches, ${resolutionBreaches} resolution breaches`);
       } else {
-        console.log("✅ SLA Check Complete: No breaches detected");
+        console.log("✅ SLA Check Complete: No new breaches detected");
       }
 
     } catch (error) {
@@ -176,24 +175,49 @@ Immediate attention required!`;
     slaCompliance: number;
   }> {
     try {
+      // Get all open tickets (not just those with resolve_due_at)
       const openTickets = await db
         .select()
         .from(tickets)
         .where(
-          and(
-            not(inArray(tickets.status, ['resolved', 'closed', 'cancelled'])),
-            isNotNull(tickets.resolve_due_at)
-          )
+          not(inArray(tickets.status, ['resolved', 'closed', 'cancelled']))
         );
 
-      const responseBreaches = openTickets.filter(t => t.sla_response_breached).length;
-      const resolutionBreaches = openTickets.filter(t => t.sla_resolution_breached).length;
+      // Filter tickets that have SLA due dates
+      const ticketsWithSLA = openTickets.filter(t => 
+        t.resolve_due_at || t.sla_resolution_due || 
+        t.response_due_at || t.sla_response_due
+      );
+
+      // Calculate current breaches based on time
+      const now = new Date();
+      let actualResponseBreaches = 0;
+      let actualResolutionBreaches = 0;
+      
+      for (const ticket of ticketsWithSLA) {
+        // Check if response is breached
+        const responseDue = ticket.response_due_at || ticket.sla_response_due;
+        if (responseDue && !ticket.first_response_at && now > new Date(responseDue)) {
+          actualResponseBreaches++;
+        }
+        
+        // Check if resolution is breached
+        const resolutionDue = ticket.resolve_due_at || ticket.sla_resolution_due;
+        if (resolutionDue && now > new Date(resolutionDue)) {
+          actualResolutionBreaches++;
+        }
+      }
+
       const totalBreaches = new Set([
-        ...openTickets.filter(t => t.sla_response_breached).map(t => t.id),
-        ...openTickets.filter(t => t.sla_resolution_breached).map(t => t.id)
+        ...ticketsWithSLA.filter(t => {
+          const responseDue = t.response_due_at || t.sla_response_due;
+          const resolutionDue = t.resolve_due_at || t.sla_resolution_due;
+          return (responseDue && !t.first_response_at && now > new Date(responseDue)) ||
+                 (resolutionDue && now > new Date(resolutionDue));
+        }).map(t => t.id)
       ]).size;
 
-      const totalTicketsWithSLA = openTickets.length;
+      const totalTicketsWithSLA = ticketsWithSLA.length;
       const onTrackTickets = totalTicketsWithSLA - totalBreaches;
       const slaCompliance = totalTicketsWithSLA > 0 
         ? Math.round((onTrackTickets / totalTicketsWithSLA) * 100) 
@@ -201,8 +225,8 @@ Immediate attention required!`;
 
       return {
         totalTicketsWithSLA,
-        responseBreaches,
-        resolutionBreaches,
+        responseBreaches: actualResponseBreaches,
+        resolutionBreaches: actualResolutionBreaches,
         onTrackTickets,
         slaCompliance
       };

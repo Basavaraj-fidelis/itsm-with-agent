@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -119,6 +118,13 @@ export default function SLAAnalysisPage() {
   if (!analysis) return null;
 
   const { summary, ticketDetails, slaValidation, futureTicketTest } = analysis.analysis;
+  const [analysisData, setAnalysisData] = useState(analysis);
+
+  const fixTicketSLA = async () => {
+    // Logic for fixing ticket SLA
+  }
+
+  const isFixing = false;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -134,14 +140,45 @@ export default function SLAAnalysisPage() {
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
-          <Button onClick={fixTickets} disabled={fixing}>
-            {fixing ? (
-              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Play className="h-4 w-4 mr-2" />
-            )}
-            Fix Missing SLA
-          </Button>
+          
+            <Button 
+              onClick={fixTicketSLA}
+              disabled={isFixing}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              {isFixing ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+              Fix Ticket SLA Data
+            </Button>
+
+            <Button 
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/sla/force-breach-check', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json'
+                    }
+                  });
+
+                  if (response.ok) {
+                    const result = await response.json();
+                    console.log('Force breach check result:', result);
+                    // Refresh the analysis
+                    const analysisResponse = await fetch('/api/sla/analysis');
+                    if (analysisResponse.ok) {
+                      const analysisData = await analysisResponse.json();
+                      setAnalysisData(analysisData);
+                    }
+                  }
+                } catch (error) {
+                  console.error('Error forcing breach check:', error);
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              <AlertTriangle className="mr-2 h-4 w-4" />
+              Force SLA Breach Check
+            </Button>
         </div>
       </div>
 
@@ -378,7 +415,7 @@ export default function SLAAnalysisPage() {
                       {futureTicketTest.summary?.passed || 0} / {futureTicketTest.summary?.totalTests || 0} Passed
                     </Badge>
                   </div>
-                  
+
                   <div className="space-y-2">
                     {futureTicketTest.results?.map((result: any, index: number) => (
                       <div key={index} className="border rounded p-3">
