@@ -365,15 +365,17 @@ export default function ITSMComparison() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">ITSM Platform Comparison</h1>
-          <p className="text-muted-foreground mt-2">
-            Compare your ITSM system with leading industry solutions
-          </p>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold">ITSM Platform Comparison</h1>
+              <p className="text-muted-foreground mt-2">
+                Compare your ITSM system with leading industry solutions
+              </p>
+            </div>
+          </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid grid-cols-4 w-full">
@@ -666,6 +668,8 @@ export default function ITSMComparison() {
           </CardContent>
         </Card>
       )}
+        </div>
+      </div>
     </div>
   );
 }

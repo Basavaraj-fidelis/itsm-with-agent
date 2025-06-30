@@ -256,7 +256,7 @@ export default function App() {
               </ProtectedRoute>
             </Route>
 
-            
+
 
 
             {/* Default redirect */}
