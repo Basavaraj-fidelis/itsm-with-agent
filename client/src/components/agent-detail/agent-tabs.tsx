@@ -280,7 +280,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
     const isWindows = osName.toLowerCase().includes('windows');
     const isLinux = osName.toLowerCase().includes('linux');
     const isMacOS = osName.toLowerCase().includes('mac') || osName.toLowerCase().includes('darwin');
-  
+
     // Function to provide OS-specific color schemes
     const getOSColorScheme = () => {
       if (isWindows) return 'bg-blue-50 dark:bg-blue-900/20';
@@ -968,8 +968,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       {usbHistory
                         .sort((a: any, b: any) => {
                           if (a.is_connected && !b.is_connected) return -1;
-                          if (!a.is_connected && b.is_connected) return 1;
-                          return (
+                          if (!a.is_connected && b.is_connected) return 1;                          return (
                             new Date(b.last_seen).getTime() -
                             new Date(a.last_seen).getTime()
                           );
@@ -1773,7 +1772,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
         <TabsContent value="updates" className="space-y-6">
           <SafeDataRenderer>
             <div className="space-y-6">
-              {/* 1. Patch Information: Recent system updates with dates and package details */}
+              {/* 1. System Patches & Updates */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
@@ -1785,28 +1784,6 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                   {(() => {
                     const rawData = agent?.latest_report?.raw_data;
                     const parsedData = typeof rawData === "string" ? JSON.parse(rawData) : rawData;
-
-                    // Dynamic OS detection from actual agent data
-                    const osInfo = parsedData?.os_info || agent?.latest_report?.os_info || {};
-                    const osName = osInfo.name || osInfo.product_name || 'Unknown';
-                    const osVersion = osInfo.version || osInfo.display_version || 'Unknown';
-                    const osType = osName.toLowerCase();
-
-                    // Dynamic OS type detection
-                    const isDynamicWindows = osType.includes('windows') || osType.includes('microsoft');
-                    const isDynamicLinux = osType.includes('linux') || osType.includes('ubuntu') || osType.includes('debian') || osType.includes('centos') || osType.includes('rhel') || osType.includes('fedora') || osType.includes('mint');
-                    const isDynamicMacOS = osType.includes('mac') || osType.includes('darwin') || osType.includes('osx');
-
-                    console.log("=== DYNAMIC OS DETECTION ===");
-                    console.log("Agent hostname:", agent.hostname);
-                    console.log("OS Name from agent:", osName);
-                    console.log("OS Type (lowercase):", osType);
-                    console.log("Detected as:", { 
-                      Windows: isDynamicWindows, 
-                      Linux: isDynamicLinux, 
-                      macOS: isDynamicMacOS 
-                    });
-                    console.log("Raw data keys:", parsedData ? Object.keys(parsedData) : "No data");
 
                     if (!parsedData) {
                       return (
@@ -1820,59 +1797,22 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       );
                     }
 
-                    // Show detected OS and available data structure
-                    const debugInfo = (
-                      <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border mb-4">
-                        <h5 className="font-medium text-gray-900 dark:text-gray-100 mb-2">
-                          System Detection & Available Data
-                        </h5>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                          <div>
-                            <span className="text-gray-600 dark:text-gray-400">Detected OS:</span>
-                            <div className="font-medium">
-                              {osName} {osVersion}
-                            </div>
-                          </div>
-                          <div>
-                            <span className="text-gray-600 dark:text-gray-400">OS Type:</span>
-                            <div className="font-medium">
-                              {isDynamicWindows ? 'Windows' : isDynamicLinux ? 'Linux' : isDynamicMacOS ? 'macOS' : 'Unknown'}
-                            </div>
-                          </div>
-                          <div>
-                            <span className="text-gray-600 dark:text-gray-400">Available Data:</span>
-                            <div className="text-xs font-mono">
-                              {Object.keys(parsedData).join(', ')}
-                            </div>
-                          </div>
-                          <div>
-                            <span className="text-gray-600 dark:text-gray-400">Last Report:</span>
-                            <div className="text-xs">
-                              {agent.latest_report?.collected_at ? 
-                                new Date(agent.latest_report.collected_at).toLocaleString() : 
-                                'Never'
-                              }
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
+                    // Dynamic OS detection from actual agent data
+                    const osInfo = parsedData?.os_info || agent?.latest_report?.os_info || {};
+                    const osName = osInfo.name || osInfo.product_name || 'Unknown';
+                    const osType = osName.toLowerCase();
+
+                    // Dynamic OS type detection
+                    const isDynamicWindows = osType.includes('windows') || osType.includes('microsoft');
+                    const isDynamicLinux = osType.includes('linux') || osType.includes('ubuntu') || osType.includes('debian') || osType.includes('centos') || osType.includes('rhel') || osType.includes('fedora') || osType.includes('mint');
 
                     // Handle Windows systems
                     if (isDynamicWindows) {
-                      console.log("Processing Windows system data...");
                       const patches = parsedData.patches || [];
-                      const windowsUpdates = parsedData.windows_updates || {};
                       const lastUpdate = parsedData.last_update || osInfo.last_update;
-                      
-                      console.log("Windows patches found:", patches.length);
-                      console.log("Windows updates data:", windowsUpdates);
-                      console.log("Last update:", lastUpdate);
-                      
+
                       return (
                         <div className="space-y-4">
-                          {debugInfo}
-                          
                           {/* Windows System Information */}
                           <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                             <h5 className="font-medium text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
@@ -1886,10 +1826,10 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                               </div>
                               <div>
                                 <span className="text-blue-700 dark:text-blue-300 font-medium">Version:</span>
-                                <div className="text-blue-800 dark:text-blue-200">{osVersion}</div>
+                                <div className="text-blue-800 dark:text-blue-200">{osInfo.version || osInfo.display_version || "Unknown"}</div>
                               </div>
                               <div>
-                                <span className="text-blue-700 dark:text-blue-300 font-medium">Build:</span>
+                                <span className="text-blue-70700 dark:text-blue-300 font-medium">Build:</span>
                                 <div className="text-blue-800 dark:text-blue-200">
                                   {osInfo.build_number || "Unknown"}
                                 </div>
@@ -1917,7 +1857,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                               </div>
                             </div>
                           )}
-                          
+
                           {/* Windows Patches */}
                           {patches.length > 0 ? (
                             <div>
@@ -1935,7 +1875,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                       {patch.id || patch.HotFixID || patch.kb_number || `Patch ${index + 1}`}
                                     </span>
                                     <span className="text-xs text-green-600 dark:text-green-400">
-                                      {patch.installed_on || patch.InstalledOn || "Unknown date"}
+                                      {patch.installed_on?.DateTime || patch.installed_on || patch.InstalledOn || "Unknown date"}
                                     </span>
                                   </div>
                                 ))}
@@ -1945,13 +1885,6 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                   </div>
                                 )}
                               </div>
-                            </div>
-                          ) : windowsUpdates && Object.keys(windowsUpdates).length > 0 ? (
-                            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                              <h4 className="font-medium mb-3 text-sm">Windows Update Information</h4>
-                              <pre className="text-xs bg-white dark:bg-gray-800 p-3 rounded border overflow-auto max-h-32">
-                                {JSON.stringify(windowsUpdates, null, 2)}
-                              </pre>
                             </div>
                           ) : (
                             <div className="text-center py-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
@@ -1968,17 +1901,10 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
 
                     // Handle Linux systems
                     if (isDynamicLinux) {
-                      console.log("Processing Linux system data...");
                       const patchSummary = parsedData.patch_summary || {};
-                      const installedPackages = parsedData.software || software || [];
-                      
-                      console.log("Linux patch summary:", patchSummary);
-                      console.log("Installed packages:", installedPackages.length);
-                      
+
                       return (
                         <div className="space-y-4">
-                          {debugInfo}
-                          
                           {/* Linux System Information */}
                           <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
                             <h5 className="font-medium text-green-900 dark:text-green-100 mb-3 flex items-center gap-2">
@@ -1992,7 +1918,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                               </div>
                               <div>
                                 <span className="text-green-700 dark:text-green-300 font-medium">Version:</span>
-                                <div className="text-green-800 dark:text-green-200">{osVersion}</div>
+                                <div className="text-green-800 dark:text-green-200">{osInfo.version || osInfo.release || "Unknown"}</div>
                               </div>
                               <div>
                                 <span className="text-green-700 dark:text-green-300 font-medium">Kernel:</span>
@@ -2003,173 +1929,63 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                               <div>
                                 <span className="text-green-700 dark:text-green-300 font-medium">Package Manager:</span>
                                 <div className="text-green-800 dark:text-green-200">
-                                  {patchSummary.system_type === 'debian' ? 'APT (Debian/Ubuntu)' : 
-                                   patchSummary.system_type === 'redhat' ? 'YUM/DNF (RedHat/CentOS)' : 
-                                   patchSummary.system_type || 'Auto-detected'}
+                                  {patchSummary.system_type || "Unknown"}
                                 </div>
                               </div>
                             </div>
                           </div>
 
-                          {/* Package Statistics */}
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200">
-                              <div className="text-xs text-green-600 dark:text-green-400 mb-1">
-                                Total Packages:
+                          {/* Linux Package Summary */}
+                          {patchSummary.total_installed && (
+                            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                              <div className="text-xs text-green-700 dark:text-green-300 mb-1">
+                                Total Installed Packages:
                               </div>
-                              <div className="text-lg font-medium text-green-800 dark:text-green-200">
-                                {patchSummary.total_installed || installedPackages.length || 0}
+                              <div className="text-lg font-bold text-green-800 dark:text-green-200">
+                                {patchSummary.total_installed}
                               </div>
+                              {patchSummary.last_update_date && (
+                                <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                                  Last Update: {patchSummary.last_update_date}
+                                </div>
+                              )}
                             </div>
-                            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200">
-                              <div className="text-xs text-green-600 dark:text-green-400 mb-1">
-                                Recent Updates:
-                              </div>
-                              <div className="text-lg font-medium text-green-800 dark:text-green-200">
-                                {patchSummary.recent_patches?.length || 0}
-                              </div>
-                            </div>
-                            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200">
-                              <div className="text-xs text-green-600 dark:text-green-400 mb-1">
-                                Last Update:
-                              </div>
-                              <div className="text-sm font-medium text-green-800 dark:text-green-200">
-                                {patchSummary.last_update_date || "Unknown"}
-                              </div>
-                            </div>
-                          </div>
+                          )}
 
-                          {/* Recent Package Updates */}
+                          {/* Linux Recent Updates */}
                           {patchSummary.recent_patches && patchSummary.recent_patches.length > 0 ? (
                             <div>
                               <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
                                 <Package className="w-4 h-4 text-green-600" />
-                                Recent Package Updates ({patchSummary.recent_patches.length})
+                                Recent System Updates ({patchSummary.recent_patches.length})
                               </h4>
-                              <div className="space-y-2 max-h-96 overflow-y-auto">
-                                {patchSummary.recent_patches.slice((patchesCurrentPage - 1) * itemsPerPage, patchesCurrentPage * itemsPerPage).map((patch, index) => (
+                              <div className="space-y-2 max-h-64 overflow-y-auto">
+                                {patchSummary.recent_patches.map((patch, index) => (
                                   <div
                                     key={index}
-                                    className="p-3 border rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800"
+                                    className="p-3 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-800"
                                   >
-                                    <div className="flex justify-between items-start">
-                                      <div className="flex-1">
-                                        <div className="text-sm font-medium text-green-800 dark:text-green-200">
-                                          <span className="inline-block px-2 py-1 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200 rounded text-xs mr-2">
-                                            {patch.action || "Updated"}
-                                          </span>
-                                          {patch.package ? patch.package.slice(0, 80) : "System Package"}
-                                          {patch.package && patch.package.length > 80 ? "..." : ""}
-                                        </div>
-                                        {patch.type && (
-                                          <div className="text-xs text-green-600 dark:text-green-400 capitalize mt-1">
-                                            {patch.type.replace('_', ' ')}
-                                          </div>
-                                        )}
+                                    <div className="flex justify-between items-start mb-2">
+                                      <div className="text-sm font-medium text-green-800 dark:text-green-200">
+                                        {patch.action || "Update"}
                                       </div>
-                                      <span className="text-xs text-green-600 dark:text-green-400 whitespace-nowrap">
-                                        {patch.date || "Unknown"}
-                                      </span>
+                                      <div className="text-xs text-green-600 dark:text-green-400">
+                                        {patch.date}
+                                      </div>
+                                    </div>
+                                    <div className="text-xs text-green-700 dark:text-green-300 break-all">
+                                      {patch.package || "System update"}
                                     </div>
                                   </div>
                                 ))}
                               </div>
-
-                              {/* Pagination for Recent Patches */}
-                              {(() => {
-                                const totalPages = Math.ceil(patchSummary.recent_patches.length / itemsPerPage);
-                                
-                                if (totalPages > 1) {
-                                  return (
-                                    <div className="mt-4">
-                                      <Pagination>
-                                        <PaginationContent>
-                                          <PaginationItem>
-                                            <PaginationPrevious
-                                              onClick={() =>
-                                                setPatchesCurrentPage(Math.max(1, patchesCurrentPage - 1))
-                                              }
-                                              className={
-                                                patchesCurrentPage === 1
-                                                  ? "pointer-events-none opacity-50"
-                                                  : "cursor-pointer"
-                                              }
-                                            />
-                                          </PaginationItem>
-
-                                          {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                                            const page = i + 1;
-                                            return (
-                                              <PaginationItem key={page}>
-                                                <PaginationLink
-                                                  onClick={() => setPatchesCurrentPage(page)}
-                                                  isActive={page === patchesCurrentPage}
-                                                  className="cursor-pointer"
-                                                >
-                                                  {page}
-                                                </PaginationLink>
-                                              </PaginationItem>
-                                            );
-                                          })}
-
-                                          <PaginationItem>
-                                            <PaginationNext
-                                              onClick={() =>
-                                                setPatchesCurrentPage(Math.min(totalPages, patchesCurrentPage + 1))
-                                              }
-                                              className={
-                                                patchesCurrentPage === totalPages
-                                                  ? "pointer-events-none opacity-50"
-                                                  : "cursor-pointer"
-                                              }
-                                            />
-                                          </PaginationItem>
-                                        </PaginationContent>
-                                      </Pagination>
-                                    </div>
-                                  );
-                                }
-                                return null;
-                              })()}
-                            </div>
-                          ) : installedPackages.length > 0 ? (
-                            <div>
-                              <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
-                                <Package className="w-4 h-4 text-green-600" />
-                                Installed Packages ({installedPackages.length} total)
-                              </h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-96 overflow-y-auto">
-                                {installedPackages.slice(0, 50).map((pkg, index) => (
-                                  <div
-                                    key={index}
-                                    className="p-3 border rounded bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
-                                  >
-                                    <div className="text-sm font-medium text-green-800 dark:text-green-200 truncate">
-                                      {pkg.name || pkg.display_name || `Package ${index + 1}`}
-                                    </div>
-                                    <div className="text-xs text-green-600 dark:text-green-400">
-                                      v{pkg.version || pkg.display_version || "Unknown"}
-                                    </div>
-                                    {pkg.vendor && (
-                                      <div className="text-xs text-green-500 dark:text-green-500 mt-1">
-                                        {pkg.vendor}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                              {installedPackages.length > 50 && (
-                                <div className="text-xs text-neutral-500 pt-2 text-center">
-                                  Showing first 50 of {installedPackages.length} packages
-                                </div>
-                              )}
                             </div>
                           ) : (
                             <div className="text-center py-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
                               <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
-                              <p className="text-sm text-yellow-800 dark:text-yellow-200">No Linux package data found</p>
+                              <p className="text-sm text-yellow-800 dark:text-yellow-200">No Linux package update history found</p>
                               <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
-                                The agent may need time to collect package information
+                                Package manager logs may need to be checked
                               </p>
                             </div>
                           )}
@@ -2177,299 +1993,127 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       );
                     }
 
-                    // Handle macOS systems
-                    if (isDynamicMacOS) {
-                      console.log("Processing macOS system data...");
-                      const patches = parsedData.patches || [];
-                      const systemUpdates = parsedData.system_updates || [];
-                      
-                      return (
-                        <div className="space-y-4">
-                          {debugInfo}
-                          
-                          <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
-                            <h5 className="font-medium text-purple-900 dark:text-purple-100 mb-3 flex items-center gap-2">
-                              <Monitor className="w-4 h-4" />
-                              macOS System Updates
-                            </h5>
-                            {(patches.length > 0 || systemUpdates.length > 0) ? (
-                              <div className="space-y-2 max-h-64 overflow-y-auto">
-                                {[...patches, ...systemUpdates].slice(0, 10).map((patch, index) => (
-                                  <div
-                                    key={index}
-                                    className="flex justify-between items-center py-2 px-3 border rounded-lg bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800"
-                                  >
-                                    <span className="text-sm font-medium text-purple-800 dark:text-purple-200">
-                                      {patch.id || patch.name || `macOS Update ${index + 1}`}
-                                    </span>
-                                    <span className="text-xs text-purple-600 dark:text-purple-400">
-                                      {patch.installed_on || patch.date || 'Unknown date'}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div className="text-center py-6">
-                                <p className="text-sm text-purple-800 dark:text-purple-200">No macOS updates found</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    // Fallback for unknown OS or general data display
+                    // Unknown or unsupported OS
                     return (
-                      <div className="space-y-4">
-                        {debugInfo}
-                        
-                        <div className="text-center py-8 bg-neutral-50 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700">
-                          <Download className="w-12 h-12 mx-auto mb-3 text-neutral-400" />
-                          <h4 className="text-lg font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-                            Patch Data Analysis
-                          </h4>
-                          <div className="text-sm text-neutral-600 dark:text-neutral-400 space-y-2">
-                            <p>Detected OS: <strong>{osName}</strong></p>
-                            <p>System Type: <strong>{isDynamicWindows ? 'Windows' : isDynamicLinux ? 'Linux' : isDynamicMacOS ? 'macOS' : 'Unknown'}</strong></p>
-                            <p>Available Data Fields: <strong>{Object.keys(parsedData).length}</strong></p>
-                            
-                            {/* Show raw data structure for debugging */}
-                            <details className="mt-4">
-                              <summary className="cursor-pointer text-blue-600 hover:text-blue-800">
-                                View Raw Agent Data Structure
-                              </summary>
-                              <pre className="mt-2 text-xs bg-white dark:bg-gray-800 p-3 rounded border overflow-auto max-h-64 text-left">
-                                {JSON.stringify(parsedData, null, 2)}
-                              </pre>
-                            </details>
-                          </div>
-                        </div>
+                      <div className="text-center py-8 bg-gray-50 dark:bg-gray-900 rounded-lg border">
+                        <HelpCircle className="w-8 h-8 mx-auto mb-2 text-gray-600" />
+                        <p className="text-sm text-gray-800 dark:text-gray-200">Unsupported or Unknown Operating System</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          OS: {osName} - Updates tab not available for this system type
+                        </p>
                       </div>
                     );
                   })()}
                 </CardContent>
               </Card>
 
-              {/* 2. Security Information */}
+              {/* 2. Security Status */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Shield className="w-5 h-5" />
-                    <span>
-                      {isLinux
-                        ? "Linux Security Status"
-                        : isWindows
-                          ? "Windows Security Status"
-                          : isMacOS
-                            ? "macOS Security Status"
-                            : "Security Status"}
-                    </span>
+                    <span>Security Status</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {(() => {
                     const rawData = agent?.latest_report?.raw_data;
-                    const parsedData =
-                      typeof rawData === "string"
-                        ? JSON.parse(rawData)
-                        : rawData;
-                    const securityData = parsedData?.security;
+                    const parsedData = typeof rawData === "string" ? JSON.parse(rawData) : rawData;
+                    const securityData = parsedData?.security || {};
 
-                    console.log("Security data check:", { securityData, osName });
-
-                    if (!securityData) {
+                    if (!securityData || Object.keys(securityData).length === 0) {
                       return (
                         <div className="text-center py-8">
                           <Shield className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
-                          <p className="text-sm">No security information available</p>
+                          <p className="text-sm">No security data available</p>
                           <p className="text-xs text-neutral-500 mt-1">
-                            Security data will appear when the agent reports system security information
+                            Waiting for agent to report security information
                           </p>
                         </div>
                       );
                     }
 
                     return (
-                      <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Firewall Status */}
-                        <div className={`p-4 rounded-lg ${getOSColorScheme()}`}>
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="text-sm font-medium">
-                              {isLinux ? "Firewall (UFW/iptables)" : 
-                               isMacOS ? "Application Firewall" : 
-                               "Windows Firewall"}
+                        {securityData.firewall_status && (
+                          <div className="p-4 border rounded-lg bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-200 dark:border-blue-800">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Shield className="w-4 h-4 text-blue-600" />
+                              <h5 className="font-medium text-blue-900 dark:text-blue-100">Firewall Status</h5>
                             </div>
-                            <Badge
-                              variant={
-                                securityData.firewall_status === "enabled"
-                                  ? "default"
-                                  : "destructive"
-                              }
-                            >
-                              {securityData.firewall_status === "enabled" ? "Enabled" :
-                               securityData.firewall_status === "disabled" ? "Disabled" :
-                               "Unknown"}
-                            </Badge>
-                          </div>
-                        </div>
-
-                        {/* Antivirus/Security Software */}
-                        <div className={`p-4 rounded-lg ${getOSColorScheme()}`}>
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="text-sm font-medium">
-                              {isLinux ? "Antivirus/Security Software" : 
-                               isMacOS ? "Security Software" : 
-                               "Windows Defender Antivirus"}
+                            <div className="flex items-center gap-2">
+                              {securityData.firewall_status === 'enabled' ? (
+                                <CheckCircle className="w-4 h-4 text-green-600" />
+                              ) : securityData.firewall_status === 'disabled' ? (
+                                <XCircle className="w-4 h-4 text-red-600" />
+                              ) : (
+                                <HelpCircle className="w-4 h-4 text-yellow-600" />
+                              )}
+                              <span className={`font-medium ${
+                                securityData.firewall_status === 'enabled' ? 'text-green-800 dark:text-green-200' :
+                                securityData.firewall_status === 'disabled' ? 'text-red-800 dark:text-red-200' :
+                                'text-yellow-800 dark:text-yellow-200'
+                              }`}>
+                                {securityData.firewall_status.charAt(0).toUpperCase() + securityData.firewall_status.slice(1)}
+                              </span>
                             </div>
-                            <Badge
-                              variant={
-                                securityData.antivirus_status === "enabled"
-                                  ? "default"
-                                  : securityData.antivirus_status === "unknown"
-                                    ? "secondary"
-                                    : "destructive"
-                              }
-                            >
-                              {securityData.antivirus_status === "enabled" ? "Active" :
-                               securityData.antivirus_status === "disabled" ? "Inactive" :
-                               securityData.antivirus_status === "unknown" ? "Not Detected" :
-                               "Unknown"}
-                            </Badge>
                           </div>
-                        </div>
+                        )}
 
-                        {/* Windows-specific security details */}
-                        {isWindows && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {/* Antivirus Status */}
+                        {securityData.antivirus_status && (
+                          <div className="p-4 border rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Shield className="w-4 h-4 text-green-600" />
+                              <h5 className="font-medium text-green-900 dark:text-green-100">Antivirus Status</h5>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {securityData.antivirus_status === 'enabled' ? (
+                                <CheckCircle className="w-4 h-4 text-green-600" />
+                              ) : securityData.antivirus_status === 'disabled' ? (
+                                <XCircle className="w-4 h-4 text-red-600" />
+                              ) : (
+                                <HelpCircle className="w-4 h-4 text-yellow-600" />
+                              )}
+                              <span className={`font-medium ${
+                                securityData.antivirus_status === 'enabled' ? 'text-green-800 dark:text-green-200' :
+                                securityData.antivirus_status === 'disabled' ? 'text-red-800 dark:text-red-200' :
+                                'text-yellow-800 dark:text-yellow-200'
+                              }`}>
+                                {securityData.antivirus_status.charAt(0).toUpperCase() + securityData.antivirus_status.slice(1)}
+                              </span>
+                            </div>
                             {securityData.last_scan && (
-                              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <Shield className="w-4 h-4 text-blue-600" />
-                                  <div className="text-xs text-neutral-600">Last Virus Scan:</div>
-                                </div>
-                                <div className="text-sm font-medium">
-                                  {securityData.last_scan}
-                                </div>
-                              </div>
-                            )}
-                            
-                            {securityData.last_update_check && (
-                              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <RefreshCw className="w-4 h-4 text-blue-600" />
-                                  <div className="text-xs text-neutral-600">Last Update Check:</div>
-                                </div>
-                                <div className="text-sm font-medium">
-                                  {securityData.last_update_check}
-                                </div>
-                              </div>
-                            )}
-
-                            {securityData.automatic_updates && (
-                              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <Download className="w-4 h-4 text-blue-600" />
-                                  <div className="text-xs text-neutral-600">Automatic Updates:</div>
-                                </div>
-                                <div className="text-sm font-medium">
-                                  {securityData.automatic_updates}
-                                </div>
+                              <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                                Last scan: {securityData.last_scan}
                               </div>
                             )}
                           </div>
                         )}
 
-                        {/* Linux-specific security details */}
-                        {isLinux && (
-                          <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
-                            <h5 className="font-medium text-green-900 dark:text-green-100 mb-3 flex items-center gap-2">
-                              <Shield className="w-4 h-4" />
-                              Linux Security Features
-                            </h5>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                              <div>
-                                <div className="font-medium text-green-800 dark:text-green-200 mb-1">System Security:</div>
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-1">
-                                    {securityData.firewall_status === "enabled" ? 
-                                      <CheckCircle className="w-3 h-3 text-green-600" /> : 
-                                      <XCircle className="w-3 h-3 text-red-600" />
-                                    }
-                                    <span>Firewall protection</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <CheckCircle className="w-3 h-3 text-green-600" />
-                                    <span>Package integrity verification</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <CheckCircle className="w-3 h-3 text-green-600" />
-                                    <span>Automatic security updates</span>
-                                  </div>
-                                </div>
-                              </div>
-                              <div>
-                                <div className="font-medium text-green-800 dark:text-green-200 mb-1">Access Control:</div>
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-1">
-                                    <CheckCircle className="w-3 h-3 text-green-600" />
-                                    <span>User account management</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <CheckCircle className="w-3 h-3 text-green-600" />
-                                    <span>SSH key authentication</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <CheckCircle className="w-3 h-3 text-green-600" />
-                                    <span>File permissions enforced</span>
-                                  </div>
-                                </div>
-                              </div>
+                        {/* Last Update Check */}
+                        {securityData.last_update_check && (
+                          <div className="p-4 border rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-800">
+                            <div className="flex items-center gap-2 mb-2">
+                              <RefreshCw className="w-4 h-4 text-purple-600" />
+                              <h5 className="font-medium text-purple-900 dark:text-purple-100">Last Update Check</h5>
+                            </div>
+                            <div className="text-sm text-purple-800 dark:text-purple-200">
+                              {securityData.last_update_check}
                             </div>
                           </div>
                         )}
 
-                        {/* macOS-specific security details */}
-                        {isMacOS && (
-                          <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
-                            <h5 className="font-medium text-purple-900 dark:text-purple-100 mb-3 flex items-center gap-2">
-                              <Shield className="w-4 h-4" />
-                              macOS Security Features
-                            </h5>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                              <div>
-                                <div className="font-medium text-purple-800 dark:text-purple-200 mb-1">System Protection:</div>
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-1">
-                                    <CheckCircle className="w-3 h-3 text-purple-600" />
-                                    <span>System Integrity Protection</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <CheckCircle className="w-3 h-3 text-purple-600" />
-                                    <span>Gatekeeper protection</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <CheckCircle className="w-3 h-3 text-purple-600" />
-                                    <span>XProtect malware detection</span>
-                                  </div>
-                                </div>
-                              </div>
-                              <div>
-                                <div className="font-medium text-purple-800 dark:text-purple-200 mb-1">Access Control:</div>
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-1">
-                                    <CheckCircle className="w-3 h-3 text-purple-600" />
-                                    <span>FileVault encryption</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <CheckCircle className="w-3 h-3 text-purple-600" />
-                                    <span>Secure Boot process</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <CheckCircle className="w-3 h-3 text-purple-600" />
-                                    <span>Privacy controls</span>
-                                  </div>
-                                </div>
-                              </div>
+                        {/* Automatic Updates */}
+                        {securityData.automatic_updates && (
+                          <div className="p-4 border rounded-lg bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20 border-orange-200 dark:border-orange-800">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Settings className="w-4 h-4 text-orange-600" />
+                              <h5 className="font-medium text-orange-900 dark:text-orange-100">Automatic Updates</h5>
+                            </div>
+                            <div className="text-sm text-orange-800 dark:text-orange-200">
+                              {securityData.automatic_updates}
                             </div>
                           </div>
                         )}
@@ -2479,211 +2123,92 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                 </CardContent>
               </Card>
 
-              {/* 3. Active TCP Ports: Currently established connections (filtered) */}
+              {/* 3. Active TCP Ports */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Network className="w-5 h-5" />
-                    <span>
-                      {isLinux
-                        ? "Active Network Connections (Linux)"
-                        : isWindows
-                          ? "Active TCP Ports (Windows)"
-                          : isMacOS
-                            ? "Active Network Connections (macOS)"
-                            : "Active TCP Ports"}
-                    </span>
+                    <span>Active Network Connections</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent>
                   {(() => {
                     const rawData = agent?.latest_report?.raw_data;
-                    const parsedData =
-                      typeof rawData === "string"
-                        ? JSON.parse(rawData)
-                        : rawData;
-                    const activePorts = parsedData?.active_ports;
+                    const parsedData = typeof rawData === "string" ? JSON.parse(rawData) : rawData;
+                    const activePorts = parsedData?.active_ports || [];
 
-                    return activePorts && activePorts.length > 0 ? (
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-3 gap-4 text-sm">
-                          <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg text-center">
-                            <div className="text-xs text-neutral-600 mb-1">
-                              Total Connections:
-                            </div>
-                            <div className="text-lg font-medium">
-                              {activePorts.length}
-                            </div>
-                          </div>
-                          <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-center">
-                            <div className="text-xs text-neutral-600 mb-1">
-                              Unique Local Ports:
-                            </div>
-                            <div className="text-lg font-medium">
-                              {new Set(activePorts.map((port) => port.LocalPort)).size}
-                            </div>
-                          </div>
-                          <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg text-center">
-                            <div className="text-xs text-neutral-600 mb-1">
-                              Remote Services:
-                            </div>
-                            <div className="text-lg font-medium">
-                              {new Set(activePorts.map((port) => port.RemotePort)).size}
-                            </div>
-                          </div>
+                    if (!activePorts || activePorts.length === 0) {
+                      return (
+                        <div className="text-center py-8">
+                          <Network className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
+                          <p className="text-sm">No active network connections found</p>
+                          <p className="text-xs text-neutral-500 mt-1">
+                            All connections may be filtered or agent not reporting
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    // Paginate the ports
+                    const startIndex = (portsCurrentPage - 1) * itemsPerPage;
+                    const endIndex = startIndex + itemsPerPage;
+                    const paginatedPorts = activePorts.slice(startIndex, endIndex);
+                    const totalPages = Math.ceil(activePorts.length / itemsPerPage);
+
+                    return (
+                      <div className="space-y-4">
+                        <div className="text-sm text-muted-foreground mb-3">
+                          Showing {activePorts.length} active TCP connections (filtered to exclude browsers and system processes)
                         </div>
 
-                        {/* Port Analysis by Protocol */}
-                        <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-                          <h5 className="font-medium text-blue-900 dark:text-blue-100 mb-2 text-sm">
-                            Connection Analysis
-                          </h5>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                            <div className="flex justify-between">
-                              <span className="text-blue-600 dark:text-blue-400">
-                                HTTPS (443):
-                              </span>
-                              <span className="font-medium">
-                                {activePorts.filter((p) => p.RemotePort === 443).length}
-                              </span>
+                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                          {paginatedPorts.map((port, index) => (
+                            <div
+                              key={index}
+                              className="flex justify-between items-center py-2 px-3 border rounded bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 border-cyan-200 dark:border-cyan-800"
+                            >
+                              <div className="text-sm font-mono text-cyan-800 dark:text-cyan-200">
+                                Local Port: {port.LocalPort}
+                              </div>
+                              <div className="text-sm font-mono text-cyan-600 dark:text-cyan-400">
+                                → Remote Port: {port.RemotePort}
+                              </div>
                             </div>
-                            <div className="flex justify-between">
-                              <span className="text-blue-600 dark:text-blue-400">
-                                SSH (22):
-                              </span>
-                              <span className="font-medium">
-                                {activePorts.filter((p) => p.RemotePort === 22 || p.LocalPort === 22).length}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-blue-600 dark:text-blue-400">
-                                HTTP (80):
-                              </span>
-                              <span className="font-medium">
-                                {activePorts.filter((p) => p.RemotePort === 80).length}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-blue-600 dark:text-blue-400">
-                                Custom Ports:
-                              </span>
-                              <span className="font-medium">
-                                {activePorts.filter((p) => ![443, 80, 22, 21, 25, 53, 3389, 5228, 7680].includes(p.RemotePort)).length}
-                              </span>
-                            </div>
-                          </div>
+                          ))}
                         </div>
 
-                        {/* Active Port Connections */}
-                        <div className="mt-4">
-                          <h4 className="font-medium mb-2 text-sm">
-                            Active Connections (Page {portsCurrentPage})
-                          </h4>
-                          <div className="space-y-1">
-                            {(() => {
-                              const ports = activePorts.sort((a, b) => a.LocalPort - b.LocalPort);
-                              const startIndex = (portsCurrentPage - 1) * itemsPerPage;
-                              const endIndex = startIndex + itemsPerPage;
-                              const currentPorts = ports.slice(startIndex, endIndex);
-
-                              return currentPorts.map((port, index) => (
-                                <div
-                                  key={startIndex + index}
-                                  className="p-3 border rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors"
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-3">
-                                      <div className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                                        Local: {port.LocalPort} → Remote: {port.RemotePort}
-                                      </div>
-                                      {port.RemoteAddress && (
-                                        <div className="text-xs text-neutral-500 font-mono">
-                                          {port.RemoteAddress.slice(0, 25)}
-                                          {port.RemoteAddress.length > 25 ? "..." : ""}
-                                        </div>
-                                      )}
-                                    </div>
-                                    <Badge variant="outline" className="text-xs">
-                                      {port.RemotePort === 443
-                                        ? "HTTPS"
-                                        : port.RemotePort === 80
-                                          ? "HTTP"
-                                          : port.RemotePort === 22
-                                            ? "SSH"
-                                            : port.RemotePort === 3389
-                                              ? "RDP"
-                                              : port.LocalPort === 22
-                                                ? "SSH Server"
-                                                : "Custom"}
-                                    </Badge>
-                                  </div>
-                                </div>
-                              ));
-                            })()}
-                          </div>
-
-                          {/* Pagination for Port Connections */}
-                          {(() => {
-                            const totalPages = Math.ceil(activePorts.length / itemsPerPage);
-
-                            if (totalPages > 1) {
-                              return (
-                                <div className="mt-4">
-                                  <Pagination>
-                                    <PaginationContent>
-                                      <PaginationItem>
-                                        <PaginationPrevious
-                                          onClick={() =>
-                                            setPortsCurrentPage(Math.max(1, portsCurrentPage - 1))
-                                          }
-                                          className={
-                                            portsCurrentPage === 1
-                                              ? "pointer-events-none opacity-50"
-                                              : "cursor-pointer"
-                                          }
-                                        />
-                                      </PaginationItem>
-
-                                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                                        <PaginationItem key={page}>
-                                          <PaginationLink
-                                            onClick={() => setPortsCurrentPage(page)}
-                                            isActive={page === portsCurrentPage}
-                                            className="cursor-pointer"
-                                          >
-                                            {page}
-                                          </PaginationLink>
-                                        </PaginationItem>
-                                      ))}
-
-                                      <PaginationItem>
-                                        <PaginationNext
-                                          onClick={() =>
-                                            setPortsCurrentPage(Math.min(totalPages, portsCurrentPage + 1))
-                                          }
-                                          className={
-                                            portsCurrentPage === totalPages
-                                              ? "pointer-events-none opacity-50"
-                                              : "cursor-pointer"
-                                          }
-                                        />
-                                      </PaginationItem>
-                                    </PaginationContent>
-                                  </Pagination>
-                                </div>
-                              );
-                            }
-                            return null;
-                          })()}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <Network className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
-                        <p className="text-sm">No active TCP connections found</p>
-                        <p className="text-xs text-neutral-500 mt-1">
-                          Network port data will appear when the agent reports active connections
-                        </p>
+                        {totalPages > 1 && (
+                          <Pagination>
+                            <PaginationContent>
+                              <PaginationItem>
+                                <PaginationPrevious
+                                  onClick={() => setPortsCurrentPage(Math.max(1, portsCurrentPage - 1))}
+                                  className={portsCurrentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                />
+                              </PaginationItem>
+                              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                const pageNumber = i + 1;
+                                return (
+                                  <PaginationItem key={pageNumber}>
+                                    <PaginationLink
+                                      onClick={() => setPortsCurrentPage(pageNumber)}
+                                      isActive={pageNumber === portsCurrentPage}
+                                      className="cursor-pointer"
+                                    >
+                                      {pageNumber}
+                                    </PaginationLink>
+                                  </PaginationItem>
+                                );
+                              })}
+                              <PaginationItem>
+                                <PaginationNext
+                                  onClick={() => setPortsCurrentPage(Math.min(totalPages, portsCurrentPage + 1))}
+                                  className={portsCurrentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                />
+                              </PaginationItem>
+                            </PaginationContent>
+                          </Pagination>
+                        )}
                       </div>
                     );
                   })()}
