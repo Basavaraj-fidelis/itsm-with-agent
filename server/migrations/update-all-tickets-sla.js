@@ -1,6 +1,6 @@
 
 import { db, sql } from "../db.ts";
-import { tickets } from "../shared/ticket-schema.ts";
+import { tickets } from "../../shared/ticket-schema.ts";
 import { eq } from "drizzle-orm";
 
 const calculateSLATargets = (priority, type, createdAt) => {
