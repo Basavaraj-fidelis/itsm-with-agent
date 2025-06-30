@@ -77,6 +77,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
   const [usbHistory, setUsbHistory] = useState([]);
   const [patchesCurrentPage, setPatchesCurrentPage] = useState(1);
   const [portsCurrentPage, setPortsCurrentPage] = useState(1);
+  const [packageSearchTerm, setPackageSearchTerm] = useState("");
   const itemsPerPage = 5;
 
   useEffect(() => {
@@ -2000,8 +2001,8 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                   <Package className="w-4 h-4 text-green-600" />
                                   Recent Package Updates ({patchData.recent_patches.length})
                                 </h4>
-                                <div className="space-y-2 max-h-64 overflow-y-auto">
-                                  {patchData.recent_patches.slice(0, 10).map((patch, index) => (
+                                <div className="space-y-2 max-h-96 overflow-y-auto">
+                                  {patchData.recent_patches.slice((patchesCurrentPage - 1) * itemsPerPage, patchesCurrentPage * itemsPerPage).map((patch, index) => (
                                     <div
                                       key={index}
                                       className="p-3 border rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800"
@@ -2012,8 +2013,8 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                             <span className="inline-block px-2 py-1 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200 rounded text-xs mr-2">
                                               {patch.action || "Updated"}
                                             </span>
-                                            {patch.package ? patch.package.slice(0, 60) : "System Package"}
-                                            {patch.package && patch.package.length > 60 ? "..." : ""}
+                                            {patch.package ? patch.package.slice(0, 80) : "System Package"}
+                                            {patch.package && patch.package.length > 80 ? "..." : ""}
                                           </div>
                                           {patch.type && (
                                             <div className="text-xs text-green-600 dark:text-green-400 capitalize mt-1">
@@ -2027,34 +2028,109 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                       </div>
                                     </div>
                                   ))}
-                                  {patchData.recent_patches.length > 10 && (
-                                    <div className="text-xs text-neutral-500 pt-2 text-center">
-                                      ...and {patchData.recent_patches.length - 10} more updates
-                                    </div>
-                                  )}
                                 </div>
+
+                                {/* Pagination for Recent Patches */}
+                                {(() => {
+                                  const totalPages = Math.ceil(patchData.recent_patches.length / itemsPerPage);
+                                  
+                                  if (totalPages > 1) {
+                                    return (
+                                      <div className="mt-4">
+                                        <Pagination>
+                                          <PaginationContent>
+                                            <PaginationItem>
+                                              <PaginationPrevious
+                                                onClick={() =>
+                                                  setPatchesCurrentPage(Math.max(1, patchesCurrentPage - 1))
+                                                }
+                                                className={
+                                                  patchesCurrentPage === 1
+                                                    ? "pointer-events-none opacity-50"
+                                                    : "cursor-pointer"
+                                                }
+                                              />
+                                            </PaginationItem>
+
+                                            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                                              const page = i + 1;
+                                              return (
+                                                <PaginationItem key={page}>
+                                                  <PaginationLink
+                                                    onClick={() => setPatchesCurrentPage(page)}
+                                                    isActive={page === patchesCurrentPage}
+                                                    className="cursor-pointer"
+                                                  >
+                                                    {page}
+                                                  </PaginationLink>
+                                                </PaginationItem>
+                                              );
+                                            })}
+
+                                            <PaginationItem>
+                                              <PaginationNext
+                                                onClick={() =>
+                                                  setPatchesCurrentPage(Math.min(totalPages, patchesCurrentPage + 1))
+                                                }
+                                                className={
+                                                  patchesCurrentPage === totalPages
+                                                    ? "pointer-events-none opacity-50"
+                                                    : "cursor-pointer"
+                                                }
+                                              />
+                                            </PaginationItem>
+                                          </PaginationContent>
+                                        </Pagination>
+                                      </div>
+                                    );
+                                  }
+                                  return null;
+                                })()}
                               </div>
                             ) : installedPackages.length > 0 ? (
                               <div>
                                 <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
                                   <Package className="w-4 h-4 text-green-600" />
-                                  Installed Packages (Showing first 20 of {installedPackages.length})
+                                  Installed Packages ({installedPackages.length} total)
+                                  <div className="ml-auto">
+                                    <input
+                                      type="text"
+                                      placeholder="Search packages..."
+                                      className="px-3 py-1 text-xs border rounded-md"
+                                      onChange={(e) => {
+                                        const filtered = installedPackages.filter(pkg => 
+                                          (pkg.name || pkg.display_name || "").toLowerCase().includes(e.target.value.toLowerCase())
+                                        );
+                                        // You could implement state for filtered packages here
+                                      }}
+                                    />
+                                  </div>
                                 </h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-64 overflow-y-auto">
-                                  {installedPackages.slice(0, 20).map((pkg, index) => (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-96 overflow-y-auto">
+                                  {installedPackages.slice(0, 50).map((pkg, index) => (
                                     <div
                                       key={index}
-                                      className="p-2 border rounded bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+                                      className="p-3 border rounded bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
                                     >
-                                      <div className="text-sm font-medium text-green-800 dark:text-green-200">
+                                      <div className="text-sm font-medium text-green-800 dark:text-green-200 truncate">
                                         {pkg.name || pkg.display_name || `Package ${index + 1}`}
                                       </div>
                                       <div className="text-xs text-green-600 dark:text-green-400">
                                         v{pkg.version || pkg.display_version || "Unknown"}
                                       </div>
+                                      {pkg.vendor && (
+                                        <div className="text-xs text-green-500 dark:text-green-500 mt-1">
+                                          {pkg.vendor}
+                                        </div>
+                                      )}
                                     </div>
                                   ))}
                                 </div>
+                                {installedPackages.length > 50 && (
+                                  <div className="text-xs text-neutral-500 pt-2 text-center">
+                                    Showing first 50 of {installedPackages.length} packages
+                                  </div>
+                                )}
                               </div>
                             ) : (
                               <div className="text-center py-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
