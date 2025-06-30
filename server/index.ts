@@ -2,13 +2,13 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { userRoutes } from "./user-routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { createTicketTables } from "./migrate-tickets";
-import analyticsRoutes from "./analytics-routes";
+import { createTicketTables } from "./migrations/migrate-tickets";
+import analyticsRoutes from "./routes/analytics-routes";
 import { db, sql } from "./db";
 import { knowledgeBase } from "@shared/ticket-schema";
 import { eq, desc } from "drizzle-orm";
-import { knowledgeRoutes } from "./knowledge-routes";
-import { agentADSyncRoutes } from "./agent-ad-sync-routes";
+import { knowledgeRoutes } from "./routes/knowledge-routes";
+import { agentADSyncRoutes } from "./routes/agent-ad-sync-routes";
 import expressWs from "express-ws";
 
 const app = express();
@@ -119,18 +119,18 @@ app.use((req, res, next) => {
     const server = await registerRoutes(app);
 
     // Register SLA routes
-    const { registerSLARoutes } = await import("./sla-routes");
+    const { registerSLARoutes } = await import("./routes/sla-routes");
     registerSLARoutes(app);
 
     // Register enhanced user routes
     app.use("/api/users", userRoutes);
 
     // Register analytics routes
-    const analyticsRoutes = await import("./analytics-routes");
+    const analyticsRoutes = await import("./routes/analytics-routes");
     app.use("/api/analytics", analyticsRoutes.default);
 
     // Register patch compliance routes
-    const patchRoutes = await import("./patch-routes");
+    const patchRoutes = await import("./routes/patch-routes");
     app.use("/api/patches", patchRoutes.default);
 
     // Import storage after it's available
