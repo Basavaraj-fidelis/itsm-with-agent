@@ -165,13 +165,13 @@ var init_schema = __esm({
 var db_exports = {};
 __export(db_exports, {
   db: () => db,
-  pool: () => pool,
+  pool: () => pool2,
   sql: () => sql
 });
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { sql } from "drizzle-orm";
-var DATABASE_URL, pool, db;
+var DATABASE_URL, pool2, db;
 var init_db = __esm({
   "server/db.ts"() {
     "use strict";
@@ -185,7 +185,7 @@ var init_db = __esm({
       );
     }
     console.log("\u{1F517} Using database URL:", DATABASE_URL.replace(/:[^:@]*@/, ":***@"));
-    pool = new Pool({
+    pool2 = new Pool({
       connectionString: DATABASE_URL,
       ssl: DATABASE_URL.includes("aivencloud.com") ? {
         rejectUnauthorized: false
@@ -197,14 +197,14 @@ var init_db = __esm({
       max: 10,
       application_name: "itsm-patch-compliance"
     });
-    db = drizzle(pool, { schema: schema_exports });
+    db = drizzle(pool2, { schema: schema_exports });
   }
 });
 
 // shared/ticket-schema.ts
 var ticket_schema_exports = {};
 __export(ticket_schema_exports, {
-  knowledgeBase: () => knowledgeBase,
+  knowledgeBase: () => knowledgeBase2,
   ticketApprovals: () => ticketApprovals,
   ticketAttachments: () => ticketAttachments,
   ticketComments: () => ticketComments,
@@ -214,7 +214,7 @@ __export(ticket_schema_exports, {
   tickets: () => tickets
 });
 import { pgTable as pgTable2, text as text2, timestamp as timestamp2, integer, json as json2, uuid as uuid2, varchar, boolean as boolean2 } from "drizzle-orm/pg-core";
-var ticketTypes, ticketPriorities, ticketStatuses, tickets, ticketComments, ticketAttachments, ticketApprovals, knowledgeBase;
+var ticketTypes, ticketPriorities, ticketStatuses, tickets, ticketComments, ticketAttachments, ticketApprovals, knowledgeBase2;
 var init_ticket_schema = __esm({
   "shared/ticket-schema.ts"() {
     "use strict";
@@ -316,7 +316,7 @@ var init_ticket_schema = __esm({
       approved_at: timestamp2("approved_at"),
       created_at: timestamp2("created_at").defaultNow().notNull()
     });
-    knowledgeBase = pgTable2("knowledge_base", {
+    knowledgeBase2 = pgTable2("knowledge_base", {
       id: uuid2("id").primaryKey().defaultRandom(),
       title: text2("title").notNull(),
       content: text2("content").notNull(),
@@ -756,8 +756,8 @@ var init_storage = __esm({
         try {
           console.log("Initializing demo users...");
           try {
-            const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-            await pool3.query(`
+            const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
+            await pool4.query(`
           CREATE TABLE IF NOT EXISTS users (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             email VARCHAR(255) UNIQUE NOT NULL,
@@ -778,7 +778,7 @@ var init_storage = __esm({
           )
         `);
             console.log("Users table ensured");
-            const existingCheck = await pool3.query(
+            const existingCheck = await pool4.query(
               `
           SELECT COUNT(*) as count FROM users WHERE email = $1
         `,
@@ -849,7 +849,7 @@ var init_storage = __esm({
               }
             ];
             for (const user of demoUsers) {
-              await pool3.query(
+              await pool4.query(
                 `
             INSERT INTO users (
               email, username, name, first_name, last_name, password_hash, 
@@ -972,8 +972,8 @@ var init_storage = __esm({
       }
       async initializeSampleKBArticles() {
         try {
-          const { knowledgeBase: knowledgeBase2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-          const existingArticles = await db.select().from(knowledgeBase2);
+          const { knowledgeBase: knowledgeBase3 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
+          const existingArticles = await db.select().from(knowledgeBase3);
           if (existingArticles.length > 0) {
             console.log(
               "Knowledge base articles already exist, skipping initialization"
@@ -2609,7 +2609,7 @@ smartphones
               helpful_votes: 67
             }
           ];
-          await db.insert(knowledgeBase2).values(sampleArticles);
+          await db.insert(knowledgeBase3).values(sampleArticles);
           console.log("Sample knowledge base articles created successfully");
         } catch (error) {
           console.error("Error creating sample KB articles:", error);
@@ -2711,10 +2711,10 @@ smartphones
       }
       async getUSBDevicesForDevice(deviceId) {
         try {
-          const { db: db3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const { db: db4 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { usb_devices: usb_devices2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
           const { eq: eq11, desc: desc9 } = await import("drizzle-orm");
-          const result = await db3.select().from(usb_devices2).where(eq11(usb_devices2.device_id, deviceId)).orderBy(desc9(usb_devices2.last_seen));
+          const result = await db4.select().from(usb_devices2).where(eq11(usb_devices2.device_id, deviceId)).orderBy(desc9(usb_devices2.last_seen));
           return result;
         } catch (error) {
           console.error("Error fetching USB devices for device:", error);
@@ -2723,10 +2723,10 @@ smartphones
       }
       async updateUSBDevices(deviceId, usbDevices) {
         try {
-          const { db: db3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const { db: db4 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { usb_devices: usb_devices2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-          const { eq: eq11, and: and9 } = await import("drizzle-orm");
-          await db3.update(usb_devices2).set({ is_connected: false }).where(eq11(usb_devices2.device_id, deviceId));
+          const { eq: eq11, and: and10 } = await import("drizzle-orm");
+          await db4.update(usb_devices2).set({ is_connected: false }).where(eq11(usb_devices2.device_id, deviceId));
           for (const device of usbDevices) {
             let vendor_id = device.vendor_id;
             let product_id = device.product_id;
@@ -2743,14 +2743,14 @@ smartphones
               `Processing USB device: ${device.description}, VID: ${vendor_id}, PID: ${product_id}, Serial: ${serial_number}`
             );
             const deviceIdentifier = vendor_id && product_id ? `${vendor_id}:${product_id}:${serial_number || "no-serial"}` : device.device_id || device.serial_number || `unknown-${Date.now()}`;
-            const existingDevices = await db3.select().from(usb_devices2).where(
-              and9(
+            const existingDevices = await db4.select().from(usb_devices2).where(
+              and10(
                 eq11(usb_devices2.device_id, deviceId),
                 eq11(usb_devices2.device_identifier, deviceIdentifier)
               )
             );
             if (existingDevices.length > 0) {
-              await db3.update(usb_devices2).set({
+              await db4.update(usb_devices2).set({
                 description: device.description || device.name,
                 vendor_id,
                 product_id,
@@ -2764,7 +2764,7 @@ smartphones
                 raw_data: device
               }).where(eq11(usb_devices2.id, existingDevices[0].id));
             } else {
-              await db3.insert(usb_devices2).values({
+              await db4.insert(usb_devices2).values({
                 device_id: deviceId,
                 device_identifier: deviceIdentifier,
                 description: device.description || device.name,
@@ -2792,8 +2792,8 @@ smartphones
       // Knowledge Base methods - Database storage
       async getKBArticle(id) {
         try {
-          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-          const result = await pool3.query(
+          const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const result = await pool4.query(
             `
         SELECT 
           id, title, content, author_email, category, tags, 
@@ -2821,8 +2821,8 @@ smartphones
       }
       async incrementArticleViews(id) {
         try {
-          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-          await pool3.query(
+          const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          await pool4.query(
             `
         UPDATE knowledge_base 
         SET views = COALESCE(views, 0) + 1 
@@ -2839,8 +2839,8 @@ smartphones
         try {
           console.log("DatabaseStorage.getUsers called with filters:", filters);
           try {
-            const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-            const tableCheck = await pool3.query(`
+            const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
+            const tableCheck = await pool4.query(`
           SELECT column_name, data_type 
           FROM information_schema.columns 
           WHERE table_name = 'users' 
@@ -2881,7 +2881,7 @@ smartphones
             query += ` ORDER BY email`;
             console.log("Executing query:", query);
             console.log("With params:", params);
-            const result = await pool3.query(query, params);
+            const result = await pool4.query(query, params);
             console.log(`Database returned ${result.rows.length} users`);
             const users2 = result.rows.map((user) => ({
               ...user,
@@ -2930,8 +2930,8 @@ smartphones
       }
       async getUserById(id) {
         try {
-          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-          const result = await pool3.query(
+          const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const result = await pool4.query(
             `
         SELECT 
           id, email, name, role, department, phone, is_active, 
@@ -2954,12 +2954,12 @@ smartphones
       }
       async createUser(data) {
         try {
-          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const nameParts = (data.name || "").trim().split(" ");
           const first_name = nameParts[0] || "";
           const last_name = nameParts.slice(1).join(" ") || "";
           const username = data.email?.split("@")[0] || "";
-          const result = await pool3.query(
+          const result = await pool4.query(
             `
         INSERT INTO users (
           first_name, last_name, username, email, password_hash, role, 
@@ -2994,7 +2994,7 @@ smartphones
       }
       async updateUser(id, updates) {
         try {
-          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const setClause = [];
           const params = [];
           let paramCount = 0;
@@ -3017,7 +3017,7 @@ smartphones
         WHERE id = $${paramCount}
         RETURNING id, name, email, role, department, phone, is_active, created_at, updated_at
       `;
-          const result = await pool3.query(query, params);
+          const result = await pool4.query(query, params);
           return result.rows[0] || null;
         } catch (error) {
           console.error("Error updating user:", error);
@@ -3026,8 +3026,8 @@ smartphones
       }
       async deleteUser(id) {
         try {
-          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-          const result = await pool3.query(
+          const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const result = await pool4.query(
             `
         UPDATE users SET is_active = false WHERE id = $1
       `,
@@ -3042,7 +3042,7 @@ smartphones
       // Knowledge Base methods for database storage
       async getKBArticles(page = 1, limit = 20, filters = {}) {
         try {
-          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const offset = (page - 1) * limit;
           let query = `
         SELECT 
@@ -3072,11 +3072,11 @@ smartphones
             /SELECT.*FROM/,
             "SELECT COUNT(*) as total FROM"
           );
-          const countResult = await pool3.query(countQuery, params);
+          const countResult = await pool4.query(countQuery, params);
           const total = parseInt(countResult.rows[0].total);
           query += ` ORDER BY created_at DESC LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;
           params.push(limit, offset);
-          const result = await pool3.query(query, params);
+          const result = await pool4.query(query, params);
           const articles = result.rows.map((article) => ({
             ...article,
             tags: typeof article.tags === "string" ? JSON.parse(article.tags || "[]") : article.tags || []
@@ -3316,7 +3316,7 @@ var init_user_schema = __esm({
   }
 });
 
-// server/user-storage.ts
+// server/services/user-storage.ts
 var user_storage_exports = {};
 __export(user_storage_exports, {
   UserStorage: () => UserStorage,
@@ -3325,7 +3325,7 @@ __export(user_storage_exports, {
 import { eq as eq2, desc as desc2, and as and2, or as or2, like as like2, count as count2 } from "drizzle-orm";
 var UserStorage, userStorage;
 var init_user_storage = __esm({
-  "server/user-storage.ts"() {
+  "server/services/user-storage.ts"() {
     "use strict";
     init_db();
     init_user_schema();
@@ -3336,7 +3336,11 @@ var init_user_storage = __esm({
           ...userData,
           updated_at: /* @__PURE__ */ new Date()
         }).returning();
-        await this.logUserActivity(newUser.id, "user_created", "User account created");
+        await this.logUserActivity(
+          newUser.id,
+          "user_created",
+          "User account created"
+        );
         return newUser;
       }
       async getUsers(page = 1, limit = 20, filters = {}) {
@@ -3420,7 +3424,11 @@ var init_user_storage = __esm({
           updated_at: /* @__PURE__ */ new Date()
         }).where(eq2(users.id, id));
         if (result.rowCount > 0) {
-          await this.logUserActivity(id, "user_deleted", "User account deactivated");
+          await this.logUserActivity(
+            id,
+            "user_deleted",
+            "User account deactivated"
+          );
           return true;
         }
         return false;
@@ -3447,20 +3455,12 @@ var init_user_storage = __esm({
       }
       // Role-based queries
       async getTechnicians() {
-        return await db.select().from(users).where(
-          and2(
-            eq2(users.role, "technician"),
-            eq2(users.is_active, true)
-          )
-        ).orderBy(users.first_name, users.last_name);
+        return await db.select().from(users).where(and2(eq2(users.role, "technician"), eq2(users.is_active, true))).orderBy(users.first_name, users.last_name);
       }
       async getManagers() {
         return await db.select().from(users).where(
           and2(
-            or2(
-              eq2(users.role, "manager"),
-              eq2(users.role, "admin")
-            ),
+            or2(eq2(users.role, "manager"), eq2(users.role, "admin")),
             eq2(users.is_active, true)
           )
         ).orderBy(users.first_name, users.last_name);
@@ -3508,12 +3508,18 @@ var init_user_storage = __esm({
       }
       // Bulk Operations
       async bulkCreateUsers(usersData) {
-        const createdUsers = await db.insert(users).values(usersData.map((user) => ({
-          ...user,
-          updated_at: /* @__PURE__ */ new Date()
-        }))).returning();
+        const createdUsers = await db.insert(users).values(
+          usersData.map((user) => ({
+            ...user,
+            updated_at: /* @__PURE__ */ new Date()
+          }))
+        ).returning();
         for (const user of createdUsers) {
-          await this.logUserActivity(user.id, "user_created", "User account created via bulk import");
+          await this.logUserActivity(
+            user.id,
+            "user_created",
+            "User account created via bulk import"
+          );
         }
         return createdUsers;
       }
@@ -3536,21 +3542,23 @@ var init_user_storage = __esm({
         ];
         const csvRows = [
           headers.join(","),
-          ...users2.map((user) => [
-            user.employee_id || "",
-            user.email,
-            user.username,
-            user.first_name || "",
-            user.last_name || "",
-            user.role,
-            user.department_name || "",
-            user.job_title || "",
-            user.phone || "",
-            user.location || "",
-            user.is_active ? "Yes" : "No",
-            user.last_login?.toISOString() || "",
-            user.created_at?.toISOString() || ""
-          ].map((field) => `"${String(field).replace(/"/g, '""')}"`).join(","))
+          ...users2.map(
+            (user) => [
+              user.employee_id || "",
+              user.email,
+              user.username,
+              user.first_name || "",
+              user.last_name || "",
+              user.role,
+              user.department_name || "",
+              user.job_title || "",
+              user.phone || "",
+              user.location || "",
+              user.is_active ? "Yes" : "No",
+              user.last_login?.toISOString() || "",
+              user.created_at?.toISOString() || ""
+            ].map((field) => `"${String(field).replace(/"/g, '""')}"`).join(",")
+          )
         ];
         return csvRows.join("\n");
       }
@@ -3564,7 +3572,11 @@ var init_user_storage = __esm({
           updated_at: /* @__PURE__ */ new Date()
         }).where(eq2(users.id, userId));
         if (result.rowCount > 0) {
-          await this.logUserActivity(userId, "password_changed", "User password updated");
+          await this.logUserActivity(
+            userId,
+            "password_changed",
+            "User password updated"
+          );
           return true;
         }
         return false;
@@ -3575,7 +3587,11 @@ var init_user_storage = __esm({
           updated_at: /* @__PURE__ */ new Date()
         }).where(eq2(users.id, userId));
         if (result.rowCount > 0) {
-          await this.logUserActivity(userId, "user_locked", `User account locked: ${reason}`);
+          await this.logUserActivity(
+            userId,
+            "user_locked",
+            `User account locked: ${reason}`
+          );
           return true;
         }
         return false;
@@ -3587,7 +3603,11 @@ var init_user_storage = __esm({
           updated_at: /* @__PURE__ */ new Date()
         }).where(eq2(users.id, userId));
         if (result.rowCount > 0) {
-          await this.logUserActivity(userId, "user_unlocked", "User account unlocked");
+          await this.logUserActivity(
+            userId,
+            "user_unlocked",
+            "User account unlocked"
+          );
           return true;
         }
         return false;
@@ -3656,7 +3676,7 @@ var init_sla_schema = __esm({
   }
 });
 
-// server/sla-policy-service.ts
+// server/services/sla-policy-service.ts
 var sla_policy_service_exports = {};
 __export(sla_policy_service_exports, {
   SLAPolicyService: () => SLAPolicyService,
@@ -3665,7 +3685,7 @@ __export(sla_policy_service_exports, {
 import { eq as eq3, and as and3, isNull as isNull2, desc as desc3 } from "drizzle-orm";
 var SLAPolicyService, slaPolicyService;
 var init_sla_policy_service = __esm({
-  "server/sla-policy-service.ts"() {
+  "server/services/sla-policy-service.ts"() {
     "use strict";
     init_db();
     init_sla_schema();
@@ -3719,12 +3739,24 @@ var init_sla_policy_service = __esm({
       calculateSLADueDates(createdAt, policy) {
         const baseTime = new Date(createdAt);
         if (policy.business_hours_only) {
-          const responseDue = this.addBusinessMinutes(baseTime, policy.response_time, policy);
-          const resolutionDue = this.addBusinessMinutes(baseTime, policy.resolution_time, policy);
+          const responseDue = this.addBusinessMinutes(
+            baseTime,
+            policy.response_time,
+            policy
+          );
+          const resolutionDue = this.addBusinessMinutes(
+            baseTime,
+            policy.resolution_time,
+            policy
+          );
           return { responseDue, resolutionDue };
         } else {
-          const responseDue = new Date(baseTime.getTime() + policy.response_time * 60 * 1e3);
-          const resolutionDue = new Date(baseTime.getTime() + policy.resolution_time * 60 * 1e3);
+          const responseDue = new Date(
+            baseTime.getTime() + policy.response_time * 60 * 1e3
+          );
+          const resolutionDue = new Date(
+            baseTime.getTime() + policy.resolution_time * 60 * 1e3
+          );
           return { responseDue, resolutionDue };
         }
       }
@@ -3750,12 +3782,20 @@ var init_sla_policy_service = __esm({
               currentDate.setHours(businessStart.hour, businessStart.minute, 0, 0);
             } else {
               const remainingBusinessMinutesToday = businessEndMinutes - currentTimeMinutes;
-              const minutesToAdd = Math.min(remainingMinutes, remainingBusinessMinutesToday);
+              const minutesToAdd = Math.min(
+                remainingMinutes,
+                remainingBusinessMinutesToday
+              );
               currentDate.setMinutes(currentDate.getMinutes() + minutesToAdd);
               remainingMinutes -= minutesToAdd;
               if (remainingMinutes > 0) {
                 currentDate.setDate(currentDate.getDate() + 1);
-                currentDate.setHours(businessStart.hour, businessStart.minute, 0, 0);
+                currentDate.setHours(
+                  businessStart.hour,
+                  businessStart.minute,
+                  0,
+                  0
+                );
               }
             }
           } else {
@@ -3822,7 +3862,9 @@ var init_sla_policy_service = __esm({
               }
             ];
             await db.insert(slaPolicies2).values(defaultPolicies);
-            console.log(`\u2705 Created ${defaultPolicies.length} default SLA policies`);
+            console.log(
+              `\u2705 Created ${defaultPolicies.length} default SLA policies`
+            );
           }
         } catch (error) {
           console.error("Error ensuring default SLA policies:", error);
@@ -3833,7 +3875,7 @@ var init_sla_policy_service = __esm({
   }
 });
 
-// server/ticket-storage.ts
+// server/services/ticket-storage.ts
 var ticket_storage_exports = {};
 __export(ticket_storage_exports, {
   TicketStorage: () => TicketStorage,
@@ -3842,7 +3884,7 @@ __export(ticket_storage_exports, {
 import { eq as eq4, desc as desc4, and as and4, or as or4, like as like3, sql as sql4, count as count3 } from "drizzle-orm";
 var TicketStorage, ticketStorage;
 var init_ticket_storage = __esm({
-  "server/ticket-storage.ts"() {
+  "server/services/ticket-storage.ts"() {
     "use strict";
     init_db();
     init_ticket_schema();
@@ -3878,9 +3920,16 @@ var init_ticket_storage = __esm({
         });
         let slaResponseDue = null;
         let slaResolutionDue = null;
-        let slaTargets = { policy: "Default", responseTime: 240, resolutionTime: 1440 };
+        let slaTargets = {
+          policy: "Default",
+          responseTime: 240,
+          resolutionTime: 1440
+        };
         if (slaPolicy) {
-          const dueDates = slaPolicyService2.calculateSLADueDates(/* @__PURE__ */ new Date(), slaPolicy);
+          const dueDates = slaPolicyService2.calculateSLADueDates(
+            /* @__PURE__ */ new Date(),
+            slaPolicy
+          );
           slaResponseDue = dueDates.responseDue;
           slaResolutionDue = dueDates.resolutionDue;
           slaTargets = {
@@ -3889,10 +3938,17 @@ var init_ticket_storage = __esm({
             resolutionTime: slaPolicy.resolution_time
           };
         } else {
-          const fallbackTargets = this.calculateSLATargets(ticketData.priority, ticketData.type);
+          const fallbackTargets = this.calculateSLATargets(
+            ticketData.priority,
+            ticketData.type
+          );
           const now = /* @__PURE__ */ new Date();
-          slaResponseDue = new Date(now.getTime() + fallbackTargets.responseTime * 60 * 1e3);
-          slaResolutionDue = new Date(now.getTime() + fallbackTargets.resolutionTime * 60 * 1e3);
+          slaResponseDue = new Date(
+            now.getTime() + fallbackTargets.responseTime * 60 * 1e3
+          );
+          slaResolutionDue = new Date(
+            now.getTime() + fallbackTargets.resolutionTime * 60 * 1e3
+          );
           slaTargets = fallbackTargets;
         }
         const [newTicket] = await db.insert(tickets).values({
@@ -3913,7 +3969,15 @@ var init_ticket_storage = __esm({
           sla_response_breached: false,
           sla_resolution_breached: false
         }).returning();
-        await this.logAudit("ticket", newTicket.id, "create", void 0, userEmail, null, newTicket);
+        await this.logAudit(
+          "ticket",
+          newTicket.id,
+          "create",
+          void 0,
+          userEmail,
+          null,
+          newTicket
+        );
         if (assignedTechnician) {
           await this.addComment(newTicket.id, {
             comment: `Ticket automatically assigned to ${assignedTechnician.email}`,
@@ -3966,14 +4030,22 @@ var init_ticket_storage = __esm({
             throw new Error("Ticket not found");
           }
           if (updates.status && ["resolved", "closed", "cancelled"].includes(updates.status) && !comment) {
-            throw new Error("Comment required when resolving, closing, or cancelling tickets");
+            throw new Error(
+              "Comment required when resolving, closing, or cancelling tickets"
+            );
           }
           if (updates.status) {
-            const statusesRequiringAssignment = ["in_progress", "pending", "resolved"];
+            const statusesRequiringAssignment = [
+              "in_progress",
+              "pending",
+              "resolved"
+            ];
             if (statusesRequiringAssignment.includes(updates.status)) {
               const assignedTo = updates.assigned_to || currentTicket.assigned_to;
               if (!assignedTo) {
-                throw new Error(`Ticket must be assigned before moving to ${updates.status} status`);
+                throw new Error(
+                  `Ticket must be assigned before moving to ${updates.status} status`
+                );
               }
             }
           }
@@ -4014,10 +4086,17 @@ var init_ticket_storage = __esm({
             updates.closed_at = /* @__PURE__ */ new Date();
           }
           if (updates.priority && updates.priority !== currentTicket.priority) {
-            const slaTargets = this.calculateSLATargets(updates.priority, currentTicket.type);
+            const slaTargets = this.calculateSLATargets(
+              updates.priority,
+              currentTicket.type
+            );
             const baseTime = new Date(currentTicket.created_at);
-            const slaResponseDue = new Date(baseTime.getTime() + slaTargets.responseTime * 60 * 1e3);
-            const slaResolutionDue = new Date(baseTime.getTime() + slaTargets.resolutionTime * 60 * 1e3);
+            const slaResponseDue = new Date(
+              baseTime.getTime() + slaTargets.responseTime * 60 * 1e3
+            );
+            const slaResolutionDue = new Date(
+              baseTime.getTime() + slaTargets.resolutionTime * 60 * 1e3
+            );
             updates.sla_policy = slaTargets.policy;
             updates.sla_response_time = slaTargets.responseTime;
             updates.sla_resolution_time = slaTargets.resolutionTime;
@@ -4061,29 +4140,29 @@ var init_ticket_storage = __esm({
       }
       // Knowledge Base Operations
       async createKBArticle(articleData) {
-        const [article] = await db.insert(knowledgeBase).values(articleData).returning();
+        const [article] = await db.insert(knowledgeBase2).values(articleData).returning();
         return article;
       }
       async getKBArticles(page = 1, limit = 20, filters = {}) {
         const offset = (page - 1) * limit;
         const conditions = [];
         if (filters.category) {
-          conditions.push(eq4(knowledgeBase.category, filters.category));
+          conditions.push(eq4(knowledgeBase2.category, filters.category));
         }
         if (filters.status) {
-          conditions.push(eq4(knowledgeBase.status, filters.status));
+          conditions.push(eq4(knowledgeBase2.status, filters.status));
         }
         if (filters.search) {
           conditions.push(
             or4(
-              like3(knowledgeBase.title, `%${filters.search}%`),
-              like3(knowledgeBase.content, `%${filters.search}%`)
+              like3(knowledgeBase2.title, `%${filters.search}%`),
+              like3(knowledgeBase2.content, `%${filters.search}%`)
             )
           );
         }
         const whereClause = conditions.length > 0 ? and4(...conditions) : void 0;
-        const [{ total }] = await db.select({ total: count3() }).from(knowledgeBase).where(whereClause);
-        const data = await db.select().from(knowledgeBase).where(whereClause).orderBy(desc4(knowledgeBase.created_at)).limit(limit).offset(offset);
+        const [{ total }] = await db.select({ total: count3() }).from(knowledgeBase2).where(whereClause);
+        const data = await db.select().from(knowledgeBase2).where(whereClause).orderBy(desc4(knowledgeBase2.created_at)).limit(limit).offset(offset);
         return {
           data,
           total,
@@ -4093,18 +4172,18 @@ var init_ticket_storage = __esm({
         };
       }
       async getKBArticleById(id) {
-        const [article] = await db.select().from(knowledgeBase).where(eq4(knowledgeBase.id, id));
+        const [article] = await db.select().from(knowledgeBase2).where(eq4(knowledgeBase2.id, id));
         return article || null;
       }
       async updateKBArticle(id, updates) {
-        const [updatedArticle] = await db.update(knowledgeBase).set({
+        const [updatedArticle] = await db.update(knowledgeBase2).set({
           ...updates,
           updated_at: /* @__PURE__ */ new Date()
-        }).where(eq4(knowledgeBase.id, id)).returning();
+        }).where(eq4(knowledgeBase2.id, id)).returning();
         return updatedArticle || null;
       }
       async deleteKBArticle(id) {
-        const result = await db.delete(knowledgeBase).where(eq4(knowledgeBase.id, id));
+        const result = await db.delete(knowledgeBase2).where(eq4(knowledgeBase2.id, id));
         return result.rowCount > 0;
       }
       // Export functionality
@@ -4125,19 +4204,21 @@ var init_ticket_storage = __esm({
         ];
         const csvRows = [
           headers.join(","),
-          ...tickets2.map((ticket) => [
-            ticket.ticket_number,
-            ticket.type,
-            `"${ticket.title.replace(/"/g, '""')}"`,
-            `"${ticket.description.replace(/"/g, '""')}"`,
-            ticket.priority,
-            ticket.status,
-            ticket.requester_email,
-            ticket.assigned_to || "",
-            ticket.category || "",
-            ticket.created_at?.toISOString() || "",
-            ticket.due_date?.toISOString() || ""
-          ].join(","))
+          ...tickets2.map(
+            (ticket) => [
+              ticket.ticket_number,
+              ticket.type,
+              `"${ticket.title.replace(/"/g, '""')}"`,
+              `"${ticket.description.replace(/"/g, '""')}"`,
+              ticket.priority,
+              ticket.status,
+              ticket.requester_email,
+              ticket.assigned_to || "",
+              ticket.category || "",
+              ticket.created_at?.toISOString() || "",
+              ticket.due_date?.toISOString() || ""
+            ].join(",")
+          )
         ];
         return csvRows.join("\n");
       }
@@ -4164,7 +4245,10 @@ var init_ticket_storage = __esm({
       calculateChanges(oldValues, newValues) {
         if (!oldValues || !newValues) return null;
         const changes = {};
-        const allKeys = /* @__PURE__ */ new Set([...Object.keys(oldValues), ...Object.keys(newValues)]);
+        const allKeys = /* @__PURE__ */ new Set([
+          ...Object.keys(oldValues),
+          ...Object.keys(newValues)
+        ]);
         for (const key of allKeys) {
           if (oldValues[key] !== newValues[key]) {
             changes[key] = {
@@ -4217,14 +4301,14 @@ var init_ticket_storage = __esm({
   }
 });
 
-// server/automation-service.ts
+// server/services/automation-service.ts
 var automation_service_exports = {};
 __export(automation_service_exports, {
   automationService: () => automationService
 });
 var AutomationService, automationService;
 var init_automation_service = __esm({
-  "server/automation-service.ts"() {
+  "server/services/automation-service.ts"() {
     "use strict";
     init_storage();
     AutomationService = class {
@@ -4263,7 +4347,9 @@ var init_automation_service = __esm({
       ];
       async scheduleDeployment(deviceIds, packageId, scheduledTime) {
         const deploymentIds = [];
-        const softwarePackage = this.softwarePackages.find((p) => p.id === packageId);
+        const softwarePackage = this.softwarePackages.find(
+          (p) => p.id === packageId
+        );
         if (!softwarePackage) {
           throw new Error(`Software package ${packageId} not found`);
         }
@@ -4410,7 +4496,7 @@ var init_automation_service = __esm({
   }
 });
 
-// server/enhanced-storage.ts
+// server/models/enhanced-storage.ts
 var enhanced_storage_exports = {};
 __export(enhanced_storage_exports, {
   EnhancedStorage: () => EnhancedStorage,
@@ -4419,7 +4505,7 @@ __export(enhanced_storage_exports, {
 import { sql as sql5 } from "drizzle-orm";
 var EnhancedStorage, enhancedStorage;
 var init_enhanced_storage = __esm({
-  "server/enhanced-storage.ts"() {
+  "server/models/enhanced-storage.ts"() {
     "use strict";
     init_db();
     EnhancedStorage = class {
@@ -4746,17 +4832,12 @@ var init_enhanced_storage = __esm({
   }
 });
 
-// server/ad-service.ts
-var ad_service_exports = {};
-__export(ad_service_exports, {
-  ActiveDirectoryService: () => ActiveDirectoryService,
-  adService: () => adService
-});
+// server/services/ad-service.ts
 import { Client } from "ldapjs";
 import bcrypt from "bcryptjs";
 var ActiveDirectoryService, adService;
 var init_ad_service = __esm({
-  "server/ad-service.ts"() {
+  "server/services/ad-service.ts"() {
     "use strict";
     ActiveDirectoryService = class {
       config;
@@ -5102,7 +5183,7 @@ var init_ad_service = __esm({
       }
       async syncUserToDatabase(adUser) {
         try {
-          const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
+          const { storage: storage3 } = await import("./storage");
           let existingUser = await storage3.getUserByEmail(adUser.email);
           if (existingUser) {
             const updatedUser = await storage3.updateUser(existingUser.id, {
@@ -5187,7 +5268,7 @@ var init_ad_service = __esm({
   }
 });
 
-// server/ad-routes.ts
+// server/routes/ad-routes.ts
 var ad_routes_exports = {};
 __export(ad_routes_exports, {
   adRoutes: () => router
@@ -5195,7 +5276,7 @@ __export(ad_routes_exports, {
 import { Router } from "express";
 var router;
 var init_ad_routes = __esm({
-  "server/ad-routes.ts"() {
+  "server/routes/ad-routes.ts"() {
     "use strict";
     init_ad_service();
     router = Router();
@@ -5423,7 +5504,7 @@ var init_ad_routes = __esm({
   }
 });
 
-// server/agent-download-routes.ts
+// server/routes/agent-download-routes.ts
 var agent_download_routes_exports = {};
 __export(agent_download_routes_exports, {
   default: () => agent_download_routes_default
@@ -5432,7 +5513,7 @@ import { Router as Router2 } from "express";
 import path from "path";
 import fs from "fs";
 import archiver from "archiver";
-import jwt from "jsonwebtoken";
+import jwt2 from "jsonwebtoken";
 function generateInstallationInstructions(platform2) {
   const baseInstructions = `# ITSM Agent Installation Instructions - ${platform2.charAt(0).toUpperCase() + platform2.slice(1)}
 
@@ -5518,12 +5599,12 @@ For technical support, contact your system administrator.`;
       return baseInstructions;
   }
 }
-var router2, JWT_SECRET, agent_download_routes_default;
+var router2, JWT_SECRET2, agent_download_routes_default;
 var init_agent_download_routes = __esm({
-  "server/agent-download-routes.ts"() {
+  "server/routes/agent-download-routes.ts"() {
     "use strict";
     router2 = Router2();
-    JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+    JWT_SECRET2 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
     router2.get("/:platform", async (req, res) => {
       try {
         const { platform: platform2 } = req.params;
@@ -5594,10 +5675,10 @@ var init_agent_download_routes = __esm({
   }
 });
 
-// server/notification-service.ts
+// server/services/notification-service.ts
 var NotificationService, notificationService;
 var init_notification_service = __esm({
-  "server/notification-service.ts"() {
+  "server/services/notification-service.ts"() {
     "use strict";
     NotificationService = class {
       subscribers = /* @__PURE__ */ new Map();
@@ -5633,11 +5714,11 @@ var init_notification_service = __esm({
   }
 });
 
-// server/email-service.ts
+// server/services/email-service.ts
 import nodemailer from "nodemailer";
 var EmailService, emailService;
 var init_email_service = __esm({
-  "server/email-service.ts"() {
+  "server/services/email-service.ts"() {
     "use strict";
     EmailService = class {
       transporter;
@@ -5894,11 +5975,11 @@ var init_email_service = __esm({
   }
 });
 
-// server/sla-escalation-service.ts
-import { eq as eq7, and as and6, not, inArray as inArray2 } from "drizzle-orm";
+// server/services/sla-escalation-service.ts
+import { eq as eq7, and as and7, not, inArray as inArray2 } from "drizzle-orm";
 var SLAEscalationService, slaEscalationService;
 var init_sla_escalation_service = __esm({
-  "server/sla-escalation-service.ts"() {
+  "server/services/sla-escalation-service.ts"() {
     "use strict";
     init_db();
     init_ticket_schema();
@@ -5941,7 +6022,7 @@ var init_sla_escalation_service = __esm({
           console.log("\u{1F504} Starting SLA escalation check...");
           const now = /* @__PURE__ */ new Date();
           const openTickets = await db.select().from(tickets).where(
-            and6(
+            and7(
               not(inArray2(tickets.status, ["resolved", "closed", "cancelled"])),
               not(eq7(tickets.sla_resolution_due, null))
             )
@@ -6163,7 +6244,7 @@ Please review and take appropriate action.`;
         try {
           const now = /* @__PURE__ */ new Date();
           const openTickets = await db.select().from(tickets).where(
-            and6(
+            and7(
               not(inArray2(tickets.status, ["resolved", "closed", "cancelled"])),
               not(eq7(tickets.sla_resolution_due, null))
             )
@@ -6215,7 +6296,7 @@ Please review and take appropriate action.`;
   }
 });
 
-// server/migrate-admin-tables.ts
+// server/migrations/migrate-admin-tables.ts
 var migrate_admin_tables_exports = {};
 __export(migrate_admin_tables_exports, {
   createAdminTables: () => createAdminTables
@@ -6225,7 +6306,7 @@ import { sql as sql7 } from "drizzle-orm";
 async function createAdminTables() {
   try {
     console.log("\u{1F680} Creating admin tables...");
-    await db2.execute(sql7`
+    await db3.execute(sql7`
       CREATE TABLE IF NOT EXISTS groups (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name VARCHAR(100) NOT NULL,
@@ -6239,7 +6320,7 @@ async function createAdminTables() {
         updated_at TIMESTAMP DEFAULT NOW() NOT NULL
       )
     `);
-    await db2.execute(sql7`
+    await db3.execute(sql7`
       CREATE TABLE IF NOT EXISTS group_members (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         group_id UUID REFERENCES groups(id) NOT NULL,
@@ -6249,7 +6330,7 @@ async function createAdminTables() {
         is_active BOOLEAN DEFAULT true
       )
     `);
-    await db2.execute(sql7`
+    await db3.execute(sql7`
       CREATE TABLE IF NOT EXISTS audit_log (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         entity_type VARCHAR(50) NOT NULL,
@@ -6265,7 +6346,7 @@ async function createAdminTables() {
         timestamp TIMESTAMP DEFAULT NOW() NOT NULL
       )
     `);
-    await db2.execute(sql7`
+    await db3.execute(sql7`
       CREATE TABLE IF NOT EXISTS sla_policies (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name VARCHAR(100) NOT NULL,
@@ -6286,7 +6367,7 @@ async function createAdminTables() {
         updated_at TIMESTAMP DEFAULT NOW() NOT NULL
       )
     `);
-    await db2.execute(sql7`
+    await db3.execute(sql7`
       CREATE TABLE IF NOT EXISTS sla_breaches (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         ticket_id UUID NOT NULL,
@@ -6298,16 +6379,16 @@ async function createAdminTables() {
         created_at TIMESTAMP DEFAULT NOW() NOT NULL
       )
     `);
-    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_groups_type ON groups(type)`);
-    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_groups_parent ON groups(parent_group_id)`);
-    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_group_members_group ON group_members(group_id)`);
-    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_group_members_user ON group_members(user_id)`);
-    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_log(entity_type, entity_id)`);
-    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_log(user_id)`);
-    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp)`);
-    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_sla_policies_active ON sla_policies(is_active)`);
-    await db2.execute(sql7`CREATE INDEX IF NOT EXISTS idx_sla_breaches_ticket ON sla_breaches(ticket_id)`);
-    await db2.execute(sql7`
+    await db3.execute(sql7`CREATE INDEX IF NOT EXISTS idx_groups_type ON groups(type)`);
+    await db3.execute(sql7`CREATE INDEX IF NOT EXISTS idx_groups_parent ON groups(parent_group_id)`);
+    await db3.execute(sql7`CREATE INDEX IF NOT EXISTS idx_group_members_group ON group_members(group_id)`);
+    await db3.execute(sql7`CREATE INDEX IF NOT EXISTS idx_group_members_user ON group_members(user_id)`);
+    await db3.execute(sql7`CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_log(entity_type, entity_id)`);
+    await db3.execute(sql7`CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_log(user_id)`);
+    await db3.execute(sql7`CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp)`);
+    await db3.execute(sql7`CREATE INDEX IF NOT EXISTS idx_sla_policies_active ON sla_policies(is_active)`);
+    await db3.execute(sql7`CREATE INDEX IF NOT EXISTS idx_sla_breaches_ticket ON sla_breaches(ticket_id)`);
+    await db3.execute(sql7`
       INSERT INTO sla_policies (name, description, priority, response_time, resolution_time)
       VALUES 
         ('Critical Priority SLA', 'Critical issues requiring immediate attention', 'critical', 15, 240),
@@ -6316,7 +6397,7 @@ async function createAdminTables() {
         ('Low Priority SLA', 'Low priority requests', 'low', 480, 2880)
       ON CONFLICT DO NOTHING
     `);
-    await db2.execute(sql7`
+    await db3.execute(sql7`
       INSERT INTO groups (name, description, type, email)
       VALUES 
         ('IT Support', 'Primary IT support team', 'team', 'itsupport@company.com'),
@@ -6331,12 +6412,12 @@ async function createAdminTables() {
     throw error;
   }
 }
-var db2;
+var db3;
 var init_migrate_admin_tables = __esm({
-  "server/migrate-admin-tables.ts"() {
+  "server/migrations/migrate-admin-tables.ts"() {
     "use strict";
     init_db();
-    db2 = drizzle2(pool);
+    db3 = drizzle2(pool2);
     if (import.meta.url === `file://${process.argv[1]}`) {
       createAdminTables().then(() => {
         console.log("Migration completed successfully!");
@@ -6349,16 +6430,16 @@ var init_migrate_admin_tables = __esm({
   }
 });
 
-// server/sla-monitor-service.ts
+// server/services/sla-monitor-service.ts
 var sla_monitor_service_exports = {};
 __export(sla_monitor_service_exports, {
   SLAMonitorService: () => SLAMonitorService,
   slaMonitorService: () => slaMonitorService
 });
-import { eq as eq8, and as and7, not as not2, inArray as inArray3, isNotNull } from "drizzle-orm";
+import { eq as eq8, and as and8, not as not2, inArray as inArray3, isNotNull } from "drizzle-orm";
 var SLAMonitorService, slaMonitorService;
 var init_sla_monitor_service = __esm({
-  "server/sla-monitor-service.ts"() {
+  "server/services/sla-monitor-service.ts"() {
     "use strict";
     init_db();
     init_ticket_schema();
@@ -6395,7 +6476,7 @@ var init_sla_monitor_service = __esm({
           console.log("\u{1F50D} Checking for SLA breaches...");
           const now = /* @__PURE__ */ new Date();
           const openTickets = await db.select().from(tickets).where(
-            and7(
+            and8(
               not2(inArray3(tickets.status, ["resolved", "closed", "cancelled"])),
               isNotNull(tickets.resolve_due_at)
             )
@@ -6444,7 +6525,7 @@ var init_sla_monitor_service = __esm({
         try {
           const title = `SLA ${breachType.toUpperCase()} Breach: ${ticket.ticket_number}`;
           const message = `Ticket ${ticket.ticket_number} has breached its ${breachType} SLA.
-      
+
 Title: ${ticket.title}
 Priority: ${ticket.priority.toUpperCase()}
 Status: ${ticket.status}
@@ -6490,7 +6571,7 @@ Immediate attention required!`;
       async getSLAMetrics() {
         try {
           const openTickets = await db.select().from(tickets).where(
-            and7(
+            and8(
               not2(inArray3(tickets.status, ["resolved", "closed", "cancelled"])),
               isNotNull(tickets.resolve_due_at)
             )
@@ -6527,7 +6608,7 @@ Immediate attention required!`;
   }
 });
 
-// server/sla-routes.ts
+// server/routes/sla-routes.ts
 var sla_routes_exports = {};
 __export(sla_routes_exports, {
   registerSLARoutes: () => registerSLARoutes
@@ -6587,9 +6668,9 @@ function registerSLARoutes(app2) {
   });
   app2.post("/api/sla/policies", async (req, res) => {
     try {
-      const { db: db3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const { db: db4 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { slaPolicies: slaPolicies3 } = await Promise.resolve().then(() => (init_sla_schema(), sla_schema_exports));
-      const [policy] = await db3.insert(slaPolicies3).values(req.body).returning();
+      const [policy] = await db4.insert(slaPolicies3).values(req.body).returning();
       res.status(201).json(policy);
     } catch (error) {
       console.error("Error creating SLA policy:", error);
@@ -6598,9 +6679,9 @@ function registerSLARoutes(app2) {
   });
   app2.get("/api/sla/policies", async (req, res) => {
     try {
-      const { db: db3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const { db: db4 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { slaPolicies: slaPolicies3 } = await Promise.resolve().then(() => (init_sla_schema(), sla_schema_exports));
-      const policies = await db3.select().from(slaPolicies3);
+      const policies = await db4.select().from(slaPolicies3);
       res.json(policies);
     } catch (error) {
       console.error("Error fetching SLA policies:", error);
@@ -6609,10 +6690,10 @@ function registerSLARoutes(app2) {
   });
   app2.post("/api/sla/sync-tickets", async (req, res) => {
     try {
-      const { db: db3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const { db: db4 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
       const { eq: eq11, isNull: isNull3 } = await import("drizzle-orm");
-      const ticketsToUpdate = await db3.select().from(tickets2).where(isNull3(tickets2.sla_resolution_due));
+      const ticketsToUpdate = await db4.select().from(tickets2).where(isNull3(tickets2.sla_resolution_due));
       let updated = 0;
       for (const ticket of ticketsToUpdate) {
         const { ticketStorage: ticketStorage2 } = await Promise.resolve().then(() => (init_ticket_storage(), ticket_storage_exports));
@@ -6621,7 +6702,7 @@ function registerSLARoutes(app2) {
         const slaResponseDue = new Date(baseTime.getTime() + slaTargets.responseTime * 60 * 1e3);
         const slaResolutionDue = new Date(baseTime.getTime() + slaTargets.resolutionTime * 60 * 1e3);
         const isBreached = /* @__PURE__ */ new Date() > slaResolutionDue && !["resolved", "closed", "cancelled"].includes(ticket.status);
-        await db3.update(tickets2).set({
+        await db4.update(tickets2).set({
           sla_policy: slaTargets.policy,
           sla_response_time: slaTargets.responseTime,
           sla_resolution_time: slaTargets.resolutionTime,
@@ -6644,15 +6725,15 @@ function registerSLARoutes(app2) {
   });
 }
 var init_sla_routes = __esm({
-  "server/sla-routes.ts"() {
+  "server/routes/sla-routes.ts"() {
     "use strict";
     init_sla_escalation_service();
     init_sla_monitor_service();
   }
 });
 
-// server/analytics-service.ts
-import { sql as sql8, desc as desc7, count as count4 } from "drizzle-orm";
+// server/services/analytics-service.ts
+import { sql as sql8, desc as desc7, count as count5 } from "drizzle-orm";
 import {
   subDays,
   format
@@ -6667,7 +6748,7 @@ import {
 } from "docx";
 var AnalyticsService, analyticsService;
 var init_analytics_service = __esm({
-  "server/analytics-service.ts"() {
+  "server/services/analytics-service.ts"() {
     "use strict";
     init_db();
     init_schema();
@@ -7124,19 +7205,19 @@ var init_analytics_service = __esm({
           );
           try {
             const totalUsersResult = await Promise.race([
-              db.select({ count: count4() }).from(users),
+              db.select({ count: count5() }).from(users),
               timeout
             ]);
             const totalUsers = totalUsersResult[0]?.count || 0;
             const activeUsersResult = await Promise.race([
-              db.select({ count: count4() }).from(users).where(
+              db.select({ count: count5() }).from(users).where(
                 sql8`${users.last_login} >= ${sql8.raw(`NOW() - INTERVAL '30 days'`)}`
               ),
               timeout
             ]);
             const activeUsers = activeUsersResult[0]?.count || 0;
             const usbConnectionsResult = await Promise.race([
-              db.select({ count: count4() }).from(usb_devices),
+              db.select({ count: count5() }).from(usb_devices),
               timeout
             ]);
             const usbConnections = usbConnectionsResult[0]?.count || 0;
@@ -7564,10 +7645,10 @@ var init_analytics_service = __esm({
             spacing: { after: 100 }
           }),
           ...Object.entries(data.device_breakdown.by_os).map(
-            ([os2, count5]) => new Paragraph({
+            ([os2, count6]) => new Paragraph({
               children: [
                 new TextRun({ text: `  \u2022 ${os2}: `, size: 22 }),
-                new TextRun({ text: `${count5} devices`, bold: true, size: 22 })
+                new TextRun({ text: `${count6} devices`, bold: true, size: 22 })
               ],
               spacing: { after: 50 }
             })
@@ -7584,10 +7665,10 @@ var init_analytics_service = __esm({
             spacing: { before: 200, after: 100 }
           }),
           ...Object.entries(data.device_breakdown.by_status).map(
-            ([status, count5]) => new Paragraph({
+            ([status, count6]) => new Paragraph({
               children: [
                 new TextRun({ text: `  \u2022 ${status}: `, size: 22 }),
-                new TextRun({ text: `${count5} devices`, bold: true, size: 22 })
+                new TextRun({ text: `${count6} devices`, bold: true, size: 22 })
               ],
               spacing: { after: 50 }
             })
@@ -7654,28 +7735,44 @@ var init_analytics_service = __esm({
           new Paragraph({
             children: [
               new TextRun({ text: `Total Tickets: `, size: 24 }),
-              new TextRun({ text: `${data.summary.total_tickets}`, bold: true, size: 24 })
+              new TextRun({
+                text: `${data.summary.total_tickets}`,
+                bold: true,
+                size: 24
+              })
             ],
             spacing: { after: 100 }
           }),
           new Paragraph({
             children: [
               new TextRun({ text: `Open Tickets: `, size: 24 }),
-              new TextRun({ text: `${data.summary.open_tickets}`, bold: true, size: 24 })
+              new TextRun({
+                text: `${data.summary.open_tickets}`,
+                bold: true,
+                size: 24
+              })
             ],
             spacing: { after: 100 }
           }),
           new Paragraph({
             children: [
               new TextRun({ text: `Resolved Tickets: `, size: 24 }),
-              new TextRun({ text: `${data.summary.resolved_tickets}`, bold: true, size: 24 })
+              new TextRun({
+                text: `${data.summary.resolved_tickets}`,
+                bold: true,
+                size: 24
+              })
             ],
             spacing: { after: 100 }
           }),
           new Paragraph({
             children: [
               new TextRun({ text: `Average Resolution Time: `, size: 24 }),
-              new TextRun({ text: `${data.summary.avg_resolution_time} hours`, bold: true, size: 24 })
+              new TextRun({
+                text: `${data.summary.avg_resolution_time} hours`,
+                bold: true,
+                size: 24
+              })
             ],
             spacing: { after: 300 }
           }),
@@ -7693,21 +7790,33 @@ var init_analytics_service = __esm({
           new Paragraph({
             children: [
               new TextRun({ text: `SLA Compliance Rate: `, size: 24 }),
-              new TextRun({ text: `${data.sla_performance.sla_compliance_rate}%`, bold: true, size: 24 })
+              new TextRun({
+                text: `${data.sla_performance.sla_compliance_rate}%`,
+                bold: true,
+                size: 24
+              })
             ],
             spacing: { after: 100 }
           }),
           new Paragraph({
             children: [
               new TextRun({ text: `Tickets Meeting SLA: `, size: 24 }),
-              new TextRun({ text: `${data.sla_performance.met_sla}`, bold: true, size: 24 })
+              new TextRun({
+                text: `${data.sla_performance.met_sla}`,
+                bold: true,
+                size: 24
+              })
             ],
             spacing: { after: 100 }
           }),
           new Paragraph({
             children: [
               new TextRun({ text: `SLA Breaches: `, size: 24 }),
-              new TextRun({ text: `${data.sla_performance.breached_sla}`, bold: true, size: 24 })
+              new TextRun({
+                text: `${data.sla_performance.breached_sla}`,
+                bold: true,
+                size: 24
+              })
             ],
             spacing: { after: 300 }
           }),
@@ -7855,8 +7964,8 @@ var init_analytics_service = __esm({
 `;
         csv += "DEVICE BREAKDOWN BY OS\n";
         csv += "Operating System,Count\n";
-        Object.entries(data.device_breakdown.by_os).forEach(([os2, count5]) => {
-          csv += `${os2},${count5}
+        Object.entries(data.device_breakdown.by_os).forEach(([os2, count6]) => {
+          csv += `${os2},${count6}
 `;
         });
         return csv;
@@ -8003,8 +8112,8 @@ ${csvData}`;
         content += "DEVICE BREAKDOWN\n";
         content += "-".repeat(20) + "\n";
         content += "By Operating System:\n";
-        Object.entries(data.device_breakdown.by_os).forEach(([os2, count5]) => {
-          content += `  \u2022 ${os2}: ${count5} devices
+        Object.entries(data.device_breakdown.by_os).forEach(([os2, count6]) => {
+          content += `  \u2022 ${os2}: ${count6} devices
 `;
         });
         return content;
@@ -8125,8 +8234,8 @@ ${csvData}`;
         if (data.by_os) {
           content += "DEVICES BY OPERATING SYSTEM\n";
           content += "-".repeat(25) + "\n";
-          Object.entries(data.by_os).forEach(([os2, count5]) => {
-            content += `  ${os2}: ${count5} devices
+          Object.entries(data.by_os).forEach(([os2, count6]) => {
+            content += `  ${os2}: ${count6} devices
 `;
           });
           content += "\n";
@@ -8134,8 +8243,8 @@ ${csvData}`;
         if (data.by_status) {
           content += "DEVICES BY STATUS\n";
           content += "-".repeat(25) + "\n";
-          Object.entries(data.by_status).forEach(([status, count5]) => {
-            content += `  ${status}: ${count5} devices
+          Object.entries(data.by_status).forEach(([status, count6]) => {
+            content += `  ${status}: ${count6} devices
 `;
           });
           content += "\n";
@@ -8324,7 +8433,12 @@ endobj
 0 5
 0000000000 65535 f 
 `;
-        const positions = [9, pdf.indexOf("2 0 obj"), pdf.indexOf("3 0 obj"), pdf.indexOf("4 0 obj")];
+        const positions = [
+          9,
+          pdf.indexOf("2 0 obj"),
+          pdf.indexOf("3 0 obj"),
+          pdf.indexOf("4 0 obj")
+        ];
         positions.forEach((pos) => {
           pdf += `${pos.toString().padStart(10, "0")} 00000 n 
 `;
@@ -8374,8 +8488,8 @@ ${xrefPos}
         content += `Software Packages: ${data.software_inventory.total_installed}\\par`;
         content += `\\par`;
         content += `{\\b DEVICE BREAKDOWN}\\par`;
-        Object.entries(data.device_breakdown.by_os).forEach(([os2, count5]) => {
-          content += `${os2}: ${count5} devices\\par`;
+        Object.entries(data.device_breakdown.by_os).forEach(([os2, count6]) => {
+          content += `${os2}: ${count6} devices\\par`;
         });
         return content;
       }
@@ -8625,7 +8739,7 @@ ${xrefPos}
   }
 });
 
-// server/reports-storage.ts
+// server/models/reports-storage.ts
 var reports_storage_exports = {};
 __export(reports_storage_exports, {
   reportsStorage: () => reportsStorage
@@ -8633,7 +8747,7 @@ __export(reports_storage_exports, {
 import { sql as sql9 } from "drizzle-orm";
 var ReportsStorage, reportsStorage;
 var init_reports_storage = __esm({
-  "server/reports-storage.ts"() {
+  "server/models/reports-storage.ts"() {
     "use strict";
     init_db();
     ReportsStorage = class {
@@ -8735,7 +8849,7 @@ var init_reports_storage = __esm({
   }
 });
 
-// server/analytics-routes.ts
+// server/routes/analytics-routes.ts
 var analytics_routes_exports = {};
 __export(analytics_routes_exports, {
   default: () => analytics_routes_default
@@ -8743,7 +8857,7 @@ __export(analytics_routes_exports, {
 import { Router as Router6 } from "express";
 var router6, analytics_routes_default;
 var init_analytics_routes = __esm({
-  "server/analytics-routes.ts"() {
+  "server/routes/analytics-routes.ts"() {
     "use strict";
     init_analytics_service();
     init_reports_storage();
@@ -8752,7 +8866,9 @@ var init_analytics_routes = __esm({
       try {
         const { timeRange = "7d" } = req.query;
         console.log(`Generating performance report for timeRange: ${timeRange}`);
-        const data = await analyticsService.generatePerformanceSummary(timeRange);
+        const data = await analyticsService.generatePerformanceSummary(
+          timeRange
+        );
         const report = {
           id: `perf-${Date.now()}`,
           title: "Performance Summary",
@@ -8782,7 +8898,9 @@ var init_analytics_routes = __esm({
       try {
         const { timeRange = "7d" } = req.query;
         console.log(`Generating availability report for timeRange: ${timeRange}`);
-        const data = await analyticsService.generateAvailabilityReport(timeRange);
+        const data = await analyticsService.generateAvailabilityReport(
+          timeRange
+        );
         const report = {
           id: `avail-${Date.now()}`,
           title: "Availability Report",
@@ -8870,7 +8988,9 @@ var init_analytics_routes = __esm({
       try {
         const { timeRange = "30d" } = req.query;
         console.log(`Generating ticket analytics report for ${timeRange}`);
-        const data = await analyticsService.generateTicketAnalyticsReport(timeRange);
+        const data = await analyticsService.generateTicketAnalyticsReport(
+          timeRange
+        );
         const report = {
           id: `ticket-analytics-${Date.now()}`,
           title: "Ticket Analytics Report",
@@ -8958,7 +9078,9 @@ var init_analytics_routes = __esm({
       req.setTimeout(15e3);
       try {
         const { reportType, timeRange = "7d", format: format2 = "docx" } = req.body;
-        console.log(`Generating custom report: ${reportType}, timeRange: ${timeRange}, format: ${format2}`);
+        console.log(
+          `Generating custom report: ${reportType}, timeRange: ${timeRange}, format: ${format2}`
+        );
         const allowedReportTypes = [
           "performance",
           "availability",
@@ -8979,24 +9101,52 @@ var init_analytics_routes = __esm({
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(() => reject(new Error("Report generation timeout")), 12e3);
         });
-        const reportPromise = analyticsService.generateCustomReport(reportType, timeRange, format2);
+        const reportPromise = analyticsService.generateCustomReport(
+          reportType,
+          timeRange,
+          format2
+        );
         const data = await Promise.race([reportPromise, timeoutPromise]);
         if (format2 === "csv") {
-          const csvData = await analyticsService.exportReport(data, "csv", reportType);
+          const csvData = await analyticsService.exportReport(
+            data,
+            "csv",
+            reportType
+          );
           res.setHeader("Content-Type", "text/csv");
-          res.setHeader("Content-Disposition", `attachment; filename="${reportType}-report.csv"`);
+          res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="${reportType}-report.csv"`
+          );
           res.send(csvData);
         } else if (format2 === "docx") {
           console.log("Generating Word document...");
-          const wordData = await analyticsService.exportReport(data, "docx", reportType);
-          res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-          res.setHeader("Content-Disposition", `attachment; filename="${reportType}-report.docx"`);
+          const wordData = await analyticsService.exportReport(
+            data,
+            "docx",
+            reportType
+          );
+          res.setHeader(
+            "Content-Type",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          );
+          res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="${reportType}-report.docx"`
+          );
           res.send(wordData);
         } else if (format2 === "pdf") {
           console.log("Generating PDF document...");
-          const pdfData = await analyticsService.exportReport(data, "pdf", reportType);
+          const pdfData = await analyticsService.exportReport(
+            data,
+            "pdf",
+            reportType
+          );
           res.setHeader("Content-Type", "application/pdf");
-          res.setHeader("Content-Disposition", `attachment; filename="${reportType}-report.pdf"`);
+          res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="${reportType}-report.pdf"`
+          );
           res.send(pdfData);
         } else {
           res.json({
@@ -9065,7 +9215,10 @@ var init_analytics_routes = __esm({
       try {
         const { metric = "cpu", timeRange = "7d" } = req.query;
         console.log(`Generating trend analysis for ${metric} over ${timeRange}`);
-        const trends = await analyticsService.getTrendAnalysis(metric, timeRange);
+        const trends = await analyticsService.getTrendAnalysis(
+          metric,
+          timeRange
+        );
         res.json({
           success: true,
           trends
@@ -9106,7 +9259,10 @@ var init_analytics_routes = __esm({
           const dbPromise = reportsStorage.getRecentReports(10);
           storedReports = await Promise.race([dbPromise, timeoutPromise]);
         } catch (dbError) {
-          console.warn("Database error when fetching reports, using fallback:", dbError);
+          console.warn(
+            "Database error when fetching reports, using fallback:",
+            dbError
+          );
           storedReports = [];
         }
         const recentReports = storedReports.length > 0 ? storedReports : [
@@ -9114,14 +9270,18 @@ var init_analytics_routes = __esm({
             id: "sample-perf-2024",
             title: "Performance Summary - Sample",
             type: "performance",
-            generated_at: new Date(Date.now() - 2 * 60 * 60 * 1e3).toISOString(),
+            generated_at: new Date(
+              Date.now() - 2 * 60 * 60 * 1e3
+            ).toISOString(),
             time_range: "7d"
           },
           {
             id: "sample-avail-2024",
             title: "Availability Report - Sample",
             type: "availability",
-            generated_at: new Date(Date.now() - 24 * 60 * 60 * 1e3).toISOString(),
+            generated_at: new Date(
+              Date.now() - 24 * 60 * 60 * 1e3
+            ).toISOString(),
             time_range: "7d"
           }
         ];
@@ -9188,10 +9348,10 @@ var init_analytics_routes = __esm({
   }
 });
 
-// server/patch-compliance-service.ts
+// server/services/patch-compliance-service.ts
 var PatchComplianceService, patchComplianceService;
 var init_patch_compliance_service = __esm({
-  "server/patch-compliance-service.ts"() {
+  "server/services/patch-compliance-service.ts"() {
     "use strict";
     init_db();
     PatchComplianceService = class {
@@ -9207,8 +9367,12 @@ var init_patch_compliance_service = __esm({
           console.log("Starting getDashboardData...");
           try {
             console.log("Checking if patch_definitions table exists...");
-            const result2 = await db.execute(sql`SELECT 1 FROM patch_definitions LIMIT 1`);
-            console.log("patch_definitions table exists, proceeding with real data");
+            const result2 = await db.execute(
+              sql`SELECT 1 FROM patch_definitions LIMIT 1`
+            );
+            console.log(
+              "patch_definitions table exists, proceeding with real data"
+            );
           } catch (tableError) {
             console.log("Patch compliance tables not found, returning mock data");
             console.log("Table error:", tableError?.message || "Unknown error");
@@ -9245,7 +9409,9 @@ var init_patch_compliance_service = __esm({
           const deviceReports = [];
           for (const device of devices2) {
             try {
-              console.log(`Processing patches for device ${device.id} (${device.hostname})`);
+              console.log(
+                `Processing patches for device ${device.id} (${device.hostname})`
+              );
               const deviceUuid = typeof device.id === "string" ? device.id : device.id.toString();
               console.log(`Querying patches for device UUID: ${deviceUuid}`);
               console.log(`Device UUID type: ${typeof deviceUuid}`);
@@ -9295,7 +9461,9 @@ var init_patch_compliance_service = __esm({
                 risk_score,
                 last_scan: patchStats.last_scan || device.last_seen || (/* @__PURE__ */ new Date()).toISOString()
               });
-              console.log(`Device ${device.hostname}: ${totalPatches} total, ${installedPatches} installed, ${compliance_percentage.toFixed(1)}% compliant`);
+              console.log(
+                `Device ${device.hostname}: ${totalPatches} total, ${installedPatches} installed, ${compliance_percentage.toFixed(1)}% compliant`
+              );
             } catch (deviceError) {
               console.error(`Error processing device ${device.id}:`, deviceError);
               deviceReports.push({
@@ -9318,11 +9486,22 @@ var init_patch_compliance_service = __esm({
           const compliantDevices = deviceReports.filter(
             (r) => r.compliance_percentage >= this.COMPLIANCE_THRESHOLDS.MINIMUM_COMPLIANCE_PERCENTAGE
           ).length;
-          const devicesWithCriticalGaps = deviceReports.filter((r) => r.missing_critical > 0).length;
-          const averageCompliance = totalDevices > 0 ? deviceReports.reduce((sum2, r) => sum2 + (r.compliance_percentage || 0), 0) / totalDevices : 0;
-          const highRiskDevices = deviceReports.filter((r) => r.risk_score > 75).length;
-          const mediumRiskDevices = deviceReports.filter((r) => r.risk_score > 25 && r.risk_score <= 75).length;
-          const lowRiskDevices = deviceReports.filter((r) => r.risk_score <= 25).length;
+          const devicesWithCriticalGaps = deviceReports.filter(
+            (r) => r.missing_critical > 0
+          ).length;
+          const averageCompliance = totalDevices > 0 ? deviceReports.reduce(
+            (sum2, r) => sum2 + (r.compliance_percentage || 0),
+            0
+          ) / totalDevices : 0;
+          const highRiskDevices = deviceReports.filter(
+            (r) => r.risk_score > 75
+          ).length;
+          const mediumRiskDevices = deviceReports.filter(
+            (r) => r.risk_score > 25 && r.risk_score <= 75
+          ).length;
+          const lowRiskDevices = deviceReports.filter(
+            (r) => r.risk_score <= 25
+          ).length;
           const result = {
             summary: {
               total_devices: totalDevices,
@@ -9360,7 +9539,10 @@ var init_patch_compliance_service = __esm({
             await this.processWindowsUpdates(deviceId, patchData.windows_updates);
           }
           if (patchData.installed_software) {
-            await this.processSoftwarePatches(deviceId, patchData.installed_software);
+            await this.processSoftwarePatches(
+              deviceId,
+              patchData.installed_software
+            );
           }
           await this.autoDeploySecurityPatches(deviceId);
           const deviceUuid = typeof deviceId === "string" ? deviceId : deviceId.toString();
@@ -9405,12 +9587,32 @@ var init_patch_compliance_service = __esm({
       categorizePatch(patch) {
         const title = (patch.title || "").toLowerCase();
         const category = (patch.category || "").toLowerCase();
-        const securityKeywords = ["security", "vulnerability", "exploit", "malware", "defender", "firewall"];
-        const applicationKeywords = ["office", "outlook", "word", "excel", "powerpoint", "teams", "skype", "edge"];
-        if (securityKeywords.some((keyword) => title.includes(keyword) || category.includes(keyword))) {
+        const securityKeywords = [
+          "security",
+          "vulnerability",
+          "exploit",
+          "malware",
+          "defender",
+          "firewall"
+        ];
+        const applicationKeywords = [
+          "office",
+          "outlook",
+          "word",
+          "excel",
+          "powerpoint",
+          "teams",
+          "skype",
+          "edge"
+        ];
+        if (securityKeywords.some(
+          (keyword) => title.includes(keyword) || category.includes(keyword)
+        )) {
           return "security_update";
         }
-        if (applicationKeywords.some((keyword) => title.includes(keyword) || category.includes(keyword))) {
+        if (applicationKeywords.some(
+          (keyword) => title.includes(keyword) || category.includes(keyword)
+        )) {
           return "application_update";
         }
         if (category.includes("windows") || title.includes("windows")) {
@@ -9458,8 +9660,10 @@ var init_patch_compliance_service = __esm({
       mapSeverity(importance) {
         if (!importance) return "low";
         const lower = importance.toLowerCase();
-        if (lower.includes("critical") || lower.includes("important")) return "critical";
-        if (lower.includes("moderate") || lower.includes("recommended")) return "important";
+        if (lower.includes("critical") || lower.includes("important"))
+          return "critical";
+        if (lower.includes("moderate") || lower.includes("recommended"))
+          return "important";
         if (lower.includes("optional") || lower.includes("low")) return "low";
         return "moderate";
       }
@@ -9499,7 +9703,9 @@ var init_patch_compliance_service = __esm({
             WHERE device_id = ${deviceUuid}::uuid AND patch_id = ${patch.patch_id}
           `);
             }
-            console.log(`Auto-deployed ${criticalPatches.length} security patches for device ${deviceId}`);
+            console.log(
+              `Auto-deployed ${criticalPatches.length} security patches for device ${deviceId}`
+            );
           }
         } catch (error) {
           console.error("Error auto-deploying security patches:", error);
@@ -9535,19 +9741,31 @@ var init_patch_compliance_service = __esm({
         const recommendations = [];
         const criticalDevices = deviceReports.filter((d) => d.missing_critical > 0);
         if (criticalDevices.length > 0) {
-          recommendations.push(`${criticalDevices.length} devices have missing critical patches - review application patches manually`);
+          recommendations.push(
+            `${criticalDevices.length} devices have missing critical patches - review application patches manually`
+          );
         }
-        const lowCompliance = deviceReports.filter((d) => d.compliance_percentage < 80);
+        const lowCompliance = deviceReports.filter(
+          (d) => d.compliance_percentage < 80
+        );
         if (lowCompliance.length > 0) {
-          recommendations.push(`${lowCompliance.length} devices below 80% compliance - security patches auto-deployed, review application updates`);
+          recommendations.push(
+            `${lowCompliance.length} devices below 80% compliance - security patches auto-deployed, review application updates`
+          );
         }
         const failedPatches = deviceReports.filter((d) => d.failed_patches > 0);
         if (failedPatches.length > 0) {
-          recommendations.push(`${failedPatches.length} devices have failed patch installations - investigate and retry`);
+          recommendations.push(
+            `${failedPatches.length} devices have failed patch installations - investigate and retry`
+          );
         }
         if (recommendations.length === 0) {
-          recommendations.push("Security patches are automatically deployed - only application patches require manual approval");
-          recommendations.push("All systems appear to be compliant - continue monitoring");
+          recommendations.push(
+            "Security patches are automatically deployed - only application patches require manual approval"
+          );
+          recommendations.push(
+            "All systems appear to be compliant - continue monitoring"
+          );
         }
         return recommendations;
       }
@@ -9599,7 +9817,7 @@ var init_patch_compliance_service = __esm({
   }
 });
 
-// server/patch-routes.ts
+// server/routes/patch-routes.ts
 var patch_routes_exports = {};
 __export(patch_routes_exports, {
   default: () => patch_routes_default
@@ -9607,7 +9825,7 @@ __export(patch_routes_exports, {
 import { Router as Router7 } from "express";
 var router7, patch_routes_default;
 var init_patch_routes = __esm({
-  "server/patch-routes.ts"() {
+  "server/routes/patch-routes.ts"() {
     "use strict";
     init_patch_compliance_service();
     router7 = Router7();
@@ -9743,7 +9961,10 @@ var init_patch_routes = __esm({
     router7.post("/patch-compliance/scan/:deviceId", async (req, res) => {
       try {
         const { deviceId } = req.params;
-        const result = await patchComplianceService.processPatchData(deviceId, req.body);
+        const result = await patchComplianceService.processPatchData(
+          deviceId,
+          req.body
+        );
         res.json({ success: true, result });
       } catch (error) {
         console.error("Error scanning device patches:", error);
@@ -9780,7 +10001,7 @@ import express2 from "express";
 init_storage();
 import { createServer } from "http";
 
-// server/ticket-routes.ts
+// server/routes/ticket-routes.ts
 init_ticket_storage();
 import { z as z2 } from "zod";
 var createTicketSchema = z2.object({
@@ -9960,13 +10181,502 @@ function registerTicketRoutes(app2) {
   });
 }
 
+// server/routes/device-routes.ts
+init_storage();
+function registerDeviceRoutes(app2, authenticateToken3) {
+  app2.get("/api/devices", authenticateToken3, async (req, res) => {
+    try {
+      console.log("Fetching devices - checking for agent activity...");
+      const devices2 = await storage.getDevices();
+      const onlineCount = devices2.filter((d) => d.status === "online").length;
+      const offlineCount = devices2.filter((d) => d.status === "offline").length;
+      console.log(
+        `Device Status Summary: ${onlineCount} online, ${offlineCount} offline, ${devices2.length} total`
+      );
+      const devicesWithReports = await Promise.all(
+        devices2.map(async (device) => {
+          const latestReport = await storage.getLatestDeviceReport(device.id);
+          const now = /* @__PURE__ */ new Date();
+          const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
+          const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1e3);
+          let currentStatus = device.status;
+          if (lastSeen && lastSeen < tenMinutesAgo && device.status === "online") {
+            await storage.updateDevice(device.id, { status: "offline" });
+            currentStatus = "offline";
+          } else if (lastSeen && lastSeen >= tenMinutesAgo && device.status === "offline") {
+            await storage.updateDevice(device.id, { status: "online" });
+            currentStatus = "online";
+          }
+          return {
+            ...device,
+            status: currentStatus,
+            latest_report: latestReport ? {
+              cpu_usage: latestReport.cpu_usage,
+              memory_usage: latestReport.memory_usage,
+              disk_usage: latestReport.disk_usage,
+              network_io: latestReport.network_io,
+              collected_at: latestReport.collected_at
+            } : null
+          };
+        })
+      );
+      res.json(devicesWithReports);
+    } catch (error) {
+      console.error("Error fetching devices:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  app2.get("/api/devices/:id", authenticateToken3, async (req, res) => {
+    try {
+      let device = await storage.getDevice(req.params.id);
+      if (!device) {
+        device = await storage.getDeviceByHostname(req.params.id);
+      }
+      if (!device) {
+        return res.status(404).json({ message: "Device not found" });
+      }
+      const latestReport = await storage.getLatestDeviceReport(device.id);
+      const deviceWithReport = {
+        ...device,
+        latest_report: latestReport ? {
+          cpu_usage: latestReport.cpu_usage,
+          memory_usage: latestReport.memory_usage,
+          disk_usage: latestReport.disk_usage,
+          network_io: latestReport.network_io,
+          collected_at: latestReport.collected_at,
+          raw_data: latestReport.raw_data
+        } : null
+      };
+      res.json(deviceWithReport);
+    } catch (error) {
+      console.error("Error fetching device:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  app2.get("/api/devices/:id/reports", async (req, res) => {
+    try {
+      const reports = await storage.getDeviceReports(req.params.id);
+      res.json(reports);
+    } catch (error) {
+      console.error("Error fetching device reports:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  app2.get("/api/devices/:id/usb-devices", async (req, res) => {
+    try {
+      console.log(`Fetching USB devices for device: ${req.params.id}`);
+      const usbDevices = await storage.getUSBDevicesForDevice(req.params.id);
+      console.log(`Found ${usbDevices.length} USB devices:`, usbDevices);
+      res.json(usbDevices);
+    } catch (error) {
+      console.error("Error fetching USB devices:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  app2.get(
+    "/api/devices/:id/performance-insights",
+    authenticateToken3,
+    async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { performanceService: performanceService2 } = await import("./performance-service");
+        const insights = await performanceService2.getApplicationPerformanceInsights(id);
+        res.json(insights);
+      } catch (error) {
+        console.error("Error fetching performance insights:", error);
+        res.status(500).json({
+          error: "Failed to fetch performance insights",
+          top_cpu_consumers: [],
+          top_memory_consumers: [],
+          total_processes: 0,
+          system_load_analysis: {
+            high_cpu_processes: 0,
+            high_memory_processes: 0
+          }
+        });
+      }
+    }
+  );
+  app2.get(
+    "/api/devices/:id/ai-insights",
+    authenticateToken3,
+    async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { aiService: aiService2 } = await import("./ai-service");
+        const insights = await aiService2.generateDeviceInsights(id);
+        res.json(insights);
+      } catch (error) {
+        console.error("Error generating AI insights:", error);
+        res.status(500).json({
+          error: "Failed to generate AI insights",
+          insights: []
+        });
+      }
+    }
+  );
+  app2.get(
+    "/api/devices/:id/ai-recommendations",
+    authenticateToken3,
+    async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { aiService: aiService2 } = await import("./ai-service");
+        const recommendations = await aiService2.getDeviceRecommendations(id);
+        res.json({ recommendations });
+      } catch (error) {
+        console.error("Error getting AI recommendations:", error);
+        res.status(500).json({
+          error: "Failed to get AI recommendations",
+          recommendations: []
+        });
+      }
+    }
+  );
+  app2.get("/api/debug/devices", authenticateToken3, async (req, res) => {
+    try {
+      const devices2 = await storage.getDevices();
+      const now = /* @__PURE__ */ new Date();
+      const deviceDetails = devices2.map((device) => {
+        const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
+        const minutesAgo = lastSeen ? Math.floor((now.getTime() - lastSeen.getTime()) / (1e3 * 60)) : null;
+        return {
+          id: device.id,
+          hostname: device.hostname,
+          ip_address: device.ip_address,
+          assigned_user: device.assigned_user,
+          status: device.status,
+          last_seen: device.last_seen,
+          minutes_since_last_report: minutesAgo,
+          is_recently_active: minutesAgo !== null && minutesAgo < 5,
+          created_at: device.created_at
+        };
+      });
+      res.json({
+        total_devices: devices2.length,
+        devices: deviceDetails,
+        summary: {
+          online: deviceDetails.filter((d) => d.status === "online").length,
+          offline: deviceDetails.filter((d) => d.status === "offline").length,
+          recently_active: deviceDetails.filter((d) => d.is_recently_active).length
+        }
+      });
+    } catch (error) {
+      console.error("Error in debug devices endpoint:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+}
+
+// server/routes/agent-routes.ts
+init_storage();
+function registerAgentRoutes(app2, authenticateToken3, requireRole2) {
+  app2.post(
+    "/api/agents/:id/test-connectivity",
+    authenticateToken3,
+    async (req, res) => {
+      try {
+        const { id } = req.params;
+        const device = await storage.getDevice(id);
+        if (!device || !device.ip_address) {
+          return res.status(404).json({ message: "Agent not found or no IP address" });
+        }
+        const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
+        const now = /* @__PURE__ */ new Date();
+        const minutesSinceLastSeen = lastSeen ? Math.floor((now.getTime() - lastSeen.getTime()) / (1e3 * 60)) : null;
+        const hasRecentData = device.latest_report && device.latest_report.collected_at;
+        const lastReportTime = hasRecentData ? new Date(device.latest_report.collected_at) : null;
+        const minutesSinceLastReport = lastReportTime ? Math.floor((now.getTime() - lastReportTime.getTime()) / (1e3 * 60)) : null;
+        const connectivity = {
+          reachable: device.status === "online" && minutesSinceLastSeen !== null && minutesSinceLastSeen < 5,
+          port_open: device.status === "online" && hasRecentData && minutesSinceLastReport !== null && minutesSinceLastReport < 10,
+          response_time: minutesSinceLastSeen !== null ? Math.min(minutesSinceLastSeen * 1e3, 3e4) : 3e4,
+          tested_at: now.toISOString(),
+          last_seen_minutes_ago: minutesSinceLastSeen,
+          last_report_minutes_ago: minutesSinceLastReport,
+          has_recent_data: hasRecentData
+        };
+        res.json(connectivity);
+      } catch (error) {
+        console.error("Error testing connectivity:", error);
+        res.status(500).json({ message: "Failed to test connectivity" });
+      }
+    }
+  );
+  app2.get(
+    "/api/agents/:id/connection-status",
+    authenticateToken3,
+    async (req, res) => {
+      try {
+        const agentId = req.params.id;
+        const device = await storage.getDevice(agentId);
+        if (!device) {
+          return res.status(404).json({ message: "Agent not found" });
+        }
+        const lastSeen = new Date(device.last_seen);
+        const now = /* @__PURE__ */ new Date();
+        const timeDiff = now.getTime() - lastSeen.getTime();
+        const minutesOffline = Math.floor(timeDiff / (1e3 * 60));
+        const connectionStatus = {
+          agent_online: device.status === "online" && minutesOffline < 5,
+          last_seen: device.last_seen,
+          minutes_since_contact: minutesOffline,
+          ip_address: device.ip_address,
+          hostname: device.hostname,
+          ready_for_connection: device.status === "online" && minutesOffline < 5
+        };
+        res.json(connectionStatus);
+      } catch (error) {
+        console.error("Error checking connection status:", error);
+        res.status(500).json({ message: "Failed to check connection status" });
+      }
+    }
+  );
+  app2.post(
+    "/api/agents/:id/remote-connect",
+    authenticateToken3,
+    async (req, res) => {
+      try {
+        const agentId = req.params.id;
+        const {
+          connection_type = "vnc",
+          port = 5900,
+          use_tunnel = false,
+          jump_host = null
+        } = req.body;
+        const device = await storage.getDevice(agentId);
+        if (!device) {
+          return res.status(404).json({ message: "Agent not found" });
+        }
+        if (device.status !== "online") {
+          return res.status(400).json({
+            message: "Agent is not online",
+            status: device.status
+          });
+        }
+        const isPrivateIP = device.ip_address && (device.ip_address.startsWith("10.") || device.ip_address.startsWith("172.") || device.ip_address.startsWith("192.168.") || device.ip_address.startsWith("169.254."));
+        await storage.createAlert({
+          device_id: agentId,
+          category: "remote_access",
+          severity: "info",
+          message: `Remote connection initiated by ${req.user.email}`,
+          metadata: {
+            connection_type,
+            port,
+            user: req.user.email,
+            timestamp: (/* @__PURE__ */ new Date()).toISOString()
+          },
+          is_active: true
+        });
+        const instructions = {
+          vnc: "Ensure VNC server and websockify are running on the target machine",
+          rdp: "Ensure Remote Desktop is enabled and user has RDP permissions",
+          ssh: "Ensure SSH service is running and firewall allows SSH connections",
+          teamviewer: "Ensure TeamViewer is installed and running on the target machine"
+        };
+        const connectionInfo = {
+          hostname: device.hostname,
+          ip_address: device.ip_address,
+          port,
+          connection_type,
+          instructions: instructions[connection_type] || "Ensure remote access is enabled on the target machine",
+          teamviewer_id: connection_type === "teamviewer" ? device.teamviewer_id : void 0,
+          is_private_ip: isPrivateIP
+        };
+        if (isPrivateIP) {
+          connectionInfo.tunnel_required = true;
+          connectionInfo.tunnel_suggestions = [
+            {
+              method: "ssh_tunnel",
+              command: `ssh -L ${port}:${device.ip_address}:${port} ${jump_host || "your_jump_host"}`,
+              description: "Create SSH tunnel via jump host"
+            },
+            {
+              method: "vpn",
+              description: "Connect to company VPN first, then access private IP directly"
+            },
+            {
+              method: "reverse_proxy",
+              description: "Deploy reverse proxy on public server"
+            }
+          ];
+        }
+        res.json({
+          success: true,
+          connection_info: connectionInfo
+        });
+      } catch (error) {
+        console.error("Error initiating remote connection:", error);
+        res.status(500).json({ message: "Failed to initiate remote connection" });
+      }
+    }
+  );
+  app2.post(
+    "/api/agents/:id/execute-command",
+    authenticateToken3,
+    requireRole2(["admin", "manager"]),
+    async (req, res) => {
+      try {
+        const agentId = req.params.id;
+        const { command, description = "Remote command execution" } = req.body;
+        if (!command || typeof command !== "string") {
+          return res.status(400).json({
+            success: false,
+            message: "Command is required and must be a string"
+          });
+        }
+        const device = await storage.getDevice(agentId);
+        if (!device) {
+          return res.status(404).json({
+            success: false,
+            message: "Agent not found"
+          });
+        }
+        if (device.status !== "online") {
+          return res.status(400).json({
+            success: false,
+            message: `Agent is ${device.status}. Only online agents can execute commands.`
+          });
+        }
+        const { pool: pool4 } = await import("./db");
+        const result = await pool4.query(
+          `INSERT INTO agent_commands (device_id, type, command, priority, status, created_by, created_at)
+         VALUES ($1, $2, $3, $4, 'pending', $5, NOW())
+         RETURNING id`,
+          [agentId, "execute_command", command, 1, req.user.id]
+        );
+        await storage.createAlert({
+          device_id: agentId,
+          category: "remote_command",
+          severity: "info",
+          message: `Remote command executed by ${req.user.email}: ${command}`,
+          metadata: {
+            command,
+            description,
+            user: req.user.email,
+            timestamp: (/* @__PURE__ */ new Date()).toISOString()
+          },
+          is_active: true
+        });
+        console.log(
+          `Command "${command}" queued for agent ${device.hostname} (${agentId}) by ${req.user.email}`
+        );
+        res.json({
+          success: true,
+          message: `Command sent to ${device.hostname}`,
+          command_id: result.rows[0].id,
+          agent_hostname: device.hostname,
+          command,
+          description
+        });
+      } catch (error) {
+        console.error("Error executing remote command:", error);
+        res.status(500).json({
+          success: false,
+          message: "Failed to execute command on agent"
+        });
+      }
+    }
+  );
+  app2.post("/api/heartbeat", async (req, res) => {
+    try {
+      console.log("Agent heartbeat received:", req.body);
+      const { hostname, systemInfo } = req.body;
+      if (!hostname) {
+        return res.status(400).json({ error: "Hostname is required" });
+      }
+      let device = await storage.getDeviceByHostname(hostname);
+      if (!device) {
+        device = await storage.createDevice({
+          hostname,
+          assigned_user: systemInfo?.current_user || null,
+          os_name: systemInfo?.platform || null,
+          os_version: systemInfo?.version || null,
+          ip_address: req.ip || null,
+          status: "online",
+          last_seen: /* @__PURE__ */ new Date()
+        });
+        console.log("Created new device from heartbeat:", device.id);
+      } else {
+        await storage.updateDevice(device.id, {
+          status: "online",
+          last_seen: /* @__PURE__ */ new Date()
+        });
+        console.log("Updated device from heartbeat:", device.id);
+      }
+      if (systemInfo) {
+        await storage.createDeviceReport({
+          device_id: device.id,
+          cpu_usage: systemInfo.cpu_usage?.toString() || null,
+          memory_usage: systemInfo.memory_usage?.toString() || null,
+          disk_usage: systemInfo.disk_usage?.toString() || null,
+          network_io: null,
+          raw_data: JSON.stringify(req.body)
+        });
+      }
+      res.json({
+        message: "Heartbeat received",
+        agentId: device.id,
+        status: "success"
+      });
+    } catch (error) {
+      console.error("Error processing heartbeat:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  app2.get("/api/commands", async (req, res) => {
+    try {
+      console.log("Agent requesting commands");
+      res.json({
+        commands: [],
+        message: "No pending commands"
+      });
+    } catch (error) {
+      console.error("Error getting commands:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  app2.get("/api/commands/next/:agentId", async (req, res) => {
+    try {
+      const agentId = req.params.agentId;
+      console.log(`Agent ${agentId} requesting next command`);
+      res.json({
+        command: null,
+        message: "No pending commands"
+      });
+    } catch (error) {
+      console.error("Error getting next command:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  app2.put("/api/commands/:commandId", async (req, res) => {
+    try {
+      const commandId = req.params.commandId;
+      const { status, output, errorMessage } = req.body;
+      console.log(`Command ${commandId} status update:`, {
+        status,
+        output,
+        errorMessage
+      });
+      res.json({
+        message: "Command status updated",
+        commandId,
+        status
+      });
+    } catch (error) {
+      console.error("Error updating command status:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+}
+
 // server/routes.ts
 init_ticket_schema();
 init_ticket_storage();
 import bcrypt2 from "bcrypt";
-import jwt2 from "jsonwebtoken";
+import jwt3 from "jsonwebtoken";
 
-// server/security-service.ts
+// server/services/security-service.ts
 init_storage();
 var SecurityService = class {
   usbPolicies = [
@@ -9987,8 +10697,12 @@ var SecurityService = class {
     const activePolicy = this.usbPolicies.find((p) => p.is_active);
     if (!activePolicy) return;
     for (const device of usbDevices) {
-      const vendorId = this.extractVendorId(device.device_id || device.id || "");
-      const deviceType = this.categorizeUSBDevice(device.description || device.name || "");
+      const vendorId = this.extractVendorId(
+        device.device_id || device.id || ""
+      );
+      const deviceType = this.categorizeUSBDevice(
+        device.description || device.name || ""
+      );
       let isViolation = false;
       let violationReason = "";
       if (activePolicy.blocked_vendor_ids.includes(vendorId)) {
@@ -10027,11 +10741,13 @@ var SecurityService = class {
   }
   categorizeUSBDevice(description) {
     const desc9 = description.toLowerCase();
-    if (desc9.includes("mass storage") || desc9.includes("storage")) return "mass_storage";
+    if (desc9.includes("mass storage") || desc9.includes("storage"))
+      return "mass_storage";
     if (desc9.includes("keyboard")) return "keyboard";
     if (desc9.includes("mouse")) return "mouse";
     if (desc9.includes("webcam") || desc9.includes("camera")) return "webcam";
-    if (desc9.includes("wireless") || desc9.includes("wifi")) return "wireless_adapter";
+    if (desc9.includes("wireless") || desc9.includes("wifi"))
+      return "wireless_adapter";
     if (desc9.includes("audio") || desc9.includes("speaker")) return "audio";
     if (desc9.includes("composite")) return "composite";
     return "unknown";
@@ -10062,7 +10778,9 @@ var SecurityService = class {
   }
   async checkVulnerabilities(deviceId, installedSoftware) {
     try {
-      console.log(`Checking vulnerabilities for device ${deviceId} with ${installedSoftware.length} software packages`);
+      console.log(
+        `Checking vulnerabilities for device ${deviceId} with ${installedSoftware.length} software packages`
+      );
       if (!installedSoftware || installedSoftware.length === 0) {
         console.log("No software packages to check for vulnerabilities");
         return [];
@@ -10150,20 +10868,35 @@ var SecurityService = class {
 };
 var securityService = new SecurityService();
 
-// server/performance-service.ts
+// server/services/performance-service.ts
 init_storage();
 var PerformanceService = class {
   baselines = /* @__PURE__ */ new Map();
   async updateBaselines(deviceId, metrics) {
     const deviceBaselines = this.baselines.get(deviceId) || [];
     if (metrics.cpu_usage !== null) {
-      await this.updateMetricBaseline(deviceId, "cpu", parseFloat(metrics.cpu_usage), deviceBaselines);
+      await this.updateMetricBaseline(
+        deviceId,
+        "cpu",
+        parseFloat(metrics.cpu_usage),
+        deviceBaselines
+      );
     }
     if (metrics.memory_usage !== null) {
-      await this.updateMetricBaseline(deviceId, "memory", parseFloat(metrics.memory_usage), deviceBaselines);
+      await this.updateMetricBaseline(
+        deviceId,
+        "memory",
+        parseFloat(metrics.memory_usage),
+        deviceBaselines
+      );
     }
     if (metrics.disk_usage !== null) {
-      await this.updateMetricBaseline(deviceId, "disk", parseFloat(metrics.disk_usage), deviceBaselines);
+      await this.updateMetricBaseline(
+        deviceId,
+        "disk",
+        parseFloat(metrics.disk_usage),
+        deviceBaselines
+      );
     }
     this.baselines.set(deviceId, deviceBaselines);
   }
@@ -10205,7 +10938,9 @@ var PerformanceService = class {
     }
   }
   async checkForAnomalies(deviceId, metricType, currentValue, baseline) {
-    const deviationPercentage = Math.abs((currentValue - baseline.baseline_value) / baseline.baseline_value) * 100;
+    const deviationPercentage = Math.abs(
+      (currentValue - baseline.baseline_value) / baseline.baseline_value
+    ) * 100;
     if (deviationPercentage > baseline.variance_threshold) {
       const severity = deviationPercentage > 50 ? "high" : deviationPercentage > 30 ? "medium" : "low";
       const anomaly = {
@@ -10255,9 +10990,14 @@ var PerformanceService = class {
               device_id: deviceId,
               resource_type: resource,
               current_usage_trend: trend,
-              predicted_capacity_date: new Date(Date.now() + daysToCapacity * 24 * 60 * 60 * 1e3),
+              predicted_capacity_date: new Date(
+                Date.now() + daysToCapacity * 24 * 60 * 60 * 1e3
+              ),
               confidence_level: Math.min(0.9, values.length / 30),
-              recommendation: this.getResourceRecommendation(resource, daysToCapacity)
+              recommendation: this.getResourceRecommendation(
+                resource,
+                daysToCapacity
+              )
             });
           }
         }
@@ -10288,14 +11028,17 @@ var PerformanceService = class {
   }
   async getApplicationPerformanceInsights(deviceId) {
     try {
-      const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-      const reportResult = await pool3.query(`
+      const { pool: pool4 } = await import("./db");
+      const reportResult = await pool4.query(
+        `
         SELECT raw_data, collected_at, cpu_usage, memory_usage, disk_usage
         FROM device_reports 
         WHERE device_id = $1 
         ORDER BY collected_at DESC 
         LIMIT 1
-      `, [deviceId]);
+      `,
+        [deviceId]
+      );
       if (reportResult.rows.length === 0) {
         console.log(`No reports found for device ${deviceId}`);
         return this.getDefaultInsights();
@@ -10313,18 +11056,22 @@ var PerformanceService = class {
         console.log(`No process data found for device ${deviceId}`);
         if (report.cpu_usage || report.memory_usage) {
           return {
-            top_cpu_consumers: [{
-              name: "System Total",
-              cpu_percent: parseFloat(report.cpu_usage || "0"),
-              memory_percent: parseFloat(report.memory_usage || "0"),
-              pid: 0
-            }],
-            top_memory_consumers: [{
-              name: "System Total",
-              cpu_percent: parseFloat(report.cpu_usage || "0"),
-              memory_percent: parseFloat(report.memory_usage || "0"),
-              pid: 0
-            }],
+            top_cpu_consumers: [
+              {
+                name: "System Total",
+                cpu_percent: parseFloat(report.cpu_usage || "0"),
+                memory_percent: parseFloat(report.memory_usage || "0"),
+                pid: 0
+              }
+            ],
+            top_memory_consumers: [
+              {
+                name: "System Total",
+                cpu_percent: parseFloat(report.cpu_usage || "0"),
+                memory_percent: parseFloat(report.memory_usage || "0"),
+                pid: 0
+              }
+            ],
             total_processes: 0,
             system_load_analysis: {
               high_cpu_processes: parseFloat(report.cpu_usage || "0") > 80 ? 1 : 0,
@@ -10335,8 +11082,16 @@ var PerformanceService = class {
         return this.getDefaultInsights();
       }
       console.log(`Found ${processes.length} processes for device ${deviceId}`);
-      const cpuSorted = processes.filter((p) => p.cpu_percent !== void 0 && p.cpu_percent !== null && parseFloat(p.cpu_percent.toString()) > 0).sort((a, b) => parseFloat(b.cpu_percent.toString()) - parseFloat(a.cpu_percent.toString())).slice(0, 10);
-      const memorySorted = processes.filter((p) => p.memory_percent !== void 0 && p.memory_percent !== null && parseFloat(p.memory_percent.toString()) > 0).sort((a, b) => parseFloat(b.memory_percent.toString()) - parseFloat(a.memory_percent.toString())).slice(0, 10);
+      const cpuSorted = processes.filter(
+        (p) => p.cpu_percent !== void 0 && p.cpu_percent !== null && parseFloat(p.cpu_percent.toString()) > 0
+      ).sort(
+        (a, b) => parseFloat(b.cpu_percent.toString()) - parseFloat(a.cpu_percent.toString())
+      ).slice(0, 10);
+      const memorySorted = processes.filter(
+        (p) => p.memory_percent !== void 0 && p.memory_percent !== null && parseFloat(p.memory_percent.toString()) > 0
+      ).sort(
+        (a, b) => parseFloat(b.memory_percent.toString()) - parseFloat(a.memory_percent.toString())
+      ).slice(0, 10);
       const insights = {
         top_cpu_consumers: cpuSorted.map((p) => ({
           name: p.name || p.process_name || "Unknown",
@@ -10352,8 +11107,12 @@ var PerformanceService = class {
         })),
         total_processes: processes.length,
         system_load_analysis: {
-          high_cpu_processes: processes.filter((p) => parseFloat(p.cpu_percent?.toString() || "0") > 50).length,
-          high_memory_processes: processes.filter((p) => parseFloat(p.memory_percent?.toString() || "0") > 10).length
+          high_cpu_processes: processes.filter(
+            (p) => parseFloat(p.cpu_percent?.toString() || "0") > 50
+          ).length,
+          high_memory_processes: processes.filter(
+            (p) => parseFloat(p.memory_percent?.toString() || "0") > 10
+          ).length
         }
       };
       console.log(`Performance insights for device ${deviceId}:`, {
@@ -10384,7 +11143,7 @@ var performanceService = new PerformanceService();
 // server/routes.ts
 init_automation_service();
 
-// server/ai-service.ts
+// server/services/ai-service.ts
 init_storage();
 var AIService = class {
   async generateDeviceInsights(deviceId) {
@@ -10819,73 +11578,463 @@ var AIService = class {
 };
 var aiService = new AIService();
 
+// server/utils/database.ts
+init_db();
+var DatabaseUtils = class {
+  /**
+   * Get database pool instance
+   */
+  static async getPool() {
+    return pool2;
+  }
+  /**
+   * Execute a query with error handling
+   */
+  static async executeQuery(query, params = []) {
+    try {
+      const result = await pool2.query(query, params);
+      return result;
+    } catch (error) {
+      console.error("Database query error:", error);
+      throw error;
+    }
+  }
+  /**
+   * Check if table exists
+   */
+  static async tableExists(tableName) {
+    try {
+      const result = await pool2.query(
+        `SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = $1
+        )`,
+        [tableName]
+      );
+      return result.rows[0].exists;
+    } catch (error) {
+      console.error(`Error checking table ${tableName}:`, error);
+      return false;
+    }
+  }
+  /**
+   * Get table columns
+   */
+  static async getTableColumns(tableName) {
+    try {
+      const result = await pool2.query(
+        `SELECT column_name, data_type 
+         FROM information_schema.columns 
+         WHERE table_name = $1 AND table_schema = 'public'
+         ORDER BY ordinal_position`,
+        [tableName]
+      );
+      return result.rows;
+    } catch (error) {
+      console.error(`Error getting columns for ${tableName}:`, error);
+      return [];
+    }
+  }
+  /**
+   * Build dynamic query with optional columns
+   */
+  static buildSelectQuery(tableName, availableColumns, requiredColumns) {
+    const validColumns = requiredColumns.filter((col) => availableColumns.includes(col));
+    return `SELECT ${validColumns.join(", ")} FROM ${tableName}`;
+  }
+  /**
+   * Safe column access with fallback
+   */
+  static getColumnValue(row, columnName, fallback = null) {
+    return row && row.hasOwnProperty(columnName) ? row[columnName] : fallback;
+  }
+  /**
+   * Execute transaction
+   */
+  static async executeTransaction(queries) {
+    const client = await pool2.connect();
+    try {
+      await client.query("BEGIN");
+      const results = [];
+      for (const { query, params = [] } of queries) {
+        const result = await client.query(query, params);
+        results.push(result);
+      }
+      await client.query("COMMIT");
+      return results;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+};
+
+// server/utils/auth.ts
+import jwt from "jsonwebtoken";
+var JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+var AuthUtils = class {
+  /**
+   * Verify JWT token and return decoded payload
+   */
+  static verifyToken(token) {
+    try {
+      return jwt.verify(token, JWT_SECRET);
+    } catch (error) {
+      throw new Error("Invalid token");
+    }
+  }
+  /**
+   * Generate JWT token
+   */
+  static generateToken(payload, expiresIn = "24h") {
+    return jwt.sign(payload, JWT_SECRET, { expiresIn });
+  }
+  /**
+   * Extract token from authorization header
+   */
+  static extractTokenFromHeader(authHeader) {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return null;
+    }
+    return authHeader.substring(7);
+  }
+  /**
+   * Get user from database by ID with fallback
+   */
+  static async getUserById(userId) {
+    try {
+      const result = await DatabaseUtils.executeQuery(
+        `SELECT id, email, role, first_name, last_name, username, is_active, phone, location 
+         FROM users WHERE id = $1`,
+        [userId]
+      );
+      if (result.rows.length > 0) {
+        const user = result.rows[0];
+        return this.buildUserDisplayName(user);
+      }
+    } catch (dbError) {
+      console.log("Database user lookup failed:", dbError.message);
+    }
+    return null;
+  }
+  /**
+   * Build user display name from available fields
+   */
+  static buildUserDisplayName(user) {
+    let displayName = "";
+    if (user.first_name || user.last_name) {
+      displayName = `${user.first_name || ""} ${user.last_name || ""}`.trim();
+    } else if (user.username) {
+      displayName = user.username;
+    } else if (user.email) {
+      displayName = user.email.split("@")[0];
+    } else {
+      displayName = "Unknown User";
+    }
+    return {
+      ...user,
+      name: displayName
+    };
+  }
+  /**
+   * Check if user has required role
+   */
+  static hasRole(userRole, requiredRoles) {
+    const allowedRoles = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles];
+    return userRole === "admin" || allowedRoles.includes(userRole);
+  }
+  /**
+   * Validate user account status
+   */
+  static validateUserStatus(user) {
+    if (!user.is_active) {
+      return { valid: false, message: "User account is inactive" };
+    }
+    if (user.is_locked) {
+      return { valid: false, message: "Account is locked. Contact administrator." };
+    }
+    return { valid: true };
+  }
+  /**
+   * Update user last login timestamp
+   */
+  static async updateLastLogin(userId) {
+    try {
+      await DatabaseUtils.executeQuery(
+        `UPDATE users SET last_login = NOW() WHERE id = $1`,
+        [userId]
+      );
+    } catch (error) {
+      console.warn("Failed to update last login:", error);
+    }
+  }
+};
+
+// server/utils/response.ts
+var ResponseUtils = class {
+  /**
+   * Send success response
+   */
+  static success(res, data, message, statusCode = 200) {
+    return res.status(statusCode).json({
+      success: true,
+      message: message || "Operation successful",
+      data
+    });
+  }
+  /**
+   * Send error response
+   */
+  static error(res, message, statusCode = 500, error) {
+    console.error("API Error:", message, error);
+    return res.status(statusCode).json({
+      success: false,
+      message,
+      error: process.env.NODE_ENV === "development" ? error : void 0
+    });
+  }
+  /**
+   * Send validation error
+   */
+  static validationError(res, message, errors) {
+    return res.status(400).json({
+      success: false,
+      message,
+      errors
+    });
+  }
+  /**
+   * Send unauthorized error
+   */
+  static unauthorized(res, message = "Unauthorized access") {
+    return res.status(401).json({
+      success: false,
+      message
+    });
+  }
+  /**
+   * Send forbidden error
+   */
+  static forbidden(res, message = "Insufficient permissions") {
+    return res.status(403).json({
+      success: false,
+      message
+    });
+  }
+  /**
+   * Send not found error
+   */
+  static notFound(res, message = "Resource not found") {
+    return res.status(404).json({
+      success: false,
+      message
+    });
+  }
+  /**
+   * Send internal server error
+   */
+  static internalError(res, message = "Internal server error", error) {
+    console.error("Internal Server Error:", message, error);
+    return res.status(500).json({
+      success: false,
+      message,
+      error: process.env.NODE_ENV === "development" ? error?.message : void 0
+    });
+  }
+  /**
+   * Send paginated response
+   */
+  static paginated(res, data, total, page, limit) {
+    return res.json({
+      success: true,
+      data,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1
+      }
+    });
+  }
+  /**
+   * Handle async route errors
+   */
+  static asyncHandler(fn) {
+    return (req, res, next) => {
+      Promise.resolve(fn(req, res, next)).catch(next);
+    };
+  }
+  /**
+   * Send file download response
+   */
+  static download(res, data, filename, contentType = "application/octet-stream") {
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    return res.send(data);
+  }
+};
+
+// server/utils/user.ts
+var UserUtils = class {
+  /**
+   * Build user display name from various field combinations
+   */
+  static buildDisplayName(user) {
+    if (user.name && user.name.trim()) {
+      return user.name.trim();
+    }
+    if (user.first_name || user.last_name) {
+      return `${user.first_name || ""} ${user.last_name || ""}`.trim();
+    }
+    if (user.username && user.username.trim()) {
+      return user.username.trim();
+    }
+    if (user.email) {
+      return user.email.split("@")[0];
+    }
+    return "Unknown User";
+  }
+  /**
+   * Extract domain user from various formats
+   */
+  static extractDomainUser(userString) {
+    if (!userString) return "";
+    if (userString.includes("\\")) {
+      return userString.split("\\").pop() || "";
+    }
+    if (userString.includes("@")) {
+      return userString.split("@")[0];
+    }
+    return userString;
+  }
+  /**
+   * Filter out system accounts from user strings
+   */
+  static isSystemAccount(username) {
+    if (!username || typeof username !== "string") return true;
+    const systemPatterns = [
+      "NT AUTHORITY",
+      "SYSTEM",
+      "LOCAL SERVICE",
+      "NETWORK SERVICE",
+      "Window Manager",
+      "Unknown",
+      "N/A"
+    ];
+    return systemPatterns.some((pattern) => username.includes(pattern)) || username.endsWith("$") || username.trim() === "";
+  }
+  /**
+   * Extract real user from process list
+   */
+  static extractUserFromProcesses(processes) {
+    if (!Array.isArray(processes)) return null;
+    const userProcesses = processes.filter((process2) => {
+      const processUser = process2.username || process2.user;
+      return processUser && !this.isSystemAccount(processUser);
+    });
+    if (userProcesses.length === 0) return null;
+    const firstUserProcess = userProcesses[0];
+    const username = firstUserProcess.username || firstUserProcess.user;
+    return this.extractDomainUser(username);
+  }
+  /**
+   * Normalize user data object
+   */
+  static normalizeUserData(user) {
+    return {
+      ...user,
+      name: this.buildDisplayName(user),
+      email: user.email?.toLowerCase() || "",
+      role: user.role || "user",
+      department: user.department || user.location || "",
+      phone: user.phone || "",
+      is_active: user.is_active !== void 0 ? user.is_active : true
+    };
+  }
+  /**
+   * Get user initials for avatar
+   */
+  static getUserInitials(user) {
+    const name = this.buildDisplayName(user);
+    const parts = name.split(" ");
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    } else if (parts.length === 1 && parts[0].length >= 2) {
+      return parts[0].substring(0, 2).toUpperCase();
+    }
+    return "UN";
+  }
+  /**
+   * Validate email format
+   */
+  static isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+  /**
+   * Format user role for display
+   */
+  static formatRole(role) {
+    const roleMap = {
+      admin: "Administrator",
+      manager: "Manager",
+      technician: "Technician",
+      user: "End User",
+      end_user: "End User"
+    };
+    return roleMap[role] || role.charAt(0).toUpperCase() + role.slice(1);
+  }
+};
+
 // server/routes.ts
 import fs2 from "fs";
 import path2 from "path";
-var JWT_SECRET2 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+var JWT_SECRET3 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 var authenticateToken = async (req, res, next) => {
   const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
+  const token = AuthUtils.extractTokenFromHeader(authHeader || "");
   if (!token) {
-    return res.status(401).json({ message: "Access token required" });
+    return ResponseUtils.unauthorized(res, "Access token required");
   }
   try {
-    const decoded = jwt2.verify(token, JWT_SECRET2);
+    const decoded = AuthUtils.verifyToken(token);
     console.log("Decoded token:", decoded);
-    try {
-      const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-      const result = await pool3.query(
-        `
-        SELECT id, email, role, first_name, last_name, username, is_active, phone, location 
-        FROM users WHERE id = $1
-      `,
-        [decoded.userId || decoded.id]
-      );
-      if (result.rows.length > 0) {
-        const user2 = result.rows[0];
-        let displayName = "";
-        if (user2.first_name || user2.last_name) {
-          displayName = `${user2.first_name || ""} ${user2.last_name || ""}`.trim();
-        } else if (user2.username) {
-          displayName = user2.username;
-        } else {
-          displayName = user2.email.split("@")[0];
-        }
-        user2.name = displayName;
-        if (!user2.is_active) {
-          return res.status(403).json({ message: "User account is inactive" });
-        }
-        req.user = user2;
-        return next();
+    const user = await AuthUtils.getUserById(decoded.userId || decoded.id);
+    if (user) {
+      const statusCheck2 = AuthUtils.validateUserStatus(user);
+      if (!statusCheck2.valid) {
+        return ResponseUtils.forbidden(res, statusCheck2.message);
       }
-    } catch (dbError) {
-      console.log(
-        "Database lookup failed, trying file storage:",
-        dbError.message
-      );
+      req.user = user;
+      return next();
     }
-    const user = await storage.getUserById(decoded.userId || decoded.id);
-    if (!user) {
-      return res.status(403).json({ message: "User not found" });
+    const fileUser = await storage.getUserById(decoded.userId || decoded.id);
+    if (!fileUser) {
+      return ResponseUtils.forbidden(res, "User not found");
     }
-    if (user.is_active === false) {
-      return res.status(403).json({ message: "User account is inactive" });
+    const statusCheck = AuthUtils.validateUserStatus(fileUser);
+    if (!statusCheck.valid) {
+      return ResponseUtils.forbidden(res, statusCheck.message);
     }
-    req.user = user;
+    req.user = fileUser;
     next();
   } catch (error) {
     console.error("Token verification error:", error);
-    return res.status(403).json({ message: "Invalid token" });
+    return ResponseUtils.forbidden(res, "Invalid token");
   }
 };
 var requireRole = (roles) => {
   return (req, res, next) => {
     const userRole = req.user?.role;
-    const allowedRoles = Array.isArray(roles) ? roles : [roles];
-    if (userRole === "admin" || allowedRoles.includes(userRole)) {
+    if (AuthUtils.hasRole(userRole, roles)) {
       next();
     } else {
-      res.status(403).json({ message: "Insufficient permissions" });
+      ResponseUtils.forbidden(res, "Insufficient permissions");
     }
   };
 };
@@ -10912,13 +12061,13 @@ async function registerRoutes(app2) {
       }
       if (useActiveDirectory) {
         try {
-          const { adService: adService2 } = await Promise.resolve().then(() => (init_ad_service(), ad_service_exports));
+          const { adService: adService2 } = await import("./ad-service");
           const username = email.includes("@") ? email.split("@")[0] : email;
           console.log("Attempting AD authentication for:", username);
           const adUser = await adService2.authenticateUser(username, password);
           if (adUser) {
             const localUser = await adService2.syncUserToDatabase(adUser);
-            const token = jwt2.sign(
+            const token = jwt3.sign(
               {
                 userId: localUser.id,
                 id: localUser.id,
@@ -10926,7 +12075,7 @@ async function registerRoutes(app2) {
                 role: localUser.role,
                 authMethod: "ad"
               },
-              JWT_SECRET2,
+              JWT_SECRET3,
               { expiresIn: "24h" }
             );
             console.log("AD login successful for:", email);
@@ -10953,16 +12102,9 @@ async function registerRoutes(app2) {
         }
       }
       try {
-        const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-        const columnsResult = await pool3.query(`
-          SELECT column_name 
-          FROM information_schema.columns 
-          WHERE table_name = 'users' AND table_schema = 'public'
-        `);
-        const availableColumns = columnsResult.rows.map(
-          (row) => row.column_name
-        );
-        console.log("Available columns in users table:", availableColumns);
+        const availableColumns = await DatabaseUtils.getTableColumns("users");
+        const columnNames = availableColumns.map((col) => col.column_name);
+        console.log("Available columns in users table:", columnNames);
         let selectColumns = ["id", "email", "role"];
         let optionalColumns = [
           "password_hash",
@@ -10977,13 +12119,15 @@ async function registerRoutes(app2) {
           "name"
         ];
         optionalColumns.forEach((col) => {
-          if (availableColumns.includes(col)) {
+          if (columnNames.includes(col)) {
             selectColumns.push(col);
           }
         });
-        const query = `SELECT ${selectColumns.join(", ")} FROM users WHERE email = $1`;
+        const query = DatabaseUtils.buildSelectQuery("users", columnNames, selectColumns) + " WHERE email = $1";
         console.log("Executing query:", query);
-        const result = await pool3.query(query, [email.toLowerCase()]);
+        const result = await DatabaseUtils.executeQuery(query, [
+          email.toLowerCase()
+        ]);
         if (result.rows.length === 0) {
           console.log("User not found in database:", email);
           throw new Error("User not found in database, trying file storage");
@@ -11017,28 +12161,19 @@ async function registerRoutes(app2) {
           }
         }
         if (availableColumns.includes("last_login")) {
-          await pool3.query(
+          await pool.query(
             `UPDATE users SET last_login = NOW() WHERE id = $1`,
             [user.id]
           );
         }
-        const token = jwt2.sign(
-          { userId: user.id, id: user.id, email: user.email, role: user.role },
-          JWT_SECRET2,
-          { expiresIn: "24h" }
-        );
+        const token = AuthUtils.generateToken({
+          userId: user.id,
+          id: user.id,
+          email: user.email,
+          role: user.role
+        });
         const { password_hash, ...userWithoutPassword } = user;
-        let displayName = "";
-        if (user.name) {
-          displayName = user.name;
-        } else if (user.first_name || user.last_name) {
-          displayName = `${user.first_name || ""} ${user.last_name || ""}`.trim();
-        } else if (user.username) {
-          displayName = user.username;
-        } else {
-          displayName = user.email.split("@")[0];
-        }
-        userWithoutPassword.name = displayName;
+        userWithoutPassword.name = UserUtils.buildDisplayName(user);
         console.log("Login successful for:", email);
         res.json({
           message: "Login successful",
@@ -11067,9 +12202,9 @@ async function registerRoutes(app2) {
           if (!validPasswords.includes(password)) {
             return res.status(401).json({ message: "Invalid credentials" });
           }
-          const token = jwt2.sign(
+          const token = jwt3.sign(
             { userId: user.id, id: user.email, role: user.role },
-            JWT_SECRET2,
+            JWT_SECRET3,
             { expiresIn: "24h" }
           );
           console.log("File storage login successful for:", email);
@@ -11156,7 +12291,10 @@ async function registerRoutes(app2) {
               device_hostname: device?.hostname || "Unknown Device"
             };
           } catch (deviceError) {
-            console.warn(`Failed to get device for alert ${alert.id}:`, deviceError);
+            console.warn(
+              `Failed to get device for alert ${alert.id}:`,
+              deviceError
+            );
             return {
               ...alert,
               device_hostname: "Unknown Device"
@@ -11252,93 +12390,6 @@ async function registerRoutes(app2) {
         error: error.message,
         success: false
       });
-    }
-  });
-  app2.get("/api/devices", authenticateToken, async (req, res) => {
-    try {
-      console.log("Fetching devices - checking for agent activity...");
-      const devices2 = await storage.getDevices();
-      const onlineCount = devices2.filter((d) => d.status === "online").length;
-      const offlineCount = devices2.filter((d) => d.status === "offline").length;
-      console.log(`Device Status Summary: ${onlineCount} online, ${offlineCount} offline, ${devices2.length} total`);
-      const devicesWithReports = await Promise.all(
-        devices2.map(async (device) => {
-          const latestReport = await storage.getLatestDeviceReport(device.id);
-          const now = /* @__PURE__ */ new Date();
-          const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
-          const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1e3);
-          let currentStatus = device.status;
-          if (lastSeen && lastSeen < tenMinutesAgo && device.status === "online") {
-            await storage.updateDevice(device.id, { status: "offline" });
-            currentStatus = "offline";
-          } else if (lastSeen && lastSeen >= tenMinutesAgo && device.status === "offline") {
-            await storage.updateDevice(device.id, { status: "online" });
-            currentStatus = "online";
-          }
-          return {
-            ...device,
-            status: currentStatus,
-            latest_report: latestReport ? {
-              cpu_usage: latestReport.cpu_usage,
-              memory_usage: latestReport.memory_usage,
-              disk_usage: latestReport.disk_usage,
-              network_io: latestReport.network_io,
-              collected_at: latestReport.collected_at
-            } : null
-          };
-        })
-      );
-      res.json(devicesWithReports);
-    } catch (error) {
-      console.error("Error fetching devices:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-  app2.get("/api/devices/:id", authenticateToken, async (req, res) => {
-    try {
-      let device = await storage.getDevice(req.params.id);
-      if (!device) {
-        device = await storage.getDeviceByHostname(req.params.id);
-      }
-      if (!device) {
-        return res.status(404).json({ message: "Device not found" });
-      }
-      const latestReport = await storage.getLatestDeviceReport(device.id);
-      const deviceWithReport = {
-        ...device,
-        latest_report: latestReport ? {
-          cpu_usage: latestReport.cpu_usage,
-          memory_usage: latestReport.memory_usage,
-          disk_usage: latestReport.disk_usage,
-          network_io: latestReport.network_io,
-          collected_at: latestReport.collected_at,
-          raw_data: latestReport.raw_data
-        } : null
-      };
-      res.json(deviceWithReport);
-    } catch (error) {
-      console.error("Error fetching device:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-  app2.get("/api/devices/:id/reports", async (req, res) => {
-    try {
-      const reports = await storage.getDeviceReports(req.params.id);
-      res.json(reports);
-    } catch (error) {
-      console.error("Error fetching device reports:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-  app2.get("/api/devices/:id/usb-devices", async (req, res) => {
-    try {
-      console.log(`Fetching USB devices for device: ${req.params.id}`);
-      const usbDevices = await storage.getUSBDevicesForDevice(req.params.id);
-      console.log(`Found ${usbDevices.length} USB devices:`, usbDevices);
-      res.json(usbDevices);
-    } catch (error) {
-      console.error("Error fetching USB devices:", error);
-      res.status(500).json({ message: "Internal server error" });
     }
   });
   app2.post("/api/report", async (req, res) => {
@@ -11504,7 +12555,9 @@ async function registerRoutes(app2) {
       if (public_ip && public_ip !== "unknown") {
         try {
           console.log(`Fetching location for IP: ${public_ip}`);
-          const response = await fetch(`http://ip-api.com/json/${public_ip}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query`);
+          const response = await fetch(
+            `http://ip-api.com/json/${public_ip}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query`
+          );
           if (response.ok) {
             const data2 = await response.json();
             if (data2.status === "success") {
@@ -11533,11 +12586,15 @@ async function registerRoutes(app2) {
           console.warn("Failed to fetch location from IP-API:", error);
         }
       } else {
-        console.log("No public IP available for location lookup, trying primary IP");
+        console.log(
+          "No public IP available for location lookup, trying primary IP"
+        );
         if (ip_address && !ip_address.startsWith("192.168.") && !ip_address.startsWith("10.") && !ip_address.startsWith("172.") && !ip_address.startsWith("127.") && !ip_address.startsWith("169.254.")) {
           try {
             console.log(`Fetching location for primary IP: ${ip_address}`);
-            const response = await fetch(`http://ip-api.com/json/${ip_address}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query`);
+            const response = await fetch(
+              `http://ip-api.com/json/${ip_address}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query`
+            );
             if (response.ok) {
               const data2 = await response.json();
               if (data2.status === "success") {
@@ -11555,9 +12612,14 @@ async function registerRoutes(app2) {
                   as: data2.as
                 };
                 public_ip = ip_address;
-                console.log(`Location data received from primary IP:`, locationData);
+                console.log(
+                  `Location data received from primary IP:`,
+                  locationData
+                );
               } else {
-                console.warn(`IP-API returned error for primary IP: ${data2.message}`);
+                console.warn(
+                  `IP-API returned error for primary IP: ${data2.message}`
+                );
               }
             }
           } catch (error) {
@@ -11810,7 +12872,9 @@ async function registerRoutes(app2) {
           if (existingAlert) {
             const lastValue = existingAlert.metadata?.[metric + "_usage"] || 0;
             const valueChange = Math.abs(value - lastValue);
-            const timeSinceLastUpdate = (/* @__PURE__ */ new Date()).getTime() - new Date(existingAlert.metadata?.last_updated || existingAlert.triggered_at).getTime();
+            const timeSinceLastUpdate = (/* @__PURE__ */ new Date()).getTime() - new Date(
+              existingAlert.metadata?.last_updated || existingAlert.triggered_at
+            ).getTime();
             const minutesSinceUpdate = timeSinceLastUpdate / (1e3 * 60);
             const shouldUpdate = existingAlert.severity !== currentSeverity || valueChange > 3 || minutesSinceUpdate > 30;
             if (shouldUpdate) {
@@ -11840,8 +12904,8 @@ async function registerRoutes(app2) {
             }
           } else {
             try {
-              const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-              const recentResolvedAlert = await pool3.query(
+              const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
+              const recentResolvedAlert = await pool4.query(
                 `SELECT id FROM alerts 
                  WHERE device_id = $1 AND category = $2 
                  AND metadata->>'metric' = $3
@@ -11925,8 +12989,9 @@ async function registerRoutes(app2) {
         );
       }
       try {
-        const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-        await pool3.query(`
+        const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
+        await pool4.query(
+          `
           UPDATE alerts 
           SET is_active = false, resolved_at = NOW()
           WHERE id IN (
@@ -11940,8 +13005,12 @@ async function registerRoutes(app2) {
             ) t 
             WHERE t.rn > 1
           )
-        `, [device.id]);
-        console.log(`Cleaned up duplicate alerts for device ${device.hostname}`);
+        `,
+          [device.id]
+        );
+        console.log(
+          `Cleaned up duplicate alerts for device ${device.hostname}`
+        );
       } catch (cleanupError) {
         console.warn("Failed to cleanup duplicate alerts:", cleanupError);
       }
@@ -12051,11 +13120,11 @@ async function registerRoutes(app2) {
       }
       const token = authHeader.substring(7);
       try {
-        const decoded = jwt2.verify(token, JWT_SECRET2);
+        const decoded = jwt3.verify(token, JWT_SECRET3);
         const userId = decoded.id;
-        const { db: db3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+        const { db: db4 } = await Promise.resolve().then(() => (init_db(), db_exports));
         const { desc: desc9 } = await import("drizzle-orm");
-        const ticketsList = await db3.select().from(tickets).orderBy(desc9(tickets.updated_at));
+        const ticketsList = await db4.select().from(tickets).orderBy(desc9(tickets.updated_at));
         const userTickets = ticketsList.filter(
           (ticket) => ticket.assigned_to === userId || ticket.requester_email === decoded.email
         );
@@ -12123,6 +13192,8 @@ async function registerRoutes(app2) {
     }
   });
   registerTicketRoutes(app2);
+  registerDeviceRoutes(app2, authenticateToken);
+  registerAgentRoutes(app2, authenticateToken, requireRole);
   const { adRoutes } = await Promise.resolve().then(() => (init_ad_routes(), ad_routes_exports));
   app2.use("/api/ad", authenticateToken, requireRole(["admin"]), adRoutes);
   const agentDownloadRoutes = await Promise.resolve().then(() => (init_agent_download_routes(), agent_download_routes_exports));
@@ -12396,129 +13467,146 @@ ${reportData.content}`;
       res.status(500).json({ error: "Failed to download report" });
     }
   });
-  app2.post("/api/agents/:id/remote-connect", authenticateToken, async (req, res) => {
-    try {
-      const agentId = req.params.id;
-      const { connection_type = "vnc", port = 5900, use_tunnel = false, jump_host = null } = req.body;
-      const device = await storage.getDevice(agentId);
-      if (!device) {
-        return res.status(404).json({ message: "Agent not found" });
-      }
-      if (device.status !== "online") {
-        return res.status(400).json({
-          message: "Agent is not online",
-          status: device.status
+  app2.post(
+    "/api/agents/:id/remote-connect",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const agentId = req.params.id;
+        const {
+          connection_type = "vnc",
+          port = 5900,
+          use_tunnel = false,
+          jump_host = null
+        } = req.body;
+        const device = await storage.getDevice(agentId);
+        if (!device) {
+          return res.status(404).json({ message: "Agent not found" });
+        }
+        if (device.status !== "online") {
+          return res.status(400).json({
+            message: "Agent is not online",
+            status: device.status
+          });
+        }
+        const isPrivateIP = device.ip_address && (device.ip_address.startsWith("10.") || device.ip_address.startsWith("172.") || device.ip_address.startsWith("192.168.") || device.ip_address.startsWith("169.254."));
+        await storage.createAlert({
+          device_id: agentId,
+          category: "remote_access",
+          severity: "info",
+          message: `Remote connection initiated by ${req.user.email}`,
+          metadata: {
+            connection_type,
+            port,
+            user: req.user.email,
+            timestamp: (/* @__PURE__ */ new Date()).toISOString()
+          },
+          is_active: true
         });
-      }
-      const isPrivateIP = device.ip_address && (device.ip_address.startsWith("10.") || device.ip_address.startsWith("172.") || device.ip_address.startsWith("192.168.") || device.ip_address.startsWith("169.254."));
-      await storage.createAlert({
-        device_id: agentId,
-        category: "remote_access",
-        severity: "info",
-        message: `Remote connection initiated by ${req.user.email}`,
-        metadata: {
-          connection_type,
+        const instructions = {
+          vnc: "Ensure VNC server and websockify are running on the target machine",
+          rdp: "Ensure Remote Desktop is enabled and user has RDP permissions",
+          ssh: "Ensure SSH service is running and firewall allows SSH connections",
+          teamviewer: "Ensure TeamViewer is installed and running on the target machine"
+        };
+        const connectionInfo = {
+          hostname: device.hostname,
+          ip_address: device.ip_address,
           port,
-          user: req.user.email,
-          timestamp: (/* @__PURE__ */ new Date()).toISOString()
-        },
-        is_active: true
-      });
-      const instructions = {
-        vnc: "Ensure VNC server and websockify are running on the target machine",
-        rdp: "Ensure Remote Desktop is enabled and user has RDP permissions",
-        ssh: "Ensure SSH service is running and firewall allows SSH connections",
-        teamviewer: "Ensure TeamViewer is installed and running on the target machine"
-      };
-      const connectionInfo = {
-        hostname: device.hostname,
-        ip_address: device.ip_address,
-        port,
-        connection_type,
-        instructions: instructions[connection_type] || "Ensure remote access is enabled on the target machine",
-        teamviewer_id: connection_type === "teamviewer" ? device.teamviewer_id : void 0,
-        is_private_ip: isPrivateIP
-      };
-      if (isPrivateIP) {
-        connectionInfo.tunnel_required = true;
-        connectionInfo.tunnel_suggestions = [
-          {
-            method: "ssh_tunnel",
-            command: `ssh -L ${port}:${device.ip_address}:${port} ${jump_host || "your_jump_host"}`,
-            description: "Create SSH tunnel via jump host"
-          },
-          {
-            method: "vpn",
-            description: "Connect to company VPN first, then access private IP directly"
-          },
-          {
-            method: "reverse_proxy",
-            description: "Deploy reverse proxy on public server"
-          }
-        ];
+          connection_type,
+          instructions: instructions[connection_type] || "Ensure remote access is enabled on the target machine",
+          teamviewer_id: connection_type === "teamviewer" ? device.teamviewer_id : void 0,
+          is_private_ip: isPrivateIP
+        };
+        if (isPrivateIP) {
+          connectionInfo.tunnel_required = true;
+          connectionInfo.tunnel_suggestions = [
+            {
+              method: "ssh_tunnel",
+              command: `ssh -L ${port}:${device.ip_address}:${port} ${jump_host || "your_jump_host"}`,
+              description: "Create SSH tunnel via jump host"
+            },
+            {
+              method: "vpn",
+              description: "Connect to company VPN first, then access private IP directly"
+            },
+            {
+              method: "reverse_proxy",
+              description: "Deploy reverse proxy on public server"
+            }
+          ];
+        }
+        res.json({
+          success: true,
+          connection_info: connectionInfo
+        });
+      } catch (error) {
+        console.error("Error initiating remote connection:", error);
+        res.status(500).json({ message: "Failed to initiate remote connection" });
       }
-      res.json({
-        success: true,
-        connection_info: connectionInfo
-      });
-    } catch (error) {
-      console.error("Error initiating remote connection:", error);
-      res.status(500).json({ message: "Failed to initiate remote connection" });
     }
-  });
-  app2.get("/api/agents/:id/connection-status", authenticateToken, async (req, res) => {
-    try {
-      const agentId = req.params.id;
-      const device = await storage.getDevice(agentId);
-      if (!device) {
-        return res.status(404).json({ message: "Agent not found" });
+  );
+  app2.get(
+    "/api/agents/:id/connection-status",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const agentId = req.params.id;
+        const device = await storage.getDevice(agentId);
+        if (!device) {
+          return res.status(404).json({ message: "Agent not found" });
+        }
+        const lastSeen = new Date(device.last_seen);
+        const now = /* @__PURE__ */ new Date();
+        const timeDiff = now.getTime() - lastSeen.getTime();
+        const minutesOffline = Math.floor(timeDiff / (1e3 * 60));
+        const connectionStatus = {
+          agent_online: device.status === "online" && minutesOffline < 5,
+          last_seen: device.last_seen,
+          minutes_since_contact: minutesOffline,
+          ip_address: device.ip_address,
+          hostname: device.hostname,
+          ready_for_connection: device.status === "online" && minutesOffline < 5
+        };
+        res.json(connectionStatus);
+      } catch (error) {
+        console.error("Error checking connection status:", error);
+        res.status(500).json({ message: "Failed to check connection status" });
       }
-      const lastSeen = new Date(device.last_seen);
-      const now = /* @__PURE__ */ new Date();
-      const timeDiff = now.getTime() - lastSeen.getTime();
-      const minutesOffline = Math.floor(timeDiff / (1e3 * 60));
-      const connectionStatus = {
-        agent_online: device.status === "online" && minutesOffline < 5,
-        last_seen: device.last_seen,
-        minutes_since_contact: minutesOffline,
-        ip_address: device.ip_address,
-        hostname: device.hostname,
-        ready_for_connection: device.status === "online" && minutesOffline < 5
-      };
-      res.json(connectionStatus);
-    } catch (error) {
-      console.error("Error checking connection status:", error);
-      res.status(500).json({ message: "Failed to check connection status" });
     }
-  });
-  app2.post("/api/agents/:id/test-connectivity", authenticateToken, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const device = await storage.getDevice(id);
-      if (!device || !device.ip_address) {
-        return res.status(404).json({ message: "Agent not found or no IP address" });
+  );
+  app2.post(
+    "/api/agents/:id/test-connectivity",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const { id } = req.params;
+        const device = await storage.getDevice(id);
+        if (!device || !device.ip_address) {
+          return res.status(404).json({ message: "Agent not found or no IP address" });
+        }
+        const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
+        const now = /* @__PURE__ */ new Date();
+        const minutesSinceLastSeen = lastSeen ? Math.floor((now.getTime() - lastSeen.getTime()) / (1e3 * 60)) : null;
+        const hasRecentData = device.latest_report && device.latest_report.collected_at;
+        const lastReportTime = hasRecentData ? new Date(device.latest_report.collected_at) : null;
+        const minutesSinceLastReport = lastReportTime ? Math.floor((now.getTime() - lastReportTime.getTime()) / (1e3 * 60)) : null;
+        const connectivity = {
+          reachable: device.status === "online" && minutesSinceLastSeen !== null && minutesSinceLastSeen < 5,
+          port_open: device.status === "online" && hasRecentData && minutesSinceLastReport !== null && minutesSinceLastReport < 10,
+          response_time: minutesSinceLastSeen !== null ? Math.min(minutesSinceLastSeen * 1e3, 3e4) : 3e4,
+          tested_at: now.toISOString(),
+          last_seen_minutes_ago: minutesSinceLastSeen,
+          last_report_minutes_ago: minutesSinceLastReport,
+          has_recent_data: hasRecentData
+        };
+        res.json(connectivity);
+      } catch (error) {
+        console.error("Error testing connectivity:", error);
+        res.status(500).json({ message: "Failed to test connectivity" });
       }
-      const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
-      const now = /* @__PURE__ */ new Date();
-      const minutesSinceLastSeen = lastSeen ? Math.floor((now.getTime() - lastSeen.getTime()) / (1e3 * 60)) : null;
-      const hasRecentData = device.latest_report && device.latest_report.collected_at;
-      const lastReportTime = hasRecentData ? new Date(device.latest_report.collected_at) : null;
-      const minutesSinceLastReport = lastReportTime ? Math.floor((now.getTime() - lastReportTime.getTime()) / (1e3 * 60)) : null;
-      const connectivity = {
-        reachable: device.status === "online" && minutesSinceLastSeen !== null && minutesSinceLastSeen < 5,
-        port_open: device.status === "online" && hasRecentData && minutesSinceLastReport !== null && minutesSinceLastReport < 10,
-        response_time: minutesSinceLastSeen !== null ? Math.min(minutesSinceLastSeen * 1e3, 3e4) : 3e4,
-        tested_at: now.toISOString(),
-        last_seen_minutes_ago: minutesSinceLastSeen,
-        last_report_minutes_ago: minutesSinceLastReport,
-        has_recent_data: hasRecentData
-      };
-      res.json(connectivity);
-    } catch (error) {
-      console.error("Error testing connectivity:", error);
-      res.status(500).json({ message: "Failed to test connectivity" });
     }
-  });
+  );
   app2.get("/api/debug/devices", authenticateToken, async (req, res) => {
     try {
       const devices2 = await storage.getDevices();
@@ -12552,40 +13640,58 @@ ${reportData.content}`;
       res.status(500).json({ message: "Internal server error" });
     }
   });
-  app2.post("/api/commands/queue", authenticateToken, requireRole(["admin", "manager"]), async (req, res) => {
-    try {
-      const { device_id, type, command, priority = 5, scheduled_for } = req.body;
-      if (!device_id || !type || !command) {
-        return res.status(400).json({ error: "device_id, type, and command are required" });
-      }
-      const device = await storage.getDevice(device_id);
-      if (!device) {
-        return res.status(404).json({ error: "Device not found" });
-      }
-      if (device.status !== "online") {
-        return res.status(400).json({ error: "Device is not online" });
-      }
-      const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-      const result = await pool3.query(
-        `INSERT INTO agent_commands (device_id, type, command, priority, status, created_by, created_at, scheduled_for)
+  app2.post(
+    "/api/commands/queue",
+    authenticateToken,
+    requireRole(["admin", "manager"]),
+    async (req, res) => {
+      try {
+        const {
+          device_id,
+          type,
+          command,
+          priority = 5,
+          scheduled_for
+        } = req.body;
+        if (!device_id || !type || !command) {
+          return res.status(400).json({ error: "device_id, type, and command are required" });
+        }
+        const device = await storage.getDevice(device_id);
+        if (!device) {
+          return res.status(404).json({ error: "Device not found" });
+        }
+        if (device.status !== "online") {
+          return res.status(400).json({ error: "Device is not online" });
+        }
+        const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
+        const result = await pool4.query(
+          `INSERT INTO agent_commands (device_id, type, command, priority, status, created_by, created_at, scheduled_for)
          VALUES ($1, $2, $3, $4, 'pending', $5, NOW(), $6)
          RETURNING id`,
-        [device_id, type, command, priority, req.user.id, scheduled_for || null]
-      );
-      res.json({
-        success: true,
-        command_id: result.rows[0].id,
-        message: "Command queued successfully"
-      });
-    } catch (error) {
-      console.error("Error queuing command:", error);
-      res.status(500).json({ error: "Failed to queue command" });
+          [
+            device_id,
+            type,
+            command,
+            priority,
+            req.user.id,
+            scheduled_for || null
+          ]
+        );
+        res.json({
+          success: true,
+          command_id: result.rows[0].id,
+          message: "Command queued successfully"
+        });
+      } catch (error) {
+        console.error("Error queuing command:", error);
+        res.status(500).json({ error: "Failed to queue command" });
+      }
     }
-  });
+  );
   app2.get("/api/commands/history", authenticateToken, async (req, res) => {
     try {
-      const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-      const result = await pool3.query(
+      const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const result = await pool4.query(
         `SELECT c.*, d.hostname as device_hostname 
          FROM agent_commands c
          JOIN devices d ON c.device_id = d.id
@@ -12601,8 +13707,8 @@ ${reportData.content}`;
   app2.get("/api/commands/pending/:deviceId", async (req, res) => {
     try {
       const { deviceId } = req.params;
-      const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-      const result = await pool3.query(
+      const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const result = await pool4.query(
         `SELECT * FROM agent_commands 
          WHERE device_id = $1 AND status = 'pending'
          AND (scheduled_for IS NULL OR scheduled_for <= NOW())
@@ -12612,7 +13718,7 @@ ${reportData.content}`;
       );
       if (result.rows.length > 0) {
         const command = result.rows[0];
-        await pool3.query(
+        await pool4.query(
           "UPDATE agent_commands SET status = 'executing', started_at = NOW() WHERE id = $1",
           [command.id]
         );
@@ -12637,8 +13743,8 @@ ${reportData.content}`;
     try {
       const { commandId } = req.params;
       const { status, output, error } = req.body;
-      const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-      await pool3.query(
+      const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      await pool4.query(
         `UPDATE agent_commands 
          SET status = $1, output = $2, error = $3, completed_at = $4, updated_at = NOW()
          WHERE id = $5`,
@@ -12731,7 +13837,11 @@ ${reportData.content}`;
     try {
       const commandId = req.params.commandId;
       const { status, output, errorMessage } = req.body;
-      console.log(`Command ${commandId} status update:`, { status, output, errorMessage });
+      console.log(`Command ${commandId} status update:`, {
+        status,
+        output,
+        errorMessage
+      });
       res.json({
         message: "Command status updated",
         commandId,
@@ -12742,66 +13852,73 @@ ${reportData.content}`;
       res.status(500).json({ error: "Internal server error" });
     }
   });
-  app2.post("/api/agents/:id/execute-command", authenticateToken, requireRole(["admin", "manager"]), async (req, res) => {
-    try {
-      const agentId = req.params.id;
-      const { command, description = "Remote command execution" } = req.body;
-      if (!command || typeof command !== "string") {
-        return res.status(400).json({
-          success: false,
-          message: "Command is required and must be a string"
-        });
-      }
-      const device = await storage.getDevice(agentId);
-      if (!device) {
-        return res.status(404).json({
-          success: false,
-          message: "Agent not found"
-        });
-      }
-      if (device.status !== "online") {
-        return res.status(400).json({
-          success: false,
-          message: `Agent is ${device.status}. Only online agents can execute commands.`
-        });
-      }
-      const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-      const result = await pool3.query(
-        `INSERT INTO agent_commands (device_id, type, command, priority, status, created_by, created_at)
+  app2.post(
+    "/api/agents/:id/execute-command",
+    authenticateToken,
+    requireRole(["admin", "manager"]),
+    async (req, res) => {
+      try {
+        const agentId = req.params.id;
+        const { command, description = "Remote command execution" } = req.body;
+        if (!command || typeof command !== "string") {
+          return res.status(400).json({
+            success: false,
+            message: "Command is required and must be a string"
+          });
+        }
+        const device = await storage.getDevice(agentId);
+        if (!device) {
+          return res.status(404).json({
+            success: false,
+            message: "Agent not found"
+          });
+        }
+        if (device.status !== "online") {
+          return res.status(400).json({
+            success: false,
+            message: `Agent is ${device.status}. Only online agents can execute commands.`
+          });
+        }
+        const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
+        const result = await pool4.query(
+          `INSERT INTO agent_commands (device_id, type, command, priority, status, created_by, created_at)
          VALUES ($1, $2, $3, $4, 'pending', $5, NOW())
          RETURNING id`,
-        [agentId, "execute_command", command, 1, req.user.id]
-      );
-      await storage.createAlert({
-        device_id: agentId,
-        category: "remote_command",
-        severity: "info",
-        message: `Remote command executed by ${req.user.email}: ${command}`,
-        metadata: {
+          [agentId, "execute_command", command, 1, req.user.id]
+        );
+        await storage.createAlert({
+          device_id: agentId,
+          category: "remote_command",
+          severity: "info",
+          message: `Remote command executed by ${req.user.email}: ${command}`,
+          metadata: {
+            command,
+            description,
+            user: req.user.email,
+            timestamp: (/* @__PURE__ */ new Date()).toISOString()
+          },
+          is_active: true
+        });
+        console.log(
+          `Command "${command}" queued for agent ${device.hostname} (${agentId}) by ${req.user.email}`
+        );
+        res.json({
+          success: true,
+          message: `Command sent to ${device.hostname}`,
+          command_id: result.rows[0].id,
+          agent_hostname: device.hostname,
           command,
-          description,
-          user: req.user.email,
-          timestamp: (/* @__PURE__ */ new Date()).toISOString()
-        },
-        is_active: true
-      });
-      console.log(`Command "${command}" queued for agent ${device.hostname} (${agentId}) by ${req.user.email}`);
-      res.json({
-        success: true,
-        message: `Command sent to ${device.hostname}`,
-        command_id: result.rows[0].id,
-        agent_hostname: device.hostname,
-        command,
-        description
-      });
-    } catch (error) {
-      console.error("Error executing remote command:", error);
-      res.status(500).json({
-        success: false,
-        message: "Failed to execute command on agent"
-      });
+          description
+        });
+      } catch (error) {
+        console.error("Error executing remote command:", error);
+        res.status(500).json({
+          success: false,
+          message: "Failed to execute command on agent"
+        });
+      }
     }
-  });
+  );
   app2.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: /* @__PURE__ */ new Date() });
   });
@@ -13057,8 +14174,8 @@ ${type},${period},${reportData.generatedAt}`
     try {
       const device = await storage.getDevice(deviceId);
       const deviceName = device?.hostname || "Unknown Device";
-      const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-      const existingAlert = await pool3.query(
+      const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const existingAlert = await pool4.query(
         `
         SELECT id, created_at FROM alerts 
         WHERE device_id = $1 AND type = $2 AND is_active = true
@@ -13075,7 +14192,7 @@ ${type},${period},${reportData.generatedAt}`
         );
         return;
       }
-      await pool3.query(
+      await pool4.query(
         `
         INSERT INTO alerts (device_id, type, category, severity, message, is_active, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -13133,63 +14250,74 @@ ${type},${period},${reportData.generatedAt}`
       res.status(500).json({ message: "Internal server error" });
     }
   });
-  app2.get("/api/download/agent/:platform", authenticateToken, async (req, res) => {
-    try {
-      console.log("Agent download request from user:", req.user?.email, "Platform:", req.params.platform);
-      const { platform: platform2 } = req.params;
-      const agentFiles = {
-        windows: [
-          "itsm_agent.py",
-          "system_collector.py",
-          "api_client.py",
-          "service_wrapper.py",
-          "config.ini",
-          "install_windows.py",
-          "fix_windows_service.py"
-        ],
-        linux: [
-          "itsm_agent.py",
-          "system_collector.py",
-          "api_client.py",
-          "service_wrapper.py",
-          "config.ini"
-        ],
-        macos: [
-          "itsm_agent.py",
-          "system_collector.py",
-          "api_client.py",
-          "service_wrapper.py",
-          "config.ini"
-        ]
-      };
-      if (!agentFiles[platform2]) {
-        return res.status(400).json({ error: "Invalid platform" });
-      }
-      const files = agentFiles[platform2];
-      const filename = `itsm-agent-${platform2}.zip`;
-      res.setHeader("Content-Type", "application/zip");
-      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-      const archiver2 = __require("archiver");
-      const archive = archiver2("zip", { zlib: { level: 9 } });
-      archive.on("error", (err) => {
-        console.error("Archive error:", err);
-        if (!res.headersSent) {
-          res.status(500).json({ error: "Failed to create archive" });
+  app2.get(
+    "/api/download/agent/:platform",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        console.log(
+          "Agent download request from user:",
+          req.user?.email,
+          "Platform:",
+          req.params.platform
+        );
+        const { platform: platform2 } = req.params;
+        const agentFiles = {
+          windows: [
+            "itsm_agent.py",
+            "system_collector.py",
+            "api_client.py",
+            "service_wrapper.py",
+            "config.ini",
+            "install_windows.py",
+            "fix_windows_service.py"
+          ],
+          linux: [
+            "itsm_agent.py",
+            "system_collector.py",
+            "api_client.py",
+            "service_wrapper.py",
+            "config.ini"
+          ],
+          macos: [
+            "itsm_agent.py",
+            "system_collector.py",
+            "api_client.py",
+            "service_wrapper.py",
+            "config.ini"
+          ]
+        };
+        if (!agentFiles[platform2]) {
+          return res.status(400).json({ error: "Invalid platform" });
         }
-      });
-      archive.pipe(res);
-      const agentPath = path2.join(process.cwd(), "Agent");
-      const fs4 = __require("fs");
-      files.forEach((file) => {
-        const filePath = path2.join(agentPath, file);
-        if (fs4.existsSync(filePath)) {
-          archive.file(filePath, { name: file });
-          console.log(`Added file to archive: ${file}`);
-        } else {
-          console.warn(`Agent file not found: ${file} at ${filePath}`);
-        }
-      });
-      const instructions = `# ITSM Agent Installation Instructions
+        const files = agentFiles[platform2];
+        const filename = `itsm-agent-${platform2}.zip`;
+        res.setHeader("Content-Type", "application/zip");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="${filename}"`
+        );
+        const archiver2 = __require("archiver");
+        const archive = archiver2("zip", { zlib: { level: 9 } });
+        archive.on("error", (err) => {
+          console.error("Archive error:", err);
+          if (!res.headersSent) {
+            res.status(500).json({ error: "Failed to create archive" });
+          }
+        });
+        archive.pipe(res);
+        const agentPath = path2.join(process.cwd(), "Agent");
+        const fs4 = __require("fs");
+        files.forEach((file) => {
+          const filePath = path2.join(agentPath, file);
+          if (fs4.existsSync(filePath)) {
+            archive.file(filePath, { name: file });
+            console.log(`Added file to archive: ${file}`);
+          } else {
+            console.warn(`Agent file not found: ${file} at ${filePath}`);
+          }
+        });
+        const instructions = `# ITSM Agent Installation Instructions
 
 ## ${platform2.charAt(0).toUpperCase() + platform2.slice(1)} Installation
 
@@ -13216,104 +14344,123 @@ Edit config.ini before installation:
 ### Support
 For technical support, contact your system administrator.
 `;
-      archive.append(instructions, { name: "README.md" });
-      archive.finalize();
-      console.log(`Agent download completed for platform: ${platform2}`);
-    } catch (error) {
-      console.error("Error in agent download:", error);
-      if (!res.headersSent) {
-        res.status(500).json({ error: "Failed to generate agent package" });
+        archive.append(instructions, { name: "README.md" });
+        archive.finalize();
+        console.log(`Agent download completed for platform: ${platform2}`);
+      } catch (error) {
+        console.error("Error in agent download:", error);
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Failed to generate agent package" });
+        }
       }
     }
-  });
-  app2.get("/api/devices/:id/performance-insights", authenticateToken, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const insights = await performanceService.getApplicationPerformanceInsights(id);
-      res.json(insights);
-    } catch (error) {
-      console.error("Error fetching performance insights:", error);
-      res.status(500).json({
-        error: "Failed to fetch performance insights",
-        top_cpu_consumers: [],
-        top_memory_consumers: [],
-        total_processes: 0,
-        system_load_analysis: {
-          high_cpu_processes: 0,
-          high_memory_processes: 0
-        }
-      });
+  );
+  app2.get(
+    "/api/devices/:id/performance-insights",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const { id } = req.params;
+        const insights = await performanceService.getApplicationPerformanceInsights(id);
+        res.json(insights);
+      } catch (error) {
+        console.error("Error fetching performance insights:", error);
+        res.status(500).json({
+          error: "Failed to fetch performance insights",
+          top_cpu_consumers: [],
+          top_memory_consumers: [],
+          total_processes: 0,
+          system_load_analysis: {
+            high_cpu_processes: 0,
+            high_memory_processes: 0
+          }
+        });
+      }
     }
-  });
-  app2.get("/api/devices/:id/ai-insights", authenticateToken, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const insights = await aiService.generateDeviceInsights(id);
-      res.json(insights);
-    } catch (error) {
-      console.error("Error generating AI insights:", error);
-      res.status(500).json({
-        error: "Failed to generate AI insights",
-        insights: []
-      });
+  );
+  app2.get(
+    "/api/devices/:id/ai-insights",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const { id } = req.params;
+        const insights = await aiService.generateDeviceInsights(id);
+        res.json(insights);
+      } catch (error) {
+        console.error("Error generating AI insights:", error);
+        res.status(500).json({
+          error: "Failed to generate AI insights",
+          insights: []
+        });
+      }
     }
-  });
+  );
   const requireAdmin = (req, res, next) => {
     if (!req.user || req.user.role !== "admin") {
       return res.status(403).json({ error: "Admin access required" });
     }
     next();
   };
-  app2.get("/api/admin/agent-download/:platform", authenticateToken, requireAdmin, async (req, res) => {
-    try {
-      const { platform: platform2 } = req.params;
-      console.log(`${platform2} agent download requested by:`, req.user.email);
-      if (!["windows", "linux", "macos"].includes(platform2)) {
-        return res.status(400).json({ error: "Invalid platform" });
-      }
-      const agentPath = path2.join(process.cwd(), "Agent");
-      if (!fs2.existsSync(agentPath)) {
-        console.error("Agent directory not found at:", agentPath);
-        return res.status(404).json({ error: "Agent files not found" });
-      }
-      const availableFiles = fs2.readdirSync(agentPath);
-      console.log("Available files in Agent directory:", availableFiles);
-      if (availableFiles.length === 0) {
-        console.error("Agent directory is empty!");
-        return res.status(404).json({ error: "Agent directory is empty" });
-      }
-      const filename = `itsm-agent-${platform2}.zip`;
-      res.setHeader("Content-Type", "application/zip");
-      res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
-      const archiver2 = __require("archiver");
-      const archive = archiver2("zip", {
-        zlib: { level: 9 }
-        // Maximum compression
-      });
-      archive.on("error", (err) => {
-        console.error("Archive error:", err);
-        if (!res.headersSent) {
-          res.status(500).json({ error: "Failed to create archive" });
+  app2.get(
+    "/api/admin/agent-download/:platform",
+    authenticateToken,
+    requireAdmin,
+    async (req, res) => {
+      try {
+        const { platform: platform2 } = req.params;
+        console.log(`${platform2} agent download requested by:`, req.user.email);
+        if (!["windows", "linux", "macos"].includes(platform2)) {
+          return res.status(400).json({ error: "Invalid platform" });
         }
-      });
-      archive.on("end", () => {
-        console.log(`${platform2} agent archive has been finalized successfully`);
-      });
-      archive.pipe(res);
-      console.log(`Adding entire Agent directory to ${platform2} archive`);
-      archive.directory(agentPath, false);
-      const instructions = generateInstallationInstructions2(platform2);
-      archive.append(instructions, { name: "INSTALLATION_INSTRUCTIONS.md" });
-      console.log(`Added installation instructions for ${platform2}`);
-      await archive.finalize();
-      console.log(`${platform2} agent download completed successfully`);
-    } catch (error) {
-      console.error(`${platform} agent download error:`, error);
-      if (!res.headersSent) {
-        res.status(500).json({ error: "Failed to download agent" });
+        const agentPath = path2.join(process.cwd(), "Agent");
+        if (!fs2.existsSync(agentPath)) {
+          console.error("Agent directory not found at:", agentPath);
+          return res.status(404).json({ error: "Agent files not found" });
+        }
+        const availableFiles = fs2.readdirSync(agentPath);
+        console.log("Available files in Agent directory:", availableFiles);
+        if (availableFiles.length === 0) {
+          console.error("Agent directory is empty!");
+          return res.status(404).json({ error: "Agent directory is empty" });
+        }
+        const filename = `itsm-agent-${platform2}.zip`;
+        res.setHeader("Content-Type", "application/zip");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename=${filename}`
+        );
+        const archiver2 = __require("archiver");
+        const archive = archiver2("zip", {
+          zlib: { level: 9 }
+          // Maximum compression
+        });
+        archive.on("error", (err) => {
+          console.error("Archive error:", err);
+          if (!res.headersSent) {
+            res.status(500).json({ error: "Failed to create archive" });
+          }
+        });
+        archive.on("end", () => {
+          console.log(
+            `${platform2} agent archive has been finalized successfully`
+          );
+        });
+        archive.pipe(res);
+        console.log(`Adding entire Agent directory to ${platform2} archive`);
+        archive.directory(agentPath, false);
+        const instructions = generateInstallationInstructions2(platform2);
+        archive.append(instructions, { name: "INSTALLATION_INSTRUCTIONS.md" });
+        console.log(`Added installation instructions for ${platform2}`);
+        await archive.finalize();
+        console.log(`${platform2} agent download completed successfully`);
+      } catch (error) {
+        console.error(`${platform} agent download error:`, error);
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Failed to download agent" });
+        }
       }
     }
-  });
+  );
   function generateInstallationInstructions2(platform2) {
     const baseInstructions = `# ITSM Agent Installation Instructions - ${platform2.charAt(0).toUpperCase() + platform2.slice(1)}
 
@@ -13399,19 +14546,23 @@ For technical support, contact your system administrator.`;
         return baseInstructions;
     }
   }
-  app2.get("/api/devices/:id/ai-recommendations", authenticateToken, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const recommendations = await aiService.getDeviceRecommendations(id);
-      res.json({ recommendations });
-    } catch (error) {
-      console.error("Error getting AI recommendations:", error);
-      res.status(500).json({
-        error: "Failed to get AI recommendations",
-        recommendations: []
-      });
+  app2.get(
+    "/api/devices/:id/ai-recommendations",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const { id } = req.params;
+        const recommendations = await aiService.getDeviceRecommendations(id);
+        res.json({ recommendations });
+      } catch (error) {
+        console.error("Error getting AI recommendations:", error);
+        res.status(500).json({
+          error: "Failed to get AI recommendations",
+          recommendations: []
+        });
+      }
     }
-  });
+  );
   app2.get("/api/tickets", authenticateToken, async (req, res) => {
     try {
       const page = parseInt(req.query.page) || 1;
@@ -13437,7 +14588,7 @@ For technical support, contact your system administrator.`;
   return httpServer;
 }
 
-// server/user-routes.ts
+// server/routes/user-routes.ts
 init_db();
 import { Router as Router3 } from "express";
 import bcrypt3 from "bcrypt";
@@ -13979,7 +15130,7 @@ async function setupVite(app2, server) {
   });
 }
 
-// server/migrate-tickets.ts
+// server/migrations/migrate-tickets.ts
 init_db();
 import { sql as sql6 } from "drizzle-orm";
 async function createTicketTables() {
@@ -14146,13 +15297,12 @@ init_db();
 init_ticket_schema();
 import { eq as eq10, desc as desc8 } from "drizzle-orm";
 
-// server/knowledge-routes.ts
+// server/routes/knowledge-routes.ts
 init_db();
-init_ticket_schema();
 init_ticket_storage();
 import { Router as Router4 } from "express";
 import { eq as eq6 } from "drizzle-orm";
-import jwt3 from "jsonwebtoken";
+import jwt4 from "jsonwebtoken";
 var router4 = Router4();
 var storage2 = new TicketStorage();
 var authenticateToken2 = (req, res, next) => {
@@ -14161,7 +15311,7 @@ var authenticateToken2 = (req, res, next) => {
   if (!token) {
     return res.status(401).json({ message: "Access token required" });
   }
-  jwt3.verify(token, process.env.JWT_SECRET || "your-secret-key", (err, decoded) => {
+  jwt4.verify(token, process.env.JWT_SECRET || "your-secret-key", (err, decoded) => {
     if (err) {
       console.error("Token verification error:", err);
       return res.status(403).json({ message: "Invalid token" });
@@ -14266,7 +15416,7 @@ router4.post("/", authenticateToken2, async (req, res) => {
   }
 });
 
-// server/agent-ad-sync-routes.ts
+// server/routes/agent-ad-sync-routes.ts
 import { Router as Router5 } from "express";
 
 // server/agent-tunnel-service.ts
@@ -14366,7 +15516,7 @@ var AgentTunnelService = class extends EventEmitter {
 };
 var agentTunnelService = new AgentTunnelService();
 
-// server/agent-ad-sync-routes.ts
+// server/routes/agent-ad-sync-routes.ts
 import expressWs from "express-ws";
 var router5 = Router5();
 var wsInstance = expressWs(router5);
@@ -14390,11 +15540,15 @@ router5.post("/agents/:id/sync-ad", async (req, res) => {
       bindDN: "CN=test,CN=Users,DC=fidelisgroup,DC=local",
       bindPassword: "Fidelis@123"
     };
-    const result = await agentTunnelService.executeRemoteCommand(agentId, "syncAD", {
-      config: adConfig,
-      syncUsers: true,
-      syncGroups: true
-    });
+    const result = await agentTunnelService.executeRemoteCommand(
+      agentId,
+      "syncAD",
+      {
+        config: adConfig,
+        syncUsers: true,
+        syncGroups: true
+      }
+    );
     res.json({
       success: true,
       message: "AD sync initiated via agent",
@@ -14417,7 +15571,10 @@ router5.get("/agents/:id/ad-status", async (req, res) => {
         message: "Agent not connected"
       });
     }
-    const status = await agentTunnelService.executeRemoteCommand(agentId, "getADStatus");
+    const status = await agentTunnelService.executeRemoteCommand(
+      agentId,
+      "getADStatus"
+    );
     res.json({
       success: true,
       status
@@ -14440,7 +15597,11 @@ router5.post("/agents/:id/test-ad", async (req, res) => {
       });
     }
     const adConfig = req.body;
-    const result = await agentTunnelService.executeRemoteCommand(agentId, "testADConnection", adConfig);
+    const result = await agentTunnelService.executeRemoteCommand(
+      agentId,
+      "testADConnection",
+      adConfig
+    );
     res.json({
       success: true,
       result
@@ -14463,7 +15624,11 @@ router5.post("/agents/:id/remote-command", async (req, res) => {
         message: "Agent not connected"
       });
     }
-    const result = await agentTunnelService.executeRemoteCommand(agentId, command, params);
+    const result = await agentTunnelService.executeRemoteCommand(
+      agentId,
+      command,
+      params
+    );
     res.json({
       success: true,
       result
@@ -14577,9 +15742,9 @@ app.use((req, res, next) => {
         return res.status(401).json({ message: "Access token required" });
       }
       try {
-        const jwt4 = await import("jsonwebtoken");
-        const JWT_SECRET3 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-        const decoded = jwt4.default.verify(token, JWT_SECRET3);
+        const jwt5 = await import("jsonwebtoken");
+        const JWT_SECRET4 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+        const decoded = jwt5.default.verify(token, JWT_SECRET4);
         const user = await storage3.getUserById(decoded.userId);
         if (!user || !user.is_active) {
           return res.status(403).json({ message: "User not found or inactive" });
@@ -14611,7 +15776,7 @@ app.use((req, res, next) => {
           status: req.query.status || "published"
         };
         console.log("KB API - Filters:", filters);
-        const articles = await db.select().from(knowledgeBase).where(eq10(knowledgeBase.status, filters.status)).orderBy(desc8(knowledgeBase.created_at));
+        const articles = await db.select().from(knowledgeBase2).where(eq10(knowledgeBase2.status, filters.status)).orderBy(desc8(knowledgeBase2.created_at));
         console.log(`KB API - Found ${articles.length} articles in database`);
         let filteredArticles = articles;
         if (filters.search) {
