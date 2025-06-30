@@ -1,10 +1,17 @@
-import { db } from "./db";
-import { devices, alerts, deviceMetrics, usbDevices, softwareInventory, remoteAccess, deviceAlerts } from "@shared/schema";
+import { db } from "../db";
+import {
+  devices,
+  alerts,
+  deviceMetrics,
+  usbDevices,
+  softwareInventory,
+  remoteAccess,
+  deviceAlerts,
+} from "@shared/schema";
 import { eq, desc, and, or, gte, lte, inArray, sql } from "drizzle-orm";
 import { ALERT_THRESHOLDS, getAlertLevel } from "@shared/alert-thresholds";
 
 export class EnhancedStorage {
-
   async initializeEnhancedTables() {
     try {
       // Performance baselines table
@@ -214,7 +221,6 @@ export class EnhancedStorage {
       await this.insertDefaultSoftwarePackages();
       await this.insertDefaultSecurityPolicies();
       await this.insertDefaultLicenseData();
-
     } catch (error) {
       console.error("Error creating enhanced tables:", error);
       throw error;
@@ -294,7 +300,6 @@ export class EnhancedStorage {
 
       // Check against security policies
       await this.checkUSBSecurityPolicy(deviceId, usbDevice);
-
     } catch (error) {
       console.error("Error tracking USB device:", error);
     }
@@ -330,7 +335,6 @@ export class EnhancedStorage {
 
       // Check license compliance
       await this.checkLicenseCompliance(installedSoftware);
-
     } catch (error) {
       console.error("Error tracking software installations:", error);
     }
@@ -342,7 +346,11 @@ export class EnhancedStorage {
   }
 
   // Store performance baselines and detect anomalies
-  async updatePerformanceBaseline(deviceId: string, metricType: string, currentValue: number) {
+  async updatePerformanceBaseline(
+    deviceId: string,
+    metricType: string,
+    currentValue: number,
+  ) {
     try {
       // Store baseline data
       await db.execute(sql`
@@ -356,7 +364,6 @@ export class EnhancedStorage {
 
       // Check for anomalies
       await this.detectPerformanceAnomalies(deviceId, metricType, currentValue);
-
     } catch (error) {
       console.error("Error updating performance baseline:", error);
     }
@@ -364,15 +371,24 @@ export class EnhancedStorage {
 
   private getDefaultThreshold(metricType: string): number {
     switch (metricType) {
-      case "cpu": return 25;
-      case "memory": return 20;
-      case "disk": return 15;
-      case "network": return 50;
-      default: return 30;
+      case "cpu":
+        return 25;
+      case "memory":
+        return 20;
+      case "disk":
+        return 15;
+      case "network":
+        return 50;
+      default:
+        return 30;
     }
   }
 
-  private async detectPerformanceAnomalies(deviceId: string, metricType: string, currentValue: number) {
+  private async detectPerformanceAnomalies(
+    deviceId: string,
+    metricType: string,
+    currentValue: number,
+  ) {
     // Implementation would compare against baselines and create anomaly records
   }
 }
