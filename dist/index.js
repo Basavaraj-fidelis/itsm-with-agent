@@ -3252,11 +3252,20 @@ var init_admin_schema = __esm({
 });
 
 // shared/user-schema.ts
+var user_schema_exports = {};
+__export(user_schema_exports, {
+  departments: () => departments,
+  userActivity: () => userActivity,
+  userRoles: () => userRoles,
+  userSessions: () => userSessions,
+  users: () => users
+});
 import { pgTable as pgTable4, text as text4, timestamp as timestamp4, uuid as uuid4, varchar as varchar3, boolean as boolean4, integer as integer3, json as json4 } from "drizzle-orm/pg-core";
-var users, departments, userSessions, userActivity;
+var userRoles, users, departments, userSessions, userActivity;
 var init_user_schema = __esm({
   "shared/user-schema.ts"() {
     "use strict";
+    userRoles = ["admin", "technician", "end_user", "manager"];
     users = pgTable4("users", {
       id: uuid4("id").primaryKey().defaultRandom(),
       email: varchar3("email", { length: 255 }).unique().notNull(),
@@ -6436,7 +6445,7 @@ __export(sla_monitor_service_exports, {
   SLAMonitorService: () => SLAMonitorService,
   slaMonitorService: () => slaMonitorService
 });
-import { eq as eq8, and as and8, not as not2, inArray as inArray3, isNotNull } from "drizzle-orm";
+import { eq as eq8, not as not2, inArray as inArray3 } from "drizzle-orm";
 var SLAMonitorService, slaMonitorService;
 var init_sla_monitor_service = __esm({
   "server/services/sla-monitor-service.ts"() {
@@ -6476,10 +6485,7 @@ var init_sla_monitor_service = __esm({
           console.log("\u{1F50D} Checking for SLA breaches...");
           const now = /* @__PURE__ */ new Date();
           const openTickets = await db.select().from(tickets).where(
-            and8(
-              not2(inArray3(tickets.status, ["resolved", "closed", "cancelled"])),
-              isNotNull(tickets.resolve_due_at)
-            )
+            not2(inArray3(tickets.status, ["resolved", "closed", "cancelled"]))
           );
           let responseBreaches = 0;
           let resolutionBreaches = 0;
@@ -6487,20 +6493,56 @@ var init_sla_monitor_service = __esm({
           for (const ticket of openTickets) {
             let needsUpdate = false;
             const updateData = {};
-            if (ticket.response_due_at && !ticket.first_response_at && !ticket.sla_response_breached) {
-              if (now > new Date(ticket.response_due_at)) {
+            if (!ticket.resolve_due_at && !ticket.sla_resolution_due) {
+              const { slaPolicyService: slaPolicyService2 } = await Promise.resolve().then(() => (init_sla_policy_service(), sla_policy_service_exports));
+              const policy = await slaPolicyService2.findMatchingSLAPolicy({
+                type: ticket.type,
+                priority: ticket.priority,
+                impact: ticket.impact,
+                urgency: ticket.urgency,
+                category: ticket.category
+              });
+              if (policy) {
+                const slaTargets = slaPolicyService2.calculateSLADueDates(
+                  new Date(ticket.created_at),
+                  policy
+                );
+                await db.update(tickets).set({
+                  sla_policy_id: policy.id,
+                  sla_policy: policy.name,
+                  sla_response_time: policy.response_time,
+                  sla_resolution_time: policy.resolution_time,
+                  response_due_at: slaTargets.responseDue,
+                  resolve_due_at: slaTargets.resolutionDue,
+                  sla_response_due: slaTargets.responseDue,
+                  sla_resolution_due: slaTargets.resolutionDue,
+                  updated_at: now
+                }).where(eq8(tickets.id, ticket.id));
+                ticket.response_due_at = slaTargets.responseDue;
+                ticket.resolve_due_at = slaTargets.resolutionDue;
+                ticket.sla_response_due = slaTargets.responseDue;
+                ticket.sla_resolution_due = slaTargets.resolutionDue;
+                console.log(`\u{1F527} Auto-fixed SLA data for ticket ${ticket.ticket_number}`);
+              }
+            }
+            const responseDue = ticket.response_due_at || ticket.sla_response_due;
+            if (responseDue && !ticket.first_response_at && !ticket.sla_response_breached) {
+              if (now > new Date(responseDue)) {
                 updateData.sla_response_breached = true;
                 needsUpdate = true;
                 responseBreaches++;
+                console.log(`\u{1F6A8} Response SLA breached for ticket ${ticket.ticket_number}`);
                 await this.sendSLABreachNotification(ticket, "response");
               }
             }
-            if (ticket.resolve_due_at && !ticket.sla_resolution_breached) {
-              if (now > new Date(ticket.resolve_due_at)) {
+            const resolutionDue = ticket.resolve_due_at || ticket.sla_resolution_due;
+            if (resolutionDue && !ticket.sla_resolution_breached) {
+              if (now > new Date(resolutionDue)) {
                 updateData.sla_resolution_breached = true;
                 updateData.sla_breached = true;
                 needsUpdate = true;
                 resolutionBreaches++;
+                console.log(`\u{1F6A8} Resolution SLA breached for ticket ${ticket.ticket_number}`);
                 await this.sendSLABreachNotification(ticket, "resolution");
               }
             }
@@ -6508,13 +6550,13 @@ var init_sla_monitor_service = __esm({
               updateData.updated_at = now;
               await db.update(tickets).set(updateData).where(eq8(tickets.id, ticket.id));
               updates++;
-              console.log(`\u26A0\uFE0F  SLA breach detected for ticket ${ticket.ticket_number}`);
+              console.log(`\u26A0\uFE0F  SLA breach detected for ticket ${ticket.ticket_number} (Created: ${ticket.created_at})`);
             }
           }
           if (updates > 0) {
             console.log(`\u{1F4CA} SLA Check Complete: ${updates} tickets updated, ${responseBreaches} response breaches, ${resolutionBreaches} resolution breaches`);
           } else {
-            console.log("\u2705 SLA Check Complete: No breaches detected");
+            console.log("\u2705 SLA Check Complete: No new breaches detected");
           }
         } catch (error) {
           console.error("\u274C Error checking SLA breaches:", error);
@@ -6550,8 +6592,10 @@ Immediate attention required!`;
               new Date(ticket[breachType === "response" ? "response_due_at" : "resolve_due_at"])
             );
           }
-          const { userStorage: userStorage2 } = await Promise.resolve().then(() => (init_user_storage(), user_storage_exports));
-          const managers = await userStorage2.getUsersByRole("manager");
+          const { db: db4 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const { users: users2 } = await Promise.resolve().then(() => (init_user_schema(), user_schema_exports));
+          const { eq: eq11 } = await import("drizzle-orm");
+          const managers = await db4.select().from(users2).where(eq11(users2.role, "manager"));
           for (const manager of managers) {
             await notificationService.createNotification({
               user_email: manager.email,
@@ -6570,25 +6614,40 @@ Immediate attention required!`;
       // Get SLA metrics for dashboard
       async getSLAMetrics() {
         try {
-          const openTickets = await db.select().from(tickets).where(
-            and8(
-              not2(inArray3(tickets.status, ["resolved", "closed", "cancelled"])),
-              isNotNull(tickets.resolve_due_at)
-            )
+          const allTickets = await db.select().from(tickets);
+          const openTickets = allTickets.filter(
+            (t) => !["resolved", "closed", "cancelled"].includes(t.status)
           );
-          const responseBreaches = openTickets.filter((t) => t.sla_response_breached).length;
-          const resolutionBreaches = openTickets.filter((t) => t.sla_resolution_breached).length;
+          const ticketsWithSLA = openTickets.filter(
+            (t) => t.resolve_due_at || t.sla_resolution_due || t.response_due_at || t.sla_response_due
+          );
+          const now = /* @__PURE__ */ new Date();
+          let actualResponseBreaches = 0;
+          let actualResolutionBreaches = 0;
+          for (const ticket of ticketsWithSLA) {
+            const responseDue = ticket.response_due_at || ticket.sla_response_due;
+            if (responseDue && !ticket.first_response_at && now > new Date(responseDue)) {
+              actualResponseBreaches++;
+            }
+            const resolutionDue = ticket.resolve_due_at || ticket.sla_resolution_due;
+            if (resolutionDue && now > new Date(resolutionDue)) {
+              actualResolutionBreaches++;
+            }
+          }
           const totalBreaches = (/* @__PURE__ */ new Set([
-            ...openTickets.filter((t) => t.sla_response_breached).map((t) => t.id),
-            ...openTickets.filter((t) => t.sla_resolution_breached).map((t) => t.id)
+            ...ticketsWithSLA.filter((t) => {
+              const responseDue = t.response_due_at || t.sla_response_due;
+              const resolutionDue = t.resolve_due_at || t.sla_resolution_due;
+              return responseDue && !t.first_response_at && now > new Date(responseDue) || resolutionDue && now > new Date(resolutionDue);
+            }).map((t) => t.id)
           ])).size;
-          const totalTicketsWithSLA = openTickets.length;
+          const totalTicketsWithSLA = ticketsWithSLA.length;
           const onTrackTickets = totalTicketsWithSLA - totalBreaches;
           const slaCompliance = totalTicketsWithSLA > 0 ? Math.round(onTrackTickets / totalTicketsWithSLA * 100) : 100;
           return {
             totalTicketsWithSLA,
-            responseBreaches,
-            resolutionBreaches,
+            responseBreaches: actualResponseBreaches,
+            resolutionBreaches: actualResolutionBreaches,
             onTrackTickets,
             slaCompliance
           };
