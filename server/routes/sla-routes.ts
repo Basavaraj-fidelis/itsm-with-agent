@@ -1,7 +1,7 @@
 import type { Express } from "express";
-import { slaEscalationService } from "./sla-escalation-service";
-import { slaMonitorService } from "./sla-monitor-service";
-import { slaPolicyService } from "./sla-policy-service";
+import { slaEscalationService } from "../services/sla-escalation-service";
+import { slaMonitorService } from "../services/sla-monitor-service";
+import { slaPolicyService } from "../services/sla-policy-service";
 
 export function registerSLARoutes(app: Express) {
   // Get SLA dashboard data
@@ -117,7 +117,7 @@ export function registerSLARoutes(app: Express) {
 
       let updated = 0;
       for (const ticket of ticketsToUpdate) {
-        const { ticketStorage } = await import("./ticket-storage");
+        const { ticketStorage } = await import("../services/ticket-storage");
         const slaTargets = (ticketStorage as any).calculateSLATargets(ticket.priority, ticket.type);
 
         const baseTime = new Date(ticket.created_at);
