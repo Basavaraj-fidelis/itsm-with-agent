@@ -1,54 +1,50 @@
 
-const { createRequire } = require('module');
-const require = createRequire(import.meta.url);
+import { createRequire } from 'module';
+import { db, sql } from "../db.js";
+import { tickets } from "../shared/ticket-schema.js";
+import { eq, isNull } from "drizzle-orm";
 
-// Use dynamic imports for ES modules
+const calculateSLATargets = (priority, type, createdAt) => {
+  const slaMatrix = {
+    critical: {
+      responseTime: 15,
+      resolutionTime: type === "incident" ? 240 : 480,
+      policy: "P1 - Critical",
+    },
+    high: {
+      responseTime: 60,
+      resolutionTime: type === "incident" ? 480 : 1440,
+      policy: "P2 - High",
+    },
+    medium: {
+      responseTime: 240,
+      resolutionTime: type === "incident" ? 1440 : 2880,
+      policy: "P3 - Medium",
+    },
+    low: {
+      responseTime: 480,
+      resolutionTime: type === "incident" ? 2880 : 5760,
+      policy: "P4 - Low",
+    },
+  };
+
+  const slaData = slaMatrix[priority] || slaMatrix.medium;
+  const baseTime = new Date(createdAt);
+
+  return {
+    ...slaData,
+    responseDue: new Date(
+      baseTime.getTime() + slaData.responseTime * 60 * 1000,
+    ),
+    resolutionDue: new Date(
+      baseTime.getTime() + slaData.resolutionTime * 60 * 1000,
+    ),
+  };
+};
+
 async function updateAllTicketsSLA() {
   try {
     console.log("🔧 Updating ALL tickets with SLA information...");
-
-    // Dynamic imports for ES modules
-    const { db, sql } = await import("../db.js");
-    const { tickets } = await import("../shared/ticket-schema.js");
-    const { eq, isNull } = await import("drizzle-orm");
-
-    const calculateSLATargets = (priority, type, createdAt) => {
-      const slaMatrix = {
-        critical: {
-          responseTime: 15,
-          resolutionTime: type === "incident" ? 240 : 480,
-          policy: "P1 - Critical",
-        },
-        high: {
-          responseTime: 60,
-          resolutionTime: type === "incident" ? 480 : 1440,
-          policy: "P2 - High",
-        },
-        medium: {
-          responseTime: 240,
-          resolutionTime: type === "incident" ? 1440 : 2880,
-          policy: "P3 - Medium",
-        },
-        low: {
-          responseTime: 480,
-          resolutionTime: type === "incident" ? 2880 : 5760,
-          policy: "P4 - Low",
-        },
-      };
-
-      const slaData = slaMatrix[priority] || slaMatrix.medium;
-      const baseTime = new Date(createdAt);
-
-      return {
-        ...slaData,
-        responseDue: new Date(
-          baseTime.getTime() + slaData.responseTime * 60 * 1000,
-        ),
-        resolutionDue: new Date(
-          baseTime.getTime() + slaData.resolutionTime * 60 * 1000,
-        ),
-      };
-    };
 
     // Get all tickets
     const allTickets = await db.select().from(tickets);
