@@ -44,6 +44,7 @@ export class SLAMonitorService {
     
     for (const ticket of tickets) {
       const shouldBePaused = ['pending', 'on_hold'].includes(ticket.status);
+      const shouldBeResumed = ticket.status === 'in_progress'; // Auto-resume only for in_progress
       const currentlyPaused = ticket.sla_paused;
       
       // If status requires pause but ticket is not paused
@@ -61,8 +62,8 @@ export class SLAMonitorService {
         console.log(`⏸️  SLA paused for ticket ${ticket.ticket_number} (${ticket.status})`);
       }
       
-      // If ticket should not be paused but is currently paused
-      if (!shouldBePaused && currentlyPaused && ticket.sla_paused_at) {
+      // Auto-resume only when ticket moves to in_progress status
+      if (shouldBeResumed && currentlyPaused && ticket.sla_paused_at) {
         const pauseDuration = Math.floor((now.getTime() - new Date(ticket.sla_paused_at).getTime()) / (1000 * 60));
         const totalPausedTime = (ticket.sla_total_paused_time || 0) + pauseDuration;
         
@@ -77,7 +78,7 @@ export class SLAMonitorService {
           })
           .where(eq(tickets.id, ticket.id));
           
-        console.log(`▶️  SLA resumed for ticket ${ticket.ticket_number} (paused for ${pauseDuration} minutes)`);
+        console.log(`▶️  SLA auto-resumed for ticket ${ticket.ticket_number} (moved to in_progress, paused for ${pauseDuration} minutes)`);
       }
     }
   }
