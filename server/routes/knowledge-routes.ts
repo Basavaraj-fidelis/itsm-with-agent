@@ -5,6 +5,7 @@ import { eq, and, or, sql, desc, ilike } from 'drizzle-orm';
 import jwt from "jsonwebtoken";
 
 import { TicketStorage } from "../services/ticket-storage";
+import { knowledgeAIService } from "../services/knowledge-ai-service";
 
 const router = Router();
 const storage = new TicketStorage();
@@ -187,7 +188,7 @@ router.get('/related', authenticateToken, async (req, res) => {
 
     console.log('Searching for articles with tags:', searchTags);
 
-    const articles = await knowledgeAiService.getRelatedArticles({
+    const articles = await knowledgeAIService.getRelatedArticles({
       tags: searchTags,
       category: category as string,
       limit: parseInt(limit as string, 10)

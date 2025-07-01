@@ -47,7 +47,7 @@ export class KnowledgeAIService {
       for (const article of articles) {
         const score = this.calculateRelevanceScore(ticket, article, ticketWords);
 
-        if (score.score > 0.1) { // Even lower threshold for better matching
+        if (score.score > 0.05) { // Very low threshold to catch more potential matches
           matches.push({
             article,
             relevanceScore: score.score,
@@ -191,12 +191,27 @@ export class KnowledgeAIService {
       'same', 'than', 'too', 'very', 'can', 'just', 'now', 'get', 'got', 'also'
     ]);
 
-    return text
+    // Tech-specific keywords that should be prioritized
+    const techKeywords = [
+      'keyboard', 'mouse', 'monitor', 'screen', 'password', 'login', 'network', 
+      'wifi', 'internet', 'email', 'printer', 'computer', 'laptop', 'software',
+      'hardware', 'application', 'browser', 'windows', 'mac', 'phone', 'mobile',
+      'vpn', 'security', 'virus', 'malware', 'slow', 'crash', 'freeze', 'error',
+      'update', 'install', 'connection', 'troubleshooting', 'troubleshoot'
+    ];
+
+    const words = text
       .toLowerCase()
       .replace(/[^\w\s]/g, ' ')
       .split(/\s+/)
-      .filter(word => word.length > 2 && !stopWords.has(word))
-      .slice(0, 15); // Increase to more keywords
+      .filter(word => word.length > 2 && !stopWords.has(word));
+
+    // Prioritize tech keywords
+    const priorityWords = words.filter(word => techKeywords.includes(word));
+    const otherWords = words.filter(word => !techKeywords.includes(word) && !priorityWords.includes(word));
+
+    // Return priority words first, then other words
+    return [...priorityWords, ...otherWords].slice(0, 20);
   }
 
   /**

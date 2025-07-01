@@ -4,7 +4,8 @@ const { Pool } = pkg;
 
 async function updateTicketTags() {
   const pool = new Pool({
-    connectionString: process.env.DATABASE_URL || 'postgresql://admin:admin@localhost:5432/itsm_db'
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_URL?.includes('aivencloud.com') ? { rejectUnauthorized: false } : false
   });
 
   try {
