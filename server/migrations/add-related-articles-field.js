@@ -1,6 +1,7 @@
 
-const { drizzle } = require('drizzle-orm/node-postgres');
-const { Pool } = require('pg');
+import { drizzle } from 'drizzle-orm/node-postgres';
+import pkg from 'pg';
+const { Pool } = pkg;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -26,8 +27,9 @@ async function migrate() {
   }
 }
 
-if (require.main === module) {
+// Check if this file is being run directly
+if (import.meta.url === `file://${process.argv[1]}`) {
   migrate().catch(console.error);
 }
 
-module.exports = { migrate };
+export { migrate };
