@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db';
 import { knowledgeBase, tickets } from '@shared/ticket-schema';
-import { eq, and, or, sql, desc, ilike } from 'drizzle-orm';
+import { eq, and, or, sql, desc, ilike, count } from 'drizzle-orm';
 import jwt from "jsonwebtoken";
 
 import { TicketStorage } from "../services/ticket-storage";
@@ -132,45 +132,8 @@ function calculateRelevanceScore(article: any, searchTerms: string[]): number {
   return score;
 }
 
-// Get article by ID
-router.get("/:id", authenticateToken, async (req, res) => {
-  try {
-    const article = await storage.getKBArticleById(req.params.id);
-    if (!article) {
-      return res.status(404).json({ message: "Article not found" });
-    }
-    res.json(article);
-  } catch (error) {
-    console.error("Error fetching KB article:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-// Create new article
-router.post("/", authenticateToken, async (req, res) => {
-  try {
-    const { title, content, category } = req.body;
-    const newArticle = {
-      title,
-      content,
-      category,
-      tags: [],
-      author_email: "system@company.com",
-      status: "published" as const,
-      views: 0,
-      helpful_votes: 0
-    };
-
-    const article = await storage.createKBArticle(newArticle);
-    res.status(201).json(article);
-  } catch (error) {
-    console.error("Error creating KB article:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-// Get related articles based on tags or category
-router.get('/related', authenticateToken, async (req, res) => {
+// Get related articles based on tags or category (must come before /:id route)
+router.get('/related', async (req, res) => {
   try {
     const { tags, category, limit = '5' } = req.query;
 
@@ -205,7 +168,7 @@ router.get('/related', authenticateToken, async (req, res) => {
   }
 });
 
-// Get related articles by tags
+// Get related articles by ticket ID
 router.get('/related/:ticketId', async (req, res) => {
   try {
     const { ticketId } = req.params;
@@ -312,6 +275,43 @@ router.get('/related/:ticketId', async (req, res) => {
   } catch (error) {
     console.error('Error fetching related articles:', error);
     res.status(500).json({ error: 'Failed to fetch related articles', details: error.message });
+  }
+});
+
+// Get article by ID
+router.get("/:id", authenticateToken, async (req, res) => {
+  try {
+    const article = await storage.getKBArticleById(req.params.id);
+    if (!article) {
+      return res.status(404).json({ message: "Article not found" });
+    }
+    res.json(article);
+  } catch (error) {
+    console.error("Error fetching KB article:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Create new article
+router.post("/", authenticateToken, async (req, res) => {
+  try {
+    const { title, content, category } = req.body;
+    const newArticle = {
+      title,
+      content,
+      category,
+      tags: [],
+      author_email: "system@company.com",
+      status: "published" as const,
+      views: 0,
+      helpful_votes: 0
+    };
+
+    const article = await storage.createKBArticle(newArticle);
+    res.status(201).json(article);
+  } catch (error) {
+    console.error("Error creating KB article:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
