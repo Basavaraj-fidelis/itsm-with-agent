@@ -34,55 +34,71 @@ export default function RelatedArticles({ ticketId, tags = [], category }: Relat
           throw new Error('No authentication token found');
         }
 
-        // Extract meaningful tags from the ticket (keyboard, mouse, troubleshooting, etc.)
-        const searchTags = [...tags];
-
-        // Add category-based tags if available
-        if (category) {
-          searchTags.push(category.toLowerCase());
-        }
-
-        // Add common troubleshooting terms from ticket title if available
+        // First try to get ticket title from the page
         const ticketElement = document.querySelector('[data-ticket-title]');
-        const ticketTitle = ticketElement?.getAttribute('data-ticket-title') || '';
+        let ticketTitle = ticketElement?.getAttribute('data-ticket-title') || '';
+
+        // If not found in DOM, try to get from URL or fetch ticket data
+        if (!ticketTitle && ticketId) {
+          try {
+            const ticketResponse = await fetch(`/api/tickets/${ticketId}`, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            });
+
+            if (ticketResponse.ok) {
+              const ticketData = await ticketResponse.json();
+              ticketTitle = ticketData.title || '';
+            }
+          } catch (ticketError) {
+            console.warn('Could not fetch ticket data for title:', ticketError);
+          }
+        }
+
+        console.log('Searching with ticket title:', ticketTitle);
+
+        let searchUrl;
+
+        // Priority 1: Use header-based search if we have a ticket title
         if (ticketTitle) {
-          const titleWords = ticketTitle.toLowerCase().split(/\s+/);
-          const relevantWords = titleWords.filter(word => 
-            word.length > 3 && 
-            !['ticket', 'issue', 'problem', 'help'].includes(word)
-          );
-          searchTags.push(...relevantWords);
+          searchUrl = `/api/knowledge/related?header=${encodeURIComponent(ticketTitle)}&limit=5`;
+        } 
+        // Priority 2: Use by ticket ID for more intelligent search
+        else if (ticketId) {
+          searchUrl = `/api/knowledge/related/${ticketId}`;
+        }
+        // Priority 3: Fallback to tag-based search
+        else {
+          const searchTags = [...tags];
+          if (category) {
+            searchTags.push(category.toLowerCase());
+          }
+          const uniqueTags = [...new Set(searchTags.filter(tag => tag && tag.length > 0))];
+          searchUrl = `/api/knowledge/related?tags=${uniqueTags.join(',')}&category=${category || ''}&limit=5`;
         }
 
-        // Build query parameters for related articles
-        const queryParams = new URLSearchParams();
-        if (searchTags.length > 0) {
-          queryParams.append('tags', searchTags.join(','));
-        }
-        queryParams.append('limit', '5');
+        console.log('Fetching from URL:', searchUrl);
 
-        console.log('Fetching related articles with tags:', searchTags);
-
-        const response = await fetch(`/api/knowledge/related?${queryParams.toString()}`, {
+        const response = await fetch(searchUrl, {
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+            'Content-Type': 'application/json',
+          },
         });
 
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Related articles API error:', response.status, errorText);
-          throw new Error(`Failed to fetch related articles: ${response.status}`);
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log('Related articles response:', data);
-        setArticles(Array.isArray(data) ? data : data.articles || []);
+        setArticles(Array.isArray(data) ? data : []);
+
+        console.log(`Found ${Array.isArray(data) ? data.length : 0} related articles`);
       } catch (err) {
         console.error('Error fetching related articles:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load related articles');
-        setArticles([]);
+        setError(err instanceof Error ? err.message : 'Failed to fetch related articles');
       } finally {
         setLoading(false);
       }

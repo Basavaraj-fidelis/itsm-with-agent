@@ -132,13 +132,83 @@ function calculateRelevanceScore(article: any, searchTerms: string[]): number {
   return score;
 }
 
-// Get related articles based on tags or category (must come before /:id route)
+// Get related articles based on header search, tags or category (must come before /:id route)
 router.get('/related', async (req, res) => {
   try {
-    const { tags, category, limit = '5' } = req.query;
+    const { tags, category, limit = '5', header, title } = req.query;
 
-    console.log('Related articles request:', { tags, category, limit });
+    console.log('Related articles request:', { tags, category, limit, header, title });
 
+    // Priority 1: Header/Title based search
+    if (header || title) {
+      const searchText = (header || title) as string;
+      const searchTextLower = searchText.toLowerCase();
+      
+      console.log(`Performing header-based search for: "${searchText}"`);
+
+      // Extract meaningful words from the header/title
+      const stopWords = ['the', 'is', 'not', 'can', 'cannot', 'will', 'with', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'from', 'up', 'about', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'between', 'among', 'since', 'until', 'while', 'because', 'so', 'if', 'when', 'where', 'how', 'what', 'who', 'which', 'why', 'this', 'that', 'these', 'those'];
+      
+      const searchWords = searchTextLower
+        .replace(/[^\w\s]/g, ' ')
+        .split(/\s+/)
+        .filter(word => word.length > 2 && !stopWords.includes(word));
+
+      console.log(`Search words: ${searchWords.join(', ')}`);
+
+      if (searchWords.length > 0) {
+        try {
+          // Search for exact phrase first
+          const exactMatches = await db
+            .select()
+            .from(knowledgeBase)
+            .where(
+              and(
+                eq(knowledgeBase.status, 'published'),
+                or(
+                  ilike(knowledgeBase.title, `%${searchTextLower}%`),
+                  ilike(knowledgeBase.content, `%${searchTextLower}%`)
+                )
+              )
+            )
+            .orderBy(desc(knowledgeBase.helpful_votes), desc(knowledgeBase.views))
+            .limit(parseInt(limit as string, 10));
+
+          if (exactMatches.length > 0) {
+            console.log(`Found ${exactMatches.length} exact matches`);
+            return res.json(exactMatches);
+          }
+
+          // Search by individual words if no exact matches
+          const wordSearches = searchWords.map(word => 
+            or(
+              ilike(knowledgeBase.title, `%${word}%`),
+              ilike(knowledgeBase.content, `%${word}%`)
+            )
+          );
+
+          const wordMatches = await db
+            .select()
+            .from(knowledgeBase)
+            .where(
+              and(
+                eq(knowledgeBase.status, 'published'),
+                or(...wordSearches)
+              )
+            )
+            .orderBy(desc(knowledgeBase.helpful_votes), desc(knowledgeBase.views))
+            .limit(parseInt(limit as string, 10));
+
+          console.log(`Found ${wordMatches.length} word-based matches`);
+          return res.json(wordMatches);
+
+        } catch (searchError) {
+          console.error('Header search failed, falling back to tag search:', searchError);
+        }
+      }
+    }
+
+    // Priority 2: Tag-based search (fallback)
     let searchTags: string[] = [];
     if (tags) {
       searchTags = (tags as string).split(',').map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
@@ -149,7 +219,7 @@ router.get('/related', async (req, res) => {
       searchTags = ['keyboard', 'mouse', 'troubleshooting', 'password', 'network'];
     }
 
-    console.log('Searching for articles with tags:', searchTags);
+    console.log('Falling back to tag search with tags:', searchTags);
 
     const articles = await knowledgeAIService.getRelatedArticles({
       tags: searchTags,
@@ -157,7 +227,7 @@ router.get('/related', async (req, res) => {
       limit: parseInt(limit as string, 10)
     });
 
-    console.log(`Found ${articles.length} related articles`);
+    console.log(`Found ${articles.length} related articles via tag search`);
     res.json(articles);
   } catch (error) {
     console.error('Error fetching related articles:', error);
@@ -168,12 +238,12 @@ router.get('/related', async (req, res) => {
   }
 });
 
-// Get related articles by ticket ID
+// Get related articles by ticket ID using header-based string search
 router.get('/related/:ticketId', async (req, res) => {
   try {
     const { ticketId } = req.params;
 
-    // Get ticket details to extract tags
+    // Get ticket details to extract header/title
     const ticket = await db.select().from(tickets).where(eq(tickets.id, ticketId)).limit(1);
 
     if (!ticket.length) {
@@ -181,64 +251,91 @@ router.get('/related/:ticketId', async (req, res) => {
     }
 
     const ticketData = ticket[0];
-    let searchTags: string[] = [];
+    const ticketTitle = ticketData.title.toLowerCase();
+    
+    console.log(`Searching KB articles for ticket title: "${ticketData.title}"`);
 
-    // Extract tags from ticket category, priority, and description
-    if (ticketData.category) {
-      searchTags.push(ticketData.category.toLowerCase());
-    }
+    // Extract meaningful words from ticket title (ignore common stop words)
+    const stopWords = ['the', 'is', 'not', 'can', 'cannot', 'will', 'with', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'from', 'up', 'about', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'between', 'among', 'since', 'until', 'while', 'because', 'so', 'if', 'when', 'where', 'how', 'what', 'who', 'which', 'why', 'this', 'that', 'these', 'those', 'i', 'me', 'my', 'we', 'our', 'you', 'your', 'he', 'him', 'his', 'she', 'her', 'it', 'its', 'they', 'them', 'their'];
+    
+    const titleWords = ticketTitle
+      .replace(/[^\w\s]/g, ' ')
+      .split(/\s+/)
+      .filter(word => word.length > 2 && !stopWords.includes(word));
 
-    if (ticketData.priority) {
-      searchTags.push(ticketData.priority.toLowerCase());
-    }
-
-    // Extract keywords from title and description
-    const text = `${ticketData.title} ${ticketData.description || ''}`.toLowerCase();
-    const keywords = text.match(/\b\w{4,}\b/g) || [];
-    searchTags.push(...keywords.slice(0, 5)); // Limit to 5 keywords
-
-    // Remove duplicates and empty strings
-    searchTags = [...new Set(searchTags.filter(tag => tag && tag.length > 0))];
+    console.log(`Extracted words from title: ${titleWords.join(', ')}`);
 
     let relatedArticles: any[] = [];
 
-    if (searchTags.length > 0) {
-      // Search for articles with matching tags using proper PostgreSQL array operators
-      try {
-        const tagQueries = searchTags.map(tag => 
-          sql`${knowledgeBase.tags}::jsonb ? ${tag}`
-        );
+    if (titleWords.length > 0) {
+      // Search for articles using title words - prioritize exact phrase matches
+      const exactPhraseSearch = ilike(knowledgeBase.title, `%${ticketTitle}%`);
+      const exactContentSearch = ilike(knowledgeBase.content, `%${ticketTitle}%`);
 
-        relatedArticles = await db
+      // Create individual word searches for title and content
+      const titleWordSearches = titleWords.map(word => 
+        ilike(knowledgeBase.title, `%${word}%`)
+      );
+      const contentWordSearches = titleWords.map(word => 
+        ilike(knowledgeBase.content, `%${word}%`)
+      );
+
+      try {
+        // First try exact phrase matches
+        const exactMatches = await db
           .select()
           .from(knowledgeBase)
           .where(
             and(
               eq(knowledgeBase.status, 'published'),
-              or(...tagQueries)
+              or(exactPhraseSearch, exactContentSearch)
             )
           )
-          .orderBy(desc(knowledgeBase.helpful_votes))
-          .limit(5);
-      } catch (tagError) {
-        console.warn('Tag-based search failed, falling back to text search:', tagError);
+          .orderBy(desc(knowledgeBase.helpful_votes), desc(knowledgeBase.views))
+          .limit(3);
 
-        // Fallback to text-based search
-        const textSearchConditions = searchTags.map(tag => 
-          or(
-            ilike(knowledgeBase.title, `%${tag}%`),
-            ilike(knowledgeBase.content, `%${tag}%`),
-            ilike(knowledgeBase.category, `%${tag}%`)
-          )
-        );
+        relatedArticles.push(...exactMatches);
+        console.log(`Found ${exactMatches.length} exact phrase matches`);
 
+        // If we need more articles, search by individual words
+        if (relatedArticles.length < 5) {
+          const remainingLimit = 5 - relatedArticles.length;
+          const existingIds = relatedArticles.map(a => a.id);
+
+          const wordMatches = await db
+            .select()
+            .from(knowledgeBase)
+            .where(
+              and(
+                eq(knowledgeBase.status, 'published'),
+                sql`${knowledgeBase.id} NOT IN (${existingIds.length > 0 ? existingIds.map(() => '?').join(',') : 'NULL'})`,
+                or(
+                  ...titleWordSearches,
+                  ...contentWordSearches
+                )
+              )
+            )
+            .orderBy(desc(knowledgeBase.helpful_votes), desc(knowledgeBase.views))
+            .limit(remainingLimit);
+
+          relatedArticles.push(...wordMatches);
+          console.log(`Found ${wordMatches.length} additional word matches`);
+        }
+
+      } catch (searchError) {
+        console.error('Header-based search failed:', searchError);
+        
+        // Fallback to simple text search
         relatedArticles = await db
           .select()
           .from(knowledgeBase)
           .where(
             and(
               eq(knowledgeBase.status, 'published'),
-              or(...textSearchConditions)
+              or(
+                ilike(knowledgeBase.title, `%${titleWords[0]}%`),
+                ilike(knowledgeBase.content, `%${titleWords[0]}%`)
+              )
             )
           )
           .orderBy(desc(knowledgeBase.helpful_votes))
@@ -246,30 +343,21 @@ router.get('/related/:ticketId', async (req, res) => {
       }
     }
 
-    // If no related articles found, return top articles by category
-    if (relatedArticles.length === 0 && ticketData.category) {
-      relatedArticles = await db
-        .select()
-        .from(knowledgeBase)
-        .where(
-          and(
-            eq(knowledgeBase.status, 'published'),
-            eq(knowledgeBase.category, ticketData.category)
-          )
-        )
-        .orderBy(desc(knowledgeBase.helpful_votes))
-        .limit(3);
-    }
-
-    // If still no articles, return top articles overall
+    // If no matches found, return most helpful articles as fallback
     if (relatedArticles.length === 0) {
+      console.log('No header-based matches found, returning top articles');
       relatedArticles = await db
         .select()
         .from(knowledgeBase)
         .where(eq(knowledgeBase.status, 'published'))
-        .orderBy(desc(knowledgeBase.helpful_votes))
+        .orderBy(desc(knowledgeBase.helpful_votes), desc(knowledgeBase.views))
         .limit(3);
     }
+
+    console.log(`Returning ${relatedArticles.length} related articles for ticket: "${ticketData.title}"`);
+    relatedArticles.forEach((article, index) => {
+      console.log(`${index + 1}. "${article.title}" (helpful_votes: ${article.helpful_votes}, views: ${article.views})`);
+    });
 
     res.json(relatedArticles || []);
   } catch (error) {
