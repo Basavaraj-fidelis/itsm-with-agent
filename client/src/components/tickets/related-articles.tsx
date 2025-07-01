@@ -60,7 +60,7 @@ export default function RelatedArticles({ ticket }: RelatedArticlesProps) {
           console.log('Trying search-based fetch...');
           const searchResponse = await api.get(`/knowledge-base?search=${encodeURIComponent(searchTerms)}&limit=5&status=published`);
           console.log('Search response:', searchResponse);
-          
+
           if (searchResponse && Array.isArray(searchResponse) && searchResponse.length > 0) {
             articlesData = searchResponse.slice(0, 3);
             console.log('Found articles via search:', articlesData.length);
@@ -72,7 +72,7 @@ export default function RelatedArticles({ ticket }: RelatedArticlesProps) {
           console.log('Trying category-based fetch for category:', ticket.category);
           const categoryResponse = await api.get(`/knowledge-base?category=${encodeURIComponent(ticket.category)}&limit=3&status=published`);
           console.log('Category response:', categoryResponse);
-          
+
           if (categoryResponse && Array.isArray(categoryResponse) && categoryResponse.length > 0) {
             articlesData = categoryResponse.slice(0, 3);
             console.log('Found articles via category:', articlesData.length);
@@ -84,7 +84,7 @@ export default function RelatedArticles({ ticket }: RelatedArticlesProps) {
           console.log('Trying fallback fetch - any published articles...');
           const fallbackResponse = await api.get('/knowledge-base?limit=3&status=published');
           console.log('Fallback response:', fallbackResponse);
-          
+
           if (fallbackResponse && Array.isArray(fallbackResponse)) {
             articlesData = fallbackResponse.slice(0, 3);
             console.log('Found articles via fallback:', articlesData.length);

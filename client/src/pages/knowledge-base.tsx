@@ -100,7 +100,8 @@ export default function KnowledgeBase() {
       setIsLoading(true);
       // Build query parameters
       const params = new URLSearchParams({
-        status: 'published'
+        status: 'published',
+        limit: '50' // Increase limit for better results
       });
 
       if (selectedCategory && selectedCategory !== 'all') {
@@ -118,25 +119,43 @@ export default function KnowledgeBase() {
       });
 
       const token = localStorage.getItem('auth_token');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      };
+
+      // Add authorization header if token exists
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch(`/api/knowledge-base?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+        headers
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`KB API Error: ${response.status} - ${errorText}`);
+        
         if (response.status === 401) {
-          console.warn('Authentication required for KB articles');
-          setArticles([]);
-          return;
+          console.warn('Authentication issue for KB articles, trying without auth');
+        } else {
+          throw new Error(`Failed to fetch articles: ${response.status} - ${errorText}`);
         }
-        throw new Error(`Failed to fetch articles: ${response.status}`);
       }
 
-      const data = await response.json();
-      console.log(`Received ${Array.isArray(data) ? data.length : 0} articles for category: ${selectedCategory}`);
-      setArticles(Array.isArray(data) ? data : []);
+      const result = await response.json();
+      console.log('KB API Response:', result);
+
+      // Handle both paginated and direct array responses
+      let articlesData = [];
+      if (result.data && Array.isArray(result.data)) {
+        articlesData = result.data;
+      } else if (Array.isArray(result)) {
+        articlesData = result;
+      }
+
+      console.log(`Received ${articlesData.length} articles for category: ${selectedCategory}`);
+      setArticles(articlesData);
     } catch (err) {
       console.error('Error fetching articles:', err);
       setArticles([]);
@@ -149,18 +168,27 @@ export default function KnowledgeBase() {
     try {
       setIsLoading(true);
       const token = localStorage.getItem('auth_token');
+      
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      };
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch(`/api/knowledge-base/${id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+        headers
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Single article fetch error: ${response.status} - ${errorText}`);
         throw new Error(`Failed to fetch article: ${response.status}`);
       }
 
       const article = await response.json();
+      console.log('Fetched single article:', article);
       setSelectedArticle(article);
     } catch (err) {
       console.error('Error fetching article:', err);

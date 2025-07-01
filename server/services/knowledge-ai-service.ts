@@ -23,7 +23,7 @@ export class KnowledgeAIService {
     tags?: string[];
   }): Promise<TicketArticleMatch[]> {
     try {
-      console.log('Finding relevant articles for ticket:', ticket.title);
+      console.log('🔍 Finding relevant articles for ticket:', ticket.title);
       
       // Get all published articles
       const articles = await db
@@ -32,10 +32,10 @@ export class KnowledgeAIService {
         .where(eq(knowledgeBase.status, "published"))
         .orderBy(desc(knowledgeBase.helpful_votes));
 
-      console.log(`Found ${articles.length} published articles in database`);
+      console.log(`📚 Found ${articles.length} published articles in database`);
 
       if (!articles.length) {
-        console.log('No published articles found');
+        console.log('❌ No published articles found');
         return [];
       }
 
@@ -43,10 +43,12 @@ export class KnowledgeAIService {
       const ticketText = `${ticket.title} ${ticket.description}`.toLowerCase();
       const ticketWords = this.extractKeywords(ticketText);
 
+      console.log('🔤 Extracted keywords:', ticketWords);
+
       for (const article of articles) {
         const score = this.calculateRelevanceScore(ticket, article, ticketWords);
         
-        if (score.score > 0.2) { // Lower threshold for better matching
+        if (score.score > 0.1) { // Even lower threshold for better matching
           matches.push({
             article,
             relevanceScore: score.score,
@@ -55,14 +57,24 @@ export class KnowledgeAIService {
         }
       }
 
-      // Sort by relevance score (highest first)
-      const sortedMatches = matches.sort((a, b) => b.relevanceScore - a.relevanceScore).slice(0, 5);
-      console.log(`Found ${sortedMatches.length} relevant articles with scores:`, sortedMatches.map(m => ({ id: m.article.id, title: m.article.title, score: m.relevanceScore })));
+      // Sort by relevance score (highest first) and limit to top 3
+      const sortedMatches = matches
+        .sort((a, b) => b.relevanceScore - a.relevanceScore)
+        .slice(0, 3);
+      
+      console.log(`✅ Found ${sortedMatches.length} relevant articles with scores:`, 
+        sortedMatches.map(m => ({ 
+          id: m.article.id, 
+          title: m.article.title, 
+          score: m.relevanceScore.toFixed(2),
+          reasons: m.matchReasons 
+        }))
+      );
       
       return sortedMatches;
 
     } catch (error) {
-      console.error("Error finding relevant articles:", error);
+      console.error("❌ Error finding relevant articles:", error);
       return [];
     }
   }
@@ -78,7 +90,7 @@ export class KnowledgeAIService {
     tags?: string[];
   }): Promise<KnowledgeBaseArticle | null> {
     try {
-      console.log('Generating draft article for ticket:', ticket.title);
+      console.log('📝 Generating draft article for ticket:', ticket.title);
       
       const draftContent = this.generateArticleContent(ticket);
       
@@ -98,11 +110,11 @@ export class KnowledgeAIService {
         .values(newArticle)
         .returning();
 
-      console.log(`Generated and published draft article: ${createdArticle.id} - ${createdArticle.title}`);
+      console.log(`✅ Generated and published draft article: ${createdArticle.id} - ${createdArticle.title}`);
       return createdArticle;
 
     } catch (error) {
-      console.error("Error generating draft article:", error);
+      console.error("❌ Error generating draft article:", error);
       return null;
     }
   }
@@ -122,33 +134,45 @@ export class KnowledgeAIService {
     const articleContent = article.content.toLowerCase();
     const articleCategory = (article.category || "").toLowerCase();
     const ticketTitle = ticket.title.toLowerCase();
+    const ticketCategory = (ticket.category || "").toLowerCase();
 
     // Direct title similarity (highest weight)
-    const titleWords = ticketTitle.split(' ').filter(word => word.length > 3);
+    const titleWords = ticketTitle.split(' ').filter(word => word.length > 2);
     const titleMatches = titleWords.filter(word => articleTitle.includes(word));
     if (titleMatches.length > 0) {
-      score += titleMatches.length * 0.5;
+      score += titleMatches.length * 0.6;
       reasons.push(`Title matches: ${titleMatches.join(", ")}`);
     }
 
-    // Category exact match
-    if (ticket.category && articleCategory === ticket.category.toLowerCase()) {
-      score += 0.4;
+    // Category exact match (high weight)
+    if (ticketCategory && articleCategory.includes(ticketCategory)) {
+      score += 0.5;
       reasons.push("Category match");
     }
 
     // Content keyword matches
     const contentMatches = ticketWords.filter(word => 
-      word.length > 3 && articleContent.includes(word)
+      word.length > 2 && articleContent.includes(word)
     );
     if (contentMatches.length > 0) {
-      score += contentMatches.length * 0.1;
+      score += contentMatches.length * 0.15;
       reasons.push(`Content keywords: ${contentMatches.slice(0, 3).join(", ")}`);
     }
 
+    // Tags matching
+    if (article.tags && Array.isArray(article.tags)) {
+      const tagMatches = article.tags.filter(tag => 
+        ticketWords.some(word => tag.toLowerCase().includes(word.toLowerCase()))
+      );
+      if (tagMatches.length > 0) {
+        score += tagMatches.length * 0.2;
+        reasons.push(`Tag matches: ${tagMatches.join(", ")}`);
+      }
+    }
+
     // Article quality boost
-    score += (article.helpful_votes || 0) * 0.01;
-    score += (article.views || 0) * 0.001;
+    score += (article.helpful_votes || 0) * 0.02;
+    score += (article.views || 0) * 0.002;
 
     return { score, reasons };
   }
@@ -157,14 +181,23 @@ export class KnowledgeAIService {
    * Extract meaningful keywords from text
    */
   private extractKeywords(text: string): string[] {
-    const stopWords = new Set(['the', 'is', 'at', 'which', 'on', 'and', 'a', 'to', 'are', 'as', 'was', 'will', 'be', 'have', 'has', 'had', 'do', 'does', 'did', 'can', 'could', 'should', 'would', 'may', 'might', 'must', 'shall', 'will', 'am', 'are', 'is', 'was', 'were', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'shall']);
+    const stopWords = new Set([
+      'the', 'is', 'at', 'which', 'on', 'and', 'a', 'to', 'are', 'as', 'was', 'will', 
+      'be', 'have', 'has', 'had', 'do', 'does', 'did', 'can', 'could', 'should', 
+      'would', 'may', 'might', 'must', 'shall', 'am', 'were', 'been', 'i', 'me', 
+      'my', 'you', 'your', 'he', 'she', 'it', 'we', 'they', 'them', 'this', 'that',
+      'with', 'for', 'from', 'by', 'in', 'out', 'up', 'down', 'of', 'an', 'or',
+      'but', 'not', 'no', 'so', 'if', 'when', 'where', 'why', 'how', 'all', 'any',
+      'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'only', 'own',
+      'same', 'than', 'too', 'very', 'can', 'just', 'now', 'get', 'got', 'also'
+    ]);
     
     return text
       .toLowerCase()
       .replace(/[^\w\s]/g, ' ')
       .split(/\s+/)
-      .filter(word => word.length > 3 && !stopWords.has(word))
-      .slice(0, 10); // Limit to top 10 keywords
+      .filter(word => word.length > 2 && !stopWords.has(word))
+      .slice(0, 15); // Increase to more keywords
   }
 
   /**
@@ -184,41 +217,55 @@ ${ticket.description}
 ## Troubleshooting Steps
 
 ### Step 1: Initial Diagnosis
-1. Verify the issue symptoms
-2. Check recent changes or updates
-3. Review error messages if any
+1. Verify the issue symptoms carefully
+2. Check for any recent changes or updates
+3. Review error messages or logs if available
+4. Document the exact steps that led to the issue
 
 ### Step 2: Basic Resolution
 1. Restart the affected service/application
-2. Check system resources (CPU, Memory, Disk)
+2. Check system resources (CPU, Memory, Disk space)
 3. Verify network connectivity
+4. Clear temporary files and cache if applicable
 
 ### Step 3: Advanced Troubleshooting
-1. Check system logs for errors
-2. Review configuration settings
-3. Test with minimal configuration
+1. Check system logs for detailed error information
+2. Review configuration settings and recent changes
+3. Test with minimal configuration or safe mode
+4. Run diagnostic tools specific to the ${ticket.category || 'system'}
 
-### Step 4: Escalation
+### Step 4: Escalation Process
 If the above steps don't resolve the issue:
-1. Document all attempted solutions
-2. Gather system information and logs
-3. Contact technical support with detailed information
+1. Document all attempted solutions and their results
+2. Gather comprehensive system information and logs
+3. Take screenshots or recordings of the issue
+4. Contact technical support with detailed information
 
-## Prevention
-- Regular system maintenance
-- Keep software/drivers updated
-- Monitor system performance
-- Follow best practices for ${ticket.category || 'system management'}
+## Prevention Measures
+- Implement regular system maintenance schedules
+- Keep software, drivers, and firmware updated
+- Monitor system performance proactively
+- Follow security best practices
+- Create regular backups
+- Document configuration changes
 
 ## Related Topics
-- System troubleshooting
-- ${ticket.category || 'General'} issues
-- Performance optimization
+- System troubleshooting fundamentals
+- ${ticket.category || 'General'} maintenance procedures
+- Performance optimization techniques
+- Error diagnostic procedures
+
+## Additional Resources
+- System documentation
+- Vendor support resources
+- Community forums and knowledge bases
+- Training materials for ${ticket.category || 'system management'}
 
 ---
-*This article was auto-generated from ticket: ${ticket.title}*
-*Category: ${ticket.category || 'General'}*
-*Type: ${ticket.type}*`;
+*This article was automatically generated from support ticket: ${ticket.title}*  
+*Category: ${ticket.category || 'General'}*  
+*Issue Type: ${ticket.type}*  
+*Generated on: ${new Date().toLocaleDateString()}*`;
   }
 
   /**
@@ -234,17 +281,17 @@ If the above steps don't resolve the issue:
     const tags = new Set<string>();
     
     // Add existing tags
-    if (ticket.tags) {
+    if (ticket.tags && Array.isArray(ticket.tags)) {
       ticket.tags.forEach(tag => tags.add(tag.toLowerCase()));
     }
     
     // Add category as tag
     if (ticket.category) {
-      tags.add(ticket.category.toLowerCase());
+      tags.add(ticket.category.toLowerCase().replace(/\s+/g, '-'));
     }
     
     // Add type as tag
-    tags.add(ticket.type.toLowerCase());
+    tags.add(ticket.type.toLowerCase().replace(/\s+/g, '-'));
     
     // Extract keywords from title and description
     const text = `${ticket.title} ${ticket.description}`.toLowerCase();
@@ -254,8 +301,9 @@ If the above steps don't resolve the issue:
     // Add common troubleshooting tags
     tags.add('troubleshooting');
     tags.add('support');
+    tags.add('how-to');
     
-    return Array.from(tags).slice(0, 8); // Limit to 8 tags
+    return Array.from(tags).slice(0, 10); // Increase to 10 tags
   }
 
   /**
@@ -269,21 +317,28 @@ If the above steps don't resolve the issue:
     const text = `${ticket.title} ${ticket.description}`.toLowerCase();
     
     const categoryKeywords = {
-      'Hardware': ['hardware', 'device', 'computer', 'laptop', 'desktop', 'monitor', 'keyboard', 'mouse', 'printer', 'scanner'],
-      'Software': ['software', 'application', 'program', 'install', 'update', 'crash', 'error', 'bug'],
-      'Network': ['network', 'internet', 'wifi', 'connection', 'router', 'vpn', 'firewall'],
-      'Security': ['security', 'password', 'login', 'access', 'permission', 'virus', 'malware'],
-      'Email & Communication': ['email', 'outlook', 'exchange', 'mail', 'communication', 'messaging'],
-      'System Performance': ['slow', 'performance', 'speed', 'freeze', 'hang', 'crash', 'memory', 'cpu']
+      'Hardware': ['hardware', 'device', 'computer', 'laptop', 'desktop', 'monitor', 'keyboard', 'mouse', 'printer', 'scanner', 'disk', 'memory', 'ram', 'cpu', 'motherboard'],
+      'Software': ['software', 'application', 'program', 'install', 'update', 'crash', 'error', 'bug', 'app', 'exe', 'installation'],
+      'Network': ['network', 'internet', 'wifi', 'connection', 'router', 'vpn', 'firewall', 'ethernet', 'dns', 'ip', 'ping'],
+      'Security': ['security', 'password', 'login', 'access', 'permission', 'virus', 'malware', 'antivirus', 'authentication', 'unauthorized'],
+      'Email & Communication': ['email', 'outlook', 'exchange', 'mail', 'communication', 'messaging', 'smtp', 'pop', 'imap'],
+      'System Performance': ['slow', 'performance', 'speed', 'freeze', 'hang', 'crash', 'memory', 'cpu', 'lag', 'timeout'],
+      'Account Management': ['account', 'user', 'profile', 'settings', 'preferences', 'permissions', 'role', 'access'],
+      'Troubleshooting': ['troubleshoot', 'diagnose', 'fix', 'repair', 'resolve', 'problem', 'issue', 'error']
     };
     
+    let bestMatch = 'Other';
+    let maxMatches = 0;
+    
     for (const [category, keywords] of Object.entries(categoryKeywords)) {
-      if (keywords.some(keyword => text.includes(keyword))) {
-        return category;
+      const matches = keywords.filter(keyword => text.includes(keyword)).length;
+      if (matches > maxMatches) {
+        maxMatches = matches;
+        bestMatch = category;
       }
     }
     
-    return 'Other';
+    return bestMatch;
   }
 }
 

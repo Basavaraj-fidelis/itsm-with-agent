@@ -9,21 +9,24 @@ import { TicketStorage } from "../services/ticket-storage";
 const router = Router();
 const storage = new TicketStorage();
 
-// Authentication middleware
+// Authentication middleware - make it optional for knowledge base
 const authenticateToken = (req: any, res: any, next: any) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({ message: 'Access token required' });
+    // For knowledge base, we'll allow unauthenticated access to published articles
+    req.user = null;
+    return next();
   }
 
   jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key', (err: any, decoded: any) => {
     if (err) {
       console.error('Token verification error:', err);
-      return res.status(403).json({ message: 'Invalid token' });
+      req.user = null;
+    } else {
+      req.user = decoded;
     }
-    req.user = decoded;
     next();
   });
 };
@@ -48,13 +51,13 @@ router.get("/", authenticateToken, async (req, res) => {
     conditions.push(eq(knowledgeBase.status, filters.status));
 
     // Add category filter if specified
-    if (filters.category && filters.category !== 'all') {
+    if (filters.category && filters.category !== 'all' && filters.category !== undefined) {
       conditions.push(eq(knowledgeBase.category, filters.category));
     }
 
     // Add search filter if specified
-    if (filters.search) {
-      const searchTerm = `%${filters.search}%`;
+    if (filters.search && filters.search.trim() !== '') {
+      const searchTerm = `%${filters.search.toLowerCase()}%`;
       conditions.push(
         or(
           like(knowledgeBase.title, searchTerm),
@@ -66,20 +69,40 @@ router.get("/", authenticateToken, async (req, res) => {
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
+    // Get total count for pagination
+    const [{ total }] = await db
+      .select({ total: count() })
+      .from(knowledgeBase)
+      .where(whereClause);
+
     // Get articles with pagination
     const articles = await db
       .select()
       .from(knowledgeBase)
       .where(whereClause)
-      .orderBy(desc(knowledgeBase.helpful_votes), desc(knowledgeBase.views))
+      .orderBy(desc(knowledgeBase.helpful_votes), desc(knowledgeBase.views), desc(knowledgeBase.created_at))
       .limit(limit)
       .offset((page - 1) * limit);
 
-    console.log(`Found ${articles.length} articles in database`);
-    res.json(articles);
+    console.log(`Found ${articles.length} articles in database (total: ${total})`);
+    
+    const response = {
+      data: articles,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
+
+    res.json(response);
   } catch (error) {
     console.error("Error fetching KB articles:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ 
+      message: "Internal server error",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 

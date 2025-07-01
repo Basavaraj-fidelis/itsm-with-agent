@@ -109,15 +109,6 @@ export class TicketStorage {
       slaTargets = fallbackTargets;
     }
 
-    // Process knowledge base integration
-    const relatedArticleIds = await this.processKnowledgeBaseIntegration({
-      title: ticketData.title,
-      description: ticketData.description,
-      category: ticketData.category,
-      type: ticketData.type,
-      tags: ticketData.tags || [],
-    });
-
     const [newTicket] = await db
       .insert(tickets)
       .values({
@@ -137,7 +128,7 @@ export class TicketStorage {
         sla_breached: false,
         sla_response_breached: false,
         sla_resolution_breached: false,
-        related_article_ids: relatedArticleIds,
+        related_article_ids: [], // Initialize as empty array
       })
       .returning();
 
@@ -161,8 +152,31 @@ export class TicketStorage {
       });
     }
 
+    // Knowledge base integration - run asynchronously to avoid blocking ticket creation
+    setTimeout(async () => {
+      try {
+        const relatedArticleIds = await this.processKnowledgeBaseIntegration({
+          title: ticketData.title,
+          description: ticketData.description,
+          category: ticketData.category,
+          type: ticketData.type,
+          tags: ticketData.tags || [],
+        });
+
+        // Update ticket with related articles if any were found
+        if (relatedArticleIds.length > 0) {
+          console.log(`Linking ${relatedArticleIds.length} articles to ticket ${ticket_number}`);
+          await this.updateTicket(newTicket.id, {
+            related_article_ids: relatedArticleIds
+          });
+        }
+      } catch (error) {
+        console.error('Error in knowledge base integration:', error);
+      }
+    }, 1000); // 1 second delay to ensure ticket is fully created
+
     console.log(
-      `Created ticket ${ticket_number} with ${relatedArticleIds.length} related articles`,
+      `Created ticket ${ticket_number}`,
     );
     return newTicket;
   }
@@ -177,7 +191,7 @@ export class TicketStorage {
     try {
       console.log('=== PROCESSING KNOWLEDGE BASE INTEGRATION ===');
       console.log('Ticket data:', ticketData);
-      
+
       // Ensure we have some sample articles first
       await this.ensureSampleKBArticles();
 
@@ -229,10 +243,10 @@ export class TicketStorage {
     try {
       // Check if we have any articles
       const existingArticles = await db.select().from(knowledgeBase).limit(1);
-      
+
       if (existingArticles.length === 0) {
         console.log("Creating sample knowledge base articles...");
-        
+
         const sampleArticles = [
           {
             title: "How to Reset Your Password",
@@ -299,7 +313,7 @@ export class TicketStorage {
         for (const article of sampleArticles) {
           await this.createKBArticle(article);
         }
-        
+
         console.log("Sample knowledge base articles created successfully");
       }
     } catch (error) {
