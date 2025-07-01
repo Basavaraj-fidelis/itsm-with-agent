@@ -11,7 +11,7 @@ import {
   type NewKnowledgeBaseArticle,
 } from "@shared/ticket-schema";
 import { auditLog } from "@shared/admin-schema";
-import { eq, desc, and, or, like, sql, count } from "drizzle-orm";
+import { eq, desc, and, or, sql, count, asc, ilike } from 'drizzle-orm';
 import { userStorage } from "./user-storage";
 import { device_reports, alerts, devices } from "../../shared/schema";
 
@@ -806,6 +806,85 @@ export class TicketStorage {
       console.error("Error deleting device:", error);
       return false;
     }
+  }
+}
+
+async function getRelatedArticles(ticketId: string) {
+  try {
+    // Get ticket details first
+    const ticket = await db.select().from(tickets).where(eq(tickets.id, ticketId)).limit(1);
+
+    if (!ticket.length) {
+      return [];
+    }
+
+    const ticketData = ticket[0];
+    let searchTags: string[] = [];
+
+    // Extract tags from ticket category, priority, and description
+    if (ticketData.category) {
+      searchTags.push(ticketData.category.toLowerCase());
+    }
+
+    if (ticketData.priority) {
+      searchTags.push(ticketData.priority.toLowerCase());
+    }
+
+    // Extract keywords from title and description
+    const text = `${ticketData.title} ${ticketData.description || ''}`.toLowerCase();
+    const keywords = text.match(/\b\w{4,}\b/g) || [];
+    searchTags.push(...keywords.slice(0, 3)); // Limit to 3 keywords
+
+    // Remove duplicates and empty strings
+    searchTags = [...new Set(searchTags.filter(tag => tag && tag.length > 0))];
+
+    if (searchTags.length === 0) {
+      return [];
+    }
+
+    // Search for articles with matching category first
+    let relatedArticles = [];
+
+    if (ticketData.category) {
+      relatedArticles = await db
+        .select()
+        .from(knowledgeBase)
+        .where(
+          and(
+            eq(knowledgeBase.status, 'published'),
+            eq(knowledgeBase.category, ticketData.category)
+          )
+        )
+        .orderBy(desc(knowledgeBase.helpful_votes))
+        .limit(3);
+    }
+
+    // If no category matches, try text search
+    if (relatedArticles.length === 0) {
+      const textSearchConditions = searchTags.slice(0, 2).map(tag => 
+        or(
+          ilike(knowledgeBase.title, `%${tag}%`),
+          ilike(knowledgeBase.content, `%${tag}%`)
+        )
+      );
+
+      relatedArticles = await db
+        .select()
+        .from(knowledgeBase)
+        .where(
+          and(
+            eq(knowledgeBase.status, 'published'),
+            or(...textSearchConditions)
+          )
+        )
+        .orderBy(desc(knowledgeBase.helpful_votes))
+        .limit(3);
+    }
+
+    return relatedArticles || [];
+  } catch (error) {
+    console.error('Error fetching related articles:', error);
+    return [];
   }
 }
 

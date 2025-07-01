@@ -1,9 +1,9 @@
-import { Router } from "express";
-import { eq, desc, like, and, count, or } from "drizzle-orm";
+import { Router } from 'express';
+import { db } from '../db';
+import { knowledgeBase, tickets } from '@shared/ticket-schema';
+import { eq, and, or, sql, desc, ilike } from 'drizzle-orm';
 import jwt from "jsonwebtoken";
 
-import { db } from "../db";
-import { knowledgeBase } from "@shared/ticket-schema";
 import { TicketStorage } from "../services/ticket-storage";
 
 const router = Router();
@@ -46,7 +46,7 @@ router.get("/", authenticateToken, async (req, res) => {
 
     // Build query conditions
     const conditions = [];
-    
+
     // Always filter by status (published articles only)
     conditions.push(eq(knowledgeBase.status, filters.status));
 
@@ -85,7 +85,7 @@ router.get("/", authenticateToken, async (req, res) => {
       .offset((page - 1) * limit);
 
     console.log(`Found ${articles.length} articles in database (total: ${total})`);
-    
+
     const response = {
       data: articles,
       pagination: {
@@ -165,6 +165,116 @@ router.post("/", authenticateToken, async (req, res) => {
   } catch (error) {
     console.error("Error creating KB article:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Get related articles by tags
+router.get('/related/:ticketId', async (req, res) => {
+  try {
+    const { ticketId } = req.params;
+
+    // Get ticket details to extract tags
+    const ticket = await db.select().from(tickets).where(eq(tickets.id, ticketId)).limit(1);
+
+    if (!ticket.length) {
+      return res.status(404).json({ error: 'Ticket not found' });
+    }
+
+    const ticketData = ticket[0];
+    let searchTags: string[] = [];
+
+    // Extract tags from ticket category, priority, and description
+    if (ticketData.category) {
+      searchTags.push(ticketData.category.toLowerCase());
+    }
+
+    if (ticketData.priority) {
+      searchTags.push(ticketData.priority.toLowerCase());
+    }
+
+    // Extract keywords from title and description
+    const text = `${ticketData.title} ${ticketData.description || ''}`.toLowerCase();
+    const keywords = text.match(/\b\w{4,}\b/g) || [];
+    searchTags.push(...keywords.slice(0, 5)); // Limit to 5 keywords
+
+    // Remove duplicates and empty strings
+    searchTags = [...new Set(searchTags.filter(tag => tag && tag.length > 0))];
+
+    let relatedArticles: any[] = [];
+
+    if (searchTags.length > 0) {
+      // Search for articles with matching tags using proper PostgreSQL array operators
+      try {
+        const tagQueries = searchTags.map(tag => 
+          sql`${knowledgeBase.tags}::jsonb ? ${tag}`
+        );
+
+        relatedArticles = await db
+          .select()
+          .from(knowledgeBase)
+          .where(
+            and(
+              eq(knowledgeBase.status, 'published'),
+              or(...tagQueries)
+            )
+          )
+          .orderBy(desc(knowledgeBase.helpful_votes))
+          .limit(5);
+      } catch (tagError) {
+        console.warn('Tag-based search failed, falling back to text search:', tagError);
+
+        // Fallback to text-based search
+        const textSearchConditions = searchTags.map(tag => 
+          or(
+            ilike(knowledgeBase.title, `%${tag}%`),
+            ilike(knowledgeBase.content, `%${tag}%`),
+            ilike(knowledgeBase.category, `%${tag}%`)
+          )
+        );
+
+        relatedArticles = await db
+          .select()
+          .from(knowledgeBase)
+          .where(
+            and(
+              eq(knowledgeBase.status, 'published'),
+              or(...textSearchConditions)
+            )
+          )
+          .orderBy(desc(knowledgeBase.helpful_votes))
+          .limit(5);
+      }
+    }
+
+    // If no related articles found, return top articles by category
+    if (relatedArticles.length === 0 && ticketData.category) {
+      relatedArticles = await db
+        .select()
+        .from(knowledgeBase)
+        .where(
+          and(
+            eq(knowledgeBase.status, 'published'),
+            eq(knowledgeBase.category, ticketData.category)
+          )
+        )
+        .orderBy(desc(knowledgeBase.helpful_votes))
+        .limit(3);
+    }
+
+    // If still no articles, return top articles overall
+    if (relatedArticles.length === 0) {
+      relatedArticles = await db
+        .select()
+        .from(knowledgeBase)
+        .where(eq(knowledgeBase.status, 'published'))
+        .orderBy(desc(knowledgeBase.helpful_votes))
+        .limit(3);
+    }
+
+    res.json(relatedArticles || []);
+  } catch (error) {
+    console.error('Error fetching related articles:', error);
+    res.status(500).json({ error: 'Failed to fetch related articles', details: error.message });
   }
 });
 

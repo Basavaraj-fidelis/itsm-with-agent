@@ -27,6 +27,7 @@ interface RelatedArticlesProps {
 export default function RelatedArticles({ ticket }: RelatedArticlesProps) {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRelatedArticles();
@@ -35,6 +36,7 @@ export default function RelatedArticles({ ticket }: RelatedArticlesProps) {
   const fetchRelatedArticles = async () => {
     try {
       setLoading(true);
+      setError(null);
       console.log('=== FETCHING RELATED ARTICLES ===');
       console.log('Ticket details:', {
         title: ticket.title,
@@ -96,10 +98,12 @@ export default function RelatedArticles({ ticket }: RelatedArticlesProps) {
 
       } catch (apiError) {
         console.error('API call failed:', apiError);
+        setError('API call failed');
         setArticles([]);
       }
     } catch (error) {
       console.error('Error fetching related articles:', error);
+      setError('Error fetching related articles');
       setArticles([]);
     } finally {
       setLoading(false);
@@ -134,6 +138,34 @@ export default function RelatedArticles({ ticket }: RelatedArticlesProps) {
                 <div className="h-3 bg-gray-100 rounded w-3/4"></div>
               </div>
             ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center">
+            <BookOpen className="w-5 h-5 mr-2 text-blue-600" />
+            Related Help Articles
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-6">
+            <p className="text-sm text-red-500">
+              Error: {error}
+            </p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-2"
+              onClick={() => fetchRelatedArticles()}
+            >
+              Retry
+            </Button>
           </div>
         </CardContent>
       </Card>
