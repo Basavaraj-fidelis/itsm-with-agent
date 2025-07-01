@@ -204,7 +204,7 @@ var init_db = __esm({
 // shared/ticket-schema.ts
 var ticket_schema_exports = {};
 __export(ticket_schema_exports, {
-  knowledgeBase: () => knowledgeBase2,
+  knowledgeBase: () => knowledgeBase,
   ticketApprovals: () => ticketApprovals,
   ticketAttachments: () => ticketAttachments,
   ticketComments: () => ticketComments,
@@ -214,7 +214,7 @@ __export(ticket_schema_exports, {
   tickets: () => tickets
 });
 import { pgTable as pgTable2, text as text2, timestamp as timestamp2, integer, json as json2, uuid as uuid2, varchar, boolean as boolean2 } from "drizzle-orm/pg-core";
-var ticketTypes, ticketPriorities, ticketStatuses, tickets, ticketComments, ticketAttachments, ticketApprovals, knowledgeBase2;
+var ticketTypes, ticketPriorities, ticketStatuses, tickets, ticketComments, ticketAttachments, ticketApprovals, knowledgeBase;
 var init_ticket_schema = __esm({
   "shared/ticket-schema.ts"() {
     "use strict";
@@ -262,6 +262,7 @@ var init_ticket_schema = __esm({
       // Metadata
       tags: json2("tags").$type().default([]),
       custom_fields: json2("custom_fields").$type().default({}),
+      related_article_ids: json2("related_article_ids").$type().default([]),
       // SLA fields
       sla_policy_id: uuid2("sla_policy_id"),
       // Reference to SLA policy
@@ -316,7 +317,7 @@ var init_ticket_schema = __esm({
       approved_at: timestamp2("approved_at"),
       created_at: timestamp2("created_at").defaultNow().notNull()
     });
-    knowledgeBase2 = pgTable2("knowledge_base", {
+    knowledgeBase = pgTable2("knowledge_base", {
       id: uuid2("id").primaryKey().defaultRandom(),
       title: text2("title").notNull(),
       content: text2("content").notNull(),
@@ -341,7 +342,7 @@ __export(storage_exports, {
   registerAgent: () => registerAgent,
   storage: () => storage
 });
-import { eq, desc, and, sql as sql2 } from "drizzle-orm";
+import { eq, desc, and as and2, sql as sql2 } from "drizzle-orm";
 import os from "os";
 async function registerAgent(hostname, ip_address, currentUser) {
   try {
@@ -972,8 +973,8 @@ var init_storage = __esm({
       }
       async initializeSampleKBArticles() {
         try {
-          const { knowledgeBase: knowledgeBase3 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-          const existingArticles = await db.select().from(knowledgeBase3);
+          const { knowledgeBase: knowledgeBase2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
+          const existingArticles = await db.select().from(knowledgeBase2);
           if (existingArticles.length > 0) {
             console.log(
               "Knowledge base articles already exist, skipping initialization"
@@ -2609,7 +2610,7 @@ smartphones
               helpful_votes: 67
             }
           ];
-          await db.insert(knowledgeBase3).values(sampleArticles);
+          await db.insert(knowledgeBase2).values(sampleArticles);
           console.log("Sample knowledge base articles created successfully");
         } catch (error) {
           console.error("Error creating sample KB articles:", error);
@@ -2670,7 +2671,7 @@ smartphones
       }
       async getActiveAlertByDeviceAndMetric(deviceId, metric) {
         const result = await db.select().from(alerts).where(
-          and(
+          and2(
             eq(alerts.device_id, deviceId),
             eq(alerts.is_active, true),
             sql2`${alerts.metadata}->>'metric' = ${metric}`
@@ -2713,8 +2714,8 @@ smartphones
         try {
           const { db: db4 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { usb_devices: usb_devices2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-          const { eq: eq11, desc: desc9 } = await import("drizzle-orm");
-          const result = await db4.select().from(usb_devices2).where(eq11(usb_devices2.device_id, deviceId)).orderBy(desc9(usb_devices2.last_seen));
+          const { eq: eq12, desc: desc10 } = await import("drizzle-orm");
+          const result = await db4.select().from(usb_devices2).where(eq12(usb_devices2.device_id, deviceId)).orderBy(desc10(usb_devices2.last_seen));
           return result;
         } catch (error) {
           console.error("Error fetching USB devices for device:", error);
@@ -2725,8 +2726,8 @@ smartphones
         try {
           const { db: db4 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { usb_devices: usb_devices2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-          const { eq: eq11, and: and10 } = await import("drizzle-orm");
-          await db4.update(usb_devices2).set({ is_connected: false }).where(eq11(usb_devices2.device_id, deviceId));
+          const { eq: eq12, and: and11 } = await import("drizzle-orm");
+          await db4.update(usb_devices2).set({ is_connected: false }).where(eq12(usb_devices2.device_id, deviceId));
           for (const device of usbDevices) {
             let vendor_id = device.vendor_id;
             let product_id = device.product_id;
@@ -2744,9 +2745,9 @@ smartphones
             );
             const deviceIdentifier = vendor_id && product_id ? `${vendor_id}:${product_id}:${serial_number || "no-serial"}` : device.device_id || device.serial_number || `unknown-${Date.now()}`;
             const existingDevices = await db4.select().from(usb_devices2).where(
-              and10(
-                eq11(usb_devices2.device_id, deviceId),
-                eq11(usb_devices2.device_identifier, deviceIdentifier)
+              and11(
+                eq12(usb_devices2.device_id, deviceId),
+                eq12(usb_devices2.device_identifier, deviceIdentifier)
               )
             );
             if (existingDevices.length > 0) {
@@ -2762,7 +2763,7 @@ smartphones
                 last_seen: /* @__PURE__ */ new Date(),
                 is_connected: true,
                 raw_data: device
-              }).where(eq11(usb_devices2.id, existingDevices[0].id));
+              }).where(eq12(usb_devices2.id, existingDevices[0].id));
             } else {
               await db4.insert(usb_devices2).values({
                 device_id: deviceId,
@@ -3331,7 +3332,7 @@ __export(user_storage_exports, {
   UserStorage: () => UserStorage,
   userStorage: () => userStorage
 });
-import { eq as eq2, desc as desc2, and as and2, or as or2, like as like2, count as count2 } from "drizzle-orm";
+import { eq as eq2, desc as desc2, and as and3, or as or2, like as like2, count as count2 } from "drizzle-orm";
 var UserStorage, userStorage;
 var init_user_storage = __esm({
   "server/services/user-storage.ts"() {
@@ -3375,7 +3376,7 @@ var init_user_storage = __esm({
             )
           );
         }
-        const whereClause = conditions.length > 0 ? and2(...conditions) : void 0;
+        const whereClause = conditions.length > 0 ? and3(...conditions) : void 0;
         const [{ total }] = await db.select({ total: count2() }).from(users).where(whereClause);
         const data = await db.select({
           id: users.id,
@@ -3464,11 +3465,11 @@ var init_user_storage = __esm({
       }
       // Role-based queries
       async getTechnicians() {
-        return await db.select().from(users).where(and2(eq2(users.role, "technician"), eq2(users.is_active, true))).orderBy(users.first_name, users.last_name);
+        return await db.select().from(users).where(and3(eq2(users.role, "technician"), eq2(users.is_active, true))).orderBy(users.first_name, users.last_name);
       }
       async getManagers() {
         return await db.select().from(users).where(
-          and2(
+          and3(
             or2(eq2(users.role, "manager"), eq2(users.role, "admin")),
             eq2(users.is_active, true)
           )
@@ -3476,7 +3477,7 @@ var init_user_storage = __esm({
       }
       async getActiveTechnicians() {
         return await db.select().from(users).where(
-          and2(
+          and3(
             eq2(users.role, "technician"),
             eq2(users.is_active, true),
             eq2(users.is_locked, false)
@@ -3691,7 +3692,7 @@ __export(sla_policy_service_exports, {
   SLAPolicyService: () => SLAPolicyService,
   slaPolicyService: () => slaPolicyService
 });
-import { eq as eq3, and as and3, isNull as isNull2, desc as desc3 } from "drizzle-orm";
+import { eq as eq3, and as and4, isNull as isNull2, desc as desc3 } from "drizzle-orm";
 var SLAPolicyService, slaPolicyService;
 var init_sla_policy_service = __esm({
   "server/services/sla-policy-service.ts"() {
@@ -3703,7 +3704,7 @@ var init_sla_policy_service = __esm({
       async findMatchingSLAPolicy(ticket) {
         try {
           const exactMatch = await db.select().from(slaPolicies2).where(
-            and3(
+            and4(
               eq3(slaPolicies2.is_active, true),
               eq3(slaPolicies2.ticket_type, ticket.type),
               eq3(slaPolicies2.priority, ticket.priority),
@@ -3716,7 +3717,7 @@ var init_sla_policy_service = __esm({
             return exactMatch[0];
           }
           const partialMatch = await db.select().from(slaPolicies2).where(
-            and3(
+            and4(
               eq3(slaPolicies2.is_active, true),
               eq3(slaPolicies2.ticket_type, ticket.type),
               eq3(slaPolicies2.priority, ticket.priority),
@@ -3729,7 +3730,7 @@ var init_sla_policy_service = __esm({
             return partialMatch[0];
           }
           const priorityMatch = await db.select().from(slaPolicies2).where(
-            and3(
+            and4(
               eq3(slaPolicies2.is_active, true),
               eq3(slaPolicies2.priority, ticket.priority),
               isNull2(slaPolicies2.ticket_type),
@@ -3884,13 +3885,216 @@ var init_sla_policy_service = __esm({
   }
 });
 
+// server/services/knowledge-ai-service.ts
+var knowledge_ai_service_exports = {};
+__export(knowledge_ai_service_exports, {
+  KnowledgeAIService: () => KnowledgeAIService,
+  knowledgeAIService: () => knowledgeAIService
+});
+import { eq as eq4, desc as desc4 } from "drizzle-orm";
+var KnowledgeAIService, knowledgeAIService;
+var init_knowledge_ai_service = __esm({
+  "server/services/knowledge-ai-service.ts"() {
+    "use strict";
+    init_db();
+    init_ticket_schema();
+    KnowledgeAIService = class {
+      /**
+       * Find relevant articles for a ticket
+       */
+      async findRelevantArticles(ticket) {
+        try {
+          console.log("Finding relevant articles for ticket:", ticket.title);
+          const articles = await db.select().from(knowledgeBase).where(eq4(knowledgeBase.status, "published")).orderBy(desc4(knowledgeBase.helpful_votes));
+          console.log(`Found ${articles.length} published articles in database`);
+          if (!articles.length) {
+            console.log("No published articles found");
+            return [];
+          }
+          const matches = [];
+          const ticketText = `${ticket.title} ${ticket.description}`.toLowerCase();
+          const ticketWords = this.extractKeywords(ticketText);
+          for (const article of articles) {
+            const score = this.calculateRelevanceScore(ticket, article, ticketWords);
+            if (score.score > 0.2) {
+              matches.push({
+                article,
+                relevanceScore: score.score,
+                matchReasons: score.reasons
+              });
+            }
+          }
+          const sortedMatches = matches.sort((a, b) => b.relevanceScore - a.relevanceScore).slice(0, 5);
+          console.log(`Found ${sortedMatches.length} relevant articles with scores:`, sortedMatches.map((m) => ({ id: m.article.id, title: m.article.title, score: m.relevanceScore })));
+          return sortedMatches;
+        } catch (error) {
+          console.error("Error finding relevant articles:", error);
+          return [];
+        }
+      }
+      /**
+       * Generate a draft article from ticket content
+       */
+      async generateDraftArticle(ticket) {
+        try {
+          console.log("Generating draft article for ticket:", ticket.title);
+          const draftContent = this.generateArticleContent(ticket);
+          const newArticle = {
+            title: `How to resolve: ${ticket.title}`,
+            content: draftContent,
+            category: ticket.category || this.categorizeTicket(ticket),
+            tags: this.generateArticleTags(ticket),
+            author_email: "system@autoGenerated.com",
+            status: "published",
+            // Change to published so it's immediately available
+            views: 0,
+            helpful_votes: 0
+          };
+          const [createdArticle] = await db.insert(knowledgeBase).values(newArticle).returning();
+          console.log(`Generated and published draft article: ${createdArticle.id} - ${createdArticle.title}`);
+          return createdArticle;
+        } catch (error) {
+          console.error("Error generating draft article:", error);
+          return null;
+        }
+      }
+      /**
+       * Calculate relevance score between ticket and article
+       */
+      calculateRelevanceScore(ticket, article, ticketWords) {
+        let score = 0;
+        const reasons = [];
+        const articleTitle = article.title.toLowerCase();
+        const articleContent = article.content.toLowerCase();
+        const articleCategory = (article.category || "").toLowerCase();
+        const ticketTitle = ticket.title.toLowerCase();
+        const titleWords = ticketTitle.split(" ").filter((word) => word.length > 3);
+        const titleMatches = titleWords.filter((word) => articleTitle.includes(word));
+        if (titleMatches.length > 0) {
+          score += titleMatches.length * 0.5;
+          reasons.push(`Title matches: ${titleMatches.join(", ")}`);
+        }
+        if (ticket.category && articleCategory === ticket.category.toLowerCase()) {
+          score += 0.4;
+          reasons.push("Category match");
+        }
+        const contentMatches = ticketWords.filter(
+          (word) => word.length > 3 && articleContent.includes(word)
+        );
+        if (contentMatches.length > 0) {
+          score += contentMatches.length * 0.1;
+          reasons.push(`Content keywords: ${contentMatches.slice(0, 3).join(", ")}`);
+        }
+        score += (article.helpful_votes || 0) * 0.01;
+        score += (article.views || 0) * 1e-3;
+        return { score, reasons };
+      }
+      /**
+       * Extract meaningful keywords from text
+       */
+      extractKeywords(text6) {
+        const stopWords = /* @__PURE__ */ new Set(["the", "is", "at", "which", "on", "and", "a", "to", "are", "as", "was", "will", "be", "have", "has", "had", "do", "does", "did", "can", "could", "should", "would", "may", "might", "must", "shall", "will", "am", "are", "is", "was", "were", "been", "have", "has", "had", "do", "does", "did", "will", "would", "could", "should", "may", "might", "must", "shall"]);
+        return text6.toLowerCase().replace(/[^\w\s]/g, " ").split(/\s+/).filter((word) => word.length > 3 && !stopWords.has(word)).slice(0, 10);
+      }
+      /**
+       * Generate article content from ticket
+       */
+      generateArticleContent(ticket) {
+        return `# ${ticket.title}
+
+## Problem Description
+${ticket.description}
+
+## Troubleshooting Steps
+
+### Step 1: Initial Diagnosis
+1. Verify the issue symptoms
+2. Check recent changes or updates
+3. Review error messages if any
+
+### Step 2: Basic Resolution
+1. Restart the affected service/application
+2. Check system resources (CPU, Memory, Disk)
+3. Verify network connectivity
+
+### Step 3: Advanced Troubleshooting
+1. Check system logs for errors
+2. Review configuration settings
+3. Test with minimal configuration
+
+### Step 4: Escalation
+If the above steps don't resolve the issue:
+1. Document all attempted solutions
+2. Gather system information and logs
+3. Contact technical support with detailed information
+
+## Prevention
+- Regular system maintenance
+- Keep software/drivers updated
+- Monitor system performance
+- Follow best practices for ${ticket.category || "system management"}
+
+## Related Topics
+- System troubleshooting
+- ${ticket.category || "General"} issues
+- Performance optimization
+
+---
+*This article was auto-generated from ticket: ${ticket.title}*
+*Category: ${ticket.category || "General"}*
+*Type: ${ticket.type}*`;
+      }
+      /**
+       * Generate tags for article
+       */
+      generateArticleTags(ticket) {
+        const tags = /* @__PURE__ */ new Set();
+        if (ticket.tags) {
+          ticket.tags.forEach((tag) => tags.add(tag.toLowerCase()));
+        }
+        if (ticket.category) {
+          tags.add(ticket.category.toLowerCase());
+        }
+        tags.add(ticket.type.toLowerCase());
+        const text6 = `${ticket.title} ${ticket.description}`.toLowerCase();
+        const keywords = this.extractKeywords(text6);
+        keywords.slice(0, 5).forEach((keyword) => tags.add(keyword));
+        tags.add("troubleshooting");
+        tags.add("support");
+        return Array.from(tags).slice(0, 8);
+      }
+      /**
+       * Categorize ticket based on content
+       */
+      categorizeTicket(ticket) {
+        const text6 = `${ticket.title} ${ticket.description}`.toLowerCase();
+        const categoryKeywords = {
+          "Hardware": ["hardware", "device", "computer", "laptop", "desktop", "monitor", "keyboard", "mouse", "printer", "scanner"],
+          "Software": ["software", "application", "program", "install", "update", "crash", "error", "bug"],
+          "Network": ["network", "internet", "wifi", "connection", "router", "vpn", "firewall"],
+          "Security": ["security", "password", "login", "access", "permission", "virus", "malware"],
+          "Email & Communication": ["email", "outlook", "exchange", "mail", "communication", "messaging"],
+          "System Performance": ["slow", "performance", "speed", "freeze", "hang", "crash", "memory", "cpu"]
+        };
+        for (const [category, keywords] of Object.entries(categoryKeywords)) {
+          if (keywords.some((keyword) => text6.includes(keyword))) {
+            return category;
+          }
+        }
+        return "Other";
+      }
+    };
+    knowledgeAIService = new KnowledgeAIService();
+  }
+});
+
 // server/services/ticket-storage.ts
 var ticket_storage_exports = {};
 __export(ticket_storage_exports, {
   TicketStorage: () => TicketStorage,
   ticketStorage: () => ticketStorage
 });
-import { eq as eq4, desc as desc4, and as and4, or as or4, like as like3, sql as sql4, count as count3 } from "drizzle-orm";
+import { eq as eq5, desc as desc5, and as and5, or as or5, like as like4, sql as sql4, count as count3 } from "drizzle-orm";
 var TicketStorage, ticketStorage;
 var init_ticket_storage = __esm({
   "server/services/ticket-storage.ts"() {
@@ -3906,8 +4110,8 @@ var init_ticket_storage = __esm({
         const year = (/* @__PURE__ */ new Date()).getFullYear();
         const prefix = type.toUpperCase().substring(0, 3);
         const [result] = await db.select({ count: count3() }).from(tickets).where(
-          and4(
-            eq4(tickets.type, type),
+          and5(
+            eq5(tickets.type, type),
             sql4`EXTRACT(YEAR FROM ${tickets.created_at}) = ${year}`
           )
         );
@@ -3960,6 +4164,13 @@ var init_ticket_storage = __esm({
           );
           slaTargets = fallbackTargets;
         }
+        const relatedArticleIds = await this.processKnowledgeBaseIntegration({
+          title: ticketData.title,
+          description: ticketData.description,
+          category: ticketData.category,
+          type: ticketData.type,
+          tags: ticketData.tags || []
+        });
         const [newTicket] = await db.insert(tickets).values({
           ...ticketData,
           ticket_number,
@@ -3976,7 +4187,8 @@ var init_ticket_storage = __esm({
           due_date: slaResolutionDue,
           sla_breached: false,
           sla_response_breached: false,
-          sla_resolution_breached: false
+          sla_resolution_breached: false,
+          related_article_ids: relatedArticleIds
         }).returning();
         await this.logAudit(
           "ticket",
@@ -3994,32 +4206,152 @@ var init_ticket_storage = __esm({
             is_internal: true
           });
         }
+        console.log(
+          `Created ticket ${ticket_number} with ${relatedArticleIds.length} related articles`
+        );
         return newTicket;
+      }
+      async processKnowledgeBaseIntegration(ticketData) {
+        try {
+          console.log("=== PROCESSING KNOWLEDGE BASE INTEGRATION ===");
+          console.log("Ticket data:", ticketData);
+          await this.ensureSampleKBArticles();
+          const { knowledgeAIService: knowledgeAIService2 } = await Promise.resolve().then(() => (init_knowledge_ai_service(), knowledge_ai_service_exports));
+          console.log("Searching for relevant articles...");
+          const relevantArticles = await knowledgeAIService2.findRelevantArticles({
+            title: ticketData.title,
+            description: ticketData.description,
+            category: ticketData.category,
+            type: ticketData.type,
+            tags: ticketData.tags
+          });
+          let relatedArticleIds = relevantArticles.map((match) => match.article.id);
+          console.log(`Found ${relatedArticleIds.length} related articles:`, relevantArticles.map((a) => a.article.title));
+          if (relatedArticleIds.length === 0) {
+            console.log("No relevant articles found, generating new draft article...");
+            const draftArticle = await knowledgeAIService2.generateDraftArticle({
+              title: ticketData.title,
+              description: ticketData.description,
+              category: ticketData.category,
+              type: ticketData.type,
+              tags: ticketData.tags
+            });
+            if (draftArticle) {
+              relatedArticleIds = [draftArticle.id];
+              console.log(`\u2705 Generated and linked draft article: ${draftArticle.id} - "${draftArticle.title}"`);
+            } else {
+              console.log("\u274C Failed to generate draft article");
+            }
+          } else {
+            console.log(`\u2705 Linked ${relatedArticleIds.length} existing articles to ticket`);
+          }
+          console.log("Final related article IDs:", relatedArticleIds);
+          return relatedArticleIds;
+        } catch (error) {
+          console.error("\u274C Error in knowledge base integration:", error);
+          return [];
+        }
+      }
+      async ensureSampleKBArticles() {
+        try {
+          const existingArticles = await db.select().from(knowledgeBase).limit(1);
+          if (existingArticles.length === 0) {
+            console.log("Creating sample knowledge base articles...");
+            const sampleArticles = [
+              {
+                title: "How to Reset Your Password",
+                content: "# Password Reset Guide\n\n1. Go to the login page\n2. Click 'Forgot Password'\n3. Enter your email address\n4. Check your email for reset instructions\n5. Follow the link and create a new password",
+                category: "Security",
+                tags: ["password", "reset", "login", "security"],
+                author_email: "admin@company.com",
+                status: "published",
+                views: 150,
+                helpful_votes: 25
+              },
+              {
+                title: "Troubleshooting Monitor Display Issues",
+                content: "# Monitor Display Problems\n\n## Common Issues:\n- No display\n- Blurry screen\n- Color issues\n\n## Solutions:\n1. Check cable connections\n2. Update display drivers\n3. Adjust resolution settings\n4. Test with different monitor",
+                category: "Hardware",
+                tags: ["monitor", "display", "screen", "troubleshooting"],
+                author_email: "admin@company.com",
+                status: "published",
+                views: 200,
+                helpful_votes: 30
+              },
+              {
+                title: "Installing Software Updates",
+                content: "# Software Update Guide\n\n## Windows Updates:\n1. Open Settings\n2. Go to Update & Security\n3. Click Check for Updates\n4. Install available updates\n5. Restart when prompted",
+                category: "Software",
+                tags: ["software", "update", "installation", "windows"],
+                author_email: "admin@company.com",
+                status: "published",
+                views: 300,
+                helpful_votes: 45
+              },
+              {
+                title: "Keyboard and Mouse Troubleshooting",
+                content: "# Keyboard and Mouse Issues\n\n## Common Problems:\n- Keyboard not responding\n- Mouse not moving\n- Keys not working\n- Wireless connectivity issues\n\n## Solutions:\n1. Check USB connections\n2. Replace batteries (wireless devices)\n3. Update drivers\n4. Test with different devices\n5. Check for interference\n6. Clean devices",
+                category: "Hardware",
+                tags: ["keyboard", "mouse", "input", "devices", "troubleshooting"],
+                author_email: "admin@company.com",
+                status: "published",
+                views: 180,
+                helpful_votes: 35
+              },
+              {
+                title: "Email Server Issues and Solutions",
+                content: "# Email Server Problems\n\n## Common Issues:\n- Cannot send/receive emails\n- Server connection timeout\n- Authentication failures\n- Slow email delivery\n\n## Troubleshooting Steps:\n1. Check internet connection\n2. Verify server settings\n3. Test with different email client\n4. Check firewall settings\n5. Contact email provider\n6. Restart email services",
+                category: "Email & Communication",
+                tags: ["email", "server", "exchange", "outlook", "communication"],
+                author_email: "admin@company.com",
+                status: "published",
+                views: 250,
+                helpful_votes: 40
+              },
+              {
+                title: "Network Connectivity Issues",
+                content: "# Network Connection Problems\n\n## Symptoms:\n- No internet access\n- Slow connection\n- Intermittent connectivity\n- Cannot reach specific sites\n\n## Resolution Steps:\n1. Check physical connections\n2. Restart network adapter\n3. Flush DNS cache\n4. Reset network settings\n5. Contact ISP if needed",
+                category: "Network",
+                tags: ["network", "internet", "connectivity", "dns", "adapter"],
+                author_email: "admin@company.com",
+                status: "published",
+                views: 320,
+                helpful_votes: 50
+              }
+            ];
+            for (const article of sampleArticles) {
+              await this.createKBArticle(article);
+            }
+            console.log("Sample knowledge base articles created successfully");
+          }
+        } catch (error) {
+          console.error("Error creating sample KB articles:", error);
+        }
       }
       async getTickets(page = 1, limit = 20, filters = {}) {
         const offset = (page - 1) * limit;
         const conditions = [];
         if (filters.type) {
-          conditions.push(eq4(tickets.type, filters.type));
+          conditions.push(eq5(tickets.type, filters.type));
         }
         if (filters.status) {
-          conditions.push(eq4(tickets.status, filters.status));
+          conditions.push(eq5(tickets.status, filters.status));
         }
         if (filters.priority) {
-          conditions.push(eq4(tickets.priority, filters.priority));
+          conditions.push(eq5(tickets.priority, filters.priority));
         }
         if (filters.search) {
           conditions.push(
-            or4(
-              like3(tickets.title, `%${filters.search}%`),
-              like3(tickets.description, `%${filters.search}%`),
-              like3(tickets.ticket_number, `%${filters.search}%`)
+            or5(
+              like4(tickets.title, `%${filters.search}%`),
+              like4(tickets.description, `%${filters.search}%`),
+              like4(tickets.ticket_number, `%${filters.search}%`)
             )
           );
         }
-        const whereClause = conditions.length > 0 ? and4(...conditions) : void 0;
+        const whereClause = conditions.length > 0 ? and5(...conditions) : void 0;
         const [{ total }] = await db.select({ total: count3() }).from(tickets).where(whereClause);
-        const data = await db.select().from(tickets).where(whereClause).orderBy(desc4(tickets.created_at)).limit(limit).offset(offset);
+        const data = await db.select().from(tickets).where(whereClause).orderBy(desc5(tickets.created_at)).limit(limit).offset(offset);
         return {
           data,
           total,
@@ -4029,7 +4361,7 @@ var init_ticket_storage = __esm({
         };
       }
       async getTicketById(id) {
-        const [ticket] = await db.select().from(tickets).where(eq4(tickets.id, id));
+        const [ticket] = await db.select().from(tickets).where(eq5(tickets.id, id));
         return ticket || null;
       }
       async updateTicket(id, updates, userEmail = "admin@company.com", comment) {
@@ -4082,7 +4414,7 @@ var init_ticket_storage = __esm({
           }
           if (updates.status === "resolved" && !updates.resolved_at) {
             updates.resolved_at = /* @__PURE__ */ new Date();
-            const [currentTicket2] = await db.select().from(tickets).where(eq4(tickets.id, id));
+            const [currentTicket2] = await db.select().from(tickets).where(eq5(tickets.id, id));
             if (currentTicket2?.sla_resolution_due) {
               const wasBreached = /* @__PURE__ */ new Date() > new Date(currentTicket2.sla_resolution_due);
               updates.sla_breached = wasBreached;
@@ -4115,7 +4447,7 @@ var init_ticket_storage = __esm({
             updates.sla_breached = /* @__PURE__ */ new Date() > slaResolutionDue;
           }
           updates.updated_at = /* @__PURE__ */ new Date();
-          const [updatedTicket] = await db.update(tickets).set(updates).where(eq4(tickets.id, id)).returning();
+          const [updatedTicket] = await db.update(tickets).set(updates).where(eq5(tickets.id, id)).returning();
           if (!updatedTicket) {
             return null;
           }
@@ -4133,7 +4465,7 @@ var init_ticket_storage = __esm({
         }
       }
       async deleteTicket(id) {
-        const result = await db.delete(tickets).where(eq4(tickets.id, id));
+        const result = await db.delete(tickets).where(eq5(tickets.id, id));
         return result.rowCount > 0;
       }
       // Comment Operations
@@ -4145,33 +4477,33 @@ var init_ticket_storage = __esm({
         return comment;
       }
       async getTicketComments(ticketId) {
-        return await db.select().from(ticketComments).where(eq4(ticketComments.ticket_id, ticketId)).orderBy(desc4(ticketComments.created_at));
+        return await db.select().from(ticketComments).where(eq5(ticketComments.ticket_id, ticketId)).orderBy(desc5(ticketComments.created_at));
       }
       // Knowledge Base Operations
       async createKBArticle(articleData) {
-        const [article] = await db.insert(knowledgeBase2).values(articleData).returning();
+        const [article] = await db.insert(knowledgeBase).values(articleData).returning();
         return article;
       }
       async getKBArticles(page = 1, limit = 20, filters = {}) {
         const offset = (page - 1) * limit;
         const conditions = [];
         if (filters.category) {
-          conditions.push(eq4(knowledgeBase2.category, filters.category));
+          conditions.push(eq5(knowledgeBase.category, filters.category));
         }
         if (filters.status) {
-          conditions.push(eq4(knowledgeBase2.status, filters.status));
+          conditions.push(eq5(knowledgeBase.status, filters.status));
         }
         if (filters.search) {
           conditions.push(
-            or4(
-              like3(knowledgeBase2.title, `%${filters.search}%`),
-              like3(knowledgeBase2.content, `%${filters.search}%`)
+            or5(
+              like4(knowledgeBase.title, `%${filters.search}%`),
+              like4(knowledgeBase.content, `%${filters.search}%`)
             )
           );
         }
-        const whereClause = conditions.length > 0 ? and4(...conditions) : void 0;
-        const [{ total }] = await db.select({ total: count3() }).from(knowledgeBase2).where(whereClause);
-        const data = await db.select().from(knowledgeBase2).where(whereClause).orderBy(desc4(knowledgeBase2.created_at)).limit(limit).offset(offset);
+        const whereClause = conditions.length > 0 ? and5(...conditions) : void 0;
+        const [{ total }] = await db.select({ total: count3() }).from(knowledgeBase).where(whereClause);
+        const data = await db.select().from(knowledgeBase).where(whereClause).orderBy(desc5(knowledgeBase.created_at)).limit(limit).offset(offset);
         return {
           data,
           total,
@@ -4181,18 +4513,18 @@ var init_ticket_storage = __esm({
         };
       }
       async getKBArticleById(id) {
-        const [article] = await db.select().from(knowledgeBase2).where(eq4(knowledgeBase2.id, id));
+        const [article] = await db.select().from(knowledgeBase).where(eq5(knowledgeBase.id, id));
         return article || null;
       }
       async updateKBArticle(id, updates) {
-        const [updatedArticle] = await db.update(knowledgeBase2).set({
+        const [updatedArticle] = await db.update(knowledgeBase).set({
           ...updates,
           updated_at: /* @__PURE__ */ new Date()
-        }).where(eq4(knowledgeBase2.id, id)).returning();
+        }).where(eq5(knowledgeBase.id, id)).returning();
         return updatedArticle || null;
       }
       async deleteKBArticle(id) {
-        const result = await db.delete(knowledgeBase2).where(eq4(knowledgeBase2.id, id));
+        const result = await db.delete(knowledgeBase).where(eq5(knowledgeBase.id, id));
         return result.rowCount > 0;
       }
       // Export functionality
@@ -4296,9 +4628,9 @@ var init_ticket_storage = __esm({
       // Device delete operation
       async deleteDevice(id) {
         try {
-          await db.delete(device_reports).where(eq4(device_reports.device_id, id));
-          await db.delete(alerts).where(eq4(alerts.device_id, id));
-          const result = await db.delete(devices).where(eq4(devices.id, id));
+          await db.delete(device_reports).where(eq5(device_reports.device_id, id));
+          await db.delete(alerts).where(eq5(alerts.device_id, id));
+          const result = await db.delete(devices).where(eq5(devices.id, id));
           return result.rowCount > 0;
         } catch (error) {
           console.error("Error deleting device:", error);
@@ -4307,201 +4639,6 @@ var init_ticket_storage = __esm({
       }
     };
     ticketStorage = new TicketStorage();
-  }
-});
-
-// server/services/automation-service.ts
-var automation_service_exports = {};
-__export(automation_service_exports, {
-  automationService: () => automationService
-});
-var AutomationService, automationService;
-var init_automation_service = __esm({
-  "server/services/automation-service.ts"() {
-    "use strict";
-    init_storage();
-    AutomationService = class {
-      deploymentQueue = /* @__PURE__ */ new Map();
-      softwarePackages = [
-        {
-          id: "chrome-latest",
-          name: "Google Chrome",
-          version: "latest",
-          installer_path: "/software/chrome_installer.exe",
-          silent_install_args: "/silent /install",
-          prerequisites: [],
-          supported_os: ["Windows"],
-          size_mb: 95
-        },
-        {
-          id: "firefox-latest",
-          name: "Mozilla Firefox",
-          version: "latest",
-          installer_path: "/software/firefox_installer.exe",
-          silent_install_args: "-ms",
-          prerequisites: [],
-          supported_os: ["Windows", "macOS", "Linux"],
-          size_mb: 85
-        },
-        {
-          id: "zoom-latest",
-          name: "Zoom Client",
-          version: "latest",
-          installer_path: "/software/zoom_installer.exe",
-          silent_install_args: "/quiet",
-          prerequisites: [],
-          supported_os: ["Windows", "macOS"],
-          size_mb: 120
-        }
-      ];
-      async scheduleDeployment(deviceIds, packageId, scheduledTime) {
-        const deploymentIds = [];
-        const softwarePackage = this.softwarePackages.find(
-          (p) => p.id === packageId
-        );
-        if (!softwarePackage) {
-          throw new Error(`Software package ${packageId} not found`);
-        }
-        for (const deviceId of deviceIds) {
-          const device = await storage.getDevice(deviceId);
-          if (!device) continue;
-          if (!softwarePackage.supported_os.includes(device.os_name || "")) {
-            console.log(`Skipping ${deviceId}: OS ${device.os_name} not supported`);
-            continue;
-          }
-          const deploymentId = `deploy_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          const task = {
-            id: deploymentId,
-            device_id: deviceId,
-            package_id: packageId,
-            status: "scheduled",
-            scheduled_time: scheduledTime,
-            progress_percentage: 0
-          };
-          if (!this.deploymentQueue.has(deviceId)) {
-            this.deploymentQueue.set(deviceId, []);
-          }
-          this.deploymentQueue.get(deviceId).push(task);
-          await storage.createAlert({
-            device_id: deviceId,
-            category: "automation",
-            severity: "info",
-            message: `Software deployment scheduled: ${softwarePackage.name}`,
-            metadata: {
-              deployment_id: deploymentId,
-              package_info: softwarePackage,
-              scheduled_time: scheduledTime.toISOString(),
-              status: "scheduled"
-            },
-            is_active: true
-          });
-          deploymentIds.push(deploymentId);
-        }
-        return deploymentIds;
-      }
-      async processDeploymentQueue() {
-        const now = /* @__PURE__ */ new Date();
-        for (const [deviceId, tasks] of this.deploymentQueue) {
-          const pendingTasks = tasks.filter(
-            (t) => t.status === "scheduled" && t.scheduled_time <= now
-          );
-          for (const task of pendingTasks) {
-            await this.executeDeployment(task);
-          }
-        }
-      }
-      async executeDeployment(task) {
-        try {
-          task.status = "downloading";
-          task.started_at = /* @__PURE__ */ new Date();
-          task.progress_percentage = 10;
-          await this.updateDeploymentStatus(task);
-          await this.simulateProgress(task, 10, 50);
-          task.status = "installing";
-          task.progress_percentage = 50;
-          await this.updateDeploymentStatus(task);
-          await this.simulateProgress(task, 50, 100);
-          task.status = "completed";
-          task.completed_at = /* @__PURE__ */ new Date();
-          task.progress_percentage = 100;
-          await this.updateDeploymentStatus(task);
-          console.log(`Deployment ${task.id} completed successfully`);
-        } catch (error) {
-          task.status = "failed";
-          task.error_message = error.message;
-          await this.updateDeploymentStatus(task);
-          console.error(`Deployment ${task.id} failed:`, error);
-        }
-      }
-      async simulateProgress(task, start, end) {
-        const steps = 5;
-        const increment = (end - start) / steps;
-        for (let i = 0; i < steps; i++) {
-          await new Promise((resolve) => setTimeout(resolve, 2e3));
-          task.progress_percentage = start + increment * (i + 1);
-          await this.updateDeploymentStatus(task);
-        }
-      }
-      async updateDeploymentStatus(task) {
-        const alerts2 = await storage.getActiveAlerts();
-        const deploymentAlert = alerts2.find(
-          (alert) => alert.metadata?.deployment_id === task.id
-        );
-        if (deploymentAlert) {
-          await storage.updateAlert(deploymentAlert.id, {
-            metadata: {
-              ...deploymentAlert.metadata,
-              status: task.status,
-              progress_percentage: task.progress_percentage,
-              error_message: task.error_message,
-              last_updated: (/* @__PURE__ */ new Date()).toISOString()
-            }
-          });
-        }
-      }
-      async getDeploymentStatus(deploymentId) {
-        for (const tasks of this.deploymentQueue.values()) {
-          const task = tasks.find((t) => t.id === deploymentId);
-          if (task) return task;
-        }
-        return null;
-      }
-      async createConfigurationTemplate(name, description, targetOS, settings, createdBy) {
-        const template = {
-          id: `config_${Date.now()}`,
-          name,
-          description,
-          target_os: targetOS,
-          settings,
-          enforcement_mode: "advisory",
-          created_by: createdBy
-        };
-        console.log("Configuration template created:", template);
-        return template;
-      }
-      async applyConfiguration(deviceId, templateId) {
-        await storage.createAlert({
-          device_id: deviceId,
-          category: "automation",
-          severity: "info",
-          message: `Configuration template applied: ${templateId}`,
-          metadata: {
-            template_id: templateId,
-            automation_type: "configuration_management",
-            status: "applied",
-            applied_at: (/* @__PURE__ */ new Date()).toISOString()
-          },
-          is_active: true
-        });
-      }
-      getSoftwarePackages() {
-        return this.softwarePackages;
-      }
-    };
-    automationService = new AutomationService();
-    setInterval(() => {
-      automationService.processDeploymentQueue().catch(console.error);
-    }, 3e4);
   }
 });
 
@@ -4838,6 +4975,710 @@ var init_enhanced_storage = __esm({
       }
     };
     enhancedStorage = new EnhancedStorage();
+  }
+});
+
+// server/services/patch-compliance-service.ts
+var PatchComplianceService, patchComplianceService;
+var init_patch_compliance_service = __esm({
+  "server/services/patch-compliance-service.ts"() {
+    "use strict";
+    init_db();
+    PatchComplianceService = class {
+      COMPLIANCE_THRESHOLDS = {
+        CRITICAL_MAX_DAYS: 7,
+        IMPORTANT_MAX_DAYS: 30,
+        MODERATE_MAX_DAYS: 60,
+        LOW_MAX_DAYS: 90,
+        MINIMUM_COMPLIANCE_PERCENTAGE: 95
+      };
+      async getDashboardData() {
+        try {
+          console.log("Starting getDashboardData...");
+          try {
+            console.log("Checking if patch_definitions table exists...");
+            const result2 = await db.execute(
+              sql`SELECT 1 FROM patch_definitions LIMIT 1`
+            );
+            console.log(
+              "patch_definitions table exists, proceeding with real data"
+            );
+          } catch (tableError) {
+            console.log("Patch compliance tables not found, returning mock data");
+            console.log("Table error:", tableError?.message || "Unknown error");
+            return this.getMockDashboardData();
+          }
+          let devices2;
+          try {
+            console.log("Fetching devices from database...");
+            const devicesResult = await db.execute(sql`
+          SELECT d.id, d.hostname, d.os_name, d.os_version, d.status, d.last_seen
+          FROM devices d 
+          WHERE d.status = 'online'
+          ORDER BY d.last_seen DESC
+          LIMIT 50
+        `);
+            devices2 = devicesResult.rows || [];
+            console.log(`Found ${devices2.length} online devices`);
+            if (devices2.length === 0) {
+              console.log("No online devices found, checking all devices...");
+              const allDevicesResult = await db.execute(sql`
+            SELECT d.id, d.hostname, d.os_name, d.os_version, d.status, d.last_seen
+            FROM devices d 
+            ORDER BY d.last_seen DESC
+            LIMIT 10
+          `);
+              devices2 = allDevicesResult.rows || [];
+              console.log(`Found ${devices2.length} total devices`);
+            }
+          } catch (deviceFetchError) {
+            console.error("Error fetching devices:", deviceFetchError);
+            console.log("Returning mock data due to device fetch error");
+            return this.getMockDashboardData();
+          }
+          const deviceReports = [];
+          for (const device of devices2) {
+            try {
+              console.log(
+                `Processing patches for device ${device.id} (${device.hostname})`
+              );
+              const deviceUuid = typeof device.id === "string" ? device.id : device.id.toString();
+              console.log(`Querying patches for device UUID: ${deviceUuid}`);
+              console.log(`Device UUID type: ${typeof deviceUuid}`);
+              const patchStatusResult = await db.execute(sql`
+            SELECT 
+              COUNT(*) as total_patches,
+              COUNT(CASE WHEN dps.status = 'installed' THEN 1 END) as installed_patches,
+              COUNT(CASE WHEN dps.status = 'missing' AND COALESCE(pd.severity, 'moderate') = 'critical' THEN 1 END) as missing_critical,
+              COUNT(CASE WHEN dps.status = 'missing' AND COALESCE(pd.severity, 'moderate') = 'important' THEN 1 END) as missing_important,
+              COUNT(CASE WHEN dps.status = 'failed' THEN 1 END) as failed_patches,
+              MAX(dps.last_scan_date) as last_scan
+            FROM device_patch_status dps
+            LEFT JOIN patch_definitions pd ON dps.patch_id = pd.patch_id
+            WHERE dps.device_id = ${deviceUuid}::uuid
+          `);
+              const patchStats = patchStatusResult.rows[0] || {
+                total_patches: 0,
+                installed_patches: 0,
+                missing_critical: 0,
+                missing_important: 0,
+                failed_patches: 0,
+                last_scan: device.last_seen
+              };
+              const totalPatches = Number(patchStats.total_patches) || 0;
+              const installedPatches = Number(patchStats.installed_patches) || 0;
+              const compliance_percentage = totalPatches > 0 ? installedPatches / totalPatches * 100 : 100;
+              const missingCritical = Number(patchStats.missing_critical) || 0;
+              const missingImportant = Number(patchStats.missing_important) || 0;
+              const failedPatches = Number(patchStats.failed_patches) || 0;
+              let risk_score = 0;
+              if (missingCritical > 0) risk_score = 100;
+              else if (missingImportant > 3) risk_score = 80;
+              else if (missingImportant > 0) risk_score = 60;
+              else if (failedPatches > 0) risk_score = 40;
+              else risk_score = 20;
+              deviceReports.push({
+                device_id: device.id,
+                hostname: device.hostname || "Unknown",
+                os_name: device.os_name || "Unknown",
+                os_version: device.os_version || "Unknown",
+                total_patches: totalPatches,
+                installed_patches: installedPatches,
+                missing_critical: missingCritical,
+                missing_important: Number(patchStats.missing_important) || 0,
+                failed_patches: failedPatches,
+                compliance_percentage: Number(compliance_percentage.toFixed(1)),
+                risk_score,
+                last_scan: patchStats.last_scan || device.last_seen || (/* @__PURE__ */ new Date()).toISOString()
+              });
+              console.log(
+                `Device ${device.hostname}: ${totalPatches} total, ${installedPatches} installed, ${compliance_percentage.toFixed(1)}% compliant`
+              );
+            } catch (deviceError) {
+              console.error(`Error processing device ${device.id}:`, deviceError);
+              deviceReports.push({
+                device_id: device.id,
+                hostname: device.hostname || "Unknown",
+                os_name: device.os_name || "Unknown",
+                os_version: device.os_version || "Unknown",
+                total_patches: 0,
+                installed_patches: 0,
+                missing_critical: 0,
+                missing_important: 0,
+                failed_patches: 0,
+                compliance_percentage: 100,
+                risk_score: 0,
+                last_scan: (/* @__PURE__ */ new Date()).toISOString()
+              });
+            }
+          }
+          const totalDevices = deviceReports.length;
+          const compliantDevices = deviceReports.filter(
+            (r) => r.compliance_percentage >= this.COMPLIANCE_THRESHOLDS.MINIMUM_COMPLIANCE_PERCENTAGE
+          ).length;
+          const devicesWithCriticalGaps = deviceReports.filter(
+            (r) => r.missing_critical > 0
+          ).length;
+          const averageCompliance = totalDevices > 0 ? deviceReports.reduce(
+            (sum2, r) => sum2 + (r.compliance_percentage || 0),
+            0
+          ) / totalDevices : 0;
+          const highRiskDevices = deviceReports.filter(
+            (r) => r.risk_score > 75
+          ).length;
+          const mediumRiskDevices = deviceReports.filter(
+            (r) => r.risk_score > 25 && r.risk_score <= 75
+          ).length;
+          const lowRiskDevices = deviceReports.filter(
+            (r) => r.risk_score <= 25
+          ).length;
+          const result = {
+            summary: {
+              total_devices: totalDevices,
+              compliant_devices: compliantDevices,
+              compliance_rate: totalDevices > 0 ? Number((compliantDevices / totalDevices * 100).toFixed(1)) : 0,
+              devices_with_critical_gaps: devicesWithCriticalGaps,
+              average_compliance: Number(averageCompliance.toFixed(1))
+            },
+            devices: deviceReports,
+            top_non_compliant: deviceReports.filter((r) => r.compliance_percentage < 90).sort((a, b) => a.compliance_percentage - b.compliance_percentage).slice(0, 10),
+            upcoming_maintenance: [],
+            risk_distribution: {
+              high_risk: highRiskDevices,
+              medium_risk: mediumRiskDevices,
+              low_risk: lowRiskDevices
+            },
+            recommendations: this.generateRecommendations(deviceReports)
+          };
+          console.log("Successfully generated dashboard data:", {
+            totalDevices,
+            compliantDevices,
+            averageCompliance: averageCompliance.toFixed(1)
+          });
+          return result;
+        } catch (error) {
+          console.error("Error fetching patch compliance dashboard:", error);
+          console.error("Error stack:", error.stack);
+          console.log("Returning mock data due to error");
+          return this.getMockDashboardData();
+        }
+      }
+      async processPatchData(deviceId, patchData) {
+        try {
+          if (patchData.windows_updates) {
+            await this.processWindowsUpdates(deviceId, patchData.windows_updates);
+          }
+          if (patchData.installed_software) {
+            await this.processSoftwarePatches(
+              deviceId,
+              patchData.installed_software
+            );
+          }
+          await this.autoDeploySecurityPatches(deviceId);
+          const deviceUuid = typeof deviceId === "string" ? deviceId : deviceId.toString();
+          await db.execute(sql`
+        UPDATE devices 
+        SET updated_at = NOW() 
+        WHERE id = ${deviceUuid}::uuid
+      `);
+          console.log(`Processed patch data for device ${deviceId}`);
+        } catch (error) {
+          console.error("Error processing patch data:", error);
+          throw error;
+        }
+      }
+      async processAgentReport(deviceId, reportData) {
+        try {
+          if (reportData.windows_updates) {
+            await this.processWindowsUpdates(deviceId, reportData.windows_updates);
+          }
+          if (reportData.os_info && reportData.os_info.patches && Array.isArray(reportData.os_info.patches)) {
+            console.log(`Processing ${reportData.os_info.patches.length} legacy patches for device ${deviceId}`);
+            const windowsUpdates = {
+              installed_updates: reportData.os_info.patches.map((patch) => {
+                let installDate = "Unknown date";
+                if (patch.installed_on) {
+                  if (patch.installed_on.DateTime) {
+                    installDate = patch.installed_on.DateTime;
+                  } else if (patch.installed_on.value) {
+                    const timestamp6 = patch.installed_on.value.replace(/\/Date\((\d+)\)\//, "$1");
+                    installDate = new Date(parseInt(timestamp6)).toLocaleDateString();
+                  } else if (typeof patch.installed_on === "string") {
+                    installDate = patch.installed_on;
+                  }
+                }
+                return {
+                  title: `${patch.id}`,
+                  kb_article: patch.id,
+                  install_date: installDate,
+                  severity: "moderate",
+                  category: "windows_update"
+                };
+              }),
+              available_updates: [],
+              last_search_date: (/* @__PURE__ */ new Date()).toISOString()
+            };
+            await this.processWindowsUpdates(deviceId, windowsUpdates);
+            console.log(`Successfully processed ${windowsUpdates.installed_updates.length} legacy patches`);
+          }
+          console.log(`Processed agent report for device ${deviceId}`);
+        } catch (error) {
+          console.error("Error processing agent report:", error);
+          throw error;
+        }
+      }
+      async processWindowsUpdates(deviceId, windowsUpdates) {
+        const patches = windowsUpdates.available_updates || [];
+        const installedUpdates = windowsUpdates.installed_updates || [];
+        for (const patch of patches) {
+          const category = this.categorizePatch(patch);
+          await this.upsertPatchStatus(deviceId, {
+            patch_id: patch.kb_article || patch.id || patch.title,
+            status: "missing",
+            title: patch.title,
+            severity: this.mapSeverity(patch.importance || patch.severity),
+            category,
+            requires_reboot: patch.reboot_required || false
+          });
+        }
+        for (const patch of installedUpdates) {
+          const category = this.categorizePatch(patch);
+          await this.upsertPatchStatus(deviceId, {
+            patch_id: patch.kb_article || patch.id || patch.title,
+            status: "installed",
+            title: patch.title,
+            severity: this.mapSeverity(patch.importance || patch.severity),
+            category,
+            install_date: patch.install_date ? new Date(patch.install_date) : /* @__PURE__ */ new Date(),
+            requires_reboot: patch.reboot_required || false
+          });
+        }
+      }
+      categorizePatch(patch) {
+        const title = (patch.title || "").toLowerCase();
+        const category = (patch.category || "").toLowerCase();
+        const securityKeywords = [
+          "security",
+          "vulnerability",
+          "exploit",
+          "malware",
+          "defender",
+          "firewall"
+        ];
+        const applicationKeywords = [
+          "office",
+          "outlook",
+          "word",
+          "excel",
+          "powerpoint",
+          "teams",
+          "skype",
+          "edge"
+        ];
+        if (securityKeywords.some(
+          (keyword) => title.includes(keyword) || category.includes(keyword)
+        )) {
+          return "security_update";
+        }
+        if (applicationKeywords.some(
+          (keyword) => title.includes(keyword) || category.includes(keyword)
+        )) {
+          return "application_update";
+        }
+        if (category.includes("windows") || title.includes("windows")) {
+          return "security_update";
+        }
+        return patch.category || "windows_update";
+      }
+      async processSoftwarePatches(deviceId, installedSoftware) {
+        for (const software of installedSoftware) {
+          if (software.version && software.name) {
+            const vulnPatches = await this.getVulnerabilityPatches(software);
+            for (const patch of vulnPatches) {
+              await this.upsertPatchStatus(deviceId, {
+                patch_id: patch.id,
+                status: patch.is_installed ? "installed" : "missing",
+                title: patch.title,
+                severity: patch.severity,
+                category: "security_update"
+              });
+            }
+          }
+        }
+      }
+      async upsertPatchStatus(deviceId, patchInfo) {
+        await db.execute(sql`
+      INSERT INTO patch_definitions (patch_id, title, severity, category, requires_reboot)
+      VALUES (${patchInfo.patch_id}, ${patchInfo.title}, ${patchInfo.severity}, ${patchInfo.category}, ${patchInfo.requires_reboot || false})
+      ON CONFLICT (patch_id) DO UPDATE SET
+        title = EXCLUDED.title,
+        severity = EXCLUDED.severity,
+        category = EXCLUDED.category,
+        updated_at = NOW()
+    `);
+        const deviceUuid = typeof deviceId === "string" ? deviceId : deviceId.toString();
+        await db.execute(sql`
+      INSERT INTO device_patch_status (device_id, patch_id, status, install_date, last_scan_date)
+      VALUES (${deviceUuid}::uuid, ${patchInfo.patch_id}, ${patchInfo.status}, ${patchInfo.install_date || null}, NOW())
+      ON CONFLICT (device_id, patch_id) DO UPDATE SET
+        status = EXCLUDED.status,
+        install_date = COALESCE(EXCLUDED.install_date, device_patch_status.install_date),
+        last_scan_date = NOW(),
+        updated_at = NOW()
+    `);
+      }
+      mapSeverity(importance) {
+        if (!importance) return "low";
+        const lower = importance.toLowerCase();
+        if (lower.includes("critical") || lower.includes("important"))
+          return "critical";
+        if (lower.includes("moderate") || lower.includes("recommended"))
+          return "important";
+        if (lower.includes("optional") || lower.includes("low")) return "low";
+        return "moderate";
+      }
+      async getVulnerabilityPatches(software) {
+        return [];
+      }
+      async autoDeploySecurityPatches(deviceId) {
+        try {
+          const deviceUuid = typeof deviceId === "string" ? deviceId : deviceId.toString();
+          const criticalPatchesResult = await db.execute(sql`
+        SELECT dps.patch_id, pd.title, pd.category, pd.severity
+        FROM device_patch_status dps
+        JOIN patch_definitions pd ON dps.patch_id = pd.patch_id
+        WHERE dps.device_id = ${deviceUuid}::uuid
+        AND dps.status = 'missing'
+        AND pd.severity = 'critical'
+        AND (pd.category LIKE '%security%' OR pd.category LIKE '%windows_update%')
+        AND pd.category NOT LIKE '%application%'
+      `);
+          const criticalPatches = criticalPatchesResult.rows;
+          if (criticalPatches.length > 0) {
+            const deploymentId = await this.createPatchDeployment({
+              name: `Auto Security Patch - Device ${deviceId}`,
+              description: `Automatic deployment of ${criticalPatches.length} critical security patches`,
+              target_patches: criticalPatches.map((p) => p.patch_id),
+              target_devices: [deviceId],
+              schedule_type: "immediate",
+              scheduled_date: /* @__PURE__ */ new Date(),
+              created_by: "system-auto"
+            });
+            for (const patch of criticalPatches) {
+              await db.execute(sql`
+            UPDATE device_patch_status 
+            SET status = 'pending', 
+                deployment_id = ${deploymentId},
+                updated_at = NOW()
+            WHERE device_id = ${deviceUuid}::uuid AND patch_id = ${patch.patch_id}
+          `);
+            }
+            console.log(
+              `Auto-deployed ${criticalPatches.length} security patches for device ${deviceId}`
+            );
+          }
+        } catch (error) {
+          console.error("Error auto-deploying security patches:", error);
+        }
+      }
+      getMockDashboardData() {
+        console.log("\u26A0\uFE0F  RETURNING MOCK DATA - Database tables not accessible");
+        return {
+          summary: {
+            total_devices: 0,
+            compliant_devices: 0,
+            compliance_rate: 0,
+            devices_with_critical_gaps: 0,
+            average_compliance: 0
+          },
+          devices: [],
+          top_non_compliant: [],
+          upcoming_maintenance: [],
+          risk_distribution: {
+            high_risk: 0,
+            medium_risk: 0,
+            low_risk: 0
+          },
+          recommendations: [
+            "System is currently offline",
+            "Please try again later"
+          ],
+          mock_mode: true,
+          database_status: "disconnected"
+        };
+      }
+      generateRecommendations(deviceReports) {
+        const recommendations = [];
+        const criticalDevices = deviceReports.filter((d) => d.missing_critical > 0);
+        if (criticalDevices.length > 0) {
+          recommendations.push(
+            `${criticalDevices.length} devices have missing critical patches - review application patches manually`
+          );
+        }
+        const lowCompliance = deviceReports.filter(
+          (d) => d.compliance_percentage < 80
+        );
+        if (lowCompliance.length > 0) {
+          recommendations.push(
+            `${lowCompliance.length} devices below 80% compliance - security patches auto-deployed, review application updates`
+          );
+        }
+        const failedPatches = deviceReports.filter((d) => d.failed_patches > 0);
+        if (failedPatches.length > 0) {
+          recommendations.push(
+            `${failedPatches.length} devices have failed patch installations - investigate and retry`
+          );
+        }
+        if (recommendations.length === 0) {
+          recommendations.push(
+            "Security patches are automatically deployed - only application patches require manual approval"
+          );
+          recommendations.push(
+            "All systems appear to be compliant - continue monitoring"
+          );
+        }
+        return recommendations;
+      }
+      async createPatchDeployment(deployment) {
+        const result = await db.execute(sql`
+      INSERT INTO patch_deployments (name, description, target_patches, target_devices, schedule_type, scheduled_date, created_by)
+      VALUES (${deployment.name}, ${deployment.description}, ${deployment.target_patches}, ${deployment.target_devices}, 
+              ${deployment.schedule_type}, ${deployment.scheduled_date}, ${deployment.created_by})
+      RETURNING id
+    `);
+        return result.rows[0].id;
+      }
+      async getPatchDeployments() {
+        const result = await db.execute(sql`
+      SELECT pd.*, u.name as created_by_name
+      FROM patch_deployments pd
+      LEFT JOIN users u ON pd.created_by::uuid = u.id
+      ORDER BY pd.created_at DESC
+    `);
+        return result.rows;
+      }
+      async getPendingApplicationPatches() {
+        try {
+          const result = await db.execute(sql`
+        SELECT 
+          dps.device_id,
+          d.hostname,
+          dps.patch_id,
+          pd.title,
+          pd.severity,
+          pd.category,
+          pd.description,
+          dps.last_scan_date
+        FROM device_patch_status dps
+        JOIN patch_definitions pd ON dps.patch_id = pd.patch_id
+        JOIN devices d ON dps.device_id = d.id
+        WHERE dps.status = 'missing'
+        AND pd.category LIKE '%application%'
+        ORDER BY pd.severity DESC, dps.last_scan_date DESC
+      `);
+          return result.rows;
+        } catch (error) {
+          console.error("Error getting pending application patches:", error);
+          throw error;
+        }
+      }
+    };
+    patchComplianceService = new PatchComplianceService();
+  }
+});
+
+// server/services/automation-service.ts
+var automation_service_exports = {};
+__export(automation_service_exports, {
+  automationService: () => automationService
+});
+var AutomationService, automationService;
+var init_automation_service = __esm({
+  "server/services/automation-service.ts"() {
+    "use strict";
+    init_storage();
+    AutomationService = class {
+      deploymentQueue = /* @__PURE__ */ new Map();
+      softwarePackages = [
+        {
+          id: "chrome-latest",
+          name: "Google Chrome",
+          version: "latest",
+          installer_path: "/software/chrome_installer.exe",
+          silent_install_args: "/silent /install",
+          prerequisites: [],
+          supported_os: ["Windows"],
+          size_mb: 95
+        },
+        {
+          id: "firefox-latest",
+          name: "Mozilla Firefox",
+          version: "latest",
+          installer_path: "/software/firefox_installer.exe",
+          silent_install_args: "-ms",
+          prerequisites: [],
+          supported_os: ["Windows", "macOS", "Linux"],
+          size_mb: 85
+        },
+        {
+          id: "zoom-latest",
+          name: "Zoom Client",
+          version: "latest",
+          installer_path: "/software/zoom_installer.exe",
+          silent_install_args: "/quiet",
+          prerequisites: [],
+          supported_os: ["Windows", "macOS"],
+          size_mb: 120
+        }
+      ];
+      async scheduleDeployment(deviceIds, packageId, scheduledTime) {
+        const deploymentIds = [];
+        const softwarePackage = this.softwarePackages.find(
+          (p) => p.id === packageId
+        );
+        if (!softwarePackage) {
+          throw new Error(`Software package ${packageId} not found`);
+        }
+        for (const deviceId of deviceIds) {
+          const device = await storage.getDevice(deviceId);
+          if (!device) continue;
+          if (!softwarePackage.supported_os.includes(device.os_name || "")) {
+            console.log(`Skipping ${deviceId}: OS ${device.os_name} not supported`);
+            continue;
+          }
+          const deploymentId = `deploy_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const task = {
+            id: deploymentId,
+            device_id: deviceId,
+            package_id: packageId,
+            status: "scheduled",
+            scheduled_time: scheduledTime,
+            progress_percentage: 0
+          };
+          if (!this.deploymentQueue.has(deviceId)) {
+            this.deploymentQueue.set(deviceId, []);
+          }
+          this.deploymentQueue.get(deviceId).push(task);
+          await storage.createAlert({
+            device_id: deviceId,
+            category: "automation",
+            severity: "info",
+            message: `Software deployment scheduled: ${softwarePackage.name}`,
+            metadata: {
+              deployment_id: deploymentId,
+              package_info: softwarePackage,
+              scheduled_time: scheduledTime.toISOString(),
+              status: "scheduled"
+            },
+            is_active: true
+          });
+          deploymentIds.push(deploymentId);
+        }
+        return deploymentIds;
+      }
+      async processDeploymentQueue() {
+        const now = /* @__PURE__ */ new Date();
+        for (const [deviceId, tasks] of this.deploymentQueue) {
+          const pendingTasks = tasks.filter(
+            (t) => t.status === "scheduled" && t.scheduled_time <= now
+          );
+          for (const task of pendingTasks) {
+            await this.executeDeployment(task);
+          }
+        }
+      }
+      async executeDeployment(task) {
+        try {
+          task.status = "downloading";
+          task.started_at = /* @__PURE__ */ new Date();
+          task.progress_percentage = 10;
+          await this.updateDeploymentStatus(task);
+          await this.simulateProgress(task, 10, 50);
+          task.status = "installing";
+          task.progress_percentage = 50;
+          await this.updateDeploymentStatus(task);
+          await this.simulateProgress(task, 50, 100);
+          task.status = "completed";
+          task.completed_at = /* @__PURE__ */ new Date();
+          task.progress_percentage = 100;
+          await this.updateDeploymentStatus(task);
+          console.log(`Deployment ${task.id} completed successfully`);
+        } catch (error) {
+          task.status = "failed";
+          task.error_message = error.message;
+          await this.updateDeploymentStatus(task);
+          console.error(`Deployment ${task.id} failed:`, error);
+        }
+      }
+      async simulateProgress(task, start, end) {
+        const steps = 5;
+        const increment = (end - start) / steps;
+        for (let i = 0; i < steps; i++) {
+          await new Promise((resolve) => setTimeout(resolve, 2e3));
+          task.progress_percentage = start + increment * (i + 1);
+          await this.updateDeploymentStatus(task);
+        }
+      }
+      async updateDeploymentStatus(task) {
+        const alerts2 = await storage.getActiveAlerts();
+        const deploymentAlert = alerts2.find(
+          (alert) => alert.metadata?.deployment_id === task.id
+        );
+        if (deploymentAlert) {
+          await storage.updateAlert(deploymentAlert.id, {
+            metadata: {
+              ...deploymentAlert.metadata,
+              status: task.status,
+              progress_percentage: task.progress_percentage,
+              error_message: task.error_message,
+              last_updated: (/* @__PURE__ */ new Date()).toISOString()
+            }
+          });
+        }
+      }
+      async getDeploymentStatus(deploymentId) {
+        for (const tasks of this.deploymentQueue.values()) {
+          const task = tasks.find((t) => t.id === deploymentId);
+          if (task) return task;
+        }
+        return null;
+      }
+      async createConfigurationTemplate(name, description, targetOS, settings, createdBy) {
+        const template = {
+          id: `config_${Date.now()}`,
+          name,
+          description,
+          target_os: targetOS,
+          settings,
+          enforcement_mode: "advisory",
+          created_by: createdBy
+        };
+        console.log("Configuration template created:", template);
+        return template;
+      }
+      async applyConfiguration(deviceId, templateId) {
+        await storage.createAlert({
+          device_id: deviceId,
+          category: "automation",
+          severity: "info",
+          message: `Configuration template applied: ${templateId}`,
+          metadata: {
+            template_id: templateId,
+            automation_type: "configuration_management",
+            status: "applied",
+            applied_at: (/* @__PURE__ */ new Date()).toISOString()
+          },
+          is_active: true
+        });
+      }
+      getSoftwarePackages() {
+        return this.softwarePackages;
+      }
+    };
+    automationService = new AutomationService();
+    setInterval(() => {
+      automationService.processDeploymentQueue().catch(console.error);
+    }, 3e4);
   }
 });
 
@@ -5985,7 +6826,7 @@ var init_email_service = __esm({
 });
 
 // server/services/sla-escalation-service.ts
-import { eq as eq7, and as and7, not, inArray as inArray2 } from "drizzle-orm";
+import { eq as eq8, and as and8, not, inArray as inArray2 } from "drizzle-orm";
 var SLAEscalationService, slaEscalationService;
 var init_sla_escalation_service = __esm({
   "server/services/sla-escalation-service.ts"() {
@@ -6031,9 +6872,9 @@ var init_sla_escalation_service = __esm({
           console.log("\u{1F504} Starting SLA escalation check...");
           const now = /* @__PURE__ */ new Date();
           const openTickets = await db.select().from(tickets).where(
-            and7(
+            and8(
               not(inArray2(tickets.status, ["resolved", "closed", "cancelled"])),
-              not(eq7(tickets.sla_resolution_due, null))
+              not(eq8(tickets.sla_resolution_due, null))
             )
           );
           console.log(`Found ${openTickets.length} open tickets to check`);
@@ -6041,7 +6882,7 @@ var init_sla_escalation_service = __esm({
             if (ticket.sla_resolution_due) {
               const isBreached = now > new Date(ticket.sla_resolution_due);
               if (isBreached !== ticket.sla_breached) {
-                await db.update(tickets).set({ sla_breached: isBreached, updated_at: now }).where(eq7(tickets.id, ticket.id));
+                await db.update(tickets).set({ sla_breached: isBreached, updated_at: now }).where(eq8(tickets.id, ticket.id));
               }
             }
           }
@@ -6155,7 +6996,7 @@ var init_sla_escalation_service = __esm({
             default:
               role = "manager";
           }
-          const [target] = await db.select().from(users).where(eq7(users.role, role)).limit(1);
+          const [target] = await db.select().from(users).where(eq8(users.role, role)).limit(1);
           return target;
         } catch (error) {
           console.error("Error getting escalation target:", error);
@@ -6253,9 +7094,9 @@ Please review and take appropriate action.`;
         try {
           const now = /* @__PURE__ */ new Date();
           const openTickets = await db.select().from(tickets).where(
-            and7(
+            and8(
               not(inArray2(tickets.status, ["resolved", "closed", "cancelled"])),
-              not(eq7(tickets.sla_resolution_due, null))
+              not(eq8(tickets.sla_resolution_due, null))
             )
           );
           let breached = 0;
@@ -6445,7 +7286,7 @@ __export(sla_monitor_service_exports, {
   SLAMonitorService: () => SLAMonitorService,
   slaMonitorService: () => slaMonitorService
 });
-import { eq as eq8, not as not2, inArray as inArray3 } from "drizzle-orm";
+import { eq as eq9, not as not2, inArray as inArray3 } from "drizzle-orm";
 var SLAMonitorService, slaMonitorService;
 var init_sla_monitor_service = __esm({
   "server/services/sla-monitor-service.ts"() {
@@ -6517,7 +7358,7 @@ var init_sla_monitor_service = __esm({
                   sla_response_due: slaTargets.responseDue,
                   sla_resolution_due: slaTargets.resolutionDue,
                   updated_at: now
-                }).where(eq8(tickets.id, ticket.id));
+                }).where(eq9(tickets.id, ticket.id));
                 ticket.response_due_at = slaTargets.responseDue;
                 ticket.resolve_due_at = slaTargets.resolutionDue;
                 ticket.sla_response_due = slaTargets.responseDue;
@@ -6548,7 +7389,7 @@ var init_sla_monitor_service = __esm({
             }
             if (needsUpdate) {
               updateData.updated_at = now;
-              await db.update(tickets).set(updateData).where(eq8(tickets.id, ticket.id));
+              await db.update(tickets).set(updateData).where(eq9(tickets.id, ticket.id));
               updates++;
               console.log(`\u26A0\uFE0F  SLA breach detected for ticket ${ticket.ticket_number} (Created: ${ticket.created_at})`);
             }
@@ -6594,8 +7435,8 @@ Immediate attention required!`;
           }
           const { db: db4 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { users: users2 } = await Promise.resolve().then(() => (init_user_schema(), user_schema_exports));
-          const { eq: eq11 } = await import("drizzle-orm");
-          const managers = await db4.select().from(users2).where(eq11(users2.role, "manager"));
+          const { eq: eq12 } = await import("drizzle-orm");
+          const managers = await db4.select().from(users2).where(eq12(users2.role, "manager"));
           for (const manager of managers) {
             await notificationService.createNotification({
               user_email: manager.email,
@@ -6624,26 +7465,41 @@ Immediate attention required!`;
           const now = /* @__PURE__ */ new Date();
           let actualResponseBreaches = 0;
           let actualResolutionBreaches = 0;
+          let totalBreachedTickets = 0;
           for (const ticket of ticketsWithSLA) {
+            let needsUpdate = false;
+            const updateData = {};
             const responseDue = ticket.response_due_at || ticket.sla_response_due;
-            if (responseDue && !ticket.first_response_at && now > new Date(responseDue)) {
+            const isResponseBreached = responseDue && !ticket.first_response_at && now > new Date(responseDue);
+            if (isResponseBreached) {
               actualResponseBreaches++;
+              if (!ticket.sla_response_breached) {
+                updateData.sla_response_breached = true;
+                needsUpdate = true;
+              }
             }
             const resolutionDue = ticket.resolve_due_at || ticket.sla_resolution_due;
-            if (resolutionDue && now > new Date(resolutionDue)) {
+            const isResolutionBreached = resolutionDue && now > new Date(resolutionDue);
+            if (isResolutionBreached) {
               actualResolutionBreaches++;
+              if (!ticket.sla_resolution_breached || !ticket.sla_breached) {
+                updateData.sla_resolution_breached = true;
+                updateData.sla_breached = true;
+                needsUpdate = true;
+              }
+            }
+            if (isResponseBreached || isResolutionBreached) {
+              totalBreachedTickets++;
+            }
+            if (needsUpdate) {
+              updateData.updated_at = now;
+              await db.update(tickets).set(updateData).where(eq9(tickets.id, ticket.id));
             }
           }
-          const totalBreaches = (/* @__PURE__ */ new Set([
-            ...ticketsWithSLA.filter((t) => {
-              const responseDue = t.response_due_at || t.sla_response_due;
-              const resolutionDue = t.resolve_due_at || t.sla_resolution_due;
-              return responseDue && !t.first_response_at && now > new Date(responseDue) || resolutionDue && now > new Date(resolutionDue);
-            }).map((t) => t.id)
-          ])).size;
           const totalTicketsWithSLA = ticketsWithSLA.length;
-          const onTrackTickets = totalTicketsWithSLA - totalBreaches;
+          const onTrackTickets = totalTicketsWithSLA - totalBreachedTickets;
           const slaCompliance = totalTicketsWithSLA > 0 ? Math.round(onTrackTickets / totalTicketsWithSLA * 100) : 100;
+          console.log(`\u{1F4CA} SLA Metrics: ${totalTicketsWithSLA} total, ${totalBreachedTickets} breached, ${slaCompliance}% compliance`);
           return {
             totalTicketsWithSLA,
             responseBreaches: actualResponseBreaches,
@@ -6716,6 +7572,45 @@ function registerSLARoutes(app2) {
       res.status(500).json({ error: "Failed to fetch SLA metrics" });
     }
   });
+  app2.get("/api/sla/breach-details", async (req, res) => {
+    try {
+      const { db: db4 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
+      const { not: not3, inArray: inArray4, or: or8, eq: eq12 } = await import("drizzle-orm");
+      const breachedTickets = await db4.select().from(tickets2).where(
+        and(
+          not3(inArray4(tickets2.status, ["resolved", "closed", "cancelled"])),
+          or8(
+            eq12(tickets2.sla_response_breached, true),
+            eq12(tickets2.sla_resolution_breached, true),
+            eq12(tickets2.sla_breached, true)
+          )
+        )
+      );
+      const breachDetails = breachedTickets.map((ticket) => ({
+        ticketNumber: ticket.ticket_number,
+        title: ticket.title,
+        priority: ticket.priority,
+        assignedTo: ticket.assigned_to,
+        responseBreached: ticket.sla_response_breached,
+        resolutionBreached: ticket.sla_resolution_breached,
+        legacyBreached: ticket.sla_breached && !ticket.sla_response_breached && !ticket.sla_resolution_breached,
+        responseDue: ticket.response_due_at || ticket.sla_response_due,
+        resolutionDue: ticket.resolve_due_at || ticket.sla_resolution_due,
+        createdAt: ticket.created_at
+      }));
+      res.json({
+        totalBreached: breachedTickets.length,
+        responseBreaches: breachedTickets.filter((t) => t.sla_response_breached).length,
+        resolutionBreaches: breachedTickets.filter((t) => t.sla_resolution_breached).length,
+        legacyBreaches: breachedTickets.filter((t) => t.sla_breached && !t.sla_response_breached && !t.sla_resolution_breached).length,
+        details: breachDetails
+      });
+    } catch (error) {
+      console.error("Error fetching SLA breach details:", error);
+      res.status(500).json({ error: "Failed to fetch SLA breach details" });
+    }
+  });
   app2.post("/api/sla/check-breaches", async (req, res) => {
     try {
       await slaMonitorService.checkSLABreaches();
@@ -6751,7 +7646,7 @@ function registerSLARoutes(app2) {
     try {
       const { db: db4 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-      const { eq: eq11, isNull: isNull3 } = await import("drizzle-orm");
+      const { eq: eq12, isNull: isNull3, not: not3, inArray: inArray4 } = await import("drizzle-orm");
       const ticketsToUpdate = await db4.select().from(tickets2).where(isNull3(tickets2.sla_resolution_due));
       let updated = 0;
       for (const ticket of ticketsToUpdate) {
@@ -6770,7 +7665,7 @@ function registerSLARoutes(app2) {
           due_date: slaResolutionDue,
           sla_breached: isBreached,
           updated_at: /* @__PURE__ */ new Date()
-        }).where(eq11(tickets2.id, ticket.id));
+        }).where(eq12(tickets2.id, ticket.id));
         updated++;
       }
       res.json({
@@ -6780,6 +7675,18 @@ function registerSLARoutes(app2) {
     } catch (error) {
       console.error("Error syncing SLA data:", error);
       res.status(500).json({ error: "Failed to sync SLA data" });
+    }
+  });
+  app2.post("/api/sla/sync-status", async (req, res) => {
+    try {
+      const metrics = await slaMonitorService.getSLAMetrics();
+      res.json({
+        message: "SLA status synchronized successfully",
+        metrics
+      });
+    } catch (error) {
+      console.error("Error syncing SLA status:", error);
+      res.status(500).json({ error: "Failed to sync SLA status" });
     }
   });
 }
@@ -6792,7 +7699,7 @@ var init_sla_routes = __esm({
 });
 
 // server/services/analytics-service.ts
-import { sql as sql8, desc as desc7, count as count5 } from "drizzle-orm";
+import { sql as sql8, desc as desc8, count as count5 } from "drizzle-orm";
 import {
   subDays,
   format
@@ -7129,7 +8036,7 @@ var init_analytics_service = __esm({
           let alertCounts = [];
           try {
             recentReports = await Promise.race([
-              db.select().from(device_reports).orderBy(desc7(device_reports.created_at)).limit(50),
+              db.select().from(device_reports).orderBy(desc8(device_reports.created_at)).limit(50),
               timeout
             ]);
           } catch (reportsError) {
@@ -9407,475 +10314,6 @@ var init_analytics_routes = __esm({
   }
 });
 
-// server/services/patch-compliance-service.ts
-var PatchComplianceService, patchComplianceService;
-var init_patch_compliance_service = __esm({
-  "server/services/patch-compliance-service.ts"() {
-    "use strict";
-    init_db();
-    PatchComplianceService = class {
-      COMPLIANCE_THRESHOLDS = {
-        CRITICAL_MAX_DAYS: 7,
-        IMPORTANT_MAX_DAYS: 30,
-        MODERATE_MAX_DAYS: 60,
-        LOW_MAX_DAYS: 90,
-        MINIMUM_COMPLIANCE_PERCENTAGE: 95
-      };
-      async getDashboardData() {
-        try {
-          console.log("Starting getDashboardData...");
-          try {
-            console.log("Checking if patch_definitions table exists...");
-            const result2 = await db.execute(
-              sql`SELECT 1 FROM patch_definitions LIMIT 1`
-            );
-            console.log(
-              "patch_definitions table exists, proceeding with real data"
-            );
-          } catch (tableError) {
-            console.log("Patch compliance tables not found, returning mock data");
-            console.log("Table error:", tableError?.message || "Unknown error");
-            return this.getMockDashboardData();
-          }
-          let devices2;
-          try {
-            console.log("Fetching devices from database...");
-            const devicesResult = await db.execute(sql`
-          SELECT d.id, d.hostname, d.os_name, d.os_version, d.status, d.last_seen
-          FROM devices d 
-          WHERE d.status = 'online'
-          ORDER BY d.last_seen DESC
-          LIMIT 50
-        `);
-            devices2 = devicesResult.rows || [];
-            console.log(`Found ${devices2.length} online devices`);
-            if (devices2.length === 0) {
-              console.log("No online devices found, checking all devices...");
-              const allDevicesResult = await db.execute(sql`
-            SELECT d.id, d.hostname, d.os_name, d.os_version, d.status, d.last_seen
-            FROM devices d 
-            ORDER BY d.last_seen DESC
-            LIMIT 10
-          `);
-              devices2 = allDevicesResult.rows || [];
-              console.log(`Found ${devices2.length} total devices`);
-            }
-          } catch (deviceFetchError) {
-            console.error("Error fetching devices:", deviceFetchError);
-            console.log("Returning mock data due to device fetch error");
-            return this.getMockDashboardData();
-          }
-          const deviceReports = [];
-          for (const device of devices2) {
-            try {
-              console.log(
-                `Processing patches for device ${device.id} (${device.hostname})`
-              );
-              const deviceUuid = typeof device.id === "string" ? device.id : device.id.toString();
-              console.log(`Querying patches for device UUID: ${deviceUuid}`);
-              console.log(`Device UUID type: ${typeof deviceUuid}`);
-              const patchStatusResult = await db.execute(sql`
-            SELECT 
-              COUNT(*) as total_patches,
-              COUNT(CASE WHEN dps.status = 'installed' THEN 1 END) as installed_patches,
-              COUNT(CASE WHEN dps.status = 'missing' AND COALESCE(pd.severity, 'moderate') = 'critical' THEN 1 END) as missing_critical,
-              COUNT(CASE WHEN dps.status = 'missing' AND COALESCE(pd.severity, 'moderate') = 'important' THEN 1 END) as missing_important,
-              COUNT(CASE WHEN dps.status = 'failed' THEN 1 END) as failed_patches,
-              MAX(dps.last_scan_date) as last_scan
-            FROM device_patch_status dps
-            LEFT JOIN patch_definitions pd ON dps.patch_id = pd.patch_id
-            WHERE dps.device_id = ${deviceUuid}::uuid
-          `);
-              const patchStats = patchStatusResult.rows[0] || {
-                total_patches: 0,
-                installed_patches: 0,
-                missing_critical: 0,
-                missing_important: 0,
-                failed_patches: 0,
-                last_scan: device.last_seen
-              };
-              const totalPatches = Number(patchStats.total_patches) || 0;
-              const installedPatches = Number(patchStats.installed_patches) || 0;
-              const compliance_percentage = totalPatches > 0 ? installedPatches / totalPatches * 100 : 100;
-              const missingCritical = Number(patchStats.missing_critical) || 0;
-              const missingImportant = Number(patchStats.missing_important) || 0;
-              const failedPatches = Number(patchStats.failed_patches) || 0;
-              let risk_score = 0;
-              if (missingCritical > 0) risk_score = 100;
-              else if (missingImportant > 3) risk_score = 80;
-              else if (missingImportant > 0) risk_score = 60;
-              else if (failedPatches > 0) risk_score = 40;
-              else risk_score = 20;
-              deviceReports.push({
-                device_id: device.id,
-                hostname: device.hostname || "Unknown",
-                os_name: device.os_name || "Unknown",
-                os_version: device.os_version || "Unknown",
-                total_patches: totalPatches,
-                installed_patches: installedPatches,
-                missing_critical: missingCritical,
-                missing_important: Number(patchStats.missing_important) || 0,
-                failed_patches: failedPatches,
-                compliance_percentage: Number(compliance_percentage.toFixed(1)),
-                risk_score,
-                last_scan: patchStats.last_scan || device.last_seen || (/* @__PURE__ */ new Date()).toISOString()
-              });
-              console.log(
-                `Device ${device.hostname}: ${totalPatches} total, ${installedPatches} installed, ${compliance_percentage.toFixed(1)}% compliant`
-              );
-            } catch (deviceError) {
-              console.error(`Error processing device ${device.id}:`, deviceError);
-              deviceReports.push({
-                device_id: device.id,
-                hostname: device.hostname || "Unknown",
-                os_name: device.os_name || "Unknown",
-                os_version: device.os_version || "Unknown",
-                total_patches: 0,
-                installed_patches: 0,
-                missing_critical: 0,
-                missing_important: 0,
-                failed_patches: 0,
-                compliance_percentage: 100,
-                risk_score: 0,
-                last_scan: (/* @__PURE__ */ new Date()).toISOString()
-              });
-            }
-          }
-          const totalDevices = deviceReports.length;
-          const compliantDevices = deviceReports.filter(
-            (r) => r.compliance_percentage >= this.COMPLIANCE_THRESHOLDS.MINIMUM_COMPLIANCE_PERCENTAGE
-          ).length;
-          const devicesWithCriticalGaps = deviceReports.filter(
-            (r) => r.missing_critical > 0
-          ).length;
-          const averageCompliance = totalDevices > 0 ? deviceReports.reduce(
-            (sum2, r) => sum2 + (r.compliance_percentage || 0),
-            0
-          ) / totalDevices : 0;
-          const highRiskDevices = deviceReports.filter(
-            (r) => r.risk_score > 75
-          ).length;
-          const mediumRiskDevices = deviceReports.filter(
-            (r) => r.risk_score > 25 && r.risk_score <= 75
-          ).length;
-          const lowRiskDevices = deviceReports.filter(
-            (r) => r.risk_score <= 25
-          ).length;
-          const result = {
-            summary: {
-              total_devices: totalDevices,
-              compliant_devices: compliantDevices,
-              compliance_rate: totalDevices > 0 ? Number((compliantDevices / totalDevices * 100).toFixed(1)) : 0,
-              devices_with_critical_gaps: devicesWithCriticalGaps,
-              average_compliance: Number(averageCompliance.toFixed(1))
-            },
-            devices: deviceReports,
-            top_non_compliant: deviceReports.filter((r) => r.compliance_percentage < 90).sort((a, b) => a.compliance_percentage - b.compliance_percentage).slice(0, 10),
-            upcoming_maintenance: [],
-            risk_distribution: {
-              high_risk: highRiskDevices,
-              medium_risk: mediumRiskDevices,
-              low_risk: lowRiskDevices
-            },
-            recommendations: this.generateRecommendations(deviceReports)
-          };
-          console.log("Successfully generated dashboard data:", {
-            totalDevices,
-            compliantDevices,
-            averageCompliance: averageCompliance.toFixed(1)
-          });
-          return result;
-        } catch (error) {
-          console.error("Error fetching patch compliance dashboard:", error);
-          console.error("Error stack:", error.stack);
-          console.log("Returning mock data due to error");
-          return this.getMockDashboardData();
-        }
-      }
-      async processPatchData(deviceId, patchData) {
-        try {
-          if (patchData.windows_updates) {
-            await this.processWindowsUpdates(deviceId, patchData.windows_updates);
-          }
-          if (patchData.installed_software) {
-            await this.processSoftwarePatches(
-              deviceId,
-              patchData.installed_software
-            );
-          }
-          await this.autoDeploySecurityPatches(deviceId);
-          const deviceUuid = typeof deviceId === "string" ? deviceId : deviceId.toString();
-          await db.execute(sql`
-        UPDATE devices 
-        SET updated_at = NOW() 
-        WHERE id = ${deviceUuid}::uuid
-      `);
-          console.log(`Processed patch data for device ${deviceId}`);
-        } catch (error) {
-          console.error("Error processing patch data:", error);
-          throw error;
-        }
-      }
-      async processWindowsUpdates(deviceId, windowsUpdates) {
-        const patches = windowsUpdates.available_updates || [];
-        const installedUpdates = windowsUpdates.installed_updates || [];
-        for (const patch of patches) {
-          const category = this.categorizePatch(patch);
-          await this.upsertPatchStatus(deviceId, {
-            patch_id: patch.kb_article || patch.id || patch.title,
-            status: "missing",
-            title: patch.title,
-            severity: this.mapSeverity(patch.importance || patch.severity),
-            category,
-            requires_reboot: patch.reboot_required || false
-          });
-        }
-        for (const patch of installedUpdates) {
-          const category = this.categorizePatch(patch);
-          await this.upsertPatchStatus(deviceId, {
-            patch_id: patch.kb_article || patch.id || patch.title,
-            status: "installed",
-            title: patch.title,
-            severity: this.mapSeverity(patch.importance || patch.severity),
-            category,
-            install_date: patch.install_date ? new Date(patch.install_date) : /* @__PURE__ */ new Date(),
-            requires_reboot: patch.reboot_required || false
-          });
-        }
-      }
-      categorizePatch(patch) {
-        const title = (patch.title || "").toLowerCase();
-        const category = (patch.category || "").toLowerCase();
-        const securityKeywords = [
-          "security",
-          "vulnerability",
-          "exploit",
-          "malware",
-          "defender",
-          "firewall"
-        ];
-        const applicationKeywords = [
-          "office",
-          "outlook",
-          "word",
-          "excel",
-          "powerpoint",
-          "teams",
-          "skype",
-          "edge"
-        ];
-        if (securityKeywords.some(
-          (keyword) => title.includes(keyword) || category.includes(keyword)
-        )) {
-          return "security_update";
-        }
-        if (applicationKeywords.some(
-          (keyword) => title.includes(keyword) || category.includes(keyword)
-        )) {
-          return "application_update";
-        }
-        if (category.includes("windows") || title.includes("windows")) {
-          return "security_update";
-        }
-        return patch.category || "windows_update";
-      }
-      async processSoftwarePatches(deviceId, installedSoftware) {
-        for (const software of installedSoftware) {
-          if (software.version && software.name) {
-            const vulnPatches = await this.getVulnerabilityPatches(software);
-            for (const patch of vulnPatches) {
-              await this.upsertPatchStatus(deviceId, {
-                patch_id: patch.id,
-                status: patch.is_installed ? "installed" : "missing",
-                title: patch.title,
-                severity: patch.severity,
-                category: "security_update"
-              });
-            }
-          }
-        }
-      }
-      async upsertPatchStatus(deviceId, patchInfo) {
-        await db.execute(sql`
-      INSERT INTO patch_definitions (patch_id, title, severity, category, requires_reboot)
-      VALUES (${patchInfo.patch_id}, ${patchInfo.title}, ${patchInfo.severity}, ${patchInfo.category}, ${patchInfo.requires_reboot || false})
-      ON CONFLICT (patch_id) DO UPDATE SET
-        title = EXCLUDED.title,
-        severity = EXCLUDED.severity,
-        category = EXCLUDED.category,
-        updated_at = NOW()
-    `);
-        const deviceUuid = typeof deviceId === "string" ? deviceId : deviceId.toString();
-        await db.execute(sql`
-      INSERT INTO device_patch_status (device_id, patch_id, status, install_date, last_scan_date)
-      VALUES (${deviceUuid}::uuid, ${patchInfo.patch_id}, ${patchInfo.status}, ${patchInfo.install_date || null}, NOW())
-      ON CONFLICT (device_id, patch_id) DO UPDATE SET
-        status = EXCLUDED.status,
-        install_date = COALESCE(EXCLUDED.install_date, device_patch_status.install_date),
-        last_scan_date = NOW(),
-        updated_at = NOW()
-    `);
-      }
-      mapSeverity(importance) {
-        if (!importance) return "low";
-        const lower = importance.toLowerCase();
-        if (lower.includes("critical") || lower.includes("important"))
-          return "critical";
-        if (lower.includes("moderate") || lower.includes("recommended"))
-          return "important";
-        if (lower.includes("optional") || lower.includes("low")) return "low";
-        return "moderate";
-      }
-      async getVulnerabilityPatches(software) {
-        return [];
-      }
-      async autoDeploySecurityPatches(deviceId) {
-        try {
-          const deviceUuid = typeof deviceId === "string" ? deviceId : deviceId.toString();
-          const criticalPatchesResult = await db.execute(sql`
-        SELECT dps.patch_id, pd.title, pd.category, pd.severity
-        FROM device_patch_status dps
-        JOIN patch_definitions pd ON dps.patch_id = pd.patch_id
-        WHERE dps.device_id = ${deviceUuid}::uuid
-        AND dps.status = 'missing'
-        AND pd.severity = 'critical'
-        AND (pd.category LIKE '%security%' OR pd.category LIKE '%windows_update%')
-        AND pd.category NOT LIKE '%application%'
-      `);
-          const criticalPatches = criticalPatchesResult.rows;
-          if (criticalPatches.length > 0) {
-            const deploymentId = await this.createPatchDeployment({
-              name: `Auto Security Patch - Device ${deviceId}`,
-              description: `Automatic deployment of ${criticalPatches.length} critical security patches`,
-              target_patches: criticalPatches.map((p) => p.patch_id),
-              target_devices: [deviceId],
-              schedule_type: "immediate",
-              scheduled_date: /* @__PURE__ */ new Date(),
-              created_by: "system-auto"
-            });
-            for (const patch of criticalPatches) {
-              await db.execute(sql`
-            UPDATE device_patch_status 
-            SET status = 'pending', 
-                deployment_id = ${deploymentId},
-                updated_at = NOW()
-            WHERE device_id = ${deviceUuid}::uuid AND patch_id = ${patch.patch_id}
-          `);
-            }
-            console.log(
-              `Auto-deployed ${criticalPatches.length} security patches for device ${deviceId}`
-            );
-          }
-        } catch (error) {
-          console.error("Error auto-deploying security patches:", error);
-        }
-      }
-      getMockDashboardData() {
-        console.log("\u26A0\uFE0F  RETURNING MOCK DATA - Database tables not accessible");
-        return {
-          summary: {
-            total_devices: 0,
-            compliant_devices: 0,
-            compliance_rate: 0,
-            devices_with_critical_gaps: 0,
-            average_compliance: 0
-          },
-          devices: [],
-          top_non_compliant: [],
-          upcoming_maintenance: [],
-          risk_distribution: {
-            high_risk: 0,
-            medium_risk: 0,
-            low_risk: 0
-          },
-          recommendations: [
-            "System is currently offline",
-            "Please try again later"
-          ],
-          mock_mode: true,
-          database_status: "disconnected"
-        };
-      }
-      generateRecommendations(deviceReports) {
-        const recommendations = [];
-        const criticalDevices = deviceReports.filter((d) => d.missing_critical > 0);
-        if (criticalDevices.length > 0) {
-          recommendations.push(
-            `${criticalDevices.length} devices have missing critical patches - review application patches manually`
-          );
-        }
-        const lowCompliance = deviceReports.filter(
-          (d) => d.compliance_percentage < 80
-        );
-        if (lowCompliance.length > 0) {
-          recommendations.push(
-            `${lowCompliance.length} devices below 80% compliance - security patches auto-deployed, review application updates`
-          );
-        }
-        const failedPatches = deviceReports.filter((d) => d.failed_patches > 0);
-        if (failedPatches.length > 0) {
-          recommendations.push(
-            `${failedPatches.length} devices have failed patch installations - investigate and retry`
-          );
-        }
-        if (recommendations.length === 0) {
-          recommendations.push(
-            "Security patches are automatically deployed - only application patches require manual approval"
-          );
-          recommendations.push(
-            "All systems appear to be compliant - continue monitoring"
-          );
-        }
-        return recommendations;
-      }
-      async createPatchDeployment(deployment) {
-        const result = await db.execute(sql`
-      INSERT INTO patch_deployments (name, description, target_patches, target_devices, schedule_type, scheduled_date, created_by)
-      VALUES (${deployment.name}, ${deployment.description}, ${deployment.target_patches}, ${deployment.target_devices}, 
-              ${deployment.schedule_type}, ${deployment.scheduled_date}, ${deployment.created_by})
-      RETURNING id
-    `);
-        return result.rows[0].id;
-      }
-      async getPatchDeployments() {
-        const result = await db.execute(sql`
-      SELECT pd.*, u.name as created_by_name
-      FROM patch_deployments pd
-      LEFT JOIN users u ON pd.created_by::uuid = u.id
-      ORDER BY pd.created_at DESC
-    `);
-        return result.rows;
-      }
-      async getPendingApplicationPatches() {
-        try {
-          const result = await db.execute(sql`
-        SELECT 
-          dps.device_id,
-          d.hostname,
-          dps.patch_id,
-          pd.title,
-          pd.severity,
-          pd.category,
-          pd.description,
-          dps.last_scan_date
-        FROM device_patch_status dps
-        JOIN patch_definitions pd ON dps.patch_id = pd.patch_id
-        JOIN devices d ON dps.device_id = d.id
-        WHERE dps.status = 'missing'
-        AND pd.category LIKE '%application%'
-        ORDER BY pd.severity DESC, dps.last_scan_date DESC
-      `);
-          return result.rows;
-        } catch (error) {
-          console.error("Error getting pending application patches:", error);
-          throw error;
-        }
-      }
-    };
-    patchComplianceService = new PatchComplianceService();
-  }
-});
-
 // server/routes/patch-routes.ts
 var patch_routes_exports = {};
 __export(patch_routes_exports, {
@@ -10429,6 +10867,8 @@ function registerDeviceRoutes(app2, authenticateToken3) {
 
 // server/routes/agent-routes.ts
 init_storage();
+init_enhanced_storage();
+init_patch_compliance_service();
 function registerAgentRoutes(app2, authenticateToken3, requireRole2) {
   app2.post(
     "/api/agents/:id/test-connectivity",
@@ -10663,6 +11103,7 @@ function registerAgentRoutes(app2, authenticateToken3, requireRole2) {
         });
         console.log("Updated device from heartbeat:", device.id);
       }
+      const reportData = req.body;
       if (systemInfo) {
         await storage.createDeviceReport({
           device_id: device.id,
@@ -10673,14 +11114,25 @@ function registerAgentRoutes(app2, authenticateToken3, requireRole2) {
           raw_data: JSON.stringify(req.body)
         });
       }
-      res.json({
-        message: "Heartbeat received",
-        agentId: device.id,
-        status: "success"
-      });
+      if (reportData.usb_devices && Array.isArray(reportData.usb_devices)) {
+        await enhancedStorage.updateUSBDevices(device.id, reportData.usb_devices);
+      }
+      if (reportData.active_ports && Array.isArray(reportData.active_ports)) {
+        await enhancedStorage.updateActivePorts(device.id, reportData.active_ports);
+      }
+      try {
+        await patchComplianceService.processAgentReport(device.id, reportData);
+      } catch (patchError) {
+        console.error("Error processing patch data, continuing...", patchError);
+      }
+      console.log(`=== AGENT REPORT PROCESSED SUCCESSFULLY ===`);
+      console.log(`Device ID: ${device.id}`);
+      console.log(`Device Status: ${device.status}`);
+      console.log(`===============================================`);
+      res.json({ message: "Report saved successfully" });
     } catch (error) {
-      console.error("Error processing heartbeat:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error("Error processing agent report:", error);
+      res.status(500).json({ error: "Failed to process report" });
     }
   });
   app2.get("/api/commands", async (req, res) => {
@@ -10799,16 +11251,16 @@ var SecurityService = class {
     return match ? match[1].toLowerCase() : "unknown";
   }
   categorizeUSBDevice(description) {
-    const desc9 = description.toLowerCase();
-    if (desc9.includes("mass storage") || desc9.includes("storage"))
+    const desc10 = description.toLowerCase();
+    if (desc10.includes("mass storage") || desc10.includes("storage"))
       return "mass_storage";
-    if (desc9.includes("keyboard")) return "keyboard";
-    if (desc9.includes("mouse")) return "mouse";
-    if (desc9.includes("webcam") || desc9.includes("camera")) return "webcam";
-    if (desc9.includes("wireless") || desc9.includes("wifi"))
+    if (desc10.includes("keyboard")) return "keyboard";
+    if (desc10.includes("mouse")) return "mouse";
+    if (desc10.includes("webcam") || desc10.includes("camera")) return "webcam";
+    if (desc10.includes("wireless") || desc10.includes("wifi"))
       return "wireless_adapter";
-    if (desc9.includes("audio") || desc9.includes("speaker")) return "audio";
-    if (desc9.includes("composite")) return "composite";
+    if (desc10.includes("audio") || desc10.includes("speaker")) return "audio";
+    if (desc10.includes("composite")) return "composite";
     return "unknown";
   }
   async checkSoftwareLicenseCompliance(deviceId, installedSoftware) {
@@ -13182,8 +13634,8 @@ async function registerRoutes(app2) {
         const decoded = jwt3.verify(token, JWT_SECRET3);
         const userId = decoded.id;
         const { db: db4 } = await Promise.resolve().then(() => (init_db(), db_exports));
-        const { desc: desc9 } = await import("drizzle-orm");
-        const ticketsList = await db4.select().from(tickets).orderBy(desc9(tickets.updated_at));
+        const { desc: desc10 } = await import("drizzle-orm");
+        const ticketsList = await db4.select().from(tickets).orderBy(desc10(tickets.updated_at));
         const userTickets = ticketsList.filter(
           (ticket) => ticket.assigned_to === userId || ticket.requester_email === decoded.email
         );
@@ -15354,13 +15806,14 @@ async function createTicketTables() {
 // server/index.ts
 init_db();
 init_ticket_schema();
-import { eq as eq10, desc as desc8 } from "drizzle-orm";
+import { eq as eq11, desc as desc9 } from "drizzle-orm";
 
 // server/routes/knowledge-routes.ts
 init_db();
+init_ticket_schema();
 init_ticket_storage();
 import { Router as Router4 } from "express";
-import { eq as eq6 } from "drizzle-orm";
+import { eq as eq7, desc as desc7, like as like5, and as and7, or as or7 } from "drizzle-orm";
 import jwt4 from "jsonwebtoken";
 var router4 = Router4();
 var storage2 = new TicketStorage();
@@ -15389,59 +15842,30 @@ router4.get("/", authenticateToken2, async (req, res) => {
       status: req.query.status || "published"
     };
     console.log("KB Search filters:", filters);
-    let query = db.select().from(knowledgeBase);
-    if (filters.status) {
-      query = query.where(eq6(knowledgeBase.status, filters.status));
-    }
-    const articles = await query;
-    console.log(`Found ${articles.length} articles in database`);
-    let filteredArticles = articles;
-    if (filters.search) {
-      const searchTerms = filters.search.toLowerCase().split(" ");
-      filteredArticles = articles.filter((article) => {
-        const titleText = article.title.toLowerCase();
-        const contentText = article.content.toLowerCase();
-        const categoryText = (article.category || "").toLowerCase();
-        return searchTerms.some(
-          (term) => titleText.includes(term) || contentText.includes(term) || categoryText.includes(term)
-        );
-      });
-      filteredArticles.sort((a, b) => {
-        const aRelevance = calculateRelevanceScore(a, searchTerms);
-        const bRelevance = calculateRelevanceScore(b, searchTerms);
-        return bRelevance - aRelevance;
-      });
-    }
+    const conditions = [];
+    conditions.push(eq7(knowledgeBase.status, filters.status));
     if (filters.category && filters.category !== "all") {
-      filteredArticles = filteredArticles.filter(
-        (article) => article.category === filters.category
+      conditions.push(eq7(knowledgeBase.category, filters.category));
+    }
+    if (filters.search) {
+      const searchTerm = `%${filters.search}%`;
+      conditions.push(
+        or7(
+          like5(knowledgeBase.title, searchTerm),
+          like5(knowledgeBase.content, searchTerm),
+          like5(knowledgeBase.category, searchTerm)
+        )
       );
     }
-    const startIndex = (page - 1) * limit;
-    const paginatedArticles = filteredArticles.slice(startIndex, startIndex + limit);
-    console.log(`Returning ${paginatedArticles.length} articles after filtering`);
-    res.json(paginatedArticles);
+    const whereClause = conditions.length > 0 ? and7(...conditions) : void 0;
+    const articles = await db.select().from(knowledgeBase).where(whereClause).orderBy(desc7(knowledgeBase.helpful_votes), desc7(knowledgeBase.views)).limit(limit).offset((page - 1) * limit);
+    console.log(`Found ${articles.length} articles in database`);
+    res.json(articles);
   } catch (error) {
     console.error("Error fetching KB articles:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
-function calculateRelevanceScore(article, searchTerms) {
-  const titleText = article.title.toLowerCase();
-  const contentText = article.content.toLowerCase();
-  const categoryText = (article.category || "").toLowerCase();
-  let score = 0;
-  searchTerms.forEach((term) => {
-    if (term.length > 2) {
-      if (titleText.includes(term)) score += 10;
-      if (categoryText.includes(term)) score += 5;
-      if (contentText.includes(term)) score += 2;
-    }
-  });
-  score += (article.helpful_votes || 0) * 0.5;
-  score += (article.views || 0) * 0.1;
-  return score;
-}
 router4.get("/:id", authenticateToken2, async (req, res) => {
   try {
     const article = await storage2.getKBArticleById(req.params.id);
@@ -15835,7 +16259,7 @@ app.use((req, res, next) => {
           status: req.query.status || "published"
         };
         console.log("KB API - Filters:", filters);
-        const articles = await db.select().from(knowledgeBase2).where(eq10(knowledgeBase2.status, filters.status)).orderBy(desc8(knowledgeBase2.created_at));
+        const articles = await db.select().from(knowledgeBase).where(eq11(knowledgeBase.status, filters.status)).orderBy(desc9(knowledgeBase.created_at));
         console.log(`KB API - Found ${articles.length} articles in database`);
         let filteredArticles = articles;
         if (filters.search) {
