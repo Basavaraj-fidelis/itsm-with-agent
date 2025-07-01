@@ -1,0 +1,95 @@
+node -e "
+> const { drizzle } = require('drizzle-orm/postgres-js');
+> const postgres = require('postgres');
+> const { knowledgeBase } = require('./shared/ticket-schema');
+> 
+> const sql = postgres(process.env.DATABASE_URL || 'postgresql://admin:admin@localhost:5432/itsm_db');
+> const db = drizzle(sql);
+> 
+> async function checkAndCreateSampleArticles() {
+>   try {
+>     const articles = await db.select().from(knowledgeBase).limit(5);
+>     console.log('Current KB articles count:', articles.length);
+>     
+>     if (articles.length === 0) {
+>       console.log('Creating sample knowledge base articles...');
+>       
+>       const sampleArticles = [
+>         {
+>           title: 'How to Reset Your Password',
+>           content: '# Password Reset Guide\n\n## Problem\nForgotten password or need to change your current password.\n\n## Solution\n1. Go to the login page\n2. Click Forgot Password\n3. Enter your email address\n4. Check your email for reset instructions\n5. Follow the link and create a new password\n\n## Prevention\n- Use a password manager\n- Create strong passwords\n- Change passwords regularly',
+>           category: 'Security',
+>           tags: ['password', 'reset', 'login', 'security', 'account'],
+>           author_email: 'admin@company.com',
+>           status: 'published',
+>           views: 150,
+>           helpful_votes: 25
+>         },
+>         {
+>           title: 'Troubleshooting Network Connection Issues',
+>           content: '# Network Connection Problems\n\n## Common Symptoms\n- No internet access\n- Slow connection\n- Intermittent connectivity\n\n## Troubleshooting Steps\n1. Check physical connections\n2. Restart network adapter\n3. Run network diagnostics\n4. Check DNS settings\n5. Contact IT support if issues persist\n\n## Prevention\n- Keep network drivers updated\n- Monitor network performance\n- Use reliable DNS servers',
+>           category: 'Network',
+>           tags: ['network', 'internet', 'connectivity', 'dns', 'adapter', 'troubleshooting'],
+>           author_email: 'admin@company.com',
+>           status: 'published',
+>           views: 320,
+>           helpful_votes: 50
+>         },
+>         {
+>           title: 'Software Installation Guide',
+>           content: '# Installing Software Applications\n\n## Before Installation\n- Check system requirements\n- Verify software authenticity\n- Create system backup\n\n## Installation Steps\n1. Download from official source\n2. Run as administrator\n3. Follow installation wizard\n4. Configure initial settings\n5. Test functionality\n\n## Troubleshooting\n- Check compatibility\n- Disable antivirus temporarily\n- Clear installer cache\n- Contact software vendor',
+>           category: 'Software',
+>           tags: ['software', 'installation', 'applications', 'setup', 'configuration'],
+>           author_email: 'admin@company.com',
+>           status: 'published',
+>           views: 180,
+>           helpful_votes: 30
+>         }
+>       ];
+>       
+>       for (const article of sampleArticles) {
+>         await db.insert(knowledgeBase).values(article);
+>       }
+>       
+>       console.log('Sample articles created successfully!');
+>     } else {
+>       console.log('Sample articles exist:', articles.map(a => a.title));
+>     }
+>     
+>     await sql.end();
+>   } catch (error) {
+>     console.error('Error:', error);
+>     process.exit(1);
+>   }
+> }
+> 
+> checkAndCreateSampleArticles();
+> "
+node:internal/modules/cjs/loader:1228
+  throw err;
+  ^
+
+Error: Cannot find module 'postgres'
+Require stack:
+- /home/runner/workspace/node_modules/drizzle-orm/postgres-js/driver.cjs
+- /home/runner/workspace/node_modules/drizzle-orm/postgres-js/index.cjs
+- /home/runner/workspace/[eval]
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1225:15)
+    at Module._load (node:internal/modules/cjs/loader:1051:27)
+    at Module.require (node:internal/modules/cjs/loader:1311:19)
+    at require (node:internal/modules/helpers:179:18)
+    at Object.<anonymous> (/home/runner/workspace/node_modules/drizzle-orm/postgres-js/driver.cjs:35:31)
+    at Module._compile (node:internal/modules/cjs/loader:1469:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1548:10)
+    at Module.load (node:internal/modules/cjs/loader:1288:32)
+    at Module._load (node:internal/modules/cjs/loader:1104:12)
+    at Module.require (node:internal/modules/cjs/loader:1311:19) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/home/runner/workspace/node_modules/drizzle-orm/postgres-js/driver.cjs',
+    '/home/runner/workspace/node_modules/drizzle-orm/postgres-js/index.cjs',
+    '/home/runner/workspace/[eval]'
+  ]
+}
+
+Node.js v20.18.1
