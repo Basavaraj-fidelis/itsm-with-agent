@@ -1,4 +1,3 @@
-
 import { db } from "../db";
 import { knowledgeBase } from "@shared/ticket-schema";
 import { eq, like, or, desc } from "drizzle-orm";
@@ -11,7 +10,7 @@ export interface TicketArticleMatch {
 }
 
 export class KnowledgeAIService {
-  
+
   /**
    * Find relevant articles for a ticket
    */
@@ -24,7 +23,7 @@ export class KnowledgeAIService {
   }): Promise<TicketArticleMatch[]> {
     try {
       console.log('🔍 Finding relevant articles for ticket:', ticket.title);
-      
+
       // Get all published articles
       const articles = await db
         .select()
@@ -47,7 +46,7 @@ export class KnowledgeAIService {
 
       for (const article of articles) {
         const score = this.calculateRelevanceScore(ticket, article, ticketWords);
-        
+
         if (score.score > 0.1) { // Even lower threshold for better matching
           matches.push({
             article,
@@ -61,7 +60,7 @@ export class KnowledgeAIService {
       const sortedMatches = matches
         .sort((a, b) => b.relevanceScore - a.relevanceScore)
         .slice(0, 3);
-      
+
       console.log(`✅ Found ${sortedMatches.length} relevant articles with scores:`, 
         sortedMatches.map(m => ({ 
           id: m.article.id, 
@@ -70,7 +69,7 @@ export class KnowledgeAIService {
           reasons: m.matchReasons 
         }))
       );
-      
+
       return sortedMatches;
 
     } catch (error) {
@@ -91,9 +90,9 @@ export class KnowledgeAIService {
   }): Promise<KnowledgeBaseArticle | null> {
     try {
       console.log('📝 Generating draft article for ticket:', ticket.title);
-      
+
       const draftContent = this.generateArticleContent(ticket);
-      
+
       const newArticle: NewKnowledgeBaseArticle = {
         title: `How to resolve: ${ticket.title}`,
         content: draftContent,
@@ -191,7 +190,7 @@ export class KnowledgeAIService {
       'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'only', 'own',
       'same', 'than', 'too', 'very', 'can', 'just', 'now', 'get', 'got', 'also'
     ]);
-    
+
     return text
       .toLowerCase()
       .replace(/[^\w\s]/g, ' ')
@@ -279,30 +278,30 @@ If the above steps don't resolve the issue:
     tags?: string[];
   }): string[] {
     const tags = new Set<string>();
-    
+
     // Add existing tags
     if (ticket.tags && Array.isArray(ticket.tags)) {
       ticket.tags.forEach(tag => tags.add(tag.toLowerCase()));
     }
-    
+
     // Add category as tag
     if (ticket.category) {
       tags.add(ticket.category.toLowerCase().replace(/\s+/g, '-'));
     }
-    
+
     // Add type as tag
     tags.add(ticket.type.toLowerCase().replace(/\s+/g, '-'));
-    
+
     // Extract keywords from title and description
     const text = `${ticket.title} ${ticket.description}`.toLowerCase();
     const keywords = this.extractKeywords(text);
     keywords.slice(0, 5).forEach(keyword => tags.add(keyword));
-    
+
     // Add common troubleshooting tags
     tags.add('troubleshooting');
     tags.add('support');
     tags.add('how-to');
-    
+
     return Array.from(tags).slice(0, 10); // Increase to 10 tags
   }
 
@@ -315,7 +314,7 @@ If the above steps don't resolve the issue:
     type: string;
   }): string {
     const text = `${ticket.title} ${ticket.description}`.toLowerCase();
-    
+
     const categoryKeywords = {
       'Hardware': ['hardware', 'device', 'computer', 'laptop', 'desktop', 'monitor', 'keyboard', 'mouse', 'printer', 'scanner', 'disk', 'memory', 'ram', 'cpu', 'motherboard'],
       'Software': ['software', 'application', 'program', 'install', 'update', 'crash', 'error', 'bug', 'app', 'exe', 'installation'],
@@ -326,10 +325,10 @@ If the above steps don't resolve the issue:
       'Account Management': ['account', 'user', 'profile', 'settings', 'preferences', 'permissions', 'role', 'access'],
       'Troubleshooting': ['troubleshoot', 'diagnose', 'fix', 'repair', 'resolve', 'problem', 'issue', 'error']
     };
-    
+
     let bestMatch = 'Other';
     let maxMatches = 0;
-    
+
     for (const [category, keywords] of Object.entries(categoryKeywords)) {
       const matches = keywords.filter(keyword => text.includes(keyword)).length;
       if (matches > maxMatches) {
@@ -337,8 +336,99 @@ If the above steps don't resolve the issue:
         bestMatch = category;
       }
     }
-    
+
     return bestMatch;
+  }
+
+  async getRelatedArticles(params: {
+    tags: string[];
+    category?: string;
+    limit: number;
+  }): Promise<any[]> {
+    try {
+      const { tags, category, limit } = params;
+
+      console.log('Searching for related articles with:', { tags, category, limit });
+
+      // Get all published articles
+      let query = db.select().from(knowledgeBase)
+        .where(eq(knowledgeBase.status, 'published'))
+        .orderBy(desc(knowledgeBase.helpful_votes), desc(knowledgeBase.views));
+
+      const allArticles = await query;
+      console.log(`Found ${allArticles.length} total published articles`);
+
+      if (tags.length === 0) {
+        return allArticles.slice(0, limit);
+      }
+
+      // Score articles based on tag and content matches
+      const scoredArticles = allArticles.map(article => {
+        const articleTags = Array.isArray(article.tags) ? article.tags : [];
+        const articleTitle = (article.title || '').toLowerCase();
+        const articleContent = (article.content || '').toLowerCase();
+
+        let matchScore = 0;
+
+        // Check tag matches
+        tags.forEach(tag => {
+          const tagLower = tag.toLowerCase();
+
+          // Exact tag match (highest score)
+          if (articleTags.some(articleTag => articleTag.toLowerCase() === tagLower)) {
+            matchScore += 10;
+          }
+          // Partial tag match
+          else if (articleTags.some(articleTag => 
+            articleTag.toLowerCase().includes(tagLower) || tagLower.includes(articleTag.toLowerCase())
+          )) {
+            matchScore += 5;
+          }
+
+          // Title match
+          if (articleTitle.includes(tagLower)) {
+            matchScore += 3;
+          }
+
+          // Content match (lower weight)
+          if (articleContent.includes(tagLower)) {
+            matchScore += 1;
+          }
+        });
+
+        // Category boost
+        if (category && article.category === category) {
+          matchScore += 2;
+        }
+
+        return { ...article, matchScore };
+      });
+
+      // Sort by match score, then by helpful_votes, then by views
+      const sortedArticles = scoredArticles
+        .filter(article => article.matchScore > 0)
+        .sort((a, b) => {
+          if (a.matchScore !== b.matchScore) {
+            return b.matchScore - a.matchScore;
+          }
+          if ((b.helpful_votes || 0) !== (a.helpful_votes || 0)) {
+            return (b.helpful_votes || 0) - (a.helpful_votes || 0);
+          }
+          return (b.views || 0) - (a.views || 0);
+        });
+
+      console.log(`Returning ${Math.min(sortedArticles.length, limit)} matched articles from ${sortedArticles.length} matches`);
+
+      // Log the top matches for debugging
+      sortedArticles.slice(0, limit).forEach((article, index) => {
+        console.log(`Match ${index + 1}: "${article.title}" (score: ${article.matchScore}, tags: ${JSON.stringify(article.tags)})`);
+      });
+
+      return sortedArticles.slice(0, limit);
+    } catch (error) {
+      console.error('Error in getRelatedArticles:', error);
+      throw error;
+    }
   }
 }
 

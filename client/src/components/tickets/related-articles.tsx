@@ -1,143 +1,113 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { api } from "@/lib/api";
-import { BookOpen, ExternalLink, Search } from "lucide-react";
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ExternalLink, BookOpen } from 'lucide-react';
 
 interface Article {
   id: string;
   title: string;
-  content: string;
   category: string;
   tags: string[];
-  helpful_votes: number;
   views: number;
+  helpful_votes: number;
 }
 
 interface RelatedArticlesProps {
-  ticket: {
-    title: string;
-    description: string;
-    category?: string;
-    type: string;
-  };
+  ticketId: string;
+  tags?: string[];
+  category?: string;
 }
 
-export default function RelatedArticles({ ticket }: RelatedArticlesProps) {
+export default function RelatedArticles({ ticketId, tags = [], category }: RelatedArticlesProps) {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchRelatedArticles();
-  }, [ticket.title, ticket.category]);
-
-  const fetchRelatedArticles = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      console.log('=== FETCHING RELATED ARTICLES ===');
-      console.log('Ticket details:', {
-        title: ticket.title,
-        category: ticket.category,
-        type: ticket.type
-      });
-
-      // Create search terms from ticket title and description
-      const searchTerms = [
-        ticket.title,
-        ticket.category,
-        ticket.type
-      ].filter(Boolean).join(' ');
-
-      console.log('Search terms:', searchTerms);
-
-      // Use the API client for consistency
-      let articlesData = [];
-
+    async function fetchRelatedArticles() {
       try {
-        // First, try to get articles using search
-        if (searchTerms.trim()) {
-          console.log('Trying search-based fetch...');
-          const searchResponse = await api.get(`/knowledge-base?search=${encodeURIComponent(searchTerms)}&limit=5&status=published`);
-          console.log('Search response:', searchResponse);
+        setLoading(true);
+        setError(null);
 
-          if (searchResponse && Array.isArray(searchResponse) && searchResponse.length > 0) {
-            articlesData = searchResponse.slice(0, 3);
-            console.log('Found articles via search:', articlesData.length);
-          }
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('No authentication token found');
         }
 
-        // If no articles found with search, try category-based search
-        if (articlesData.length === 0 && ticket.category) {
-          console.log('Trying category-based fetch for category:', ticket.category);
-          const categoryResponse = await api.get(`/knowledge-base?category=${encodeURIComponent(ticket.category)}&limit=3&status=published`);
-          console.log('Category response:', categoryResponse);
+        // Extract meaningful tags from the ticket (keyboard, mouse, troubleshooting, etc.)
+        const searchTags = [...tags];
 
-          if (categoryResponse && Array.isArray(categoryResponse) && categoryResponse.length > 0) {
-            articlesData = categoryResponse.slice(0, 3);
-            console.log('Found articles via category:', articlesData.length);
-          }
+        // Add category-based tags if available
+        if (category) {
+          searchTags.push(category.toLowerCase());
         }
 
-        // Final fallback - get any published articles
-        if (articlesData.length === 0) {
-          console.log('Trying fallback fetch - any published articles...');
-          const fallbackResponse = await api.get('/knowledge-base?limit=3&status=published');
-          console.log('Fallback response:', fallbackResponse);
-
-          if (fallbackResponse && Array.isArray(fallbackResponse)) {
-            articlesData = fallbackResponse.slice(0, 3);
-            console.log('Found articles via fallback:', articlesData.length);
-          }
+        // Add common troubleshooting terms from ticket title if available
+        const ticketElement = document.querySelector('[data-ticket-title]');
+        const ticketTitle = ticketElement?.getAttribute('data-ticket-title') || '';
+        if (ticketTitle) {
+          const titleWords = ticketTitle.toLowerCase().split(/\s+/);
+          const relevantWords = titleWords.filter(word => 
+            word.length > 3 && 
+            !['ticket', 'issue', 'problem', 'help'].includes(word)
+          );
+          searchTags.push(...relevantWords);
         }
 
-        console.log('Final articles data:', articlesData);
-        setArticles(articlesData);
+        // Build query parameters for related articles
+        const queryParams = new URLSearchParams();
+        if (searchTags.length > 0) {
+          queryParams.append('tags', searchTags.join(','));
+        }
+        queryParams.append('limit', '5');
 
-      } catch (apiError) {
-        console.error('API call failed:', apiError);
-        setError('API call failed');
+        console.log('Fetching related articles with tags:', searchTags);
+
+        const response = await fetch(`/api/knowledge/related?${queryParams.toString()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Related articles API error:', response.status, errorText);
+          throw new Error(`Failed to fetch related articles: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Related articles response:', data);
+        setArticles(Array.isArray(data) ? data : data.articles || []);
+      } catch (err) {
+        console.error('Error fetching related articles:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load related articles');
         setArticles([]);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error fetching related articles:', error);
-      setError('Error fetching related articles');
-      setArticles([]);
-    } finally {
-      setLoading(false);
     }
-  };
 
-  const getRelevanceScore = (article: Article) => {
-    const ticketText = `${ticket.title} ${ticket.description}`.toLowerCase();
-    const articleText = `${article.title} ${article.content}`.toLowerCase();
+    fetchRelatedArticles();
+  }, [ticketId, tags, category]);
 
-    // Simple keyword matching for relevance
-    const ticketWords = ticketText.split(' ').filter(word => word.length > 3);
-    const matches = ticketWords.filter(word => articleText.includes(word));
-
-    return Math.min(100, Math.round((matches.length / ticketWords.length) * 100));
+  const handleViewArticle = (articleId: string) => {
+    window.open(`/knowledge-base?article=${articleId}`, '_blank');
   };
 
   if (loading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg flex items-center">
-            <BookOpen className="w-5 h-5 mr-2 text-blue-600" />
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <BookOpen className="w-5 h-5" />
             Related Help Articles
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="animate-pulse">
-                <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                <div className="h-3 bg-gray-100 rounded w-3/4"></div>
-              </div>
-            ))}
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <span className="ml-2 text-sm text-gray-500">Loading articles...</span>
           </div>
         </CardContent>
       </Card>
@@ -148,52 +118,20 @@ export default function RelatedArticles({ ticket }: RelatedArticlesProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg flex items-center">
-            <BookOpen className="w-5 h-5 mr-2 text-blue-600" />
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <BookOpen className="w-5 h-5" />
             Related Help Articles
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-6">
-            <p className="text-sm text-red-500">
-              Error: {error}
-            </p>
+          <div className="text-center py-4">
+            <p className="text-sm text-red-600 mb-3">{error}</p>
             <Button 
+              onClick={() => window.location.reload()} 
               variant="outline" 
-              size="sm" 
-              className="mt-2"
-              onClick={() => fetchRelatedArticles()}
+              size="sm"
             >
               Retry
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (articles.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center">
-            <BookOpen className="w-5 h-5 mr-2 text-blue-600" />
-            Related Help Articles
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-6">
-            <Search className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">
-              No related articles found for this ticket type.
-            </p>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-2"
-              onClick={() => window.open('/knowledge-base', '_blank')}
-            >
-              Browse Knowledge Base
             </Button>
           </div>
         </CardContent>
@@ -204,68 +142,79 @@ export default function RelatedArticles({ ticket }: RelatedArticlesProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg flex items-center">
-          <BookOpen className="w-5 h-5 mr-2 text-blue-600" />
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <BookOpen className="w-5 h-5" />
           Related Help Articles
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {articles.map((article) => {
-            const relevance = getRelevanceScore(article);
-            return (
-              <div 
-                key={article.id} 
-                className="border border-gray-200 rounded-lg p-3 hover:border-blue-300 transition-colors"
+        {articles.length === 0 ? (
+          <div className="text-center py-6">
+            <BookOpen className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+            <p className="text-sm text-gray-500 mb-3">No related articles found for this ticket type.</p>
+            <Button
+              onClick={() => window.open('/knowledge-base', '_blank')}
+              variant="outline"
+              size="sm"
+            >
+              Browse Knowledge Base
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {articles.map((article) => (
+              <div
+                key={article.id}
+                className="p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
-                <div className="flex justify-between items-start mb-2">
-                  <h4 className="font-medium text-sm text-blue-700 hover:text-blue-900 cursor-pointer">
-                    {article.title}
-                  </h4>
-                  <Badge variant="outline" className="text-xs">
-                    {relevance}% match
-                  </Badge>
+                <h4 className="font-medium text-sm mb-2 line-clamp-2">
+                  {article.title}
+                </h4>
+                <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                  <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
+                    {article.category}
+                  </span>
+                  <span>{article.views} views</span>
                 </div>
-
-                <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                  {article.content.substring(0, 120)}...
-                </p>
-
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                    <span>{article.category}</span>
-                    <span>•</span>
-                    <span>{article.views} views</span>
-                    <span>•</span>
-                    <span>{article.helpful_votes} helpful</span>
+                {article.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-3">
+                    {article.tags.slice(0, 3).map((tag) => (
+                      <span
+                        key={tag}
+                        className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded text-xs"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                    {article.tags.length > 3 && (
+                      <span className="text-xs text-gray-500">+{article.tags.length - 3}</span>
+                    )}
                   </div>
-
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-6 text-xs"
-                    onClick={() => window.open(`/knowledge-base/${article.id}`, '_blank')}
-                  >
-                    <ExternalLink className="w-3 h-3 mr-1" />
-                    View
-                  </Button>
-                </div>
+                )}
+                <Button
+                  onClick={() => handleViewArticle(article.id)}
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                >
+                  <ExternalLink className="w-3 h-3 mr-2" />
+                  View Article
+                </Button>
               </div>
-            );
-          })}
-        </div>
+            ))}
 
-        <div className="mt-4 pt-3 border-t">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="w-full"
-            onClick={() => window.open(`/knowledge-base?search=${encodeURIComponent(ticket.title)}`, '_blank')}
-          >
-            <Search className="w-4 h-4 mr-2" />
-            Search More Articles
-          </Button>
-        </div>
+            <div className="pt-3 border-t">
+              <Button
+                onClick={() => window.open('/knowledge-base', '_blank')}
+                variant="ghost"
+                size="sm"
+                className="w-full"
+              >
+                Browse All Articles
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -168,6 +168,42 @@ router.post("/", authenticateToken, async (req, res) => {
   }
 });
 
+// Get related articles based on tags or category
+router.get('/related', authenticateToken, async (req, res) => {
+  try {
+    const { tags, category, limit = '5' } = req.query;
+
+    console.log('Related articles request:', { tags, category, limit });
+
+    let searchTags: string[] = [];
+    if (tags) {
+      searchTags = (tags as string).split(',').map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
+    }
+
+    // If no specific tags provided, try to find articles based on common keywords
+    if (searchTags.length === 0) {
+      searchTags = ['keyboard', 'mouse', 'troubleshooting', 'password', 'network'];
+    }
+
+    console.log('Searching for articles with tags:', searchTags);
+
+    const articles = await knowledgeAiService.getRelatedArticles({
+      tags: searchTags,
+      category: category as string,
+      limit: parseInt(limit as string, 10)
+    });
+
+    console.log(`Found ${articles.length} related articles`);
+    res.json(articles);
+  } catch (error) {
+    console.error('Error fetching related articles:', error);
+    res.status(500).json({ 
+      message: 'Failed to fetch related articles',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // Get related articles by tags
 router.get('/related/:ticketId', async (req, res) => {
   try {

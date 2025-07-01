@@ -538,6 +538,25 @@ export class TicketStorage {
     }
   }
 
+  private extractTagsFromTitle(title: string): string[] {
+    const commonTechWords = [
+      'password', 'login', 'network', 'wifi', 'internet', 'email', 'printer', 
+      'mouse', 'keyboard', 'screen', 'monitor', 'computer', 'laptop', 'software',
+      'hardware', 'application', 'browser', 'chrome', 'firefox', 'windows',
+      'mac', 'phone', 'mobile', 'vpn', 'security', 'virus', 'malware',
+      'slow', 'crash', 'freeze', 'error', 'update', 'install', 'connection',
+      'troubleshooting', 'troubleshoot', 'fix', 'repair', 'broken'
+    ];
+
+    const words = title.toLowerCase().split(/\s+/);
+    const tags = words.filter(word => 
+      word.length > 3 && 
+      commonTechWords.includes(word)
+    );
+
+    return [...new Set(tags)]; // Remove duplicates
+  }
+
   async deleteTicket(id: string): Promise<boolean> {
     const result = await db.delete(tickets).where(eq(tickets.id, id));
 

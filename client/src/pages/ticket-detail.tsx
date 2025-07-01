@@ -919,13 +919,21 @@ export default function TicketDetail() {
         </Card>
 
         {/* Related Knowledge Base Articles */}
-        
-        <RelatedArticles ticket={{
-              title: ticket.title,
-              description: ticket.description,
-              category: ticket.category,
-              type: ticket.type
-            }} />
+
+        <div data-ticket-title={ticket.title}>
+              <RelatedArticles 
+                ticketId={ticket.id} 
+                tags={[
+                  ...(ticket.tags || []),
+                  // Extract keywords from ticket title
+                  ...ticket.title.toLowerCase().split(/\s+/).filter(word => 
+                    word.length > 3 && 
+                    !['ticket', 'issue', 'problem', 'help', 'with', 'from', 'this', 'that'].includes(word)
+                  )
+                ]} 
+                category={ticket.category}
+              />
+            </div>
       </div>
 
       {/* Dialogs */}
