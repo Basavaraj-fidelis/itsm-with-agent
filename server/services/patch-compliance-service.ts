@@ -268,6 +268,34 @@ export class PatchComplianceService {
     }
   }
 
+  async processAgentReport(deviceId: string, reportData: any) {
+    try {
+      // Process Windows Update data from agent reports
+      if (reportData.windows_updates) {
+        await this.processWindowsUpdates(deviceId, reportData.windows_updates);
+      }
+
+      // Process patches from os_info (legacy format)
+      if (reportData.os_info && reportData.os_info.patches) {
+        const windowsUpdates = {
+          installed_updates: reportData.os_info.patches.map((patch: any) => ({
+            title: `KB${patch.id}`,
+            kb_article: patch.id,
+            install_date: patch.installed_on,
+            severity: 'moderate'
+          })),
+          available_updates: []
+        };
+        await this.processWindowsUpdates(deviceId, windowsUpdates);
+      }
+
+      console.log(`Processed agent report for device ${deviceId}`);
+    } catch (error) {
+      console.error("Error processing agent report:", error);
+      throw error;
+    }
+  }
+
   private async processWindowsUpdates(deviceId: string, windowsUpdates: any) {
     const patches = windowsUpdates.available_updates || [];
     const installedUpdates = windowsUpdates.installed_updates || [];

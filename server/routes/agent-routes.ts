@@ -1,5 +1,10 @@
 import type { Express } from "express";
 import { storage } from "../storage";
+import { enhancedStorage } from "../models/enhanced-storage";
+import { performanceService } from "../services/performance-service";
+import { notificationService } from "../services/notification-service";
+import { securityService } from "../services/security-service";
+import { patchComplianceService } from "../services/patch-compliance-service";
 
 export function registerAgentRoutes(
   app: Express,
@@ -319,6 +324,8 @@ export function registerAgentRoutes(
         console.log("Updated device from heartbeat:", device.id);
       }
 
+      const reportData = req.body;
+
       // Store system info if provided
       if (systemInfo) {
         await storage.createDeviceReport({
@@ -331,14 +338,32 @@ export function registerAgentRoutes(
         });
       }
 
-      res.json({
-        message: "Heartbeat received",
-        agentId: device.id,
-        status: "success",
-      });
+      // Process USB devices
+      if (reportData.usb_devices && Array.isArray(reportData.usb_devices)) {
+        await enhancedStorage.updateUSBDevices(device.id, reportData.usb_devices);
+      }
+
+      // Process active ports
+      if (reportData.active_ports && Array.isArray(reportData.active_ports)) {
+        await enhancedStorage.updateActivePorts(device.id, reportData.active_ports);
+      }
+
+      // Process patch compliance data
+      try {
+        await patchComplianceService.processAgentReport(device.id, reportData);
+      } catch (patchError) {
+        console.error("Error processing patch data, continuing...", patchError);
+      }
+
+      console.log(`=== AGENT REPORT PROCESSED SUCCESSFULLY ===`);
+      console.log(`Device ID: ${device.id}`);
+      console.log(`Device Status: ${device.status}`);
+      console.log(`===============================================`);
+
+      res.json({ message: "Report saved successfully" });
     } catch (error) {
-      console.error("Error processing heartbeat:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error("Error processing agent report:", error);
+      res.status(500).json({ error: "Failed to process report" });
     }
   });
 

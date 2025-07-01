@@ -291,6 +291,9 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
     return "bg-neutral-50 dark:bg-neutral-800";
   };
 
+   // Windows Updates data
+   const windowsUpdates = processedData?.windows_updates || null;
+
   return (
     <AgentErrorBoundary>
       <Tabs defaultValue="overview" className="w-full">
@@ -1801,7 +1804,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       }
 
                       const parsedData = typeof rawData === "string" ? JSON.parse(rawData) : rawData;
-                      
+
                       // Get OS name from multiple possible locations
                       const osName = (
                         agent?.latest_report?.os_info?.name ||
@@ -1849,8 +1852,84 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                               </div>
                             )}
 
-                            {/* Windows Patches */}
-                            {patches && patches.length > 0 ? (
+                            {/* Windows Updates */}
+                            {windowsUpdates ? (
+                              <div className="space-y-4">
+                                {/* Available Updates */}
+                                {windowsUpdates.available_updates && windowsUpdates.available_updates.length > 0 ? (
+                                  <div>
+                                    <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
+                                      <Download className="w-4 h-4 text-orange-600" />
+                                      Available Windows Updates ({windowsUpdates.available_updates.length})
+                                    </h4>
+                                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                                      {windowsUpdates.available_updates.slice(0, 10).map((update, index) => (
+                                        <div
+                                          key={index}
+                                          className="p-3 border rounded-lg bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border-orange-200 dark:border-orange-800"
+                                        >
+                                          <div className="flex justify-between items-start mb-2">
+                                            <div className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                                              {update.Title || update.title}
+                                            </div>
+                                            {update.Severity && (
+                                              <Badge variant={update.Severity === 'Critical' ? 'destructive' : 'secondary'}>
+                                                {update.Severity}
+                                              </Badge>
+                                            )}
+                                          </div>
+                                          {update.KBArticleIDs && (
+                                            <div className="text-xs text-orange-600 dark:text-orange-400">
+                                              KB: {update.KBArticleIDs}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ) : null}
+
+                                {/* Installed Updates */}
+                                {windowsUpdates.installed_updates && windowsUpdates.installed_updates.length > 0 ? (
+                                  <div>
+                                    <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
+                                      <Shield className="w-4 h-4 text-green-600" />
+                                      Recently Installed Windows Updates ({windowsUpdates.installed_updates.length})
+                                    </h4>
+                                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                                      {windowsUpdates.installed_updates.slice(0, 15).map((update, index) => (
+                                        <div
+                                          key={index}
+                                          className="flex justify-between items-center py-3 px-4 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-800"
+                                        >
+                                          <span className="text-sm font-medium text-green-800 dark:text-green-200">
+                                            {update.Title || update.title}
+                                          </span>
+                                          <span className="text-xs text-green-600 dark:text-green-400">
+                                            {update.Date || update.install_date || "Unknown date"}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ) : null}
+
+                                {/* Last Search Date */}
+                                {windowsUpdates.last_search_date && (
+                                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <Clock className="w-4 h-4 text-blue-600" />
+                                      <span className="font-medium text-sm text-blue-800 dark:text-blue-200">
+                                        Last Update Check
+                                      </span>
+                                    </div>
+                                    <div className="text-sm text-blue-700 dark:text-blue-300">
+                                      {windowsUpdates.last_search_date}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ) : patches && patches.length > 0 ? (
                               <div>
                                 <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
                                   <Shield className="w-4 h-4 text-green-600" />
@@ -1863,7 +1942,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                       className="flex justify-between items-center py-3 px-4 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-800"
                                     >
                                       <span className="text-sm font-medium font-mono text-green-800 dark:text-green-200">
-                                        {patch.id || patch.HotFixID || patch.kb_number || `Patch ${index + 1}`}
+                                        {patch.id || patch.HotFixID || `KB${patch.id}`}
                                       </span>
                                       <span className="text-xs text-green-600 dark:text-green-400">
                                         {patch.installed_on?.DateTime || 

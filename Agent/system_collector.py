@@ -159,6 +159,7 @@ class SystemCollector:
             'security': self._get_security_info(),
             'assigned_user': self._get_current_user(),
             "active_ports": self._get_filtered_tcp_ports(),
+            'windows_updates': self._get_windows_updates() if self.is_windows else None,
         }
 
         return info
@@ -681,3 +682,131 @@ class SystemCollector:
             self.logger.warning(f"Failed to get TCP ports: {e}")
 
         return result
+
+    def _get_windows_updates(self):
+        """Get Windows Update information"""
+        try:
+            if not self.is_windows:
+                return None
+
+            update_info = {
+                'available_updates': [],
+                'installed_updates': [],
+                'last_search_date': None,
+                'automatic_updates_enabled': False
+            }
+
+            # Get available updates using Windows Update API
+            try:
+                ps_command = '''
+                $UpdateSession = New-Object -ComObject Microsoft.Update.Session
+                $UpdateSearcher = $UpdateSession.CreateUpdateSearcher()
+                $SearchResult = $UpdateSearcher.Search("IsInstalled=0 and Type='Software'")
+                
+                $Updates = @()
+                foreach ($Update in $SearchResult.Updates) {
+                    $Updates += @{
+                        Title = $Update.Title
+                        Description = $Update.Description
+                        KBArticleIDs = $Update.KBArticleIDs -join ","
+                        Severity = if ($Update.MsrcSeverity) { $Update.MsrcSeverity } else { "Unknown" }
+                        Size = $Update.MaxDownloadSize
+                        IsDownloaded = $Update.IsDownloaded
+                        RebootRequired = $Update.RebootRequired
+                    }
+                }
+                
+                $Updates | ConvertTo-Json -Depth 3
+                '''
+                
+                result = subprocess.run(["powershell", "-Command", ps_command], 
+                                      capture_output=True, text=True, timeout=60)
+                
+                if result.returncode == 0 and result.stdout.strip():
+                    try:
+                        available_updates = json.loads(result.stdout.strip())
+                        if isinstance(available_updates, dict):
+                            available_updates = [available_updates]
+                        update_info['available_updates'] = available_updates or []
+                    except json.JSONDecodeError:
+                        pass
+                        
+            except Exception as e:
+                self.logger.warning(f"Failed to get available Windows updates: {e}")
+
+            # Get installed updates history
+            try:
+                ps_command = '''
+                $UpdateSession = New-Object -ComObject Microsoft.Update.Session
+                $UpdateSearcher = $UpdateSession.CreateUpdateSearcher()
+                $HistoryCount = $UpdateSearcher.GetTotalHistoryCount()
+                $UpdateHistory = $UpdateSearcher.QueryHistory(0, [Math]::Min($HistoryCount, 50))
+                
+                $InstalledUpdates = @()
+                foreach ($Update in $UpdateHistory) {
+                    if ($Update.ResultCode -eq 2) {  # Successfully installed
+                        $InstalledUpdates += @{
+                            Title = $Update.Title
+                            Date = $Update.Date.ToString("yyyy-MM-dd HH:mm:ss")
+                            ResultCode = $Update.ResultCode
+                            ClientApplicationID = $Update.ClientApplicationID
+                        }
+                    }
+                }
+                
+                $InstalledUpdates | ConvertTo-Json -Depth 3
+                '''
+                
+                result = subprocess.run(["powershell", "-Command", ps_command], 
+                                      capture_output=True, text=True, timeout=60)
+                
+                if result.returncode == 0 and result.stdout.strip():
+                    try:
+                        installed_updates = json.loads(result.stdout.strip())
+                        if isinstance(installed_updates, dict):
+                            installed_updates = [installed_updates]
+                        update_info['installed_updates'] = installed_updates or []
+                    except json.JSONDecodeError:
+                        pass
+                        
+            except Exception as e:
+                self.logger.warning(f"Failed to get installed Windows updates: {e}")
+
+            # Get last search date
+            try:
+                ps_command = '''
+                $UpdateSession = New-Object -ComObject Microsoft.Update.Session
+                $AutoUpdate = New-Object -ComObject Microsoft.Update.AutoUpdate
+                $AutoUpdate.Results.LastSearchSuccessDate.ToString("yyyy-MM-dd HH:mm:ss")
+                '''
+                
+                result = subprocess.run(["powershell", "-Command", ps_command], 
+                                      capture_output=True, text=True, timeout=30)
+                
+                if result.returncode == 0 and result.stdout.strip():
+                    update_info['last_search_date'] = result.stdout.strip()
+                    
+            except Exception as e:
+                self.logger.warning(f"Failed to get last search date: {e}")
+
+            # Check automatic updates status
+            try:
+                ps_command = '''
+                $AUSettings = (New-Object -ComObject Microsoft.Update.AutoUpdate).Settings
+                $AUSettings.NotificationLevel -ne 1
+                '''
+                
+                result = subprocess.run(["powershell", "-Command", ps_command], 
+                                      capture_output=True, text=True, timeout=30)
+                
+                if result.returncode == 0:
+                    update_info['automatic_updates_enabled'] = "True" in result.stdout
+                    
+            except Exception as e:
+                self.logger.warning(f"Failed to check automatic updates: {e}")
+
+            return update_info
+            
+        except Exception as e:
+            self.logger.error(f"Error getting Windows updates: {e}")
+            return None

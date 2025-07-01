@@ -86,7 +86,7 @@ class WindowsCollector:
             except Exception as e:
                 self.logger.warning(f"Failed to collect full patch list: {e}")
 
-            return info
+            return info</old_str>
         except Exception as e:
             self.logger.error(f"Error getting Windows OS info: {e}")
             return {}
