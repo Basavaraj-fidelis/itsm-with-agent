@@ -1,5 +1,6 @@
 
-const { Pool } = require('pg');
+import pkg from 'pg';
+const { Pool } = pkg;
 
 async function populateKnowledgeBase() {
   const pool = new Pool({
