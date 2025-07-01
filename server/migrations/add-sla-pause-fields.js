@@ -10,7 +10,15 @@ async function addSLAPauseFields() {
       throw new Error("DATABASE_URL not found");
     }
 
-    const sql = postgres(connectionString);
+    // Use the same SSL configuration as the main app
+    const sql = postgres(connectionString, {
+      ssl: connectionString.includes('aivencloud.com') ? {
+        rejectUnauthorized: false,
+      } : false,
+      connection: {
+        application_name: 'itsm-sla-migration',
+      }
+    });
     
     // Add SLA pause fields to tickets table
     await sql`
