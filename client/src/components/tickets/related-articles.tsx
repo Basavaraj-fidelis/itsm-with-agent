@@ -49,6 +49,7 @@ export default function RelatedArticles({ ticket }: RelatedArticlesProps) {
       const token = localStorage.getItem('auth-token');
       if (!token) {
         console.error('No auth token found for KB articles');
+        setArticles([]);
         return;
       }
 
@@ -57,52 +58,74 @@ export default function RelatedArticles({ ticket }: RelatedArticlesProps) {
         'Authorization': `Bearer ${token}`
       };
 
-      // Fetch articles with search terms using fetch directly
-      const response = await fetch(`/api/knowledge-base?search=${encodeURIComponent(searchTerms)}&limit=5&status=published`, {
-        method: 'GET',
-        headers
-      });
+      let articlesData = [];
 
-      console.log('Knowledge base API response status:', response.status);
+      // First try with search terms
+      if (searchTerms.trim()) {
+        try {
+          const response = await fetch(`/api/knowledge-base?search=${encodeURIComponent(searchTerms)}&limit=5&status=published`, {
+            method: 'GET',
+            headers
+          });
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Knowledge base articles data:', data);
-        setArticles(Array.isArray(data) ? data.slice(0, 3) : []); // Show only top 3 related articles
-      } else {
-        console.error('Failed to fetch articles:', response.status, await response.text());
-        // Try to fetch all articles as fallback
-        const fallbackResponse = await fetch('/api/knowledge-base?limit=5&status=published', {
-          method: 'GET',
-          headers
-        });
-        if (fallbackResponse.ok) {
-          const fallbackData = await fallbackResponse.json();
-          console.log('Fallback articles data:', fallbackData);
-          setArticles(Array.isArray(fallbackData) ? fallbackData.slice(0, 3) : []);
+          console.log('Knowledge base API response status:', response.status);
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Knowledge base articles data:', data);
+            if (Array.isArray(data) && data.length > 0) {
+              articlesData = data.slice(0, 3);
+            }
+          }
+        } catch (searchError) {
+          console.error('Search-based fetch failed:', searchError);
         }
       }
-    } catch (error) {
-      console.error('Error fetching related articles:', error);
-      // Try one more fallback without search
-      try {
-        const token = localStorage.getItem('auth-token');
-        if (token) {
+
+      // If no articles found with search, try category-based search
+      if (articlesData.length === 0 && ticket.category) {
+        try {
+          const categoryResponse = await fetch(`/api/knowledge-base?category=${encodeURIComponent(ticket.category)}&limit=3&status=published`, {
+            method: 'GET',
+            headers
+          });
+
+          if (categoryResponse.ok) {
+            const categoryData = await categoryResponse.json();
+            console.log('Category-based articles data:', categoryData);
+            if (Array.isArray(categoryData) && categoryData.length > 0) {
+              articlesData = categoryData.slice(0, 3);
+            }
+          }
+        } catch (categoryError) {
+          console.error('Category-based fetch failed:', categoryError);
+        }
+      }
+
+      // Final fallback - get any published articles
+      if (articlesData.length === 0) {
+        try {
           const fallbackResponse = await fetch('/api/knowledge-base?limit=3&status=published', {
             method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            }
+            headers
           });
+
           if (fallbackResponse.ok) {
             const fallbackData = await fallbackResponse.json();
-            setArticles(Array.isArray(fallbackData) ? fallbackData : []);
+            console.log('Fallback articles data:', fallbackData);
+            if (Array.isArray(fallbackData)) {
+              articlesData = fallbackData.slice(0, 3);
+            }
           }
+        } catch (fallbackError) {
+          console.error('Fallback fetch failed:', fallbackError);
         }
-      } catch (fallbackError) {
-        console.error('Fallback fetch also failed:', fallbackError);
       }
+
+      setArticles(articlesData);
+    } catch (error) {
+      console.error('Error fetching related articles:', error);
+      setArticles([]);
     } finally {
       setLoading(false);
     }

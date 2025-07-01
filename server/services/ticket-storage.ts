@@ -175,6 +175,9 @@ export class TicketStorage {
     tags: string[];
   }): Promise<string[]> {
     try {
+      // Ensure we have some sample articles first
+      await this.ensureSampleKBArticles();
+
       const { knowledgeAIService } = await import("./knowledge-ai-service");
 
       // 1. Attempt to find relevant existing articles
@@ -210,6 +213,58 @@ export class TicketStorage {
     } catch (error) {
       console.error("Error in knowledge base integration:", error);
       return []; // Return empty array on error
+    }
+  }
+
+  private async ensureSampleKBArticles() {
+    try {
+      // Check if we have any articles
+      const existingArticles = await db.select().from(knowledgeBase).limit(1);
+      
+      if (existingArticles.length === 0) {
+        console.log("Creating sample knowledge base articles...");
+        
+        const sampleArticles = [
+          {
+            title: "How to Reset Your Password",
+            content: "# Password Reset Guide\n\n1. Go to the login page\n2. Click 'Forgot Password'\n3. Enter your email address\n4. Check your email for reset instructions\n5. Follow the link and create a new password",
+            category: "Security",
+            tags: ["password", "reset", "login", "security"],
+            author_email: "admin@company.com",
+            status: "published" as const,
+            views: 150,
+            helpful_votes: 25
+          },
+          {
+            title: "Troubleshooting Monitor Display Issues",
+            content: "# Monitor Display Problems\n\n## Common Issues:\n- No display\n- Blurry screen\n- Color issues\n\n## Solutions:\n1. Check cable connections\n2. Update display drivers\n3. Adjust resolution settings\n4. Test with different monitor",
+            category: "Hardware",
+            tags: ["monitor", "display", "screen", "troubleshooting"],
+            author_email: "admin@company.com",
+            status: "published" as const,
+            views: 200,
+            helpful_votes: 30
+          },
+          {
+            title: "Installing Software Updates",
+            content: "# Software Update Guide\n\n## Windows Updates:\n1. Open Settings\n2. Go to Update & Security\n3. Click Check for Updates\n4. Install available updates\n5. Restart when prompted",
+            category: "Software",
+            tags: ["software", "update", "installation", "windows"],
+            author_email: "admin@company.com",
+            status: "published" as const,
+            views: 300,
+            helpful_votes: 45
+          }
+        ];
+
+        for (const article of sampleArticles) {
+          await this.createKBArticle(article);
+        }
+        
+        console.log("Sample knowledge base articles created successfully");
+      }
+    } catch (error) {
+      console.error("Error creating sample KB articles:", error);
     }
   }
 

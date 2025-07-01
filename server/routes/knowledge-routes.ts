@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { eq, desc, like, and, count } from "drizzle-orm";
+import { eq, desc, like, and, count, or } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 
 import { db } from "../db";
-import { knowledgeSchema } from "@shared/knowledge-schema";
+import { knowledgeBase } from "@shared/ticket-schema";
 import { TicketStorage } from "../services/ticket-storage";
 
 const router = Router();
@@ -41,55 +41,42 @@ router.get("/", authenticateToken, async (req, res) => {
 
     console.log('KB Search filters:', filters);
 
-    // Get articles directly from database
-    let query = db.select().from(knowledgeBase);
+    // Build query conditions
+    const conditions = [];
+    
+    // Always filter by status (published articles only)
+    conditions.push(eq(knowledgeBase.status, filters.status));
 
-    // Apply status filter
-    if (filters.status) {
-      query = query.where(eq(knowledgeBase.status, filters.status));
-    }
-
-    const articles = await query;
-    console.log(`Found ${articles.length} articles in database`);
-
-    let filteredArticles = articles;
-
-    // Apply search filter
-    if (filters.search) {
-      const searchTerms = filters.search.toLowerCase().split(' ');
-      filteredArticles = articles.filter(article => {
-        const titleText = article.title.toLowerCase();
-        const contentText = article.content.toLowerCase();
-        const categoryText = (article.category || '').toLowerCase();
-
-        return searchTerms.some(term => 
-          titleText.includes(term) || 
-          contentText.includes(term) || 
-          categoryText.includes(term)
-        );
-      });
-
-      // Sort by relevance
-      filteredArticles.sort((a, b) => {
-        const aRelevance = calculateRelevanceScore(a, searchTerms);
-        const bRelevance = calculateRelevanceScore(b, searchTerms);
-        return bRelevance - aRelevance;
-      });
-    }
-
-    // Apply category filter
+    // Add category filter if specified
     if (filters.category && filters.category !== 'all') {
-      filteredArticles = filteredArticles.filter(article => 
-        article.category === filters.category
+      conditions.push(eq(knowledgeBase.category, filters.category));
+    }
+
+    // Add search filter if specified
+    if (filters.search) {
+      const searchTerm = `%${filters.search}%`;
+      conditions.push(
+        or(
+          like(knowledgeBase.title, searchTerm),
+          like(knowledgeBase.content, searchTerm),
+          like(knowledgeBase.category, searchTerm)
+        )
       );
     }
 
-    // Apply pagination
-    const startIndex = (page - 1) * limit;
-    const paginatedArticles = filteredArticles.slice(startIndex, startIndex + limit);
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    console.log(`Returning ${paginatedArticles.length} articles after filtering`);
-    res.json(paginatedArticles);
+    // Get articles with pagination
+    const articles = await db
+      .select()
+      .from(knowledgeBase)
+      .where(whereClause)
+      .orderBy(desc(knowledgeBase.helpful_votes), desc(knowledgeBase.views))
+      .limit(limit)
+      .offset((page - 1) * limit);
+
+    console.log(`Found ${articles.length} articles in database`);
+    res.json(articles);
   } catch (error) {
     console.error("Error fetching KB articles:", error);
     res.status(500).json({ message: "Internal server error" });
