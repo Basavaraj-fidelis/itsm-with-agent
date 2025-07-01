@@ -1815,14 +1815,17 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
 
                       // Get patch data from correct locations
                       const patches = parsedData?.patches || [];
+                      const legacyPatches = parsedData?.os_info?.patches || [];
                       const patchSummary = parsedData?.os_info?.patch_summary || null;
                       const lastUpdate = parsedData?.os_info?.last_update;
 
                       console.log("Updates Tab Debug:", {
                         osName,
                         hasPatches: patches.length > 0,
+                        hasLegacyPatches: legacyPatches.length > 0,
                         hasPatchSummary: !!patchSummary,
                         patchCount: patches.length,
+                        legacyPatchCount: legacyPatches.length,
                         parsedDataKeys: Object.keys(parsedData || {}),
                         osInfoKeys: Object.keys(parsedData?.os_info || {}),
                       });
@@ -1929,16 +1932,17 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                   </div>
                                 )}
                               </div>
-                            ) : patches && patches.length > 0 ? (
+                            ) : (patches && patches.length > 0) || (legacyPatches && legacyPatches.length > 0) ? (
                               <div>
                                 <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
                                   <Shield className="w-4 h-4 text-green-600" />
-                                  Installed Windows Patches ({patches.length})
+                                  Installed Windows Patches ({(patches.length || 0) + (legacyPatches.length || 0)})
                                 </h4>
                                 <div className="space-y-2 max-h-64 overflow-y-auto">
+                                  {/* Display patches from patches array */}
                                   {patches.slice(0, 15).map((patch, index) => (
                                     <div
-                                      key={index}
+                                      key={`patch-${index}`}
                                       className="flex justify-between items-center py-3 px-4 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-800"
                                     >
                                       <span className="text-sm font-medium font-mono text-green-800 dark:text-green-200">
@@ -1953,9 +1957,27 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                       </span>
                                     </div>
                                   ))}
-                                  {patches.length > 15 && (
+                                  
+                                  {/* Display legacy patches from os_info.patches */}
+                                  {legacyPatches.slice(0, Math.max(0, 15 - patches.length)).map((patch, index) => (
+                                    <div
+                                      key={`legacy-${index}`}
+                                      className="flex justify-between items-center py-3 px-4 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-800"
+                                    >
+                                      <span className="text-sm font-medium font-mono text-green-800 dark:text-green-200">
+                                        {patch.id || `KB${patch.id}`}
+                                      </span>
+                                      <span className="text-xs text-green-600 dark:text-green-400">
+                                        {patch.installed_on?.DateTime || 
+                                         (patch.installed_on?.value && new Date(parseInt(patch.installed_on.value.replace(/\/Date\((\d+)\)\//, "$1"))).toLocaleDateString()) ||
+                                         "Unknown date"}
+                                      </span>
+                                    </div>
+                                  ))}
+                                  
+                                  {((patches.length || 0) + (legacyPatches.length || 0)) > 15 && (
                                     <div className="text-xs text-neutral-500 pt-2 text-center">
-                                      ...and {patches.length - 15} more patches
+                                      ...and {((patches.length || 0) + (legacyPatches.length || 0)) - 15} more patches
                                     </div>
                                   )}
                                 </div>

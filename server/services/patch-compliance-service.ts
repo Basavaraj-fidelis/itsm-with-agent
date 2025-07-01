@@ -276,17 +276,40 @@ export class PatchComplianceService {
       }
 
       // Process patches from os_info (legacy format)
-      if (reportData.os_info && reportData.os_info.patches) {
+      if (reportData.os_info && reportData.os_info.patches && Array.isArray(reportData.os_info.patches)) {
+        console.log(`Processing ${reportData.os_info.patches.length} legacy patches for device ${deviceId}`);
+        
         const windowsUpdates = {
-          installed_updates: reportData.os_info.patches.map((patch: any) => ({
-            title: `KB${patch.id}`,
-            kb_article: patch.id,
-            install_date: patch.installed_on,
-            severity: 'moderate'
-          })),
-          available_updates: []
+          installed_updates: reportData.os_info.patches.map((patch: any) => {
+            let installDate = "Unknown date";
+            
+            // Handle different date formats
+            if (patch.installed_on) {
+              if (patch.installed_on.DateTime) {
+                installDate = patch.installed_on.DateTime;
+              } else if (patch.installed_on.value) {
+                // Parse /Date(timestamp)/ format
+                const timestamp = patch.installed_on.value.replace(/\/Date\((\d+)\)\//, "$1");
+                installDate = new Date(parseInt(timestamp)).toLocaleDateString();
+              } else if (typeof patch.installed_on === 'string') {
+                installDate = patch.installed_on;
+              }
+            }
+            
+            return {
+              title: `${patch.id}`,
+              kb_article: patch.id,
+              install_date: installDate,
+              severity: 'moderate',
+              category: 'windows_update'
+            };
+          }),
+          available_updates: [],
+          last_search_date: new Date().toISOString()
         };
+        
         await this.processWindowsUpdates(deviceId, windowsUpdates);
+        console.log(`Successfully processed ${windowsUpdates.installed_updates.length} legacy patches`);
       }
 
       console.log(`Processed agent report for device ${deviceId}`);
