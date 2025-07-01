@@ -35,6 +35,12 @@ export default function RelatedArticles({ ticket }: RelatedArticlesProps) {
   const fetchRelatedArticles = async () => {
     try {
       setLoading(true);
+      console.log('=== FETCHING RELATED ARTICLES ===');
+      console.log('Ticket details:', {
+        title: ticket.title,
+        category: ticket.category,
+        type: ticket.type
+      });
 
       // Create search terms from ticket title and description
       const searchTerms = [
@@ -43,86 +49,55 @@ export default function RelatedArticles({ ticket }: RelatedArticlesProps) {
         ticket.type
       ].filter(Boolean).join(' ');
 
-      console.log('Fetching related articles with search terms:', searchTerms);
+      console.log('Search terms:', searchTerms);
 
-      // Use the same authentication approach as other API calls
-      const token = localStorage.getItem('auth-token');
-      if (!token) {
-        console.error('No auth token found for KB articles');
-        setArticles([]);
-        return;
-      }
-
-      const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      };
-
+      // Use the API client for consistency
       let articlesData = [];
 
-      // First try with search terms
-      if (searchTerms.trim()) {
-        try {
-          const response = await fetch(`/api/knowledge-base?search=${encodeURIComponent(searchTerms)}&limit=5&status=published`, {
-            method: 'GET',
-            headers
-          });
-
-          console.log('Knowledge base API response status:', response.status);
-
-          if (response.ok) {
-            const data = await response.json();
-            console.log('Knowledge base articles data:', data);
-            if (Array.isArray(data) && data.length > 0) {
-              articlesData = data.slice(0, 3);
-            }
+      try {
+        // First, try to get articles using search
+        if (searchTerms.trim()) {
+          console.log('Trying search-based fetch...');
+          const searchResponse = await api.get(`/knowledge-base?search=${encodeURIComponent(searchTerms)}&limit=5&status=published`);
+          console.log('Search response:', searchResponse);
+          
+          if (searchResponse && Array.isArray(searchResponse) && searchResponse.length > 0) {
+            articlesData = searchResponse.slice(0, 3);
+            console.log('Found articles via search:', articlesData.length);
           }
-        } catch (searchError) {
-          console.error('Search-based fetch failed:', searchError);
         }
-      }
 
-      // If no articles found with search, try category-based search
-      if (articlesData.length === 0 && ticket.category) {
-        try {
-          const categoryResponse = await fetch(`/api/knowledge-base?category=${encodeURIComponent(ticket.category)}&limit=3&status=published`, {
-            method: 'GET',
-            headers
-          });
-
-          if (categoryResponse.ok) {
-            const categoryData = await categoryResponse.json();
-            console.log('Category-based articles data:', categoryData);
-            if (Array.isArray(categoryData) && categoryData.length > 0) {
-              articlesData = categoryData.slice(0, 3);
-            }
+        // If no articles found with search, try category-based search
+        if (articlesData.length === 0 && ticket.category) {
+          console.log('Trying category-based fetch for category:', ticket.category);
+          const categoryResponse = await api.get(`/knowledge-base?category=${encodeURIComponent(ticket.category)}&limit=3&status=published`);
+          console.log('Category response:', categoryResponse);
+          
+          if (categoryResponse && Array.isArray(categoryResponse) && categoryResponse.length > 0) {
+            articlesData = categoryResponse.slice(0, 3);
+            console.log('Found articles via category:', articlesData.length);
           }
-        } catch (categoryError) {
-          console.error('Category-based fetch failed:', categoryError);
         }
-      }
 
-      // Final fallback - get any published articles
-      if (articlesData.length === 0) {
-        try {
-          const fallbackResponse = await fetch('/api/knowledge-base?limit=3&status=published', {
-            method: 'GET',
-            headers
-          });
-
-          if (fallbackResponse.ok) {
-            const fallbackData = await fallbackResponse.json();
-            console.log('Fallback articles data:', fallbackData);
-            if (Array.isArray(fallbackData)) {
-              articlesData = fallbackData.slice(0, 3);
-            }
+        // Final fallback - get any published articles
+        if (articlesData.length === 0) {
+          console.log('Trying fallback fetch - any published articles...');
+          const fallbackResponse = await api.get('/knowledge-base?limit=3&status=published');
+          console.log('Fallback response:', fallbackResponse);
+          
+          if (fallbackResponse && Array.isArray(fallbackResponse)) {
+            articlesData = fallbackResponse.slice(0, 3);
+            console.log('Found articles via fallback:', articlesData.length);
           }
-        } catch (fallbackError) {
-          console.error('Fallback fetch failed:', fallbackError);
         }
-      }
 
-      setArticles(articlesData);
+        console.log('Final articles data:', articlesData);
+        setArticles(articlesData);
+
+      } catch (apiError) {
+        console.error('API call failed:', apiError);
+        setArticles([]);
+      }
     } catch (error) {
       console.error('Error fetching related articles:', error);
       setArticles([]);

@@ -866,8 +866,7 @@ export default function TicketDetail() {
               <Label className="text-xs text-muted-foreground">Assigned To</Label>
               <p className="font-medium">
                 {ticket.assigned_to && ticket.assigned_to.trim() !== '' ? ticket.assigned_to : 'Unassigned'}
-                            </p>
-            </div>
+                            </p>            </div>
             <div>              <Label className="text-xs text-muted-foreground">Created</Label>
               <p className="font-medium">{formatDate(ticket.created_at)}</p>
             </div>
@@ -920,13 +919,12 @@ export default function TicketDetail() {
         </Card>
 
         {/* Related Knowledge Base Articles */}
+        
         <RelatedArticles ticket={{
-              id: ticket.id,
               title: ticket.title,
               description: ticket.description,
               category: ticket.category,
-              type: ticket.type,
-              related_article_ids: ticket.related_article_ids
+              type: ticket.type
             }} />
       </div>
 

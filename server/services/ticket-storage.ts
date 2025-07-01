@@ -175,12 +175,16 @@ export class TicketStorage {
     tags: string[];
   }): Promise<string[]> {
     try {
+      console.log('=== PROCESSING KNOWLEDGE BASE INTEGRATION ===');
+      console.log('Ticket data:', ticketData);
+      
       // Ensure we have some sample articles first
       await this.ensureSampleKBArticles();
 
       const { knowledgeAIService } = await import("./knowledge-ai-service");
 
       // 1. Attempt to find relevant existing articles
+      console.log('Searching for relevant articles...');
       const relevantArticles = await knowledgeAIService.findRelevantArticles({
         title: ticketData.title,
         description: ticketData.description,
@@ -190,10 +194,10 @@ export class TicketStorage {
       });
 
       let relatedArticleIds = relevantArticles.map(match => match.article.id);
-
-      console.log(`Found ${relatedArticleIds.length} related articles for ticket: ${ticketData.title}`);
+      console.log(`Found ${relatedArticleIds.length} related articles:`, relevantArticles.map(a => a.article.title));
 
       if (relatedArticleIds.length === 0) {
+        console.log('No relevant articles found, generating new draft article...');
         // 2. Generate a draft article if no matches are found
         const draftArticle = await knowledgeAIService.generateDraftArticle({
           title: ticketData.title,
@@ -205,13 +209,18 @@ export class TicketStorage {
 
         if (draftArticle) {
           relatedArticleIds = [draftArticle.id];
-          console.log(`Generated draft article ${draftArticle.id} for ticket ${ticketData.title}`);
+          console.log(`✅ Generated and linked draft article: ${draftArticle.id} - "${draftArticle.title}"`);
+        } else {
+          console.log('❌ Failed to generate draft article');
         }
+      } else {
+        console.log(`✅ Linked ${relatedArticleIds.length} existing articles to ticket`);
       }
 
+      console.log('Final related article IDs:', relatedArticleIds);
       return relatedArticleIds;
     } catch (error) {
-      console.error("Error in knowledge base integration:", error);
+      console.error("❌ Error in knowledge base integration:", error);
       return []; // Return empty array on error
     }
   }
@@ -254,6 +263,36 @@ export class TicketStorage {
             status: "published" as const,
             views: 300,
             helpful_votes: 45
+          },
+          {
+            title: "Keyboard and Mouse Troubleshooting",
+            content: "# Keyboard and Mouse Issues\n\n## Common Problems:\n- Keyboard not responding\n- Mouse not moving\n- Keys not working\n- Wireless connectivity issues\n\n## Solutions:\n1. Check USB connections\n2. Replace batteries (wireless devices)\n3. Update drivers\n4. Test with different devices\n5. Check for interference\n6. Clean devices",
+            category: "Hardware",
+            tags: ["keyboard", "mouse", "input", "devices", "troubleshooting"],
+            author_email: "admin@company.com",
+            status: "published" as const,
+            views: 180,
+            helpful_votes: 35
+          },
+          {
+            title: "Email Server Issues and Solutions",
+            content: "# Email Server Problems\n\n## Common Issues:\n- Cannot send/receive emails\n- Server connection timeout\n- Authentication failures\n- Slow email delivery\n\n## Troubleshooting Steps:\n1. Check internet connection\n2. Verify server settings\n3. Test with different email client\n4. Check firewall settings\n5. Contact email provider\n6. Restart email services",
+            category: "Email & Communication",
+            tags: ["email", "server", "exchange", "outlook", "communication"],
+            author_email: "admin@company.com",
+            status: "published" as const,
+            views: 250,
+            helpful_votes: 40
+          },
+          {
+            title: "Network Connectivity Issues",
+            content: "# Network Connection Problems\n\n## Symptoms:\n- No internet access\n- Slow connection\n- Intermittent connectivity\n- Cannot reach specific sites\n\n## Resolution Steps:\n1. Check physical connections\n2. Restart network adapter\n3. Flush DNS cache\n4. Reset network settings\n5. Contact ISP if needed",
+            category: "Network",
+            tags: ["network", "internet", "connectivity", "dns", "adapter"],
+            author_email: "admin@company.com",
+            status: "published" as const,
+            views: 320,
+            helpful_votes: 50
           }
         ];
 
