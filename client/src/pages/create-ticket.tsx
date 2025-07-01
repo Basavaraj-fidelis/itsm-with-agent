@@ -87,6 +87,51 @@ export default function CreateTicket() {
     known_error: false,
   });
 
+  // Predefined categories based on ticket type
+  const getCategoriesForType = (type: string) => {
+    const categoryMap = {
+      incident: [
+        "Hardware",
+        "Software",
+        "Network",
+        "Security",
+        "Email",
+        "Account Management",
+        "Printing",
+        "Phone/VoIP",
+        "Database",
+        "Server"
+      ],
+      request: [
+        "Access Request",
+        "Software Installation",
+        "Hardware Request",
+        "Account Creation",
+        "Permission Change",
+        "Training Request",
+        "Documentation",
+        "Consultation"
+      ],
+      problem: [
+        "Recurring Hardware Issues",
+        "Software Bugs",
+        "Performance Issues",
+        "System Outages",
+        "Configuration Problems",
+        "Integration Issues"
+      ],
+      change: [
+        "Software Updates",
+        "Hardware Upgrades",
+        "Configuration Changes",
+        "System Maintenance",
+        "Security Patches",
+        "Infrastructure Changes"
+      ]
+    };
+    return categoryMap[type as keyof typeof categoryMap] || [];
+  };
+
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateForm = (): boolean => {
@@ -287,17 +332,21 @@ export default function CreateTicket() {
             <Label htmlFor="category" className="text-sm font-medium">
               Category
             </Label>
-            <Input
-              id="category"
+            <Select
               value={formData.category}
-              onChange={(e) => updateFormData("category", e.target.value)}
-              placeholder={
-                formData.type === 'request' ? 'e.g., Software, Hardware, Access' :
-                formData.type === 'incident' ? 'e.g., System Outage, Performance' :
-                formData.type === 'problem' ? 'e.g., Recurring Issue, Root Cause' :
-                'e.g., Infrastructure, Application'
-              }
-            />
+              onValueChange={(value) => updateFormData("category", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                {getCategoriesForType(formData.type).map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

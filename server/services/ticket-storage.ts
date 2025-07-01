@@ -174,32 +174,43 @@ export class TicketStorage {
     type: string;
     tags: string[];
   }): Promise<string[]> {
-    const { KnowledgeBaseAIService } = await import(
-      "./knowledge-base-ai-service"
-    );
-    const knowledgeBaseAIService = new KnowledgeBaseAIService();
+    try {
+      const { knowledgeAIService } = await import("./knowledge-ai-service");
 
-    // 1. Attempt to match existing articles
-    let relatedArticleIds = await knowledgeBaseAIService.matchArticles(
-      ticketData,
-    );
+      // 1. Attempt to find relevant existing articles
+      const relevantArticles = await knowledgeAIService.findRelevantArticles({
+        title: ticketData.title,
+        description: ticketData.description,
+        category: ticketData.category,
+        type: ticketData.type,
+        tags: ticketData.tags
+      });
 
-    if (relatedArticleIds.length === 0) {
-      // 2. Generate a draft article if no matches are found
-      const draftArticle = await knowledgeBaseAIService.generateDraftArticle(
-        ticketData,
-      );
+      let relatedArticleIds = relevantArticles.map(match => match.article.id);
 
-      if (draftArticle) {
-        const newArticle = await this.createKBArticle(draftArticle);
-        relatedArticleIds = [newArticle.id]; // Set the newly created article ID
-        console.log(
-          `Generated draft article ${newArticle.id} for ticket ${ticketData.title}`,
-        );
+      console.log(`Found ${relatedArticleIds.length} related articles for ticket: ${ticketData.title}`);
+
+      if (relatedArticleIds.length === 0) {
+        // 2. Generate a draft article if no matches are found
+        const draftArticle = await knowledgeAIService.generateDraftArticle({
+          title: ticketData.title,
+          description: ticketData.description,
+          category: ticketData.category,
+          type: ticketData.type,
+          tags: ticketData.tags
+        });
+
+        if (draftArticle) {
+          relatedArticleIds = [draftArticle.id];
+          console.log(`Generated draft article ${draftArticle.id} for ticket ${ticketData.title}`);
+        }
       }
-    }
 
-    return relatedArticleIds;
+      return relatedArticleIds;
+    } catch (error) {
+      console.error("Error in knowledge base integration:", error);
+      return []; // Return empty array on error
+    }
   }
 
   async getTickets(

@@ -42,11 +42,18 @@ export class TicketController {
 
   static async createTicket(req: any, res: any) {
     try {
+      console.log("Creating ticket with data:", req.body);
       const ticket = await ticketStorage.createTicket(req.body);
+      console.log("Ticket created successfully:", ticket.ticket_number);
       res.status(201).json(ticket);
     } catch (error) {
       console.error("Error creating ticket:", error);
-      ResponseUtils.internalServerError(res, "Internal server error");
+      // Return more specific error message
+      const errorMessage = error instanceof Error ? error.message : "Failed to create ticket";
+      res.status(400).json({ 
+        error: errorMessage,
+        details: error instanceof Error ? error.stack : error 
+      });
     }
   }
 
