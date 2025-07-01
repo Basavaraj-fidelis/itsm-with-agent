@@ -37,19 +37,68 @@ export class SLAMonitorService {
     console.log("🛑 SLA Monitor Service stopped");
   }
 
+
+  // Handle SLA pause/resume based on ticket status
+  private async handleSLAPauseResume(tickets: any[]): Promise<void> {
+    const now = new Date();
+    
+    for (const ticket of tickets) {
+      const shouldBePaused = ['pending', 'on_hold'].includes(ticket.status);
+      const currentlyPaused = ticket.sla_paused;
+      
+      // If status requires pause but ticket is not paused
+      if (shouldBePaused && !currentlyPaused) {
+        await db
+          .update(tickets)
+          .set({
+            sla_paused: true,
+            sla_pause_reason: `Ticket moved to ${ticket.status} status`,
+            sla_paused_at: now,
+            updated_at: now
+          })
+          .where(eq(tickets.id, ticket.id));
+          
+        console.log(`⏸️  SLA paused for ticket ${ticket.ticket_number} (${ticket.status})`);
+      }
+      
+      // If ticket should not be paused but is currently paused
+      if (!shouldBePaused && currentlyPaused && ticket.sla_paused_at) {
+        const pauseDuration = Math.floor((now.getTime() - new Date(ticket.sla_paused_at).getTime()) / (1000 * 60));
+        const totalPausedTime = (ticket.sla_total_paused_time || 0) + pauseDuration;
+        
+        await db
+          .update(tickets)
+          .set({
+            sla_paused: false,
+            sla_pause_reason: null,
+            sla_resumed_at: now,
+            sla_total_paused_time: totalPausedTime,
+            updated_at: now
+          })
+          .where(eq(tickets.id, ticket.id));
+          
+        console.log(`▶️  SLA resumed for ticket ${ticket.ticket_number} (paused for ${pauseDuration} minutes)`);
+      }
+    }
+  }
+
+
   // Check for SLA breaches and update tickets
   async checkSLABreaches(): Promise<void> {
     try {
       console.log("🔍 Checking for SLA breaches...");
       const now = new Date();
 
-      // Get all open tickets
+      // Get all open tickets (excluding paused statuses for SLA calculation)
       const openTickets = await db
         .select()
         .from(tickets)
         .where(
           not(inArray(tickets.status, ['resolved', 'closed', 'cancelled']))
         );
+
+      // Handle SLA pause/resume for status changes
+      await this.handleSLAPauseResume(openTickets);
 
       let responseBreaches = 0;
       let resolutionBreaches = 0;
@@ -102,10 +151,19 @@ export class SLAMonitorService {
           }
         }
 
+        // Skip SLA breach checking for paused tickets
+        if (ticket.sla_paused || ['pending', 'on_hold'].includes(ticket.status)) {
+          continue;
+        }
+
+        // Calculate effective due dates (accounting for paused time)
+        const pausedMinutes = ticket.sla_total_paused_time || 0;
+        
         // Check response SLA breach
         const responseDue = ticket.response_due_at || ticket.sla_response_due;
         if (responseDue && !ticket.first_response_at && !ticket.sla_response_breached) {
-          if (now > new Date(responseDue)) {
+          const effectiveResponseDue = new Date(new Date(responseDue).getTime() + (pausedMinutes * 60 * 1000));
+          if (now > effectiveResponseDue) {
             updateData.sla_response_breached = true;
             needsUpdate = true;
             responseBreaches++;
@@ -119,7 +177,8 @@ export class SLAMonitorService {
         // Check resolution SLA breach
         const resolutionDue = ticket.resolve_due_at || ticket.sla_resolution_due;
         if (resolutionDue && !ticket.sla_resolution_breached) {
-          if (now > new Date(resolutionDue)) {
+          const effectiveResolutionDue = new Date(new Date(resolutionDue).getTime() + (pausedMinutes * 60 * 1000));
+          if (now > effectiveResolutionDue) {
             updateData.sla_resolution_breached = true;
             updateData.sla_breached = true; // Legacy field
             needsUpdate = true;
@@ -249,28 +308,39 @@ Immediate attention required!`;
         let needsUpdate = false;
         const updateData: any = {};
 
-        // Check if response is breached
-        const responseDue = ticket.response_due_at || ticket.sla_response_due;
-        const isResponseBreached = responseDue && !ticket.first_response_at && now > new Date(responseDue);
-
-        if (isResponseBreached) {
-          actualResponseBreaches++;
-          if (!ticket.sla_response_breached) {
-            updateData.sla_response_breached = true;
-            needsUpdate = true;
+        // Skip breach calculation for paused tickets
+        if (!ticket.sla_paused && !['pending', 'on_hold'].includes(ticket.status)) {
+          const pausedMinutes = ticket.sla_total_paused_time || 0;
+          
+          // Check if response is breached (accounting for paused time)
+          const responseDue = ticket.response_due_at || ticket.sla_response_due;
+          if (responseDue && !ticket.first_response_at) {
+            const effectiveResponseDue = new Date(new Date(responseDue).getTime() + (pausedMinutes * 60 * 1000));
+            const isResponseBreached = now > effectiveResponseDue;
+            
+            if (isResponseBreached) {
+              actualResponseBreaches++;
+              if (!ticket.sla_response_breached) {
+                updateData.sla_response_breached = true;
+                needsUpdate = true;
+              }
+            }
           }
-        }
 
-        // Check if resolution is breached
-        const resolutionDue = ticket.resolve_due_at || ticket.sla_resolution_due;
-        const isResolutionBreached = resolutionDue && now > new Date(resolutionDue);
-
-        if (isResolutionBreached) {
-          actualResolutionBreaches++;
-          if (!ticket.sla_resolution_breached || !ticket.sla_breached) {
-            updateData.sla_resolution_breached = true;
-            updateData.sla_breached = true; // Legacy field
-            needsUpdate = true;
+          // Check if resolution is breached (accounting for paused time)
+          const resolutionDue = ticket.resolve_due_at || ticket.sla_resolution_due;
+          if (resolutionDue) {
+            const effectiveResolutionDue = new Date(new Date(resolutionDue).getTime() + (pausedMinutes * 60 * 1000));
+            const isResolutionBreached = now > effectiveResolutionDue;
+            
+            if (isResolutionBreached) {
+              actualResolutionBreaches++;
+              if (!ticket.sla_resolution_breached || !ticket.sla_breached) {
+                updateData.sla_resolution_breached = true;
+                updateData.sla_breached = true; // Legacy field
+                needsUpdate = true;
+              }
+            }
           }
         }
 

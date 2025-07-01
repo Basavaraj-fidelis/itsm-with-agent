@@ -48,6 +48,83 @@ export function registerSLARoutes(app: Express) {
     }
   });
 
+  // Pause SLA for a ticket
+  app.post("/api/tickets/:id/sla/pause", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+      const now = new Date();
+
+      const { db } = await import("../db");
+      const { tickets } = await import("@shared/ticket-schema");
+      const { eq } = await import("drizzle-orm");
+
+      await db
+        .update(tickets)
+        .set({
+          sla_paused: true,
+          sla_pause_reason: reason || "Manually paused",
+          sla_paused_at: now,
+          updated_at: now
+        })
+        .where(eq(tickets.id, id));
+
+      res.json({ message: "SLA paused successfully" });
+    } catch (error) {
+      console.error("Error pausing SLA:", error);
+      res.status(500).json({ error: "Failed to pause SLA" });
+    }
+  });
+
+  // Resume SLA for a ticket
+  app.post("/api/tickets/:id/sla/resume", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const now = new Date();
+
+      const { db } = await import("../db");
+      const { tickets } = await import("@shared/ticket-schema");
+      const { eq } = await import("drizzle-orm");
+
+      // Get current ticket to calculate pause duration
+      const [ticket] = await db
+        .select()
+        .from(tickets)
+        .where(eq(tickets.id, id));
+
+      if (!ticket || !ticket.sla_paused_at) {
+        return res.status(400).json({ error: "Ticket SLA is not paused" });
+      }
+
+      const pauseDuration = Math.floor(
+        (now.getTime() - new Date(ticket.sla_paused_at).getTime()) / (1000 * 60)
+      );
+      const totalPausedTime = (ticket.sla_total_paused_time || 0) + pauseDuration;
+
+      await db
+        .update(tickets)
+        .set({
+          sla_paused: false,
+          sla_pause_reason: null,
+          sla_resumed_at: now,
+          sla_total_paused_time: totalPausedTime,
+          updated_at: now
+        })
+        .where(eq(tickets.id, id));
+
+      res.json({ 
+        message: "SLA resumed successfully",
+        pausedFor: `${pauseDuration} minutes`,
+        totalPausedTime: `${totalPausedTime} minutes`
+      });
+    } catch (error) {
+      console.error("Error resuming SLA:", error);
+      res.status(500).json({ error: "Failed to resume SLA" });
+    }
+  });
+
+
+
   // Get real-time SLA metrics
   app.get("/api/sla/metrics", async (req, res) => {
     try {

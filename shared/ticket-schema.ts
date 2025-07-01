@@ -3,7 +3,7 @@ import { pgTable, text, timestamp, integer, json, uuid, varchar, boolean } from 
 // Ticket types and statuses
 export const ticketTypes = ["request", "incident", "problem", "change"] as const;
 export const ticketPriorities = ["low", "medium", "high", "critical"] as const;
-export const ticketStatuses = ["new", "assigned", "in_progress", "pending", "resolved", "closed", "cancelled"] as const;
+export const ticketStatuses = ["new", "assigned", "in_progress", "pending", "on_hold", "resolved", "closed", "cancelled"] as const;
 
 // Main tickets table
 export const tickets = pgTable("tickets", {
@@ -63,6 +63,13 @@ export const tickets = pgTable("tickets", {
   sla_breached: boolean("sla_breached").default(false),
   sla_response_breached: boolean("sla_response_breached").default(false),
   sla_resolution_breached: boolean("sla_resolution_breached").default(false),
+  
+  // SLA Pause/Resume tracking
+  sla_paused: boolean("sla_paused").default(false),
+  sla_pause_reason: text("sla_pause_reason"),
+  sla_paused_at: timestamp("sla_paused_at"),
+  sla_resumed_at: timestamp("sla_resumed_at"),
+  sla_total_paused_time: integer("sla_total_paused_time").default(0), // in minutes
 
   // Timestamps
   created_at: timestamp("created_at").defaultNow().notNull(),
