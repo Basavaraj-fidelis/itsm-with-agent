@@ -389,13 +389,25 @@ export default function TicketDetail() {
         break;
       case "pending":
         actions.push(
-          <Button 
+          <Button
             key="in_progress" 
             variant="outline" 
             size="sm"
             onClick={() => handleUpdateTicketStatus("in_progress")}
           >
             Mark as In Progress
+          </Button>
+        );
+        break;
+      case "on_hold":
+        actions.push(
+          <Button
+            key="in_progress" 
+            variant="default" 
+            size="sm"
+            onClick={() => handleUpdateTicketStatus("in_progress")}
+          >
+            Resume (In Progress)
           </Button>
         );
         break;

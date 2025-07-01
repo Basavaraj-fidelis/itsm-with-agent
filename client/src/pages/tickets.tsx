@@ -738,6 +738,16 @@ export default function Tickets() {
           );
           actions.push(
             <Button
+              key="on_hold"
+              variant="outline"
+              size="sm"
+              onClick={() => handleUpdateTicketStatus(ticket.id, "on_hold")}
+            >
+              Put On Hold
+            </Button>,
+          );
+          actions.push(
+            <Button
               key="resolved"
               variant="default"
               size="sm"
@@ -757,6 +767,18 @@ export default function Tickets() {
             onClick={() => handleUpdateTicketStatus(ticket.id, "in_progress")}
           >
             Mark as In Progress
+          </Button>,
+        );
+        break;
+      case "on_hold":
+        actions.push(
+          <Button
+            key="in_progress"
+            variant="default"
+            size="sm"
+            onClick={() => handleUpdateTicketStatus(ticket.id, "in_progress")}
+          >
+            Resume (In Progress)
           </Button>,
         );
         break;
