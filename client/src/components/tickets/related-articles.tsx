@@ -29,7 +29,7 @@ export default function RelatedArticles({ ticketId, tags = [], category }: Relat
         setLoading(true);
         setError(null);
 
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('auth_token');
         if (!token) {
           throw new Error('No authentication token found');
         }
