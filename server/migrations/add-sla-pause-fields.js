@@ -1,6 +1,5 @@
 
-const { drizzle } = require("drizzle-orm/postgres-js");
-const postgres = require("postgres");
+import postgres from "postgres";
 
 async function addSLAPauseFields() {
   console.log("🔧 Adding SLA pause fields to tickets table...");
@@ -42,8 +41,8 @@ async function addSLAPauseFields() {
 }
 
 // Run if called directly
-if (require.main === module) {
+if (process.argv[1] === new URL(import.meta.url).pathname) {
   addSLAPauseFields().then(() => process.exit(0));
 }
 
-module.exports = { addSLAPauseFields };
+export { addSLAPauseFields };
