@@ -3332,7 +3332,7 @@ __export(user_storage_exports, {
   UserStorage: () => UserStorage,
   userStorage: () => userStorage
 });
-import { eq as eq2, desc as desc2, and as and3, or as or2, like as like2, count as count2 } from "drizzle-orm";
+import { eq as eq2, desc as desc2, and as and3, or as or2, like as like3, count as count2 } from "drizzle-orm";
 var UserStorage, userStorage;
 var init_user_storage = __esm({
   "server/services/user-storage.ts"() {
@@ -3368,11 +3368,11 @@ var init_user_storage = __esm({
         if (filters.search) {
           conditions.push(
             or2(
-              like2(users.first_name, `%${filters.search}%`),
-              like2(users.last_name, `%${filters.search}%`),
-              like2(users.email, `%${filters.search}%`),
-              like2(users.username, `%${filters.search}%`),
-              like2(users.employee_id, `%${filters.search}%`)
+              like3(users.first_name, `%${filters.search}%`),
+              like3(users.last_name, `%${filters.search}%`),
+              like3(users.email, `%${filters.search}%`),
+              like3(users.username, `%${filters.search}%`),
+              like3(users.employee_id, `%${filters.search}%`)
             )
           );
         }
@@ -3904,19 +3904,20 @@ var init_knowledge_ai_service = __esm({
        */
       async findRelevantArticles(ticket) {
         try {
-          console.log("Finding relevant articles for ticket:", ticket.title);
+          console.log("\u{1F50D} Finding relevant articles for ticket:", ticket.title);
           const articles = await db.select().from(knowledgeBase).where(eq4(knowledgeBase.status, "published")).orderBy(desc4(knowledgeBase.helpful_votes));
-          console.log(`Found ${articles.length} published articles in database`);
+          console.log(`\u{1F4DA} Found ${articles.length} published articles in database`);
           if (!articles.length) {
-            console.log("No published articles found");
+            console.log("\u274C No published articles found");
             return [];
           }
           const matches = [];
           const ticketText = `${ticket.title} ${ticket.description}`.toLowerCase();
           const ticketWords = this.extractKeywords(ticketText);
+          console.log("\u{1F524} Extracted keywords:", ticketWords);
           for (const article of articles) {
             const score = this.calculateRelevanceScore(ticket, article, ticketWords);
-            if (score.score > 0.2) {
+            if (score.score > 0.05) {
               matches.push({
                 article,
                 relevanceScore: score.score,
@@ -3924,11 +3925,19 @@ var init_knowledge_ai_service = __esm({
               });
             }
           }
-          const sortedMatches = matches.sort((a, b) => b.relevanceScore - a.relevanceScore).slice(0, 5);
-          console.log(`Found ${sortedMatches.length} relevant articles with scores:`, sortedMatches.map((m) => ({ id: m.article.id, title: m.article.title, score: m.relevanceScore })));
+          const sortedMatches = matches.sort((a, b) => b.relevanceScore - a.relevanceScore).slice(0, 3);
+          console.log(
+            `\u2705 Found ${sortedMatches.length} relevant articles with scores:`,
+            sortedMatches.map((m) => ({
+              id: m.article.id,
+              title: m.article.title,
+              score: m.relevanceScore.toFixed(2),
+              reasons: m.matchReasons
+            }))
+          );
           return sortedMatches;
         } catch (error) {
-          console.error("Error finding relevant articles:", error);
+          console.error("\u274C Error finding relevant articles:", error);
           return [];
         }
       }
@@ -3937,7 +3946,7 @@ var init_knowledge_ai_service = __esm({
        */
       async generateDraftArticle(ticket) {
         try {
-          console.log("Generating draft article for ticket:", ticket.title);
+          console.log("\u{1F4DD} Generating draft article for ticket:", ticket.title);
           const draftContent = this.generateArticleContent(ticket);
           const newArticle = {
             title: `How to resolve: ${ticket.title}`,
@@ -3951,10 +3960,10 @@ var init_knowledge_ai_service = __esm({
             helpful_votes: 0
           };
           const [createdArticle] = await db.insert(knowledgeBase).values(newArticle).returning();
-          console.log(`Generated and published draft article: ${createdArticle.id} - ${createdArticle.title}`);
+          console.log(`\u2705 Generated and published draft article: ${createdArticle.id} - ${createdArticle.title}`);
           return createdArticle;
         } catch (error) {
-          console.error("Error generating draft article:", error);
+          console.error("\u274C Error generating draft article:", error);
           return null;
         }
       }
@@ -3968,33 +3977,168 @@ var init_knowledge_ai_service = __esm({
         const articleContent = article.content.toLowerCase();
         const articleCategory = (article.category || "").toLowerCase();
         const ticketTitle = ticket.title.toLowerCase();
-        const titleWords = ticketTitle.split(" ").filter((word) => word.length > 3);
+        const ticketCategory = (ticket.category || "").toLowerCase();
+        const titleWords = ticketTitle.split(" ").filter((word) => word.length > 2);
         const titleMatches = titleWords.filter((word) => articleTitle.includes(word));
         if (titleMatches.length > 0) {
-          score += titleMatches.length * 0.5;
+          score += titleMatches.length * 0.6;
           reasons.push(`Title matches: ${titleMatches.join(", ")}`);
         }
-        if (ticket.category && articleCategory === ticket.category.toLowerCase()) {
-          score += 0.4;
+        if (ticketCategory && articleCategory.includes(ticketCategory)) {
+          score += 0.5;
           reasons.push("Category match");
         }
         const contentMatches = ticketWords.filter(
-          (word) => word.length > 3 && articleContent.includes(word)
+          (word) => word.length > 2 && articleContent.includes(word)
         );
         if (contentMatches.length > 0) {
-          score += contentMatches.length * 0.1;
+          score += contentMatches.length * 0.15;
           reasons.push(`Content keywords: ${contentMatches.slice(0, 3).join(", ")}`);
         }
-        score += (article.helpful_votes || 0) * 0.01;
-        score += (article.views || 0) * 1e-3;
+        if (article.tags && Array.isArray(article.tags)) {
+          const tagMatches = article.tags.filter(
+            (tag) => ticketWords.some((word) => tag.toLowerCase().includes(word.toLowerCase()))
+          );
+          if (tagMatches.length > 0) {
+            score += tagMatches.length * 0.2;
+            reasons.push(`Tag matches: ${tagMatches.join(", ")}`);
+          }
+        }
+        score += (article.helpful_votes || 0) * 0.02;
+        score += (article.views || 0) * 2e-3;
         return { score, reasons };
       }
       /**
        * Extract meaningful keywords from text
        */
       extractKeywords(text6) {
-        const stopWords = /* @__PURE__ */ new Set(["the", "is", "at", "which", "on", "and", "a", "to", "are", "as", "was", "will", "be", "have", "has", "had", "do", "does", "did", "can", "could", "should", "would", "may", "might", "must", "shall", "will", "am", "are", "is", "was", "were", "been", "have", "has", "had", "do", "does", "did", "will", "would", "could", "should", "may", "might", "must", "shall"]);
-        return text6.toLowerCase().replace(/[^\w\s]/g, " ").split(/\s+/).filter((word) => word.length > 3 && !stopWords.has(word)).slice(0, 10);
+        const stopWords = /* @__PURE__ */ new Set([
+          "the",
+          "is",
+          "at",
+          "which",
+          "on",
+          "and",
+          "a",
+          "to",
+          "are",
+          "as",
+          "was",
+          "will",
+          "be",
+          "have",
+          "has",
+          "had",
+          "do",
+          "does",
+          "did",
+          "can",
+          "could",
+          "should",
+          "would",
+          "may",
+          "might",
+          "must",
+          "shall",
+          "am",
+          "were",
+          "been",
+          "i",
+          "me",
+          "my",
+          "you",
+          "your",
+          "he",
+          "she",
+          "it",
+          "we",
+          "they",
+          "them",
+          "this",
+          "that",
+          "with",
+          "for",
+          "from",
+          "by",
+          "in",
+          "out",
+          "up",
+          "down",
+          "of",
+          "an",
+          "or",
+          "but",
+          "not",
+          "no",
+          "so",
+          "if",
+          "when",
+          "where",
+          "why",
+          "how",
+          "all",
+          "any",
+          "both",
+          "each",
+          "few",
+          "more",
+          "most",
+          "other",
+          "some",
+          "such",
+          "only",
+          "own",
+          "same",
+          "than",
+          "too",
+          "very",
+          "can",
+          "just",
+          "now",
+          "get",
+          "got",
+          "also"
+        ]);
+        const techKeywords = [
+          "keyboard",
+          "mouse",
+          "monitor",
+          "screen",
+          "password",
+          "login",
+          "network",
+          "wifi",
+          "internet",
+          "email",
+          "printer",
+          "computer",
+          "laptop",
+          "software",
+          "hardware",
+          "application",
+          "browser",
+          "windows",
+          "mac",
+          "phone",
+          "mobile",
+          "vpn",
+          "security",
+          "virus",
+          "malware",
+          "slow",
+          "crash",
+          "freeze",
+          "error",
+          "update",
+          "install",
+          "connection",
+          "troubleshooting",
+          "troubleshoot"
+        ];
+        const words = text6.toLowerCase().replace(/[^\w\s]/g, " ").split(/\s+/).filter((word) => word.length > 2 && !stopWords.has(word));
+        const priorityWords = words.filter((word) => techKeywords.includes(word));
+        const otherWords = words.filter((word) => !techKeywords.includes(word) && !priorityWords.includes(word));
+        return [...priorityWords, ...otherWords].slice(0, 20);
       }
       /**
        * Generate article content from ticket
@@ -4008,60 +4152,75 @@ ${ticket.description}
 ## Troubleshooting Steps
 
 ### Step 1: Initial Diagnosis
-1. Verify the issue symptoms
-2. Check recent changes or updates
-3. Review error messages if any
+1. Verify the issue symptoms carefully
+2. Check for any recent changes or updates
+3. Review error messages or logs if available
+4. Document the exact steps that led to the issue
 
 ### Step 2: Basic Resolution
 1. Restart the affected service/application
-2. Check system resources (CPU, Memory, Disk)
+2. Check system resources (CPU, Memory, Disk space)
 3. Verify network connectivity
+4. Clear temporary files and cache if applicable
 
 ### Step 3: Advanced Troubleshooting
-1. Check system logs for errors
-2. Review configuration settings
-3. Test with minimal configuration
+1. Check system logs for detailed error information
+2. Review configuration settings and recent changes
+3. Test with minimal configuration or safe mode
+4. Run diagnostic tools specific to the ${ticket.category || "system"}
 
-### Step 4: Escalation
+### Step 4: Escalation Process
 If the above steps don't resolve the issue:
-1. Document all attempted solutions
-2. Gather system information and logs
-3. Contact technical support with detailed information
+1. Document all attempted solutions and their results
+2. Gather comprehensive system information and logs
+3. Take screenshots or recordings of the issue
+4. Contact technical support with detailed information
 
-## Prevention
-- Regular system maintenance
-- Keep software/drivers updated
-- Monitor system performance
-- Follow best practices for ${ticket.category || "system management"}
+## Prevention Measures
+- Implement regular system maintenance schedules
+- Keep software, drivers, and firmware updated
+- Monitor system performance proactively
+- Follow security best practices
+- Create regular backups
+- Document configuration changes
 
 ## Related Topics
-- System troubleshooting
-- ${ticket.category || "General"} issues
-- Performance optimization
+- System troubleshooting fundamentals
+- ${ticket.category || "General"} maintenance procedures
+- Performance optimization techniques
+- Error diagnostic procedures
+
+## Additional Resources
+- System documentation
+- Vendor support resources
+- Community forums and knowledge bases
+- Training materials for ${ticket.category || "system management"}
 
 ---
-*This article was auto-generated from ticket: ${ticket.title}*
-*Category: ${ticket.category || "General"}*
-*Type: ${ticket.type}*`;
+*This article was automatically generated from support ticket: ${ticket.title}*  
+*Category: ${ticket.category || "General"}*  
+*Issue Type: ${ticket.type}*  
+*Generated on: ${(/* @__PURE__ */ new Date()).toLocaleDateString()}*`;
       }
       /**
        * Generate tags for article
        */
       generateArticleTags(ticket) {
         const tags = /* @__PURE__ */ new Set();
-        if (ticket.tags) {
+        if (ticket.tags && Array.isArray(ticket.tags)) {
           ticket.tags.forEach((tag) => tags.add(tag.toLowerCase()));
         }
         if (ticket.category) {
-          tags.add(ticket.category.toLowerCase());
+          tags.add(ticket.category.toLowerCase().replace(/\s+/g, "-"));
         }
-        tags.add(ticket.type.toLowerCase());
+        tags.add(ticket.type.toLowerCase().replace(/\s+/g, "-"));
         const text6 = `${ticket.title} ${ticket.description}`.toLowerCase();
         const keywords = this.extractKeywords(text6);
         keywords.slice(0, 5).forEach((keyword) => tags.add(keyword));
         tags.add("troubleshooting");
         tags.add("support");
-        return Array.from(tags).slice(0, 8);
+        tags.add("how-to");
+        return Array.from(tags).slice(0, 10);
       }
       /**
        * Categorize ticket based on content
@@ -4069,19 +4228,80 @@ If the above steps don't resolve the issue:
       categorizeTicket(ticket) {
         const text6 = `${ticket.title} ${ticket.description}`.toLowerCase();
         const categoryKeywords = {
-          "Hardware": ["hardware", "device", "computer", "laptop", "desktop", "monitor", "keyboard", "mouse", "printer", "scanner"],
-          "Software": ["software", "application", "program", "install", "update", "crash", "error", "bug"],
-          "Network": ["network", "internet", "wifi", "connection", "router", "vpn", "firewall"],
-          "Security": ["security", "password", "login", "access", "permission", "virus", "malware"],
-          "Email & Communication": ["email", "outlook", "exchange", "mail", "communication", "messaging"],
-          "System Performance": ["slow", "performance", "speed", "freeze", "hang", "crash", "memory", "cpu"]
+          "Hardware": ["hardware", "device", "computer", "laptop", "desktop", "monitor", "keyboard", "mouse", "printer", "scanner", "disk", "memory", "ram", "cpu", "motherboard"],
+          "Software": ["software", "application", "program", "install", "update", "crash", "error", "bug", "app", "exe", "installation"],
+          "Network": ["network", "internet", "wifi", "connection", "router", "vpn", "firewall", "ethernet", "dns", "ip", "ping"],
+          "Security": ["security", "password", "login", "access", "permission", "virus", "malware", "antivirus", "authentication", "unauthorized"],
+          "Email & Communication": ["email", "outlook", "exchange", "mail", "communication", "messaging", "smtp", "pop", "imap"],
+          "System Performance": ["slow", "performance", "speed", "freeze", "hang", "crash", "memory", "cpu", "lag", "timeout"],
+          "Account Management": ["account", "user", "profile", "settings", "preferences", "permissions", "role", "access"],
+          "Troubleshooting": ["troubleshoot", "diagnose", "fix", "repair", "resolve", "problem", "issue", "error"]
         };
+        let bestMatch = "Other";
+        let maxMatches = 0;
         for (const [category, keywords] of Object.entries(categoryKeywords)) {
-          if (keywords.some((keyword) => text6.includes(keyword))) {
-            return category;
+          const matches = keywords.filter((keyword) => text6.includes(keyword)).length;
+          if (matches > maxMatches) {
+            maxMatches = matches;
+            bestMatch = category;
           }
         }
-        return "Other";
+        return bestMatch;
+      }
+      async getRelatedArticles(params) {
+        try {
+          const { tags, category, limit } = params;
+          console.log("Searching for related articles with:", { tags, category, limit });
+          let query = db.select().from(knowledgeBase).where(eq4(knowledgeBase.status, "published")).orderBy(desc4(knowledgeBase.helpful_votes), desc4(knowledgeBase.views));
+          const allArticles = await query;
+          console.log(`Found ${allArticles.length} total published articles`);
+          if (tags.length === 0) {
+            return allArticles.slice(0, limit);
+          }
+          const scoredArticles = allArticles.map((article) => {
+            const articleTags = Array.isArray(article.tags) ? article.tags : [];
+            const articleTitle = (article.title || "").toLowerCase();
+            const articleContent = (article.content || "").toLowerCase();
+            let matchScore = 0;
+            tags.forEach((tag) => {
+              const tagLower = tag.toLowerCase();
+              if (articleTags.some((articleTag) => articleTag.toLowerCase() === tagLower)) {
+                matchScore += 10;
+              } else if (articleTags.some(
+                (articleTag) => articleTag.toLowerCase().includes(tagLower) || tagLower.includes(articleTag.toLowerCase())
+              )) {
+                matchScore += 5;
+              }
+              if (articleTitle.includes(tagLower)) {
+                matchScore += 3;
+              }
+              if (articleContent.includes(tagLower)) {
+                matchScore += 1;
+              }
+            });
+            if (category && article.category === category) {
+              matchScore += 2;
+            }
+            return { ...article, matchScore };
+          });
+          const sortedArticles = scoredArticles.filter((article) => article.matchScore > 0).sort((a, b) => {
+            if (a.matchScore !== b.matchScore) {
+              return b.matchScore - a.matchScore;
+            }
+            if ((b.helpful_votes || 0) !== (a.helpful_votes || 0)) {
+              return (b.helpful_votes || 0) - (a.helpful_votes || 0);
+            }
+            return (b.views || 0) - (a.views || 0);
+          });
+          console.log(`Returning ${Math.min(sortedArticles.length, limit)} matched articles from ${sortedArticles.length} matches`);
+          sortedArticles.slice(0, limit).forEach((article, index) => {
+            console.log(`Match ${index + 1}: "${article.title}" (score: ${article.matchScore}, tags: ${JSON.stringify(article.tags)})`);
+          });
+          return sortedArticles.slice(0, limit);
+        } catch (error) {
+          console.error("Error in getRelatedArticles:", error);
+          throw error;
+        }
       }
     };
     knowledgeAIService = new KnowledgeAIService();
@@ -4094,7 +4314,7 @@ __export(ticket_storage_exports, {
   TicketStorage: () => TicketStorage,
   ticketStorage: () => ticketStorage
 });
-import { eq as eq5, desc as desc5, and as and5, or as or5, like as like4, sql as sql4, count as count3 } from "drizzle-orm";
+import { eq as eq5, desc as desc5, and as and5, or as or5, sql as sql4, count as count3, ilike } from "drizzle-orm";
 var TicketStorage, ticketStorage;
 var init_ticket_storage = __esm({
   "server/services/ticket-storage.ts"() {
@@ -4164,13 +4384,6 @@ var init_ticket_storage = __esm({
           );
           slaTargets = fallbackTargets;
         }
-        const relatedArticleIds = await this.processKnowledgeBaseIntegration({
-          title: ticketData.title,
-          description: ticketData.description,
-          category: ticketData.category,
-          type: ticketData.type,
-          tags: ticketData.tags || []
-        });
         const [newTicket] = await db.insert(tickets).values({
           ...ticketData,
           ticket_number,
@@ -4188,7 +4401,8 @@ var init_ticket_storage = __esm({
           sla_breached: false,
           sla_response_breached: false,
           sla_resolution_breached: false,
-          related_article_ids: relatedArticleIds
+          related_article_ids: []
+          // Initialize as empty array
         }).returning();
         await this.logAudit(
           "ticket",
@@ -4206,8 +4420,27 @@ var init_ticket_storage = __esm({
             is_internal: true
           });
         }
+        setTimeout(async () => {
+          try {
+            const relatedArticleIds = await this.processKnowledgeBaseIntegration({
+              title: ticketData.title,
+              description: ticketData.description,
+              category: ticketData.category,
+              type: ticketData.type,
+              tags: ticketData.tags || []
+            });
+            if (relatedArticleIds.length > 0) {
+              console.log(`Linking ${relatedArticleIds.length} articles to ticket ${ticket_number}`);
+              await this.updateTicket(newTicket.id, {
+                related_article_ids: relatedArticleIds
+              });
+            }
+          } catch (error) {
+            console.error("Error in knowledge base integration:", error);
+          }
+        }, 1e3);
         console.log(
-          `Created ticket ${ticket_number} with ${relatedArticleIds.length} related articles`
+          `Created ticket ${ticket_number}`
         );
         return newTicket;
       }
@@ -4343,9 +4576,9 @@ var init_ticket_storage = __esm({
         if (filters.search) {
           conditions.push(
             or5(
-              like4(tickets.title, `%${filters.search}%`),
-              like4(tickets.description, `%${filters.search}%`),
-              like4(tickets.ticket_number, `%${filters.search}%`)
+              like(tickets.title, `%${filters.search}%`),
+              like(tickets.description, `%${filters.search}%`),
+              like(tickets.ticket_number, `%${filters.search}%`)
             )
           );
         }
@@ -4464,6 +4697,54 @@ var init_ticket_storage = __esm({
           throw error;
         }
       }
+      extractTagsFromTitle(title) {
+        const commonTechWords = [
+          "password",
+          "login",
+          "network",
+          "wifi",
+          "internet",
+          "email",
+          "printer",
+          "mouse",
+          "keyboard",
+          "screen",
+          "monitor",
+          "computer",
+          "laptop",
+          "software",
+          "hardware",
+          "application",
+          "browser",
+          "chrome",
+          "firefox",
+          "windows",
+          "mac",
+          "phone",
+          "mobile",
+          "vpn",
+          "security",
+          "virus",
+          "malware",
+          "slow",
+          "crash",
+          "freeze",
+          "error",
+          "update",
+          "install",
+          "connection",
+          "troubleshooting",
+          "troubleshoot",
+          "fix",
+          "repair",
+          "broken"
+        ];
+        const words = title.toLowerCase().split(/\s+/);
+        const tags = words.filter(
+          (word) => word.length > 3 && commonTechWords.includes(word)
+        );
+        return [...new Set(tags)];
+      }
       async deleteTicket(id) {
         const result = await db.delete(tickets).where(eq5(tickets.id, id));
         return result.rowCount > 0;
@@ -4496,8 +4777,8 @@ var init_ticket_storage = __esm({
         if (filters.search) {
           conditions.push(
             or5(
-              like4(knowledgeBase.title, `%${filters.search}%`),
-              like4(knowledgeBase.content, `%${filters.search}%`)
+              like(knowledgeBase.title, `%${filters.search}%`),
+              like(knowledgeBase.content, `%${filters.search}%`)
             )
           );
         }
@@ -7152,11 +7433,11 @@ __export(migrate_admin_tables_exports, {
   createAdminTables: () => createAdminTables
 });
 import { drizzle as drizzle2 } from "drizzle-orm/node-postgres";
-import { sql as sql7 } from "drizzle-orm";
+import { sql as sql8 } from "drizzle-orm";
 async function createAdminTables() {
   try {
     console.log("\u{1F680} Creating admin tables...");
-    await db3.execute(sql7`
+    await db3.execute(sql8`
       CREATE TABLE IF NOT EXISTS groups (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name VARCHAR(100) NOT NULL,
@@ -7170,7 +7451,7 @@ async function createAdminTables() {
         updated_at TIMESTAMP DEFAULT NOW() NOT NULL
       )
     `);
-    await db3.execute(sql7`
+    await db3.execute(sql8`
       CREATE TABLE IF NOT EXISTS group_members (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         group_id UUID REFERENCES groups(id) NOT NULL,
@@ -7180,7 +7461,7 @@ async function createAdminTables() {
         is_active BOOLEAN DEFAULT true
       )
     `);
-    await db3.execute(sql7`
+    await db3.execute(sql8`
       CREATE TABLE IF NOT EXISTS audit_log (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         entity_type VARCHAR(50) NOT NULL,
@@ -7196,7 +7477,7 @@ async function createAdminTables() {
         timestamp TIMESTAMP DEFAULT NOW() NOT NULL
       )
     `);
-    await db3.execute(sql7`
+    await db3.execute(sql8`
       CREATE TABLE IF NOT EXISTS sla_policies (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name VARCHAR(100) NOT NULL,
@@ -7217,7 +7498,7 @@ async function createAdminTables() {
         updated_at TIMESTAMP DEFAULT NOW() NOT NULL
       )
     `);
-    await db3.execute(sql7`
+    await db3.execute(sql8`
       CREATE TABLE IF NOT EXISTS sla_breaches (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         ticket_id UUID NOT NULL,
@@ -7229,16 +7510,16 @@ async function createAdminTables() {
         created_at TIMESTAMP DEFAULT NOW() NOT NULL
       )
     `);
-    await db3.execute(sql7`CREATE INDEX IF NOT EXISTS idx_groups_type ON groups(type)`);
-    await db3.execute(sql7`CREATE INDEX IF NOT EXISTS idx_groups_parent ON groups(parent_group_id)`);
-    await db3.execute(sql7`CREATE INDEX IF NOT EXISTS idx_group_members_group ON group_members(group_id)`);
-    await db3.execute(sql7`CREATE INDEX IF NOT EXISTS idx_group_members_user ON group_members(user_id)`);
-    await db3.execute(sql7`CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_log(entity_type, entity_id)`);
-    await db3.execute(sql7`CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_log(user_id)`);
-    await db3.execute(sql7`CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp)`);
-    await db3.execute(sql7`CREATE INDEX IF NOT EXISTS idx_sla_policies_active ON sla_policies(is_active)`);
-    await db3.execute(sql7`CREATE INDEX IF NOT EXISTS idx_sla_breaches_ticket ON sla_breaches(ticket_id)`);
-    await db3.execute(sql7`
+    await db3.execute(sql8`CREATE INDEX IF NOT EXISTS idx_groups_type ON groups(type)`);
+    await db3.execute(sql8`CREATE INDEX IF NOT EXISTS idx_groups_parent ON groups(parent_group_id)`);
+    await db3.execute(sql8`CREATE INDEX IF NOT EXISTS idx_group_members_group ON group_members(group_id)`);
+    await db3.execute(sql8`CREATE INDEX IF NOT EXISTS idx_group_members_user ON group_members(user_id)`);
+    await db3.execute(sql8`CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_log(entity_type, entity_id)`);
+    await db3.execute(sql8`CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_log(user_id)`);
+    await db3.execute(sql8`CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp)`);
+    await db3.execute(sql8`CREATE INDEX IF NOT EXISTS idx_sla_policies_active ON sla_policies(is_active)`);
+    await db3.execute(sql8`CREATE INDEX IF NOT EXISTS idx_sla_breaches_ticket ON sla_breaches(ticket_id)`);
+    await db3.execute(sql8`
       INSERT INTO sla_policies (name, description, priority, response_time, resolution_time)
       VALUES 
         ('Critical Priority SLA', 'Critical issues requiring immediate attention', 'critical', 15, 240),
@@ -7247,7 +7528,7 @@ async function createAdminTables() {
         ('Low Priority SLA', 'Low priority requests', 'low', 480, 2880)
       ON CONFLICT DO NOTHING
     `);
-    await db3.execute(sql7`
+    await db3.execute(sql8`
       INSERT INTO groups (name, description, type, email)
       VALUES 
         ('IT Support', 'Primary IT support team', 'team', 'itsupport@company.com'),
@@ -7699,7 +7980,7 @@ var init_sla_routes = __esm({
 });
 
 // server/services/analytics-service.ts
-import { sql as sql8, desc as desc8, count as count5 } from "drizzle-orm";
+import { sql as sql9, desc as desc8, count as count5 } from "drizzle-orm";
 import {
   subDays,
   format
@@ -7729,7 +8010,7 @@ var init_analytics_service = __esm({
           );
           try {
             const totalDevicesResult = await Promise.race([
-              db.select({ count: sql8`count(*)` }).from(devices),
+              db.select({ count: sql9`count(*)` }).from(devices),
               timeout
             ]);
             const totalDevices = Number(totalDevicesResult[0]?.count) || 0;
@@ -7741,7 +8022,7 @@ var init_analytics_service = __esm({
               devicesByOS = await Promise.race([
                 db.select({
                   os_name: devices.os_name,
-                  count: sql8`count(*)`
+                  count: sql9`count(*)`
                 }).from(devices).groupBy(devices.os_name),
                 timeout
               ]);
@@ -7753,7 +8034,7 @@ var init_analytics_service = __esm({
               devicesByStatus = await Promise.race([
                 db.select({
                   status: devices.status,
-                  count: sql8`count(*)`
+                  count: sql9`count(*)`
                 }).from(devices).groupBy(devices.status),
                 timeout
               ]);
@@ -7772,7 +8053,7 @@ var init_analytics_service = __esm({
             }
             try {
               const softwareCountResult = await Promise.race([
-                db.select({ count: sql8`count(*)` }).from(installed_software),
+                db.select({ count: sql9`count(*)` }).from(installed_software),
                 timeout
               ]);
               totalSoftware = Number(softwareCountResult[0]?.count) || 0;
@@ -7841,7 +8122,7 @@ var init_analytics_service = __esm({
           } catch (dbError) {
             console.error("Database error in asset inventory report:", dbError);
             try {
-              const basicDeviceCount = await db.select({ count: sql8`count(*)` }).from(devices);
+              const basicDeviceCount = await db.select({ count: sql9`count(*)` }).from(devices);
               const deviceCount = Number(basicDeviceCount[0]?.count) || 0;
               return {
                 total_devices: deviceCount,
@@ -7894,7 +8175,7 @@ var init_analytics_service = __esm({
           );
           try {
             const totalTicketsResult = await Promise.race([
-              db.select({ count: sql8`count(*)` }).from(tickets),
+              db.select({ count: sql9`count(*)` }).from(tickets),
               timeout
             ]);
             const totalTickets = Number(totalTicketsResult[0]?.count) || 0;
@@ -7905,7 +8186,7 @@ var init_analytics_service = __esm({
               ticketsByStatus = await Promise.race([
                 db.select({
                   status: tickets.status,
-                  count: sql8`count(*)`
+                  count: sql9`count(*)`
                 }).from(tickets).groupBy(tickets.status),
                 timeout
               ]);
@@ -7917,7 +8198,7 @@ var init_analytics_service = __esm({
               ticketsByType = await Promise.race([
                 db.select({
                   type: tickets.type,
-                  count: sql8`count(*)`
+                  count: sql9`count(*)`
                 }).from(tickets).groupBy(tickets.type),
                 timeout
               ]);
@@ -7929,7 +8210,7 @@ var init_analytics_service = __esm({
               ticketsByPriority = await Promise.race([
                 db.select({
                   priority: tickets.priority,
-                  count: sql8`count(*)`
+                  count: sql9`count(*)`
                 }).from(tickets).groupBy(tickets.priority),
                 timeout
               ]);
@@ -8047,7 +8328,7 @@ var init_analytics_service = __esm({
             alertCounts = await Promise.race([
               db.select({
                 severity: alerts.severity,
-                count: sql8`count(*)`
+                count: sql9`count(*)`
               }).from(alerts).groupBy(alerts.severity).limit(10),
               timeout
             ]);
@@ -8120,7 +8401,7 @@ var init_analytics_service = __esm({
         } catch (dbError) {
           console.error("Database error in system health report:", dbError);
           try {
-            const basicDeviceCount = await db.select({ count: sql8`count(*)` }).from(devices);
+            const basicDeviceCount = await db.select({ count: sql9`count(*)` }).from(devices);
             const deviceCount = Number(basicDeviceCount[0]?.count) || 0;
             return {
               overall_health: {
@@ -8177,7 +8458,7 @@ var init_analytics_service = __esm({
             const totalUsers = totalUsersResult[0]?.count || 0;
             const activeUsersResult = await Promise.race([
               db.select({ count: count5() }).from(users).where(
-                sql8`${users.last_login} >= ${sql8.raw(`NOW() - INTERVAL '30 days'`)}`
+                sql9`${users.last_login} >= ${sql9.raw(`NOW() - INTERVAL '30 days'`)}`
               ),
               timeout
             ]);
@@ -9710,7 +9991,7 @@ var reports_storage_exports = {};
 __export(reports_storage_exports, {
   reportsStorage: () => reportsStorage
 });
-import { sql as sql9 } from "drizzle-orm";
+import { sql as sql10 } from "drizzle-orm";
 var ReportsStorage, reportsStorage;
 var init_reports_storage = __esm({
   "server/models/reports-storage.ts"() {
@@ -9719,7 +10000,7 @@ var init_reports_storage = __esm({
     ReportsStorage = class {
       async createReportsTable() {
         try {
-          await db.execute(sql9`
+          await db.execute(sql10`
         CREATE TABLE IF NOT EXISTS reports (
           id TEXT PRIMARY KEY,
           title TEXT NOT NULL,
@@ -9738,7 +10019,7 @@ var init_reports_storage = __esm({
       }
       async saveReport(report) {
         try {
-          await db.execute(sql9`
+          await db.execute(sql10`
         INSERT INTO reports (id, title, type, data, generated_at, time_range, user_id)
         VALUES (${report.id}, ${report.title}, ${report.type}, ${JSON.stringify(report.data)}, 
                 ${report.generated_at}, ${report.time_range}, ${report.user_id})
@@ -9757,7 +10038,7 @@ var init_reports_storage = __esm({
       }
       async getRecentReports(limit = 10) {
         try {
-          const result = await db.execute(sql9`
+          const result = await db.execute(sql10`
         SELECT id, title, type, data, generated_at, time_range, user_id
         FROM reports
         ORDER BY generated_at DESC
@@ -9779,7 +10060,7 @@ var init_reports_storage = __esm({
       }
       async getReportById(id) {
         try {
-          const result = await db.execute(sql9`
+          const result = await db.execute(sql10`
         SELECT id, title, type, data, generated_at, time_range, user_id
         FROM reports
         WHERE id = ${id}
@@ -9802,7 +10083,7 @@ var init_reports_storage = __esm({
       }
       async deleteReport(id) {
         try {
-          await db.execute(sql9`DELETE FROM reports WHERE id = ${id}`);
+          await db.execute(sql10`DELETE FROM reports WHERE id = ${id}`);
           console.log(`Report ${id} deleted successfully`);
           return true;
         } catch (error) {
@@ -15812,8 +16093,9 @@ import { eq as eq11, desc as desc9 } from "drizzle-orm";
 init_db();
 init_ticket_schema();
 init_ticket_storage();
+init_knowledge_ai_service();
 import { Router as Router4 } from "express";
-import { eq as eq7, desc as desc7, like as like5, and as and7, or as or7 } from "drizzle-orm";
+import { eq as eq7, and as and7, or as or7, sql as sql7, desc as desc7, ilike as ilike2, count as count4 } from "drizzle-orm";
 import jwt4 from "jsonwebtoken";
 var router4 = Router4();
 var storage2 = new TicketStorage();
@@ -15821,14 +16103,16 @@ var authenticateToken2 = (req, res, next) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
   if (!token) {
-    return res.status(401).json({ message: "Access token required" });
+    req.user = null;
+    return next();
   }
   jwt4.verify(token, process.env.JWT_SECRET || "your-secret-key", (err, decoded) => {
     if (err) {
       console.error("Token verification error:", err);
-      return res.status(403).json({ message: "Invalid token" });
+      req.user = null;
+    } else {
+      req.user = decoded;
     }
-    req.user = decoded;
     next();
   });
 };
@@ -15844,26 +16128,182 @@ router4.get("/", authenticateToken2, async (req, res) => {
     console.log("KB Search filters:", filters);
     const conditions = [];
     conditions.push(eq7(knowledgeBase.status, filters.status));
-    if (filters.category && filters.category !== "all") {
+    if (filters.category && filters.category !== "all" && filters.category !== void 0) {
       conditions.push(eq7(knowledgeBase.category, filters.category));
     }
-    if (filters.search) {
-      const searchTerm = `%${filters.search}%`;
+    if (filters.search && filters.search.trim() !== "") {
+      const searchTerm = `%${filters.search.toLowerCase()}%`;
       conditions.push(
         or7(
-          like5(knowledgeBase.title, searchTerm),
-          like5(knowledgeBase.content, searchTerm),
-          like5(knowledgeBase.category, searchTerm)
+          like(knowledgeBase.title, searchTerm),
+          like(knowledgeBase.content, searchTerm),
+          like(knowledgeBase.category, searchTerm)
         )
       );
     }
     const whereClause = conditions.length > 0 ? and7(...conditions) : void 0;
-    const articles = await db.select().from(knowledgeBase).where(whereClause).orderBy(desc7(knowledgeBase.helpful_votes), desc7(knowledgeBase.views)).limit(limit).offset((page - 1) * limit);
-    console.log(`Found ${articles.length} articles in database`);
-    res.json(articles);
+    const [{ total }] = await db.select({ total: count4() }).from(knowledgeBase).where(whereClause);
+    const articles = await db.select().from(knowledgeBase).where(whereClause).orderBy(desc7(knowledgeBase.helpful_votes), desc7(knowledgeBase.views), desc7(knowledgeBase.created_at)).limit(limit).offset((page - 1) * limit);
+    console.log(`Found ${articles.length} articles in database (total: ${total})`);
+    const response = {
+      data: articles,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
+    res.json(response);
   } catch (error) {
     console.error("Error fetching KB articles:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? error.message : void 0
+    });
+  }
+});
+router4.get("/related", async (req, res) => {
+  try {
+    const { tags, category, limit = "5", header, title } = req.query;
+    console.log("Related articles request:", { tags, category, limit, header, title });
+    if (header || title) {
+      const searchText = header || title;
+      const searchTextLower = searchText.toLowerCase();
+      console.log(`Performing header-based search for: "${searchText}"`);
+      const stopWords = ["the", "is", "not", "can", "cannot", "will", "with", "and", "or", "but", "in", "on", "at", "to", "for", "of", "from", "up", "about", "into", "through", "during", "before", "after", "above", "below", "between", "among", "since", "until", "while", "because", "so", "if", "when", "where", "how", "what", "who", "which", "why", "this", "that", "these", "those"];
+      const searchWords = searchTextLower.replace(/[^\w\s]/g, " ").split(/\s+/).filter((word) => word.length > 2 && !stopWords.includes(word));
+      console.log(`Search words: ${searchWords.join(", ")}`);
+      if (searchWords.length > 0) {
+        try {
+          const exactMatches = await db.select().from(knowledgeBase).where(
+            and7(
+              eq7(knowledgeBase.status, "published"),
+              or7(
+                ilike2(knowledgeBase.title, `%${searchTextLower}%`),
+                ilike2(knowledgeBase.content, `%${searchTextLower}%`)
+              )
+            )
+          ).orderBy(desc7(knowledgeBase.helpful_votes), desc7(knowledgeBase.views)).limit(parseInt(limit, 10));
+          if (exactMatches.length > 0) {
+            console.log(`Found ${exactMatches.length} exact matches`);
+            return res.json(exactMatches);
+          }
+          const wordSearches = searchWords.map(
+            (word) => or7(
+              ilike2(knowledgeBase.title, `%${word}%`),
+              ilike2(knowledgeBase.content, `%${word}%`)
+            )
+          );
+          const wordMatches = await db.select().from(knowledgeBase).where(
+            and7(
+              eq7(knowledgeBase.status, "published"),
+              or7(...wordSearches)
+            )
+          ).orderBy(desc7(knowledgeBase.helpful_votes), desc7(knowledgeBase.views)).limit(parseInt(limit, 10));
+          console.log(`Found ${wordMatches.length} word-based matches`);
+          return res.json(wordMatches);
+        } catch (searchError) {
+          console.error("Header search failed, falling back to tag search:", searchError);
+        }
+      }
+    }
+    let searchTags = [];
+    if (tags) {
+      searchTags = tags.split(",").map((t) => t.trim().toLowerCase()).filter((t) => t.length > 0);
+    }
+    if (searchTags.length === 0) {
+      searchTags = ["keyboard", "mouse", "troubleshooting", "password", "network"];
+    }
+    console.log("Falling back to tag search with tags:", searchTags);
+    const articles = await knowledgeAIService.getRelatedArticles({
+      tags: searchTags,
+      category,
+      limit: parseInt(limit, 10)
+    });
+    console.log(`Found ${articles.length} related articles via tag search`);
+    res.json(articles);
+  } catch (error) {
+    console.error("Error fetching related articles:", error);
+    res.status(500).json({
+      message: "Failed to fetch related articles",
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+});
+router4.get("/related/:ticketId", async (req, res) => {
+  try {
+    const { ticketId } = req.params;
+    const ticket = await db.select().from(tickets).where(eq7(tickets.id, ticketId)).limit(1);
+    if (!ticket.length) {
+      return res.status(404).json({ error: "Ticket not found" });
+    }
+    const ticketData = ticket[0];
+    const ticketTitle = ticketData.title.toLowerCase();
+    console.log(`Searching KB articles for ticket title: "${ticketData.title}"`);
+    const stopWords = ["the", "is", "not", "can", "cannot", "will", "with", "and", "or", "but", "in", "on", "at", "to", "for", "of", "from", "up", "about", "into", "through", "during", "before", "after", "above", "below", "between", "among", "since", "until", "while", "because", "so", "if", "when", "where", "how", "what", "who", "which", "why", "this", "that", "these", "those", "i", "me", "my", "we", "our", "you", "your", "he", "him", "his", "she", "her", "it", "its", "they", "them", "their"];
+    const titleWords = ticketTitle.replace(/[^\w\s]/g, " ").split(/\s+/).filter((word) => word.length > 2 && !stopWords.includes(word));
+    console.log(`Extracted words from title: ${titleWords.join(", ")}`);
+    let relatedArticles = [];
+    if (titleWords.length > 0) {
+      const exactPhraseSearch = ilike2(knowledgeBase.title, `%${ticketTitle}%`);
+      const exactContentSearch = ilike2(knowledgeBase.content, `%${ticketTitle}%`);
+      const titleWordSearches = titleWords.map(
+        (word) => ilike2(knowledgeBase.title, `%${word}%`)
+      );
+      const contentWordSearches = titleWords.map(
+        (word) => ilike2(knowledgeBase.content, `%${word}%`)
+      );
+      try {
+        const exactMatches = await db.select().from(knowledgeBase).where(
+          and7(
+            eq7(knowledgeBase.status, "published"),
+            or7(exactPhraseSearch, exactContentSearch)
+          )
+        ).orderBy(desc7(knowledgeBase.helpful_votes), desc7(knowledgeBase.views)).limit(3);
+        relatedArticles.push(...exactMatches);
+        console.log(`Found ${exactMatches.length} exact phrase matches`);
+        if (relatedArticles.length < 5) {
+          const remainingLimit = 5 - relatedArticles.length;
+          const existingIds = relatedArticles.map((a) => a.id);
+          const wordMatches = await db.select().from(knowledgeBase).where(
+            and7(
+              eq7(knowledgeBase.status, "published"),
+              sql7`${knowledgeBase.id} NOT IN (${existingIds.length > 0 ? existingIds.map(() => "?").join(",") : "NULL"})`,
+              or7(
+                ...titleWordSearches,
+                ...contentWordSearches
+              )
+            )
+          ).orderBy(desc7(knowledgeBase.helpful_votes), desc7(knowledgeBase.views)).limit(remainingLimit);
+          relatedArticles.push(...wordMatches);
+          console.log(`Found ${wordMatches.length} additional word matches`);
+        }
+      } catch (searchError) {
+        console.error("Header-based search failed:", searchError);
+        relatedArticles = await db.select().from(knowledgeBase).where(
+          and7(
+            eq7(knowledgeBase.status, "published"),
+            or7(
+              ilike2(knowledgeBase.title, `%${titleWords[0]}%`),
+              ilike2(knowledgeBase.content, `%${titleWords[0]}%`)
+            )
+          )
+        ).orderBy(desc7(knowledgeBase.helpful_votes)).limit(5);
+      }
+    }
+    if (relatedArticles.length === 0) {
+      console.log("No header-based matches found, returning top articles");
+      relatedArticles = await db.select().from(knowledgeBase).where(eq7(knowledgeBase.status, "published")).orderBy(desc7(knowledgeBase.helpful_votes), desc7(knowledgeBase.views)).limit(3);
+    }
+    console.log(`Returning ${relatedArticles.length} related articles for ticket: "${ticketData.title}"`);
+    relatedArticles.forEach((article, index) => {
+      console.log(`${index + 1}. "${article.title}" (helpful_votes: ${article.helpful_votes}, views: ${article.views})`);
+    });
+    res.json(relatedArticles || []);
+  } catch (error) {
+    console.error("Error fetching related articles:", error);
+    res.status(500).json({ error: "Failed to fetch related articles", details: error.message });
   }
 });
 router4.get("/:id", authenticateToken2, async (req, res) => {
