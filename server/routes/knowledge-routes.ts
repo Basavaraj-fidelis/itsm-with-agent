@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db';
 import { knowledgeBase, tickets } from '@shared/ticket-schema';
-import { eq, and, or, sql, desc, ilike, count } from 'drizzle-orm';
+import { eq, and, or, sql, desc, ilike, count, like } from 'drizzle-orm';
 import jwt from "jsonwebtoken";
 
 import { TicketStorage } from "../services/ticket-storage";

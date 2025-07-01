@@ -108,7 +108,7 @@ export default function RelatedArticles({ ticketId, tags = [], category }: Relat
   }, [ticketId, tags, category]);
 
   const handleViewArticle = (articleId: string) => {
-    window.open(`/knowledge-base?article=${articleId}`, '_blank');
+    window.open(`/knowledge-base/${articleId}`, '_blank');
   };
 
   if (loading) {

@@ -1,33 +1,35 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import { useLocation, useRoute } from "wouter";
+import {
+  Search,
+  BookOpen,
+  Filter,
+  Plus,
+  Eye,
+  ThumbsUp,
+  Calendar,
+  User,
+  ArrowLeft,
+  ExternalLink
+} from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { api } from "@/lib/api";
+import { formatDistanceToNow } from "date-fns";
 import { 
-  Search, 
-  Plus, 
-  FileText, 
-  Eye, 
-  Edit, 
   Trash2,
-  Filter,
   Clock,
-  User,
-  ThumbsUp,
-  ThumbsDown,
-  Star,
-  BookOpen,
-  HelpCircle,
   Tag,
-  Calendar,
   TrendingUp,
   Award,
   Users,
@@ -38,11 +40,11 @@ import {
   Lightbulb,
   Shield,
   Zap,
-  Settings
+  Settings,
+  FileText,
+  Edit,
+  HelpCircle
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { formatDistanceToNow } from "date-fns";
-import { ArrowLeft } from "lucide-react";
 
 interface Article {
   id: string;
@@ -73,19 +75,24 @@ const getCategoryIcon = (category: string) => {
 };
 
 export default function KnowledgeBase() {
+  const { toast } = useToast();
   const [location, setLocation] = useLocation();
-  const [articles, setArticles] = useState<Article[]>([]);
+  const [match, params] = useRoute("/knowledge-base/:id");
+  const articleId = params?.id;
+
+  const [articles, setArticles] = useState<any[]>([]);
+  const [selectedArticle, setSelectedArticle] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
-
-  // Check if we're viewing a specific article
-  const articleMatch = location.match(/^\/knowledge-base\/(.+)/);
-  const articleId = articleMatch ? articleMatch[1] : null;
-
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0
+  });
 
   useEffect(() => {
     if (articleId) {
@@ -93,7 +100,7 @@ export default function KnowledgeBase() {
     } else {
       fetchArticles();
     }
-  }, [selectedCategory, searchTerm, articleId]);
+  }, [articleId, pagination.page, selectedCategory, searchTerm]);
 
   const fetchArticles = async () => {
     try {
@@ -135,7 +142,7 @@ export default function KnowledgeBase() {
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`KB API Error: ${response.status} - ${errorText}`);
-        
+
         if (response.status === 401) {
           console.warn('Authentication issue for KB articles, trying without auth');
         } else {
@@ -165,10 +172,10 @@ export default function KnowledgeBase() {
   };
 
   const fetchSingleArticle = async (id: string) => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
       const token = localStorage.getItem('auth_token');
-      
+
       const headers: HeadersInit = {
         'Content-Type': 'application/json'
       };
@@ -255,8 +262,19 @@ export default function KnowledgeBase() {
       });
   };
 
-  // Article detail view
-  if (articleId && selectedArticle) {
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="text-center py-12">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="mt-2 text-neutral-600">Loading articles...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Single article view
+  if (selectedArticle) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <div className="max-w-5xl mx-auto p-6">
@@ -282,7 +300,7 @@ export default function KnowledgeBase() {
                       {selectedArticle.status === "published" ? "✅ Published" : "📝 Draft"}
                     </Badge>
                   </div>
-                  
+
                   <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-6 leading-tight">
                     {selectedArticle.title}
                   </h1>
@@ -661,7 +679,7 @@ export default function KnowledgeBase() {
         </TabsContent>
       </Tabs>
 
-      
+
     </div>
   );
 }

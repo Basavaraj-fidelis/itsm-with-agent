@@ -950,7 +950,7 @@ netsh int ip reset
           status: "published",
           views: 356,
           helpful_votes: 89,
-        },
+        },```python
         {
           title: "Forgot Password - Complete Recovery Guide",
           content: `# Password Recovery & Reset Guide
@@ -1831,7 +1831,7 @@ netsh int ip reset
           views: 334,
           helpful_votes: 87,
         },
-        
+
         {
           title: "Software Installation Policy",
           content: `# Software Installation Guidelines
@@ -2023,7 +2023,7 @@ ipconfig /renew
 ipconfig /flushdns
 
 
-### 3. Check Network Status
+### 3. Check Network Status```python
 - Verify if others have same issue
 - Check company network status page
 - Try connecting to guest network
@@ -3073,6 +3073,49 @@ smartphones
       ).length,
       active_alerts: activeAlerts.length,
     };
+  }
+
+  async updateUser(id: string, updates: any): Promise<any | null> {
+    try {
+      const { pool } = await import("./db");
+
+      const setClause = [];
+      const params = [];
+      let paramCount = 0;
+      // Remove 'name' field if it exists since the schema doesn't have it
+      const { name, ...validUpdates } = updates as any;
+
+
+      Object.keys(validUpdates).forEach((key) => {
+        if (validUpdates[key] !== undefined) {
+          paramCount++;
+          setClause.push(`${key} = $${paramCount}`);
+          params.push(validUpdates[key]);
+        }
+      });
+
+      if (setClause.length === 0) return null;
+
+      paramCount++;
+      setClause.push(`updated_at = $${paramCount}`);
+      params.push(new Date());
+
+      paramCount++;
+      params.push(id);
+
+      const query = `
+        UPDATE users 
+        SET ${setClause.join(", ")}
+        WHERE id = $${paramCount}
+        RETURNING id, name, email, role, department, phone, is_active, created_at, updated_at
+      `;
+
+      const result = await pool.query(query, params);
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error("Error updating user:", error);
+      return null;
+    }
   }
 
   // Database connection instance
