@@ -30,7 +30,7 @@ __export(schema_exports, {
   usb_devices: () => usb_devices,
   user_sessions: () => user_sessions
 });
-import { pgTable, text, timestamp, json, numeric, uuid, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, json as json2, numeric, uuid, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 var devices, device_reports, alerts, usb_devices, reportDataSchema, deviceReportRequestSchema, insertDeviceSchema, insertDeviceReportSchema, insertAlertSchema, installed_software, patch_management, user_sessions;
@@ -57,7 +57,7 @@ var init_schema = __esm({
       memory_usage: numeric("memory_usage"),
       disk_usage: numeric("disk_usage"),
       network_io: numeric("network_io"),
-      raw_data: json("raw_data").notNull()
+      raw_data: json2("raw_data").notNull()
     });
     alerts = pgTable("alerts", {
       id: uuid("id").primaryKey().defaultRandom(),
@@ -65,7 +65,7 @@ var init_schema = __esm({
       category: text("category").notNull(),
       severity: text("severity").notNull(),
       message: text("message").notNull(),
-      metadata: json("metadata"),
+      metadata: json2("metadata"),
       triggered_at: timestamp("triggered_at").defaultNow(),
       resolved_at: timestamp("resolved_at"),
       is_active: boolean("is_active").default(true)
@@ -86,7 +86,7 @@ var init_schema = __esm({
       first_seen: timestamp("first_seen").defaultNow(),
       last_seen: timestamp("last_seen").defaultNow(),
       is_connected: boolean("is_connected").default(true),
-      raw_data: json("raw_data")
+      raw_data: json2("raw_data")
     });
     reportDataSchema = z.object({
       hardware: z.record(z.any()).optional(),
@@ -213,7 +213,7 @@ __export(ticket_schema_exports, {
   ticketTypes: () => ticketTypes,
   tickets: () => tickets
 });
-import { pgTable as pgTable2, text as text2, timestamp as timestamp2, integer, json as json2, uuid as uuid2, varchar, boolean as boolean2 } from "drizzle-orm/pg-core";
+import { pgTable as pgTable2, text as text2, timestamp as timestamp2, integer, json as json3, uuid as uuid2, varchar, boolean as boolean2 } from "drizzle-orm/pg-core";
 var ticketTypes, ticketPriorities, ticketStatuses, tickets, ticketComments, ticketAttachments, ticketApprovals, knowledgeBase;
 var init_ticket_schema = __esm({
   "shared/ticket-schema.ts"() {
@@ -242,7 +242,7 @@ var init_ticket_schema = __esm({
       // email, phone, chat
       // Related entities
       device_id: uuid2("device_id"),
-      related_tickets: json2("related_tickets").$type().default([]),
+      related_tickets: json3("related_tickets").$type().default([]),
       // Workflow specific fields
       impact: varchar("impact", { length: 20 }).default("medium"),
       // low, medium, high, critical
@@ -266,9 +266,9 @@ var init_ticket_schema = __esm({
       workaround: text2("workaround"),
       known_error: boolean2("known_error").default(false),
       // Metadata
-      tags: json2("tags").$type().default([]),
-      custom_fields: json2("custom_fields").$type().default({}),
-      related_article_ids: json2("related_article_ids").$type().default([]),
+      tags: json3("tags").$type().default([]),
+      custom_fields: json3("custom_fields").$type().default({}),
+      related_article_ids: json3("related_article_ids").$type().default([]),
       // SLA fields
       sla_policy_id: uuid2("sla_policy_id"),
       // Reference to SLA policy
@@ -295,6 +295,14 @@ var init_ticket_schema = __esm({
       sla_resumed_at: timestamp2("sla_resumed_at"),
       sla_total_paused_time: integer("sla_total_paused_time").default(0),
       // in minutes
+      // SLA Escalation tracking
+      escalation_reason: text2("escalation_reason"),
+      escalation_level: integer("escalation_level").default(0),
+      last_escalation_at: timestamp2("last_escalation_at"),
+      escalated_at: timestamp2("escalated_at"),
+      // Alternative naming for compatibility
+      time_spent_minutes: integer("time_spent_minutes").default(0),
+      // Time tracking for SLA
       // Business Impact
       business_service: varchar("business_service", { length: 100 }),
       affected_users_count: integer("affected_users_count").default(1),
@@ -305,6 +313,13 @@ var init_ticket_schema = __esm({
       closure_notes: text2("closure_notes"),
       customer_satisfaction: integer("customer_satisfaction"),
       // 1-5 rating
+      // Additional ITSM fields
+      billing_code: varchar("billing_code", { length: 50 }),
+      external_reference: varchar("external_reference", { length: 100 }),
+      vendor_ticket_id: varchar("vendor_ticket_id", { length: 100 }),
+      parent_ticket_id: uuid2("parent_ticket_id"),
+      duplicate_of_ticket_id: uuid2("duplicate_of_ticket_id"),
+      merged_into_ticket_id: uuid2("merged_into_ticket_id"),
       // Timestamps
       created_at: timestamp2("created_at").defaultNow().notNull(),
       updated_at: timestamp2("updated_at").defaultNow().notNull(),
@@ -318,7 +333,7 @@ var init_ticket_schema = __esm({
       author_email: varchar("author_email", { length: 255 }).notNull(),
       comment: text2("comment").notNull(),
       is_internal: boolean2("is_internal").default(false),
-      attachments: json2("attachments").$type().default([]),
+      attachments: json3("attachments").$type().default([]),
       created_at: timestamp2("created_at").defaultNow().notNull()
     });
     ticketAttachments = pgTable2("ticket_attachments", {
@@ -345,7 +360,7 @@ var init_ticket_schema = __esm({
       title: text2("title").notNull(),
       content: text2("content").notNull(),
       category: varchar("category", { length: 100 }),
-      tags: json2("tags").$type().default([]),
+      tags: json3("tags").$type().default([]),
       author_email: varchar("author_email", { length: 255 }).notNull(),
       status: varchar("status", { length: 20 }).default("draft"),
       // draft, published, archived
@@ -3212,7 +3227,7 @@ smartphones
 });
 
 // shared/admin-schema.ts
-import { pgTable as pgTable3, text as text3, timestamp as timestamp3, json as json3, uuid as uuid3, varchar as varchar2, boolean as boolean3, integer as integer2 } from "drizzle-orm/pg-core";
+import { pgTable as pgTable3, text as text3, timestamp as timestamp3, json as json4, uuid as uuid3, varchar as varchar2, boolean as boolean3, integer as integer2 } from "drizzle-orm/pg-core";
 import { createInsertSchema as createInsertSchema2 } from "drizzle-zod";
 var groups, groupMembers, auditLog, slaPolicies, slaBreaches, insertGroupSchema, insertGroupMemberSchema, insertAuditLogSchema, insertSLAPolicySchema, insertSLABreachSchema;
 var init_admin_schema = __esm({
@@ -3252,11 +3267,11 @@ var init_admin_schema = __esm({
       user_id: uuid3("user_id"),
       // who performed the action
       user_email: varchar2("user_email", { length: 255 }),
-      old_values: json3("old_values"),
+      old_values: json4("old_values"),
       // previous state
-      new_values: json3("new_values"),
+      new_values: json4("new_values"),
       // new state
-      changes: json3("changes"),
+      changes: json4("changes"),
       // specific field changes
       ip_address: varchar2("ip_address", { length: 45 }),
       user_agent: text3("user_agent"),
@@ -3343,7 +3358,7 @@ __export(user_schema_exports, {
   userSessions: () => userSessions,
   users: () => users
 });
-import { pgTable as pgTable4, text as text4, timestamp as timestamp4, uuid as uuid4, varchar as varchar3, boolean as boolean4, integer as integer3, json as json4 } from "drizzle-orm/pg-core";
+import { pgTable as pgTable4, text as text4, timestamp as timestamp4, uuid as uuid4, varchar as varchar3, boolean as boolean4, integer as integer3, json as json5 } from "drizzle-orm/pg-core";
 var userRoles, users, departments, userSessions, userGroups2, userGroupMemberships2, userActivity;
 var init_user_schema = __esm({
   "shared/user-schema.ts"() {
@@ -3373,10 +3388,18 @@ var init_user_schema = __esm({
       emergency_contact_phone: varchar3("emergency_contact_phone", { length: 20 }),
       cost_center: varchar3("cost_center", { length: 50 }),
       reporting_manager_email: varchar3("reporting_manager_email", { length: 255 }),
-      permissions: json4("permissions").$type().default([]),
-      preferences: json4("preferences").$type().default({}),
+      permissions: json5("permissions").$type().default([]),
+      preferences: json5("preferences").$type().default({}),
       is_active: boolean4("is_active").default(true),
       is_locked: boolean4("is_locked").default(false),
+      // ITSM-specific fields
+      vip_user: boolean4("vip_user").default(false),
+      security_clearance: varchar3("security_clearance", { length: 50 }),
+      business_unit: varchar3("business_unit", { length: 100 }),
+      primary_device_id: uuid4("primary_device_id"),
+      backup_contact_email: varchar3("backup_contact_email", { length: 255 }),
+      shift_schedule: varchar3("shift_schedule", { length: 100 }),
+      escalation_manager_id: uuid4("escalation_manager_id"),
       password_reset_required: boolean4("password_reset_required").default(false),
       failed_login_attempts: integer3("failed_login_attempts").default(0),
       last_login: timestamp4("last_login"),
@@ -3431,7 +3454,7 @@ var init_user_schema = __esm({
       description: text4("description"),
       ip_address: varchar3("ip_address", { length: 45 }),
       user_agent: text4("user_agent"),
-      metadata: json4("metadata").$type().default({}),
+      metadata: json5("metadata").$type().default({}),
       created_at: timestamp4("created_at").defaultNow().notNull()
     });
   }
@@ -3825,6 +3848,14 @@ var init_sla_schema = __esm({
       // 1=Monday, 7=Sunday
       // Status
       is_active: boolean5("is_active").default(true),
+      // Missing SLA fields
+      escalation_matrix: json("escalation_matrix").$type().default([]),
+      notification_rules: json("notification_rules").$type().default([]),
+      holiday_calendar_id: uuid5("holiday_calendar_id"),
+      timezone: varchar4("timezone", { length: 50 }).default("UTC"),
+      version: integer4("version").default(1),
+      approved_by: uuid5("approved_by"),
+      approved_at: timestamp5("approved_at"),
       // Metadata
       created_at: timestamp5("created_at").defaultNow().notNull(),
       updated_at: timestamp5("updated_at").defaultNow().notNull()
@@ -3907,25 +3938,25 @@ var init_sla_policy_service = __esm({
       calculateSLADueDates(createdAt, policy) {
         const baseTime = new Date(createdAt);
         if (policy.business_hours_only) {
-          const responseDue = this.addBusinessMinutes(
+          const responseDue2 = this.addBusinessMinutes(
             baseTime,
             policy.response_time,
             policy
           );
-          const resolutionDue = this.addBusinessMinutes(
+          const resolutionDue2 = this.addBusinessMinutes(
             baseTime,
             policy.resolution_time,
             policy
           );
-          return { responseDue, resolutionDue };
+          return { responseDue: responseDue2, resolutionDue: resolutionDue2 };
         } else {
-          const responseDue = new Date(
+          const responseDue2 = new Date(
             baseTime.getTime() + policy.response_time * 60 * 1e3
           );
-          const resolutionDue = new Date(
+          const resolutionDue2 = new Date(
             baseTime.getTime() + policy.resolution_time * 60 * 1e3
           );
-          return { responseDue, resolutionDue };
+          return { responseDue: responseDue2, resolutionDue: resolutionDue2 };
         }
       }
       // Add business minutes to a date, respecting business hours
@@ -7847,11 +7878,11 @@ var init_sla_monitor_service = __esm({
             if (ticket.sla_paused || false || ["pending", "on_hold"].includes(ticket.status)) {
               continue;
             }
-            const pausedMinutes = ticket.sla_total_paused_time || 0;
-            const responseDue = ticket.response_due_at || ticket.sla_response_due;
-            const hasFirstResponse = ticket.first_response_at || ticket.assigned_to || ticket.updated_at !== ticket.created_at;
-            if (responseDue && !hasFirstResponse && !(ticket.sla_response_breached || false)) {
-              const effectiveResponseDue = new Date(new Date(responseDue).getTime() + pausedMinutes * 60 * 1e3);
+            const pausedMinutes2 = ticket.sla_total_paused_time || 0;
+            const responseDue2 = ticket.response_due_at || ticket.sla_response_due;
+            const hasFirstResponse2 = ticket.first_response_at || ticket.assigned_to || ticket.updated_at !== ticket.created_at;
+            if (responseDue2 && !hasFirstResponse2 && !(ticket.sla_response_breached || false)) {
+              const effectiveResponseDue = new Date(new Date(responseDue2).getTime() + pausedMinutes2 * 60 * 1e3);
               if (now > effectiveResponseDue) {
                 updateData.sla_response_breached = true;
                 needsUpdate = true;
@@ -7860,9 +7891,9 @@ var init_sla_monitor_service = __esm({
                 await this.sendSLABreachNotification(ticket, "response");
               }
             }
-            const resolutionDue = ticket.resolve_due_at || ticket.sla_resolution_due;
-            if (resolutionDue && !ticket.sla_resolution_breached) {
-              const effectiveResolutionDue = new Date(new Date(resolutionDue).getTime() + pausedMinutes * 60 * 1e3);
+            const resolutionDue2 = ticket.resolve_due_at || ticket.sla_resolution_due;
+            if (resolutionDue2 && !ticket.sla_resolution_breached) {
+              const effectiveResolutionDue = new Date(new Date(resolutionDue2).getTime() + pausedMinutes2 * 60 * 1e3);
               if (now > effectiveResolutionDue) {
                 updateData.sla_resolution_breached = true;
                 updateData.sla_breached = true;
@@ -7955,11 +7986,11 @@ Immediate attention required!`;
             let needsUpdate = false;
             const updateData = {};
             if (!(ticket.sla_paused || false) && !["pending", "on_hold"].includes(ticket.status)) {
-              const pausedMinutes = ticket.sla_total_paused_time || 0;
-              const responseDue = ticket.response_due_at || ticket.sla_response_due;
-              const hasFirstResponse = ticket.first_response_at || ticket.assigned_to || ticket.updated_at !== ticket.created_at;
-              if (responseDue && !hasFirstResponse) {
-                const effectiveResponseDue = new Date(new Date(responseDue).getTime() + pausedMinutes * 60 * 1e3);
+              const pausedMinutes2 = ticket.sla_total_paused_time || 0;
+              const responseDue2 = ticket.response_due_at || ticket.sla_response_due;
+              const hasFirstResponse2 = ticket.first_response_at || ticket.assigned_to || ticket.updated_at !== ticket.created_at;
+              if (responseDue2 && !hasFirstResponse2) {
+                const effectiveResponseDue = new Date(new Date(responseDue2).getTime() + pausedMinutes2 * 60 * 1e3);
                 const isResponseBreached2 = now > effectiveResponseDue;
                 if (isResponseBreached2) {
                   actualResponseBreaches++;
@@ -7969,9 +8000,9 @@ Immediate attention required!`;
                   }
                 }
               }
-              const resolutionDue = ticket.resolve_due_at || ticket.sla_resolution_due;
-              if (resolutionDue) {
-                const effectiveResolutionDue = new Date(new Date(resolutionDue).getTime() + pausedMinutes * 60 * 1e3);
+              const resolutionDue2 = ticket.resolve_due_at || ticket.sla_resolution_due;
+              if (resolutionDue2) {
+                const effectiveResolutionDue = new Date(new Date(resolutionDue2).getTime() + pausedMinutes2 * 60 * 1e3);
                 const isResolutionBreached2 = now > effectiveResolutionDue;
                 if (isResolutionBreached2) {
                   actualResolutionBreaches++;
@@ -7983,6 +8014,8 @@ Immediate attention required!`;
                 }
               }
             }
+            const isResponseBreached = responseDue && !hasFirstResponse && now > new Date(new Date(responseDue).getTime() + pausedMinutes * 60 * 1e3);
+            const isResolutionBreached = resolutionDue && now > new Date(new Date(resolutionDue).getTime() + pausedMinutes * 60 * 1e3);
             if (isResponseBreached || isResolutionBreached) {
               totalBreachedTickets++;
             }
@@ -8015,6 +8048,18 @@ Immediate attention required!`;
       }
       isResponseSLATicking(status) {
         return status === "new" || status === "assigned";
+      }
+      async columnExists(columnName) {
+        try {
+          const result = await db.execute(`
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'tickets' AND column_name = '${columnName}'
+      `);
+          return result.rows.length > 0;
+        } catch (error) {
+          console.warn(`Error checking column ${columnName}:`, error);
+          return false;
+        }
       }
     };
     slaMonitorService = new SLAMonitorService();
