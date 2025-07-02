@@ -401,13 +401,16 @@ export class MemStorage implements IStorage {
     return alert;
   }
 
-  async updateAlert(alertId: string, updateData: {
-    severity?: string;
-    message?: string;
-    metadata?: any;
-    is_active?: boolean;
-    resolved_at?: Date;
-  }): Promise<Alert | null> {
+  async updateAlert(
+    alertId: string,
+    updateData: {
+      severity?: string;
+      message?: string;
+      metadata?: any;
+      is_active?: boolean;
+      resolved_at?: Date;
+    },
+  ): Promise<Alert | null> {
     const alert = this.alerts.get(alertId);
     if (!alert) {
       return null;
@@ -437,8 +440,6 @@ export class MemStorage implements IStorage {
     );
     return alert || null;
   }
-
-  
 
   async resolveAlert(alertId: string): Promise<void> {
     const existing = this.alerts.get(alertId);
@@ -959,7 +960,7 @@ netsh int ip reset
 
 ### Can't Send/Receive Email
 - **Send/Receive Button**: Click manually to force sync
-- **Offline Mode**: Check if "Work Offline" is disabled```python
+- **Offline Mode**: Check if "Work Offline" is disabled
 - **Large Attachments**: Outlook has 25MB attachment limit
 - **Mailbox Full**: Delete old emails to free space
 
@@ -3058,7 +3059,8 @@ smartphones
     }
   }
 
-  async createAlert(alert: InsertAlert): Promise<Alert> {const [newAlert] = await db
+  async createAlert(alert: InsertAlert): Promise<Alert> {
+    const [newAlert] = await db
       .insert(alerts)
       .values({
         ...alert,
