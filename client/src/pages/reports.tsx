@@ -289,9 +289,20 @@ export default function Reports() {
 
   // Auto-refresh real-time metrics
   useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.warn('Unhandled promise rejection in analytics:', event.reason);
+      event.preventDefault(); // Prevent default browser error handling
+    };
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    
     fetchRealTimeMetrics();
     const interval = setInterval(fetchRealTimeMetrics, 60000);
-    return () => clearInterval(interval);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
   }, []);
 
   useEffect(() => {
@@ -836,6 +847,70 @@ export default function Reports() {
         backgroundColor: [
           'rgba(239, 68, 68, 0.8)',
           'rgba(245, 158, 11, 0.8)',
+
+
+          {/* Advanced Filters */}
+          <Card className="shadow-lg border-0 mb-6">
+            <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-t-lg">
+              <CardTitle className="text-lg font-semibold text-gray-800 flex items-center">
+                <Filter className="h-5 w-5 mr-2" />
+                Advanced Filters
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Date Range</label>
+                  <Select value={selectedTimeRange} onValueChange={setSelectedTimeRange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1h">Last Hour</SelectItem>
+                      <SelectItem value="24h">Last 24 Hours</SelectItem>
+                      <SelectItem value="7d">Last 7 Days</SelectItem>
+                      <SelectItem value="30d">Last 30 Days</SelectItem>
+                      <SelectItem value="90d">Last 90 Days</SelectItem>
+                      <SelectItem value="1y">Last Year</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Department Filter</label>
+                  <Select defaultValue="all">
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Departments" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Departments</SelectItem>
+                      <SelectItem value="it">IT</SelectItem>
+                      <SelectItem value="finance">Finance</SelectItem>
+                      <SelectItem value="hr">HR</SelectItem>
+                      <SelectItem value="operations">Operations</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Refresh Interval</label>
+                  <Select defaultValue="60000">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="30000">30 seconds</SelectItem>
+                      <SelectItem value="60000">1 minute</SelectItem>
+                      <SelectItem value="300000">5 minutes</SelectItem>
+                      <SelectItem value="0">Manual only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+
           'rgba(59, 130, 246, 0.8)',
           'rgba(34, 197, 94, 0.8)',
         ],

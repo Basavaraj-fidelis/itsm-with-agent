@@ -184,10 +184,18 @@ class AnalyticsService {
     try {
       console.log("Generating comprehensive asset inventory report");
 
-      // Shorter timeout and better error handling
+      // Longer timeout for complex queries and better error handling
       const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Asset inventory timeout")), 3000),
+        setTimeout(() => reject(new Error("Asset inventory timeout")), 8000),
       );
+
+      // Add connection health check
+      try {
+        await db.execute(sql`SELECT 1 as health_check`);
+      } catch (connError) {
+        console.warn("Database connection issue detected:", connError);
+        throw new Error("Database connection failed - please check your database configuration");
+      }
 
       try {
         // Get total device count with simpler query
