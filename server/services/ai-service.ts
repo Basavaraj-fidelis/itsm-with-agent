@@ -104,23 +104,47 @@ class AIService {
     const newInsights: AIInsight[] = [];
     if (reports.length < 3) return newInsights;
 
+    // Get existing performance alerts for this device to avoid duplicates
+    const existingAlerts = await this.getExistingPerformanceAlerts(deviceId);
+
     // Analyze CPU trends
     const cpuValues = reports.map(r => parseFloat(r.cpu_usage || "0")).filter(v => !isNaN(v));
     const cpuTrend = this.calculateTrend(cpuValues);
 
     if (cpuTrend > 2) { // Increasing by >2% per day
-      newInsights.push({
-        id: `cpu-trend-${deviceId}`,
-        device_id: deviceId,
-        type: 'performance',
-        severity: cpuTrend > 5 ? 'high' : 'medium',
-        title: 'Rising CPU Usage Trend',
-        description: `CPU usage trending upward by ${cpuTrend.toFixed(1)}% per day over the last week`,
-        recommendation: 'Monitor for runaway processes or consider CPU upgrade if trend continues',
-        confidence: 0.8,
-        metadata: { trend: cpuTrend, metric: 'cpu' },
-        created_at: new Date()
-      });
+      const newSeverity = cpuTrend > 5 ? 'high' : 'medium';
+      const alertKey = 'cpu-trend';
+      const existingAlert = existingAlerts.find(a => a.metadata?.metric === 'cpu' && a.title.includes('Trend'));
+
+      if (existingAlert && this.shouldUpdateAlert(existingAlert, cpuTrend, newSeverity)) {
+        // Update existing alert
+        newInsights.push({
+          ...existingAlert,
+          severity: newSeverity,
+          description: `CPU usage trending upward by ${cpuTrend.toFixed(1)}% per day over the last week`,
+          metadata: { 
+            ...existingAlert.metadata, 
+            trend: cpuTrend, 
+            previous_trend: existingAlert.metadata?.trend || 0,
+            last_updated: new Date().toISOString()
+          },
+          created_at: new Date()
+        });
+      } else if (!existingAlert) {
+        // Create new alert
+        newInsights.push({
+          id: `cpu-trend-${deviceId}`,
+          device_id: deviceId,
+          type: 'performance',
+          severity: newSeverity,
+          title: 'Rising CPU Usage Trend',
+          description: `CPU usage trending upward by ${cpuTrend.toFixed(1)}% per day over the last week`,
+          recommendation: 'Monitor for runaway processes or consider CPU upgrade if trend continues',
+          confidence: 0.8,
+          metadata: { trend: cpuTrend, metric: 'cpu', alert_type: 'trend' },
+          created_at: new Date()
+        });
+      }
     }
 
     // Analyze Memory trends
@@ -128,35 +152,59 @@ class AIService {
     const memoryTrend = this.calculateTrend(memoryValues);
 
     if (memoryTrend > 1.5) {
-      newInsights.push({
-        id: `memory-trend-${deviceId}`,
-        device_id: deviceId,
-        type: 'performance',
-        severity: memoryTrend > 3 ? 'high' : 'medium',
-        title: 'Memory Usage Climbing',
-        description: `Memory usage increasing by ${memoryTrend.toFixed(1)}% per day`,
-        recommendation: 'Check for memory leaks or plan for memory upgrade',
-        confidence: 0.75,
-        metadata: { trend: memoryTrend, metric: 'memory' },
-        created_at: new Date()
-      });
+      const newSeverity = memoryTrend > 3 ? 'high' : 'medium';
+      const existingAlert = existingAlerts.find(a => a.metadata?.metric === 'memory' && a.title.includes('Climbing'));
+
+      if (existingAlert && this.shouldUpdateAlert(existingAlert, memoryTrend, newSeverity)) {
+        // Update existing alert
+        newInsights.push({
+          ...existingAlert,
+          severity: newSeverity,
+          description: `Memory usage increasing by ${memoryTrend.toFixed(1)}% per day`,
+          metadata: { 
+            ...existingAlert.metadata, 
+            trend: memoryTrend, 
+            previous_trend: existingAlert.metadata?.trend || 0,
+            last_updated: new Date().toISOString()
+          },
+          created_at: new Date()
+        });
+      } else if (!existingAlert) {
+        // Create new alert
+        newInsights.push({
+          id: `memory-trend-${deviceId}`,
+          device_id: deviceId,
+          type: 'performance',
+          severity: newSeverity,
+          title: 'Memory Usage Climbing',
+          description: `Memory usage increasing by ${memoryTrend.toFixed(1)}% per day`,
+          recommendation: 'Check for memory leaks or plan for memory upgrade',
+          confidence: 0.75,
+          metadata: { trend: memoryTrend, metric: 'memory', alert_type: 'trend' },
+          created_at: new Date()
+        });
+      }
     }
 
     // Performance volatility analysis
     const cpuVolatility = this.calculateVolatility(cpuValues);
     if (cpuVolatility > 15) {
-      newInsights.push({
-        id: `cpu-volatility-${deviceId}`,
-        device_id: deviceId,
-        type: 'performance',
-        severity: 'medium',
-        title: 'Unstable CPU Performance',
-        description: `High CPU usage volatility detected (${cpuVolatility.toFixed(1)}% std deviation)`,
-        recommendation: 'Investigate intermittent high-CPU processes or system instability',
-        confidence: 0.7,
-        metadata: { volatility: cpuVolatility, metric: 'cpu' },
-        created_at: new Date()
-      });
+      const existingAlert = existingAlerts.find(a => a.metadata?.metric === 'cpu' && a.title.includes('Volatility'));
+
+      if (!existingAlert) {
+        newInsights.push({
+          id: `cpu-volatility-${deviceId}`,
+          device_id: deviceId,
+          type: 'performance',
+          severity: 'medium',
+          title: 'Unstable CPU Performance',
+          description: `High CPU usage volatility detected (${cpuVolatility.toFixed(1)}% std deviation)`,
+          recommendation: 'Investigate intermittent high-CPU processes or system instability',
+          confidence: 0.7,
+          metadata: { volatility: cpuVolatility, metric: 'cpu', alert_type: 'volatility' },
+          created_at: new Date()
+        });
+      }
     }
 
     return newInsights;
@@ -604,6 +652,34 @@ class AIService {
       pattern: seasonalityStrength > 0.3 ? 'weekly' : 'random',
       confidence: Math.min(seasonalityStrength, 1.0)
     };
+  }
+
+  private async getExistingPerformanceAlerts(deviceId: string): Promise<AIInsight[]> {
+    try {
+      // This would typically query the storage for existing alerts
+      // For now, we'll return an empty array as a placeholder
+      // In a real implementation, this would query your alerts storage
+      return [];
+    } catch (error) {
+      console.error('Error fetching existing alerts:', error);
+      return [];
+    }
+  }
+
+  private shouldUpdateAlert(existingAlert: AIInsight, newValue: number, newSeverity: string): boolean {
+    const timeSinceCreated = new Date().getTime() - new Date(existingAlert.created_at).getTime();
+    const hoursSinceCreated = timeSinceCreated / (1000 * 60 * 60);
+    
+    // Update if severity changed or if more than 1 hour has passed
+    const severityChanged = existingAlert.severity !== newSeverity;
+    const significantTimeElapsed = hoursSinceCreated > 1;
+    
+    // Check if the metric value changed significantly
+    const oldValue = existingAlert.metadata?.trend || existingAlert.metadata?.volatility || 0;
+    const valueChangePercent = Math.abs((newValue - oldValue) / oldValue) * 100;
+    const significantChange = valueChangePercent > 10; // 10% change
+    
+    return severityChanged || significantChange || significantTimeElapsed;
   }
 
   async getDeviceRecommendations(deviceId: string): Promise<string[]> {

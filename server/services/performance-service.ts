@@ -132,6 +132,9 @@ class PerformanceService {
             ? "medium"
             : "low";
 
+      // Check for existing anomaly alerts for this device and metric type
+      const existingAlerts = await this.getExistingAnomalyAlerts(deviceId, metricType);
+      
       const anomaly: PerformanceAnomaly = {
         device_id: deviceId,
         metric_type: metricType,
@@ -142,21 +145,78 @@ class PerformanceService {
         detected_at: new Date(),
       };
 
-      await storage.createAlert({
-        device_id: deviceId,
-        category: "performance",
-        severity: severity,
-        message: `Performance anomaly detected: ${metricType} usage (${currentValue.toFixed(1)}%) deviates ${deviationPercentage.toFixed(1)}% from baseline`,
-        metadata: {
-          anomaly: anomaly,
-          metric_type: metricType,
-          baseline_value: baseline.baseline_value,
-          current_value: currentValue,
-          deviation_percentage: deviationPercentage,
-        },
-        is_active: true,
-      });
+      const alertMessage = `Performance anomaly detected: ${metricType} usage (${currentValue.toFixed(1)}%) deviates ${deviationPercentage.toFixed(1)}% from baseline`;
+
+      // Check if we should update existing alert or create new one
+      const recentAlert = existingAlerts.find(alert => 
+        alert.metadata?.metric_type === metricType &&
+        this.isRecentAlert(alert.triggered_at)
+      );
+
+      if (recentAlert && this.shouldUpdateExistingAlert(recentAlert, currentValue, severity)) {
+        // Update existing alert instead of creating duplicate
+        await storage.updateAlert(recentAlert.id, {
+          severity: severity,
+          message: alertMessage,
+          metadata: {
+            ...recentAlert.metadata,
+            anomaly: anomaly,
+            current_value: currentValue,
+            deviation_percentage: deviationPercentage,
+            previous_value: recentAlert.metadata?.current_value || baseline.baseline_value,
+            updated_at: new Date().toISOString(),
+            update_count: (recentAlert.metadata?.update_count || 0) + 1
+          },
+          is_active: true,
+        });
+      } else {
+        // Create new alert only if no recent similar alert exists
+        await storage.createAlert({
+          device_id: deviceId,
+          category: "performance",
+          severity: severity,
+          message: alertMessage,
+          metadata: {
+            anomaly: anomaly,
+            metric_type: metricType,
+            baseline_value: baseline.baseline_value,
+            current_value: currentValue,
+            deviation_percentage: deviationPercentage,
+            alert_type: 'anomaly_detection',
+            created_at: new Date().toISOString()
+          },
+          is_active: true,
+        });
+      }
     }
+  }
+
+  private async getExistingAnomalyAlerts(deviceId: string, metricType: string) {
+    // This would query your storage for existing anomaly alerts
+    // For now returning empty array as placeholder
+    try {
+      // In real implementation, query storage for recent performance alerts
+      return [];
+    } catch (error) {
+      console.error('Error fetching existing anomaly alerts:', error);
+      return [];
+    }
+  }
+
+  private isRecentAlert(triggeredAt: string): boolean {
+    const alertTime = new Date(triggeredAt).getTime();
+    const now = new Date().getTime();
+    const hoursDiff = (now - alertTime) / (1000 * 60 * 60);
+    return hoursDiff < 6; // Consider alerts from last 6 hours as recent
+  }
+
+  private shouldUpdateExistingAlert(existingAlert: any, newValue: number, newSeverity: string): boolean {
+    const oldValue = existingAlert.metadata?.current_value || 0;
+    const valueChangePct = Math.abs((newValue - oldValue) / oldValue) * 100;
+    const severityChanged = existingAlert.severity !== newSeverity;
+    
+    // Update if severity changed or value changed by more than 5%
+    return severityChanged || valueChangePct > 5;
   }
 
   async generateResourcePredictions(

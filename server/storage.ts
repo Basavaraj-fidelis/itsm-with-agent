@@ -377,15 +377,51 @@ export class MemStorage implements IStorage {
       );
   }
 
-  async createAlert(alert: InsertAlert): Promise<Alert> {
-    const id = this.generateId();
-    const newAlert: Alert = {
-      ...alert,
-      id,
+  async createAlert(alertData: {
+    device_id: string;
+    category: string;
+    severity: string;
+    message: string;
+    metadata: any;
+    is_active: boolean;
+  }): Promise<Alert> {
+    const alert: Alert = {
+      id: this.generateId(),
+      device_id: alertData.device_id,
+      category: alertData.category,
+      severity: alertData.severity,
+      message: alertData.message,
+      metadata: alertData.metadata,
       triggered_at: new Date(),
+      resolved_at: null,
+      is_active: alertData.is_active,
     };
-    this.alerts.set(id, newAlert);
-    return newAlert;
+
+    this.alerts.set(alert.id, alert);
+    return alert;
+  }
+
+  async updateAlert(alertId: string, updateData: {
+    severity?: string;
+    message?: string;
+    metadata?: any;
+    is_active?: boolean;
+    resolved_at?: Date;
+  }): Promise<Alert | null> {
+    const alert = this.alerts.get(alertId);
+    if (!alert) {
+      return null;
+    }
+
+    // Update the alert with new data
+    const updatedAlert: Alert = {
+      ...alert,
+      ...updateData,
+      // Keep original triggered_at, update other fields as needed
+    };
+
+    this.alerts.set(alertId, updatedAlert);
+    return updatedAlert;
   }
 
   async getActiveAlertByDeviceAndMetric(
@@ -402,17 +438,7 @@ export class MemStorage implements IStorage {
     return alert || null;
   }
 
-  async updateAlert(alertId: string, updates: Partial<Alert>): Promise<void> {
-    const existing = this.alerts.get(alertId);
-    if (existing) {
-      const updated: Alert = {
-        ...existing,
-        ...updates,
-        triggered_at: new Date(),
-      };
-      this.alerts.set(alertId, updated);
-    }
-  }
+  
 
   async resolveAlert(alertId: string): Promise<void> {
     const existing = this.alerts.get(alertId);
@@ -933,7 +959,7 @@ netsh int ip reset
 
 ### Can't Send/Receive Email
 - **Send/Receive Button**: Click manually to force sync
-- **Offline Mode**: Check if "Work Offline" is disabled
+- **Offline Mode**: Check if "Work Offline" is disabled```python
 - **Large Attachments**: Outlook has 25MB attachment limit
 - **Mailbox Full**: Delete old emails to free space
 
@@ -3032,8 +3058,7 @@ smartphones
     }
   }
 
-  async createAlert(alert: InsertAlert): Promise<Alert> {
-    const [newAlert] = await db
+  async createAlert(alert: InsertAlert): Promise<Alert> {const [newAlert] = await db
       .insert(alerts)
       .values({
         ...alert,
