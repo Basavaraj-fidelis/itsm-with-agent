@@ -11,7 +11,18 @@ export default function Agents() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
 
-  const { data: agents = [], isLoading, refetch } = useAgents();
+  const { data: devices = [], isLoading, refetch } = useAgents();
+
+  // Map devices to agent format and filter
+  const agents = devices.map(device => ({
+    ...device,
+    name: device.hostname,
+    ip_address: device.ip_address,
+    last_seen: device.last_seen,
+    cpu_usage: device.latest_report?.cpu_usage ? parseFloat(device.latest_report.cpu_usage) : 0,
+    memory_usage: device.latest_report?.memory_usage ? parseFloat(device.latest_report.memory_usage) : 0,
+    disk_usage: device.latest_report?.disk_usage ? parseFloat(device.latest_report.disk_usage) : 0
+  }));
 
   // Filter agents based on search and filters
   const filteredAgents = agents.filter(agent => {
@@ -67,7 +78,14 @@ export default function Agents() {
       />
 
       {/* Agent Table */}
-      <AgentTable agents={filteredAgents} isLoading={isLoading} />
+      <AgentTable 
+        agents={filteredAgents} 
+        loading={isLoading}
+        onRefresh={handleRefresh}
+        onAgentClick={(agent) => {
+          window.location.href = `/agents/${agent.id}`;
+        }}
+      />
     </div>
   );
 }
