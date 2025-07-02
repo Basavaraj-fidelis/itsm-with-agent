@@ -29,6 +29,7 @@ interface TicketRequest {
   type: 'service_request' | 'incident';
   category: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
+  email: string;
   subject: string;
   description: string;
   contact_method: 'email' | 'phone' | 'chat';
@@ -62,6 +63,7 @@ export default function EndUserPortal() {
     type: 'service_request',
     category: '',
     priority: 'medium',
+    email: '',
     subject: '',
     description: '',
     contact_method: 'email',
@@ -87,7 +89,7 @@ export default function EndUserPortal() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.category || !formData.subject || !formData.description) {
+    if (!formData.category || !formData.email || !formData.subject || !formData.description) {
       toast({
         title: "Please fill in all required fields",
         variant: "destructive",
@@ -110,6 +112,7 @@ export default function EndUserPortal() {
           category: formData.category,
           type: formData.type,
           contact_method: formData.contact_method,
+          requester_email: formData.email,
           source: 'end_user_portal',
         }),
       });
@@ -126,6 +129,7 @@ export default function EndUserPortal() {
           type: activeTab,
           category: '',
           priority: 'medium',
+          email: '',
           subject: '',
           description: '',
           contact_method: 'email',
@@ -253,6 +257,19 @@ export default function EndUserPortal() {
             <CardContent className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Office Email Address *
+                </label>
+                <Input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="your.name@company.com"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Subject *
                 </label>
                 <Input
@@ -310,7 +327,7 @@ export default function EndUserPortal() {
           <div className="flex justify-center">
             <Button
               type="submit"
-              disabled={isSubmitting || !formData.category || !formData.subject || !formData.description}
+              disabled={isSubmitting || !formData.category || !formData.email || !formData.subject || !formData.description}
               className="px-8 py-3 text-lg"
             >
               {isSubmitting ? (
