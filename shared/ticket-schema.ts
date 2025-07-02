@@ -74,6 +74,12 @@ export const tickets = pgTable("tickets", {
   sla_paused_at: timestamp("sla_paused_at"),
   sla_resumed_at: timestamp("sla_resumed_at"),
   sla_total_paused_time: integer("sla_total_paused_time").default(0), // in minutes
+  
+  // SLA Escalation tracking
+  escalation_reason: text("escalation_reason"),
+  escalation_level: integer("escalation_level").default(0),
+  last_escalation_at: timestamp("last_escalation_at"),
+  escalated_at: timestamp("escalated_at"), // Alternative naming for compatibility
 
   // Business Impact
   business_service: varchar("business_service", { length: 100 }),

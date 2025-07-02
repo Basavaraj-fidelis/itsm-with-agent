@@ -177,7 +177,8 @@ async function addMissingFields() {
       ALTER TABLE tickets 
       ADD COLUMN IF NOT EXISTS escalation_reason TEXT,
       ADD COLUMN IF NOT EXISTS escalation_level INTEGER DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS last_escalation_at TIMESTAMPTZ;
+      ADD COLUMN IF NOT EXISTS last_escalation_at TIMESTAMPTZ,
+      ADD COLUMN IF NOT EXISTS escalated_at TIMESTAMPTZ;
     `);
 
     // Now create indexes after all tables exist
