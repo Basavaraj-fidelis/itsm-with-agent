@@ -232,8 +232,14 @@ var init_ticket_schema = __esm({
       status: varchar("status", { length: 20 }).notNull().default("new"),
       // Assignment
       requester_email: varchar("requester_email", { length: 255 }).notNull(),
+      requester_phone: varchar("requester_phone", { length: 20 }),
+      requester_name: varchar("requester_name", { length: 255 }),
       assigned_to: varchar("assigned_to", { length: 255 }),
       assigned_group: varchar("assigned_group", { length: 100 }),
+      source: varchar("source", { length: 50 }).default("web"),
+      // web, email, phone, portal
+      contact_method: varchar("contact_method", { length: 20 }).default("email"),
+      // email, phone, chat
       // Related entities
       device_id: uuid2("device_id"),
       related_tickets: json2("related_tickets").$type().default([]),
@@ -289,6 +295,16 @@ var init_ticket_schema = __esm({
       sla_resumed_at: timestamp2("sla_resumed_at"),
       sla_total_paused_time: integer("sla_total_paused_time").default(0),
       // in minutes
+      // Business Impact
+      business_service: varchar("business_service", { length: 100 }),
+      affected_users_count: integer("affected_users_count").default(1),
+      financial_impact: varchar("financial_impact", { length: 20 }),
+      // low, medium, high, critical
+      // Closure Information
+      closure_code: varchar("closure_code", { length: 50 }),
+      closure_notes: text2("closure_notes"),
+      customer_satisfaction: integer("customer_satisfaction"),
+      // 1-5 rating
       // Timestamps
       created_at: timestamp2("created_at").defaultNow().notNull(),
       updated_at: timestamp2("updated_at").defaultNow().notNull(),
@@ -3321,12 +3337,14 @@ var user_schema_exports = {};
 __export(user_schema_exports, {
   departments: () => departments,
   userActivity: () => userActivity,
+  userGroupMemberships: () => userGroupMemberships2,
+  userGroups: () => userGroups2,
   userRoles: () => userRoles,
   userSessions: () => userSessions,
   users: () => users
 });
 import { pgTable as pgTable4, text as text4, timestamp as timestamp4, uuid as uuid4, varchar as varchar3, boolean as boolean4, integer as integer3, json as json4 } from "drizzle-orm/pg-core";
-var userRoles, users, departments, userSessions, userActivity;
+var userRoles, users, departments, userSessions, userGroups2, userGroupMemberships2, userActivity;
 var init_user_schema = __esm({
   "shared/user-schema.ts"() {
     "use strict";
@@ -3342,10 +3360,19 @@ var init_user_schema = __esm({
       department_id: uuid4("department_id"),
       manager_id: uuid4("manager_id"),
       phone: varchar3("phone", { length: 20 }),
+      mobile_phone: varchar3("mobile_phone", { length: 20 }),
       employee_id: varchar3("employee_id", { length: 50 }),
       job_title: varchar3("job_title", { length: 100 }),
       location: varchar3("location", { length: 100 }),
+      office_location: varchar3("office_location", { length: 100 }),
+      work_hours: varchar3("work_hours", { length: 50 }),
+      // e.g., "9:00-17:00"
+      timezone: varchar3("timezone", { length: 50 }),
       profile_picture: text4("profile_picture"),
+      emergency_contact_name: varchar3("emergency_contact_name", { length: 100 }),
+      emergency_contact_phone: varchar3("emergency_contact_phone", { length: 20 }),
+      cost_center: varchar3("cost_center", { length: 50 }),
+      reporting_manager_email: varchar3("reporting_manager_email", { length: 255 }),
       permissions: json4("permissions").$type().default([]),
       preferences: json4("preferences").$type().default({}),
       is_active: boolean4("is_active").default(true),
@@ -3375,6 +3402,26 @@ var init_user_schema = __esm({
       token: text4("token").notNull().unique(),
       expires_at: timestamp4("expires_at").notNull(),
       created_at: timestamp4("created_at").defaultNow().notNull()
+    });
+    userGroups2 = pgTable4("user_groups", {
+      id: uuid4("id").primaryKey().defaultRandom(),
+      name: varchar3("name", { length: 100 }).notNull(),
+      description: text4("description"),
+      group_type: varchar3("group_type", { length: 50 }).notNull(),
+      // support_team, department, project_team
+      manager_id: uuid4("manager_id").references(() => users.id),
+      email: varchar3("email", { length: 255 }),
+      is_active: boolean4("is_active").default(true),
+      created_at: timestamp4("created_at").defaultNow().notNull(),
+      updated_at: timestamp4("updated_at").defaultNow().notNull()
+    });
+    userGroupMemberships2 = pgTable4("user_group_memberships", {
+      id: uuid4("id").primaryKey().defaultRandom(),
+      user_id: uuid4("user_id").notNull().references(() => users.id),
+      group_id: uuid4("group_id").notNull().references(() => userGroups2.id),
+      role: varchar3("role", { length: 50 }).default("member"),
+      // member, leader, admin
+      joined_at: timestamp4("joined_at").defaultNow().notNull()
     });
     userActivity = pgTable4("user_activity", {
       id: uuid4("id").primaryKey().defaultRandom(),
@@ -3685,6 +3732,53 @@ var init_user_storage = __esm({
           return true;
         }
         return false;
+      }
+      // User Groups Management
+      async createUserGroup(groupData) {
+        try {
+          const [newGroup] = await db.insert(userGroups).values({
+            ...groupData,
+            updated_at: /* @__PURE__ */ new Date()
+          }).returning();
+          return newGroup;
+        } catch (error) {
+          console.error("Error creating user group:", error);
+          throw error;
+        }
+      }
+      async getUserGroups() {
+        return await db.select().from(userGroups).where(eq2(userGroups.is_active, true)).orderBy(userGroups.name);
+      }
+      async addUserToGroup(userId, groupId, role = "member") {
+        try {
+          const [membership] = await db.insert(userGroupMemberships).values({
+            user_id: userId,
+            group_id: groupId,
+            role
+          }).returning();
+          return membership;
+        } catch (error) {
+          console.error("Error adding user to group:", error);
+          throw error;
+        }
+      }
+      async removeUserFromGroup(userId, groupId) {
+        const result = await db.delete(userGroupMemberships).where(
+          and3(
+            eq2(userGroupMemberships.user_id, userId),
+            eq2(userGroupMemberships.group_id, groupId)
+          )
+        );
+        return result.rowCount > 0;
+      }
+      async getUserGroupMemberships(userId) {
+        return await db.select({
+          group_id: userGroups.id,
+          group_name: userGroups.name,
+          group_type: userGroups.group_type,
+          role: userGroupMemberships.role,
+          joined_at: userGroupMemberships.joined_at
+        }).from(userGroupMemberships).innerJoin(userGroups, eq2(userGroupMemberships.group_id, userGroups.id)).where(eq2(userGroupMemberships.user_id, userId));
       }
     };
     userStorage = new UserStorage();
@@ -8696,24 +8790,24 @@ var init_analytics_service = __esm({
         throw new Error("Unsupported format");
       }
       convertToEnhancedCSV(data, reportType) {
-        let csv = "";
+        let csv2 = "";
         switch (reportType) {
           case "asset-inventory":
-            csv = this.generateAssetInventoryCSV(data);
+            csv2 = this.generateAssetInventoryCSV(data);
             break;
           case "ticket-analytics":
-            csv = this.generateTicketAnalyticsCSV(data);
+            csv2 = this.generateTicketAnalyticsCSV(data);
             break;
           case "system-health":
-            csv = this.generateSystemHealthCSV(data);
+            csv2 = this.generateSystemHealthCSV(data);
             break;
           case "security-compliance":
-            csv = this.generateSecurityComplianceCSV(data);
+            csv2 = this.generateSecurityComplianceCSV(data);
             break;
           default:
-            csv = this.generateGenericCSV(data);
+            csv2 = this.generateGenericCSV(data);
         }
-        return csv;
+        return csv2;
       }
       async convertToEnhancedWord(data, reportType) {
         try {
@@ -9369,102 +9463,102 @@ var init_analytics_service = __esm({
         ];
       }
       generateAssetInventoryCSV(data) {
-        let csv = "ASSET INVENTORY REPORT\n";
-        csv += `Generated on,${format(/* @__PURE__ */ new Date(), "PPpp")}
+        let csv2 = "ASSET INVENTORY REPORT\n";
+        csv2 += `Generated on,${format(/* @__PURE__ */ new Date(), "PPpp")}
 
 `;
-        csv += "SUMMARY\n";
-        csv += "Metric,Value\n";
-        csv += `Total Devices,${data.total_devices}
+        csv2 += "SUMMARY\n";
+        csv2 += "Metric,Value\n";
+        csv2 += `Total Devices,${data.total_devices}
 `;
-        csv += `Compliant Devices,${data.compliance_status.compliant_devices}
+        csv2 += `Compliant Devices,${data.compliance_status.compliant_devices}
 `;
-        csv += `Non-Compliant Devices,${data.compliance_status.non_compliant_devices}
+        csv2 += `Non-Compliant Devices,${data.compliance_status.non_compliant_devices}
 `;
-        csv += `Total Software,${data.software_inventory.total_installed}
+        csv2 += `Total Software,${data.software_inventory.total_installed}
 
 `;
-        csv += "DEVICE BREAKDOWN BY OS\n";
-        csv += "Operating System,Count\n";
+        csv2 += "DEVICE BREAKDOWN BY OS\n";
+        csv2 += "Operating System,Count\n";
         Object.entries(data.device_breakdown.by_os).forEach(([os2, count6]) => {
-          csv += `${os2},${count6}
+          csv2 += `${os2},${count6}
 `;
         });
-        return csv;
+        return csv2;
       }
       generateTicketAnalyticsCSV(data) {
-        let csv = "TICKET ANALYTICS REPORT\n";
-        csv += `Generated on,${format(/* @__PURE__ */ new Date(), "PPpp")}
+        let csv2 = "TICKET ANALYTICS REPORT\n";
+        csv2 += `Generated on,${format(/* @__PURE__ */ new Date(), "PPpp")}
 
 `;
-        csv += "SUMMARY\n";
-        csv += "Metric,Value\n";
-        csv += `Total Tickets,${data.summary.total_tickets}
+        csv2 += "SUMMARY\n";
+        csv2 += "Metric,Value\n";
+        csv2 += `Total Tickets,${data.summary.total_tickets}
 `;
-        csv += `Open Tickets,${data.summary.open_tickets}
+        csv2 += `Open Tickets,${data.summary.open_tickets}
 `;
-        csv += `Resolved Tickets,${data.summary.resolved_tickets}
+        csv2 += `Resolved Tickets,${data.summary.resolved_tickets}
 `;
-        csv += `SLA Compliance Rate,${data.sla_performance.sla_compliance_rate}%
+        csv2 += `SLA Compliance Rate,${data.sla_performance.sla_compliance_rate}%
 
 `;
-        csv += "TOP ISSUES\n";
-        csv += "Category,Count,Avg Resolution Time (hours)\n";
+        csv2 += "TOP ISSUES\n";
+        csv2 += "Category,Count,Avg Resolution Time (hours)\n";
         data.top_issues.forEach((issue) => {
-          csv += `${issue.category},${issue.count},${issue.avg_resolution_time}
+          csv2 += `${issue.category},${issue.count},${issue.avg_resolution_time}
 `;
         });
-        return csv;
+        return csv2;
       }
       generateSystemHealthCSV(data) {
-        let csv = "SYSTEM HEALTH REPORT\n";
-        csv += `Generated on,${format(/* @__PURE__ */ new Date(), "PPpp")}
+        let csv2 = "SYSTEM HEALTH REPORT\n";
+        csv2 += `Generated on,${format(/* @__PURE__ */ new Date(), "PPpp")}
 
 `;
-        csv += "OVERVIEW\n";
-        csv += "Metric,Value\n";
-        csv += `Health Score,${data.overall_health.health_score}/100
+        csv2 += "OVERVIEW\n";
+        csv2 += "Metric,Value\n";
+        csv2 += `Health Score,${data.overall_health.health_score}/100
 `;
-        csv += `Active Devices,${data.overall_health.active_devices}
+        csv2 += `Active Devices,${data.overall_health.active_devices}
 `;
-        csv += `Critical Alerts,${data.overall_health.critical_alerts}
+        csv2 += `Critical Alerts,${data.overall_health.critical_alerts}
 `;
-        csv += `System Uptime,${data.overall_health.system_uptime}%
+        csv2 += `System Uptime,${data.overall_health.system_uptime}%
 
 `;
-        csv += "PERFORMANCE METRICS\n";
-        csv += "Metric,Value\n";
-        csv += `Average CPU Usage,${data.performance_metrics.avg_cpu_usage}%
+        csv2 += "PERFORMANCE METRICS\n";
+        csv2 += "Metric,Value\n";
+        csv2 += `Average CPU Usage,${data.performance_metrics.avg_cpu_usage}%
 `;
-        csv += `Average Memory Usage,${data.performance_metrics.avg_memory_usage}%
+        csv2 += `Average Memory Usage,${data.performance_metrics.avg_memory_usage}%
 `;
-        csv += `Average Disk Usage,${data.performance_metrics.avg_disk_usage}%
+        csv2 += `Average Disk Usage,${data.performance_metrics.avg_disk_usage}%
 `;
-        return csv;
+        return csv2;
       }
       generateSecurityComplianceCSV(data) {
-        let csv = "SECURITY COMPLIANCE REPORT\n";
-        csv += `Generated on,${format(/* @__PURE__ */ new Date(), "PPpp")}
+        let csv2 = "SECURITY COMPLIANCE REPORT\n";
+        csv2 += `Generated on,${format(/* @__PURE__ */ new Date(), "PPpp")}
 
 `;
-        csv += "PATCH COMPLIANCE\n";
-        csv += "Metric,Value\n";
-        csv += `Compliance Rate,${data.patch_compliance.compliance_percentage}%
+        csv2 += "PATCH COMPLIANCE\n";
+        csv2 += "Metric,Value\n";
+        csv2 += `Compliance Rate,${data.patch_compliance.compliance_percentage}%
 `;
-        csv += `Up-to-Date Devices,${data.patch_compliance.up_to_date}
+        csv2 += `Up-to-Date Devices,${data.patch_compliance.up_to_date}
 `;
-        csv += `Missing Critical Patches,${data.patch_compliance.missing_critical}
+        csv2 += `Missing Critical Patches,${data.patch_compliance.missing_critical}
 
 `;
-        csv += "ACCESS CONTROL\n";
-        csv += "Metric,Value\n";
-        csv += `Total Users,${data.access_control.total_users}
+        csv2 += "ACCESS CONTROL\n";
+        csv2 += "Metric,Value\n";
+        csv2 += `Total Users,${data.access_control.total_users}
 `;
-        csv += `Active Users,${data.access_control.active_users}
+        csv2 += `Active Users,${data.access_control.active_users}
 `;
-        csv += `Privileged Accounts,${data.access_control.privileged_accounts}
+        csv2 += `Privileged Accounts,${data.access_control.privileged_accounts}
 `;
-        return csv;
+        return csv2;
       }
       generateGenericCSV(data) {
         const headers = Object.keys(data);
@@ -15661,7 +15755,114 @@ For technical support, contact your system administrator.`;
 init_db();
 import { Router as Router3 } from "express";
 import bcrypt3 from "bcrypt";
+import multer from "multer";
+import csv from "csv-parser";
+import * as XLSX from "xlsx";
 var router3 = Router3();
+var upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }
+  // 5MB limit
+});
+router3.post("/import-end-users", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+    const fileBuffer = req.file.buffer;
+    const filename = req.file.originalname.toLowerCase();
+    let users2 = [];
+    if (filename.endsWith(".xlsx") || filename.endsWith(".xls")) {
+      const workbook = XLSX.read(fileBuffer, { type: "buffer" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      users2 = XLSX.utils.sheet_to_json(worksheet);
+    } else if (filename.endsWith(".csv")) {
+      const csvData = fileBuffer.toString("utf-8");
+      users2 = await new Promise((resolve, reject) => {
+        const results = [];
+        const stream = __require("stream");
+        const readable = new stream.Readable();
+        readable.push(csvData);
+        readable.push(null);
+        readable.pipe(csv()).on("data", (data) => results.push(data)).on("end", () => resolve(results)).on("error", reject);
+      });
+    } else {
+      return res.status(400).json({ message: "Unsupported file format. Please upload CSV or Excel files." });
+    }
+    let imported = 0;
+    let skipped = 0;
+    for (const userData of users2) {
+      try {
+        const email = (userData.email || userData.Email || userData.EMAIL || "").trim().toLowerCase();
+        const firstName = (userData.first_name || userData["First Name"] || userData.firstname || userData.FirstName || "").trim();
+        const lastName = (userData.last_name || userData["Last Name"] || userData.lastname || userData.LastName || "").trim();
+        const name = (userData.name || userData.Name || userData.NAME || `${firstName} ${lastName}`).trim();
+        const phone = (userData.phone || userData.Phone || userData.PHONE || "").trim();
+        const department = (userData.department || userData.Department || userData.DEPARTMENT || "").trim();
+        if (!email || !name) {
+          console.log(`Skipping user: missing email or name - ${JSON.stringify(userData)}`);
+          continue;
+        }
+        const existingUser = await db.query(
+          `SELECT id FROM users WHERE email = $1`,
+          [email]
+        );
+        if (existingUser.rows.length > 0) {
+          skipped++;
+          continue;
+        }
+        const username = email.split("@")[0];
+        const tempPassword = `TempPass${Math.random().toString(36).slice(-6)}!`;
+        const password_hash = await bcrypt3.hash(tempPassword, 10);
+        let finalFirstName = firstName;
+        let finalLastName = lastName;
+        if (!firstName && !lastName && name) {
+          const nameParts = name.split(" ");
+          finalFirstName = nameParts[0] || "";
+          finalLastName = nameParts.slice(1).join(" ") || "";
+        }
+        await db.query(`
+          INSERT INTO users (
+            email, username, first_name, last_name, role, 
+            password_hash, phone, department, location, is_active,
+            preferences, permissions, created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+        `, [
+          email,
+          username,
+          finalFirstName,
+          finalLastName,
+          "end_user",
+          password_hash,
+          phone || null,
+          department || null,
+          department || null,
+          true,
+          JSON.stringify({ temp_password: tempPassword }),
+          // Store temp password in preferences for now
+          JSON.stringify([])
+        ]);
+        imported++;
+      } catch (userError) {
+        console.error(`Error importing user ${userData.email}:`, userError);
+        skipped++;
+      }
+    }
+    res.json({
+      message: `Import completed: ${imported} users imported, ${skipped} skipped`,
+      imported,
+      skipped,
+      total: users2.length
+    });
+  } catch (error) {
+    console.error("Error importing end users:", error);
+    res.status(500).json({
+      message: "Failed to import end users",
+      error: error.message
+    });
+  }
+});
 router3.get("/", async (req, res) => {
   try {
     const { search, role, department, status, page = 1, limit = 50, sync_source } = req.query;
