@@ -159,6 +159,12 @@ export function ProtectedRoute({
     const hasPermission = roles.includes(user.role) || user.role === "admin";
 
     if (!hasPermission) {
+      // If end user tries to access restricted area, redirect to portal
+      if (user.role === "end_user") {
+        window.location.href = "/portal";
+        return null;
+      }
+
       return (
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center p-8">

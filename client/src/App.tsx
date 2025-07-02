@@ -131,7 +131,7 @@ export default function App() {
             </Route>
 
             <Route path="/tickets">
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole={["admin", "manager", "technician"]}>
                 <AuthenticatedLayout>
                   <Tickets />
                 </AuthenticatedLayout>

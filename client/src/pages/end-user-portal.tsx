@@ -59,6 +59,10 @@ const PRIORITY_LEVELS = [
 ];
 
 export default function EndUserPortal() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loginData, setLoginData] = useState({ email: '', password: '' });
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [userInfo, setUserInfo] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'service_request' | 'incident'>('service_request');
   const [formData, setFormData] = useState<TicketRequest>({
     type: 'service_request',
@@ -72,6 +76,68 @@ export default function EndUserPortal() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  // Check if user is already authenticated
+  React.useEffect(() => {
+    const token = localStorage.getItem('end_user_token');
+    const user = localStorage.getItem('end_user_info');
+    if (token && user) {
+      setIsAuthenticated(true);
+      setUserInfo(JSON.parse(user));
+      setFormData(prev => ({ ...prev, email: JSON.parse(user).email }));
+    }
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoggingIn(true);
+
+    try {
+      const response = await fetch('/api/auth/end-user-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(loginData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        localStorage.setItem('end_user_token', result.token);
+        localStorage.setItem('end_user_info', JSON.stringify(result.user));
+        setIsAuthenticated(true);
+        setUserInfo(result.user);
+        setFormData(prev => ({ ...prev, email: result.user.email }));
+        toast({
+          title: "Login successful",
+          description: "Welcome to the IT Service Portal",
+        });
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Login failed",
+          description: error.message || "Invalid email or password",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Login failed",
+        description: "Unable to connect to the server",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('end_user_token');
+    localStorage.removeItem('end_user_info');
+    setIsAuthenticated(false);
+    setUserInfo(null);
+    setFormData(prev => ({ ...prev, email: '' }));
+  };
 
   const categories = activeTab === 'service_request' ? SERVICE_CATEGORIES : INCIDENT_CATEGORIES;
 
@@ -152,10 +218,89 @@ export default function EndUserPortal() {
     }
   };
 
+  // Show login form if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-8">
+        <div className="max-w-md w-full mx-auto px-4">
+          <div className="bg-white rounded-lg shadow-md p-8">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">IT Service Portal</h1>
+              <p className="text-gray-600">Sign in to submit service requests and report issues</p>
+            </div>
+
+            <form onSubmit={handleLogin} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Address
+                </label>
+                <Input
+                  type="email"
+                  value={loginData.email}
+                  onChange={(e) => setLoginData(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="your.email@company.com"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Password
+                </label>
+                <Input
+                  type="password"
+                  value={loginData.password}
+                  onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
+                  placeholder="Enter your password"
+                  required
+                />
+              </div>
+
+              <Button
+                type="submit"
+                disabled={isLoggingIn}
+                className="w-full"
+              >
+                {isLoggingIn ? (
+                  <>
+                    <Clock className="w-4 h-4 mr-2 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  'Sign In'
+                )}
+              </Button>
+            </form>
+
+            <div className="mt-8 text-center">
+              <p className="text-sm text-gray-600">
+                Need help? Contact IT Support at{' '}
+                <a href="mailto:support@company.com" className="text-blue-600 hover:underline">
+                  support@company.com
+                </a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
         <div className="text-center mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <div></div>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">
+                Welcome, {userInfo?.first_name || userInfo?.name || userInfo?.email}
+              </span>
+              <Button variant="outline" size="sm" onClick={handleLogout}>
+                Sign Out
+              </Button>
+            </div>
+          </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">IT Service Portal</h1>
           <p className="text-gray-600">Submit service requests and report technical issues</p>
         </div>

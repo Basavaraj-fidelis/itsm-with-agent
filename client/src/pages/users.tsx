@@ -317,8 +317,42 @@ export default function UsersPage() {
     },
   });
 
-  // Filter users based on all criteria
+  // Import end users mutation
+  const importMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const response = await fetch('/api/users/import-end-users', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: formData
+      });
+      if (!response.ok) throw new Error("Failed to import end users");
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Import Successful",
+        description: `${data.imported} new end users imported. ${data.skipped} duplicates skipped.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Import Failed",
+        description: error.message || "Failed to import end users",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Filter users based on all criteria, excluding end_user role
   const filteredUsers = users.filter((user: UserInterface) => {
+    // Exclude end users from User Directory
+    if (user.role === 'end_user') {
+      return false;
+    }
+
     const matchesSearch = !searchTerm || 
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -412,6 +446,18 @@ export default function UsersPage() {
     if (confirm("Are you sure you want to delete this user?")) {
       deleteUserMutation.mutate(userId);
     }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+    importMutation.mutate(formData);
+    
+    // Reset the input
+    event.target.value = '';
   };
 
   const handleBulkAction = () => {
@@ -516,6 +562,24 @@ export default function UsersPage() {
                 {adSyncMutation.isPending ? "Syncing..." : "Sync AD"}
               </Button>
             )}
+            <div>
+              <input
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                onChange={handleFileUpload}
+                style={{ display: 'none' }}
+                id="import-end-users"
+              />
+              <Button
+                onClick={() => document.getElementById('import-end-users')?.click()}
+                variant="outline"
+                size="sm"
+                disabled={importMutation.isPending}
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                {importMutation.isPending ? "Importing..." : "Import End Users"}
+              </Button>
+            </div>
             <Button onClick={() => setIsCreateDialogOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Add User
@@ -643,7 +707,6 @@ export default function UsersPage() {
                 <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="manager">Manager</SelectItem>
                 <SelectItem value="technician">Technician</SelectItem>
-                <SelectItem value="user">User</SelectItem>
               </SelectContent>
             </Select>
 
@@ -975,7 +1038,6 @@ export default function UsersPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="user">User</SelectItem>
                   <SelectItem value="technician">Technician</SelectItem>
                   <SelectItem value="manager">Manager</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
@@ -1208,8 +1270,6 @@ export default function UsersPage() {
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="end_user">End User</SelectItem>
-                      <SelectItem value="user">User</SelectItem>
                       <SelectItem value="technician">Technician</SelectItem>
                       <SelectItem value="manager">Manager</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>

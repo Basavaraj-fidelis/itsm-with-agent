@@ -1,8 +1,145 @@
 import { Router } from "express";
 import { db } from "../db";
 import bcrypt from "bcrypt";
+import multer from "multer";
+import csv from "csv-parser";
+import * as XLSX from "xlsx";
 
 const router = Router();
+
+// Configure multer for file uploads
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
+
+// Import end users from CSV/Excel
+router.post("/import-end-users", upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const fileBuffer = req.file.buffer;
+    const filename = req.file.originalname.toLowerCase();
+    let users: any[] = [];
+
+    // Parse Excel files
+    if (filename.endsWith('.xlsx') || filename.endsWith('.xls')) {
+      const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      users = XLSX.utils.sheet_to_json(worksheet);
+    }
+    // Parse CSV files
+    else if (filename.endsWith('.csv')) {
+      const csvData = fileBuffer.toString('utf-8');
+      users = await new Promise((resolve, reject) => {
+        const results: any[] = [];
+        const stream = require('stream');
+        const readable = new stream.Readable();
+        readable.push(csvData);
+        readable.push(null);
+        
+        readable
+          .pipe(csv())
+          .on('data', (data: any) => results.push(data))
+          .on('end', () => resolve(results))
+          .on('error', reject);
+      });
+    } else {
+      return res.status(400).json({ message: "Unsupported file format. Please upload CSV or Excel files." });
+    }
+
+    let imported = 0;
+    let skipped = 0;
+
+    for (const userData of users) {
+      try {
+        // Normalize field names (handle different column naming conventions)
+        const email = (userData.email || userData.Email || userData.EMAIL || '').trim().toLowerCase();
+        const firstName = (userData.first_name || userData['First Name'] || userData.firstname || userData.FirstName || '').trim();
+        const lastName = (userData.last_name || userData['Last Name'] || userData.lastname || userData.LastName || '').trim();
+        const name = (userData.name || userData.Name || userData.NAME || `${firstName} ${lastName}`).trim();
+        const phone = (userData.phone || userData.Phone || userData.PHONE || '').trim();
+        const department = (userData.department || userData.Department || userData.DEPARTMENT || '').trim();
+
+        if (!email || !name) {
+          console.log(`Skipping user: missing email or name - ${JSON.stringify(userData)}`);
+          continue;
+        }
+
+        // Check if user already exists
+        const existingUser = await db.query(
+          `SELECT id FROM users WHERE email = $1`,
+          [email]
+        );
+
+        if (existingUser.rows.length > 0) {
+          skipped++;
+          continue;
+        }
+
+        // Generate username from email
+        const username = email.split('@')[0];
+        
+        // Generate temporary password
+        const tempPassword = `TempPass${Math.random().toString(36).slice(-6)}!`;
+        const password_hash = await bcrypt.hash(tempPassword, 10);
+
+        // Parse name into first and last name if needed
+        let finalFirstName = firstName;
+        let finalLastName = lastName;
+        if (!firstName && !lastName && name) {
+          const nameParts = name.split(' ');
+          finalFirstName = nameParts[0] || '';
+          finalLastName = nameParts.slice(1).join(' ') || '';
+        }
+
+        // Insert new end user
+        await db.query(`
+          INSERT INTO users (
+            email, username, first_name, last_name, role, 
+            password_hash, phone, department, location, is_active,
+            preferences, permissions, created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+        `, [
+          email,
+          username,
+          finalFirstName,
+          finalLastName,
+          'end_user',
+          password_hash,
+          phone || null,
+          department || null,
+          department || null,
+          true,
+          JSON.stringify({ temp_password: tempPassword }), // Store temp password in preferences for now
+          JSON.stringify([])
+        ]);
+
+        imported++;
+      } catch (userError) {
+        console.error(`Error importing user ${userData.email}:`, userError);
+        skipped++;
+      }
+    }
+
+    res.json({
+      message: `Import completed: ${imported} users imported, ${skipped} skipped`,
+      imported,
+      skipped,
+      total: users.length
+    });
+
+  } catch (error: any) {
+    console.error("Error importing end users:", error);
+    res.status(500).json({ 
+      message: "Failed to import end users",
+      error: error.message 
+    });
+  }
+});
 
 // Get all users with enhanced ITSM fields and AD sync status
 router.get("/", async (req, res) => {
