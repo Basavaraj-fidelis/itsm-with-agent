@@ -375,7 +375,9 @@ export default function UsersPage() {
         const updateData = {
           id: selectedUser.id,
           email: selectedUser.email,
-          name: selectedUser.name,
+          first_name: selectedUser.first_name || '',
+          last_name: selectedUser.last_name || '',
+          name: `${selectedUser.first_name || ''} ${selectedUser.last_name || ''}`.trim(),
           role: selectedUser.role,
           department: selectedUser.department,
           phone: selectedUser.phone,
@@ -1143,7 +1145,7 @@ export default function UsersPage() {
                   <Label htmlFor="edit-first-name">First Name</Label>
                   <Input
                     id="edit-first-name"
-                    value={selectedUser.first_name}
+                    value={selectedUser.first_name || ''}
                     onChange={(e) => setSelectedUser({ ...selectedUser, first_name: e.target.value })}
                   />
                 </div>
@@ -1151,7 +1153,7 @@ export default function UsersPage() {
                   <Label htmlFor="edit-last-name">Last Name</Label>
                   <Input
                     id="edit-last-name"
-                    value={selectedUser.last_name}
+                    value={selectedUser.last_name || ''}
                     onChange={(e) => setSelectedUser({ ...selectedUser, last_name: e.target.value })}
                   />
                 </div>
@@ -1162,7 +1164,7 @@ export default function UsersPage() {
                   <Input
                     id="edit-email"
                     type="email"
-                    value={selectedUser.email}
+                    value={selectedUser.email || ''}
                     onChange={(e) => setSelectedUser({ ...selectedUser, email: e.target.value })}
                     disabled={selectedUser.ad_synced}
                   />
@@ -1174,13 +1176,14 @@ export default function UsersPage() {
                 <div>
                   <Label htmlFor="edit-role">Role</Label>
                   <Select 
-                    value={selectedUser.role} 
+                    value={selectedUser.role || 'user'} 
                     onValueChange={(value) => setSelectedUser({ ...selectedUser, role: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="end_user">End User</SelectItem>
                       <SelectItem value="user">User</SelectItem>
                       <SelectItem value="technician">Technician</SelectItem>
                       <SelectItem value="manager">Manager</SelectItem>
@@ -1193,18 +1196,40 @@ export default function UsersPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edit-department">Department</Label>
-                  <Input
-                    id="edit-department"
-                    value={selectedUser.department}
-                    onChange={(e) => setSelectedUser({ ...selectedUser, department: e.target.value })}
-                  />
+                  <Select 
+                    value={selectedUser.department || ''} 
+                    onValueChange={(value) => setSelectedUser({ ...selectedUser, department: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="IT Department">IT Department</SelectItem>
+                      <SelectItem value="HR Department">HR Department</SelectItem>
+                      <SelectItem value="Finance Department">Finance Department</SelectItem>
+                      <SelectItem value="Operations Department">Operations Department</SelectItem>
+                      <SelectItem value="Marketing Department">Marketing Department</SelectItem>
+                      <SelectItem value="Sales Department">Sales Department</SelectItem>
+                      <SelectItem value="Engineering Department">Engineering Department</SelectItem>
+                      <SelectItem value="Support Department">Support Department</SelectItem>
+                      <SelectItem value="Legal Department">Legal Department</SelectItem>
+                      <SelectItem value="Admin Department">Admin Department</SelectItem>
+                      {departments.filter(dept => 
+                        !['IT Department', 'HR Department', 'Finance Department', 'Operations Department', 
+                          'Marketing Department', 'Sales Department', 'Engineering Department', 
+                          'Support Department', 'Legal Department', 'Admin Department'].includes(dept)
+                      ).map(dept => (
+                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
                   <Label htmlFor="edit-phone">Phone</Label>
                   <Input
                     id="edit-phone"
-                    value={selectedUser.phone}
+                    value={selectedUser.phone || ''}
                     onChange={(e) => setSelectedUser({ ...selectedUser, phone: e.target.value })}
                   />
                 </div>

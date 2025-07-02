@@ -363,10 +363,15 @@ router.put("/:id", async (req, res) => {
     if (first_name !== undefined || last_name !== undefined) {
       firstName = first_name || '';
       lastName = last_name || '';
-    } else {
+    } else if (name) {
       const nameParts = (name || '').trim().split(' ');
       firstName = nameParts[0] || '';
       lastName = nameParts.slice(1).join(' ') || '';
+    } else {
+      // Keep existing values if no name data provided
+      const currentUser = userCheck.rows[0];
+      firstName = currentUser.first_name || '';
+      lastName = currentUser.last_name || '';
     }
 
     // Check if user exists first
