@@ -984,12 +984,33 @@ export default function UsersPage() {
             </div>
             <div>
               <Label htmlFor="department">Department</Label>
-              <Input
-                id="department"
-                value={newUser.department}
-                onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
-                placeholder="Enter department"
-              />
+              <Select 
+                value={newUser.department} 
+                onValueChange={(value) => setNewUser({ ...newUser, department: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="IT Department">IT Department</SelectItem>
+                  <SelectItem value="HR Department">HR Department</SelectItem>
+                  <SelectItem value="Finance Department">Finance Department</SelectItem>
+                  <SelectItem value="Operations Department">Operations Department</SelectItem>
+                  <SelectItem value="Marketing Department">Marketing Department</SelectItem>
+                  <SelectItem value="Sales Department">Sales Department</SelectItem>
+                  <SelectItem value="Engineering Department">Engineering Department</SelectItem>
+                  <SelectItem value="Support Department">Support Department</SelectItem>
+                  <SelectItem value="Legal Department">Legal Department</SelectItem>
+                  <SelectItem value="Admin Department">Admin Department</SelectItem>
+                  {departments.filter(dept => 
+                    !['IT Department', 'HR Department', 'Finance Department', 'Operations Department', 
+                      'Marketing Department', 'Sales Department', 'Engineering Department', 
+                      'Support Department', 'Legal Department', 'Admin Department'].includes(dept)
+                  ).map(dept => (
+                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
