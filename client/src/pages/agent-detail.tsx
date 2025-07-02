@@ -60,6 +60,49 @@ export default function AgentDetail() {
   // Always call this hook at the top, regardless of loading/error state
   const processedData = useProcessedAgentData(agent);
 
+  // Early return for loading state
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-neutral-200 dark:bg-neutral-700 rounded mb-4"></div>
+          <div className="grid grid-cols-4 gap-6 mb-6">
+            {[...Array(4)].map((_, i) => (
+              <div
+                key={i}
+                className="h-32 bg-neutral-200 dark:bg-neutral-700 rounded"
+              ></div>
+            ))}
+          </div>
+          <div className="h-96 bg-neutral-200 dark:bg-neutral-700 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // Early return for error state
+  if (error || !agent) {
+    return (
+      <div className="p-6">
+        <Card>
+          <CardContent className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <h3 className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-2">
+                Agent Not Found
+              </h3>
+              <p className="text-neutral-600 mb-4">
+                The requested agent could not be found or may have been removed.
+              </p>
+              <Link href="/agents">
+                <Button>Back to Agents</Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const [showVNCModal, setShowVNCModal] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState(null);
@@ -304,46 +347,7 @@ export default function AgentDetail() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="p-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-neutral-200 dark:bg-neutral-700 rounded mb-4"></div>
-          <div className="grid grid-cols-4 gap-6 mb-6">
-            {[...Array(4)].map((_, i) => (
-              <div
-                key={i}
-                className="h-32 bg-neutral-200 dark:bg-neutral-700 rounded"
-              ></div>
-            ))}
-          </div>
-          <div className="h-96 bg-neutral-200 dark:bg-neutral-700 rounded"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !agent) {
-    return (
-      <div className="p-6">
-        <Card>
-          <CardContent className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <h3 className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-2">
-                Agent Not Found
-              </h3>
-              <p className="text-neutral-600 mb-4">
-                The requested agent could not be found or may have been removed.
-              </p>
-              <Link href="/agents">
-                <Button>Back to Agents</Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  
 
   // Extract metrics from processed data
   const metrics = processedData?.metrics || {

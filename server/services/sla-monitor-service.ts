@@ -358,6 +358,9 @@ Immediate attention required!`;
         }
 
         // Count unique breached tickets
+        const isResponseBreached = responseDue && !hasFirstResponse && now > new Date(new Date(responseDue).getTime() + (pausedMinutes * 60 * 1000));
+        const isResolutionBreached = resolutionDue && now > new Date(new Date(resolutionDue).getTime() + (pausedMinutes * 60 * 1000));
+        
         if (isResponseBreached || isResolutionBreached) {
           totalBreachedTickets++;
         }
