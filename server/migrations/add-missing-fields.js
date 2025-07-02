@@ -107,6 +107,14 @@ async function addMissingFields() {
       );
     `);
 
+    // Add missing columns to ci_relationships if they don't exist
+    console.log("Ensuring CI relationships columns exist...");
+    await pool.query(`
+      ALTER TABLE ci_relationships 
+      ADD COLUMN IF NOT EXISTS parent_ci_id UUID REFERENCES configuration_items(id) ON DELETE CASCADE,
+      ADD COLUMN IF NOT EXISTS child_ci_id UUID REFERENCES configuration_items(id) ON DELETE CASCADE;
+    `);
+
     // Create services table
     console.log("Creating services table...");
     await pool.query(`
@@ -130,6 +138,14 @@ async function addMissingFields() {
       );
     `);
 
+    // Add missing columns to services if they don't exist
+    console.log("Ensuring services columns exist...");
+    await pool.query(`
+      ALTER TABLE services 
+      ADD COLUMN IF NOT EXISTS category VARCHAR(100),
+      ADD COLUMN IF NOT EXISTS service_type VARCHAR(50) DEFAULT 'business';
+    `);
+
     // Create service requests table
     console.log("Creating service requests table...");
     await pool.query(`
@@ -146,6 +162,13 @@ async function addMissingFields() {
         form_data JSON DEFAULT '{}'::json,
         created_at TIMESTAMP DEFAULT NOW() NOT NULL
       );
+    `);
+
+    // Add missing columns to service_requests if they don't exist
+    console.log("Ensuring service requests columns exist...");
+    await pool.query(`
+      ALTER TABLE service_requests 
+      ADD COLUMN IF NOT EXISTS ticket_id UUID;
     `);
 
     // Now create indexes after all tables exist
