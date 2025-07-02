@@ -149,11 +149,14 @@ export default function Dashboard() {
       return acc;
     }, {});
 
+    const totalActive = activeTickets.length;
+
     return [
-      { status: "New", count: statusDistribution.new || 0, color: "bg-blue-500", urgency: "normal" },
-      { status: "In Progress", count: statusDistribution.in_progress || 0, color: "bg-yellow-500", urgency: "normal" },
-      { status: "Pending", count: statusDistribution.pending || 0, color: "bg-orange-500", urgency: "attention" },
-      { status: "Assigned", count: statusDistribution.assigned || 0, color: "bg-purple-500", urgency: "normal" },
+      { status: "New", count: statusDistribution.new || 0, color: "bg-blue-500", percentage: totalActive > 0 ? Math.round(((statusDistribution.new || 0) / totalActive) * 100) : 0 },
+      { status: "Assigned", count: statusDistribution.assigned || 0, color: "bg-purple-500", percentage: totalActive > 0 ? Math.round(((statusDistribution.assigned || 0) / totalActive) * 100) : 0 },
+      { status: "In Progress", count: statusDistribution.in_progress || 0, color: "bg-yellow-500", percentage: totalActive > 0 ? Math.round(((statusDistribution.in_progress || 0) / totalActive) * 100) : 0 },
+      { status: "Pending", count: statusDistribution.pending || 0, color: "bg-orange-500", percentage: totalActive > 0 ? Math.round(((statusDistribution.pending || 0) / totalActive) * 100) : 0 },
+      { status: "On Hold", count: statusDistribution.on_hold || 0, color: "bg-indigo-500", percentage: totalActive > 0 ? Math.round(((statusDistribution.on_hold || 0) / totalActive) * 100) : 0 },
     ];
   };
 

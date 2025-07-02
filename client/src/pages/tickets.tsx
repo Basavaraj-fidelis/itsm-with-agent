@@ -75,15 +75,13 @@ const priorityColors = {
 
 const statusColors = {
   new: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  assigned:
-    "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-  in_progress:
-    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-  pending:
-    "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+  assigned: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+  in_progress: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+  pending: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+  on_hold: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200",
   resolved: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
   closed: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
-  cancelled: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+  cancelled: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
 };
 
 const typeIcons = {
@@ -1023,8 +1021,8 @@ export default function Tickets() {
       </Card>
 
       <Card
-        className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 cursor-pointer hover:shadow-lg transition-all duration-200"
-        onClick={() => {
+        className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 cursor-pointer hover:shadow-lg transition-all duration-200"```text
+ onClick={() => {
           setSelectedStatus("all");
           setSelectedType("all");
           setSelectedPriority("all");
@@ -1160,6 +1158,7 @@ export default function Tickets() {
                       "pending",
                       "resolved",
                       "closed",
+                      "on_hold",
                     ].map((status) => {
                       const count = data.statuses[status] || 0;
 
@@ -1180,9 +1179,11 @@ export default function Tickets() {
                                       ? "bg-yellow-500"
                                       : status === "pending"
                                         ? "bg-orange-500"
-                                        : status === "resolved"
-                                          ? "bg-green-500"
-                                          : "bg-gray-500"
+                                        : status === "on_hold"
+                                          ? "bg-indigo-500"
+                                          : status === "resolved"
+                                            ? "bg-green-500"
+                                            : "bg-gray-500"
                               }`}
                             />
                             <span
@@ -1278,6 +1279,8 @@ export default function Tickets() {
           return "muted";
         case "cancelled":
           return "destructive";
+        case "on_hold":
+            return "secondary";
         default:
           return "default";
       }
@@ -1307,6 +1310,7 @@ export default function Tickets() {
               <SelectItem value="assigned">Assigned</SelectItem>
               <SelectItem value="in_progress">In Progress</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="on_hold">On Hold</SelectItem>
               <SelectItem value="resolved">Resolved</SelectItem>
               <SelectItem value="closed">Closed</SelectItem>
             </SelectContent>
@@ -1822,6 +1826,7 @@ export default function Tickets() {
             "assigned",
             "in_progress",
             "pending",
+            "on_hold",
             "resolved",
             "closed",
           ].map((status) => {
@@ -1852,9 +1857,11 @@ export default function Tickets() {
                               ? "bg-yellow-500"
                               : status === "pending"
                                 ? "bg-orange-500"
-                                : status === "resolved"
-                                  ? "bg-green-500"
-                                  : "bg-gray-500"
+                                : status === "on_hold"
+                                  ? "bg-indigo-500"
+                                  : status === "resolved"
+                                    ? "bg-green-500"
+                                    : "bg-gray-500"
                       }`}
                     />
                     <span

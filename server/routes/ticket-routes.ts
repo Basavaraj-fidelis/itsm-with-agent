@@ -7,6 +7,7 @@ const createTicketSchema = z.object({
   title: z.string().min(1),
   description: z.string().min(1),
   priority: z.enum(["low", "medium", "high", "critical"]).default("medium"),
+  status: z.enum(["new", "assigned", "in_progress", "pending", "on_hold", "resolved", "closed", "cancelled"]).default("new").optional(),
   requester_email: z.string().email(),
   category: z.string().optional(),
   assigned_to: z.string().optional(),
