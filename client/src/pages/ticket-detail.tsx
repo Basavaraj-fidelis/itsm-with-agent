@@ -177,7 +177,7 @@ export default function TicketDetail() {
     if (!ticket) return;
 
     // Require comment for certain status changes
-    if (['resolved', 'closed', 'pending'].includes(newStatus)) {
+    if (['resolved', 'closed', 'pending', 'on_hold'].includes(newStatus)) {
       setPendingStatusChange(newStatus);
       setShowStatusChangeDialog(true);
       return;
@@ -374,6 +374,16 @@ export default function TicketDetail() {
             onClick={() => handleUpdateTicketStatus("pending")}
           >
             Mark as Pending
+          </Button>
+        );
+        actions.push(
+          <Button 
+            key="on_hold" 
+            variant="outline" 
+            size="sm"
+            onClick={() => handleUpdateTicketStatus("on_hold")}
+          >
+            Put On Hold
           </Button>
         );
         actions.push(

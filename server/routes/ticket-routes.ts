@@ -19,7 +19,7 @@ const updateTicketSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().min(1).optional(),
   priority: z.enum(["low", "medium", "high", "critical"]).optional(),
-  status: z.enum(["new", "assigned", "in_progress", "pending", "resolved", "closed", "cancelled"]).optional(),
+  status: z.enum(["new", "assigned", "in_progress", "pending", "on_hold", "resolved", "closed", "cancelled"]).optional(),
   assigned_to: z.string().email().optional(),
   category: z.string().optional(),
   impact: z.enum(["low", "medium", "high", "critical"]).optional(),
