@@ -45,40 +45,48 @@ export class SLAMonitorService {
     for (const ticket of tickets) {
       const shouldBePaused = ['pending', 'on_hold'].includes(ticket.status);
       const shouldBeResumed = ticket.status === 'in_progress'; // Auto-resume only for in_progress
-      const currentlyPaused = ticket.sla_paused;
+      const currentlyPaused = ticket.sla_paused || false; // Default to false if undefined
       
       // If status requires pause but ticket is not paused
       if (shouldBePaused && !currentlyPaused) {
-        await db
-          .update(tickets)
-          .set({
-            sla_paused: true,
-            sla_pause_reason: `Ticket moved to ${ticket.status} status`,
-            sla_paused_at: now,
-            updated_at: now
-          })
-          .where(eq(tickets.id, ticket.id));
-          
-        console.log(`⏸️  SLA paused for ticket ${ticket.ticket_number} (${ticket.status})`);
+        try {
+          await db
+            .update(tickets)
+            .set({
+              sla_paused: true,
+              sla_pause_reason: `Ticket moved to ${ticket.status} status`,
+              sla_paused_at: now,
+              updated_at: now
+            })
+            .where(eq(tickets.id, ticket.id));
+            
+          console.log(`⏸️  SLA paused for ticket ${ticket.ticket_number} (${ticket.status})`);
+        } catch (error) {
+          console.log(`⚠️  Could not pause SLA for ticket ${ticket.ticket_number}, field may not exist yet`);
+        }
       }
       
       // Auto-resume only when ticket moves to in_progress status
       if (shouldBeResumed && currentlyPaused && ticket.sla_paused_at) {
-        const pauseDuration = Math.floor((now.getTime() - new Date(ticket.sla_paused_at).getTime()) / (1000 * 60));
-        const totalPausedTime = (ticket.sla_total_paused_time || 0) + pauseDuration;
-        
-        await db
-          .update(tickets)
-          .set({
-            sla_paused: false,
-            sla_pause_reason: null,
-            sla_resumed_at: now,
-            sla_total_paused_time: totalPausedTime,
-            updated_at: now
-          })
-          .where(eq(tickets.id, ticket.id));
+        try {
+          const pauseDuration = Math.floor((now.getTime() - new Date(ticket.sla_paused_at).getTime()) / (1000 * 60));
+          const totalPausedTime = (ticket.sla_total_paused_time || 0) + pauseDuration;
           
-        console.log(`▶️  SLA auto-resumed for ticket ${ticket.ticket_number} (moved to in_progress, paused for ${pauseDuration} minutes)`);
+          await db
+            .update(tickets)
+            .set({
+              sla_paused: false,
+              sla_pause_reason: null,
+              sla_resumed_at: now,
+              sla_total_paused_time: totalPausedTime,
+              updated_at: now
+            })
+            .where(eq(tickets.id, ticket.id));
+            
+          console.log(`▶️  SLA auto-resumed for ticket ${ticket.ticket_number} (moved to in_progress, paused for ${pauseDuration} minutes)`);
+        } catch (error) {
+          console.log(`⚠️  Could not resume SLA for ticket ${ticket.ticket_number}, field may not exist yet`);
+        }
       }
     }
   }
@@ -153,16 +161,18 @@ export class SLAMonitorService {
         }
 
         // Skip SLA breach checking for paused tickets
-        if (ticket.sla_paused || ['pending', 'on_hold'].includes(ticket.status)) {
+        if ((ticket.sla_paused || false) || ['pending', 'on_hold'].includes(ticket.status)) {
           continue;
         }
 
         // Calculate effective due dates (accounting for paused time)
         const pausedMinutes = ticket.sla_total_paused_time || 0;
         
-        // Check response SLA breach
+        // Check response SLA breach - consider assignment and first comment as first response
         const responseDue = ticket.response_due_at || ticket.sla_response_due;
-        if (responseDue && !ticket.first_response_at && !ticket.sla_response_breached) {
+        const hasFirstResponse = ticket.first_response_at || ticket.assigned_to || ticket.updated_at !== ticket.created_at;
+        
+        if (responseDue && !hasFirstResponse && !(ticket.sla_response_breached || false)) {
           const effectiveResponseDue = new Date(new Date(responseDue).getTime() + (pausedMinutes * 60 * 1000));
           if (now > effectiveResponseDue) {
             updateData.sla_response_breached = true;
@@ -310,18 +320,20 @@ Immediate attention required!`;
         const updateData: any = {};
 
         // Skip breach calculation for paused tickets
-        if (!ticket.sla_paused && !['pending', 'on_hold'].includes(ticket.status)) {
+        if (!(ticket.sla_paused || false) && !['pending', 'on_hold'].includes(ticket.status)) {
           const pausedMinutes = ticket.sla_total_paused_time || 0;
           
           // Check if response is breached (accounting for paused time)
           const responseDue = ticket.response_due_at || ticket.sla_response_due;
-          if (responseDue && !ticket.first_response_at) {
+          const hasFirstResponse = ticket.first_response_at || ticket.assigned_to || ticket.updated_at !== ticket.created_at;
+          
+          if (responseDue && !hasFirstResponse) {
             const effectiveResponseDue = new Date(new Date(responseDue).getTime() + (pausedMinutes * 60 * 1000));
             const isResponseBreached = now > effectiveResponseDue;
             
             if (isResponseBreached) {
               actualResponseBreaches++;
-              if (!ticket.sla_response_breached) {
+              if (!(ticket.sla_response_breached || false)) {
                 updateData.sla_response_breached = true;
                 needsUpdate = true;
               }
@@ -336,7 +348,7 @@ Immediate attention required!`;
             
             if (isResolutionBreached) {
               actualResolutionBreaches++;
-              if (!ticket.sla_resolution_breached || !ticket.sla_breached) {
+              if (!(ticket.sla_resolution_breached || false) || !(ticket.sla_breached || false)) {
                 updateData.sla_resolution_breached = true;
                 updateData.sla_breached = true; // Legacy field
                 needsUpdate = true;
