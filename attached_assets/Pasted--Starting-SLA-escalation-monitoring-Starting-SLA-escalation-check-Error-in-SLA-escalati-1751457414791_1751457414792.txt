@@ -1,0 +1,53 @@
+ Starting SLA escalation monitoring...
+🔄 Starting SLA escalation check...
+❌ Error in SLA escalation check: error: column "escalated_at" does not exist
+    at /home/runner/workspace/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/node_modules/src/node-postgres/session.ts:104:19)
+    at async SLAEscalationService.checkAndEscalateTickets (/home/runner/workspace/server/services/sla-escalation-service.ts:67:27) {
+  length: 114,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '1018',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3722',
+  routine: 'errorMissingColumn'
+}
+🚀 Starting SLA Monitor Service (checking every 5 minutes)
+🔍 Checking for SLA breaches...
+✅ Server started successfully on port 5000
+11:56:14 AM [express] serving on port 5000
+🌐 Server accessible at http://0.0.0.0:5000
+❌ Error checking SLA breaches: error: column "escalated_at" does not exist
+    at /home/runner/workspace/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/node_modules/src/node-postgres/session.ts:104:19)
+    at async SLAMonitorService.checkSLABreaches (/home/runner/workspace/server/services/sla-monitor-service.ts:102:27) {
+  length: 114,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '1018',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3722',
+  routine: 'errorMissingColumn'
+}
