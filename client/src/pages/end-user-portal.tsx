@@ -30,6 +30,7 @@ interface TicketRequest {
   category: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   email: string;
+  phone: string;
   subject: string;
   description: string;
   contact_method: 'email' | 'phone' | 'chat';
@@ -64,6 +65,7 @@ export default function EndUserPortal() {
     category: '',
     priority: 'medium',
     email: '',
+    phone: '',
     subject: '',
     description: '',
     contact_method: 'email',
@@ -113,6 +115,7 @@ export default function EndUserPortal() {
           type: formData.type,
           contact_method: formData.contact_method,
           requester_email: formData.email,
+          requester_phone: formData.phone,
           source: 'end_user_portal',
         }),
       });
@@ -130,6 +133,7 @@ export default function EndUserPortal() {
           category: '',
           priority: 'medium',
           email: '',
+          phone: '',
           subject: '',
           description: '',
           contact_method: 'email',
@@ -265,6 +269,18 @@ export default function EndUserPortal() {
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                   placeholder="your.name@company.com"
                   required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number
+                </label>
+                <Input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="+1 (555) 123-4567"
                 />
               </div>
 
