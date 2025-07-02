@@ -179,7 +179,13 @@ async function addMissingFields() {
       ADD COLUMN IF NOT EXISTS escalation_level INTEGER DEFAULT 0,
       ADD COLUMN IF NOT EXISTS last_escalation_at TIMESTAMPTZ,
       ADD COLUMN IF NOT EXISTS escalated_at TIMESTAMPTZ,
-      ADD COLUMN IF NOT EXISTS time_spent_minutes INTEGER DEFAULT 0;
+      ADD COLUMN IF NOT EXISTS time_spent_minutes INTEGER DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS billing_code VARCHAR(50),
+      ADD COLUMN IF NOT EXISTS external_reference VARCHAR(100),
+      ADD COLUMN IF NOT EXISTS vendor_ticket_id VARCHAR(100),
+      ADD COLUMN IF NOT EXISTS parent_ticket_id UUID,
+      ADD COLUMN IF NOT EXISTS duplicate_of_ticket_id UUID,
+      ADD COLUMN IF NOT EXISTS merged_into_ticket_id UUID;
     `);
 
     // Now create indexes after all tables exist

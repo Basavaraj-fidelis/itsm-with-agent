@@ -92,11 +92,7 @@ export const tickets = pgTable("tickets", {
   closure_notes: text("closure_notes"),
   customer_satisfaction: integer("customer_satisfaction"), // 1-5 rating
   
-  // Missing ITSM fields
-  escalation_level: integer("escalation_level").default(0),
-  escalation_reason: text("escalation_reason"),
-  escalated_at: timestamp("escalated_at"),
-  time_spent_minutes: integer("time_spent_minutes").default(0),
+  // Additional ITSM fields
   billing_code: varchar("billing_code", { length: 50 }),
   external_reference: varchar("external_reference", { length: 100 }),
   vendor_ticket_id: varchar("vendor_ticket_id", { length: 100 }),
