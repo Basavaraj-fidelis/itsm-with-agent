@@ -55,6 +55,8 @@ interface UserInterface {
   ad_groups?: string[];
   job_title?: string;
   location?: string;
+  first_name?: string;
+  last_name?: string;
 }
 
 interface ADSyncStatus {
@@ -92,6 +94,9 @@ export default function UsersPage() {
     job_title: "",
     location: ""
   });
+
+    const [editingUser, setEditingUser] = useState<UserInterface | null>(null);
+
 
   // Fetch users
   const { data: usersResponse, isLoading, error, refetch } = useQuery({
@@ -167,8 +172,8 @@ export default function UsersPage() {
 
   // Update user mutation
   const updateUserMutation = useMutation({
-    mutationFn: async ({ id, ...userData }: any) => {
-      const response = await api.put(`/api/users/${id}`, userData);
+    mutationFn: async ({ id, first_name, last_name, ...userData }: any) => {
+      const response = await api.put(`/api/users/${id}`, { first_name, last_name, ...userData });
       if (!response.ok) throw new Error("Failed to update user");
       return await response.json();
     },
@@ -377,7 +382,6 @@ export default function UsersPage() {
           email: selectedUser.email,
           first_name: selectedUser.first_name || '',
           last_name: selectedUser.last_name || '',
-          name: `${selectedUser.first_name || ''} ${selectedUser.last_name || ''}`.trim(),
           role: selectedUser.role,
           department: selectedUser.department,
           phone: selectedUser.phone,
@@ -1234,7 +1238,7 @@ export default function UsersPage() {
                   />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edit-status">Status</Label>

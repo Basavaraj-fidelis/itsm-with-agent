@@ -358,6 +358,12 @@ router.put("/:id", async (req, res) => {
       return res.status(400).json({ message: "Email, name/first_name, and role are required" });
     }
 
+    // Check if user exists first
+    const userCheck = await db.query(`SELECT id, email, is_locked, first_name, last_name FROM users WHERE id = $1`, [req.params.id]);
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
     // Use provided first_name/last_name or parse from name
     let firstName, lastName;
     if (first_name !== undefined || last_name !== undefined) {
@@ -373,9 +379,6 @@ router.put("/:id", async (req, res) => {
       firstName = currentUser.first_name || '';
       lastName = currentUser.last_name || '';
     }
-
-    // Check if user exists first
-    const userCheck = await db.query(`SELECT id, email, is_locked FROM users WHERE id = $1`, [req.params.id]);
     if (userCheck.rows.length === 0) {
       return res.status(404).json({ message: "User not found" });
     }

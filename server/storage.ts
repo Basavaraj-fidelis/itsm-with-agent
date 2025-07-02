@@ -2936,11 +2936,20 @@ smartphones
       const params = [];
       let paramCount = 0;
 
-      Object.keys(updates).forEach((key) => {
-        if (updates[key] !== undefined) {
+      // Handle name field by converting to first_name and last_name
+      const validUpdates = { ...updates };
+      if (validUpdates.name) {
+        const nameParts = validUpdates.name.trim().split(' ');
+        validUpdates.first_name = nameParts[0] || '';
+        validUpdates.last_name = nameParts.slice(1).join(' ') || '';
+        delete validUpdates.name; // Remove name field as it doesn't exist in DB
+      }
+
+      Object.keys(validUpdates).forEach((key) => {
+        if (validUpdates[key] !== undefined) {
           paramCount++;
           setClause.push(`${key} = $${paramCount}`);
-          params.push(updates[key]);
+          params.push(validUpdates[key]);
         }
       });
 
@@ -2957,11 +2966,24 @@ smartphones
         UPDATE users 
         SET ${setClause.join(", ")}
         WHERE id = $${paramCount}
-        RETURNING id, name, email, role, department, phone, is_active, created_at, updated_at
+        RETURNING 
+          id, email, username, first_name, last_name, role, 
+          department, phone, is_active, created_at, updated_at,
+          job_title, location, employee_id, manager_id, last_login, 
+          is_locked, failed_login_attempts
       `;
 
       const result = await pool.query(query, params);
-      return result.rows[0] || null;
+      
+      if (result.rows.length > 0) {
+        const user = result.rows[0];
+        // Add computed name field for consistency
+        user.name = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 
+                   user.username || user.email?.split('@')[0];
+        return user;
+      }
+      
+      return null;
     } catch (error) {
       console.error("Error updating user:", error);
       return null;
