@@ -24,6 +24,7 @@ import Reports from "@/pages/reports";
 import VNCPage from "@/pages/vnc";
 import RDPPage from "@/pages/rdp";
 import SSHPage from "@/pages/ssh";
+import EndUserPortal from "./pages/end-user-portal";
 import NotFound from "@/pages/not-found";
 import ActiveDirectory from "@/pages/active-directory";
 import ITSMComparison from "@/pages/itsm-comparison";
@@ -256,6 +257,13 @@ export default function App() {
               </ProtectedRoute>
             </Route>
 
+            <Route path="/portal">
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <EndUserPortal />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            </Route>
 
 
 

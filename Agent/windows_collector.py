@@ -46,17 +46,29 @@ class WindowsCollector:
                 self.logger.warning(f"Registry access failed: {e}")
 
             # Alternative method using systeminfo command
-            if not info:
+            if not info.get('product_name'):
                 try:
                     result = subprocess.run(['systeminfo'], capture_output=True, text=True, timeout=30)
                     if result.returncode == 0:
                         for line in result.stdout.split('\n'):
                             if 'OS Name:' in line:
-                                info['product_name'] = line.split(':', 1)[1].strip()
+                                product_name = line.split(':', 1)[1].strip()
+                                if product_name and product_name.lower() not in ['n/a', '', 'null']:
+                                    info['product_name'] = product_name
                             elif 'OS Version:' in line:
-                                info['os_version'] = line.split(':', 1)[1].strip()
+                                os_version = line.split(':', 1)[1].strip()
+                                if os_version and os_version.lower() not in ['n/a', '', 'null']:
+                                    info['os_version'] = os_version
                 except Exception as e:
                     self.logger.warning(f"systeminfo command failed: {e}")
+
+            # Ensure we have a product name from platform module as fallback
+            if not info.get('product_name'):
+                try:
+                    import platform
+                    info['product_name'] = f"{platform.system()} {platform.release()}"
+                except Exception:
+                    info['product_name'] = "Windows"
 
             # Last update time (latest patch)
             try:

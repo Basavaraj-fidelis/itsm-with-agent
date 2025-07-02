@@ -71,9 +71,6 @@ export class AgentDataProcessor {
   }
 
   static extractSystemInfo(agent: any, rawData: any): ProcessedAgentData['systemInfo'] {
-    const systemInfo = rawData.system_info || rawData.hardware || rawData.os_info || {};
-    const systemHardware = rawData.hardware?.system || {};
-
     const assignedUser = (() => {
       const user = rawData.extracted_current_user ||
         rawData.assigned_user ||
@@ -95,11 +92,22 @@ export class AgentDataProcessor {
       if (user.includes("@")) return user.split("@")[0];
       return user;
     })();
+    const systemHardware = rawData.hardware?.system || {};
+    const systemInfo = rawData.system_info || rawData.os_info || {};
+
+    // Extract OS name with priority on Windows product_name
+    let osName = agent.os_name || rawData.os || rawData.operating_system || systemInfo.os;
+    if (rawData.os_info?.product_name) {
+      osName = rawData.os_info.product_name;
+    } else if (rawData.os_info?.name && rawData.os_info?.name !== 'Windows') {
+      osName = rawData.os_info.name;
+    }
 
     return {
       hostname: agent.hostname || rawData.hostname || rawData.computer_name || "Unknown",
-      osName: agent.os_name || rawData.os || rawData.operating_system || systemInfo.os || "Unknown",
-      osVersion: agent.os_version || rawData.os_version || systemInfo.os_version || rawData.version || "Unknown",
+      osName: osName || "Unknown",
+      osVersion: agent.os_version || rawData.os_version || rawData.os_info?.version || 
+        rawData.os_info?.release || systemInfo.os_version || rawData.version || "Unknown",
       architecture: rawData.os_info?.architecture || rawData.architecture || systemInfo.architecture || 
         rawData.arch || systemInfo.arch || rawData.system_info?.architecture || 
         rawData.hardware?.system?.architecture || rawData.platform_info?.architecture || "64bit",
