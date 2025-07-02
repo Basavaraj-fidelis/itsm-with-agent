@@ -1,5 +1,6 @@
 
-const { Pool } = require('pg');
+import pkg from 'pg';
+const { Pool } = pkg;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -162,10 +163,11 @@ async function addMissingFields() {
   }
 }
 
-if (require.main === module) {
+// Check if this file is being run directly
+if (import.meta.url === `file://${process.argv[1]}`) {
   addMissingFields()
     .then(() => process.exit(0))
     .catch(() => process.exit(1));
 }
 
-module.exports = { addMissingFields };
+export { addMissingFields };
