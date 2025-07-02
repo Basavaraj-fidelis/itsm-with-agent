@@ -1,4 +1,5 @@
 
+
 import pkg from 'pg';
 const { Pool } = pkg;
 
@@ -11,7 +12,8 @@ async function addMissingFields() {
   try {
     console.log("Adding missing database fields and tables...");
 
-    // Add missing user fields
+    // First, add missing user fields to existing users table
+    console.log("Adding missing user fields...");
     await pool.query(`
       ALTER TABLE users 
       ADD COLUMN IF NOT EXISTS mobile_phone VARCHAR(20),
@@ -24,7 +26,8 @@ async function addMissingFields() {
       ADD COLUMN IF NOT EXISTS reporting_manager_email VARCHAR(255);
     `);
 
-    // Add missing ticket fields
+    // Add missing ticket fields to existing tickets table
+    console.log("Adding missing ticket fields...");
     await pool.query(`
       ALTER TABLE tickets 
       ADD COLUMN IF NOT EXISTS requester_phone VARCHAR(20),
@@ -40,6 +43,7 @@ async function addMissingFields() {
     `);
 
     // Create user groups table
+    console.log("Creating user groups table...");
     await pool.query(`
       CREATE TABLE IF NOT EXISTS user_groups (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -55,6 +59,7 @@ async function addMissingFields() {
     `);
 
     // Create user group memberships table
+    console.log("Creating user group memberships table...");
     await pool.query(`
       CREATE TABLE IF NOT EXISTS user_group_memberships (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -67,6 +72,7 @@ async function addMissingFields() {
     `);
 
     // Create configuration items table
+    console.log("Creating configuration items table...");
     await pool.query(`
       CREATE TABLE IF NOT EXISTS configuration_items (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -89,7 +95,8 @@ async function addMissingFields() {
       );
     `);
 
-    // Create CI relationships table
+    // Create CI relationships table (after configuration_items table exists)
+    console.log("Creating CI relationships table...");
     await pool.query(`
       CREATE TABLE IF NOT EXISTS ci_relationships (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -101,6 +108,7 @@ async function addMissingFields() {
     `);
 
     // Create services table
+    console.log("Creating services table...");
     await pool.query(`
       CREATE TABLE IF NOT EXISTS services (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -123,6 +131,7 @@ async function addMissingFields() {
     `);
 
     // Create service requests table
+    console.log("Creating service requests table...");
     await pool.query(`
       CREATE TABLE IF NOT EXISTS service_requests (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -139,19 +148,40 @@ async function addMissingFields() {
       );
     `);
 
-    // Create indexes for better performance
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_user_group_memberships_user_id ON user_group_memberships(user_id);
-      CREATE INDEX IF NOT EXISTS idx_user_group_memberships_group_id ON user_group_memberships(group_id);
-      CREATE INDEX IF NOT EXISTS idx_configuration_items_ci_type ON configuration_items(ci_type);
-      CREATE INDEX IF NOT EXISTS idx_configuration_items_status ON configuration_items(status);
-      CREATE INDEX IF NOT EXISTS idx_ci_relationships_parent ON ci_relationships(parent_ci_id);
-      CREATE INDEX IF NOT EXISTS idx_ci_relationships_child ON ci_relationships(child_ci_id);
-      CREATE INDEX IF NOT EXISTS idx_services_category ON services(category);
-      CREATE INDEX IF NOT EXISTS idx_service_requests_ticket_id ON service_requests(ticket_id);
-      CREATE INDEX IF NOT EXISTS idx_tickets_source ON tickets(source);
-      CREATE INDEX IF NOT EXISTS idx_tickets_contact_method ON tickets(contact_method);
-    `);
+    // Now create indexes after all tables exist
+    console.log("Creating indexes...");
+    
+    // Check if tables exist before creating indexes
+    const tableChecks = [
+      { table: 'user_group_memberships', columns: ['user_id', 'group_id'] },
+      { table: 'configuration_items', columns: ['ci_type', 'status'] },
+      { table: 'ci_relationships', columns: ['parent_ci_id', 'child_ci_id'] },
+      { table: 'services', columns: ['category'] },
+      { table: 'service_requests', columns: ['ticket_id'] },
+      { table: 'tickets', columns: ['source', 'contact_method'] }
+    ];
+
+    for (const check of tableChecks) {
+      try {
+        const tableExists = await pool.query(`
+          SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_name = $1
+          );
+        `, [check.table]);
+
+        if (tableExists.rows[0].exists) {
+          for (const column of check.columns) {
+            const indexName = `idx_${check.table}_${column}`;
+            await pool.query(`
+              CREATE INDEX IF NOT EXISTS ${indexName} ON ${check.table}(${column});
+            `);
+          }
+        }
+      } catch (error) {
+        console.warn(`⚠️  Could not create indexes for table ${check.table}:`, error.message);
+      }
+    }
 
     console.log("✅ Successfully added missing database fields and tables!");
     
@@ -171,3 +201,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 }
 
 export { addMissingFields };
+
