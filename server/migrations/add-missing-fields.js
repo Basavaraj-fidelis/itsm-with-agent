@@ -178,7 +178,8 @@ async function addMissingFields() {
       ADD COLUMN IF NOT EXISTS escalation_reason TEXT,
       ADD COLUMN IF NOT EXISTS escalation_level INTEGER DEFAULT 0,
       ADD COLUMN IF NOT EXISTS last_escalation_at TIMESTAMPTZ,
-      ADD COLUMN IF NOT EXISTS escalated_at TIMESTAMPTZ;
+      ADD COLUMN IF NOT EXISTS escalated_at TIMESTAMPTZ,
+      ADD COLUMN IF NOT EXISTS time_spent_minutes INTEGER DEFAULT 0;
     `);
 
     // Now create indexes after all tables exist

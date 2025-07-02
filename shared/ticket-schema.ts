@@ -80,6 +80,7 @@ export const tickets = pgTable("tickets", {
   escalation_level: integer("escalation_level").default(0),
   last_escalation_at: timestamp("last_escalation_at"),
   escalated_at: timestamp("escalated_at"), // Alternative naming for compatibility
+  time_spent_minutes: integer("time_spent_minutes").default(0), // Time tracking for SLA
 
   // Business Impact
   business_service: varchar("business_service", { length: 100 }),
