@@ -27,6 +27,15 @@ export const slaPolicies = pgTable("sla_policies", {
   // Status
   is_active: boolean("is_active").default(true),
   
+  // Missing SLA fields
+  escalation_matrix: json("escalation_matrix").$type<any[]>().default([]),
+  notification_rules: json("notification_rules").$type<any[]>().default([]),
+  holiday_calendar_id: uuid("holiday_calendar_id"),
+  timezone: varchar("timezone", { length: 50 }).default("UTC"),
+  version: integer("version").default(1),
+  approved_by: uuid("approved_by"),
+  approved_at: timestamp("approved_at"),
+  
   // Metadata
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
