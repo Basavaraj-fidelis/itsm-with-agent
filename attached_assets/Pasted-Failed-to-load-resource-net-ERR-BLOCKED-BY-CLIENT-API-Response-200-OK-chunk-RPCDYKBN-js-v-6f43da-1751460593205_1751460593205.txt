@@ -1,0 +1,130 @@
+Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+ API Response: 200 OK
+chunk-RPCDYKBN.js?v=6f43dac8:521 Warning: React has detected a change in the order of Hooks called by AgentDetail. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://reactjs.org/link/rules-of-hooks
+
+   Previous render            Next render
+   ------------------------------------------------------
+1. useContext                 useContext
+2. useContext                 useContext
+3. useContext                 useContext
+4. useContext                 useContext
+5. useEffect                  useEffect
+6. useState                   useState
+7. useCallback                useCallback
+8. useSyncExternalStore       useSyncExternalStore
+9. useEffect                  useEffect
+10. undefined                 useMemo
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    at AgentDetail (https://d1f6734c-233a-45a1-b7f3-99baf64809f8-00-h4icxr8blw1i.sisko.replit.dev/src/pages/agent-detail.tsx:43:18)
+    at main
+    at div
+    at div
+    at AuthenticatedLayout (https://d1f6734c-233a-45a1-b7f3-99baf64809f8-00-h4icxr8blw1i.sisko.replit.dev/src/App.tsx:57:32)
+    at ProtectedRoute (https://d1f6734c-233a-45a1-b7f3-99baf64809f8-00-h4icxr8blw1i.sisko.replit.dev/src/components/auth/protected-route.tsx:76:3)
+    at Route (https://d1f6734c-233a-45a1-b7f3-99baf64809f8-00-h4icxr8blw1i.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=6f43dac8:206:16)
+    at Switch (https://d1f6734c-233a-45a1-b7f3-99baf64809f8-00-h4icxr8blw1i.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=6f43dac8:262:17)
+    at Router (https://d1f6734c-233a-45a1-b7f3-99baf64809f8-00-h4icxr8blw1i.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=6f43dac8:161:17)
+    at AuthProvider (https://d1f6734c-233a-45a1-b7f3-99baf64809f8-00-h4icxr8blw1i.sisko.replit.dev/src/components/auth/protected-route.tsx:36:32)
+    at QueryClientProvider (https://d1f6734c-233a-45a1-b7f3-99baf64809f8-00-h4icxr8blw1i.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=6f43dac8:2933:3)
+    at App (https://d1f6734c-233a-45a1-b7f3-99baf64809f8-00-h4icxr8blw1i.sisko.replit.dev/src/App.tsx:89:49)
+printWarning @ chunk-RPCDYKBN.js?v=6f43dac8:521
+ Error processing agent data: Error: Rendered more hooks than during the previous render.
+    at updateWorkInProgressHook (chunk-RPCDYKBN.js?v=6f43dac8:11678:21)
+    at updateMemo (chunk-RPCDYKBN.js?v=6f43dac8:12199:22)
+    at Object.useMemo (chunk-RPCDYKBN.js?v=6f43dac8:12726:24)
+    at useMemo (chunk-QCHXOAYK.js?v=6f43dac8:1094:29)
+    at useProcessedAgentData (agent-data-processor.ts:321:26)
+    at AgentDetail (agent-detail.tsx:45:25)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=6f43dac8:11548:26)
+    at updateFunctionComponent (chunk-RPCDYKBN.js?v=6f43dac8:14582:28)
+    at beginWork (chunk-RPCDYKBN.js?v=6f43dac8:15924:22)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=6f43dac8:19753:22)
+useProcessedAgentData @ agent-data-processor.ts:446
+ Error processing agent data: Error: Rendered more hooks than during the previous render.
+    at updateWorkInProgressHook (chunk-RPCDYKBN.js?v=6f43dac8:11678:21)
+    at updateMemo (chunk-RPCDYKBN.js?v=6f43dac8:12199:22)
+    at Object.useMemo (chunk-RPCDYKBN.js?v=6f43dac8:12726:24)
+    at useMemo (chunk-QCHXOAYK.js?v=6f43dac8:1094:29)
+    at useProcessedAgentData (agent-data-processor.ts:321:26)
+    at AgentDetail (agent-detail.tsx:45:25)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=6f43dac8:11548:26)
+    at updateFunctionComponent (chunk-RPCDYKBN.js?v=6f43dac8:14582:28)
+    at beginWork (chunk-RPCDYKBN.js?v=6f43dac8:15924:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=6f43dac8:3674:22)
+useProcessedAgentData @ agent-data-processor.ts:446
+chunk-RPCDYKBN.js?v=6f43dac8:11678 Uncaught Error: Rendered more hooks than during the previous render.
+    at updateWorkInProgressHook (chunk-RPCDYKBN.js?v=6f43dac8:11678:21)
+    at updateReducer (chunk-RPCDYKBN.js?v=6f43dac8:11727:22)
+    at updateState (chunk-RPCDYKBN.js?v=6f43dac8:12021:18)
+    at Object.useState (chunk-RPCDYKBN.js?v=6f43dac8:12753:24)
+    at useState (chunk-QCHXOAYK.js?v=6f43dac8:1066:29)
+    at AgentDetail (agent-detail.tsx:129:41)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=6f43dac8:11548:26)
+    at updateFunctionComponent (chunk-RPCDYKBN.js?v=6f43dac8:14582:28)
+    at beginWork (chunk-RPCDYKBN.js?v=6f43dac8:15924:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=6f43dac8:3674:22)
+ Error processing agent data: Error: Rendered more hooks than during the previous render.
+    at updateWorkInProgressHook (chunk-RPCDYKBN.js?v=6f43dac8:11678:21)
+    at updateMemo (chunk-RPCDYKBN.js?v=6f43dac8:12199:22)
+    at Object.useMemo (chunk-RPCDYKBN.js?v=6f43dac8:12726:24)
+    at useMemo (chunk-QCHXOAYK.js?v=6f43dac8:1094:29)
+    at useProcessedAgentData (agent-data-processor.ts:321:26)
+    at AgentDetail (agent-detail.tsx:45:25)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=6f43dac8:11548:26)
+    at updateFunctionComponent (chunk-RPCDYKBN.js?v=6f43dac8:14582:28)
+    at beginWork (chunk-RPCDYKBN.js?v=6f43dac8:15924:22)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=6f43dac8:19753:22)
+useProcessedAgentData @ agent-data-processor.ts:446
+ Error processing agent data: Error: Rendered more hooks than during the previous render.
+    at updateWorkInProgressHook (chunk-RPCDYKBN.js?v=6f43dac8:11678:21)
+    at updateMemo (chunk-RPCDYKBN.js?v=6f43dac8:12199:22)
+    at Object.useMemo (chunk-RPCDYKBN.js?v=6f43dac8:12726:24)
+    at useMemo (chunk-QCHXOAYK.js?v=6f43dac8:1094:29)
+    at useProcessedAgentData (agent-data-processor.ts:321:26)
+    at AgentDetail (agent-detail.tsx:45:25)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=6f43dac8:11548:26)
+    at updateFunctionComponent (chunk-RPCDYKBN.js?v=6f43dac8:14582:28)
+    at beginWork (chunk-RPCDYKBN.js?v=6f43dac8:15924:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=6f43dac8:3674:22)
+useProcessedAgentData @ agent-data-processor.ts:446
+chunk-RPCDYKBN.js?v=6f43dac8:11678 Uncaught Error: Rendered more hooks than during the previous render.
+    at updateWorkInProgressHook (chunk-RPCDYKBN.js?v=6f43dac8:11678:21)
+    at updateReducer (chunk-RPCDYKBN.js?v=6f43dac8:11727:22)
+    at updateState (chunk-RPCDYKBN.js?v=6f43dac8:12021:18)
+    at Object.useState (chunk-RPCDYKBN.js?v=6f43dac8:12753:24)
+    at useState (chunk-QCHXOAYK.js?v=6f43dac8:1066:29)
+    at AgentDetail (agent-detail.tsx:129:41)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=6f43dac8:11548:26)
+    at updateFunctionComponent (chunk-RPCDYKBN.js?v=6f43dac8:14582:28)
+    at beginWork (chunk-RPCDYKBN.js?v=6f43dac8:15924:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=6f43dac8:3674:22)
+chunk-RPCDYKBN.js?v=6f43dac8:14032 The above error occurred in the <AgentDetail> component:
+
+    at AgentDetail (https://d1f6734c-233a-45a1-b7f3-99baf64809f8-00-h4icxr8blw1i.sisko.replit.dev/src/pages/agent-detail.tsx:43:18)
+    at main
+    at div
+    at div
+    at AuthenticatedLayout (https://d1f6734c-233a-45a1-b7f3-99baf64809f8-00-h4icxr8blw1i.sisko.replit.dev/src/App.tsx:57:32)
+    at ProtectedRoute (https://d1f6734c-233a-45a1-b7f3-99baf64809f8-00-h4icxr8blw1i.sisko.replit.dev/src/components/auth/protected-route.tsx:76:3)
+    at Route (https://d1f6734c-233a-45a1-b7f3-99baf64809f8-00-h4icxr8blw1i.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=6f43dac8:206:16)
+    at Switch (https://d1f6734c-233a-45a1-b7f3-99baf64809f8-00-h4icxr8blw1i.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=6f43dac8:262:17)
+    at Router (https://d1f6734c-233a-45a1-b7f3-99baf64809f8-00-h4icxr8blw1i.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=6f43dac8:161:17)
+    at AuthProvider (https://d1f6734c-233a-45a1-b7f3-99baf64809f8-00-h4icxr8blw1i.sisko.replit.dev/src/components/auth/protected-route.tsx:36:32)
+    at QueryClientProvider (https://d1f6734c-233a-45a1-b7f3-99baf64809f8-00-h4icxr8blw1i.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=6f43dac8:2933:3)
+    at App (https://d1f6734c-233a-45a1-b7f3-99baf64809f8-00-h4icxr8blw1i.sisko.replit.dev/src/App.tsx:89:49)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-RPCDYKBN.js?v=6f43dac8:14032
+chunk-RPCDYKBN.js?v=6f43dac8:9129 Uncaught Error: Rendered more hooks than during the previous render.
+    at updateWorkInProgressHook (chunk-RPCDYKBN.js?v=6f43dac8:11678:21)
+    at updateReducer (chunk-RPCDYKBN.js?v=6f43dac8:11727:22)
+    at updateState (chunk-RPCDYKBN.js?v=6f43dac8:12021:18)
+    at Object.useState (chunk-RPCDYKBN.js?v=6f43dac8:12753:24)
+    at useState (chunk-QCHXOAYK.js?v=6f43dac8:1066:29)
+    at AgentDetail (agent-detail.tsx:129:41)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=6f43dac8:11548:26)
+    at updateFunctionComponent (chunk-RPCDYKBN.js?v=6f43dac8:14582:28)
+    at beginWork (chunk-RPCDYKBN.js?v=6f43dac8:15924:22)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=6f43dac8:19753:22)
