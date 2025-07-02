@@ -271,20 +271,26 @@ router.get("/:id", async (req, res) => {
 // Create new user
 router.post("/", async (req, res) => {
   try {
-    const { email, name, role, password, department, phone } = req.body;
+    const { email, name, first_name, last_name, role, password, department, phone } = req.body;
 
-    if (!email || !name) {
-      return res.status(400).json({ message: "Email and name are required" });
+    if (!email || (!name && !first_name)) {
+      return res.status(400).json({ message: "Email and name/first_name are required" });
     }
 
     if (!password) {
       return res.status(400).json({ message: "Password is required" });
     }
 
-    // Parse name into first and last name
-    const nameParts = (name || '').trim().split(' ');
-    const first_name = nameParts[0] || '';
-    const last_name = nameParts.slice(1).join(' ') || '';
+    // Use provided first_name/last_name or parse from name
+    let firstName, lastName;
+    if (first_name || last_name) {
+      firstName = first_name || '';
+      lastName = last_name || '';
+    } else {
+      const nameParts = (name || '').trim().split(' ');
+      firstName = nameParts[0] || '';
+      lastName = nameParts.slice(1).join(' ') || '';
+    }
     const username = email.split('@')[0]; // Generate username from email
 
     // Check if user already exists
@@ -310,8 +316,8 @@ router.post("/", async (req, res) => {
     `, [
       email.toLowerCase(),
       username,
-      first_name,
-      last_name,
+      firstName,
+      lastName,
       role || "end_user",
       password_hash,
       phone || null,
@@ -345,17 +351,23 @@ router.put("/:id", async (req, res) => {
     console.log("PUT /api/users/:id - Updating user:", req.params.id);
     console.log("Request body:", req.body);
 
-    const { email, name, role, department, phone, is_active, is_locked, password } = req.body;
+    const { email, name, first_name, last_name, role, department, phone, is_active, is_locked, password } = req.body;
 
     // Validate required fields
-    if (!email || !name || !role) {
-      return res.status(400).json({ message: "Email, name, and role are required" });
+    if (!email || (!name && !first_name) || !role) {
+      return res.status(400).json({ message: "Email, name/first_name, and role are required" });
     }
 
-    // Parse name into first and last name
-    const nameParts = (name || '').trim().split(' ');
-    const first_name = nameParts[0] || '';
-    const last_name = nameParts.slice(1).join(' ') || '';
+    // Use provided first_name/last_name or parse from name
+    let firstName, lastName;
+    if (first_name !== undefined || last_name !== undefined) {
+      firstName = first_name || '';
+      lastName = last_name || '';
+    } else {
+      const nameParts = (name || '').trim().split(' ');
+      firstName = nameParts[0] || '';
+      lastName = nameParts.slice(1).join(' ') || '';
+    }
 
     // Check if user exists first
     const userCheck = await db.query(`SELECT id, email, is_locked FROM users WHERE id = $1`, [req.params.id]);
@@ -380,8 +392,8 @@ router.put("/:id", async (req, res) => {
     `;
     let values = [
       email.toLowerCase(), 
-      first_name, 
-      last_name, 
+      firstName, 
+      lastName, 
       role, 
       phone || null, 
       department || null, 

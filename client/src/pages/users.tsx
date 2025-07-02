@@ -82,10 +82,11 @@ export default function UsersPage() {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
   const [newUser, setNewUser] = useState({
-    name: "",
     email: "",
-    password: "",
+    first_name: "",
+    last_name: "",
     role: "user",
+    password: "",
     department: "",
     phone: "",
     job_title: "",
@@ -143,10 +144,11 @@ export default function UsersPage() {
       toast({ title: "Success", description: "User created successfully" });
       setIsCreateDialogOpen(false);
       setNewUser({
-        name: "",
         email: "",
-        password: "",
+        first_name: "",
+        last_name: "",
         role: "user",
+        password: "",
         department: "",
         phone: "",
         job_title: "",
@@ -344,7 +346,22 @@ export default function UsersPage() {
 
   const handleCreateUser = async () => {
     try {
-      createUserMutation.mutate(newUser);
+      createUserMutation.mutate({
+        ...newUser,
+        name: `${newUser.first_name} ${newUser.last_name}`.trim()
+      });
+      setNewUser({
+        email: "",
+        first_name: "",
+        last_name: "",
+        role: "user",
+        password: "",
+        department: "",
+        phone: "",
+        job_title: "",
+        location: ""
+      });
+      setIsCreateDialogOpen(false);
     } catch (error) {
       console.error("Error creating user:", error);
       toast({ message: "Failed to create user", type: "error" });
@@ -902,14 +919,26 @@ export default function UsersPage() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="first_name">First Name</Label>
               <Input
-                id="name"
-                value={newUser.name}
-                onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                placeholder="Enter full name"
+                id="first_name"
+                value={newUser.first_name}
+                onChange={(e) => setNewUser({ ...newUser, first_name: e.target.value })}
+                placeholder="Enter first name"
+                required
               />
             </div>
+            <div>
+              <Label htmlFor="last_name">Last Name</Label>
+              <Input
+                id="last_name"
+                value={newUser.last_name}
+                onChange={(e) => setNewUser({ ...newUser, last_name: e.target.value })}
+                placeholder="Enter last name"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="email">Email</Label>
               <Input
@@ -920,9 +949,6 @@ export default function UsersPage() {
                 placeholder="Enter email address"
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="password">Password</Label>
               <Input
@@ -933,6 +959,9 @@ export default function UsersPage() {
                 placeholder="Enter password"
               />
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="role">Role</Label>
               <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
@@ -947,9 +976,6 @@ export default function UsersPage() {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="department">Department</Label>
               <Input
@@ -959,6 +985,9 @@ export default function UsersPage() {
                 placeholder="Enter department"
               />
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="phone">Phone</Label>
               <Input
@@ -968,9 +997,6 @@ export default function UsersPage() {
                 placeholder="Enter phone number"
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="job_title">Job Title</Label>
               <Input
@@ -980,6 +1006,9 @@ export default function UsersPage() {
                 placeholder="Enter job title"
               />
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="location">Location</Label>
               <Input
@@ -997,7 +1026,7 @@ export default function UsersPage() {
             </Button>
             <Button 
               onClick={handleCreateUser}
-              disabled={createUserMutation.isPending || !newUser.name || !newUser.email || !newUser.password}
+              disabled={createUserMutation.isPending || !newUser.first_name || !newUser.email || !newUser.password}
             >
               {createUserMutation.isPending ? "Creating..." : "Create User"}
             </Button>
@@ -1111,13 +1140,23 @@ export default function UsersPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="edit-name">Full Name</Label>
+                  <Label htmlFor="edit-first-name">First Name</Label>
                   <Input
-                    id="edit-name"
-                    value={selectedUser.name}
-                    onChange={(e) => setSelectedUser({ ...selectedUser, name: e.target.value })}
+                    id="edit-first-name"
+                    value={selectedUser.first_name}
+                    onChange={(e) => setSelectedUser({ ...selectedUser, first_name: e.target.value })}
                   />
                 </div>
+                <div>
+                  <Label htmlFor="edit-last-name">Last Name</Label>
+                  <Input
+                    id="edit-last-name"
+                    value={selectedUser.last_name}
+                    onChange={(e) => setSelectedUser({ ...selectedUser, last_name: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edit-email">Email</Label>
                   <Input
@@ -1131,9 +1170,7 @@ export default function UsersPage() {
                     <p className="text-xs text-gray-500 mt-1">Email cannot be modified for AD users</p>
                   )}
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edit-role">Role</Label>
                   <Select 
@@ -1151,6 +1188,9 @@ export default function UsersPage() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edit-department">Department</Label>
                   <Input
@@ -1159,9 +1199,7 @@ export default function UsersPage() {
                     onChange={(e) => setSelectedUser({ ...selectedUser, department: e.target.value })}
                   />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edit-phone">Phone</Label>
                   <Input
@@ -1170,6 +1208,9 @@ export default function UsersPage() {
                     onChange={(e) => setSelectedUser({ ...selectedUser, phone: e.target.value })}
                   />
                 </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edit-status">Status</Label>
                   <Select 
