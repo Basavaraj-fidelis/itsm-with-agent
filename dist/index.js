@@ -695,32 +695,39 @@ var init_storage = __esm({
           (a, b) => new Date(b.triggered_at).getTime() - new Date(a.triggered_at).getTime()
         );
       }
-      async createAlert(alert) {
-        const id = this.generateId();
-        const newAlert = {
-          ...alert,
-          id,
-          triggered_at: /* @__PURE__ */ new Date()
+      async createAlert(alertData) {
+        const alert = {
+          id: this.generateId(),
+          device_id: alertData.device_id,
+          category: alertData.category,
+          severity: alertData.severity,
+          message: alertData.message,
+          metadata: alertData.metadata,
+          triggered_at: /* @__PURE__ */ new Date(),
+          resolved_at: null,
+          is_active: alertData.is_active
         };
-        this.alerts.set(id, newAlert);
-        return newAlert;
+        this.alerts.set(alert.id, alert);
+        return alert;
+      }
+      async updateAlert(alertId, updateData) {
+        const alert = this.alerts.get(alertId);
+        if (!alert) {
+          return null;
+        }
+        const updatedAlert = {
+          ...alert,
+          ...updateData
+          // Keep original triggered_at, update other fields as needed
+        };
+        this.alerts.set(alertId, updatedAlert);
+        return updatedAlert;
       }
       async getActiveAlertByDeviceAndMetric(deviceId, metric) {
         const alert = Array.from(this.alerts.values()).find(
           (alert2) => alert2.device_id === deviceId && alert2.is_active && alert2.metadata && alert2.metadata.metric === metric
         );
         return alert || null;
-      }
-      async updateAlert(alertId, updates) {
-        const existing = this.alerts.get(alertId);
-        if (existing) {
-          const updated = {
-            ...existing,
-            ...updates,
-            triggered_at: /* @__PURE__ */ new Date()
-          };
-          this.alerts.set(alertId, updated);
-        }
       }
       async resolveAlert(alertId) {
         const existing = this.alerts.get(alertId);
@@ -3006,11 +3013,18 @@ smartphones
           const setClause = [];
           const params = [];
           let paramCount = 0;
-          Object.keys(updates).forEach((key) => {
-            if (updates[key] !== void 0) {
+          const validUpdates = { ...updates };
+          if (validUpdates.name) {
+            const nameParts = validUpdates.name.trim().split(" ");
+            validUpdates.first_name = nameParts[0] || "";
+            validUpdates.last_name = nameParts.slice(1).join(" ") || "";
+            delete validUpdates.name;
+          }
+          Object.keys(validUpdates).forEach((key) => {
+            if (validUpdates[key] !== void 0) {
               paramCount++;
               setClause.push(`${key} = $${paramCount}`);
-              params.push(updates[key]);
+              params.push(validUpdates[key]);
             }
           });
           if (setClause.length === 0) return null;
@@ -3023,10 +3037,19 @@ smartphones
         UPDATE users 
         SET ${setClause.join(", ")}
         WHERE id = $${paramCount}
-        RETURNING id, name, email, role, department, phone, is_active, created_at, updated_at
+        RETURNING 
+          id, email, username, first_name, last_name, role, 
+          department, phone, is_active, created_at, updated_at,
+          job_title, location, employee_id, manager_id, last_login, 
+          is_locked, failed_login_attempts
       `;
           const result = await pool4.query(query, params);
-          return result.rows[0] || null;
+          if (result.rows.length > 0) {
+            const user = result.rows[0];
+            user.name = `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.username || user.email?.split("@")[0];
+            return user;
+          }
+          return null;
         } catch (error) {
           console.error("Error updating user:", error);
           return null;
@@ -10939,6 +10962,7 @@ var createTicketSchema = z2.object({
   title: z2.string().min(1),
   description: z2.string().min(1),
   priority: z2.enum(["low", "medium", "high", "critical"]).default("medium"),
+  status: z2.enum(["new", "assigned", "in_progress", "pending", "on_hold", "resolved", "closed", "cancelled"]).default("new").optional(),
   requester_email: z2.string().email(),
   category: z2.string().optional(),
   assigned_to: z2.string().optional(),
@@ -10950,7 +10974,7 @@ var updateTicketSchema = z2.object({
   title: z2.string().min(1).optional(),
   description: z2.string().min(1).optional(),
   priority: z2.enum(["low", "medium", "high", "critical"]).optional(),
-  status: z2.enum(["new", "assigned", "in_progress", "pending", "resolved", "closed", "cancelled"]).optional(),
+  status: z2.enum(["new", "assigned", "in_progress", "pending", "on_hold", "resolved", "closed", "cancelled"]).optional(),
   assigned_to: z2.string().email().optional(),
   category: z2.string().optional(),
   impact: z2.enum(["low", "medium", "high", "critical"]).optional(),
@@ -11887,6 +11911,7 @@ var PerformanceService = class {
     ) * 100;
     if (deviationPercentage > baseline.variance_threshold) {
       const severity = deviationPercentage > 50 ? "high" : deviationPercentage > 30 ? "medium" : "low";
+      const existingAlerts = await this.getExistingAnomalyAlerts(deviceId, metricType);
       const anomaly = {
         device_id: deviceId,
         metric_type: metricType,
@@ -11896,21 +11921,64 @@ var PerformanceService = class {
         severity,
         detected_at: /* @__PURE__ */ new Date()
       };
-      await storage.createAlert({
-        device_id: deviceId,
-        category: "performance",
-        severity,
-        message: `Performance anomaly detected: ${metricType} usage (${currentValue.toFixed(1)}%) deviates ${deviationPercentage.toFixed(1)}% from baseline`,
-        metadata: {
-          anomaly,
-          metric_type: metricType,
-          baseline_value: baseline.baseline_value,
-          current_value: currentValue,
-          deviation_percentage: deviationPercentage
-        },
-        is_active: true
-      });
+      const alertMessage = `Performance anomaly detected: ${metricType} usage (${currentValue.toFixed(1)}%) deviates ${deviationPercentage.toFixed(1)}% from baseline`;
+      const recentAlert = existingAlerts.find(
+        (alert) => alert.metadata?.metric_type === metricType && this.isRecentAlert(alert.triggered_at)
+      );
+      if (recentAlert && this.shouldUpdateExistingAlert(recentAlert, currentValue, severity)) {
+        await storage.updateAlert(recentAlert.id, {
+          severity,
+          message: alertMessage,
+          metadata: {
+            ...recentAlert.metadata,
+            anomaly,
+            current_value: currentValue,
+            deviation_percentage: deviationPercentage,
+            previous_value: recentAlert.metadata?.current_value || baseline.baseline_value,
+            updated_at: (/* @__PURE__ */ new Date()).toISOString(),
+            update_count: (recentAlert.metadata?.update_count || 0) + 1
+          },
+          is_active: true
+        });
+      } else {
+        await storage.createAlert({
+          device_id: deviceId,
+          category: "performance",
+          severity,
+          message: alertMessage,
+          metadata: {
+            anomaly,
+            metric_type: metricType,
+            baseline_value: baseline.baseline_value,
+            current_value: currentValue,
+            deviation_percentage: deviationPercentage,
+            alert_type: "anomaly_detection",
+            created_at: (/* @__PURE__ */ new Date()).toISOString()
+          },
+          is_active: true
+        });
+      }
     }
+  }
+  async getExistingAnomalyAlerts(deviceId, metricType) {
+    try {
+      return [];
+    } catch (error) {
+      console.error("Error fetching existing anomaly alerts:", error);
+      return [];
+    }
+  }
+  isRecentAlert(triggeredAt) {
+    const alertTime = new Date(triggeredAt).getTime();
+    const now = (/* @__PURE__ */ new Date()).getTime();
+    const hoursDiff = (now - alertTime) / (1e3 * 60 * 60);
+    return hoursDiff < 6;
+  }
+  shouldUpdateExistingAlert(existingAlert, newValue, newSeverity) {
+    const oldValue = existingAlert.metadata?.current_value || 0;
+    const valueChangePct = Math.abs((newValue - oldValue) / oldValue) * 100;
+    const severityChanged = existingAlert.severity !== newSeverity;
+    return severityChanged || valueChangePct > 5;
   }
   async generateResourcePredictions(deviceId) {
     try {
@@ -12147,52 +12215,91 @@ var AIService = class {
   async analyzePerformancePatterns(deviceId, reports, insights) {
     const newInsights = [];
     if (reports.length < 3) return newInsights;
+    const existingAlerts = await this.getExistingPerformanceAlerts(deviceId);
     const cpuValues = reports.map((r) => parseFloat(r.cpu_usage || "0")).filter((v) => !isNaN(v));
     const cpuTrend = this.calculateTrend(cpuValues);
     if (cpuTrend > 2) {
-      newInsights.push({
-        id: `cpu-trend-${deviceId}`,
-        device_id: deviceId,
-        type: "performance",
-        severity: cpuTrend > 5 ? "high" : "medium",
-        title: "Rising CPU Usage Trend",
-        description: `CPU usage trending upward by ${cpuTrend.toFixed(1)}% per day over the last week`,
-        recommendation: "Monitor for runaway processes or consider CPU upgrade if trend continues",
-        confidence: 0.8,
-        metadata: { trend: cpuTrend, metric: "cpu" },
-        created_at: /* @__PURE__ */ new Date()
-      });
+      const newSeverity = cpuTrend > 5 ? "high" : "medium";
+      const alertKey = "cpu-trend";
+      const existingAlert = existingAlerts.find((a) => a.metadata?.metric === "cpu" && a.title.includes("Trend"));
+      if (existingAlert && this.shouldUpdateAlert(existingAlert, cpuTrend, newSeverity)) {
+        newInsights.push({
+          ...existingAlert,
+          severity: newSeverity,
+          description: `CPU usage trending upward by ${cpuTrend.toFixed(1)}% per day over the last week`,
+          metadata: {
+            ...existingAlert.metadata,
+            trend: cpuTrend,
+            previous_trend: existingAlert.metadata?.trend || 0,
+            last_updated: (/* @__PURE__ */ new Date()).toISOString()
+          },
+          created_at: /* @__PURE__ */ new Date()
+        });
+      } else if (!existingAlert) {
+        newInsights.push({
+          id: `cpu-trend-${deviceId}`,
+          device_id: deviceId,
+          type: "performance",
+          severity: newSeverity,
+          title: "Rising CPU Usage Trend",
+          description: `CPU usage trending upward by ${cpuTrend.toFixed(1)}% per day over the last week`,
+          recommendation: "Monitor for runaway processes or consider CPU upgrade if trend continues",
+          confidence: 0.8,
+          metadata: { trend: cpuTrend, metric: "cpu", alert_type: "trend" },
+          created_at: /* @__PURE__ */ new Date()
+        });
+      }
     }
     const memoryValues = reports.map((r) => parseFloat(r.memory_usage || "0")).filter((v) => !isNaN(v));
     const memoryTrend = this.calculateTrend(memoryValues);
     if (memoryTrend > 1.5) {
-      newInsights.push({
-        id: `memory-trend-${deviceId}`,
-        device_id: deviceId,
-        type: "performance",
-        severity: memoryTrend > 3 ? "high" : "medium",
-        title: "Memory Usage Climbing",
-        description: `Memory usage increasing by ${memoryTrend.toFixed(1)}% per day`,
-        recommendation: "Check for memory leaks or plan for memory upgrade",
-        confidence: 0.75,
-        metadata: { trend: memoryTrend, metric: "memory" },
-        created_at: /* @__PURE__ */ new Date()
-      });
+      const newSeverity = memoryTrend > 3 ? "high" : "medium";
+      const existingAlert = existingAlerts.find((a) => a.metadata?.metric === "memory" && a.title.includes("Climbing"));
+      if (existingAlert && this.shouldUpdateAlert(existingAlert, memoryTrend, newSeverity)) {
+        newInsights.push({
+          ...existingAlert,
+          severity: newSeverity,
+          description: `Memory usage increasing by ${memoryTrend.toFixed(1)}% per day`,
+          metadata: {
+            ...existingAlert.metadata,
+            trend: memoryTrend,
+            previous_trend: existingAlert.metadata?.trend || 0,
+            last_updated: (/* @__PURE__ */ new Date()).toISOString()
+          },
+          created_at: /* @__PURE__ */ new Date()
+        });
+      } else if (!existingAlert) {
+        newInsights.push({
+          id: `memory-trend-${deviceId}`,
+          device_id: deviceId,
+          type: "performance",
+          severity: newSeverity,
+          title: "Memory Usage Climbing",
+          description: `Memory usage increasing by ${memoryTrend.toFixed(1)}% per day`,
+          recommendation: "Check for memory leaks or plan for memory upgrade",
+          confidence: 0.75,
+          metadata: { trend: memoryTrend, metric: "memory", alert_type: "trend" },
+          created_at: /* @__PURE__ */ new Date()
+        });
+      }
     }
     const cpuVolatility = this.calculateVolatility(cpuValues);
     if (cpuVolatility > 15) {
-      newInsights.push({
-        id: `cpu-volatility-${deviceId}`,
-        device_id: deviceId,
-        type: "performance",
-        severity: "medium",
-        title: "Unstable CPU Performance",
-        description: `High CPU usage volatility detected (${cpuVolatility.toFixed(1)}% std deviation)`,
-        recommendation: "Investigate intermittent high-CPU processes or system instability",
-        confidence: 0.7,
-        metadata: { volatility: cpuVolatility, metric: "cpu" },
-        created_at: /* @__PURE__ */ new Date()
-      });
+      const existingAlert = existingAlerts.find((a) => a.metadata?.metric === "cpu" && a.title.includes("Volatility"));
+      if (!existingAlert) {
+        newInsights.push({
+          id: `cpu-volatility-${deviceId}`,
+          device_id: deviceId,
+          type: "performance",
+          severity: "medium",
+          title: "Unstable CPU Performance",
+          description: `High CPU usage volatility detected (${cpuVolatility.toFixed(1)}% std deviation)`,
+          recommendation: "Investigate intermittent high-CPU processes or system instability",
+          confidence: 0.7,
+          metadata: { volatility: cpuVolatility, metric: "cpu", alert_type: "volatility" },
+          created_at: /* @__PURE__ */ new Date()
+        });
+      }
     }
     return newInsights;
   }
@@ -12514,6 +12621,24 @@ var AIService = class {
       pattern: seasonalityStrength > 0.3 ? "weekly" : "random",
       confidence: Math.min(seasonalityStrength, 1)
     };
+  }
+  async getExistingPerformanceAlerts(deviceId) {
+    try {
+      return [];
+    } catch (error) {
+      console.error("Error fetching existing alerts:", error);
+      return [];
+    }
+  }
+  shouldUpdateAlert(existingAlert, newValue, newSeverity) {
+    const timeSinceCreated = (/* @__PURE__ */ new Date()).getTime() - new Date(existingAlert.created_at).getTime();
+    const hoursSinceCreated = timeSinceCreated / (1e3 * 60 * 60);
+    const severityChanged = existingAlert.severity !== newSeverity;
+    const significantTimeElapsed = hoursSinceCreated > 1;
+    const oldValue = existingAlert.metadata?.trend || existingAlert.metadata?.volatility || 0;
+    const valueChangePercent = Math.abs((newValue - oldValue) / oldValue) * 100;
+    const significantChange = valueChangePercent > 10;
+    return severityChanged || significantChange || significantTimeElapsed;
   }
   async getDeviceRecommendations(deviceId) {
     const insights = await this.generateDeviceInsights(deviceId);
@@ -15547,13 +15672,15 @@ router3.get("/", async (req, res) => {
         phone, job_title, location, employee_id, department,
         is_active, is_locked, failed_login_attempts,
         created_at, updated_at, last_login, last_password_change,
-        manager_id, preferences, permissions,
+        manager_id, 
+        COALESCE(preferences, '{}') as preferences, 
+        COALESCE(permissions, '[]') as permissions,
         CASE 
-          WHEN preferences->>'ad_synced' = 'true' THEN 'ad'
+          WHEN COALESCE(preferences, '{}')->>'ad_synced' = 'true' THEN 'ad'
           ELSE 'local'
         END as sync_source,
-        preferences->>'ad_last_sync' as last_ad_sync,
-        preferences->>'ad_groups' as ad_groups
+        COALESCE(preferences, '{}')->>'ad_last_sync' as last_ad_sync,
+        COALESCE(preferences, '{}')->>'ad_groups' as ad_groups
       FROM users
     `;
     const conditions = [];
@@ -15562,11 +15689,11 @@ router3.get("/", async (req, res) => {
     if (search) {
       paramCount++;
       conditions.push(`(
-        LOWER(first_name) LIKE LOWER($${paramCount}) OR 
-        LOWER(last_name) LIKE LOWER($${paramCount}) OR 
+        LOWER(COALESCE(first_name, '')) LIKE LOWER($${paramCount}) OR 
+        LOWER(COALESCE(last_name, '')) LIKE LOWER($${paramCount}) OR 
         LOWER(email) LIKE LOWER($${paramCount}) OR 
-        LOWER(username) LIKE LOWER($${paramCount}) OR
-        LOWER(employee_id) LIKE LOWER($${paramCount})
+        LOWER(COALESCE(username, '')) LIKE LOWER($${paramCount}) OR
+        LOWER(COALESCE(employee_id, '')) LIKE LOWER($${paramCount})
       )`);
       params.push(`%${search}%`);
     }
@@ -15577,20 +15704,20 @@ router3.get("/", async (req, res) => {
     }
     if (department && department !== "all") {
       paramCount++;
-      conditions.push(`department = $${paramCount}`);
+      conditions.push(`COALESCE(department, location, '') = $${paramCount}`);
       params.push(department);
     }
     if (sync_source && sync_source !== "all") {
       if (sync_source === "ad") {
-        conditions.push(`preferences->>'ad_synced' = 'true'`);
+        conditions.push(`COALESCE(preferences, '{}')->>'ad_synced' = 'true'`);
       } else if (sync_source === "local") {
-        conditions.push(`(preferences->>'ad_synced' IS NULL OR preferences->>'ad_synced' = 'false')`);
+        conditions.push(`(COALESCE(preferences, '{}')->>'ad_synced' IS NULL OR COALESCE(preferences, '{}')->>'ad_synced' = 'false')`);
       }
     }
     if (status === "active") {
-      conditions.push("is_active = true AND is_locked = false");
+      conditions.push("COALESCE(is_active, true) = true AND COALESCE(is_locked, false) = false");
     } else if (status === "inactive") {
-      conditions.push("is_active = false OR is_locked = true");
+      conditions.push("COALESCE(is_active, true) = false OR COALESCE(is_locked, false) = true");
     }
     if (conditions.length > 0) {
       query += ` WHERE ${conditions.join(" AND ")}`;
@@ -15615,33 +15742,57 @@ router3.get("/", async (req, res) => {
     const statsQuery = `
       SELECT 
         COUNT(*) as total_users,
-        COUNT(CASE WHEN is_active = true AND is_locked = false THEN 1 END) as active_users,
-        COUNT(CASE WHEN is_active = false OR is_locked = true THEN 1 END) as inactive_users,
-        COUNT(CASE WHEN preferences->>'ad_synced' = 'true' THEN 1 END) as ad_synced_users,
-        COUNT(CASE WHEN preferences->>'ad_synced' IS NULL OR preferences->>'ad_synced' = 'false' THEN 1 END) as local_users
+        COUNT(CASE WHEN COALESCE(is_active, true) = true AND COALESCE(is_locked, false) = false THEN 1 END) as active_users,
+        COUNT(CASE WHEN COALESCE(is_active, true) = false OR COALESCE(is_locked, false) = true THEN 1 END) as inactive_users,
+        COUNT(CASE WHEN COALESCE(preferences, '{}')->>'ad_synced' = 'true' THEN 1 END) as ad_synced_users,
+        COUNT(CASE WHEN COALESCE(preferences, '{}')->>'ad_synced' IS NULL OR COALESCE(preferences, '{}')->>'ad_synced' = 'false' THEN 1 END) as local_users
       FROM users
     `;
     const statsResult = await db.query(statsQuery);
     const stats = statsResult.rows[0];
-    const users2 = result.rows.map((user) => ({
-      ...user,
-      name: `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.username || user.email?.split("@")[0],
-      department: user.department || user.location || "N/A",
-      status: user.is_active && !user.is_locked ? "active" : "inactive",
-      security_status: user.failed_login_attempts > 0 ? "warning" : "normal",
-      ad_synced: user.sync_source === "ad",
-      ad_groups: user.ad_groups ? typeof user.ad_groups === "string" ? JSON.parse(user.ad_groups) : user.ad_groups : [],
-      last_ad_sync: user.last_ad_sync
-    }));
+    const users2 = result.rows.map((user) => {
+      let preferences = {};
+      let permissions = [];
+      try {
+        preferences = typeof user.preferences === "string" ? JSON.parse(user.preferences) : user.preferences || {};
+      } catch (e) {
+        console.warn("Failed to parse user preferences:", e);
+        preferences = {};
+      }
+      try {
+        permissions = typeof user.permissions === "string" ? JSON.parse(user.permissions) : user.permissions || [];
+      } catch (e) {
+        console.warn("Failed to parse user permissions:", e);
+        permissions = [];
+      }
+      return {
+        ...user,
+        name: `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.username || user.email?.split("@")[0],
+        department: user.department || user.location || "N/A",
+        status: user.is_active !== false && user.is_locked !== true ? "active" : "inactive",
+        security_status: (user.failed_login_attempts || 0) > 0 ? "warning" : "normal",
+        ad_synced: user.sync_source === "ad",
+        ad_groups: user.ad_groups ? typeof user.ad_groups === "string" ? (() => {
+          try {
+            return JSON.parse(user.ad_groups);
+          } catch {
+            return [];
+          }
+        })() : user.ad_groups : [],
+        last_ad_sync: user.last_ad_sync,
+        preferences,
+        permissions
+      };
+    });
     console.log(`Enhanced users query returned ${users2.length} users out of ${total} total`);
     res.json({
       data: users2,
       stats: {
-        total: parseInt(stats.total_users),
-        active: parseInt(stats.active_users),
-        inactive: parseInt(stats.inactive_users),
-        ad_synced: parseInt(stats.ad_synced_users),
-        local: parseInt(stats.local_users)
+        total: parseInt(stats.total_users) || 0,
+        active: parseInt(stats.active_users) || 0,
+        inactive: parseInt(stats.inactive_users) || 0,
+        ad_synced: parseInt(stats.ad_synced_users) || 0,
+        local: parseInt(stats.local_users) || 0
       },
       pagination: {
         page: parseInt(page),
@@ -15735,13 +15886,22 @@ router3.get("/:id", async (req, res) => {
 });
 router3.post("/", async (req, res) => {
   try {
-    const { email, name, role, password, department, phone } = req.body;
+    const { email, name, first_name, last_name, role, password, department, phone } = req.body;
+    if (!email || !name && !first_name) {
+      return res.status(400).json({ message: "Email and name/first_name are required" });
+    }
     if (!password) {
       return res.status(400).json({ message: "Password is required" });
     }
-    const nameParts = (name || "").trim().split(" ");
-    const first_name = nameParts[0] || "";
-    const last_name = nameParts.slice(1).join(" ") || "";
+    let firstName, lastName;
+    if (first_name || last_name) {
+      firstName = first_name || "";
+      lastName = last_name || "";
+    } else {
+      const nameParts = (name || "").trim().split(" ");
+      firstName = nameParts[0] || "";
+      lastName = nameParts.slice(1).join(" ") || "";
+    }
     const username = email.split("@")[0];
     const existingUser = await db.query(`
       SELECT id FROM users WHERE email = $1 OR username = $2
@@ -15754,44 +15914,74 @@ router3.post("/", async (req, res) => {
     const result = await db.query(`
       INSERT INTO users (
         email, username, first_name, last_name, role, 
-        password_hash, phone, location, department, is_active
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        password_hash, phone, location, department, is_active,
+        preferences, permissions, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
       RETURNING id, email, username, first_name, last_name, role, phone, location, department, is_active, created_at
     `, [
       email.toLowerCase(),
       username,
-      first_name,
-      last_name,
+      firstName,
+      lastName,
       role || "end_user",
       password_hash,
-      phone,
-      department,
-      department,
-      true
+      phone || null,
+      department || null,
+      department || null,
+      true,
+      JSON.stringify({}),
+      // empty preferences
+      JSON.stringify([])
+      // empty permissions
     ]);
     const newUser = result.rows[0];
     newUser.name = `${newUser.first_name || ""} ${newUser.last_name || ""}`.trim();
-    newUser.department = department;
+    newUser.department = department || "N/A";
+    newUser.status = "active";
+    console.log("User created successfully:", { id: newUser.id, email: newUser.email, name: newUser.name });
     res.status(201).json(newUser);
   } catch (error) {
     console.error("Error creating user:", error);
-    res.status(500).json({ message: "Failed to create user" });
+    res.status(500).json({
+      message: "Failed to create user",
+      error: error.message
+    });
   }
 });
 router3.put("/:id", async (req, res) => {
   try {
     console.log("PUT /api/users/:id - Updating user:", req.params.id);
     console.log("Request body:", req.body);
-    const { email, name, role, department, phone, is_active, is_locked, password } = req.body;
-    if (!email || !name || !role) {
-      return res.status(400).json({ message: "Email, name, and role are required" });
+    const { email, name, first_name, last_name, role, department, phone, is_active, is_locked, password } = req.body;
+    if (!email || !name && !first_name || !role) {
+      return res.status(400).json({ message: "Email, name/first_name, and role are required" });
     }
-    const nameParts = (name || "").trim().split(" ");
-    const first_name = nameParts[0] || "";
-    const last_name = nameParts.slice(1).join(" ") || "";
-    const userCheck = await db.query(`SELECT id, is_locked FROM users WHERE id = $1`, [req.params.id]);
+    const userCheck = await db.query(`SELECT id, email, is_locked, first_name, last_name FROM users WHERE id = $1`, [req.params.id]);
     if (userCheck.rows.length === 0) {
       return res.status(404).json({ message: "User not found" });
+    }
+    let firstName, lastName;
+    if (first_name !== void 0 || last_name !== void 0) {
+      firstName = first_name || "";
+      lastName = last_name || "";
+    } else if (name) {
+      const nameParts = (name || "").trim().split(" ");
+      firstName = nameParts[0] || "";
+      lastName = nameParts.slice(1).join(" ") || "";
+    } else {
+      const currentUser2 = userCheck.rows[0];
+      firstName = currentUser2.first_name || "";
+      lastName = currentUser2.last_name || "";
+    }
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const currentUser = userCheck.rows[0];
+    if (email.toLowerCase() !== currentUser.email.toLowerCase()) {
+      const emailCheck = await db.query(`SELECT id FROM users WHERE email = $1 AND id != $2`, [email.toLowerCase(), req.params.id]);
+      if (emailCheck.rows.length > 0) {
+        return res.status(400).json({ message: "Email already exists for another user" });
+      }
     }
     let updateQuery = `
       UPDATE users 
@@ -15801,8 +15991,8 @@ router3.put("/:id", async (req, res) => {
     `;
     let values = [
       email.toLowerCase(),
-      first_name,
-      last_name,
+      firstName,
+      lastName,
       role,
       phone || null,
       department || null,
@@ -15813,7 +16003,7 @@ router3.put("/:id", async (req, res) => {
     if (password && password.trim()) {
       const saltRounds = 10;
       const password_hash = await bcrypt3.hash(password, saltRounds);
-      updateQuery += `, password_hash = $10 WHERE id = $11`;
+      updateQuery += `, password_hash = $10, last_password_change = NOW() WHERE id = $11`;
       values.push(password_hash, req.params.id);
     } else {
       updateQuery += ` WHERE id = $10`;
@@ -15821,22 +16011,28 @@ router3.put("/:id", async (req, res) => {
     }
     updateQuery += ` RETURNING id, email, username, first_name, last_name, role, phone, location, department, is_active, is_locked, created_at, updated_at`;
     console.log("Executing update query:", updateQuery);
-    console.log("With values:", values);
+    console.log("With values (excluding password):", values.map((v, i) => i === values.length - 2 && password ? "[PASSWORD HASH]" : v));
     const result = await db.query(updateQuery, values);
     if (result.rows.length === 0) {
       return res.status(404).json({ message: "User not found or update failed" });
     }
     const updatedUser = result.rows[0];
     updatedUser.name = `${updatedUser.first_name || ""} ${updatedUser.last_name || ""}`.trim();
-    updatedUser.department = updatedUser.department || updatedUser.location;
-    console.log("User updated successfully:", updatedUser);
+    updatedUser.department = updatedUser.department || updatedUser.location || "N/A";
+    updatedUser.status = updatedUser.is_active !== false && updatedUser.is_locked !== true ? "active" : "inactive";
+    console.log("User updated successfully:", {
+      id: updatedUser.id,
+      email: updatedUser.email,
+      name: updatedUser.name,
+      status: updatedUser.status
+    });
     res.json(updatedUser);
   } catch (error) {
     console.error("Error updating user:", error);
     res.status(500).json({
       message: "Failed to update user",
       error: error.message,
-      details: error.detail || error.stack
+      details: process.env.NODE_ENV === "development" ? error.stack : void 0
     });
   }
 });
