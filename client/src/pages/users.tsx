@@ -33,7 +33,9 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  Lock,
+  Unlock
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -455,7 +457,7 @@ export default function UsersPage() {
     const formData = new FormData();
     formData.append('file', file);
     importMutation.mutate(formData);
-    
+
     // Reset the input
     event.target.value = '';
   };

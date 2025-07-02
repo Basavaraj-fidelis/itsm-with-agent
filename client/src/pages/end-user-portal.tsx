@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   User,
   Mail,
@@ -22,6 +23,10 @@ import {
   Clock,
   CheckCircle,
   XCircle,
+  Monitor,
+  Activity,
+  TicketIcon,
+  Eye,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -34,6 +39,33 @@ interface TicketRequest {
   subject: string;
   description: string;
   contact_method: 'email' | 'phone' | 'chat';
+}
+
+interface UserTicket {
+  id: string;
+  ticket_number: string;
+  title: string;
+  description: string;
+  status: string;
+  priority: string;
+  type: string;
+  category: string;
+  created_at: string;
+  updated_at: string;
+  assigned_to?: string;
+}
+
+interface UserDevice {
+  id: string;
+  hostname: string;
+  ip_address: string;
+  os_name: string;
+  os_version: string;
+  status: string;
+  last_seen: string;
+  cpu_usage?: number;
+  memory_usage?: number;
+  disk_usage?: number;
 }
 
 const SERVICE_CATEGORIES = [
@@ -58,12 +90,44 @@ const PRIORITY_LEVELS = [
   { value: 'urgent', label: 'Urgent', description: 'Critical, business stopped', color: 'bg-red-100 text-red-800' },
 ];
 
+const getStatusColor = (status: string) => {
+  switch (status.toLowerCase()) {
+    case 'new': return 'bg-blue-100 text-blue-800';
+    case 'assigned': return 'bg-purple-100 text-purple-800';
+    case 'in_progress': return 'bg-yellow-100 text-yellow-800';
+    case 'resolved': return 'bg-green-100 text-green-800';
+    case 'closed': return 'bg-gray-100 text-gray-800';
+    case 'cancelled': return 'bg-red-100 text-red-800';
+    default: return 'bg-gray-100 text-gray-800';
+  }
+};
+
+const getPriorityColor = (priority: string) => {
+  switch (priority.toLowerCase()) {
+    case 'low': return 'bg-green-100 text-green-800';
+    case 'medium': return 'bg-yellow-100 text-yellow-800';
+    case 'high': return 'bg-orange-100 text-orange-800';
+    case 'urgent': return 'bg-red-100 text-red-800';
+    default: return 'bg-gray-100 text-gray-800';
+  }
+};
+
+const getDeviceStatusColor = (status: string) => {
+  switch (status.toLowerCase()) {
+    case 'online': return 'bg-green-100 text-green-800';
+    case 'offline': return 'bg-red-100 text-red-800';
+    case 'warning': return 'bg-yellow-100 text-yellow-800';
+    default: return 'bg-gray-100 text-gray-800';
+  }
+};
+
 export default function EndUserPortal() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [userInfo, setUserInfo] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'service_request' | 'incident'>('service_request');
+  const [activeTab, setActiveTab] = useState<'tickets' | 'devices' | 'create'>('tickets');
+  const [activeCreateTab, setActiveCreateTab] = useState<'service_request' | 'incident'>('service_request');
   const [formData, setFormData] = useState<TicketRequest>({
     type: 'service_request',
     category: '',
@@ -75,6 +139,10 @@ export default function EndUserPortal() {
     contact_method: 'email',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userTickets, setUserTickets] = useState<UserTicket[]>([]);
+  const [userDevices, setUserDevices] = useState<UserDevice[]>([]);
+  const [isLoadingTickets, setIsLoadingTickets] = useState(false);
+  const [isLoadingDevices, setIsLoadingDevices] = useState(false);
   const { toast } = useToast();
 
   // Check if user is already authenticated
@@ -87,6 +155,76 @@ export default function EndUserPortal() {
       setFormData(prev => ({ ...prev, email: JSON.parse(user).email }));
     }
   }, []);
+
+  // Load user tickets and devices when authenticated
+  useEffect(() => {
+    if (isAuthenticated && userInfo) {
+      loadUserTickets();
+      loadUserDevices();
+    }
+  }, [isAuthenticated, userInfo]);
+
+  const loadUserTickets = async () => {
+    setIsLoadingTickets(true);
+    try {
+      const token = localStorage.getItem('end_user_token');
+      const response = await fetch('/api/tickets?limit=1000', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        // Filter tickets by user email
+        const userTickets = result.data.filter((ticket: UserTicket) => 
+          ticket.requester_email?.toLowerCase() === userInfo.email.toLowerCase()
+        );
+        setUserTickets(userTickets);
+      }
+    } catch (error) {
+      console.error('Error loading user tickets:', error);
+      toast({
+        title: "Error loading tickets",
+        description: "Unable to load your tickets",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingTickets(false);
+    }
+  };
+
+  const loadUserDevices = async () => {
+    setIsLoadingDevices(true);
+    try {
+      const token = localStorage.getItem('end_user_token');
+      const response = await fetch('/api/devices', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const devices = await response.json();
+        // Filter devices by user email (assigned_user field)
+        const userDevices = devices.filter((device: UserDevice) => 
+          device.assigned_user?.toLowerCase() === userInfo.email.toLowerCase()
+        );
+        setUserDevices(userDevices);
+      }
+    } catch (error) {
+      console.error('Error loading user devices:', error);
+      toast({
+        title: "Error loading devices",
+        description: "Unable to load your devices",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingDevices(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,12 +275,14 @@ export default function EndUserPortal() {
     setIsAuthenticated(false);
     setUserInfo(null);
     setFormData(prev => ({ ...prev, email: '' }));
+    setUserTickets([]);
+    setUserDevices([]);
   };
 
-  const categories = activeTab === 'service_request' ? SERVICE_CATEGORIES : INCIDENT_CATEGORIES;
+  const categories = activeCreateTab === 'service_request' ? SERVICE_CATEGORIES : INCIDENT_CATEGORIES;
 
   const handleTabChange = (tab: 'service_request' | 'incident') => {
-    setActiveTab(tab);
+    setActiveCreateTab(tab);
     setFormData(prev => ({
       ...prev,
       type: tab,
@@ -168,10 +308,12 @@ export default function EndUserPortal() {
     setIsSubmitting(true);
     
     try {
+      const token = localStorage.getItem('end_user_token');
       const response = await fetch('/api/tickets', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           title: formData.subject,
@@ -195,15 +337,21 @@ export default function EndUserPortal() {
         
         // Reset form
         setFormData({
-          type: activeTab,
+          type: activeCreateTab,
           category: '',
           priority: 'medium',
-          email: '',
+          email: userInfo.email,
           phone: '',
           subject: '',
           description: '',
           contact_method: 'email',
         });
+
+        // Reload tickets to show the new one
+        loadUserTickets();
+        
+        // Switch to tickets tab
+        setActiveTab('tickets');
       } else {
         throw new Error('Failed to submit request');
       }
@@ -226,7 +374,7 @@ export default function EndUserPortal() {
           <div className="bg-white rounded-lg shadow-md p-8">
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">IT Service Portal</h1>
-              <p className="text-gray-600">Sign in to submit service requests and report issues</p>
+              <p className="text-gray-600">Sign in to submit service requests and view your tickets</p>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-6">
@@ -288,7 +436,7 @@ export default function EndUserPortal() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
+      <div className="max-w-6xl mx-auto px-4">
         <div className="text-center mb-8">
           <div className="flex justify-between items-center mb-4">
             <div></div>
@@ -302,209 +450,372 @@ export default function EndUserPortal() {
             </div>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">IT Service Portal</h1>
-          <p className="text-gray-600">Submit service requests and report technical issues</p>
+          <p className="text-gray-600">View your tickets, devices, and submit new requests</p>
         </div>
 
-        {/* Tab Selection */}
-        <div className="flex justify-center mb-8">
-          <div className="bg-white rounded-lg p-1 shadow-sm border">
-            <button
-              onClick={() => handleTabChange('service_request')}
-              className={`px-6 py-3 rounded-md font-medium transition-colors ${
-                activeTab === 'service_request'
-                  ? 'bg-blue-500 text-white'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Briefcase className="w-4 h-4 inline mr-2" />
-              Service Request
-            </button>
-            <button
-              onClick={() => handleTabChange('incident')}
-              className={`px-6 py-3 rounded-md font-medium transition-colors ${
-                activeTab === 'incident'
-                  ? 'bg-red-500 text-white'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <AlertTriangle className="w-4 h-4 inline mr-2" />
-              Report Issue
-            </button>
-          </div>
-        </div>
+        <Tabs value={activeTab} onValueChange={(value: any) => setActiveTab(value)} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="tickets" className="flex items-center">
+              <TicketIcon className="w-4 h-4 mr-2" />
+              My Tickets ({userTickets.length})
+            </TabsTrigger>
+            <TabsTrigger value="devices" className="flex items-center">
+              <Monitor className="w-4 h-4 mr-2" />
+              My Devices ({userDevices.length})
+            </TabsTrigger>
+            <TabsTrigger value="create" className="flex items-center">
+              <Send className="w-4 h-4 mr-2" />
+              Create Request
+            </TabsTrigger>
+          </TabsList>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Category Selection */}
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                {activeTab === 'service_request' ? 'What do you need?' : 'What type of issue are you experiencing?'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {categories.map((category) => {
-                  const Icon = category.icon;
-                  return (
-                    <button
-                      key={category.id}
-                      type="button"
-                      onClick={() => handleCategorySelect(category.id)}
-                      className={`p-4 border-2 rounded-lg text-left transition-colors ${
-                        formData.category === category.id
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="flex items-start space-x-3">
-                        <Icon className={`w-6 h-6 mt-1 ${
-                          formData.category === category.id ? 'text-blue-500' : 'text-gray-400'
-                        }`} />
-                        <div>
-                          <h3 className="font-medium text-gray-900">{category.name}</h3>
-                          <p className="text-sm text-gray-600">{category.description}</p>
+          <TabsContent value="tickets" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <TicketIcon className="w-5 h-5 mr-2" />
+                  My Support Tickets
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoadingTickets ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Clock className="w-6 h-6 animate-spin mr-2" />
+                    Loading your tickets...
+                  </div>
+                ) : userTickets.length === 0 ? (
+                  <div className="text-center py-8">
+                    <TicketIcon className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No tickets found</h3>
+                    <p className="text-gray-600 mb-4">You haven't submitted any support requests yet.</p>
+                    <Button onClick={() => setActiveTab('create')}>
+                      Create Your First Request
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {userTickets.map((ticket) => (
+                      <div key={ticket.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <h3 className="font-medium text-gray-900">{ticket.ticket_number}</h3>
+                              <Badge className={getStatusColor(ticket.status)}>
+                                {ticket.status}
+                              </Badge>
+                              <Badge className={getPriorityColor(ticket.priority)}>
+                                {ticket.priority}
+                              </Badge>
+                            </div>
+                            <h4 className="text-lg font-medium text-gray-900 mb-2">{ticket.title}</h4>
+                            <p className="text-gray-600 mb-2 line-clamp-2">{ticket.description}</p>
+                            <div className="flex items-center text-sm text-gray-500 space-x-4">
+                              <span>Type: {ticket.type?.replace('_', ' ')}</span>
+                              <span>Category: {ticket.category}</span>
+                              <span>Created: {new Date(ticket.created_at).toLocaleDateString()}</span>
+                              {ticket.assigned_to && <span>Assigned to: {ticket.assigned_to}</span>}
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-          {/* Priority Selection */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Priority Level</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {PRIORITY_LEVELS.map((priority) => (
-                  <button
-                    key={priority.value}
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, priority: priority.value as any }))}
-                    className={`p-3 border-2 rounded-lg text-center transition-colors ${
-                      formData.priority === priority.value
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <Badge className={`${priority.color} mb-2`}>{priority.label}</Badge>
-                    <p className="text-xs text-gray-600">{priority.description}</p>
-                  </button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <TabsContent value="devices" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Monitor className="w-5 h-5 mr-2" />
+                  My Devices
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoadingDevices ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Clock className="w-6 h-6 animate-spin mr-2" />
+                    Loading your devices...
+                  </div>
+                ) : userDevices.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Monitor className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No devices found</h3>
+                    <p className="text-gray-600">No devices are currently assigned to your account.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {userDevices.map((device) => (
+                      <div key={device.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center">
+                            <Monitor className="w-5 h-5 text-gray-400 mr-2" />
+                            <h3 className="font-medium text-gray-900">{device.hostname}</h3>
+                          </div>
+                          <Badge className={getDeviceStatusColor(device.status)}>
+                            {device.status}
+                          </Badge>
+                        </div>
+                        
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">IP Address:</span>
+                            <span className="font-medium">{device.ip_address}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">OS:</span>
+                            <span className="font-medium">{device.os_name} {device.os_version}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Last Seen:</span>
+                            <span className="font-medium">
+                              {new Date(device.last_seen).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
 
-          {/* Request Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Request Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Office Email Address *
-                </label>
-                <Input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="your.name@company.com"
-                  required
-                />
-              </div>
+                        {(device.cpu_usage || device.memory_usage || device.disk_usage) && (
+                          <div className="mt-4 pt-3 border-t">
+                            <div className="flex items-center mb-2">
+                              <Activity className="w-4 h-4 text-gray-400 mr-1" />
+                              <span className="text-sm font-medium text-gray-600">Performance</span>
+                            </div>
+                            <div className="space-y-1 text-xs">
+                              {device.cpu_usage && (
+                                <div className="flex justify-between">
+                                  <span>CPU:</span>
+                                  <span>{device.cpu_usage.toFixed(1)}%</span>
+                                </div>
+                              )}
+                              {device.memory_usage && (
+                                <div className="flex justify-between">
+                                  <span>Memory:</span>
+                                  <span>{device.memory_usage.toFixed(1)}%</span>
+                                </div>
+                              )}
+                              {device.disk_usage && (
+                                <div className="flex justify-between">
+                                  <span>Disk:</span>
+                                  <span>{device.disk_usage.toFixed(1)}%</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone Number
-                </label>
-                <Input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  placeholder="+1 (555) 123-4567"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Subject *
-                </label>
-                <Input
-                  value={formData.subject}
-                  onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
-                  placeholder="Brief description of your request or issue"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description *
-                </label>
-                <Textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Provide detailed information about your request or issue. Include any error messages, steps to reproduce, or specific requirements."
-                  rows={5}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Preferred Contact Method
-                </label>
-                <Select
-                  value={formData.contact_method}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, contact_method: value as any }))}
+          <TabsContent value="create" className="space-y-6">
+            {/* Tab Selection */}
+            <div className="flex justify-center mb-8">
+              <div className="bg-white rounded-lg p-1 shadow-sm border">
+                <button
+                  onClick={() => handleTabChange('service_request')}
+                  className={`px-6 py-3 rounded-md font-medium transition-colors ${
+                    activeCreateTab === 'service_request'
+                      ? 'bg-blue-500 text-white'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="email">
-                      <Mail className="w-4 h-4 inline mr-2" />
-                      Email
-                    </SelectItem>
-                    <SelectItem value="phone">
-                      <Phone className="w-4 h-4 inline mr-2" />
-                      Phone
-                    </SelectItem>
-                    <SelectItem value="chat">
-                      <HelpCircle className="w-4 h-4 inline mr-2" />
-                      Chat/Teams
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                  <Briefcase className="w-4 h-4 inline mr-2" />
+                  Service Request
+                </button>
+                <button
+                  onClick={() => handleTabChange('incident')}
+                  className={`px-6 py-3 rounded-md font-medium transition-colors ${
+                    activeCreateTab === 'incident'
+                      ? 'bg-red-500 text-white'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <AlertTriangle className="w-4 h-4 inline mr-2" />
+                  Report Issue
+                </button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
 
-          {/* Submit Button */}
-          <div className="flex justify-center">
-            <Button
-              type="submit"
-              disabled={isSubmitting || !formData.category || !formData.email || !formData.subject || !formData.description}
-              className="px-8 py-3 text-lg"
-            >
-              {isSubmitting ? (
-                <>
-                  <Clock className="w-4 h-4 mr-2 animate-spin" />
-                  Submitting...
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4 mr-2" />
-                  Submit {activeTab === 'service_request' ? 'Request' : 'Issue'}
-                </>
-              )}
-            </Button>
-          </div>
-        </form>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Category Selection */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>
+                    {activeCreateTab === 'service_request' ? 'What do you need?' : 'What type of issue are you experiencing?'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {categories.map((category) => {
+                      const Icon = category.icon;
+                      return (
+                        <button
+                          key={category.id}
+                          type="button"
+                          onClick={() => handleCategorySelect(category.id)}
+                          className={`p-4 border-2 rounded-lg text-left transition-colors ${
+                            formData.category === category.id
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="flex items-start space-x-3">
+                            <Icon className={`w-6 h-6 mt-1 ${
+                              formData.category === category.id ? 'text-blue-500' : 'text-gray-400'
+                            }`} />
+                            <div>
+                              <h3 className="font-medium text-gray-900">{category.name}</h3>
+                              <p className="text-sm text-gray-600">{category.description}</p>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Priority Selection */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Priority Level</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {PRIORITY_LEVELS.map((priority) => (
+                      <button
+                        key={priority.value}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, priority: priority.value as any }))}
+                        className={`p-3 border-2 rounded-lg text-center transition-colors ${
+                          formData.priority === priority.value
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <Badge className={`${priority.color} mb-2`}>{priority.label}</Badge>
+                        <p className="text-xs text-gray-600">{priority.description}</p>
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Request Details */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Request Details</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Office Email Address *
+                    </label>
+                    <Input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="your.name@company.com"
+                      required
+                      disabled
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Phone Number
+                    </label>
+                    <Input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                      placeholder="+1 (555) 123-4567"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Subject *
+                    </label>
+                    <Input
+                      value={formData.subject}
+                      onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
+                      placeholder="Brief description of your request or issue"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Description *
+                    </label>
+                    <Textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Provide detailed information about your request or issue. Include any error messages, steps to reproduce, or specific requirements."
+                      rows={5}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Preferred Contact Method
+                    </label>
+                    <Select
+                      value={formData.contact_method}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, contact_method: value as any }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="email">
+                          <Mail className="w-4 h-4 inline mr-2" />
+                          Email
+                        </SelectItem>
+                        <SelectItem value="phone">
+                          <Phone className="w-4 h-4 inline mr-2" />
+                          Phone
+                        </SelectItem>
+                        <SelectItem value="chat">
+                          <HelpCircle className="w-4 h-4 inline mr-2" />
+                          Chat/Teams
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Submit Button */}
+              <div className="flex justify-center">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || !formData.category || !formData.email || !formData.subject || !formData.description}
+                  className="px-8 py-3 text-lg"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Clock className="w-4 h-4 mr-2 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" />
+                      Submit {activeCreateTab === 'service_request' ? 'Request' : 'Issue'}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </TabsContent>
+        </Tabs>
 
         {/* Help Section */}
         <Card className="mt-8">

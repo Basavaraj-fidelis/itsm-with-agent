@@ -40,7 +40,7 @@ router.post("/import-end-users", upload.single('file'), async (req, res) => {
         const readable = new stream.Readable();
         readable.push(csvData);
         readable.push(null);
-        
+
         readable
           .pipe(csv())
           .on('data', (data: any) => results.push(data))
@@ -82,7 +82,7 @@ router.post("/import-end-users", upload.single('file'), async (req, res) => {
 
         // Generate username from email
         const username = email.split('@')[0];
-        
+
         // Generate temporary password
         const tempPassword = `TempPass${Math.random().toString(36).slice(-6)}!`;
         const password_hash = await bcrypt.hash(tempPassword, 10);
@@ -245,7 +245,7 @@ router.get("/", async (req, res) => {
         COUNT(CASE WHEN COALESCE(preferences, '{}')->>'ad_synced' IS NULL OR COALESCE(preferences, '{}')->>'ad_synced' = 'false' THEN 1 END) as local_users
       FROM users
     `;
-    
+
     const statsResult = await db.query(statsQuery);
     const stats = statsResult.rows[0];
 
@@ -253,7 +253,7 @@ router.get("/", async (req, res) => {
       // Parse preferences and permissions safely
       let preferences = {};
       let permissions = [];
-      
+
       try {
         preferences = typeof user.preferences === 'string' ? JSON.parse(user.preferences) : (user.preferences || {});
       } catch (e) {
@@ -335,13 +335,13 @@ router.get("/departments", async (req, res) => {
 router.post("/bulk-ad-sync", async (req, res) => {
   try {
     const { userEmails } = req.body;
-    
+
     if (!userEmails || !Array.isArray(userEmails)) {
       return res.status(400).json({ message: "User emails array is required" });
     }
 
     const results = [];
-    
+
     for (const email of userEmails) {
       try {
         // Call AD sync for each user
@@ -573,7 +573,7 @@ router.put("/:id", async (req, res) => {
     updatedUser.name = `${updatedUser.first_name || ''} ${updatedUser.last_name || ''}`.trim();
     updatedUser.department = updatedUser.department || updatedUser.location || 'N/A';
     updatedUser.status = (updatedUser.is_active !== false) && (updatedUser.is_locked !== true) ? 'active' : 'inactive';
-    
+
     console.log("User updated successfully:", { 
       id: updatedUser.id, 
       email: updatedUser.email, 
@@ -623,14 +623,14 @@ router.post("/:id/lock", async (req, res) => {
 
     // First check if user exists
     const userCheck = await db.query(`SELECT id, email, username, is_locked FROM users WHERE id = $1`, [userId]);
-    
+
     if (userCheck.rows.length === 0) {
       console.log(`User ${userId} not found`);
       return res.status(404).json({ message: "User not found" });
     }
 
     const user = userCheck.rows[0];
-    
+
     if (user.is_locked) {
       console.log(`User ${userId} is already locked`);
       return res.status(400).json({ message: "User is already locked" });
@@ -668,7 +668,7 @@ router.post("/:id/lock", async (req, res) => {
 
     const lockedUser = result.rows[0];
     console.log("User locked successfully:", lockedUser);
-    
+
     res.json({ 
       message: "User locked successfully", 
       user: {
@@ -696,14 +696,14 @@ router.post("/:id/unlock", async (req, res) => {
 
     // First check if user exists
     const userCheck = await db.query(`SELECT id, email, username, is_locked FROM users WHERE id = $1`, [userId]);
-    
+
     if (userCheck.rows.length === 0) {
       console.log(`User ${userId} not found`);
       return res.status(404).json({ message: "User not found" });
     }
 
     const user = userCheck.rows[0];
-    
+
     if (!user.is_locked) {
       console.log(`User ${userId} is already unlocked`);
       return res.status(400).json({ message: "User is already unlocked" });
@@ -741,7 +741,7 @@ router.post("/:id/unlock", async (req, res) => {
 
     const unlockedUser = result.rows[0];
     console.log("User unlocked successfully:", unlockedUser);
-    
+
     res.json({ 
       message: "User unlocked successfully", 
       user: {
