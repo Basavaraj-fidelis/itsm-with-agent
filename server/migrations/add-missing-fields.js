@@ -171,6 +171,15 @@ async function addMissingFields() {
       ADD COLUMN IF NOT EXISTS ticket_id UUID;
     `);
 
+    // Add missing SLA escalation columns
+    console.log("Ensuring SLA escalation columns exist...");
+    await pool.query(`
+      ALTER TABLE tickets 
+      ADD COLUMN IF NOT EXISTS escalation_reason TEXT,
+      ADD COLUMN IF NOT EXISTS escalation_level INTEGER DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS last_escalation_at TIMESTAMPTZ;
+    `);
+
     // Now create indexes after all tables exist
     console.log("Creating indexes...");
     

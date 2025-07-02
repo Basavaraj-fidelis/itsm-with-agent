@@ -1,517 +1,247 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { Monitor, Server, Laptop, Eye, MoreHorizontal } from "lucide-react";
-import type { Device } from "@/lib/api";
-import { formatDistanceToNow } from "date-fns";
-import { Link } from "wouter";
+import React from 'react';
+import { useState, useMemo } from 'react';
+import { format } from 'date-fns';
+import { Monitor, Wifi, WifiOff, AlertTriangle, CheckCircle, Search, Filter, MoreVertical, Eye, Settings, Trash2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { LoadingSpinner, EmptyState, ErrorState } from '@/components/ui/loading-states';
+import { DataTable, Column } from '@/components/ui/data-table';
 
 interface AgentTableProps {
-  agents: Device[];
-  isLoading: boolean;
+  agents: any[];
+  loading?: boolean;
+  error?: string;
+  onAgentClick?: (agent: any) => void;
+  onAgentDelete?: (agent: any) => void;
+  onAgentEdit?: (agent: any) => void;
+  onRefresh?: () => void;
+  selectedAgents?: any[];
+  onSelectionChange?: (agents: any[]) => void;
 }
 
-const getDeviceIcon = (hostname: string) => {
-  const lowerHostname = hostname.toLowerCase();
-  if (lowerHostname.includes("server") || lowerHostname.includes("srv")) {
-    return Server;
-  } else if (
-    lowerHostname.includes("laptop") ||
-    lowerHostname.includes("note")
-  ) {
-    return Laptop;
-  } else if (
-    lowerHostname.includes("desktop") ||
-    lowerHostname.includes("pc")
-  ) {
-    return Monitor;
-  }
-  return Monitor; // Default
-};
+export const AgentTable: React.FC<AgentTableProps> = ({ 
+  agents, 
+  loading = false, 
+  error,
+  onAgentClick, 
+  onAgentDelete,
+  onAgentEdit,
+  onRefresh,
+  selectedAgents = [],
+  onSelectionChange
+}) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [deleteAgent, setDeleteAgent] = useState<any>(null);
 
-const getProgressBarColor = (value: number) => {
-  if (value >= 90) return "bg-red-500";
-  if (value >= 70) return "bg-yellow-500";
-  return "bg-green-500";
-};
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      online: { variant: 'default' as const, icon: CheckCircle, className: 'bg-green-100 text-green-800 border-green-200' },
+      offline: { variant: 'secondary' as const, icon: WifiOff, className: 'bg-red-100 text-red-800 border-red-200' },
+      warning: { variant: 'outline' as const, icon: AlertTriangle, className: 'bg-yellow-100 text-yellow-800 border-yellow-200' }
+    };
 
-export function AgentTable({ agents, isLoading }: AgentTableProps) {
-  if (isLoading) {
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.offline;
+    const IconComponent = config.icon;
+
+    return (
+      <Badge variant={config.variant} className={config.className}>
+        <IconComponent className="h-3 w-3 mr-1" />
+        {status || 'Unknown'}
+      </Badge>
+    );
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deleteAgent && onAgentDelete) {
+      onAgentDelete(deleteAgent);
+      setDeleteAgent(null);
+    }
+  };
+
+  const columns: Column<any>[] = [
+    {
+      key: 'name',
+      header: 'Agent Name',
+      sortable: true,
+      filterable: true,
+      render: (value, agent) => (
+        <div className="flex items-center space-x-3">
+          <Monitor className="h-5 w-5 text-gray-400" />
+          <div>
+            <div className="font-medium text-gray-900 dark:text-white">
+              {value || 'Unknown'}
+            </div>
+            <div className="text-sm text-gray-500">
+              {agent.ip_address || 'No IP'}
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      sortable: true,
+      filterable: true,
+      render: (value) => getStatusBadge(value)
+    },
+    {
+      key: 'last_seen',
+      header: 'Last Seen',
+      sortable: true,
+      render: (value) => value ? format(new Date(value), 'MMM dd, yyyy HH:mm') : 'Never'
+    },
+    {
+      key: 'cpu_usage',
+      header: 'CPU',
+      sortable: true,
+      render: (value) => `${(value || 0).toFixed(1)}%`
+    },
+    {
+      key: 'memory_usage',
+      header: 'Memory',
+      sortable: true,
+      render: (value) => `${(value || 0).toFixed(1)}%`
+    },
+    {
+      key: 'disk_usage',
+      header: 'Disk',
+      sortable: true,
+      render: (value) => `${(value || 0).toFixed(1)}%`
+    }
+  ];
+
+  const renderActions = (agent: any) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm">
+          <MoreVertical className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => onAgentClick?.(agent)}>
+          <Eye className="h-4 w-4 mr-2" />
+          View Details
+        </DropdownMenuItem>
+        {onAgentEdit && (
+          <DropdownMenuItem onClick={() => onAgentEdit(agent)}>
+            <Settings className="h-4 w-4 mr-2" />
+            Edit Agent
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator />
+        {onAgentDelete && (
+          <DropdownMenuItem 
+            onClick={() => setDeleteAgent(agent)}
+            className="text-red-600 focus:text-red-600"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete Agent
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  if (error) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>All Agents</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="animate-pulse space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div
-                key={i}
-                className="h-16 bg-neutral-200 dark:bg-neutral-700 rounded"
-              ></div>
-            ))}
-          </div>
+        <CardContent className="p-6">
+          <ErrorState 
+            title="Failed to load agents"
+            message={error}
+            onRetry={onRefresh}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!loading && agents.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <EmptyState
+            icon={<Monitor className="h-12 w-12" />}
+            title="No agents found"
+            description="No monitoring agents are currently registered. Deploy agents to start monitoring your systems."
+            action={
+              <Button onClick={onRefresh}>
+                Refresh
+              </Button>
+            }
+          />
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>All Agents</CardTitle>
-        <p className="text-sm text-neutral-600">
-          Manage and monitor all connected agents
-        </p>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-neutral-50 dark:bg-neutral-700">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                  <Checkbox />
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                  Hostname
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                  Assigned User
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                  IP Address
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                  Last Seen
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                  OS
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                  Performance
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-neutral-800 divide-y divide-neutral-200 dark:divide-neutral-700">
-              {agents.map((agent) => {
-                const DeviceIcon = getDeviceIcon(agent.hostname);
-                const cpuUsage = agent.latest_report?.cpu_usage
-                  ? parseFloat(agent.latest_report.cpu_usage)
-                  : 0;
-                const memoryUsage = agent.latest_report?.memory_usage
-                  ? parseFloat(agent.latest_report.memory_usage)
-                  : 0;
-
-                return (
-                  <tr
-                    key={agent.id}
-                    className="hover:bg-neutral-50 dark:hover:bg-neutral-700"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Checkbox />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <DeviceIcon className="w-5 h-5 text-neutral-400 mr-3" />
-                        <div>
-                          <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                            {agent.hostname}
-                          </div>
-                          <div className="text-sm text-neutral-500">
-                            {agent.ip_address}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mr-3">
-                          <span className="text-blue-600 dark:text-blue-300 text-sm font-medium">
-                            {(() => {
-                              // Get assigned user from latest report or agent data - prioritize extracted data
-                              const latestReport = agent.latest_report;
-                              const rawData = latestReport?.raw_data
-                                ? typeof latestReport.raw_data === "string"
-                                  ? JSON.parse(latestReport.raw_data)
-                                  : latestReport.raw_data
-                                : {};
-
-                              const assignedUser =
-                                rawData.extracted_current_user ||
-                                agent.assigned_user ||
-                                rawData.assigned_user ||
-                                rawData.current_user ||
-                                rawData.user ||
-                                rawData.username;
-
-                              // Filter out system accounts and invalid values
-                              if (
-                                !assignedUser ||
-                                assignedUser.endsWith("$") ||
-                                assignedUser === "Unknown" ||
-                                assignedUser === "N/A" ||
-                                assignedUser.includes("SYSTEM") ||
-                                assignedUser.includes("NETWORK SERVICE") ||
-                                assignedUser.includes("LOCAL SERVICE")
-                              ) {
-                                return "?";
-                              }
-
-                              return assignedUser.charAt(0).toUpperCase();
-                            })()}
-                          </span>
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                            {(() => {
-                              // Get assigned user from latest report or agent data - prioritize extracted data
-                              const latestReport = agent.latest_report;
-                              const rawData = latestReport?.raw_data
-                                ? typeof latestReport.raw_data === "string"
-                                  ? JSON.parse(latestReport.raw_data)
-                                  : latestReport.raw_data
-                                : {};
-
-                              const assignedUser =
-                                rawData.extracted_current_user ||
-                                agent.assigned_user ||
-                                rawData.assigned_user ||
-                                rawData.current_user ||
-                                rawData.user ||
-                                rawData.username;
-
-                              // Filter out system accounts and invalid values
-                              if (
-                                !assignedUser ||
-                                assignedUser.endsWith("$") ||
-                                assignedUser === "Unknown" ||
-                                assignedUser === "N/A" ||
-                                assignedUser.includes("SYSTEM") ||
-                                assignedUser.includes("NETWORK SERVICE") ||
-                                assignedUser.includes("LOCAL SERVICE")
-                              ) {
-                                return "Unassigned";
-                              }
-
-                              // Handle domain users like "DOMAIN\user"
-                              if (assignedUser.includes("\\")) {
-                                return assignedUser.split("\\").pop() || assignedUser;
-                              }
-
-                              // Return username part if it's an email
-                              return assignedUser.includes("@")
-                                ? assignedUser.split("@")[0]
-                                : assignedUser;
-                            })()}
-                          </div>
-                          <div className="text-sm text-neutral-500">
-                            {(() => {
-                              // Get assigned user from latest report or agent data - prioritize extracted data
-                              const latestReport = agent.latest_report;
-                              const rawData = latestReport?.raw_data
-                                ? typeof latestReport.raw_data === "string"
-                                  ? JSON.parse(latestReport.raw_data)
-                                  : latestReport.raw_data
-                                : {};
-
-                              const assignedUser =
-                                rawData.extracted_current_user ||
-                                agent.assigned_user ||
-                                rawData.assigned_user ||
-                                rawData.current_user ||
-                                rawData.user ||
-                                rawData.username;
-
-                              // Filter out system accounts and invalid values
-                              if (
-                                !assignedUser ||
-                                assignedUser.endsWith("$") ||
-                                assignedUser === "Unknown" ||
-                                assignedUser === "N/A" ||
-                                assignedUser.includes("SYSTEM") ||
-                                assignedUser.includes("NETWORK SERVICE") ||
-                                assignedUser.includes("LOCAL SERVICE")
-                              ) {
-                                return "No user assigned";
-                              }
-
-                              return assignedUser;
-                            })()}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                        {(() => {
-                          // Try to get IP from latest report raw data first - prioritize extracted IP
-                          const latestReport = agent.latest_report;
-                          const rawData = latestReport?.raw_data
-                            ? typeof latestReport.raw_data === "string"
-                              ? JSON.parse(latestReport.raw_data)
-                              : latestReport.raw_data
-                            : {};
-
-                          // First check if we have extracted IP address from server processing
-                          if (rawData.extracted_ip_address) {
-                            return rawData.extracted_ip_address;
-                          }
-
-                          // Check agent database field
-                          if (agent.ip_address && agent.ip_address !== "N/A") {
-                            return agent.ip_address;
-                          }
-
-                          // Function to get Ethernet IP
-                          const getEthernetIP = () => {
-                            const interfaces =
-                              rawData.network?.interfaces ||
-                              agent.network?.interfaces ||
-                              [];
-                            for (const iface of interfaces) {
-                              const name = iface.name?.toLowerCase() || "";
-                              if (
-                                (name.includes("eth") ||
-                                  name.includes("ethernet") ||
-                                  name.includes("enet") ||
-                                  name.includes("local area connection")) &&
-                                !name.includes("veth") &&
-                                !name.includes("virtual") &&
-                                iface.stats?.is_up !== false
-                              ) {
-                                for (const addr of iface.addresses || []) {
-                                  if (
-                                    addr.family === "AF_INET" &&
-                                    !addr.address.startsWith("127.") &&
-                                    !addr.address.startsWith("169.254.") &&
-                                    addr.address !== "0.0.0.0"
-                                  ) {
-                                    return addr.address;
-                                  }
-                                }
-                              }
-                            }
-                            return null;
-                          };
-
-                          // Function to get WiFi IP
-                          const getWiFiIP = () => {
-                            const interfaces =
-                              rawData.network?.interfaces ||
-                              agent.network?.interfaces ||
-                              [];
-                            for (const iface of interfaces) {
-                              const name = iface.name?.toLowerCase() || "";
-                              if (
-                                (name.includes("wifi") ||
-                                  name.includes("wlan") ||
-                                  name.includes("wireless") ||
-                                  name.includes("wi-fi") ||
-                                  name.includes("802.11")) &&
-                                iface.stats?.is_up !== false
-                              ) {
-                                for (const addr of iface.addresses || []) {
-                                  if (
-                                    addr.family === "AF_INET" &&
-                                    !addr.address.startsWith("127.") &&
-                                    !addr.address.startsWith("169.254.") &&
-                                    addr.address !== "0.0.0.0"
-                                  ) {
-                                    return addr.address;
-                                  }
-                                }
-                              }
-                            }
-                            return null;
-                          };
-
-                          // Function to get any active IP
-                          const getAnyActiveIP = () => {
-                            const interfaces =
-                              rawData.network?.interfaces ||
-                              agent.network?.interfaces ||
-                              [];
-                            for (const iface of interfaces) {
-                              const name = iface.name?.toLowerCase() || "";
-                              const isVirtual =
-                                name.includes("virtual") ||
-                                name.includes("veth") ||
-                                name.includes("docker") ||
-                                name.includes("vmware");
-
-                              if (!isVirtual && iface.stats?.is_up !== false) {
-                                for (const addr of iface.addresses || []) {
-                                  if (
-                                    addr.family === "AF_INET" &&
-                                    addr.address &&
-                                    !addr.address.startsWith("127.") &&
-                                    !addr.address.startsWith("169.254.") &&
-                                    addr.address !== "0.0.0.0"
-                                  ) {
-                                    return addr.address;
-                                  }
-                                }
-                              }
-                            }
-                            return null;
-                          };
-
-                          // Try to get IP in order of preference: Ethernet -> WiFi -> Any Active -> Fallback
-                          const ethernetIP = getEthernetIP();
-                          if (ethernetIP) return ethernetIP;
-
-                          const wifiIP = getWiFiIP();
-                          if (wifiIP) return wifiIP;
-
-                          const anyIP = getAnyActiveIP();
-                          if (anyIP) return anyIP;
-
-                          // Final fallback
-                          return rawData.ip_address || "N/A";
-                        })()}
-                      </div>
-                      <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                        {(() => {
-                          const latestReport = agent.latest_report;
-                          const rawData = latestReport?.raw_data
-                            ? typeof latestReport.raw_data === "string"
-                              ? JSON.parse(latestReport.raw_data)
-                              : latestReport.raw_data
-                            : {};
-
-                          // Show location if available
-                          if (rawData.extracted_location_data && rawData.extracted_location_data.city) {
-                            const location = rawData.extracted_location_data;
-                            return `📍 ${location.city}, ${location.country || location.region}`;
-                          }
-
-                          // Show public IP if available
-                          if (rawData.extracted_public_ip) {
-                            return `Public IP: ${rawData.extracted_public_ip}`;
-                          }
-
-                          // Show MAC address or network info
-                          if (rawData.extracted_primary_mac) {
-                            return `MAC: ${rawData.extracted_primary_mac}`;
-                          }
-
-                          if (rawData.extracted_mac_addresses?.length > 0) {
-                            const firstMac = rawData.extracted_mac_addresses[0];
-                            return `MAC: ${typeof firstMac === 'object' ? firstMac.mac : firstMac}`;
-                          }
-
-                          return "Network info unavailable";
-                        })()}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <StatusBadge status={agent.status} />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
-                      {agent.last_seen
-                        ? formatDistanceToNow(new Date(agent.last_seen), {
-                            addSuffix: true,
-                          })
-                        : "Never"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <span className="text-sm text-neutral-900 dark:text-neutral-100">
-                          {agent.os_name || "Unknown"}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {agent.latest_report ? (
-                        <div className="space-y-1">
-                          <div className="flex items-center">
-                            <div className="w-16 bg-neutral-200 dark:bg-neutral-700 rounded-full h-2 mr-3">
-                              <div
-                                className={`h-2 rounded-full ${getProgressBarColor(cpuUsage)}`}
-                                style={{
-                                  width: `${Math.min(100, Math.max(0, cpuUsage))}%`,
-                                }}
-                              ></div>
-                            </div>
-                            <span
-                              className={`text-xs font-medium ${
-                                cpuUsage >= 90
-                                  ? "text-red-600"
-                                  : cpuUsage >= 70
-                                    ? "text-yellow-600"
-                                    : "text-green-600"
-                              }`}
-                            >
-                              {cpuUsage.toFixed(1)}%
-                            </span>
-                          </div>
-                          <div className="flex items-center">
-                            <div className="w-16 bg-neutral-200 dark:bg-neutral-700 rounded-full h-2 mr-3">
-                              <div
-                                className={`h-2 rounded-full ${
-                                  memoryUsage >= 90
-                                    ? "bg-red-500"
-                                    : memoryUsage >= 70
-                                      ? "bg-yellow-500"
-                                      : "bg-green-500"
-                                }`}
-                                style={{
-                                  width: `${Math.min(100, Math.max(0, memoryUsage))}%`,
-                                }}
-                              ></div>
-                            </div>
-                            <span
-                              className={`text-xs font-medium ${
-                                memoryUsage >= 90
-                                  ? "text-red-600"
-                                  : memoryUsage >= 70
-                                    ? "text-yellow-600"
-                                    : "text-green-600"
-                              }`}
-                            >
-                              {memoryUsage.toFixed(1)}%
-                            </span>
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-neutral-400">--</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center space-x-2">
-                        <Link href={`/agents/${agent.id}`}>
-                          <Button variant="ghost" size="sm">
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                        </Link>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        <div className="bg-white dark:bg-neutral-800 px-4 py-3 flex items-center justify-between border-t border-neutral-200 dark:border-neutral-700 mt-4">
-          <div className="text-sm text-neutral-700 dark:text-neutral-300">
-            Showing <span className="font-medium">1</span> to{" "}
-            <span className="font-medium">{agents.length}</span> of{" "}
-            <span className="font-medium">{agents.length}</span> results
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center space-x-2">
+              <Monitor className="h-5 w-5" />
+              <span>System Agents ({agents.length})</span>
+            </CardTitle>
+            {onRefresh && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={onRefresh}
+                disabled={loading}
+              >
+                {loading ? <LoadingSpinner size="sm" className="mr-2" /> : null}
+                Refresh
+              </Button>
+            )}
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardHeader>
+        <CardContent className="p-0">
+          <DataTable
+            data={agents}
+            columns={columns}
+            loading={loading}
+            searchable={true}
+            filterable={true}
+            pagination={true}
+            pageSize={10}
+            onRowClick={onAgentClick}
+            selectable={!!onSelectionChange}
+            onRowSelect={onSelectionChange}
+            emptyMessage="No monitoring agents found. Deploy agents to start monitoring your systems."
+            actions={renderActions}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteAgent} onOpenChange={() => setDeleteAgent(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Agent</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the agent "{deleteAgent?.name}"? 
+              This action cannot be undone and will stop monitoring for this system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete Agent
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
-}
+};
