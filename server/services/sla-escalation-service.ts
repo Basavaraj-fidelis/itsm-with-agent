@@ -1,4 +1,3 @@
-
 import { db } from "../db";
 import { tickets } from "@shared/ticket-schema";
 import { slaPolicies, slaBreaches } from "@shared/sla-schema";
@@ -60,9 +59,9 @@ export class SLAEscalationService {
   async checkAndEscalateTickets(): Promise<void> {
     try {
       console.log("🔄 Starting SLA escalation check...");
-      
+
       const now = new Date();
-      
+
       // Get all open tickets with SLA due dates
       const openTickets = await db
         .select()
@@ -90,18 +89,18 @@ export class SLAEscalationService {
       }
 
       const alerts: SLAAlert[] = [];
-      
+
       for (const ticket of openTickets) {
         if (!ticket.sla_resolution_due) continue;
 
         const timeDiff = new Date(ticket.sla_resolution_due).getTime() - now.getTime();
         const minutesUntilBreach = Math.floor(timeDiff / (1000 * 60));
-        
+
         // Check each escalation rule
         for (const rule of this.escalationRules) {
           if (this.shouldTriggerEscalation(minutesUntilBreach, rule)) {
             const escalationLevel = this.getEscalationLevel(rule);
-            
+
             alerts.push({
               ticketId: ticket.id,
               ticketNumber: ticket.ticket_number,
@@ -155,10 +154,10 @@ export class SLAEscalationService {
     try {
       // Get escalation target
       const escalationTarget = await this.getEscalationTarget(rule.escalateTo, ticket.assigned_to);
-      
+
       // Create escalation notification
       const message = this.createEscalationMessage(ticket, rule, minutesUntilBreach);
-      
+
       // Send notifications (both in-app and email)
       if (escalationTarget) {
         // In-app notification
@@ -220,7 +219,7 @@ export class SLAEscalationService {
   private async getEscalationTarget(escalateTo: string, currentAssignee?: string): Promise<any> {
     try {
       let role = '';
-      
+
       switch (escalateTo) {
         case 'manager':
           role = 'manager';
@@ -287,7 +286,7 @@ Please take immediate action or reassign if necessary.`;
   ): Promise<void> {
     try {
       const { ticketStorage } = await import("../services/ticket-storage");
-      
+
       const comment = `🚨 SLA Escalation: ${rule.name}
 ${minutesUntilBreach < 0 ? 'Overdue by' : 'Due in'} ${Math.abs(minutesUntilBreach)} minutes
 Escalated to: ${escalatedTo?.email || 'System'}
@@ -359,7 +358,7 @@ Please review and take appropriate action.`;
   async getSLADashboardData(): Promise<any> {
     try {
       const now = new Date();
-      
+
       // Get all open tickets with SLA
       const openTickets = await db
         .select()
@@ -378,7 +377,7 @@ Please review and take appropriate action.`;
 
       for (const ticket of openTickets) {
         if (!ticket.sla_resolution_due) continue;
-        
+
         const timeDiff = new Date(ticket.sla_resolution_due).getTime() - now.getTime();
         const hoursDiff = timeDiff / (1000 * 3600);
 

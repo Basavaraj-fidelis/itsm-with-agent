@@ -404,6 +404,19 @@ Immediate attention required!`;
     // Once work starts (in_progress), response SLA stops
     return status === 'new' || status === 'assigned';
   }
+
+  private async columnExists(columnName: string): Promise<boolean> {
+    try {
+      const result = await db.execute(`
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'tickets' AND column_name = '${columnName}'
+      `);
+      return result.rows.length > 0;
+    } catch (error) {
+      console.warn(`Error checking column ${columnName}:`, error);
+      return false;
+    }
+  }
 }
 
 export const slaMonitorService = new SLAMonitorService();
