@@ -14,6 +14,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -167,6 +168,7 @@ export default function CreateTicket() {
 
     setLoading(true);
     try {
+      console.log("Submitting ticket with data:", formData);
       const response = await api.post("/api/tickets", formData);
 
       if (response.ok) {
@@ -177,14 +179,15 @@ export default function CreateTicket() {
         });
         setLocation("/tickets");
       } else {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to create ticket");
+        const errorData = await response.json().catch(() => ({ error: "Unknown error occurred" }));
+        throw new Error(errorData.error || `HTTP ${response.status}: Failed to create ticket`);
       }
     } catch (error) {
       console.error("Error creating ticket:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to create ticket";
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create ticket",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
