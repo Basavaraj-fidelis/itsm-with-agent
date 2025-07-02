@@ -151,35 +151,51 @@ async function addMissingFields() {
     // Now create indexes after all tables exist
     console.log("Creating indexes...");
     
-    // Check if tables exist before creating indexes
-    const tableChecks = [
-      { table: 'user_group_memberships', columns: ['user_id', 'group_id'] },
-      { table: 'configuration_items', columns: ['ci_type', 'status'] },
-      { table: 'ci_relationships', columns: ['parent_ci_id', 'child_ci_id'] },
-      { table: 'services', columns: ['category'] },
-      { table: 'service_requests', columns: ['ticket_id'] },
-      { table: 'tickets', columns: ['source', 'contact_method'] }
+    // Create indexes with proper column validation
+    const indexQueries = [
+      // User group memberships indexes
+      { table: 'user_group_memberships', column: 'user_id', name: 'idx_user_group_memberships_user_id' },
+      { table: 'user_group_memberships', column: 'group_id', name: 'idx_user_group_memberships_group_id' },
+      
+      // Configuration items indexes
+      { table: 'configuration_items', column: 'ci_type', name: 'idx_configuration_items_ci_type' },
+      { table: 'configuration_items', column: 'status', name: 'idx_configuration_items_status' },
+      
+      // CI relationships indexes (using actual column names)
+      { table: 'ci_relationships', column: 'parent_ci_id', name: 'idx_ci_relationships_parent_ci_id' },
+      { table: 'ci_relationships', column: 'child_ci_id', name: 'idx_ci_relationships_child_ci_id' },
+      
+      // Services indexes
+      { table: 'services', column: 'category', name: 'idx_services_category' },
+      { table: 'services', column: 'service_type', name: 'idx_services_service_type' },
+      
+      // Service requests indexes
+      { table: 'service_requests', column: 'ticket_id', name: 'idx_service_requests_ticket_id' },
+      { table: 'service_requests', column: 'service_id', name: 'idx_service_requests_service_id' },
+      
+      // Tickets indexes
+      { table: 'tickets', column: 'source', name: 'idx_tickets_source' },
+      { table: 'tickets', column: 'contact_method', name: 'idx_tickets_contact_method' }
     ];
 
-    for (const check of tableChecks) {
+    for (const { table, column, name } of indexQueries) {
       try {
-        const tableExists = await pool.query(`
+        // Check if table and column exist
+        const columnExists = await pool.query(`
           SELECT EXISTS (
-            SELECT FROM information_schema.tables 
-            WHERE table_name = $1
+            SELECT FROM information_schema.columns 
+            WHERE table_name = $1 AND column_name = $2 AND table_schema = 'public'
           );
-        `, [check.table]);
+        `, [table, column]);
 
-        if (tableExists.rows[0].exists) {
-          for (const column of check.columns) {
-            const indexName = `idx_${check.table}_${column}`;
-            await pool.query(`
-              CREATE INDEX IF NOT EXISTS ${indexName} ON ${check.table}(${column});
-            `);
-          }
+        if (columnExists.rows[0].exists) {
+          await pool.query(`CREATE INDEX IF NOT EXISTS ${name} ON ${table}(${column});`);
+          console.log(`✅ Created index ${name}`);
+        } else {
+          console.log(`⚠️  Skipping index ${name} - column ${column} does not exist in table ${table}`);
         }
       } catch (error) {
-        console.warn(`⚠️  Could not create indexes for table ${check.table}:`, error.message);
+        console.warn(`⚠️  Could not create index ${name}:`, error.message);
       }
     }
 
