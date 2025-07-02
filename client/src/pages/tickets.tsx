@@ -75,13 +75,17 @@ const priorityColors = {
 
 const statusColors = {
   new: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  assigned: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-  in_progress: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-  pending: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
-  on_hold: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200",
+  assigned:
+    "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+  in_progress:
+    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+  pending:
+    "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+  on_hold:
+    "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200",
   resolved: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
   closed: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
-  cancelled: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+  cancelled: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
 };
 
 const typeIcons = {
@@ -1021,8 +1025,8 @@ export default function Tickets() {
       </Card>
 
       <Card
-        className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 cursor-pointer hover:shadow-lg transition-all duration-200"```text
- onClick={() => {
+        className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 cursor-pointer hover:shadow-lg transition-all duration-200"
+        onClick={() => {
           setSelectedStatus("all");
           setSelectedType("all");
           setSelectedPriority("all");
@@ -1280,7 +1284,7 @@ export default function Tickets() {
         case "cancelled":
           return "destructive";
         case "on_hold":
-            return "secondary";
+          return "secondary";
         default:
           return "default";
       }
@@ -1459,25 +1463,34 @@ export default function Tickets() {
                           >
                             {ticket.status.replace("_", " ").toUpperCase()}
                           </Badge>
-                          {(ticket.sla_response_breached || ticket.sla_resolution_breached) && (
+                          {(ticket.sla_response_breached ||
+                            ticket.sla_resolution_breached) && (
                             <div className="flex flex-col space-y-1">
                               {ticket.sla_response_breached && (
-                                <Badge variant="destructive" className="text-xs">
+                                <Badge
+                                  variant="destructive"
+                                  className="text-xs"
+                                >
                                   Response SLA Breached
                                 </Badge>
                               )}
                               {ticket.sla_resolution_breached && (
-                                <Badge variant="destructive" className="text-xs">
+                                <Badge
+                                  variant="destructive"
+                                  className="text-xs"
+                                >
                                   Resolution SLA Breached
                                 </Badge>
                               )}
                             </div>
                           )}
-                          {ticket.sla_breached && !ticket.sla_response_breached && !ticket.sla_resolution_breached && (
-                            <Badge variant="destructive" className="text-xs">
-                              SLA Breached (Legacy)
-                            </Badge>
-                          )}
+                          {ticket.sla_breached &&
+                            !ticket.sla_response_breached &&
+                            !ticket.sla_resolution_breached && (
+                              <Badge variant="destructive" className="text-xs">
+                                SLA Breached (Legacy)
+                              </Badge>
+                            )}
                         </div>
 
                         {/* Title */}
