@@ -471,6 +471,83 @@ export class UserStorage {
 
     return false;
   }
+
+  // User Groups Management
+  async createUserGroup(groupData: {
+    name: string;
+    description?: string;
+    group_type: string;
+    manager_id?: string;
+    email?: string;
+  }) {
+    try {
+      const [newGroup] = await db
+        .insert(userGroups)
+        .values({
+          ...groupData,
+          updated_at: new Date(),
+        })
+        .returning();
+
+      return newGroup;
+    } catch (error) {
+      console.error("Error creating user group:", error);
+      throw error;
+    }
+  }
+
+  async getUserGroups() {
+    return await db
+      .select()
+      .from(userGroups)
+      .where(eq(userGroups.is_active, true))
+      .orderBy(userGroups.name);
+  }
+
+  async addUserToGroup(userId: string, groupId: string, role: string = "member") {
+    try {
+      const [membership] = await db
+        .insert(userGroupMemberships)
+        .values({
+          user_id: userId,
+          group_id: groupId,
+          role,
+        })
+        .returning();
+
+      return membership;
+    } catch (error) {
+      console.error("Error adding user to group:", error);
+      throw error;
+    }
+  }
+
+  async removeUserFromGroup(userId: string, groupId: string) {
+    const result = await db
+      .delete(userGroupMemberships)
+      .where(
+        and(
+          eq(userGroupMemberships.user_id, userId),
+          eq(userGroupMemberships.group_id, groupId)
+        )
+      );
+
+    return result.rowCount > 0;
+  }
+
+  async getUserGroupMemberships(userId: string) {
+    return await db
+      .select({
+        group_id: userGroups.id,
+        group_name: userGroups.name,
+        group_type: userGroups.group_type,
+        role: userGroupMemberships.role,
+        joined_at: userGroupMemberships.joined_at,
+      })
+      .from(userGroupMemberships)
+      .innerJoin(userGroups, eq(userGroupMemberships.group_id, userGroups.id))
+      .where(eq(userGroupMemberships.user_id, userId));
+  }
 }
 
 export const userStorage = new UserStorage();

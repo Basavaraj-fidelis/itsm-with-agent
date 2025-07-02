@@ -17,8 +17,12 @@ export const tickets = pgTable("tickets", {
 
   // Assignment
   requester_email: varchar("requester_email", { length: 255 }).notNull(),
+  requester_phone: varchar("requester_phone", { length: 20 }),
+  requester_name: varchar("requester_name", { length: 255 }),
   assigned_to: varchar("assigned_to", { length: 255 }),
   assigned_group: varchar("assigned_group", { length: 100 }),
+  source: varchar("source", { length: 50 }).default("web"), // web, email, phone, portal
+  contact_method: varchar("contact_method", { length: 20 }).default("email"), // email, phone, chat
 
   // Related entities
   device_id: uuid("device_id"),
@@ -71,6 +75,16 @@ export const tickets = pgTable("tickets", {
   sla_resumed_at: timestamp("sla_resumed_at"),
   sla_total_paused_time: integer("sla_total_paused_time").default(0), // in minutes
 
+  // Business Impact
+  business_service: varchar("business_service", { length: 100 }),
+  affected_users_count: integer("affected_users_count").default(1),
+  financial_impact: varchar("financial_impact", { length: 20 }), // low, medium, high, critical
+  
+  // Closure Information
+  closure_code: varchar("closure_code", { length: 50 }),
+  closure_notes: text("closure_notes"),
+  customer_satisfaction: integer("customer_satisfaction"), // 1-5 rating
+  
   // Timestamps
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
