@@ -259,9 +259,7 @@ export default function App() {
 
             <Route path="/portal">
               <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <EndUserPortal />
-                </AuthenticatedLayout>
+                <EndUserPortal />
               </ProtectedRoute>
             </Route>
 
