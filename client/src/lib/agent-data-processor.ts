@@ -461,176 +461,173 @@ interface ProcessedAgentData {
 
 // Custom hook for processed agent data with memoization
 export function useProcessedAgentData(agent: any): ProcessedAgentData | null {
-  // Return null if no agent data
-  if (!agent) {
-    return null;
-  }
+  // ALL useMemo calls must be at the top level
+  const locationData = useMemo(() => {
+    if (!agent?.latest_report?.raw_data) {
+      return null;
+    }
 
-  // Safely process agent data with fallbacks
-  try {
-    // Extract location data from the latest report - enhanced extraction
-    const locationData = useMemo(() => {
-      if (!agent?.latest_report?.raw_data) {
-        return null;
+    const rawData = agent.latest_report.raw_data;
+
+    // Try multiple sources for location data
+    let locationInfo = null;
+
+    // 1. Check extracted_location_data
+    if (rawData.extracted_location_data) {
+      try {
+        locationInfo = typeof rawData.extracted_location_data === 'string'
+          ? JSON.parse(rawData.extracted_location_data)
+          : rawData.extracted_location_data;
+      } catch (error) {
+        console.warn('Failed to parse extracted_location_data:', error);
       }
+    }
 
-      const rawData = agent.latest_report.raw_data;
-
-      // Try multiple sources for location data
-      let locationInfo = null;
-
-      // 1. Check extracted_location_data
-      if (rawData.extracted_location_data) {
-        try {
-          locationInfo = typeof rawData.extracted_location_data === 'string'
-            ? JSON.parse(rawData.extracted_location_data)
-            : rawData.extracted_location_data;
-        } catch (error) {
-          console.warn('Failed to parse extracted_location_data:', error);
-        }
-      }
-
-      // 2. Check database location columns
-      if (!locationInfo && agent.latest_report) {
-        const report = agent.latest_report;
-        if (report.location_city || report.location_country || report.location_coordinates) {
-          locationInfo = {
-            city: report.location_city,
-            country: report.location_country,
-            region: report.location_region,
-            loc: report.location_coordinates,
-            ip: report.public_ip || rawData.extracted_public_ip,
-          };
-        }
-      }
-
-      // 3. Check if location_data column exists
-      if (!locationInfo && agent.latest_report?.location_data) {
-        try {
-          locationInfo = typeof agent.latest_report.location_data === 'string'
-            ? JSON.parse(agent.latest_report.location_data)
-            : agent.latest_report.location_data;
-        } catch (error) {
-          console.warn('Failed to parse location_data column:', error);
-        }
-      }
-
-      return locationInfo;
-    }, [agent?.latest_report]);
-
-    return useMemo(() => {
-      if (!agent) {
-        console.log('No agent provided to useProcessedAgentData');
-        return {
-          metrics: {
-            cpuUsage: 0,
-            memoryUsage: 0,
-            diskUsage: 0,
-            networkIO: 0
-          },
-          hasRecentData: false,
-          dataAge: null,
-          systemHealth: 'unknown' as const,
-          rawData: null
+    // 2. Check database location columns
+    if (!locationInfo && agent.latest_report) {
+      const report = agent.latest_report;
+      if (report.location_city || report.location_country || report.location_coordinates) {
+        locationInfo = {
+          city: report.location_city,
+          country: report.location_country,
+          region: report.location_region,
+          loc: report.location_coordinates,
+          ip: report.public_ip || rawData.extracted_public_ip,
         };
       }
+    }
 
-      console.log('Processing agent data for:', agent.hostname, {
-        status: agent.status,
-        hasLatestReport: !!agent.latest_report,
-        lastSeen: agent.last_seen
-      });
-
-      const latestReport = agent.latest_report;
-
-      if (!latestReport) {
-        console.log('No latest report found for agent:', agent.hostname);
-        return {
-          metrics: {
-            cpuUsage: 0,
-            memoryUsage: 0,
-            diskUsage: 0,
-            networkIO: 0
-          },
-          hasRecentData: false,
-          dataAge: null,
-          systemHealth: agent.status === 'online' ? 'warning' : 'unknown' as const,
-          rawData: null
-        };
+    // 3. Check if location_data column exists
+    if (!locationInfo && agent.latest_report?.location_data) {
+      try {
+        locationInfo = typeof agent.latest_report.location_data === 'string'
+          ? JSON.parse(agent.latest_report.location_data)
+          : agent.latest_report.location_data;
+      } catch (error) {
+        console.warn('Failed to parse location_data column:', error);
       }
+    }
 
-      // Parse metrics with validation and logging
-      const cpuUsage = parseFloat(latestReport.cpu_usage || '0');
-      const memoryUsage = parseFloat(latestReport.memory_usage || '0');
-      const diskUsage = parseFloat(latestReport.disk_usage || '0');
-      const networkIO = parseFloat(latestReport.network_io || '0');
+    return locationInfo;
+  }, [agent?.latest_report]);
 
-      console.log('Parsed metrics for', agent.hostname, {
-        cpu: cpuUsage,
-        memory: memoryUsage,
-        disk: diskUsage,
-        network: networkIO,
-        reportTime: latestReport.collected_at
-      });
-
-      // Calculate data age
-      const reportTime = new Date(latestReport.collected_at);
-      const now = new Date();
-      const dataAgeMinutes = Math.floor((now.getTime() - reportTime.getTime()) / (1000 * 60));
-      const hasRecentData = dataAgeMinutes < 10; // Data is recent if less than 10 minutes old
-
-      console.log('Data age analysis for', agent.hostname, {
-        reportTime: reportTime.toISOString(),
-        dataAgeMinutes,
-        hasRecentData
-      });
-
-      // Determine system health based on multiple factors
-      let systemHealth: 'good' | 'warning' | 'critical' | 'unknown' = 'good';
-
-      // Critical conditions
-      if (cpuUsage > 95 || memoryUsage > 95 || diskUsage > 98) {
-        systemHealth = 'critical';
-      }
-      // High usage conditions
-      else if (cpuUsage > 90 || memoryUsage > 90 || diskUsage > 95) {
-        systemHealth = 'critical';
-      }
-      // Warning conditions
-      else if (cpuUsage > 70 || memoryUsage > 80 || diskUsage > 85) {
-        systemHealth = 'warning';
-      }
-      // Data freshness check
-      else if (!hasRecentData) {
-        systemHealth = 'warning';
-      }
-      // Agent offline
-      else if (agent.status !== 'online') {
-        systemHealth = 'critical';
-      }
-
-      const processedData = {
+  const processedData = useMemo(() => {
+    if (!agent) {
+      console.log('No agent provided to useProcessedAgentData');
+      return {
         metrics: {
-          cpuUsage: Math.min(100, Math.max(0, cpuUsage)), // Clamp between 0-100
-          memoryUsage: Math.min(100, Math.max(0, memoryUsage)),
-          diskUsage: Math.min(100, Math.max(0, diskUsage)),
-          networkIO
+          cpuUsage: 0,
+          memoryUsage: 0,
+          diskUsage: 0,
+          networkIO: 0
         },
-        hasRecentData,
-        dataAge: dataAgeMinutes,
-        systemHealth,
-        rawData: latestReport.raw_data || null,
-        reportCollectedAt: latestReport.collected_at
+        hasRecentData: false,
+        dataAge: null,
+        systemHealth: 'unknown' as const,
+        rawData: null
       };
+    }
 
-      console.log('Final processed data for', agent.hostname, {
-        systemHealth: processedData.systemHealth,
-        hasRecentData: processedData.hasRecentData,
-        dataAge: processedData.dataAge
-      });
+    console.log('Processing agent data for:', agent.hostname, {
+      status: agent.status,
+      hasLatestReport: !!agent.latest_report,
+      lastSeen: agent.last_seen
+    });
 
-      return processedData;
-    }, [agent]);
+    const latestReport = agent.latest_report;
+
+    if (!latestReport) {
+      console.log('No latest report found for agent:', agent.hostname);
+      return {
+        metrics: {
+          cpuUsage: 0,
+          memoryUsage: 0,
+          diskUsage: 0,
+          networkIO: 0
+        },
+        hasRecentData: false,
+        dataAge: null,
+        systemHealth: agent.status === 'online' ? 'warning' : 'unknown' as const,
+        rawData: null
+      };
+    }
+
+    // Parse metrics with validation and logging
+    const cpuUsage = parseFloat(latestReport.cpu_usage || '0');
+    const memoryUsage = parseFloat(latestReport.memory_usage || '0');
+    const diskUsage = parseFloat(latestReport.disk_usage || '0');
+    const networkIO = parseFloat(latestReport.network_io || '0');
+
+    console.log('Parsed metrics for', agent.hostname, {
+      cpu: cpuUsage,
+      memory: memoryUsage,
+      disk: diskUsage,
+      network: networkIO,
+      reportTime: latestReport.collected_at
+    });
+
+    // Calculate data age
+    const reportTime = new Date(latestReport.collected_at);
+    const now = new Date();
+    const dataAgeMinutes = Math.floor((now.getTime() - reportTime.getTime()) / (1000 * 60));
+    const hasRecentData = dataAgeMinutes < 10; // Data is recent if less than 10 minutes old
+
+    console.log('Data age analysis for', agent.hostname, {
+      reportTime: reportTime.toISOString(),
+      dataAgeMinutes,
+      hasRecentData
+    });
+
+    // Determine system health based on multiple factors
+    let systemHealth: 'good' | 'warning' | 'critical' | 'unknown' = 'good';
+
+    // Critical conditions
+    if (cpuUsage > 95 || memoryUsage > 95 || diskUsage > 98) {
+      systemHealth = 'critical';
+    }
+    // High usage conditions
+    else if (cpuUsage > 90 || memoryUsage > 90 || diskUsage > 95) {
+      systemHealth = 'critical';
+    }
+    // Warning conditions
+    else if (cpuUsage > 70 || memoryUsage > 80 || diskUsage > 85) {
+      systemHealth = 'warning';
+    }
+    // Data freshness check
+    else if (!hasRecentData) {
+      systemHealth = 'warning';
+    }
+    // Agent offline
+    else if (agent.status !== 'online') {
+      systemHealth = 'critical';
+    }
+
+    const processedResult = {
+      metrics: {
+        cpuUsage: Math.min(100, Math.max(0, cpuUsage)), // Clamp between 0-100
+        memoryUsage: Math.min(100, Math.max(0, memoryUsage)),
+        diskUsage: Math.min(100, Math.max(0, diskUsage)),
+        networkIO
+      },
+      hasRecentData,
+      dataAge: dataAgeMinutes,
+      systemHealth,
+      rawData: latestReport.raw_data || null,
+      reportCollectedAt: latestReport.collected_at
+    };
+
+    console.log('Final processed data for', agent.hostname, {
+      systemHealth: processedResult.systemHealth,
+      hasRecentData: processedResult.hasRecentData,
+      dataAge: processedResult.dataAge
+    });
+
+    return processedResult;
+  }, [agent]);
+
+  // Return the processed data, no early returns after useMemo calls
+  try {
+    return processedData;
   } catch (error) {
     console.error('Error processing agent data:', error);
     return null;

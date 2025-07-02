@@ -1,3 +1,4 @@
+
 import { Link, useParams } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useAgent } from "@/hooks/use-agents";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   ArrowLeft,
   Download,
@@ -51,16 +52,47 @@ import {
   FileText,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { useEffect } from "react";
 
 export default function AgentDetail() {
   const { id } = useParams();
+  
+  // ALL HOOKS MUST BE CALLED AT THE TOP LEVEL - NO EXCEPTIONS
   const { data: agent, isLoading, error, refetch } = useAgent(id || "");
-
-  // Always call this hook at the top, regardless of loading/error state
   const processedData = useProcessedAgentData(agent);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [connectionStatus, setConnectionStatus] = useState(null);
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [showConnectionInfo, setShowConnectionInfo] = useState(false);
+  const [showTroubleshooting, setShowTroubleshooting] = useState(false);
+  const [showVNCModal, setShowVNCModal] = useState(false);
 
-  // Early return for loading state
+  // Auto-refresh effect - must be called at top level
+  useEffect(() => {
+    if (!autoRefresh || !agent) return;
+
+    const interval = setInterval(() => {
+      refetch();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, agent, refetch]);
+
+  // Memoize metrics calculation
+  const metrics = useMemo(() => {
+    if (!processedData?.metrics) {
+      return {
+        cpuUsage: 0,
+        memoryUsage: 0,
+        diskUsage: 0,
+        networkIO: 0,
+      };
+    }
+    return processedData.metrics;
+  }, [processedData]);
+
+  const { cpuUsage, memoryUsage, diskUsage, networkIO } = metrics;
+
+  // Now we can do early returns after all hooks are called
   if (isLoading) {
     return (
       <div className="p-6">
@@ -80,7 +112,6 @@ export default function AgentDetail() {
     );
   }
 
-  // Early return for error state
   if (error || !agent) {
     return (
       <div className="p-6">
@@ -102,25 +133,6 @@ export default function AgentDetail() {
       </div>
     );
   }
-
-
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [connectionStatus, setConnectionStatus] = useState(null);
-  const [testingConnection, setTestingConnection] = useState(false);
-  const [showConnectionInfo, setShowConnectionInfo] = useState(false);
-  const [showTroubleshooting, setShowTroubleshooting] = useState(false);
-  const [showVNCModal, setShowVNCModal] = useState(false);
-
-  // Auto-refresh every 30 seconds when enabled
-  useEffect(() => {
-    if (!autoRefresh || !agent) return;
-
-    const interval = setInterval(() => {
-      refetch();
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [autoRefresh, agent, refetch]);
 
   const handleRemoteConnect = async (connectionType: string) => {
     if (!agent) {
@@ -347,18 +359,6 @@ export default function AgentDetail() {
       setTestingConnection(false);
     }
   };
-
-
-
-  // Extract metrics from processed data
-  const metrics = processedData?.metrics || {
-    cpuUsage: 0,
-    memoryUsage: 0,
-    diskUsage: 0,
-    networkIO: 0,
-  };
-
-  const { cpuUsage, memoryUsage, diskUsage, networkIO } = metrics;
 
   return (
     <AgentErrorBoundary
