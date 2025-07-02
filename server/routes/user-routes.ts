@@ -17,13 +17,15 @@ router.get("/", async (req, res) => {
         phone, job_title, location, employee_id, department,
         is_active, is_locked, failed_login_attempts,
         created_at, updated_at, last_login, last_password_change,
-        manager_id, preferences, permissions,
+        manager_id, 
+        COALESCE(preferences, '{}') as preferences, 
+        COALESCE(permissions, '[]') as permissions,
         CASE 
-          WHEN preferences->>'ad_synced' = 'true' THEN 'ad'
+          WHEN COALESCE(preferences, '{}')->>'ad_synced' = 'true' THEN 'ad'
           ELSE 'local'
         END as sync_source,
-        preferences->>'ad_last_sync' as last_ad_sync,
-        preferences->>'ad_groups' as ad_groups
+        COALESCE(preferences, '{}')->>'ad_last_sync' as last_ad_sync,
+        COALESCE(preferences, '{}')->>'ad_groups' as ad_groups
       FROM users
     `;
 
@@ -34,11 +36,11 @@ router.get("/", async (req, res) => {
     if (search) {
       paramCount++;
       conditions.push(`(
-        LOWER(first_name) LIKE LOWER($${paramCount}) OR 
-        LOWER(last_name) LIKE LOWER($${paramCount}) OR 
+        LOWER(COALESCE(first_name, '')) LIKE LOWER($${paramCount}) OR 
+        LOWER(COALESCE(last_name, '')) LIKE LOWER($${paramCount}) OR 
         LOWER(email) LIKE LOWER($${paramCount}) OR 
-        LOWER(username) LIKE LOWER($${paramCount}) OR
-        LOWER(employee_id) LIKE LOWER($${paramCount})
+        LOWER(COALESCE(username, '')) LIKE LOWER($${paramCount}) OR
+        LOWER(COALESCE(employee_id, '')) LIKE LOWER($${paramCount})
       )`);
       params.push(`%${search}%`);
     }
@@ -51,22 +53,22 @@ router.get("/", async (req, res) => {
 
     if (department && department !== 'all') {
       paramCount++;
-      conditions.push(`department = $${paramCount}`);
+      conditions.push(`COALESCE(department, location, '') = $${paramCount}`);
       params.push(department);
     }
 
     if (sync_source && sync_source !== 'all') {
       if (sync_source === 'ad') {
-        conditions.push(`preferences->>'ad_synced' = 'true'`);
+        conditions.push(`COALESCE(preferences, '{}')->>'ad_synced' = 'true'`);
       } else if (sync_source === 'local') {
-        conditions.push(`(preferences->>'ad_synced' IS NULL OR preferences->>'ad_synced' = 'false')`);
+        conditions.push(`(COALESCE(preferences, '{}')->>'ad_synced' IS NULL OR COALESCE(preferences, '{}')->>'ad_synced' = 'false')`);
       }
     }
 
     if (status === 'active') {
-      conditions.push('is_active = true AND is_locked = false');
+      conditions.push('COALESCE(is_active, true) = true AND COALESCE(is_locked, false) = false');
     } else if (status === 'inactive') {
-      conditions.push('is_active = false OR is_locked = true');
+      conditions.push('COALESCE(is_active, true) = false OR COALESCE(is_locked, false) = true');
     }
 
     if (conditions.length > 0) {
@@ -96,41 +98,67 @@ router.get("/", async (req, res) => {
     const countResult = await db.query(countQuery, params.slice(0, -2));
     const total = parseInt(countResult.rows[0]?.total || 0);
 
-    // Get user statistics
+    // Get user statistics with proper null handling
     const statsQuery = `
       SELECT 
         COUNT(*) as total_users,
-        COUNT(CASE WHEN is_active = true AND is_locked = false THEN 1 END) as active_users,
-        COUNT(CASE WHEN is_active = false OR is_locked = true THEN 1 END) as inactive_users,
-        COUNT(CASE WHEN preferences->>'ad_synced' = 'true' THEN 1 END) as ad_synced_users,
-        COUNT(CASE WHEN preferences->>'ad_synced' IS NULL OR preferences->>'ad_synced' = 'false' THEN 1 END) as local_users
+        COUNT(CASE WHEN COALESCE(is_active, true) = true AND COALESCE(is_locked, false) = false THEN 1 END) as active_users,
+        COUNT(CASE WHEN COALESCE(is_active, true) = false OR COALESCE(is_locked, false) = true THEN 1 END) as inactive_users,
+        COUNT(CASE WHEN COALESCE(preferences, '{}')->>'ad_synced' = 'true' THEN 1 END) as ad_synced_users,
+        COUNT(CASE WHEN COALESCE(preferences, '{}')->>'ad_synced' IS NULL OR COALESCE(preferences, '{}')->>'ad_synced' = 'false' THEN 1 END) as local_users
       FROM users
     `;
     
     const statsResult = await db.query(statsQuery);
     const stats = statsResult.rows[0];
 
-    const users = result.rows.map(user => ({
-      ...user,
-      name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.email?.split('@')[0],
-      department: user.department || user.location || 'N/A',
-      status: user.is_active && !user.is_locked ? 'active' : 'inactive',
-      security_status: user.failed_login_attempts > 0 ? 'warning' : 'normal',
-      ad_synced: user.sync_source === 'ad',
-      ad_groups: user.ad_groups ? (typeof user.ad_groups === 'string' ? JSON.parse(user.ad_groups) : user.ad_groups) : [],
-      last_ad_sync: user.last_ad_sync
-    }));
+    const users = result.rows.map(user => {
+      // Parse preferences and permissions safely
+      let preferences = {};
+      let permissions = [];
+      
+      try {
+        preferences = typeof user.preferences === 'string' ? JSON.parse(user.preferences) : (user.preferences || {});
+      } catch (e) {
+        console.warn('Failed to parse user preferences:', e);
+        preferences = {};
+      }
+
+      try {
+        permissions = typeof user.permissions === 'string' ? JSON.parse(user.permissions) : (user.permissions || []);
+      } catch (e) {
+        console.warn('Failed to parse user permissions:', e);
+        permissions = [];
+      }
+
+      return {
+        ...user,
+        name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.email?.split('@')[0],
+        department: user.department || user.location || 'N/A',
+        status: (user.is_active !== false) && (user.is_locked !== true) ? 'active' : 'inactive',
+        security_status: (user.failed_login_attempts || 0) > 0 ? 'warning' : 'normal',
+        ad_synced: user.sync_source === 'ad',
+        ad_groups: user.ad_groups ? (typeof user.ad_groups === 'string' ? 
+          (() => {
+            try { return JSON.parse(user.ad_groups); } catch { return []; }
+          })() 
+          : user.ad_groups) : [],
+        last_ad_sync: user.last_ad_sync,
+        preferences,
+        permissions
+      };
+    });
 
     console.log(`Enhanced users query returned ${users.length} users out of ${total} total`);
 
     res.json({
       data: users,
       stats: {
-        total: parseInt(stats.total_users),
-        active: parseInt(stats.active_users),
-        inactive: parseInt(stats.inactive_users),
-        ad_synced: parseInt(stats.ad_synced_users),
-        local: parseInt(stats.local_users)
+        total: parseInt(stats.total_users) || 0,
+        active: parseInt(stats.active_users) || 0,
+        inactive: parseInt(stats.inactive_users) || 0,
+        ad_synced: parseInt(stats.ad_synced_users) || 0,
+        local: parseInt(stats.local_users) || 0
       },
       pagination: {
         page: parseInt(page as string),
@@ -245,6 +273,10 @@ router.post("/", async (req, res) => {
   try {
     const { email, name, role, password, department, phone } = req.body;
 
+    if (!email || !name) {
+      return res.status(400).json({ message: "Email and name are required" });
+    }
+
     if (!password) {
       return res.status(400).json({ message: "Password is required" });
     }
@@ -271,8 +303,9 @@ router.post("/", async (req, res) => {
     const result = await db.query(`
       INSERT INTO users (
         email, username, first_name, last_name, role, 
-        password_hash, phone, location, department, is_active
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        password_hash, phone, location, department, is_active,
+        preferences, permissions, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
       RETURNING id, email, username, first_name, last_name, role, phone, location, department, is_active, created_at
     `, [
       email.toLowerCase(),
@@ -281,20 +314,28 @@ router.post("/", async (req, res) => {
       last_name,
       role || "end_user",
       password_hash,
-      phone,
-      department,
-      department,
-      true
+      phone || null,
+      department || null,
+      department || null,
+      true,
+      JSON.stringify({}), // empty preferences
+      JSON.stringify([])  // empty permissions
     ]);
 
     const newUser = result.rows[0];
     newUser.name = `${newUser.first_name || ''} ${newUser.last_name || ''}`.trim();
-    newUser.department = department;
+    newUser.department = department || 'N/A';
+    newUser.status = 'active';
+
+    console.log("User created successfully:", { id: newUser.id, email: newUser.email, name: newUser.name });
 
     res.status(201).json(newUser);
   } catch (error: any) {
     console.error("Error creating user:", error);
-    res.status(500).json({ message: "Failed to create user" });
+    res.status(500).json({ 
+      message: "Failed to create user",
+      error: error.message 
+    });
   }
 });
 
@@ -317,9 +358,18 @@ router.put("/:id", async (req, res) => {
     const last_name = nameParts.slice(1).join(' ') || '';
 
     // Check if user exists first
-    const userCheck = await db.query(`SELECT id, is_locked FROM users WHERE id = $1`, [req.params.id]);
+    const userCheck = await db.query(`SELECT id, email, is_locked FROM users WHERE id = $1`, [req.params.id]);
     if (userCheck.rows.length === 0) {
       return res.status(404).json({ message: "User not found" });
+    }
+
+    // Check if email is being changed and if it conflicts with another user
+    const currentUser = userCheck.rows[0];
+    if (email.toLowerCase() !== currentUser.email.toLowerCase()) {
+      const emailCheck = await db.query(`SELECT id FROM users WHERE email = $1 AND id != $2`, [email.toLowerCase(), req.params.id]);
+      if (emailCheck.rows.length > 0) {
+        return res.status(400).json({ message: "Email already exists for another user" });
+      }
     }
 
     let updateQuery = `
@@ -344,7 +394,7 @@ router.put("/:id", async (req, res) => {
     if (password && password.trim()) {
       const saltRounds = 10;
       const password_hash = await bcrypt.hash(password, saltRounds);
-      updateQuery += `, password_hash = $10 WHERE id = $11`;
+      updateQuery += `, password_hash = $10, last_password_change = NOW() WHERE id = $11`;
       values.push(password_hash, req.params.id);
     } else {
       updateQuery += ` WHERE id = $10`;
@@ -354,7 +404,7 @@ router.put("/:id", async (req, res) => {
     updateQuery += ` RETURNING id, email, username, first_name, last_name, role, phone, location, department, is_active, is_locked, created_at, updated_at`;
 
     console.log("Executing update query:", updateQuery);
-    console.log("With values:", values);
+    console.log("With values (excluding password):", values.map((v, i) => i === values.length - 2 && password ? '[PASSWORD HASH]' : v));
 
     const result = await db.query(updateQuery, values);
 
@@ -364,9 +414,15 @@ router.put("/:id", async (req, res) => {
 
     const updatedUser = result.rows[0];
     updatedUser.name = `${updatedUser.first_name || ''} ${updatedUser.last_name || ''}`.trim();
-    updatedUser.department = updatedUser.department || updatedUser.location;
+    updatedUser.department = updatedUser.department || updatedUser.location || 'N/A';
+    updatedUser.status = (updatedUser.is_active !== false) && (updatedUser.is_locked !== true) ? 'active' : 'inactive';
     
-    console.log("User updated successfully:", updatedUser);
+    console.log("User updated successfully:", { 
+      id: updatedUser.id, 
+      email: updatedUser.email, 
+      name: updatedUser.name,
+      status: updatedUser.status 
+    });
 
     res.json(updatedUser);
   } catch (error: any) {
@@ -374,7 +430,7 @@ router.put("/:id", async (req, res) => {
     res.status(500).json({ 
       message: "Failed to update user",
       error: error.message,
-      details: error.detail || error.stack
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });

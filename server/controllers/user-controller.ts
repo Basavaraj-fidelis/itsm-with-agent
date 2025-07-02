@@ -8,24 +8,43 @@ export class UserController {
     try {
       console.log("GET /api/users - Fetching users from database");
 
-      const { search, role } = req.query;
-      console.log("Query params:", { search, role });
+      const { search, role, page = 1, limit = 20 } = req.query;
+      console.log("Query params:", { search, role, page, limit });
 
       // Initialize demo users if they don't exist
       await storage.initializeDemoUsers();
 
-      const filters = {};
+      const filters: any = {};
       if (search) filters.search = search as string;
       if (role && role !== "all") filters.role = role as string;
 
       console.log("Calling storage.getUsers with filters:", filters);
-      const users = await storage.getUsers(filters);
+      
+      // Use proper pagination and filtering from user storage
+      const result = await storage.getUsers(
+        parseInt(page as string) || 1,
+        parseInt(limit as string) || 20,
+        filters
+      );
+      
       console.log(
-        `Found ${users.length} users:`,
-        users.map((u) => ({ id: u.id, email: u.email, name: u.name })),
+        `Found ${result.data.length} users out of ${result.total} total:`,
+        result.data.map((u) => ({ id: u.id, email: u.email, first_name: u.first_name, last_name: u.last_name })),
       );
 
-      res.json(users);
+      // Format users for compatibility
+      const formattedUsers = result.data.map(user => ({
+        ...user,
+        name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.email?.split('@')[0],
+        department: user.department_name || user.location || 'N/A',
+        status: user.is_active && !user.is_locked ? 'active' : 'inactive'
+      }));
+
+      res.json({
+        data: formattedUsers,
+        pagination: result,
+        total: result.total
+      });
     } catch (error) {
       console.error("Error fetching users:", error);
       ResponseUtils.internalServerError(res, "Failed to fetch users");

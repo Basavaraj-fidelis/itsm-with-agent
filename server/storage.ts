@@ -190,7 +190,7 @@ export class MemStorage implements IStorage {
         name: "John Technician",
         password_hash: "$2b$10$dummy.hash.for.demo", // Demo: tech123
         role: "technician",
-        department: "IT",
+        department: "IT Support",
         phone: "+1 (555) 123-4568",
         is_active: true,
         last_login: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
@@ -961,7 +961,7 @@ netsh int ip reset
 ### Can't Send/Receive Email
 - **Send/Receive Button**: Click manually to force sync
 - **Offline Mode**: Check if "Work Offline" is disabled
-- **Large Attachments**: Outlook has 25MB attachment limit
+- **Large Attachments**:Outlook has 25MB attachment limit
 - **Mailbox Full**: Delete old emails to free space
 
 ### Calendar/Meeting Issues
@@ -2023,6 +2023,7 @@ Contact your manager for approval before submitting requests.`,
  with printer model and error details`,
           category: "Hardware",
           tags: ["printer", "troubleshooting", "drivers", "network"],
+          ```tool_code
           author_email: "support@company.com",
           status: "published",
           views: 203,
@@ -2724,126 +2725,122 @@ smartphones
   }
 
   // User management methods for database storage
-  async getUsers(
-    filters: { search?: string; role?: string } = {},
-  ): Promise<any[]> {
+  
+  // User management methods for database storage
+  
+  // User management methods for database storage
+  /**
+   * Retrieves a list of users from the database based on specified filters.
+   * @param filters An object containing optional search, role, and department filters.
+   * @returns A promise that resolves to an array of user objects.
+   */
+  async getUsers(filters: { search?: string; role?: string; department?: string } = {}): Promise<any[]> {
+    console.log("DatabaseStorage.getUsers called with filters:", filters);
+
     try {
-      console.log("DatabaseStorage.getUsers called with filters:", filters);
+      // First, let's check what columns exist in the users table
+      const { pool } = await import("./db");
+      const columnCheck = await pool.query(`
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_name = 'users' 
+        ORDER BY ordinal_position
+      `);
+      console.log("Users table columns:", columnCheck.rows);
 
-      // Try database first
-      try {
-        const { pool } = await import("./db");
+      let query = `
+        SELECT 
+          id, email, 
+          CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) as name,
+          COALESCE(role, 'end_user') as role, 
+          COALESCE(department, location, '') as department, 
+          COALESCE(phone, '') as phone, 
+          COALESCE(is_active, true) as is_active, 
+          created_at, updated_at,
+          first_name, last_name, username, job_title, location, employee_id, manager_id,
+          last_login, COALESCE(is_locked, false) as is_locked, 
+          COALESCE(failed_login_attempts, 0) as failed_login_attempts,
+          COALESCE(preferences, '{}') as preferences,
+          COALESCE(permissions, '[]') as permissions
+        FROM users 
+        WHERE COALESCE(is_active, true) = true
+      `;
 
-        // First, let's check if the users table exists and what columns it has
-        const tableCheck = await pool.query(`
-          SELECT column_name, data_type 
-          FROM information_schema.columns 
-          WHERE table_name = 'users' 
-          ORDER BY ordinal_position
-        `);
+      const params: any[] = [];
+      let paramCount = 0;
 
-        console.log("Users table columns:", tableCheck.rows);
-
-        // Build query with proper WHERE clause structure
-        let query = `
-          SELECT 
-            id, email, 
-            CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) as name,
-            COALESCE(role, 'user') as role, 
-            COALESCE(department, location, '') as department, 
-            COALESCE(phone, '') as phone, 
-            COALESCE(is_active, true) as is_active, 
-            created_at, updated_at,
-            first_name, last_name, username, job_title, location, employee_id, manager_id,
-            last_login, is_locked, failed_login_attempts
-          FROM users 
-          WHERE COALESCE(is_active, true) = true
-        `;
-
-        const params: any[] = [];
-        let paramCount = 0;
-
-        if (filters.search) {
-          paramCount++;
-          query += ` AND (
-            COALESCE(first_name, '') ILIKE $${paramCount} OR 
-            COALESCE(last_name, '') ILIKE $${paramCount} OR
-            email ILIKE $${paramCount} OR
-            COALESCE(username, '') ILIKE $${paramCount}
-          )`;
-          params.push(`%${filters.search}%`);
-        }
-
-        if (filters.role && filters.role !== "all") {
-          paramCount++;
-          query += ` AND COALESCE(role, 'user') = $${paramCount}`;
-          params.push(filters.role);
-        }
-
-        query += ` ORDER BY email`;
-
-        console.log("Executing query:", query);
-        console.log("With params:", params);
-
-        const result = await pool.query(query, params);
-        console.log(`Database returned ${result.rows.length} users`);
-
-        const users = result.rows.map((user) => ({
-          ...user,
-          // Ensure consistent field names
-          name:
-            user.name ||
-            `${user.first_name || ""} ${user.last_name || ""}`.trim() ||
-            user.username ||
-            user.email?.split("@")[0] ||
-            "Unknown User",
-          department: user.department || user.location || "",
-          phone: user.phone || "",
-          role: user.role || "user",
-        }));
-
-        console.log(
-          "Processed users:",
-          users.map((u) => ({
-            id: u.id,
-            email: u.email,
-            name: u.name,
-            role: u.role,
-          })),
-        );
-        return users;
-      } catch (dbError) {
-        console.error("Database query failed:", dbError);
-        console.log("Falling back to in-memory storage");
-
-        // Fallback to in-memory storage
-        const memUsers = Array.from(this.users?.values() || []);
-        let users = memUsers.filter((user) => user.is_active !== false);
-
-        if (filters.search) {
-          const search = filters.search.toLowerCase();
-          users = users.filter(
-            (user) =>
-              (user.name || "").toLowerCase().includes(search) ||
-              (user.email || "").toLowerCase().includes(search),
-          );
-        }
-
-        if (filters.role && filters.role !== "all") {
-          users = users.filter((user) => user.role === filters.role);
-        }
-
-        return users.map((user) => {
-          const { password_hash, ...userWithoutPassword } = user;
-          return {
-            ...userWithoutPassword,
-            name: user.name || user.email?.split("@")[0] || "Unknown User",
-          };
-        });
+      if (filters.search) {
+        paramCount++;
+        query += ` AND (
+          LOWER(COALESCE(first_name, '')) LIKE LOWER($${paramCount}) OR 
+          LOWER(COALESCE(last_name, '')) LIKE LOWER($${paramCount}) OR 
+          LOWER(email) LIKE LOWER($${paramCount}) OR
+          LOWER(COALESCE(username, '')) LIKE LOWER($${paramCount}) OR
+          LOWER(COALESCE(employee_id, '')) LIKE LOWER($${paramCount})
+        )`;
+        params.push(`%${filters.search}%`);
       }
+
+      if (filters.role && filters.role !== 'all') {
+        paramCount++;
+        query += ` AND COALESCE(role, 'end_user') = $${paramCount}`;
+        params.push(filters.role);
+      }
+
+      if (filters.department && filters.department !== 'all') {
+        paramCount++;
+        query += ` AND COALESCE(department, location, '') = $${paramCount}`;
+        params.push(filters.department);
+      }
+
+      query += ' ORDER BY email';
+
+      console.log("Executing query:", query);
+      console.log("With params:", params);
+
+      const result = await pool.query(query, params);
+      console.log(`Database returned ${result.rows.length} users`);
+
+      const users = result.rows.map((row: any) => {
+        // Parse JSON fields safely
+        let preferences = {};
+        let permissions = [];
+
+        try {
+          preferences = typeof row.preferences === 'string' ? JSON.parse(row.preferences) : (row.preferences || {});
+        } catch (e) {
+          console.warn('Failed to parse user preferences for user', row.id);
+          preferences = {};
+        }
+
+        try {
+          permissions = typeof row.permissions === 'string' ? JSON.parse(row.permissions) : (row.permissions || []);
+        } catch (e) {
+          console.warn('Failed to parse user permissions for user', row.id);
+          permissions = [];
+        }
+
+        return {
+          ...row,
+          name: row.name.trim() || row.username || row.email?.split('@')[0] || 'Unknown User',
+          preferences,
+          permissions,
+          status: row.is_active && !row.is_locked ? 'active' : 'inactive'
+        };
+      });
+
+      console.log("Processed users:", users.map(u => ({ 
+        id: u.id, 
+        email: u.email, 
+        name: u.name, 
+        role: u.role,
+        status: u.status
+      })));
+
+      return users;
     } catch (error) {
       console.error("Error in getUsers:", error);
-      return [];
+      throw error;
     }
   }
 
@@ -3050,8 +3047,7 @@ smartphones
       return {
         data: articles,
         total,
-        page,
-        limit,
+        page,limit,
       };
     } catch (error) {
       console.error("Error loading KB articles from database:", error);
@@ -3104,48 +3100,6 @@ smartphones
       active_alerts: activeAlerts.length,
     };
   }
-
-  // async updateUser(id: string, updates: any): Promise<any | null> {
-  //   try {
-  //     const { pool } = await import("./db");
-
-  //     const setClause = [];
-  //     const params = [];
-  //     let paramCount = 0;
-  //     // Remove 'name' field if it exists since the schema doesn't have it
-  //     const { name, ...validUpdates } = updates as any;
-
-  //     Object.keys(validUpdates).forEach((key) => {
-  //       if (validUpdates[key] !== undefined) {
-  //         paramCount++;
-  //         setClause.push(`${key} = $${paramCount}`);
-  //         params.push(validUpdates[key]);
-  //       }
-  //     });
-
-  //     if (setClause.length === 0) return null;
-
-  //     paramCount++;
-  //     setClause.push(`updated_at = $${paramCount}`);
-  //     params.push(new Date());
-
-  //     paramCount++;
-  //     params.push(id);
-
-  //     const query = `
-  //       UPDATE users
-  //       SET ${setClause.join(", ")}
-  //       WHERE id = $${paramCount}
-  //       RETURNING id, name, email, role, department, phone, is_active, created_at, updated_at
-  //     `;
-
-  //     const result = await pool.query(query, params);
-  //     return result.rows[0] || null;
-  //   } catch (error) {
-  //     console.error("Error updating user:", error);
-  //     return null;
-  //   }
-  // }
 
   // Database connection instance
   private db = db;
