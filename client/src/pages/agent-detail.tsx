@@ -103,12 +103,13 @@ export default function AgentDetail() {
     );
   }
 
-  const [showVNCModal, setShowVNCModal] = useState(false);
+
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState(null);
   const [testingConnection, setTestingConnection] = useState(false);
   const [showConnectionInfo, setShowConnectionInfo] = useState(false);
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
+  const [showVNCModal, setShowVNCModal] = useState(false);
 
   // Auto-refresh every 30 seconds when enabled
   useEffect(() => {
@@ -347,7 +348,7 @@ export default function AgentDetail() {
     }
   };
 
-  
+
 
   // Extract metrics from processed data
   const metrics = processedData?.metrics || {
