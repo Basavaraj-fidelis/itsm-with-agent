@@ -220,7 +220,7 @@ var init_ticket_schema = __esm({
     "use strict";
     ticketTypes = ["request", "incident", "problem", "change"];
     ticketPriorities = ["low", "medium", "high", "critical"];
-    ticketStatuses = ["new", "assigned", "in_progress", "pending", "resolved", "closed", "cancelled"];
+    ticketStatuses = ["new", "assigned", "in_progress", "pending", "on_hold", "resolved", "closed", "cancelled"];
     tickets = pgTable2("tickets", {
       id: uuid2("id").primaryKey().defaultRandom(),
       ticket_number: varchar("ticket_number", { length: 20 }).unique().notNull(),
@@ -282,6 +282,13 @@ var init_ticket_schema = __esm({
       sla_breached: boolean2("sla_breached").default(false),
       sla_response_breached: boolean2("sla_response_breached").default(false),
       sla_resolution_breached: boolean2("sla_resolution_breached").default(false),
+      // SLA Pause/Resume tracking
+      sla_paused: boolean2("sla_paused").default(false),
+      sla_pause_reason: text2("sla_pause_reason"),
+      sla_paused_at: timestamp2("sla_paused_at"),
+      sla_resumed_at: timestamp2("sla_resumed_at"),
+      sla_total_paused_time: integer("sla_total_paused_time").default(0),
+      // in minutes
       // Timestamps
       created_at: timestamp2("created_at").defaultNow().notNull(),
       updated_at: timestamp2("updated_at").defaultNow().notNull(),
@@ -3124,6 +3131,40 @@ smartphones
           active_alerts: activeAlerts.length
         };
       }
+      // async updateUser(id: string, updates: any): Promise<any | null> {
+      //   try {
+      //     const { pool } = await import("./db");
+      //     const setClause = [];
+      //     const params = [];
+      //     let paramCount = 0;
+      //     // Remove 'name' field if it exists since the schema doesn't have it
+      //     const { name, ...validUpdates } = updates as any;
+      //     Object.keys(validUpdates).forEach((key) => {
+      //       if (validUpdates[key] !== undefined) {
+      //         paramCount++;
+      //         setClause.push(`${key} = $${paramCount}`);
+      //         params.push(validUpdates[key]);
+      //       }
+      //     });
+      //     if (setClause.length === 0) return null;
+      //     paramCount++;
+      //     setClause.push(`updated_at = $${paramCount}`);
+      //     params.push(new Date());
+      //     paramCount++;
+      //     params.push(id);
+      //     const query = `
+      //       UPDATE users
+      //       SET ${setClause.join(", ")}
+      //       WHERE id = $${paramCount}
+      //       RETURNING id, name, email, role, department, phone, is_active, created_at, updated_at
+      //     `;
+      //     const result = await pool.query(query, params);
+      //     return result.rows[0] || null;
+      //   } catch (error) {
+      //     console.error("Error updating user:", error);
+      //     return null;
+      //   }
+      // }
       // Database connection instance
       db = db;
     };
@@ -7601,6 +7642,44 @@ var init_sla_monitor_service = __esm({
         this.isRunning = false;
         console.log("\u{1F6D1} SLA Monitor Service stopped");
       }
+      // Handle SLA pause/resume based on ticket status
+      async handleSLAPauseResume(tickets2) {
+        const now = /* @__PURE__ */ new Date();
+        for (const ticket of tickets2) {
+          const shouldBePaused = ["pending", "on_hold"].includes(ticket.status);
+          const shouldBeResumed = ticket.status === "in_progress";
+          const currentlyPaused = ticket.sla_paused || false;
+          if (shouldBePaused && !currentlyPaused) {
+            try {
+              await db.update(tickets2).set({
+                sla_paused: true,
+                sla_pause_reason: `Ticket moved to ${ticket.status} status`,
+                sla_paused_at: now,
+                updated_at: now
+              }).where(eq9(tickets2.id, ticket.id));
+              console.log(`\u23F8\uFE0F  SLA paused for ticket ${ticket.ticket_number} (${ticket.status})`);
+            } catch (error) {
+              console.log(`\u26A0\uFE0F  Could not pause SLA for ticket ${ticket.ticket_number}, field may not exist yet`);
+            }
+          }
+          if (shouldBeResumed && currentlyPaused && ticket.sla_paused_at) {
+            try {
+              const pauseDuration = Math.floor((now.getTime() - new Date(ticket.sla_paused_at).getTime()) / (1e3 * 60));
+              const totalPausedTime = (ticket.sla_total_paused_time || 0) + pauseDuration;
+              await db.update(tickets2).set({
+                sla_paused: false,
+                sla_pause_reason: null,
+                sla_resumed_at: now,
+                sla_total_paused_time: totalPausedTime,
+                updated_at: now
+              }).where(eq9(tickets2.id, ticket.id));
+              console.log(`\u25B6\uFE0F  SLA auto-resumed for ticket ${ticket.ticket_number} (moved to in_progress, paused for ${pauseDuration} minutes)`);
+            } catch (error) {
+              console.log(`\u26A0\uFE0F  Could not resume SLA for ticket ${ticket.ticket_number}, field may not exist yet`);
+            }
+          }
+        }
+      }
       // Check for SLA breaches and update tickets
       async checkSLABreaches() {
         try {
@@ -7609,6 +7688,7 @@ var init_sla_monitor_service = __esm({
           const openTickets = await db.select().from(tickets).where(
             not2(inArray3(tickets.status, ["resolved", "closed", "cancelled"]))
           );
+          await this.handleSLAPauseResume(openTickets);
           let responseBreaches = 0;
           let resolutionBreaches = 0;
           let updates = 0;
@@ -7647,9 +7727,15 @@ var init_sla_monitor_service = __esm({
                 console.log(`\u{1F527} Auto-fixed SLA data for ticket ${ticket.ticket_number}`);
               }
             }
+            if (ticket.sla_paused || false || ["pending", "on_hold"].includes(ticket.status)) {
+              continue;
+            }
+            const pausedMinutes = ticket.sla_total_paused_time || 0;
             const responseDue = ticket.response_due_at || ticket.sla_response_due;
-            if (responseDue && !ticket.first_response_at && !ticket.sla_response_breached) {
-              if (now > new Date(responseDue)) {
+            const hasFirstResponse = ticket.first_response_at || ticket.assigned_to || ticket.updated_at !== ticket.created_at;
+            if (responseDue && !hasFirstResponse && !(ticket.sla_response_breached || false)) {
+              const effectiveResponseDue = new Date(new Date(responseDue).getTime() + pausedMinutes * 60 * 1e3);
+              if (now > effectiveResponseDue) {
                 updateData.sla_response_breached = true;
                 needsUpdate = true;
                 responseBreaches++;
@@ -7659,7 +7745,8 @@ var init_sla_monitor_service = __esm({
             }
             const resolutionDue = ticket.resolve_due_at || ticket.sla_resolution_due;
             if (resolutionDue && !ticket.sla_resolution_breached) {
-              if (now > new Date(resolutionDue)) {
+              const effectiveResolutionDue = new Date(new Date(resolutionDue).getTime() + pausedMinutes * 60 * 1e3);
+              if (now > effectiveResolutionDue) {
                 updateData.sla_resolution_breached = true;
                 updateData.sla_breached = true;
                 needsUpdate = true;
@@ -7750,23 +7837,33 @@ Immediate attention required!`;
           for (const ticket of ticketsWithSLA) {
             let needsUpdate = false;
             const updateData = {};
-            const responseDue = ticket.response_due_at || ticket.sla_response_due;
-            const isResponseBreached = responseDue && !ticket.first_response_at && now > new Date(responseDue);
-            if (isResponseBreached) {
-              actualResponseBreaches++;
-              if (!ticket.sla_response_breached) {
-                updateData.sla_response_breached = true;
-                needsUpdate = true;
+            if (!(ticket.sla_paused || false) && !["pending", "on_hold"].includes(ticket.status)) {
+              const pausedMinutes = ticket.sla_total_paused_time || 0;
+              const responseDue = ticket.response_due_at || ticket.sla_response_due;
+              const hasFirstResponse = ticket.first_response_at || ticket.assigned_to || ticket.updated_at !== ticket.created_at;
+              if (responseDue && !hasFirstResponse) {
+                const effectiveResponseDue = new Date(new Date(responseDue).getTime() + pausedMinutes * 60 * 1e3);
+                const isResponseBreached2 = now > effectiveResponseDue;
+                if (isResponseBreached2) {
+                  actualResponseBreaches++;
+                  if (!(ticket.sla_response_breached || false)) {
+                    updateData.sla_response_breached = true;
+                    needsUpdate = true;
+                  }
+                }
               }
-            }
-            const resolutionDue = ticket.resolve_due_at || ticket.sla_resolution_due;
-            const isResolutionBreached = resolutionDue && now > new Date(resolutionDue);
-            if (isResolutionBreached) {
-              actualResolutionBreaches++;
-              if (!ticket.sla_resolution_breached || !ticket.sla_breached) {
-                updateData.sla_resolution_breached = true;
-                updateData.sla_breached = true;
-                needsUpdate = true;
+              const resolutionDue = ticket.resolve_due_at || ticket.sla_resolution_due;
+              if (resolutionDue) {
+                const effectiveResolutionDue = new Date(new Date(resolutionDue).getTime() + pausedMinutes * 60 * 1e3);
+                const isResolutionBreached2 = now > effectiveResolutionDue;
+                if (isResolutionBreached2) {
+                  actualResolutionBreaches++;
+                  if (!(ticket.sla_resolution_breached || false) || !(ticket.sla_breached || false)) {
+                    updateData.sla_resolution_breached = true;
+                    updateData.sla_breached = true;
+                    needsUpdate = true;
+                  }
+                }
               }
             }
             if (isResponseBreached || isResolutionBreached) {
@@ -7798,6 +7895,9 @@ Immediate attention required!`;
             slaCompliance: 100
           };
         }
+      }
+      isResponseSLATicking(status) {
+        return status === "new" || status === "assigned";
       }
     };
     slaMonitorService = new SLAMonitorService();
@@ -7842,6 +7942,58 @@ function registerSLARoutes(app2) {
     } catch (error) {
       console.error("Error generating SLA compliance report:", error);
       res.status(500).json({ error: "Failed to generate compliance report" });
+    }
+  });
+  app2.post("/api/tickets/:id/sla/pause", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+      const now = /* @__PURE__ */ new Date();
+      const { db: db4 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
+      const { eq: eq12 } = await import("drizzle-orm");
+      await db4.update(tickets2).set({
+        sla_paused: true,
+        sla_pause_reason: reason || "Manually paused",
+        sla_paused_at: now,
+        updated_at: now
+      }).where(eq12(tickets2.id, id));
+      res.json({ message: "SLA paused successfully" });
+    } catch (error) {
+      console.error("Error pausing SLA:", error);
+      res.status(500).json({ error: "Failed to pause SLA" });
+    }
+  });
+  app2.post("/api/tickets/:id/sla/resume", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const now = /* @__PURE__ */ new Date();
+      const { db: db4 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
+      const { eq: eq12 } = await import("drizzle-orm");
+      const [ticket] = await db4.select().from(tickets2).where(eq12(tickets2.id, id));
+      if (!ticket || !ticket.sla_paused_at) {
+        return res.status(400).json({ error: "Ticket SLA is not paused" });
+      }
+      const pauseDuration = Math.floor(
+        (now.getTime() - new Date(ticket.sla_paused_at).getTime()) / (1e3 * 60)
+      );
+      const totalPausedTime = (ticket.sla_total_paused_time || 0) + pauseDuration;
+      await db4.update(tickets2).set({
+        sla_paused: false,
+        sla_pause_reason: null,
+        sla_resumed_at: now,
+        sla_total_paused_time: totalPausedTime,
+        updated_at: now
+      }).where(eq12(tickets2.id, id));
+      res.json({
+        message: "SLA resumed successfully",
+        pausedFor: `${pauseDuration} minutes`,
+        totalPausedTime: `${totalPausedTime} minutes`
+      });
+    } catch (error) {
+      console.error("Error resuming SLA:", error);
+      res.status(500).json({ error: "Failed to resume SLA" });
     }
   });
   app2.get("/api/sla/metrics", async (req, res) => {
@@ -16095,7 +16247,7 @@ init_ticket_schema();
 init_ticket_storage();
 init_knowledge_ai_service();
 import { Router as Router4 } from "express";
-import { eq as eq7, and as and7, or as or7, sql as sql7, desc as desc7, ilike as ilike2, count as count4 } from "drizzle-orm";
+import { eq as eq7, and as and7, or as or7, sql as sql7, desc as desc7, ilike as ilike2, count as count4, like as like5 } from "drizzle-orm";
 import jwt4 from "jsonwebtoken";
 var router4 = Router4();
 var storage2 = new TicketStorage();
@@ -16135,9 +16287,9 @@ router4.get("/", authenticateToken2, async (req, res) => {
       const searchTerm = `%${filters.search.toLowerCase()}%`;
       conditions.push(
         or7(
-          like(knowledgeBase.title, searchTerm),
-          like(knowledgeBase.content, searchTerm),
-          like(knowledgeBase.category, searchTerm)
+          like5(knowledgeBase.title, searchTerm),
+          like5(knowledgeBase.content, searchTerm),
+          like5(knowledgeBase.category, searchTerm)
         )
       );
     }

@@ -3078,47 +3078,47 @@ smartphones
     };
   }
 
-  async updateUser(id: string, updates: any): Promise<any | null> {
-    try {
-      const { pool } = await import("./db");
+  // async updateUser(id: string, updates: any): Promise<any | null> {
+  //   try {
+  //     const { pool } = await import("./db");
 
-      const setClause = [];
-      const params = [];
-      let paramCount = 0;
-      // Remove 'name' field if it exists since the schema doesn't have it
-      const { name, ...validUpdates } = updates as any;
+  //     const setClause = [];
+  //     const params = [];
+  //     let paramCount = 0;
+  //     // Remove 'name' field if it exists since the schema doesn't have it
+  //     const { name, ...validUpdates } = updates as any;
 
-      Object.keys(validUpdates).forEach((key) => {
-        if (validUpdates[key] !== undefined) {
-          paramCount++;
-          setClause.push(`${key} = $${paramCount}`);
-          params.push(validUpdates[key]);
-        }
-      });
+  //     Object.keys(validUpdates).forEach((key) => {
+  //       if (validUpdates[key] !== undefined) {
+  //         paramCount++;
+  //         setClause.push(`${key} = $${paramCount}`);
+  //         params.push(validUpdates[key]);
+  //       }
+  //     });
 
-      if (setClause.length === 0) return null;
+  //     if (setClause.length === 0) return null;
 
-      paramCount++;
-      setClause.push(`updated_at = $${paramCount}`);
-      params.push(new Date());
+  //     paramCount++;
+  //     setClause.push(`updated_at = $${paramCount}`);
+  //     params.push(new Date());
 
-      paramCount++;
-      params.push(id);
+  //     paramCount++;
+  //     params.push(id);
 
-      const query = `
-        UPDATE users 
-        SET ${setClause.join(", ")}
-        WHERE id = $${paramCount}
-        RETURNING id, name, email, role, department, phone, is_active, created_at, updated_at
-      `;
+  //     const query = `
+  //       UPDATE users
+  //       SET ${setClause.join(", ")}
+  //       WHERE id = $${paramCount}
+  //       RETURNING id, name, email, role, department, phone, is_active, created_at, updated_at
+  //     `;
 
-      const result = await pool.query(query, params);
-      return result.rows[0] || null;
-    } catch (error) {
-      console.error("Error updating user:", error);
-      return null;
-    }
-  }
+  //     const result = await pool.query(query, params);
+  //     return result.rows[0] || null;
+  //   } catch (error) {
+  //     console.error("Error updating user:", error);
+  //     return null;
+  //   }
+  // }
 
   // Database connection instance
   private db = db;
