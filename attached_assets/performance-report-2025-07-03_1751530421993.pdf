@@ -1,0 +1,106 @@
+%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Resources <<
+/Font <<
+/F1 <<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+>>
+>>
+>>
+/Contents 4 0 R
+>>
+endobj
+
+4 0 obj
+<<
+/Length 970
+>>
+stream
+BT
+/F1 16 Tf
+50 750 Td
+(SYSTEM ANALYTICS REPORT) Tj
+0 -30 Td
+/F1 12 Tf
+(Generated: Jul 3, 2025, 8:11:18 AM) Tj
+0 -40 Td
+0 -20 Td
+(SYSTEM ANALYTICS REPORT) Tj
+0 -20 Td
+(============================================================) Tj
+0 -20 Td
+(Generated on: Jul 3, 2025, 8:11:18 AM) Tj
+0 -20 Td
+(Report Type: PERFORMANCE) Tj
+0 -20 Td
+(------------------------------------------------------------) Tj
+0 -20 Td
+(PERFORMANCE SUMMARY) Tj
+0 -20 Td
+(-------------------------) Tj
+0 -20 Td
+(Average CPU Usage: 45.2%) Tj
+0 -20 Td
+(Average Memory Usage: 62.8%) Tj
+0 -20 Td
+(Average Disk Usage: 78.3%) Tj
+0 -20 Td
+(Active Devices: N/A) Tj
+0 -20 Td
+(System Uptime: 98.7%) Tj
+0 -20 Td
+(Critical Alerts: 1) Tj
+0 -20 Td
+(PERFORMANCE TRENDS) Tj
+0 -20 Td
+(-------------------------) Tj
+0 -20 Td
+(CPU Trend: 2.1%) Tj
+0 -20 Td
+(Memory Trend: -1.5%) Tj
+0 -20 Td
+(Disk Trend: 0.8%) Tj
+0 -20 Td
+(============================================================) Tj
+0 -20 Td
+(End of Report) Tj
+ET
+endstream
+endobj
+
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000059 00000 n 
+0000000117 00000 n 
+0000000293 00000 n 
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+1314
+%%EOF
