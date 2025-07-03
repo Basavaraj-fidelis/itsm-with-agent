@@ -369,64 +369,181 @@ export default function EndUserPortal() {
   // Show login form if not authenticated
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-8">
-        <div className="max-w-md w-full mx-auto px-4">
-          <div className="bg-white rounded-lg shadow-md p-8">
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">IT Service Portal</h1>
-              <p className="text-gray-600">Sign in to submit service requests and view your tickets</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-blue-900 flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Background Effects */}
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%2523ffffff%22%20fill-opacity%3D%220.05%22%3E%3Ccircle%20cx%3D%227%22%20cy%3D%227%22%20r%3D%227%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20"></div>
+        
+        <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center relative z-10">
+          {/* Left Side - Branding */}
+          <div className="hidden lg:block text-white space-y-8">
+            <div className="space-y-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-2xl">
+                  <User className="w-12 h-12 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+                    IT Service Portal
+                  </h1>
+                  <p className="text-blue-200 text-lg">End User Self Service</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h2 className="text-2xl font-semibold text-blue-100">
+                  Get IT Support When You Need It
+                </h2>
+                <p className="text-lg text-blue-200 leading-relaxed">
+                  Submit tickets, track requests, and manage your IT resources 
+                  through our streamlined self-service portal.
+                </p>
+              </div>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address
-                </label>
-                <Input
-                  type="email"
-                  value={loginData.email}
-                  onChange={(e) => setLoginData(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="your.email@company.com"
-                  required
-                />
+            {/* Feature Highlights */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                <TicketIcon className="w-8 h-8 text-blue-300 mb-2" />
+                <h3 className="font-semibold text-white">Quick Requests</h3>
+                <p className="text-sm text-blue-200">Submit tickets instantly</p>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Password
-                </label>
-                <Input
-                  type="password"
-                  value={loginData.password}
-                  onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
-                  placeholder="Enter your password"
-                  required
-                />
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                <Monitor className="w-8 h-8 text-green-300 mb-2" />
+                <h3 className="font-semibold text-white">Device Tracking</h3>
+                <p className="text-sm text-blue-200">Monitor your assets</p>
               </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                <Eye className="w-8 h-8 text-purple-300 mb-2" />
+                <h3 className="font-semibold text-white">Real-time Status</h3>
+                <p className="text-sm text-blue-200">Track ticket progress</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                <CheckCircle className="w-8 h-8 text-emerald-300 mb-2" />
+                <h3 className="font-semibold text-white">24/7 Access</h3>
+                <p className="text-sm text-blue-200">Always available</p>
+              </div>
+            </div>
+          </div>
 
-              <Button
-                type="submit"
-                disabled={isLoggingIn}
-                className="w-full"
-              >
-                {isLoggingIn ? (
-                  <>
-                    <Clock className="w-4 h-4 mr-2 animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  'Sign In'
-                )}
-              </Button>
-            </form>
+          {/* Right Side - Login Form */}
+          <div className="w-full max-w-md mx-auto lg:mx-0">
+            {/* Mobile Header */}
+            <div className="lg:hidden text-center mb-8">
+              <div className="flex justify-center mb-4">
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
+                  <User className="w-8 h-8 text-white" />
+                </div>
+              </div>
+              <h1 className="text-3xl font-bold text-white mb-2">IT Service Portal</h1>
+              <p className="text-blue-200">End User Self Service</p>
+            </div>
 
-            <div className="mt-8 text-center">
-              <p className="text-sm text-gray-600">
-                Need help? Contact IT Support at{' '}
-                <a href="mailto:support@company.com" className="text-blue-600 hover:underline">
-                  support@company.com
-                </a>
-              </p>
+            {/* Login Card */}
+            <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
+              <CardHeader className="space-y-1 pb-6">
+                <CardTitle className="text-2xl font-bold text-center text-slate-800">
+                  Welcome Back
+                </CardTitle>
+                <p className="text-sm text-slate-600 text-center">
+                  Sign in to access your IT services
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="flex items-center space-x-2 text-sm font-medium text-slate-700">
+                      <Mail className="w-4 h-4 text-slate-600" />
+                      <span>Email Address</span>
+                    </label>
+                    <Input
+                      type="email"
+                      value={loginData.email}
+                      onChange={(e) => setLoginData(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="your.email@company.com"
+                      required
+                      className="h-11 border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="flex items-center space-x-2 text-sm font-medium text-slate-700">
+                      <Lock className="w-4 h-4 text-slate-600" />
+                      <span>Password</span>
+                    </label>
+                    <Input
+                      type="password"
+                      value={loginData.password}
+                      onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
+                      placeholder="Enter your password"
+                      required
+                      className="h-11 border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    disabled={isLoggingIn}
+                    className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium shadow-lg"
+                  >
+                    {isLoggingIn ? (
+                      <div className="flex items-center space-x-2">
+                        <Clock className="w-4 h-4 animate-spin" />
+                        <span>Signing in...</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-2">
+                        <span>Sign In</span>
+                        <User className="w-4 h-4" />
+                      </div>
+                    )}
+                  </Button>
+                </form>
+
+                <Separator className="my-6" />
+
+                {/* Help Section */}
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <p className="text-xs text-slate-500 uppercase tracking-wide font-medium mb-3">
+                      Need Assistance?
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                      <Phone className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <p className="text-sm font-medium text-slate-800">Call IT Support</p>
+                        <p className="text-xs text-slate-600">+1 (555) 123-4567</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg border border-green-100">
+                      <Mail className="w-5 h-5 text-green-600" />
+                      <div>
+                        <p className="text-sm font-medium text-slate-800">Email Support</p>
+                        <a href="mailto:support@company.com" className="text-xs text-green-600 hover:underline">
+                          support@company.com
+                        </a>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg border border-purple-100">
+                      <Clock className="w-5 h-5 text-purple-600" />
+                      <div>
+                        <p className="text-sm font-medium text-slate-800">Business Hours</p>
+                        <p className="text-xs text-slate-600">Mon-Fri 8AM-6PM</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Footer */}
+            <div className="mt-8 text-center text-xs text-white/70">
+              <p>© 2024 IT Service Portal. Secure Self-Service Platform.</p>
+              <p className="mt-1">Fast • Reliable • Always Available</p>
             </div>
           </div>
         </div>
