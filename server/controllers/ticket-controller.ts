@@ -23,6 +23,26 @@ export class TicketController {
       res.json(tickets);
     } catch (error) {
       console.error("Error fetching tickets:", error);
+      
+      // Enhanced error handling for database issues
+      if (error instanceof Error) {
+        if (error.message.includes('database') || error.message.includes('connection')) {
+          return res.status(503).json({
+            error: "Database connection error",
+            message: "Unable to connect to database. Please try again later.",
+            retry: true
+          });
+        }
+        
+        if (error.message.includes('timeout')) {
+          return res.status(504).json({
+            error: "Request timeout",
+            message: "Database query timed out. Please try again.",
+            retry: true
+          });
+        }
+      }
+      
       ResponseUtils.internalServerError(res, "Internal server error");
     }
   }

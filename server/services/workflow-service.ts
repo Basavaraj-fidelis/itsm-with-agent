@@ -40,20 +40,45 @@ export class WorkflowService {
 
   static async getWorkflowForTicket(ticketId: string): Promise<WorkflowStep[]> {
     try {
-      const [ticket] = await db
-        .select()
-        .from(tickets)
-        .where(eq(tickets.id, ticketId))
-        .limit(1);
+      // Add connection check and retry logic
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          const [ticket] = await db
+            .select()
+            .from(tickets)
+            .where(eq(tickets.id, ticketId))
+            .limit(1);
 
-      if (!ticket) {
-        throw new Error("Ticket not found");
+          if (!ticket) {
+            throw new Error("Ticket not found");
+          }
+
+          const workflowSteps = this.workflowDefinitions[ticket.type] || [];
+          return this.enrichWorkflowWithProgress(workflowSteps, ticket);
+        } catch (dbError) {
+          retryCount++;
+          if (retryCount === maxRetries) {
+            throw dbError;
+          }
+          
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        }
       }
-
-      const workflowSteps = this.workflowDefinitions[ticket.type] || [];
-      return this.enrichWorkflowWithProgress(workflowSteps, ticket);
+      
+      throw new Error("Max retries exceeded");
     } catch (error) {
       console.error("Error getting workflow for ticket:", error);
+      
+      // Provide fallback workflow if database fails
+      if (error instanceof Error && error.message.includes('database')) {
+        console.warn("Database unavailable, providing fallback workflow");
+        return this.workflowDefinitions['incident'] || [];
+      }
+      
       throw error;
     }
   }

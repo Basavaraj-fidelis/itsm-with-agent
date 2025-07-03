@@ -14,6 +14,7 @@ import {
   User,
   ArrowRight
 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface WorkflowStep {
   id: number;
@@ -107,6 +108,18 @@ const workflowTemplates: ServiceDeskWorkflow[] = [
 export default function ServiceDeskWorkflows() {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [workflows, setWorkflows] = React.useState(workflowTemplates);
+
+  // Add error boundary handling
+  React.useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error('Unhandled promise rejection in workflows:', event.reason);
+      setError(`Workflow error: ${event.reason?.message || 'Unknown error'}`);
+    };
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    return () => window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+  }, []);
 
   const getStepIcon = (status: WorkflowStep["status"]) => {
     switch (status) {
@@ -119,10 +132,29 @@ export default function ServiceDeskWorkflows() {
     }
   };
 
+  if (error) {
+    return (
+      <Alert>
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription>
+          {error}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="ml-2"
+            onClick={() => setError(null)}
+          >
+            Retry
+          </Button>
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {workflowTemplates.map((workflow) => (
+        {workflows.map((workflow) => (
           <Card key={workflow.type} className="h-fit">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">

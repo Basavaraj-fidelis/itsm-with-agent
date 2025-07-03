@@ -1,12 +1,24 @@
-
-import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Clock, Plus, Edit, Trash2 } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { 
+  Clock, 
+  AlertTriangle, 
+  CheckCircle, 
+  Plus, 
+  Edit, 
+  Trash2,
+  Save,
+  X
+} from 'lucide-react';
 
 interface SLAPolicy {
   id: string;
@@ -85,7 +97,7 @@ export default function SLAPolicyManager() {
                 </Badge>
               </div>
             </CardHeader>
-            
+
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-center space-x-2">
@@ -97,7 +109,7 @@ export default function SLAPolicyManager() {
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center space-x-2">
                   <Clock className="w-4 h-4 text-green-600" />
                   <div>
