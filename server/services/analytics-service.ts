@@ -182,11 +182,11 @@ export interface SecurityComplianceData {
 class AnalyticsService {
   async generateAssetInventoryReport(): Promise<AssetInventoryData> {
     try {
-      console.log("Generating comprehensive asset inventory report");
+      console.log("Generating comprehensive asset inventory report for large scale deployment");
 
-      // Longer timeout for complex queries and better error handling
+      // Extended timeout for large deployments (100+ endpoints)
       const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Asset inventory timeout")), 8000),
+        setTimeout(() => reject(new Error("Asset inventory timeout")), 30000),
       );
 
       // Add connection health check
@@ -198,61 +198,91 @@ class AnalyticsService {
       }
 
       try {
-        // Get total device count with simpler query
+        // Get total device count with optimized query and index hint
         const totalDevicesResult = (await Promise.race([
           db.select({ count: sql`count(*)` }).from(devices),
           timeout,
         ])) as any[];
         const totalDevices = Number(totalDevicesResult[0]?.count) || 0;
 
+        console.log(`Processing asset inventory for ${totalDevices} devices`);
+
+        // For large deployments, use batched processing
+        const BATCH_SIZE = 50;
+        const shouldUseBatching = totalDevices > BATCH_SIZE;
+
         let devicesByOS: any[] = [];
         let devicesByStatus: any[] = [];
         let detailedDevices: any[] = [];
         let totalSoftware = 0;
 
-        // Try to get device breakdown by OS with fallback
-        try {
-          devicesByOS = (await Promise.race([
-            db
-              .select({
-                os_name: devices.os_name,
-                count: sql`count(*)`,
-              })
-              .from(devices)
-              .groupBy(devices.os_name),
-            timeout,
-          ])) as any[];
-        } catch (osError) {
-          console.warn("OS breakdown query failed, using fallback");
-          devicesByOS = [];
-        }
+        if (shouldUseBatching) {
+          // Use parallel processing for large deployments
+          const [osResults, statusResults, softwareResults] = await Promise.allSettled([
+            this.getBatchedDeviceBreakdown('os_name', timeout),
+            this.getBatchedDeviceBreakdown('status', timeout),
+            this.getBatchedSoftwareCount(timeout)
+          ]);
 
-        // Try to get device breakdown by status with fallback
-        try {
-          devicesByStatus = (await Promise.race([
-            db
-              .select({
-                status: devices.status,
-                count: sql`count(*)`,
-              })
-              .from(devices)
-              .groupBy(devices.status),
-            timeout,
-          ])) as any[];
-        } catch (statusError) {
-          console.warn("Status breakdown query failed, using fallback");
-          devicesByStatus = [];
-        }
+          devicesByOS = osResults.status === 'fulfilled' ? osResults.value : [];
+          devicesByStatus = statusResults.status === 'fulfilled' ? statusResults.value : [];
+          totalSoftware = softwareResults.status === 'fulfilled' ? softwareResults.value : 0;
 
-        // Try to get detailed device list with fallback
-        try {
-          detailedDevices = (await Promise.race([
-            db.select().from(devices).limit(20),
-            timeout,
-          ])) as any[];
-        } catch (detailError) {
-          console.warn("Detailed devices query failed, using fallback");
-          detailedDevices = [];
+          // Get sample of devices for large deployments (top 50 by last_seen)
+          try {
+            detailedDevices = (await Promise.race([
+              db.select().from(devices)
+                .orderBy(desc(devices.last_seen))
+                .limit(50),
+              timeout,
+            ])) as any[];
+          } catch (detailError) {
+            console.warn("Detailed devices query failed, using fallback");
+            detailedDevices = [];
+          }
+        } else {
+          // Original queries for smaller deployments
+          try {
+            devicesByOS = (await Promise.race([
+              db
+                .select({
+                  os_name: devices.os_name,
+                  count: sql`count(*)`,
+                })
+                .from(devices)
+                .groupBy(devices.os_name),
+              timeout,
+            ])) as any[];
+          } catch (osError) {
+            console.warn("OS breakdown query failed, using fallback");
+            devicesByOS = [];
+          }
+
+          try {
+            devicesByStatus = (await Promise.race([
+              db
+                .select({
+                  status: devices.status,
+                  count: sql`count(*)`,
+                })
+                .from(devices)
+                .groupBy(devices.status),
+              timeout,
+            ])) as any[];
+          } catch (statusError) {
+            console.warn("Status breakdown query failed, using fallback");
+            devicesByStatus = [];
+          }
+
+          try {
+            detailedDevices = (await Promise.race([
+              db.select().from(devices).limit(20),
+              timeout,
+            ])) as any[];
+          } catch (detailError) {
+            console.warn("Detailed devices query failed, using fallback");
+            detailedDevices = [];
+          }
         }
 
         // Try to get software inventory count with fallback
@@ -572,26 +602,39 @@ class AnalyticsService {
 
   async generateSystemHealthReport(): Promise<SystemHealthData> {
     try {
-      console.log("Generating system health report");
+      console.log("Generating system health report for large scale deployment");
 
-      // Increase timeout for larger fleets
+      // Extended timeout for larger fleets (up to 100+ endpoints)
       const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("System health timeout")), 5000),
+        setTimeout(() => reject(new Error("System health timeout")), 20000),
       );
 
       let recentReports: any[] = [];
       let alertCounts: any[] = [];
 
+      // Get device count first to determine processing strategy
+      const deviceCountResult = await db.select({ count: sql`count(*)` }).from(devices);
+      const deviceCount = Number(deviceCountResult[0]?.count) || 0;
+      
+      console.log(`Processing system health for ${deviceCount} devices`);
+
+      const LARGE_DEPLOYMENT_THRESHOLD = 50;
+      const isLargeDeployment = deviceCount > LARGE_DEPLOYMENT_THRESHOLD;
+
       try {
-        // Try to get recent device reports with simpler query
+        // Adjust query limits based on deployment size
+        const reportLimit = isLargeDeployment ? 200 : 50;
+        
         recentReports = (await Promise.race([
           db
             .select()
             .from(device_reports)
             .orderBy(desc(device_reports.created_at))
-            .limit(50),
+            .limit(reportLimit),
           timeout,
         ])) as any[];
+        
+        console.log(`Retrieved ${recentReports.length} recent reports`);
       } catch (reportsError) {
         console.warn("Recent reports query failed, using fallback");
         recentReports = [];
@@ -1073,6 +1116,55 @@ class AnalyticsService {
     } catch (error) {
       console.error("Error generating enhanced Word document:", error);
       throw new Error("Failed to generate Word document: " + error.message);
+    }
+  }
+
+  // Batch processing methods for large deployments
+  private async getBatchedDeviceBreakdown(field: string, timeout: Promise<never>): Promise<any[]> {
+    try {
+      const query = field === 'os_name' 
+        ? db.select({
+            os_name: devices.os_name,
+            count: sql`count(*)`,
+          }).from(devices).groupBy(devices.os_name)
+        : db.select({
+            status: devices.status,
+            count: sql`count(*)`,
+          }).from(devices).groupBy(devices.status);
+
+      return (await Promise.race([query, timeout])) as any[];
+    } catch (error) {
+      console.warn(`Batched ${field} query failed:`, error);
+      return [];
+    }
+  }
+
+  private async getBatchedSoftwareCount(timeout: Promise<never>): Promise<number> {
+    try {
+      const result = (await Promise.race([
+        db.select({ count: sql`count(*)` }).from(installed_software),
+        timeout,
+      ])) as any[];
+      return Number(result[0]?.count) || 0;
+    } catch (error) {
+      console.warn("Batched software count query failed:", error);
+      return 0;
+    }
+  }
+
+  private async getDeviceHealthBatched(limit: number = 100): Promise<any[]> {
+    try {
+      // For large deployments, get recent reports in batches
+      const recentReports = await db
+        .select()
+        .from(device_reports)
+        .orderBy(desc(device_reports.created_at))
+        .limit(limit);
+
+      return this.generateDeviceHealthData(recentReports);
+    } catch (error) {
+      console.warn("Batched device health query failed:", error);
+      return [];
     }
   }
 

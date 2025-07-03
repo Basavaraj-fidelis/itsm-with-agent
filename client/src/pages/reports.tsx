@@ -233,7 +233,8 @@ export default function Reports() {
     { value: "trends", label: "Trend Analysis", icon: TrendingUp, description: "Historical data and forecasting" },
     { value: "capacity", label: "Capacity Planning", icon: HardDrive, description: "Resource utilization and planning" },
     { value: "security", label: "Security Summary", icon: AlertCircle, description: "Security incidents and compliance" },
-    { value: "comprehensive", label: "Comprehensive ITSM Report", icon: FileText, description: "Executive summary with all metrics - Enterprise grade" }
+    { value: "comprehensive", label: "Comprehensive ITSM Report", icon: FileText, description: "Executive summary with all metrics - Enterprise grade" },
+    { value: "enterprise-scale", label: "Enterprise Scale Report", icon: Server, description: "Optimized for 50+ endpoints - Advanced batch processing" }
   ];
 
   const timeRanges = [
@@ -388,22 +389,30 @@ export default function Reports() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-      // Use different endpoint for comprehensive reports
-      const endpoint = selectedReportType === "comprehensive" 
-        ? "/api/analytics/comprehensive"
-        : "/api/analytics/generate";
+      // Use appropriate endpoint based on report type
+      let endpoint = "/api/analytics/generate";
+      let requestBody: any = {
+        reportType: selectedReportType,
+        timeRange: selectedTimeRange,
+        format: selectedFormat
+      };
 
-      const requestBody = selectedReportType === "comprehensive"
-        ? {
-            reportTypes: ["performance", "system-health", "asset-inventory", "security-compliance"],
-            timeRange: selectedTimeRange,
-            format: selectedFormat
-          }
-        : {
-            reportType: selectedReportType,
-            timeRange: selectedTimeRange,
-            format: selectedFormat
-          };
+      if (selectedReportType === "comprehensive") {
+        endpoint = "/api/analytics/comprehensive";
+        requestBody = {
+          reportTypes: ["performance", "system-health", "asset-inventory", "security-compliance"],
+          timeRange: selectedTimeRange,
+          format: selectedFormat
+        };
+      } else if (selectedReportType === "enterprise-scale") {
+        endpoint = "/api/analytics/enterprise-scale";
+        requestBody = {
+          reportTypes: ["performance", "system-health", "asset-inventory", "security-compliance", "ticket-analytics"],
+          timeRange: selectedTimeRange,
+          format: selectedFormat,
+          batchSize: 50
+        };
+      }
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -1227,6 +1236,14 @@ export default function Reports() {
             <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg">
               <CardTitle className="text-xl font-semibold text-gray-800">Generate Advanced Report</CardTitle>
               <p className="text-sm text-gray-600">Create comprehensive analytics reports with interactive Chart.js visualizations</p>
+              {realTimeMetrics && realTimeMetrics.active_devices > 50 && (
+                <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-md">
+                  <div className="flex items-center text-amber-700 text-sm">
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    <span>Large deployment detected ({realTimeMetrics.active_devices} endpoints). Consider using Enterprise Scale reports for optimal performance.</span>
+                  </div>
+                </div>
+              )}
             </CardHeader>
             <CardContent className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
