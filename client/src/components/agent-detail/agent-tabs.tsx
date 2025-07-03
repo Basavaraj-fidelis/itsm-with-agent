@@ -297,62 +297,62 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
   return (
     <AgentErrorBoundary>
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8 text-xs gap-1">
           <TabsTrigger
             value="overview"
-            className="flex items-center space-x-1 text-xs"
+            className="flex items-center space-x-1 text-xs px-2 py-1"
           >
             <Activity className="w-3 h-3" />
-            <span>Overview</span>
+            <span className="hidden sm:inline">Overview</span>
           </TabsTrigger>
           <TabsTrigger
             value="ai-insights"
-            className="flex items-center space-x-1 text-xs"
+            className="flex items-center space-x-1 text-xs px-2 py-1"
           >
             <Brain className="w-3 h-3" />
-            <span>AI Insights</span>
+            <span className="hidden sm:inline">AI</span>
           </TabsTrigger>
           <TabsTrigger
             value="hardware"
-            className="flex items-center space-x-1 text-xs"
+            className="flex items-center space-x-1 text-xs px-2 py-1"
           >
             <Cpu className="w-3 h-3" />
-            <span>Hardware</span>
+            <span className="hidden sm:inline">Hardware</span>
           </TabsTrigger>
           <TabsTrigger
             value="network"
-            className="flex items-center space-x-1 text-xs"
+            className="flex items-center space-x-1 text-xs px-2 py-1"
           >
             <Network className="w-3 h-3" />
-            <span>Network</span>
+            <span className="hidden sm:inline">Network</span>
           </TabsTrigger>
           <TabsTrigger
             value="storage"
-            className="flex items-center space-x-1 text-xs"
+            className="flex items-center space-x-1 text-xs px-2 py-1"
           >
             <HardDrive className="w-3 h-3" />
-            <span>Storage</span>
+            <span className="hidden sm:inline">Storage</span>
           </TabsTrigger>
           <TabsTrigger
             value="processes"
-            className="flex items-center space-x-1 text-xs"
+            className="flex items-center space-x-1 text-xs px-2 py-1"
           >
             <Activity className="w-3 h-3" />
-            <span>Processes</span>
+            <span className="hidden sm:inline">Processes</span>
           </TabsTrigger>
           <TabsTrigger
             value="software"
-            className="flex items-center space-x-1 text-xs"
+            className="flex items-center space-x-1 text-xs px-2 py-1"
           >
             <Package className="w-3 h-3" />
-            <span>Software</span>
+            <span className="hidden sm:inline">Software</span>
           </TabsTrigger>
           <TabsTrigger
             value="updates"
-            className="flex items-center space-x-1 text-xs"
+            className="flex items-center space-x-1 text-xs px-2 py-1"
           >
             <Download className="w-3 h-3" />
-            <span>Updates</span>
+            <span className="hidden sm:inline">Updates</span>
           </TabsTrigger>
         </TabsList>
 
@@ -622,81 +622,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
               </Card>
             )}
 
-            {/* Storage Information Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <HardDrive className="w-5 h-5" />
-                  <span>Storage Overview</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {storage.length > 0 ? (
-                    storage.slice(0, 3).map((drive, index) => {
-                      const usage =
-                        Math.round(
-                          drive.percent || drive.usage?.percentage || 0,
-                        ) || 0;
-                      const bytesToGB = (bytes) => {
-                        if (!bytes || bytes === 0) return "0 GB";
-                        return (
-                          (bytes / (1024 * 1024 * 1024)).toFixed(2) + " GB"
-                        );
-                      };
-
-                      return (
-                        <div
-                          key={index}
-                          className="p-3 border rounded-lg bg-muted/10"
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium">
-                              {drive.device ||
-                                drive.mountpoint ||
-                                `Drive ${index + 1}`}
-                            </span>
-                            <span
-                              className={`text-sm font-medium ${
-                                usage >= 85
-                                  ? "text-red-600"
-                                  : usage >= 75
-                                    ? "text-yellow-600"
-                                    : "text-green-600"
-                              }`}
-                            >
-                              {usage}%
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-3 gap-2 text-xs mb-2">
-                            <div>Total: {bytesToGB(drive.total)}</div>
-                            <div>Used: {bytesToGB(drive.used)}</div>
-                            <div>Free: {bytesToGB(drive.free)}</div>
-                          </div>
-                          <div className="w-full bg-gray-200 dark:bg-gray-800 h-2 rounded-full">
-                            <div
-                              className={`h-2 rounded-full ${
-                                usage >= 85
-                                  ? "bg-red-600"
-                                  : usage >= 75
-                                    ? "bg-yellow-500"
-                                    : "bg-green-500"
-                              }`}
-                              style={{ width: `${usage}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="text-center py-4 text-neutral-500">
-                      <HardDrive className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
-                      <p className="text-sm">No storage data available</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            
 
             {/* Terminal Data Display */}
             <Card className="col-span-2">
