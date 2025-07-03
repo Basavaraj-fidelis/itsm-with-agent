@@ -9,6 +9,9 @@ import { knowledgeBase } from "@shared/ticket-schema";
 import { eq, desc } from "drizzle-orm";
 import { knowledgeRoutes } from "./routes/knowledge-routes";
 import { agentADSyncRoutes } from "./routes/agent-ad-sync-routes";
+import { initAIService } from './services/ai-service';
+import { init as initSlaEscalationService } from './services/sla-escalation-service';
+import { webSocketService } from './websocket-service';
 import expressWs from "express-ws";
 
 const app = express();
@@ -367,6 +370,9 @@ app.use((req, res, next) => {
     const serv = app.listen(PORT, "0.0.0.0", () => {
       log(`serving on port ${PORT}`);
       console.log(`🌐 Server accessible at http://0.0.0.0:${PORT}`);
+
+      // Initialize WebSocket service
+      webSocketService.init(serv);
     });
 
     // CORS middleware for development

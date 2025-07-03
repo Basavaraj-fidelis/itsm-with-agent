@@ -111,10 +111,46 @@ export class WorkflowService {
         .set(updateData)
         .where(eq(tickets.id, ticketId));
 
+      // Get updated ticket for real-time notification
+      const [updatedTicket] = await db
+        .select()
+        .from(tickets)
+        .where(eq(tickets.id, ticketId))
+        .limit(1);
+
+      // Broadcast workflow update to connected clients
+      if (updatedTicket) {
+        this.broadcastWorkflowUpdate(updatedTicket);
+      }
+
       console.log(`Workflow advanced for ticket ${ticketId} to status: ${newStatus}`);
     } catch (error) {
       console.error("Error advancing workflow:", error);
       throw error;
+    }
+  }
+
+  private static broadcastWorkflowUpdate(ticket: any): void {
+    try {
+      // Import WebSocket service if available
+      const { broadcastToChannel } = require('../websocket-service');
+      
+      broadcastToChannel('workflow-updates', {
+        type: 'workflow-progress',
+        ticket: {
+          id: ticket.id,
+          ticket_number: ticket.ticket_number,
+          type: ticket.type,
+          status: ticket.status,
+          assigned_to: ticket.assigned_to,
+          updated_at: ticket.updated_at,
+          priority: ticket.priority
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      // Fail silently if WebSocket service not available
+      console.warn('WebSocket service not available for workflow broadcast:', error.message);
     }
   }
 }

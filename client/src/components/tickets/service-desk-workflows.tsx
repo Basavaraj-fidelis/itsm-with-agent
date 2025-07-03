@@ -1,9 +1,10 @@
 
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { 
   ClipboardList, 
   AlertTriangle, 
@@ -12,7 +13,8 @@ import {
   CheckCircle,
   Clock,
   User,
-  ArrowRight
+  ArrowRight,
+  RefreshCw
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -109,6 +111,148 @@ export default function ServiceDeskWorkflows() {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [workflows, setWorkflows] = React.useState(workflowTemplates);
+  const [liveTickets, setLiveTickets] = React.useState<any[]>([]);
+  const [selectedTicketId, setSelectedTicketId] = React.useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  // Fetch active tickets for real-time workflow tracking
+  const { data: ticketsData, isLoading: ticketsLoading } = useQuery({
+    queryKey: ['active-tickets'],
+    queryFn: async () => {
+      const response = await api.get('/tickets?status=new,assigned,in_progress,pending&limit=50');
+      return response.data;
+    },
+    refetchInterval: 5000, // Refresh every 5 seconds for real-time updates
+  });
+
+  // WebSocket connection for real-time updates
+  useEffect(() => {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    try {
+      const ws = new WebSocket(wsUrl);
+      
+      ws.onopen = () => {
+        console.log('Connected to workflow updates WebSocket');
+        ws.send(JSON.stringify({ type: 'subscribe', channel: 'workflow-updates' }));
+      };
+      
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'ticket-update' || data.type === 'workflow-progress') {
+            // Invalidate queries to refresh data
+            queryClient.invalidateQueries({ queryKey: ['active-tickets'] });
+            
+            // Update live workflow status
+            setWorkflows(prevWorkflows => 
+              prevWorkflows.map(workflow => 
+                updateWorkflowWithLiveData(workflow, data.ticket)
+              )
+            );
+          }
+        } catch (err) {
+          console.error('Error parsing WebSocket message:', err);
+        }
+      };
+      
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+      
+      return () => {
+        ws.close();
+      };
+    } catch (error) {
+      console.error('Failed to establish WebSocket connection:', error);
+    }
+  }, [queryClient]);
+
+  // Update workflows with live ticket data
+  useEffect(() => {
+    if (ticketsData?.data) {
+      setLiveTickets(ticketsData.data);
+      
+      // Update workflows with real ticket progress
+      setWorkflows(prevWorkflows => 
+        prevWorkflows.map(workflow => {
+          const relevantTickets = ticketsData.data.filter((ticket: any) => 
+            ticket.type === workflow.type.replace('service_', '')
+          );
+          
+          if (relevantTickets.length > 0) {
+            return updateWorkflowWithTicketData(workflow, relevantTickets);
+          }
+          
+          return workflow;
+        })
+      );
+    }
+  }, [ticketsData]);
+
+  const updateWorkflowWithLiveData = (workflow: any, ticketData: any) => {
+    if (ticketData.type !== workflow.type.replace('service_', '')) {
+      return workflow;
+    }
+
+    const updatedSteps = workflow.steps.map((step: any) => {
+      const isCurrentStep = step.status === ticketData.status;
+      const isCompletedStep = getStepOrder(step.status) < getStepOrder(ticketData.status);
+      
+      return {
+        ...step,
+        status: isCompletedStep ? 'completed' : isCurrentStep ? 'active' : 'pending',
+        assignee: isCurrentStep ? ticketData.assigned_to || step.assignee : step.assignee,
+        actual_start_time: isCurrentStep || isCompletedStep ? ticketData.updated_at : undefined,
+        duration_minutes: isCompletedStep ? calculateStepDuration(step, ticketData) : undefined
+      };
+    });
+
+    return {
+      ...workflow,
+      steps: updatedSteps,
+      activeTicketId: ticketData.id,
+      ticketNumber: ticketData.ticket_number,
+      lastUpdate: new Date().toISOString()
+    };
+  };
+
+  const updateWorkflowWithTicketData = (workflow: any, tickets: any[]) => {
+    // Use the most recent ticket for this workflow type
+    const latestTicket = tickets.sort((a, b) => 
+      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    )[0];
+
+    return updateWorkflowWithLiveData(workflow, latestTicket);
+  };
+
+  const getStepOrder = (status: string) => {
+    const statusOrder = {
+      'new': 1,
+      'assigned': 2, 
+      'pending': 3,
+      'in_progress': 4,
+      'resolved': 5,
+      'closed': 6
+    };
+    return statusOrder[status as keyof typeof statusOrder] || 0;
+  };
+
+  const calculateStepDuration = (step: any, ticket: any) => {
+    if (!step.actual_start_time) return undefined;
+    
+    const startTime = new Date(step.actual_start_time);
+    const endTime = new Date(ticket.updated_at);
+    const durationMs = endTime.getTime() - startTime.getTime();
+    
+    return Math.floor(durationMs / (1000 * 60)); // Convert to minutes
+  };
+
+  const handleRefreshWorkflows = () => {
+    queryClient.invalidateQueries({ queryKey: ['active-tickets'] });
+    setError(null);
+  };
 
   // Add error boundary handling
   React.useEffect(() => {
@@ -121,15 +265,30 @@ export default function ServiceDeskWorkflows() {
     return () => window.removeEventListener('unhandledrejection', handleUnhandledRejection);
   }, []);
 
-  const getStepIcon = (status: WorkflowStep["status"]) => {
+  const getStepIcon = (status: WorkflowStep["status"], isRealTime: boolean = false) => {
     switch (status) {
       case "completed":
         return <CheckCircle className="w-4 h-4 text-green-600" />;
       case "active":
-        return <Clock className="w-4 h-4 text-blue-600" />;
+        return (
+          <div className="relative">
+            <Clock className="w-4 h-4 text-blue-600" />
+            {isRealTime && (
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+            )}
+          </div>
+        );
       default:
         return <div className="w-4 h-4 rounded-full border-2 border-gray-300" />;
     }
+  };
+
+  const getWorkflowProgress = (workflow: any) => {
+    const completedSteps = workflow.steps.filter((s: any) => s.status === "completed").length;
+    const totalSteps = workflow.steps.length;
+    const percentage = Math.round((completedSteps / totalSteps) * 100);
+    
+    return { completed: completedSteps, total: totalSteps, percentage };
   };
 
   if (error) {
@@ -153,36 +312,96 @@ export default function ServiceDeskWorkflows() {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-2xl font-bold">Live Service Desk Workflows</h2>
+          <p className="text-muted-foreground">Real-time workflow progress tracking</p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefreshWorkflows}
+            disabled={ticketsLoading}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${ticketsLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Badge variant="secondary">
+            {liveTickets.length} Active Tickets
+          </Badge>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {workflows.map((workflow) => (
-          <Card key={workflow.type} className="h-fit">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-lg ${workflow.color}`}>
-                    {workflow.icon}
+        {workflows.map((workflow) => {
+          const progress = getWorkflowProgress(workflow);
+          const hasLiveData = workflow.activeTicketId;
+          
+          return (
+            <Card key={workflow.type} className={`h-fit ${hasLiveData ? 'ring-2 ring-blue-200 dark:ring-blue-800' : ''}`}>
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`p-2 rounded-lg ${workflow.color} relative`}>
+                      {workflow.icon}
+                      {hasLiveData && (
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800" />
+                      )}
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg flex items-center">
+                        {workflow.title}
+                        {hasLiveData && (
+                          <Badge variant="outline" className="ml-2 text-xs">
+                            Live
+                          </Badge>
+                        )}
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {workflow.description}
+                      </p>
+                      {workflow.ticketNumber && (
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                          Tracking: {workflow.ticketNumber}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle className="text-lg">{workflow.title}</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {workflow.description}
-                    </p>
+                  <div className="text-right">
+                    <Badge variant="outline" className={workflow.color}>
+                      {progress.completed}/{progress.total}
+                    </Badge>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {progress.percentage}% Complete
+                    </div>
+                    {workflow.lastUpdate && (
+                      <div className="text-xs text-muted-foreground">
+                        Updated: {new Date(workflow.lastUpdate).toLocaleTimeString()}
+                      </div>
+                    )}
                   </div>
                 </div>
-                <Badge variant="outline" className={workflow.color}>
-                  {workflow.steps.filter(s => s.status === "completed").length}/{workflow.steps.length}
-                </Badge>
-              </div>
-            </CardHeader>
+                
+                {/* Progress bar */}
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-3">
+                  <div 
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                    style={{ width: `${progress.percentage}%` }}
+                  />
+                </div>
+              </CardHeader>
             
             <CardContent>
               <div className="space-y-3">
                 {workflow.steps.map((step, index) => (
                   <div key={step.id} className="flex items-start space-x-3">
                     <div className="flex flex-col items-center">
-                      {getStepIcon(step.status)}
+                      {getStepIcon(step.status, hasLiveData)}
                       {index < workflow.steps.length - 1 && (
-                        <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 mt-2" />
+                        <div className={`w-px h-8 mt-2 ${
+                          step.status === "completed" ? "bg-green-300" : "bg-gray-200 dark:bg-gray-700"
+                        }`} />
                       )}
                     </div>
                     
@@ -194,26 +413,46 @@ export default function ServiceDeskWorkflows() {
                           "text-gray-600 dark:text-gray-400"
                         }`}>
                           {step.name}
+                          {step.status === "active" && hasLiveData && (
+                            <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                              In Progress
+                            </span>
+                          )}
                         </h4>
-                        {step.timeframe && (
-                          <span className="text-xs text-muted-foreground">
-                            {step.timeframe}
-                          </span>
-                        )}
+                        <div className="text-right">
+                          {step.timeframe && (
+                            <span className="text-xs text-muted-foreground block">
+                              Target: {step.timeframe}
+                            </span>
+                          )}
+                          {step.duration_minutes && (
+                            <span className="text-xs text-green-600 block">
+                              Actual: {step.duration_minutes}m
+                            </span>
+                          )}
+                        </div>
                       </div>
                       
                       <p className="text-xs text-muted-foreground mt-1">
                         {step.description}
                       </p>
                       
-                      {step.assignee && (
-                        <div className="flex items-center space-x-1 mt-1">
-                          <User className="w-3 h-3 text-muted-foreground" />
+                      <div className="flex items-center justify-between mt-2">
+                        {step.assignee && (
+                          <div className="flex items-center space-x-1">
+                            <User className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">
+                              {step.assignee}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {step.actual_start_time && (
                           <span className="text-xs text-muted-foreground">
-                            {step.assignee}
+                            Started: {new Date(step.actual_start_time).toLocaleTimeString()}
                           </span>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
