@@ -27,6 +27,7 @@ import {
   Activity,
   TicketIcon,
   Eye,
+  Lock,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
