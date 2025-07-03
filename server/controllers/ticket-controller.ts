@@ -42,17 +42,52 @@ export class TicketController {
 
   static async createTicket(req: any, res: any) {
     try {
+      // Validate required fields
+      const { type, title, description, requester_email } = req.body;
+      
+      if (!type || !title || !description || !requester_email) {
+        return res.status(400).json({
+          error: "Missing required fields",
+          required: ["type", "title", "description", "requester_email"],
+          received: Object.keys(req.body)
+        });
+      }
+
       console.log("Creating ticket with data:", req.body);
       const ticket = await ticketStorage.createTicket(req.body);
       console.log("Ticket created successfully:", ticket.ticket_number);
-      res.status(201).json(ticket);
+      
+      // Send success response with additional metadata
+      res.status(201).json({
+        ...ticket,
+        _metadata: {
+          created_at: new Date().toISOString(),
+          created_by: req.headers['user-email'] || 'system'
+        }
+      });
     } catch (error) {
       console.error("Error creating ticket:", error);
-      // Return more specific error message
-      const errorMessage = error instanceof Error ? error.message : "Failed to create ticket";
-      res.status(400).json({ 
-        error: errorMessage,
-        details: error instanceof Error ? error.stack : error 
+      
+      // Enhanced error response
+      if (error instanceof Error) {
+        if (error.message.includes('duplicate')) {
+          return res.status(409).json({
+            error: "Duplicate ticket detected",
+            message: error.message
+          });
+        }
+        
+        if (error.message.includes('validation')) {
+          return res.status(400).json({
+            error: "Validation failed",
+            message: error.message
+          });
+        }
+      }
+      
+      res.status(500).json({ 
+        error: "Internal server error",
+        message: "Failed to create ticket. Please try again."
       });
     }
   }

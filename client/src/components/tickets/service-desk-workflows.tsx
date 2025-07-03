@@ -1,6 +1,8 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { 
   ClipboardList, 
@@ -103,6 +105,9 @@ const workflowTemplates: ServiceDeskWorkflow[] = [
 ];
 
 export default function ServiceDeskWorkflows() {
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
   const getStepIcon = (status: WorkflowStep["status"]) => {
     switch (status) {
       case "completed":
