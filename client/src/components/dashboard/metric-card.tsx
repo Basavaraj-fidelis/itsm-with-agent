@@ -15,7 +15,7 @@ interface MetricCardProps {
     label: string;
     value: string;
   };
-  color?: "blue" | "green" | "red" | "orange" | "purple" | "yellow";
+  color?: "blue" | "green" | "red" | "orange" | "purple";
 }
 
 const colorClasses = {
@@ -59,14 +59,6 @@ const colorClasses = {
     iconColor: "text-purple-600",
     border: "border-purple-100"
   },
-  yellow: {
-    bg: "bg-yellow-50",
-    cardBg: "bg-yellow-50/50",
-    iconBg: "bg-yellow-100",
-    text: "text-yellow-700",
-    iconColor: "text-yellow-600",
-    border: "border-yellow-100"
-  },
 };
 
 export function MetricCard({
@@ -75,8 +67,7 @@ export function MetricCard({
   icon: Icon,
   color = "blue",
 }: MetricCardProps) {
-  // Fallback to blue if color is not found in colorClasses
-  const colorScheme = colorClasses[color] || colorClasses.blue;
+  const colorScheme = colorClasses[color];
   
   return (
     <Card className={`${colorScheme.cardBg} border ${colorScheme.border} hover:shadow-lg transition-all duration-200 rounded-xl`}>
