@@ -275,6 +275,13 @@ router.post("/generate", async (req, res) => {
       `Generating custom report: ${reportType}, timeRange: ${timeRange}, format: ${format}`,
     );
 
+    if (!reportType) {
+      return res.status(400).json({
+        success: false,
+        error: "Report type is required"
+      });
+    }
+
     // Validate report type
     const allowedReportTypes = [
       "performance",
@@ -320,35 +327,51 @@ router.post("/generate", async (req, res) => {
       );
       res.send(csvData);
     } else if (format === "docx") {
-      console.log("Generating Word document...");
-      const wordData = await analyticsService.exportReport(
-        data,
-        "docx",
-        reportType,
-      );
-      res.setHeader(
-        "Content-Type",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      );
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="${reportType}-report.docx"`,
-      );
-      res.send(wordData);
-    } else if (format === "pdf") {
-      console.log("Generating PDF document...");
-      const pdfData = await analyticsService.exportReport(
-        data,
-        "pdf",
-        reportType,
-      );
-      res.setHeader("Content-Type", "application/pdf");
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="${reportType}-report.pdf"`,
-      );
-      res.send(pdfData);
-    } else {
+          console.log("Generating Word document...");
+          try {
+            const wordData = await analyticsService.exportReport(
+              data,
+              "docx",
+              reportType,
+            );
+            res.setHeader(
+              "Content-Type",
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            );
+            res.setHeader(
+              "Content-Disposition",
+              `attachment; filename="${reportType}-report.docx"`,
+            );
+            res.send(wordData);
+          } catch (wordError) {
+            console.error("Word document generation failed:", wordError);
+            return res.status(500).json({
+              success: false,
+              error: "Failed to generate Word document: " + wordError.message
+            });
+          }
+        } else if (format === "pdf") {
+          console.log("Generating PDF document...");
+          try {
+            const pdfData = await analyticsService.exportReport(
+              data,
+              "pdf",
+              reportType,
+            );
+            res.setHeader("Content-Type", "application/pdf");
+            res.setHeader(
+              "Content-Disposition",
+              `attachment; filename="${reportType}-report.pdf"`,
+            );
+            res.send(pdfData);
+          } catch (pdfError) {
+            console.error("PDF document generation failed:", pdfError);
+            return res.status(500).json({
+              success: false,
+              error: "Failed to generate PDF document: " + pdfError.message
+            });
+          }
+        } else {
       res.json({
         success: true,
         report: {
@@ -362,32 +385,40 @@ router.post("/generate", async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("Error generating custom report:", error);
+      console.error("Error generating custom report:", error);
+      console.error("Error stack:", error.stack);
 
-    // Determine appropriate error message
-    let errorMessage = "Failed to generate report";
-    let statusCode = 500;
+      // Determine appropriate error message
+      let errorMessage = "Failed to generate report";
+      let statusCode = 500;
 
-    if (error instanceof Error) {
-      if (error.message.includes("timeout")) {
-        errorMessage =
-          "Report generation timed out. Please try again with a shorter time range.";
-        statusCode = 504;
-      } else if (error.message.includes("Database connection")) {
-        errorMessage =
-          "Database connection error. Please check your database configuration.";
-        statusCode = 503;
-      } else {
-        errorMessage = error.message;
+      if (error instanceof Error) {
+        if (error.message.includes("timeout")) {
+          errorMessage =
+            "Report generation timed out. Please try again with a shorter time range.";
+          statusCode = 504;
+        } else if (error.message.includes("Database connection")) {
+          errorMessage =
+            "Database connection error. Please check your database configuration.";
+          statusCode = 503;
+        } else if (error.message.includes("Word document")) {
+          errorMessage = "Word document generation failed. Please try PDF format.";
+          statusCode = 500;
+        } else if (error.message.includes("PDF document")) {
+          errorMessage = "PDF document generation failed. Please try Word format.";
+          statusCode = 500;
+        } else {
+          errorMessage = error.message;
+        }
       }
-    }
 
-    res.status(statusCode).json({
-      success: false,
-      error: errorMessage,
-      reportType: req.body.reportType || "unknown",
-    });
-  }
+      res.status(statusCode).json({
+        success: false,
+        error: errorMessage,
+        reportType: req.body.reportType || "unknown",
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+    }
 });
 
 // Get real-time performance metrics

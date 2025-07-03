@@ -387,7 +387,7 @@ export default function Reports() {
       console.log(`Generating ${selectedReportType} report for ${selectedTimeRange} in ${selectedFormat} format`);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // Extended timeout
 
       // Use appropriate endpoint based on report type
       let endpoint = "/api/analytics/generate";
@@ -396,6 +396,17 @@ export default function Reports() {
         timeRange: selectedTimeRange,
         format: selectedFormat
       };
+
+      // Validate inputs
+      if (!selectedReportType) {
+        throw new Error("Please select a report type");
+      }
+      if (!selectedTimeRange) {
+        throw new Error("Please select a time range");
+      }
+      if (!selectedFormat) {
+        throw new Error("Please select an export format");
+      }
 
       if (selectedReportType === "comprehensive") {
         endpoint = "/api/analytics/comprehensive";
@@ -428,41 +439,59 @@ export default function Reports() {
 
       if (response.ok) {
         if (selectedFormat === "docx" || selectedFormat === "csv" || selectedFormat === "pdf" || selectedFormat === "excel") {
-          const blob = await response.blob();
+          try {
+            const blob = await response.blob();
 
-          if (blob.size === 0) {
-            throw new Error("Empty file received");
+            if (blob.size === 0) {
+              throw new Error("Empty file received from server");
+            }
+
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = `${selectedReportType}-report-${format(new Date(), 'yyyy-MM-dd')}.${selectedFormat}`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            console.log(`${selectedFormat.toUpperCase()} download completed successfully`);
+            await fetchRecentReports().catch(err => console.warn("Failed to refresh recent reports:", err));
+          } catch (blobError) {
+            console.error("Error processing downloaded file:", blobError);
+            setError(`Failed to process downloaded ${selectedFormat.toUpperCase()} file`);
           }
-
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.style.display = 'none';
-          a.href = url;
-          a.download = `${selectedReportType}-report-${format(new Date(), 'yyyy-MM-dd')}.${selectedFormat}`;
-          document.body.appendChild(a);
-          a.click();
-          window.URL.revokeObjectURL(url);
-          document.body.removeChild(a);
-
-          console.log(`${selectedFormat.toUpperCase()} download completed successfully`);
-          await fetchRecentReports();
         } else {
-          const data = await response.json();
-          if (data.success) {
-            setCurrentReport(data.report);
-            await fetchRecentReports();
-          } else {
-            setError(data.error || "Failed to generate report");
+          try {
+            const data = await response.json();
+            if (data.success) {
+              setCurrentReport(data.report);
+              await fetchRecentReports().catch(err => console.warn("Failed to refresh recent reports:", err));
+            } else {
+              setError(data.error || "Failed to generate report");
+            }
+          } catch (jsonError) {
+            console.error("Error parsing JSON response:", jsonError);
+            setError("Invalid response from server");
           }
         }
       } else {
-        const errorText = await response.text();
-        console.error(`${selectedFormat.toUpperCase()} download failed:`, errorText);
+        try {
+          const errorData = await response.json();
+          console.error(`Report generation failed:`, errorData);
+          setError(errorData.error || `Failed to generate report (${response.status})`);
+        } catch (parseError) {
+          const errorText = await response.text();
+          console.error(`${selectedFormat.toUpperCase()} download failed:`, errorText);
 
-        if (response.status === 502) {
-          setError("Server temporarily unavailable. Please try again in a moment.");
-        } else {
-          setError(`Failed to generate report (${response.status})`);
+          if (response.status === 502) {
+            setError("Server temporarily unavailable. Please try again in a moment.");
+          } else if (response.status === 500) {
+            setError("Internal server error. Please try a different format or contact support.");
+          } else {
+            setError(`Failed to generate report (${response.status})`);
+          }
         }
       }
     } catch (error) {

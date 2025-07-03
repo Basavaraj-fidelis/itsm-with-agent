@@ -35,7 +35,6 @@ import {
   TableCell,
   WidthType,
   TextRun,
-  BorderStyle,
   VerticalAlign,
 } from "docx";
 
@@ -1071,13 +1070,6 @@ class AnalyticsService {
                   }),
                 ],
                 spacing: { before: 400, after: 200 },
-                border: {
-                  bottom: {
-                    color: "2E75B6",
-                    size: 6,
-                    style: BorderStyle.SINGLE,
-                  },
-                },
               }),
 
               this.generateExecutiveSummary(data, reportType),
@@ -1095,13 +1087,6 @@ class AnalyticsService {
                   }),
                 ],
                 spacing: { before: 600, after: 200 },
-                border: {
-                  bottom: {
-                    color: "2E75B6", 
-                    size: 6,
-                    style: BorderStyle.SINGLE,
-                  },
-                },
               }),
               
               this.generateConclusions(data, reportType),
@@ -1115,7 +1100,16 @@ class AnalyticsService {
       return buffer;
     } catch (error) {
       console.error("Error generating enhanced Word document:", error);
-      throw new Error("Failed to generate Word document: " + error.message);
+      
+      // Fallback to simple text-based document
+      console.log("Attempting fallback Word document generation...");
+      try {
+        const fallbackContent = this.generateWordFallbackDocument(data, reportType);
+        return Buffer.from(fallbackContent, 'utf8');
+      } catch (fallbackError) {
+        console.error("Fallback Word document generation also failed:", fallbackError);
+        throw new Error("Failed to generate Word document: " + error.message);
+      }
     }
   }
 
@@ -2186,12 +2180,20 @@ class AnalyticsService {
     data: any,
     reportType: string = "generic",
   ): Promise<Buffer> {
-    // Generate a properly formatted text document for PDF
-    const textContent = this.generateEnhancedTextDocument(data, reportType);
+    try {
+      console.log("Generating PDF document...");
+      
+      // Generate a properly formatted text document for PDF
+      const textContent = this.generateEnhancedTextDocument(data, reportType);
 
-    // Create a simple but valid PDF with proper content
-    const pdfContent = this.generateValidPDF(textContent, reportType);
-    return Buffer.from(pdfContent, "binary");
+      // Create a simple but valid PDF with proper content
+      const pdfContent = this.generateValidPDF(textContent, reportType);
+      console.log("PDF document generated successfully");
+      return Buffer.from(pdfContent, "binary");
+    } catch (error) {
+      console.error("Error generating PDF document:", error);
+      throw new Error("Failed to generate PDF document: " + error.message);
+    }
   }
 
   private generateValidPDF(textContent: string, reportType: string): string {
@@ -2374,12 +2376,6 @@ class AnalyticsService {
         })),
       ],
       spacing: { before: 200, after: 200 },
-      border: {
-        top: { color: "CCCCCC", size: 4, style: BorderStyle.SINGLE },
-        bottom: { color: "CCCCCC", size: 4, style: BorderStyle.SINGLE },
-        left: { color: "CCCCCC", size: 4, style: BorderStyle.SINGLE },
-        right: { color: "CCCCCC", size: 4, style: BorderStyle.SINGLE },
-      },
       shading: {
         fill: "F8F9FA",
       },
