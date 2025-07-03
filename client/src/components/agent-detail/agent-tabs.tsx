@@ -327,6 +327,13 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
             <span>Network</span>
           </TabsTrigger>
           <TabsTrigger
+            value="storage"
+            className="flex items-center space-x-1 text-xs"
+          >
+            <HardDrive className="w-3 h-3" />
+            <span>Storage</span>
+          </TabsTrigger>
+          <TabsTrigger
             value="processes"
             className="flex items-center space-x-1 text-xs"
           >
@@ -1957,7 +1964,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                       </span>
                                     </div>
                                   ))}
-                                  
+
                                   {/* Display legacy patches from os_info.patches */}
                                   {legacyPatches.slice(0, Math.max(0, 15 - patches.length)).map((patch, index) => (
                                     <div
@@ -1974,7 +1981,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                       </span>
                                     </div>
                                   ))}
-                                  
+
                                   {((patches.length || 0) + (legacyPatches.length || 0)) > 15 && (
                                     <div className="text-xs text-neutral-500 pt-2 text-center">
                                       ...and {((patches.length || 0) + (legacyPatches.length || 0)) - 15} more patches
