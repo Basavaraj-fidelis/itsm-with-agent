@@ -1,0 +1,35 @@
+Uncaught TypeError: Cannot read properties of undefined (reading 'cardBg')
+    at MetricCard (metric-card.tsx:73:37)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b1899c6d:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=b1899c6d:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=b1899c6d:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b1899c6d:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b1899c6d:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=b1899c6d:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b1899c6d:19765:15)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=b1899c6d:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=b1899c6d:19137:13)
+2chunk-RPCDYKBN.js?v=b1899c6d:14032 The above error occurred in the <MetricCard> component:
+
+    at MetricCard (https://0d5d7d03-4805-48bd-82a9-6eb656940c24-00-2ndjmyz2524ac.sisko.replit.dev/src/components/dashboard/metric-card.tsx:61:3)
+    at div
+    at div
+    at div
+    at Dashboard (https://0d5d7d03-4805-48bd-82a9-6eb656940c24-00-2ndjmyz2524ac.sisko.replit.dev/src/pages/dashboard.tsx:73:77)
+    at main
+    at div
+    at div
+    at AuthenticatedLayout (https://0d5d7d03-4805-48bd-82a9-6eb656940c24-00-2ndjmyz2524ac.sisko.replit.dev/src/App.tsx:57:32)
+    at ProtectedRoute (https://0d5d7d03-4805-48bd-82a9-6eb656940c24-00-2ndjmyz2524ac.sisko.replit.dev/src/components/auth/protected-route.tsx:76:3)
+    at Route (https://0d5d7d03-4805-48bd-82a9-6eb656940c24-00-2ndjmyz2524ac.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b1899c6d:206:16)
+    at Switch (https://0d5d7d03-4805-48bd-82a9-6eb656940c24-00-2ndjmyz2524ac.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b1899c6d:262:17)
+    at Router (https://0d5d7d03-4805-48bd-82a9-6eb656940c24-00-2ndjmyz2524ac.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b1899c6d:161:17)
+    at AuthProvider (https://0d5d7d03-4805-48bd-82a9-6eb656940c24-00-2ndjmyz2524ac.sisko.replit.dev/src/components/auth/protected-route.tsx:36:32)
+    at QueryClientProvider (https://0d5d7d03-4805-48bd-82a9-6eb656940c24-00-2ndjmyz2524ac.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=b1899c6d:2933:3)
+    at App (https://0d5d7d03-4805-48bd-82a9-6eb656940c24-00-2ndjmyz2524ac.sisko.replit.dev/src/App.tsx:89:49)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-RPCDYKBN.js?v=b1899c6d:14032
+chunk-RPCDYKBN.js?v=b1899c6d:9129 Uncaught TypeError: Cannot read properties of undefined (reading 'cardBg')
+    at MetricCard (metric-card.tsx:73:37)
