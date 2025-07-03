@@ -232,7 +232,8 @@ export default function Reports() {
     { value: "inventory", label: "System Inventory", icon: Server, description: "Complete system inventory overview" },
     { value: "trends", label: "Trend Analysis", icon: TrendingUp, description: "Historical data and forecasting" },
     { value: "capacity", label: "Capacity Planning", icon: HardDrive, description: "Resource utilization and planning" },
-    { value: "security", label: "Security Summary", icon: AlertCircle, description: "Security incidents and compliance" }
+    { value: "security", label: "Security Summary", icon: AlertCircle, description: "Security incidents and compliance" },
+    { value: "comprehensive", label: "Comprehensive ITSM Report", icon: FileText, description: "Executive summary with all metrics - Enterprise grade" }
   ];
 
   const timeRanges = [
@@ -387,17 +388,30 @@ export default function Reports() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-      const response = await fetch("/api/analytics/generate", {
+      // Use different endpoint for comprehensive reports
+      const endpoint = selectedReportType === "comprehensive" 
+        ? "/api/analytics/comprehensive"
+        : "/api/analytics/generate";
+
+      const requestBody = selectedReportType === "comprehensive"
+        ? {
+            reportTypes: ["performance", "system-health", "asset-inventory", "security-compliance"],
+            timeRange: selectedTimeRange,
+            format: selectedFormat
+          }
+        : {
+            reportType: selectedReportType,
+            timeRange: selectedTimeRange,
+            format: selectedFormat
+          };
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify({
-          reportType: selectedReportType,
-          timeRange: selectedTimeRange,
-          format: selectedFormat
-        }),
+        body: JSON.stringify(requestBody),
         signal: controller.signal
       });
 
