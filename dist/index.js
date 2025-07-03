@@ -8320,8 +8320,14 @@ var init_analytics_service = __esm({
         try {
           console.log("Generating comprehensive asset inventory report");
           const timeout = new Promise(
-            (_, reject) => setTimeout(() => reject(new Error("Asset inventory timeout")), 3e3)
+            (_, reject) => setTimeout(() => reject(new Error("Asset inventory timeout")), 8e3)
           );
+          try {
+            await db.execute(sql9`SELECT 1 as health_check`);
+          } catch (connError) {
+            console.warn("Database connection issue detected:", connError);
+            throw new Error("Database connection failed - please check your database configuration");
+          }
           try {
             const totalDevicesResult = await Promise.race([
               db.select({ count: sql9`count(*)` }).from(devices),
@@ -17159,6 +17165,91 @@ router5.post("/agents/:id/remote-command", async (req, res) => {
   }
 });
 
+// server/websocket-service.ts
+import WebSocket from "ws";
+var WebSocketService = class {
+  wss = null;
+  channels = /* @__PURE__ */ new Map();
+  init(server) {
+    this.wss = new WebSocket.Server({ server, path: "/ws" });
+    this.wss.on("connection", (ws) => {
+      console.log("New WebSocket connection established");
+      ws.on("message", (message) => {
+        try {
+          const data = JSON.parse(message);
+          if (data.type === "subscribe" && data.channel) {
+            this.subscribeToChannel(ws, data.channel);
+          }
+          if (data.type === "unsubscribe" && data.channel) {
+            this.unsubscribeFromChannel(ws, data.channel);
+          }
+        } catch (error) {
+          console.error("Error parsing WebSocket message:", error);
+        }
+      });
+      ws.on("close", () => {
+        console.log("WebSocket connection closed");
+        this.removeFromAllChannels(ws);
+      });
+      ws.on("error", (error) => {
+        console.error("WebSocket error:", error);
+        this.removeFromAllChannels(ws);
+      });
+    });
+    console.log("WebSocket service initialized");
+  }
+  subscribeToChannel(ws, channel) {
+    if (!this.channels.has(channel)) {
+      this.channels.set(channel, /* @__PURE__ */ new Set());
+    }
+    this.channels.get(channel).add(ws);
+    console.log(`Client subscribed to channel: ${channel}`);
+  }
+  unsubscribeFromChannel(ws, channel) {
+    if (this.channels.has(channel)) {
+      this.channels.get(channel).delete(ws);
+    }
+  }
+  removeFromAllChannels(ws) {
+    for (const subscribers of this.channels.values()) {
+      subscribers.delete(ws);
+    }
+  }
+  broadcastToChannel(channel, data) {
+    if (!this.channels.has(channel)) {
+      return;
+    }
+    const subscribers = this.channels.get(channel);
+    const message = JSON.stringify(data);
+    subscribers.forEach((ws) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        try {
+          ws.send(message);
+        } catch (error) {
+          console.error("Error sending WebSocket message:", error);
+          subscribers.delete(ws);
+        }
+      } else {
+        subscribers.delete(ws);
+      }
+    });
+  }
+  broadcastToAll(data) {
+    if (!this.wss) return;
+    const message = JSON.stringify(data);
+    this.wss.clients.forEach((ws) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        try {
+          ws.send(message);
+        } catch (error) {
+          console.error("Error broadcasting WebSocket message:", error);
+        }
+      }
+    });
+  }
+};
+var webSocketService = new WebSocketService();
+
 // server/index.ts
 init_sla_escalation_service();
 import expressWs2 from "express-ws";
@@ -17417,6 +17508,7 @@ app.use((req, res, next) => {
     const serv = app.listen(PORT, "0.0.0.0", () => {
       log(`serving on port ${PORT}`);
       console.log(`\u{1F310} Server accessible at http://0.0.0.0:${PORT}`);
+      webSocketService.init(serv);
     });
     app.use((req, res, next) => {
       res.header("Access-Control-Allow-Origin", "*");
