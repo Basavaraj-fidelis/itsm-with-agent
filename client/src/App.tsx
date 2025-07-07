@@ -31,7 +31,7 @@ import PatchCompliancePage from "@/pages/patch-compliance";
 import PerformanceAnalytics from "./pages/performance-analytics";
 import SLAAnalysis from "./pages/sla-analysis";
 import SLAManagement from "./pages/sla-management";
-import CodeDiagnostics from "./pages/code-diagnostics";
+
 
 
 // Layout
@@ -258,13 +258,7 @@ export default function App() {
               </ProtectedRoute>
             </Route>
 
-             <Route path="/code-diagnostics">
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <CodeDiagnostics />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
+             
 
 
             {/* Default redirect */}
