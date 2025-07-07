@@ -193,11 +193,37 @@ export const api = {
     return await response.json();
   },
 
-  getPerformanceInsights: (deviceId: string) => 
-    apiRequest(`/analytics/performance/insights/${deviceId}`),
+  getPerformanceInsights: async (deviceId: string) => {
+    const response = await apiClient.get(`/api/analytics/performance/insights/${deviceId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch performance insights: ${response.status}`);
+    }
+    return await response.json();
+  },
 
-  getPerformancePredictions: (deviceId: string) => 
-    apiRequest(`/analytics/performance/predictions/${deviceId}`),
+  getPerformancePredictions: async (deviceId: string) => {
+    const response = await apiClient.get(`/api/analytics/performance/predictions/${deviceId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch performance predictions: ${response.status}`);
+    }
+    return await response.json();
+  },
+
+  getPerformanceOverview: async () => {
+    const response = await apiClient.get("/api/analytics/performance/overview");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch performance overview: ${response.status}`);
+    }
+    return await response.json();
+  },
+
+  getPerformanceTrends: async (timeRange: string = "24h") => {
+    const response = await apiClient.get(`/api/analytics/performance/trends?timeRange=${timeRange}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch performance trends: ${response.status}`);
+    }
+    return await response.json();
+  },
 
   async getVulnerabilities(deviceId: string): Promise<any[]> {
     const response = await apiClient.get(`/api/security/vulnerabilities/${deviceId}`);

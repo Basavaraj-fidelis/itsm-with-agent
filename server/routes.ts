@@ -397,7 +397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   try {
     const analyticsRoutes = await import("./routes/analytics-routes");
     if (analyticsRoutes.default) {
-      app.use("/api/analytics", authenticateToken, analyticsRoutes.default);
+      app.use("/api/analytics", analyticsRoutes.default);
     }
   } catch (error) {
     console.warn("Analytics routes not available:", error.message);
