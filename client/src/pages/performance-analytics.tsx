@@ -127,6 +127,13 @@ export default function PerformanceAnalytics() {
     retry: 1
   });
 
+  const { data: overviewData, isLoading: overviewLoading, error: overviewError } = useQuery({
+    queryKey: ["performance", "overview"],
+    queryFn: () => api.get("/analytics/performance/overview"),
+    retry: 3,
+    retryDelay: 1000,
+  });
+
   // Set first device as default when devices load
   useEffect(() => {
     if (devices && devices.length > 0 && !selectedDevice) {
@@ -156,6 +163,27 @@ export default function PerformanceAnalytics() {
             Failed to load device data. Please refresh the page and try again.
           </AlertDescription>
         </Alert>
+      </div>
+    );
+  }
+
+  if (overviewLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (overviewError) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <h3 className="text-red-800 font-medium">Error Loading Performance Analytics</h3>
+          <p className="text-red-600 text-sm mt-1">
+            Unable to load performance data. Please try again later.
+          </p>
+        </div>
       </div>
     );
   }

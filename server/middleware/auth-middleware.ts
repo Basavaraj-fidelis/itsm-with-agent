@@ -1,4 +1,3 @@
-
 import jwt from "jsonwebtoken";
 import { storage } from "../storage";
 
@@ -74,6 +73,10 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
 
     req.user = user;
     next();
+  } catch (error) {
+      console.error("Database user lookup failed:", error);
+      return null;
+    }
   } catch (error) {
     console.error("Authentication error for", req.path, ":", error);
     if (error.name === 'TokenExpiredError') {

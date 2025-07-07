@@ -62,7 +62,7 @@ class ApiClient {
 
     // Get auth token from localStorage
     const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
-    
+
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
@@ -373,10 +373,15 @@ export async function apiRequest<T>(
       return await response.text() as unknown as T;
     }
   } catch (error) {
-    console.error('API Request Failed:', error);
-    if (error instanceof ApiError) {
+      console.error("API request failed:", error);
+      // Return a structured error response instead of throwing
+      if (error instanceof Error) {
+        return Promise.reject({
+          error: true,
+          message: error.message,
+          status: 'network_error'
+        });
+      }
       throw error;
     }
-    throw new Error(`Network error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
 }

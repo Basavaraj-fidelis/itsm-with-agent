@@ -1,17 +1,42 @@
 import { Router } from "express";
 import { analyticsService } from "../services/analytics-service";
 import { reportsStorage } from "../models/reports-storage";
+import { AuthUtils } from "../utils/auth";
+import { ResponseUtils } from "../utils/response";
+import { performanceService } from "../services/performance-service";
+import { sql } from "drizzle-orm";
+import { db, devices } from "../db/db";
+import { format } from 'date-fns';
 
 const router = Router();
 
-// Import auth middleware dynamically to avoid circular dependencies
+// Auth middleware for analytics routes
 const authenticateToken = async (req: any, res: any, next: any) => {
+  const authHeader = req.headers["authorization"];
+  const token = AuthUtils.extractTokenFromHeader(authHeader || "");
+
+  if (!token) {
+    return ResponseUtils.unauthorized(res, "Access token required");
+  }
+
   try {
-    const { authenticateToken: authMiddleware } = await import("../middleware/auth-middleware");
-    return authMiddleware(req, res, next);
+    const decoded: any = AuthUtils.verifyToken(token);
+    const user = await AuthUtils.getUserById(decoded.userId || decoded.id);
+
+    if (!user) {
+      return ResponseUtils.forbidden(res, "User not found");
+    }
+
+    const statusCheck = AuthUtils.validateUserStatus(user);
+    if (!statusCheck.valid) {
+      return ResponseUtils.forbidden(res, statusCheck.message);
+    }
+
+    req.user = user;
+    next();
   } catch (error) {
-    console.error("Auth middleware error:", error);
-    return res.status(500).json({ message: "Authentication service unavailable" });
+    console.error("Token verification error:", error);
+    return ResponseUtils.forbidden(res, "Invalid token");
   }
 };
 
@@ -864,7 +889,7 @@ router.delete("/report/:id", async (req, res) => {
 router.post("/export-pdf", async (req, res) => {
   try {
     const reportData = req.body;
-    
+
     // Simple HTML to PDF conversion (you could use a library like puppeteer for better formatting)
     const htmlContent = `
     <!DOCTYPE html>
@@ -981,12 +1006,12 @@ router.post("/export-pdf", async (req, res) => {
 router.get("/performance/insights/:deviceId", authenticateToken, async (req, res) => {
   try {
     const { deviceId } = req.params;
-    
+
     // Import performance service
     const { performanceService } = await import("../services/performance-service");
-    
+
     const insights = await performanceService.getApplicationPerformanceInsights(deviceId);
-    
+
     res.json(insights);
   } catch (error) {
     console.error("Error getting performance insights:", error);
@@ -1000,12 +1025,12 @@ router.get("/performance/insights/:deviceId", authenticateToken, async (req, res
 router.get("/performance/predictions/:deviceId", authenticateToken, async (req, res) => {
   try {
     const { deviceId } = req.params;
-    
+
     // Import performance service
     const { performanceService } = await import("../services/performance-service");
-    
+
     const predictions = await performanceService.generateResourcePredictions(deviceId);
-    
+
     res.json(predictions);
   } catch (error) {
     console.error("Error getting performance predictions:", error);
@@ -1020,10 +1045,10 @@ router.get("/performance/predictions/:deviceId", authenticateToken, async (req, 
 router.get("/performance/overview", authenticateToken, async (req, res) => {
   try {
     const { storage } = await import("../storage");
-    
+
     // Get all devices with latest performance data
     const devices = await storage.getDevices();
-    
+
     // Calculate performance metrics
     const performanceOverview = {
       totalDevices: devices.length,
@@ -1041,11 +1066,11 @@ router.get("/performance/overview", authenticateToken, async (req, res) => {
       const cpuSum = onlineDevices.reduce((sum, d) => sum + parseFloat(d.latest_report?.cpu_usage || '0'), 0);
       const memSum = onlineDevices.reduce((sum, d) => sum + parseFloat(d.latest_report?.memory_usage || '0'), 0);
       const diskSum = onlineDevices.reduce((sum, d) => sum + parseFloat(d.latest_report?.disk_usage || '0'), 0);
-      
+
       performanceOverview.avgCpuUsage = cpuSum / onlineDevices.length;
       performanceOverview.avgMemoryUsage = memSum / onlineDevices.length;
       performanceOverview.avgDiskUsage = diskSum / onlineDevices.length;
-      
+
       performanceOverview.criticalDevices = onlineDevices.filter(d => 
         parseFloat(d.latest_report?.cpu_usage || '0') > 90 ||
         parseFloat(d.latest_report?.memory_usage || '0') > 90 ||
@@ -1067,7 +1092,7 @@ router.get("/performance/overview", authenticateToken, async (req, res) => {
 router.get("/performance/trends", authenticateToken, async (req, res) => {
   try {
     const { timeRange = '24h' } = req.query;
-    
+
     // For now, return mock trend data since we don't have historical tracking implemented
     const trends = {
       timeRange,

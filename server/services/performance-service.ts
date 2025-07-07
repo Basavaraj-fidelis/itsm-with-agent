@@ -134,7 +134,7 @@ class PerformanceService {
 
       // Check for existing anomaly alerts for this device and metric type
       const existingAlerts = await this.getExistingAnomalyAlerts(deviceId, metricType);
-      
+
       const anomaly: PerformanceAnomaly = {
         device_id: deviceId,
         metric_type: metricType,
@@ -214,7 +214,7 @@ class PerformanceService {
     const oldValue = existingAlert.metadata?.current_value || 0;
     const valueChangePct = Math.abs((newValue - oldValue) / oldValue) * 100;
     const severityChanged = existingAlert.severity !== newSeverity;
-    
+
     // Update if severity changed or value changed by more than 5%
     return severityChanged || valueChangePct > 5;
   }
@@ -458,6 +458,198 @@ export const performanceService = new PerformanceService();
 import { storage } from "../storage";
 
 export class PerformanceService {
+  async getOverviewMetrics() {
+    try {
+      const device = await storage.getDevice(deviceId);
+      if (!device) {
+        throw new Error("Device not found");
+      }
+  
+      const reports = await storage.getDeviceReports(deviceId);
+      const latestReport = reports[0];
+  
+      if (!latestReport) {
+        return {
+          device_id: deviceId,
+          hostname: device.hostname,
+          message: "No performance data available",
+          performance_summary: {
+            cpu_usage: 0,
+            memory_usage: 0,
+            disk_usage: 0
+          },
+          mock_data: true,
+          timestamp: new Date().toISOString()
+        };
+      }
+  
+      return {
+        device_id: deviceId,
+        hostname: device.hostname,
+        performance_summary: {
+          cpu_usage: parseFloat(latestReport.cpu_usage || '0'),
+          memory_usage: parseFloat(latestReport.memory_usage || '0'),
+          disk_usage: parseFloat(latestReport.disk_usage || '0')
+        },
+        mock_data: true,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error("Error in getOverviewMetrics:", error);
+      throw new Error("Failed to fetch overview metrics");
+    }
+  }
+
+  async getDetailedMetrics() {
+    try {
+      const device = await storage.getDevice(deviceId);
+      if (!device) {
+        throw new Error("Device not found");
+      }
+  
+      const reports = await storage.getDeviceReports(deviceId);
+      const latestReport = reports[0];
+  
+      if (!latestReport) {
+        return {
+          device_id: deviceId,
+          hostname: device.hostname,
+          message: "No detailed performance data available",
+          cpu_usage: [],
+          memory_usage: [],
+          disk_usage: [],
+          mock_data: true
+        };
+      }
+  
+      return {
+        device_id: deviceId,
+        hostname: device.hostname,
+        cpu_usage: [
+          { timestamp: new Date().toISOString(), value: parseFloat(latestReport.cpu_usage || '0') }
+        ],
+        memory_usage: [
+          { timestamp: new Date().toISOString(), value: parseFloat(latestReport.memory_usage || '0') }
+        ],
+        disk_usage: [
+          { timestamp: new Date().toISOString(), value: parseFloat(latestReport.disk_usage || '0') }
+        ],
+        mock_data: true
+      };
+    } catch (error) {
+      console.error("Error in getDetailedMetrics:", error);
+      throw new Error("Failed to fetch detailed metrics");
+    }
+  }
+
+  async getTrendData() {
+    try {
+      const device = await storage.getDevice(deviceId);
+      if (!device) {
+        throw new Error("Device not found");
+      }
+  
+      const reports = await storage.getDeviceReports(deviceId);
+      if (!reports || reports.length === 0) {
+        return {
+          device_id: deviceId,
+          hostname: device.hostname,
+          message: "No historical data available",
+          cpu_trend: [],
+          memory_trend: [],
+          disk_trend: [],
+          mock_data: true
+        };
+      }
+  
+      const cpuTrend = reports.map(report => ({
+        timestamp: report.collected_at,
+        value: parseFloat(report.cpu_usage || '0')
+      }));
+  
+      const memoryTrend = reports.map(report => ({
+        timestamp: report.collected_at,
+        value: parseFloat(report.memory_usage || '0')
+      }));
+  
+      const diskTrend = reports.map(report => ({
+        timestamp: report.collected_at,
+        value: parseFloat(report.disk_usage || '0')
+      }));
+  
+      return {
+        device_id: deviceId,
+        hostname: device.hostname,
+        cpu_trend: cpuTrend,
+        memory_trend: memoryTrend,
+        disk_trend: diskTrend,
+        mock_data: true
+      };
+    } catch (error) {
+      console.error("Error in getTrendData:", error);
+      throw new Error("Failed to fetch trend data");
+    }
+  }
+
+  async getAlerts() {
+    try {
+      const alerts = [
+        {
+          id: "alert-1",
+          device_id: "device-123",
+          severity: "high",
+          message: "CPU usage exceeded 90%",
+          timestamp: new Date().toISOString()
+        },
+        {
+          id: "alert-2",
+          device_id: "device-456",
+          severity: "medium",
+          message: "Memory usage exceeded 80%",
+          timestamp: new Date().toISOString()
+        }
+      ];
+  
+      return {
+        device_id: "device-123",
+        hostname: "example-host",
+        alerts: alerts,
+        mock_data: true
+      };
+    } catch (error) {
+      console.error("Error in getAlerts:", error);
+      throw new Error("Failed to fetch alerts");
+    }
+  }
+
+  async getRecommendations() {
+    try {
+      const recommendations = [
+        {
+          id: "recommendation-1",
+          device_id: "device-123",
+          message: "Upgrade CPU to improve performance",
+          timestamp: new Date().toISOString()
+        },
+        {
+          id: "recommendation-2",
+          device_id: "device-456",
+          message: "Optimize memory usage to reduce load",
+          timestamp: new Date().toISOString()
+        }
+      ];
+  
+      return {
+        device_id: "device-123",
+        hostname: "example-host",
+        recommendations: recommendations,
+        mock_data: true
+      };
+    } catch (error) {
+      console.error("Error in getRecommendations:", error);
+      throw new Error("Failed to fetch recommendations");
+    }
+  }
   async getApplicationPerformanceInsights(deviceId: string) {
     try {
       const device = await storage.getDevice(deviceId);
