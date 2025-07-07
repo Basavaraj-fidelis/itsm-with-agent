@@ -176,7 +176,7 @@ var init_db = __esm({
   "server/db.ts"() {
     "use strict";
     init_schema();
-    DATABASE_URL = process.env.DATABASE_URL;
+    DATABASE_URL = process.env.DATABASE_URL?.trim();
     if (!DATABASE_URL) {
       console.error("\u274C DATABASE_URL is not set in environment variables");
       console.log("\u{1F4CB} Available environment variables:", Object.keys(process.env).filter((key) => key.includes("DATABASE")));
@@ -2777,8 +2777,8 @@ smartphones
         try {
           const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { usb_devices: usb_devices2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-          const { eq: eq12, desc: desc10 } = await import("drizzle-orm");
-          const result = await db5.select().from(usb_devices2).where(eq12(usb_devices2.device_id, deviceId)).orderBy(desc10(usb_devices2.last_seen));
+          const { eq: eq13, desc: desc10 } = await import("drizzle-orm");
+          const result = await db5.select().from(usb_devices2).where(eq13(usb_devices2.device_id, deviceId)).orderBy(desc10(usb_devices2.last_seen));
           return result;
         } catch (error) {
           console.error("Error fetching USB devices for device:", error);
@@ -2789,8 +2789,8 @@ smartphones
         try {
           const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { usb_devices: usb_devices2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-          const { eq: eq12, and: and11 } = await import("drizzle-orm");
-          await db5.update(usb_devices2).set({ is_connected: false }).where(eq12(usb_devices2.device_id, deviceId));
+          const { eq: eq13, and: and12 } = await import("drizzle-orm");
+          await db5.update(usb_devices2).set({ is_connected: false }).where(eq13(usb_devices2.device_id, deviceId));
           for (const device of usbDevices) {
             let vendor_id = device.vendor_id;
             let product_id = device.product_id;
@@ -2808,9 +2808,9 @@ smartphones
             );
             const deviceIdentifier = vendor_id && product_id ? `${vendor_id}:${product_id}:${serial_number || "no-serial"}` : device.device_id || device.serial_number || `unknown-${Date.now()}`;
             const existingDevices = await db5.select().from(usb_devices2).where(
-              and11(
-                eq12(usb_devices2.device_id, deviceId),
-                eq12(usb_devices2.device_identifier, deviceIdentifier)
+              and12(
+                eq13(usb_devices2.device_id, deviceId),
+                eq13(usb_devices2.device_identifier, deviceIdentifier)
               )
             );
             if (existingDevices.length > 0) {
@@ -2826,7 +2826,7 @@ smartphones
                 last_seen: /* @__PURE__ */ new Date(),
                 is_connected: true,
                 raw_data: device
-              }).where(eq12(usb_devices2.id, existingDevices[0].id));
+              }).where(eq13(usb_devices2.id, existingDevices[0].id));
             } else {
               await db5.insert(usb_devices2).values({
                 device_id: deviceId,
@@ -10062,116 +10062,6 @@ ${xrefPos}
   }
 });
 
-// server/models/reports-storage.ts
-var reports_storage_exports = {};
-__export(reports_storage_exports, {
-  reportsStorage: () => reportsStorage
-});
-import { sql as sql7 } from "drizzle-orm";
-var ReportsStorage, reportsStorage;
-var init_reports_storage = __esm({
-  "server/models/reports-storage.ts"() {
-    "use strict";
-    init_db();
-    ReportsStorage = class {
-      async createReportsTable() {
-        try {
-          await db.execute(sql7`
-        CREATE TABLE IF NOT EXISTS reports (
-          id TEXT PRIMARY KEY,
-          title TEXT NOT NULL,
-          type TEXT NOT NULL,
-          data JSONB NOT NULL,
-          generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          time_range TEXT NOT NULL,
-          user_id TEXT,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-          console.log("Reports table created successfully");
-        } catch (error) {
-          console.error("Error creating reports table:", error);
-        }
-      }
-      async saveReport(report) {
-        try {
-          await db.execute(sql7`
-        INSERT INTO reports (id, title, type, data, generated_at, time_range, user_id)
-        VALUES (${report.id}, ${report.title}, ${report.type}, ${JSON.stringify(report.data)}, 
-                ${report.generated_at}, ${report.time_range}, ${report.user_id})
-        ON CONFLICT (id) DO UPDATE SET
-          title = EXCLUDED.title,
-          type = EXCLUDED.type,
-          data = EXCLUDED.data,
-          generated_at = EXCLUDED.generated_at,
-          time_range = EXCLUDED.time_range
-      `);
-          console.log(`Report ${report.id} saved successfully`);
-        } catch (error) {
-          console.error("Error saving report:", error);
-          throw error;
-        }
-      }
-      async getRecentReports(limit = 10) {
-        try {
-          const result = await db.execute(sql7`
-        SELECT id, title, type, data, generated_at, time_range, user_id
-        FROM reports
-        ORDER BY generated_at DESC
-        LIMIT ${limit}
-      `);
-          return result.rows.map((row) => ({
-            id: row.id,
-            title: row.title,
-            type: row.type,
-            data: typeof row.data === "string" ? JSON.parse(row.data) : row.data,
-            generated_at: new Date(row.generated_at),
-            time_range: row.time_range,
-            user_id: row.user_id
-          }));
-        } catch (error) {
-          console.error("Error fetching recent reports:", error);
-          return [];
-        }
-      }
-      async getReportById(id) {
-        try {
-          const result = await db.execute(sql7`
-        SELECT id, title, type, data, generated_at, time_range, user_id
-        FROM reports
-        WHERE id = ${id}
-      `);
-          if (result.rows.length === 0) return null;
-          const row = result.rows[0];
-          return {
-            id: row.id,
-            title: row.title,
-            type: row.type,
-            data: typeof row.data === "string" ? JSON.parse(row.data) : row.data,
-            generated_at: new Date(row.generated_at),
-            time_range: row.time_range,
-            user_id: row.user_id
-          };
-        } catch (error) {
-          console.error("Error fetching report by ID:", error);
-          return null;
-        }
-      }
-      async deleteReport(id) {
-        try {
-          await db.execute(sql7`DELETE FROM reports WHERE id = ${id}`);
-          console.log(`Report ${id} deleted successfully`);
-          return true;
-        } catch (error) {
-          console.error("Error deleting report:", error);
-          return false;
-        }
-      }
-    };
-    reportsStorage = new ReportsStorage();
-  }
-});
-
 // server/services/performance-service.ts
 var performance_service_exports = {};
 __export(performance_service_exports, {
@@ -10498,6 +10388,176 @@ var init_performance_service = __esm({
   }
 });
 
+// server/services/device-storage.ts
+import { eq as eq8, ilike as ilike2, and as and8, or as or7 } from "drizzle-orm";
+var DeviceStorage, deviceStorage;
+var init_device_storage = __esm({
+  "server/services/device-storage.ts"() {
+    "use strict";
+    init_db();
+    init_schema();
+    DeviceStorage = class {
+      async getAllDevices(filters = {}) {
+        try {
+          let query = db.select().from(devices);
+          const conditions = [];
+          if (filters.status && filters.status !== "all") {
+            conditions.push(eq8(devices.status, filters.status));
+          }
+          if (filters.search && filters.search.trim() !== "") {
+            const searchTerm = `%${filters.search.trim()}%`;
+            conditions.push(
+              or7(
+                ilike2(devices.hostname, searchTerm),
+                ilike2(devices.assigned_user, searchTerm),
+                ilike2(devices.ip_address, searchTerm)
+              )
+            );
+          }
+          if (conditions.length > 0) {
+            query = query.where(and8(...conditions));
+          }
+          const result = await query;
+          return result.map((device) => ({
+            ...device,
+            latest_report: device.latest_report ? typeof device.latest_report === "string" ? JSON.parse(device.latest_report) : device.latest_report : null
+          }));
+        } catch (error) {
+          console.error("Error fetching devices:", error);
+          throw error;
+        }
+      }
+      async getDeviceById(id) {
+        try {
+          const result = await db.select().from(devices).where(eq8(devices.id, id));
+          if (result.length === 0) {
+            return null;
+          }
+          const device = result[0];
+          return {
+            ...device,
+            latest_report: device.latest_report ? typeof device.latest_report === "string" ? JSON.parse(device.latest_report) : device.latest_report : null
+          };
+        } catch (error) {
+          console.error("Error fetching device by ID:", error);
+          throw error;
+        }
+      }
+    };
+    deviceStorage = new DeviceStorage();
+  }
+});
+
+// server/models/reports-storage.ts
+var reports_storage_exports = {};
+__export(reports_storage_exports, {
+  reportsStorage: () => reportsStorage
+});
+import { sql as sql7 } from "drizzle-orm";
+var ReportsStorage, reportsStorage;
+var init_reports_storage = __esm({
+  "server/models/reports-storage.ts"() {
+    "use strict";
+    init_db();
+    ReportsStorage = class {
+      async createReportsTable() {
+        try {
+          await db.execute(sql7`
+        CREATE TABLE IF NOT EXISTS reports (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          type TEXT NOT NULL,
+          data JSONB NOT NULL,
+          generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          time_range TEXT NOT NULL,
+          user_id TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+          console.log("Reports table created successfully");
+        } catch (error) {
+          console.error("Error creating reports table:", error);
+        }
+      }
+      async saveReport(report) {
+        try {
+          await db.execute(sql7`
+        INSERT INTO reports (id, title, type, data, generated_at, time_range, user_id)
+        VALUES (${report.id}, ${report.title}, ${report.type}, ${JSON.stringify(report.data)}, 
+                ${report.generated_at}, ${report.time_range}, ${report.user_id})
+        ON CONFLICT (id) DO UPDATE SET
+          title = EXCLUDED.title,
+          type = EXCLUDED.type,
+          data = EXCLUDED.data,
+          generated_at = EXCLUDED.generated_at,
+          time_range = EXCLUDED.time_range
+      `);
+          console.log(`Report ${report.id} saved successfully`);
+        } catch (error) {
+          console.error("Error saving report:", error);
+          throw error;
+        }
+      }
+      async getRecentReports(limit = 10) {
+        try {
+          const result = await db.execute(sql7`
+        SELECT id, title, type, data, generated_at, time_range, user_id
+        FROM reports
+        ORDER BY generated_at DESC
+        LIMIT ${limit}
+      `);
+          return result.rows.map((row) => ({
+            id: row.id,
+            title: row.title,
+            type: row.type,
+            data: typeof row.data === "string" ? JSON.parse(row.data) : row.data,
+            generated_at: new Date(row.generated_at),
+            time_range: row.time_range,
+            user_id: row.user_id
+          }));
+        } catch (error) {
+          console.error("Error fetching recent reports:", error);
+          return [];
+        }
+      }
+      async getReportById(id) {
+        try {
+          const result = await db.execute(sql7`
+        SELECT id, title, type, data, generated_at, time_range, user_id
+        FROM reports
+        WHERE id = ${id}
+      `);
+          if (result.rows.length === 0) return null;
+          const row = result.rows[0];
+          return {
+            id: row.id,
+            title: row.title,
+            type: row.type,
+            data: typeof row.data === "string" ? JSON.parse(row.data) : row.data,
+            generated_at: new Date(row.generated_at),
+            time_range: row.time_range,
+            user_id: row.user_id
+          };
+        } catch (error) {
+          console.error("Error fetching report by ID:", error);
+          return null;
+        }
+      }
+      async deleteReport(id) {
+        try {
+          await db.execute(sql7`DELETE FROM reports WHERE id = ${id}`);
+          console.log(`Report ${id} deleted successfully`);
+          return true;
+        } catch (error) {
+          console.error("Error deleting report:", error);
+          return false;
+        }
+      }
+    };
+    reportsStorage = new ReportsStorage();
+  }
+});
+
 // server/routes/analytics-routes.ts
 var analytics_routes_exports = {};
 __export(analytics_routes_exports, {
@@ -10510,6 +10570,8 @@ var init_analytics_routes = __esm({
   "server/routes/analytics-routes.ts"() {
     "use strict";
     init_analytics_service();
+    init_performance_service();
+    init_device_storage();
     init_reports_storage();
     init_auth();
     init_response();
@@ -10890,7 +10952,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/realtime", authenticateToken, async (req, res) => {
+    router6.get("/realtime", async (req, res) => {
       req.setTimeout(2e3);
       try {
         console.log("Fetching real-time performance metrics...");
@@ -11390,7 +11452,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/performance/overview", authenticateToken, async (req, res) => {
+    router6.get("/performance/overview", async (req, res) => {
       try {
         const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
         const devices2 = await storage3.getDevices();
@@ -11424,7 +11486,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/performance/trends", authenticateToken, async (req, res) => {
+    router6.get("/performance/trends", async (req, res) => {
       try {
         const { timeRange = "24h" } = req.query;
         const trends = {
@@ -11446,6 +11508,176 @@ var init_analytics_routes = __esm({
         });
       }
     });
+    router6.get("/health", async (req, res) => {
+      res.json({
+        status: "ok",
+        service: "analytics",
+        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+        endpoints: [
+          "/performance/overview",
+          "/performance/trends",
+          "/performance/insights/:deviceId",
+          "/performance/predictions/:deviceId"
+        ]
+      });
+    });
+    router6.get("/test", async (req, res) => {
+      res.json({
+        success: true,
+        message: "Analytics routes are working",
+        timestamp: (/* @__PURE__ */ new Date()).toISOString()
+      });
+    });
+    router6.get(
+      "/performance/insights/:deviceId",
+      async (req, res) => {
+        try {
+          const deviceId = req.params.deviceId;
+          console.log(
+            `Getting performance insights for device: ${deviceId}`
+          );
+          const insights = await performanceService.getApplicationPerformanceInsights(deviceId);
+          res.json(insights);
+        } catch (error) {
+          console.error("Error getting performance insights:", error);
+          res.status(500).json({
+            error: "Failed to get performance insights",
+            message: error.message
+          });
+        }
+      }
+    );
+    router6.get(
+      "/service-desk-report",
+      async (req, res) => {
+        try {
+          const format2 = req.query.format || "json";
+          const filters = {
+            type: req.query.type,
+            status: req.query.status,
+            priority: req.query.priority,
+            search: req.query.search,
+            sla_violations_only: req.query.sla_violations_only === "true",
+            exclude_closed: req.query.exclude_closed === "true"
+          };
+          console.log("Generating Service Desk report with filters:", filters);
+          const ticketAnalytics = await analyticsService.generateTicketAnalyticsReport();
+          const { ticketStorage: ticketStorage2 } = await Promise.resolve().then(() => (init_ticket_storage(), ticket_storage_exports));
+          const ticketsResult = await ticketStorage2.getTickets(1, 1e4, filters);
+          const report = {
+            title: "Service Desk Comprehensive Report",
+            generated_at: (/* @__PURE__ */ new Date()).toISOString(),
+            filters_applied: filters,
+            summary: {
+              total_tickets: ticketsResult.total,
+              filtered_tickets: ticketsResult.data.length,
+              analytics: ticketAnalytics
+            },
+            tickets: ticketsResult.data,
+            performance_metrics: {
+              avg_resolution_time: ticketAnalytics.summary.avg_resolution_time,
+              sla_compliance: ticketAnalytics.sla_performance.sla_compliance_rate,
+              ticket_distribution: ticketAnalytics.ticket_distribution
+            }
+          };
+          if (format2 === "pdf") {
+            res.setHeader("Content-Type", "application/json");
+            res.setHeader("Content-Disposition", 'attachment; filename="service-desk-report.json"');
+            return res.json(report);
+          }
+          res.json({
+            success: true,
+            report
+          });
+        } catch (error) {
+          console.error("Error generating Service Desk report:", error);
+          res.status(500).json({
+            error: "Failed to generate Service Desk report",
+            details: error instanceof Error ? error.message : "Unknown error"
+          });
+        }
+      }
+    );
+    router6.get(
+      "/agents-detailed-report",
+      async (req, res) => {
+        try {
+          const format2 = req.query.format || "json";
+          const filters = {
+            status: req.query.status,
+            type: req.query.type,
+            os: req.query.os,
+            location: req.query.location,
+            health: req.query.health,
+            search: req.query.search
+          };
+          console.log("Generating detailed agents report with filters:", filters);
+          const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
+          const devices2 = await storage3.getDevices();
+          let filteredDevices = devices2.filter((device) => {
+            let matches = true;
+            if (filters.status && filters.status !== "all") {
+              matches = matches && device.status === filters.status;
+            }
+            if (filters.search && filters.search.trim()) {
+              const searchTerm = filters.search.toLowerCase();
+              matches = matches && (device.hostname.toLowerCase().includes(searchTerm) || device.assigned_user?.toLowerCase().includes(searchTerm) || device.ip_address?.toLowerCase().includes(searchTerm));
+            }
+            return matches;
+          });
+          const report = {
+            title: "Managed Systems Detailed Report",
+            generated_at: (/* @__PURE__ */ new Date()).toISOString(),
+            filters_applied: filters,
+            summary: {
+              total_agents: devices2.length,
+              filtered_agents: filteredDevices.length,
+              online_agents: filteredDevices.filter((d) => d.status === "online").length,
+              offline_agents: filteredDevices.filter((d) => d.status === "offline").length
+            },
+            agents: filteredDevices.map((device) => ({
+              ...device,
+              performance_summary: {
+                cpu_usage: device.latest_report?.cpu_usage || 0,
+                memory_usage: device.latest_report?.memory_usage || 0,
+                disk_usage: device.latest_report?.disk_usage || 0,
+                last_report: device.latest_report?.collected_at || null
+              }
+            })),
+            health_summary: {
+              healthy: filteredDevices.filter((d) => {
+                const cpu = parseFloat(d.latest_report?.cpu_usage || "0");
+                const memory = parseFloat(d.latest_report?.memory_usage || "0");
+                const disk = parseFloat(d.latest_report?.disk_usage || "0");
+                return cpu < 80 && memory < 80 && disk < 80;
+              }).length,
+              warning: filteredDevices.filter((d) => {
+                const cpu = parseFloat(d.latest_report?.cpu_usage || "0");
+                const memory = parseFloat(d.latest_report?.memory_usage || "0");
+                const disk = parseFloat(d.latest_report?.disk_usage || "0");
+                return cpu >= 80 && cpu < 90 || memory >= 80 && memory < 90 || disk >= 80 && disk < 90;
+              }).length,
+              critical: filteredDevices.filter((d) => {
+                const cpu = parseFloat(d.latest_report?.cpu_usage || "0");
+                const memory = parseFloat(d.latest_report?.memory_usage || "0");
+                const disk = parseFloat(d.latest_report?.disk_usage || "0");
+                return cpu >= 90 || memory >= 90 || disk >= 90;
+              }).length
+            }
+          };
+          res.json({
+            success: true,
+            report
+          });
+        } catch (error) {
+          console.error("Error generating agents detailed report:", error);
+          res.status(500).json({
+            error: "Failed to generate agents detailed report",
+            details: error instanceof Error ? error.message : "Unknown error"
+          });
+        }
+      }
+    );
     analytics_routes_default = router6;
   }
 });
@@ -12130,7 +12362,7 @@ __export(knowledge_routes_exports, {
   knowledgeRoutes: () => router8
 });
 import { Router as Router8 } from "express";
-import { eq as eq8, and as and8, or as or7, sql as sql9, desc as desc8, ilike as ilike2, count as count5, like as like5 } from "drizzle-orm";
+import { eq as eq9, and as and9, or as or8, sql as sql9, desc as desc8, ilike as ilike3, count as count5, like as like5 } from "drizzle-orm";
 import jwt4 from "jsonwebtoken";
 var router8, storage2, authenticateToken2;
 var init_knowledge_routes = __esm({
@@ -12170,21 +12402,21 @@ var init_knowledge_routes = __esm({
         };
         console.log("KB Search filters:", filters);
         const conditions = [];
-        conditions.push(eq8(knowledgeBase.status, filters.status));
+        conditions.push(eq9(knowledgeBase.status, filters.status));
         if (filters.category && filters.category !== "all" && filters.category !== void 0) {
-          conditions.push(eq8(knowledgeBase.category, filters.category));
+          conditions.push(eq9(knowledgeBase.category, filters.category));
         }
         if (filters.search && filters.search.trim() !== "") {
           const searchTerm = `%${filters.search.toLowerCase()}%`;
           conditions.push(
-            or7(
+            or8(
               like5(knowledgeBase.title, searchTerm),
               like5(knowledgeBase.content, searchTerm),
               like5(knowledgeBase.category, searchTerm)
             )
           );
         }
-        const whereClause = conditions.length > 0 ? and8(...conditions) : void 0;
+        const whereClause = conditions.length > 0 ? and9(...conditions) : void 0;
         const [{ total }] = await db.select({ total: count5() }).from(knowledgeBase).where(whereClause);
         const articles = await db.select().from(knowledgeBase).where(whereClause).orderBy(desc8(knowledgeBase.helpful_votes), desc8(knowledgeBase.views), desc8(knowledgeBase.created_at)).limit(limit).offset((page - 1) * limit);
         console.log(`Found ${articles.length} articles in database (total: ${total})`);
@@ -12220,11 +12452,11 @@ var init_knowledge_routes = __esm({
           if (searchWords.length > 0) {
             try {
               const exactMatches = await db.select().from(knowledgeBase).where(
-                and8(
-                  eq8(knowledgeBase.status, "published"),
-                  or7(
-                    ilike2(knowledgeBase.title, `%${searchTextLower}%`),
-                    ilike2(knowledgeBase.content, `%${searchTextLower}%`)
+                and9(
+                  eq9(knowledgeBase.status, "published"),
+                  or8(
+                    ilike3(knowledgeBase.title, `%${searchTextLower}%`),
+                    ilike3(knowledgeBase.content, `%${searchTextLower}%`)
                   )
                 )
               ).orderBy(desc8(knowledgeBase.helpful_votes), desc8(knowledgeBase.views)).limit(parseInt(limit, 10));
@@ -12233,15 +12465,15 @@ var init_knowledge_routes = __esm({
                 return res.json(exactMatches);
               }
               const wordSearches = searchWords.map(
-                (word) => or7(
-                  ilike2(knowledgeBase.title, `%${word}%`),
-                  ilike2(knowledgeBase.content, `%${word}%`)
+                (word) => or8(
+                  ilike3(knowledgeBase.title, `%${word}%`),
+                  ilike3(knowledgeBase.content, `%${word}%`)
                 )
               );
               const wordMatches = await db.select().from(knowledgeBase).where(
-                and8(
-                  eq8(knowledgeBase.status, "published"),
-                  or7(...wordSearches)
+                and9(
+                  eq9(knowledgeBase.status, "published"),
+                  or8(...wordSearches)
                 )
               ).orderBy(desc8(knowledgeBase.helpful_votes), desc8(knowledgeBase.views)).limit(parseInt(limit, 10));
               console.log(`Found ${wordMatches.length} word-based matches`);
@@ -12277,7 +12509,7 @@ var init_knowledge_routes = __esm({
     router8.get("/related/:ticketId", async (req, res) => {
       try {
         const { ticketId } = req.params;
-        const ticket = await db.select().from(tickets).where(eq8(tickets.id, ticketId)).limit(1);
+        const ticket = await db.select().from(tickets).where(eq9(tickets.id, ticketId)).limit(1);
         if (!ticket.length) {
           return res.status(404).json({ error: "Ticket not found" });
         }
@@ -12289,19 +12521,19 @@ var init_knowledge_routes = __esm({
         console.log(`Extracted words from title: ${titleWords.join(", ")}`);
         let relatedArticles = [];
         if (titleWords.length > 0) {
-          const exactPhraseSearch = ilike2(knowledgeBase.title, `%${ticketTitle}%`);
-          const exactContentSearch = ilike2(knowledgeBase.content, `%${ticketTitle}%`);
+          const exactPhraseSearch = ilike3(knowledgeBase.title, `%${ticketTitle}%`);
+          const exactContentSearch = ilike3(knowledgeBase.content, `%${ticketTitle}%`);
           const titleWordSearches = titleWords.map(
-            (word) => ilike2(knowledgeBase.title, `%${word}%`)
+            (word) => ilike3(knowledgeBase.title, `%${word}%`)
           );
           const contentWordSearches = titleWords.map(
-            (word) => ilike2(knowledgeBase.content, `%${word}%`)
+            (word) => ilike3(knowledgeBase.content, `%${word}%`)
           );
           try {
             const exactMatches = await db.select().from(knowledgeBase).where(
-              and8(
-                eq8(knowledgeBase.status, "published"),
-                or7(exactPhraseSearch, exactContentSearch)
+              and9(
+                eq9(knowledgeBase.status, "published"),
+                or8(exactPhraseSearch, exactContentSearch)
               )
             ).orderBy(desc8(knowledgeBase.helpful_votes), desc8(knowledgeBase.views)).limit(3);
             relatedArticles.push(...exactMatches);
@@ -12310,10 +12542,10 @@ var init_knowledge_routes = __esm({
               const remainingLimit = 5 - relatedArticles.length;
               const existingIds = relatedArticles.map((a) => a.id);
               const wordMatches = await db.select().from(knowledgeBase).where(
-                and8(
-                  eq8(knowledgeBase.status, "published"),
+                and9(
+                  eq9(knowledgeBase.status, "published"),
                   sql9`${knowledgeBase.id} NOT IN (${existingIds.length > 0 ? existingIds.map(() => "?").join(",") : "NULL"})`,
-                  or7(
+                  or8(
                     ...titleWordSearches,
                     ...contentWordSearches
                   )
@@ -12325,11 +12557,11 @@ var init_knowledge_routes = __esm({
           } catch (searchError) {
             console.error("Header-based search failed:", searchError);
             relatedArticles = await db.select().from(knowledgeBase).where(
-              and8(
-                eq8(knowledgeBase.status, "published"),
-                or7(
-                  ilike2(knowledgeBase.title, `%${titleWords[0]}%`),
-                  ilike2(knowledgeBase.content, `%${titleWords[0]}%`)
+              and9(
+                eq9(knowledgeBase.status, "published"),
+                or8(
+                  ilike3(knowledgeBase.title, `%${titleWords[0]}%`),
+                  ilike3(knowledgeBase.content, `%${titleWords[0]}%`)
                 )
               )
             ).orderBy(desc8(knowledgeBase.helpful_votes)).limit(5);
@@ -12337,7 +12569,7 @@ var init_knowledge_routes = __esm({
         }
         if (relatedArticles.length === 0) {
           console.log("No header-based matches found, returning top articles");
-          relatedArticles = await db.select().from(knowledgeBase).where(eq8(knowledgeBase.status, "published")).orderBy(desc8(knowledgeBase.helpful_votes), desc8(knowledgeBase.views)).limit(3);
+          relatedArticles = await db.select().from(knowledgeBase).where(eq9(knowledgeBase.status, "published")).orderBy(desc8(knowledgeBase.helpful_votes), desc8(knowledgeBase.views)).limit(3);
         }
         console.log(`Returning ${relatedArticles.length} related articles for ticket: "${ticketData.title}"`);
         relatedArticles.forEach((article, index) => {
@@ -12690,7 +12922,7 @@ __export(sla_escalation_service_exports, {
   SLAEscalationService: () => SLAEscalationService,
   slaEscalationService: () => slaEscalationService
 });
-import { eq as eq9, and as and9, not, inArray as inArray2 } from "drizzle-orm";
+import { eq as eq10, and as and10, not, inArray as inArray2 } from "drizzle-orm";
 var SLAEscalationService, slaEscalationService;
 var init_sla_escalation_service = __esm({
   "server/services/sla-escalation-service.ts"() {
@@ -12736,9 +12968,9 @@ var init_sla_escalation_service = __esm({
           console.log("\u{1F504} Starting SLA escalation check...");
           const now = /* @__PURE__ */ new Date();
           const openTickets = await db.select().from(tickets).where(
-            and9(
+            and10(
               not(inArray2(tickets.status, ["resolved", "closed", "cancelled"])),
-              not(eq9(tickets.sla_resolution_due, null))
+              not(eq10(tickets.sla_resolution_due, null))
             )
           );
           console.log(`Found ${openTickets.length} open tickets to check`);
@@ -12746,7 +12978,7 @@ var init_sla_escalation_service = __esm({
             if (ticket.sla_resolution_due) {
               const isBreached = now > new Date(ticket.sla_resolution_due);
               if (isBreached !== ticket.sla_breached) {
-                await db.update(tickets).set({ sla_breached: isBreached, updated_at: now }).where(eq9(tickets.id, ticket.id));
+                await db.update(tickets).set({ sla_breached: isBreached, updated_at: now }).where(eq10(tickets.id, ticket.id));
               }
             }
           }
@@ -12860,7 +13092,7 @@ var init_sla_escalation_service = __esm({
             default:
               role = "manager";
           }
-          const [target] = await db.select().from(users).where(eq9(users.role, role)).limit(1);
+          const [target] = await db.select().from(users).where(eq10(users.role, role)).limit(1);
           return target;
         } catch (error) {
           console.error("Error getting escalation target:", error);
@@ -12958,9 +13190,9 @@ Please review and take appropriate action.`;
         try {
           const now = /* @__PURE__ */ new Date();
           const openTickets = await db.select().from(tickets).where(
-            and9(
+            and10(
               not(inArray2(tickets.status, ["resolved", "closed", "cancelled"])),
-              not(eq9(tickets.sla_resolution_due, null))
+              not(eq10(tickets.sla_resolution_due, null))
             )
           );
           let breached = 0;
@@ -13016,7 +13248,7 @@ __export(sla_monitor_service_exports, {
   SLAMonitorService: () => SLAMonitorService,
   slaMonitorService: () => slaMonitorService
 });
-import { eq as eq10, not as not2, inArray as inArray3 } from "drizzle-orm";
+import { eq as eq11, not as not2, inArray as inArray3 } from "drizzle-orm";
 var SLAMonitorService, slaMonitorService;
 var init_sla_monitor_service = __esm({
   "server/services/sla-monitor-service.ts"() {
@@ -13064,7 +13296,7 @@ var init_sla_monitor_service = __esm({
                 sla_pause_reason: `Ticket moved to ${ticket.status} status`,
                 sla_paused_at: now,
                 updated_at: now
-              }).where(eq10(tickets2.id, ticket.id));
+              }).where(eq11(tickets2.id, ticket.id));
               console.log(`\u23F8\uFE0F  SLA paused for ticket ${ticket.ticket_number} (${ticket.status})`);
             } catch (error) {
               console.log(`\u26A0\uFE0F  Could not pause SLA for ticket ${ticket.ticket_number}, field may not exist yet`);
@@ -13080,7 +13312,7 @@ var init_sla_monitor_service = __esm({
                 sla_resumed_at: now,
                 sla_total_paused_time: totalPausedTime,
                 updated_at: now
-              }).where(eq10(tickets2.id, ticket.id));
+              }).where(eq11(tickets2.id, ticket.id));
               console.log(`\u25B6\uFE0F  SLA auto-resumed for ticket ${ticket.ticket_number} (moved to in_progress, paused for ${pauseDuration} minutes)`);
             } catch (error) {
               console.log(`\u26A0\uFE0F  Could not resume SLA for ticket ${ticket.ticket_number}, field may not exist yet`);
@@ -13127,7 +13359,7 @@ var init_sla_monitor_service = __esm({
                   sla_response_due: slaTargets.responseDue,
                   sla_resolution_due: slaTargets.resolutionDue,
                   updated_at: now
-                }).where(eq10(tickets.id, ticket.id));
+                }).where(eq11(tickets.id, ticket.id));
                 ticket.response_due_at = slaTargets.responseDue;
                 ticket.resolve_due_at = slaTargets.resolutionDue;
                 ticket.sla_response_due = slaTargets.responseDue;
@@ -13165,7 +13397,7 @@ var init_sla_monitor_service = __esm({
             }
             if (needsUpdate) {
               updateData.updated_at = now;
-              await db.update(tickets).set(updateData).where(eq10(tickets.id, ticket.id));
+              await db.update(tickets).set(updateData).where(eq11(tickets.id, ticket.id));
               updates++;
               console.log(`\u26A0\uFE0F  SLA breach detected for ticket ${ticket.ticket_number} (Created: ${ticket.created_at})`);
             }
@@ -13211,8 +13443,8 @@ Immediate attention required!`;
           }
           const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { users: users2 } = await Promise.resolve().then(() => (init_user_schema(), user_schema_exports));
-          const { eq: eq12 } = await import("drizzle-orm");
-          const managers = await db5.select().from(users2).where(eq12(users2.role, "manager"));
+          const { eq: eq13 } = await import("drizzle-orm");
+          const managers = await db5.select().from(users2).where(eq13(users2.role, "manager"));
           for (const manager of managers) {
             await notificationService.createNotification({
               user_email: manager.email,
@@ -13281,7 +13513,7 @@ Immediate attention required!`;
             }
             if (needsUpdate) {
               updateData.updated_at = now;
-              await db.update(tickets).set(updateData).where(eq10(tickets.id, ticket.id));
+              await db.update(tickets).set(updateData).where(eq11(tickets.id, ticket.id));
             }
           }
           const totalTicketsWithSLA = ticketsWithSLA.length;
@@ -13375,13 +13607,13 @@ function registerSLARoutes(app2) {
       const now = /* @__PURE__ */ new Date();
       const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-      const { eq: eq12 } = await import("drizzle-orm");
+      const { eq: eq13 } = await import("drizzle-orm");
       await db5.update(tickets2).set({
         sla_paused: true,
         sla_pause_reason: reason || "Manually paused",
         sla_paused_at: now,
         updated_at: now
-      }).where(eq12(tickets2.id, id));
+      }).where(eq13(tickets2.id, id));
       res.json({ message: "SLA paused successfully" });
     } catch (error) {
       console.error("Error pausing SLA:", error);
@@ -13394,8 +13626,8 @@ function registerSLARoutes(app2) {
       const now = /* @__PURE__ */ new Date();
       const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-      const { eq: eq12 } = await import("drizzle-orm");
-      const [ticket] = await db5.select().from(tickets2).where(eq12(tickets2.id, id));
+      const { eq: eq13 } = await import("drizzle-orm");
+      const [ticket] = await db5.select().from(tickets2).where(eq13(tickets2.id, id));
       if (!ticket || !ticket.sla_paused_at) {
         return res.status(400).json({ error: "Ticket SLA is not paused" });
       }
@@ -13409,7 +13641,7 @@ function registerSLARoutes(app2) {
         sla_resumed_at: now,
         sla_total_paused_time: totalPausedTime,
         updated_at: now
-      }).where(eq12(tickets2.id, id));
+      }).where(eq13(tickets2.id, id));
       res.json({
         message: "SLA resumed successfully",
         pausedFor: `${pauseDuration} minutes`,
@@ -13433,14 +13665,14 @@ function registerSLARoutes(app2) {
     try {
       const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-      const { not: not3, inArray: inArray4, or: or8, eq: eq12 } = await import("drizzle-orm");
+      const { not: not3, inArray: inArray4, or: or9, eq: eq13 } = await import("drizzle-orm");
       const breachedTickets = await db5.select().from(tickets2).where(
         and(
           not3(inArray4(tickets2.status, ["resolved", "closed", "cancelled"])),
-          or8(
-            eq12(tickets2.sla_response_breached, true),
-            eq12(tickets2.sla_resolution_breached, true),
-            eq12(tickets2.sla_breached, true)
+          or9(
+            eq13(tickets2.sla_response_breached, true),
+            eq13(tickets2.sla_resolution_breached, true),
+            eq13(tickets2.sla_breached, true)
           )
         )
       );
@@ -13503,7 +13735,7 @@ function registerSLARoutes(app2) {
     try {
       const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-      const { eq: eq12, isNull: isNull3, not: not3, inArray: inArray4 } = await import("drizzle-orm");
+      const { eq: eq13, isNull: isNull3, not: not3, inArray: inArray4 } = await import("drizzle-orm");
       const ticketsToUpdate = await db5.select().from(tickets2).where(isNull3(tickets2.sla_resolution_due));
       let updated = 0;
       for (const ticket of ticketsToUpdate) {
@@ -13522,7 +13754,7 @@ function registerSLARoutes(app2) {
           due_date: slaResolutionDue,
           sla_breached: isBreached,
           updated_at: /* @__PURE__ */ new Date()
-        }).where(eq12(tickets2.id, ticket.id));
+        }).where(eq13(tickets2.id, ticket.id));
         updated++;
       }
       res.json({
@@ -14080,6 +14312,63 @@ function registerTicketRoutes(app2) {
 // server/routes/device-routes.ts
 init_storage();
 function registerDeviceRoutes(app2, authenticateToken4) {
+  app2.get("/api/devices/export/csv", async (req, res) => {
+    try {
+      const filters = {
+        status: req.query.status,
+        type: req.query.type,
+        os: req.query.os,
+        location: req.query.location,
+        health: req.query.health,
+        search: req.query.search
+      };
+      const devices2 = await storage.getDevices();
+      let filteredDevices = devices2.filter((device) => {
+        let matches = true;
+        if (filters.status && filters.status !== "all") {
+          matches = matches && device.status === filters.status;
+        }
+        if (filters.search && filters.search.trim()) {
+          const searchTerm = filters.search.toLowerCase();
+          matches = matches && (device.hostname.toLowerCase().includes(searchTerm) || device.assigned_user?.toLowerCase().includes(searchTerm) || device.ip_address?.toLowerCase().includes(searchTerm));
+        }
+        return matches;
+      });
+      const headers = [
+        "Hostname",
+        "IP Address",
+        "Status",
+        "OS Name",
+        "OS Version",
+        "Assigned User",
+        "Last Seen",
+        "CPU Usage",
+        "Memory Usage",
+        "Disk Usage"
+      ];
+      const csvRows = [
+        headers.join(","),
+        ...filteredDevices.map((device) => [
+          device.hostname,
+          device.ip_address || "",
+          device.status,
+          device.os_name || "",
+          device.os_version || "",
+          device.assigned_user || "",
+          device.last_seen ? new Date(device.last_seen).toISOString() : "",
+          device.latest_report?.cpu_usage || "",
+          device.latest_report?.memory_usage || "",
+          device.latest_report?.disk_usage || ""
+        ].map((field) => `"${String(field).replace(/"/g, '""')}"`).join(","))
+      ];
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", 'attachment; filename="managed-systems.csv"');
+      res.send(csvRows.join("\n"));
+    } catch (error) {
+      console.error("Error exporting devices:", error);
+      res.status(500).json({ error: "Failed to export devices" });
+    }
+  });
   app2.get("/api/devices", authenticateToken4, async (req, res) => {
     try {
       console.log("Fetching devices - checking for agent activity...");
@@ -15289,7 +15578,7 @@ async function createTicketTables() {
 init_db();
 init_ticket_schema();
 init_knowledge_routes();
-import { eq as eq11, desc as desc9 } from "drizzle-orm";
+import { eq as eq12, desc as desc9 } from "drizzle-orm";
 
 // server/routes/agent-ad-sync-routes.ts
 import { Router as Router10 } from "express";
@@ -15688,8 +15977,8 @@ app.use((req, res, next) => {
     const { registerSLARoutes: registerSLARoutes2 } = await Promise.resolve().then(() => (init_sla_routes(), sla_routes_exports));
     registerSLARoutes2(app);
     app.use("/api/users", router7);
-    const analyticsRoutes = await Promise.resolve().then(() => (init_analytics_routes(), analytics_routes_exports));
-    app.use("/api/analytics", analyticsRoutes.default);
+    const { default: analyticsRoutes } = await Promise.resolve().then(() => (init_analytics_routes(), analytics_routes_exports));
+    app.use("/api/analytics", analyticsRoutes);
     const patchRoutes = await Promise.resolve().then(() => (init_patch_routes(), patch_routes_exports));
     app.use("/api/patches", patchRoutes.default);
     const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
@@ -15736,7 +16025,7 @@ app.use((req, res, next) => {
           status: req.query.status || "published"
         };
         console.log("KB API - Filters:", filters);
-        const articles = await db.select().from(knowledgeBase).where(eq11(knowledgeBase.status, filters.status)).orderBy(desc9(knowledgeBase.created_at));
+        const articles = await db.select().from(knowledgeBase).where(eq12(knowledgeBase.status, filters.status)).orderBy(desc9(knowledgeBase.created_at));
         console.log(`KB API - Found ${articles.length} articles in database`);
         let filteredArticles = articles;
         if (filters.search) {
