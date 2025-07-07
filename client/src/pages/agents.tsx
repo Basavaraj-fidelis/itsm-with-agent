@@ -95,7 +95,7 @@ export default function Agents() {
       if (statusFilter && statusFilter !== "all") params.append("status", statusFilter);
       if (typeFilter && typeFilter !== "all") params.append("type", typeFilter);
       if (searchTerm && searchTerm.trim()) params.append("search", searchTerm.trim());
-      params.append("format", "pdf");
+      params.append("format", "xlsx");
 
       const response = await fetch(`/api/analytics/agents-detailed-report?${params}`, {
         method: "GET",
@@ -109,7 +109,7 @@ export default function Agents() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `managed-systems-detailed-report-${new Date().toISOString().split('T')[0]}.json`;
+        a.download = `managed-systems-detailed-report-${new Date().toISOString().split('T')[0]}.xlsx`;
         a.click();
         URL.revokeObjectURL(url);
         
@@ -166,7 +166,7 @@ export default function Agents() {
               className="flex items-center gap-2"
             >
               <FileText className="w-4 h-4" />
-              {loading ? "Generating..." : "Detailed Report"}
+              {loading ? "Generating..." : "Download XLSX Report"}
             </Button>
 
             <Button 

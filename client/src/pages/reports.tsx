@@ -465,13 +465,13 @@ export default function Reports() {
             const a = document.createElement('a');
             a.style.display = 'none';
             a.href = url;
-            
+
             // Determine file extension
             let fileExtension = selectedFormat;
             if (selectedFormat === "xlsx" || selectedFormat === "excel") {
               fileExtension = "xlsx";
             }
-            
+
             a.download = `${selectedReportType}-report-${format(new Date(), 'yyyy-MM-dd')}.${fileExtension}`;
             document.body.appendChild(a);
             a.click();
@@ -566,7 +566,7 @@ export default function Reports() {
       if (response.ok) {
         if (selectedFormat === "xlsx" || selectedFormat === "excel" || selectedFormat === "docx" || selectedFormat === "pdf" || selectedFormat === "csv") {
           const blob = await response.blob();
-          
+
           if (blob.size === 0) {
             throw new Error("Empty file received from server");
           }
@@ -575,12 +575,12 @@ export default function Reports() {
           const a = document.createElement('a');
           a.style.display = 'none';
           a.href = url;
-          
+
           let fileExtension = selectedFormat;
           if (selectedFormat === "xlsx" || selectedFormat === "excel") {
             fileExtension = "xlsx";
           }
-          
+
           a.download = `service-desk-full-report-${format(new Date(), 'yyyy-MM-dd')}.${fileExtension}`;
           document.body.appendChild(a);
           a.click();

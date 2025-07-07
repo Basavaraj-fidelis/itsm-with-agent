@@ -892,12 +892,337 @@ class AnalyticsService {
     } else if (format === "json") {
       return JSON.stringify(reportData, null, 2);
     } else if (format === "pdf") {
-      return await this.convertToPDF(reportData, reportType);
+      return await this.convertToEnhancedPDF(reportData, reportType);
     } else if (format === "xlsx" || format === "excel") {
       console.log("Converting to Excel format...");
       return await this.convertToExcel(reportData, reportType);
     }
     throw new Error(`Unsupported format: ${format}`);
+  }
+
+  private async convertToExcel(data: any, reportType: string): Promise<Buffer> {
+    try {
+      const XLSX = require('xlsx');
+      
+      // Create a new workbook
+      const workbook = XLSX.utils.book_new();
+      
+      // Add metadata
+      workbook.Props = {
+        Title: this.getReportTitle(reportType),
+        Subject: `${reportType} Analysis Report`,
+        Author: "ITSM System",
+        CreatedDate: new Date()
+      };
+
+      switch (reportType) {
+        case "service-desk-tickets":
+          this.addServiceDeskSheetsToWorkbook(workbook, data);
+          break;
+        case "agents-detailed-report":
+          this.addAgentsSheetsToWorkbook(workbook, data);
+          break;
+        default:
+          this.addGenericSheetsToWorkbook(workbook, data, reportType);
+      }
+
+      // Write to buffer
+      const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+      console.log("Excel file generated successfully");
+      return buffer;
+    } catch (error) {
+      console.error("Error generating Excel file:", error);
+      throw new Error("Failed to generate Excel file: " + error.message);
+    }
+  }
+
+  private addServiceDeskSheetsToWorkbook(workbook: any, data: any) {
+    const XLSX = require('xlsx');
+    
+    // Summary Sheet
+    const summaryData = [
+      ['Service Desk Report Summary'],
+      ['Generated', new Date().toLocaleString()],
+      [''],
+      ['Metric', 'Value'],
+      ['Total Tickets', data.summary?.total_tickets || 0],
+      ['Filtered Tickets', data.filtered_tickets || 0],
+      ['SLA Compliance', `${data.summary?.analytics?.sla_performance?.sla_compliance_rate || 0}%`],
+      ['Avg Resolution Time', `${data.summary?.analytics?.summary?.avg_resolution_time || 0} hours`]
+    ];
+    
+    const summaryWS = XLSX.utils.aoa_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(workbook, summaryWS, 'Summary');
+
+    // Tickets Sheet
+    if (data.tickets && data.tickets.length > 0) {
+      const ticketsData = [
+        ['Ticket Number', 'Type', 'Title', 'Priority', 'Status', 'Requester', 'Assigned To', 'Created', 'Due Date']
+      ];
+      
+      data.tickets.forEach((ticket: any) => {
+        ticketsData.push([
+          ticket.ticket_number || '',
+          ticket.type || '',
+          ticket.title || '',
+          ticket.priority || '',
+          ticket.status || '',
+          ticket.requester_email || '',
+          ticket.assigned_to || '',
+          ticket.created_at ? new Date(ticket.created_at).toLocaleDateString() : '',
+          ticket.due_date ? new Date(ticket.due_date).toLocaleDateString() : ''
+        ]);
+      });
+      
+      const ticketsWS = XLSX.utils.aoa_to_sheet(ticketsData);
+      XLSX.utils.book_append_sheet(workbook, ticketsWS, 'Tickets');
+    }
+
+    // Analytics Sheet
+    if (data.summary?.analytics) {
+      const analytics = data.summary.analytics;
+      const analyticsData = [
+        ['Analytics Summary'],
+        [''],
+        ['SLA Performance'],
+        ['Metric', 'Value'],
+        ['SLA Compliance Rate', `${analytics.sla_performance?.sla_compliance_rate || 0}%`],
+        ['Tickets Met SLA', analytics.sla_performance?.met_sla || 0],
+        ['SLA Breaches', analytics.sla_performance?.breached_sla || 0],
+        [''],
+        ['Ticket Distribution by Type'],
+        ['Type', 'Count']
+      ];
+
+      if (analytics.ticket_distribution?.by_type) {
+        Object.entries(analytics.ticket_distribution.by_type).forEach(([type, count]) => {
+          analyticsData.push([type, count as number]);
+        });
+      }
+
+      const analyticsWS = XLSX.utils.aoa_to_sheet(analyticsData);
+      XLSX.utils.book_append_sheet(workbook, analyticsWS, 'Analytics');
+    }
+  }
+
+  private addAgentsSheetsToWorkbook(workbook: any, data: any) {
+    const XLSX = require('xlsx');
+    
+    // Summary Sheet
+    const summaryData = [
+      ['Managed Systems Report'],
+      ['Generated', new Date().toLocaleString()],
+      [''],
+      ['Summary', 'Count'],
+      ['Total Agents', data.summary?.total_agents || 0],
+      ['Online Agents', data.summary?.online_agents || 0],
+      ['Offline Agents', data.summary?.offline_agents || 0],
+      ['Healthy Systems', data.health_summary?.healthy || 0],
+      ['Warning Systems', data.health_summary?.warning || 0],
+      ['Critical Systems', data.health_summary?.critical || 0]
+    ];
+    
+    const summaryWS = XLSX.utils.aoa_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(workbook, summaryWS, 'Summary');
+
+    // Agents Details Sheet
+    if (data.agents && data.agents.length > 0) {
+      const agentsData = [
+        ['Hostname', 'Status', 'OS', 'IP Address', 'CPU %', 'Memory %', 'Disk %', 'Last Seen', 'Assigned User']
+      ];
+      
+      data.agents.forEach((agent: any) => {
+        agentsData.push([
+          agent.hostname || '',
+          agent.status || '',
+          agent.os_name || '',
+          agent.ip_address || '',
+          agent.performance_summary?.cpu_usage || '',
+          agent.performance_summary?.memory_usage || '',
+          agent.performance_summary?.disk_usage || '',
+          agent.last_seen ? new Date(agent.last_seen).toLocaleDateString() : '',
+          agent.assigned_user || ''
+        ]);
+      });
+      
+      const agentsWS = XLSX.utils.aoa_to_sheet(agentsData);
+      XLSX.utils.book_append_sheet(workbook, agentsWS, 'Agent Details');
+    }
+  }
+
+  private addGenericSheetsToWorkbook(workbook: any, data: any, reportType: string) {
+    const XLSX = require('xlsx');
+    
+    // Convert data to sheet format
+    const jsonData = typeof data === 'string' ? JSON.parse(data) : data;
+    const ws = XLSX.utils.json_to_sheet([jsonData]);
+    XLSX.utils.book_append_sheet(workbook, ws, 'Report Data');
+  }
+
+  private async convertToEnhancedPDF(data: any, reportType: string): Promise<Buffer> {
+    try {
+      console.log("Generating enhanced PDF document with actual data...");
+      
+      // Create comprehensive PDF content with actual data
+      let pdfContent = `%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+/Producer (ITSM System v2.0)
+/Title (${this.getReportTitle(reportType)})
+/Author (ITSM System)
+/Subject (${reportType} Analysis Report)
+/Keywords (ITSM, Performance, Analytics, Report)
+>>
+endobj
+
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Resources <<
+/Font <<
+/F1 <<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+>>
+>>
+>>
+/Contents 4 0 R
+>>
+endobj
+
+4 0 obj
+<<
+/Length ${this.calculatePDFContentLength(data, reportType)}
+>>
+stream
+BT
+/F1 20 Tf
+50 750 Td
+(${this.getReportTitle(reportType)}) Tj
+0 -25 Td
+/F1 14 Tf
+(Enterprise IT Service Management Platform) Tj
+0 -40 Td
+/F1 16 Tf
+(${reportType.toUpperCase()} REPORT) Tj
+0 -40 Td
+/F1 10 Tf
+(Report Date: ${format(new Date(), "MMMM dd, yyyy")}) Tj
+0 -15 Td
+(Generated: ${format(new Date(), "MMM d, yyyy, h:mm:ss a")}) Tj
+0 -15 Td
+(Classification: Internal Use Only) Tj
+0 -15 Td
+(Report Type: ${reportType.toUpperCase()}) Tj
+${this.generatePDFDataContent(data, reportType)}
+ET
+endstream
+endobj
+
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000226 00000 n 
+0000000284 00000 n 
+0000000460 00000 n 
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+${2068 + this.calculatePDFContentLength(data, reportType)}
+%%EOF`;
+
+      return Buffer.from(pdfContent, 'utf8');
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      throw new Error("Failed to generate PDF: " + error.message);
+    }
+  }
+
+  private calculatePDFContentLength(data: any, reportType: string): number {
+    // Calculate approximate content length for PDF
+    const baseLength = 1000;
+    const dataLength = JSON.stringify(data).length * 0.1; // Estimate
+    return Math.floor(baseLength + dataLength);
+  }
+
+  private generatePDFDataContent(data: any, reportType: string): string {
+    let content = `
+0 -30 Td
+/F1 12 Tf
+(================================================================) Tj
+0 -25 Td
+/F1 14 Tf
+(DATA SUMMARY) Tj
+0 -20 Td
+/F1 10 Tf`;
+
+    switch (reportType) {
+      case "service-desk-tickets":
+        content += `
+(Total Tickets: ${data.summary?.total_tickets || 0}) Tj
+0 -12 Td
+(Filtered Results: ${data.filtered_tickets || 0}) Tj
+0 -12 Td
+(SLA Compliance: ${data.summary?.analytics?.sla_performance?.sla_compliance_rate || 0}%) Tj
+0 -12 Td
+(Avg Resolution: ${data.summary?.analytics?.summary?.avg_resolution_time || 0} hours) Tj`;
+        break;
+      case "agents-detailed-report":
+        content += `
+(Total Managed Systems: ${data.summary?.total_agents || 0}) Tj
+0 -12 Td
+(Online Systems: ${data.summary?.online_agents || 0}) Tj
+0 -12 Td
+(Offline Systems: ${data.summary?.offline_agents || 0}) Tj
+0 -12 Td
+(Healthy Systems: ${data.health_summary?.healthy || 0}) Tj`;
+        break;
+      default:
+        content += `
+(Report generated with live data) Tj
+0 -12 Td
+(Data collected: ${format(new Date(), "PPpp")}) Tj`;
+    }
+
+    content += `
+0 -25 Td
+/F1 14 Tf
+(RECOMMENDATIONS) Tj
+0 -20 Td
+/F1 10 Tf
+(1. Review performance metrics regularly) Tj
+0 -12 Td
+(2. Monitor SLA compliance trends) Tj
+0 -12 Td
+(3. Implement proactive maintenance) Tj
+0 -12 Td
+(4. Optimize resource allocation) Tj
+0 -40 Td
+/F1 8 Tf
+(This report contains actual system data.) Tj
+0 -10 Td
+(For technical support, contact your system administrator.) Tj
+0 -10 Td
+(Confidential - Do not distribute outside organization.) Tj`;
+
+    return content;
   }
 
   private convertToEnhancedCSV(data: any, reportType: string): string {

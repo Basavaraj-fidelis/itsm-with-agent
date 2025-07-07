@@ -592,7 +592,7 @@ export default function Tickets() {
       if (slaViolationFilter) params.append("sla_violations_only", "true");
       if (!showClosed) params.append("exclude_closed", "true");
 
-      const response = await fetch(`/api/analytics/service-desk-report?format=pdf&${params}`, {
+      const response = await fetch(`/api/analytics/service-desk-report?format=xlsx&${params}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/pdf",
@@ -604,7 +604,7 @@ export default function Tickets() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `service-desk-full-report-${new Date().toISOString().split('T')[0]}.pdf`;
+        a.download = `service-desk-full-report-${new Date().toISOString().split('T')[0]}.xlsx`;
         a.click();
         URL.revokeObjectURL(url);
 
@@ -1489,7 +1489,7 @@ export default function Tickets() {
               className="flex items-center gap-2 bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
             >
               <FileText className="w-4 h-4" />
-              {loading ? "Generating..." : "Full Report"}
+              {loading ? "Generating..." : "Download XLSX Report"}
             </Button>
         </div>
 
