@@ -8,7 +8,7 @@ import { ResponseUtils } from "../utils/response";
 import { sql } from "drizzle-orm";
 import { db } from "../db";
 import { devices } from "@shared/schema";
-import { format } from 'date-fns';
+import { format } from "date-fns";
 
 const router = Router();
 
@@ -316,7 +316,7 @@ router.post("/generate", async (req, res) => {
     if (!reportType) {
       return res.status(400).json({
         success: false,
-        error: "Report type is required"
+        error: "Report type is required",
       });
     }
 
@@ -365,51 +365,51 @@ router.post("/generate", async (req, res) => {
       );
       res.send(csvData);
     } else if (format === "docx") {
-          console.log("Generating Word document...");
-          try {
-            const wordData = await analyticsService.exportReport(
-              data,
-              "docx",
-              reportType,
-            );
-            res.setHeader(
-              "Content-Type",
-              "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            );
-            res.setHeader(
-              "Content-Disposition",
-              `attachment; filename="${reportType}-report.docx"`,
-            );
-            res.send(wordData);
-          } catch (wordError) {
-            console.error("Word document generation failed:", wordError);
-            return res.status(500).json({
-              success: false,
-              error: "Failed to generate Word document: " + wordError.message
-            });
-          }
-        } else if (format === "pdf") {
-          console.log("Generating PDF document...");
-          try {
-            const pdfData = await analyticsService.exportReport(
-              data,
-              "pdf",
-              reportType,
-            );
-            res.setHeader("Content-Type", "application/pdf");
-            res.setHeader(
-              "Content-Disposition",
-              `attachment; filename="${reportType}-report.pdf"`,
-            );
-            res.send(pdfData);
-          } catch (pdfError) {
-            console.error("PDF document generation failed:", pdfError);
-            return res.status(500).json({
-              success: false,
-              error: "Failed to generate PDF document: " + pdfError.message
-            });
-          }
-        } else {
+      console.log("Generating Word document...");
+      try {
+        const wordData = await analyticsService.exportReport(
+          data,
+          "docx",
+          reportType,
+        );
+        res.setHeader(
+          "Content-Type",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        );
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="${reportType}-report.docx"`,
+        );
+        res.send(wordData);
+      } catch (wordError) {
+        console.error("Word document generation failed:", wordError);
+        return res.status(500).json({
+          success: false,
+          error: "Failed to generate Word document: " + wordError.message,
+        });
+      }
+    } else if (format === "pdf") {
+      console.log("Generating PDF document...");
+      try {
+        const pdfData = await analyticsService.exportReport(
+          data,
+          "pdf",
+          reportType,
+        );
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="${reportType}-report.pdf"`,
+        );
+        res.send(pdfData);
+      } catch (pdfError) {
+        console.error("PDF document generation failed:", pdfError);
+        return res.status(500).json({
+          success: false,
+          error: "Failed to generate PDF document: " + pdfError.message,
+        });
+      }
+    } else {
       res.json({
         success: true,
         report: {
@@ -423,40 +423,42 @@ router.post("/generate", async (req, res) => {
       });
     }
   } catch (error) {
-      console.error("Error generating custom report:", error);
-      console.error("Error stack:", error.stack);
+    console.error("Error generating custom report:", error);
+    console.error("Error stack:", error.stack);
 
-      // Determine appropriate error message
-      let errorMessage = "Failed to generate report";
-      let statusCode = 500;
+    // Determine appropriate error message
+    let errorMessage = "Failed to generate report";
+    let statusCode = 500;
 
-      if (error instanceof Error) {
-        if (error.message.includes("timeout")) {
-          errorMessage =
-            "Report generation timed out. Please try again with a shorter time range.";
-          statusCode = 504;
-        } else if (error.message.includes("Database connection")) {
-          errorMessage =
-            "Database connection error. Please check your database configuration.";
-          statusCode = 503;
-        } else if (error.message.includes("Word document")) {
-          errorMessage = "Word document generation failed. Please try PDF format.";
-          statusCode = 500;
-        } else if (error.message.includes("PDF document")) {
-          errorMessage = "PDF document generation failed. Please try Word format.";
-          statusCode = 500;
-        } else {
-          errorMessage = error.message;
-        }
+    if (error instanceof Error) {
+      if (error.message.includes("timeout")) {
+        errorMessage =
+          "Report generation timed out. Please try again with a shorter time range.";
+        statusCode = 504;
+      } else if (error.message.includes("Database connection")) {
+        errorMessage =
+          "Database connection error. Please check your database configuration.";
+        statusCode = 503;
+      } else if (error.message.includes("Word document")) {
+        errorMessage =
+          "Word document generation failed. Please try PDF format.";
+        statusCode = 500;
+      } else if (error.message.includes("PDF document")) {
+        errorMessage =
+          "PDF document generation failed. Please try Word format.";
+        statusCode = 500;
+      } else {
+        errorMessage = error.message;
       }
-
-      res.status(statusCode).json({
-        success: false,
-        error: errorMessage,
-        reportType: req.body.reportType || "unknown",
-        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-      });
     }
+
+    res.status(statusCode).json({
+      success: false,
+      error: errorMessage,
+      reportType: req.body.reportType || "unknown",
+      details: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
+  }
 });
 
 // Get real-time performance metrics - remove authentication requirement
@@ -643,8 +645,14 @@ router.post("/comprehensive", async (req, res) => {
   req.setTimeout(20000); // 20 seconds timeout
 
   try {
-    const { reportTypes = ["performance", "system-health", "asset-inventory"], timeRange = "7d", format = "docx" } = req.body;
-    console.log(`Generating comprehensive ITSM report: ${reportTypes.join(", ")}, timeRange: ${timeRange}, format: ${format}`);
+    const {
+      reportTypes = ["performance", "system-health", "asset-inventory"],
+      timeRange = "7d",
+      format = "docx",
+    } = req.body;
+    console.log(
+      `Generating comprehensive ITSM report: ${reportTypes.join(", ")}, timeRange: ${timeRange}, format: ${format}`,
+    );
 
     const comprehensiveData = {
       report_metadata: {
@@ -661,21 +669,35 @@ router.post("/comprehensive", async (req, res) => {
     // Generate data for each requested report type
     for (const reportType of reportTypes) {
       try {
-        const data = await analyticsService.generateCustomReport(reportType, timeRange, format);
+        const data = await analyticsService.generateCustomReport(
+          reportType,
+          timeRange,
+          format,
+        );
         comprehensiveData.detailed_analysis[reportType] = data;
       } catch (error) {
         console.warn(`Failed to generate ${reportType} data:`, error);
-        comprehensiveData.detailed_analysis[reportType] = { error: `Failed to generate ${reportType} data` };
+        comprehensiveData.detailed_analysis[reportType] = {
+          error: `Failed to generate ${reportType} data`,
+        };
       }
     }
 
     // Generate executive summary
     comprehensiveData.executive_summary = {
       system_overview: {
-        total_devices: comprehensiveData.detailed_analysis["asset-inventory"]?.total_devices || 15,
-        system_health: comprehensiveData.detailed_analysis["system-health"]?.overall_health?.health_score || 85,
-        uptime_percentage: comprehensiveData.detailed_analysis["performance"]?.uptime_percentage || 98.7,
-        critical_alerts: comprehensiveData.detailed_analysis["system-health"]?.overall_health?.critical_alerts || 2,
+        total_devices:
+          comprehensiveData.detailed_analysis["asset-inventory"]
+            ?.total_devices || 15,
+        system_health:
+          comprehensiveData.detailed_analysis["system-health"]?.overall_health
+            ?.health_score || 85,
+        uptime_percentage:
+          comprehensiveData.detailed_analysis["performance"]
+            ?.uptime_percentage || 98.7,
+        critical_alerts:
+          comprehensiveData.detailed_analysis["system-health"]?.overall_health
+            ?.critical_alerts || 2,
       },
       key_metrics: {
         performance_score: 85,
@@ -685,7 +707,7 @@ router.post("/comprehensive", async (req, res) => {
       },
       recommendations: [
         "Implement proactive capacity planning for high-utilization systems",
-        "Enhance monitoring coverage for critical infrastructure components", 
+        "Enhance monitoring coverage for critical infrastructure components",
         "Establish automated patch management workflows",
         "Review and optimize SLA targets based on current performance trends",
       ],
@@ -704,7 +726,7 @@ router.post("/comprehensive", async (req, res) => {
       );
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="comprehensive-itsm-report-${format(new Date(), 'yyyy-MM-dd')}.docx"`,
+        `attachment; filename="comprehensive-itsm-report-${format(new Date(), "yyyy-MM-dd")}.docx"`,
       );
       res.send(wordData);
     } else if (format === "pdf") {
@@ -717,7 +739,7 @@ router.post("/comprehensive", async (req, res) => {
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="comprehensive-itsm-report-${format(new Date(), 'yyyy-MM-dd')}.pdf"`,
+        `attachment; filename="comprehensive-itsm-report-${format(new Date(), "yyyy-MM-dd")}.pdf"`,
       );
       res.send(pdfData);
     } else {
@@ -747,19 +769,29 @@ router.post("/enterprise-scale", async (req, res) => {
   req.setTimeout(120000); // 2 minutes for enterprise scale
 
   try {
-    const { reportTypes = ["performance", "system-health", "asset-inventory"], timeRange = "7d", format = "docx", batchSize = 50 } = req.body;
-    console.log(`Generating enterprise-scale report for ${reportTypes.join(", ")}, timeRange: ${timeRange}, batchSize: ${batchSize}`);
+    const {
+      reportTypes = ["performance", "system-health", "asset-inventory"],
+      timeRange = "7d",
+      format = "docx",
+      batchSize = 50,
+    } = req.body;
+    console.log(
+      `Generating enterprise-scale report for ${reportTypes.join(", ")}, timeRange: ${timeRange}, batchSize: ${batchSize}`,
+    );
 
     // Get device count to determine processing strategy
-    const deviceCountResult = await db.select({ count: sql`count(*)` }).from(devices);
+    const deviceCountResult = await db
+      .select({ count: sql`count(*)` })
+      .from(devices);
     const deviceCount = Number(deviceCountResult[0]?.count) || 0;
 
     if (deviceCount > 200) {
       return res.status(413).json({
         success: false,
-        error: "Deployment too large. Please contact support for custom enterprise reporting solutions.",
+        error:
+          "Deployment too large. Please contact support for custom enterprise reporting solutions.",
         deviceCount,
-        recommendedAction: "Use batch processing or contact enterprise support"
+        recommendedAction: "Use batch processing or contact enterprise support",
       });
     }
 
@@ -779,27 +811,31 @@ router.post("/enterprise-scale", async (req, res) => {
           processing_time: "optimized for large scale",
           data_freshness: "real-time",
           compliance_overview: "enterprise-grade",
-        }
+        },
       },
       detailed_analysis: {},
       performance_insights: {
         scalability_notes: `Optimized for ${deviceCount} endpoints`,
         resource_utilization: "distributed processing",
-        response_time: "sub-45-second generation"
-      }
+        response_time: "sub-45-second generation",
+      },
     };
 
     // Generate data for each requested report type with batching
     for (const reportType of reportTypes) {
       try {
         console.log(`Processing ${reportType} for enterprise scale...`);
-        const data = await analyticsService.generateCustomReport(reportType, timeRange, format);
+        const data = await analyticsService.generateCustomReport(
+          reportType,
+          timeRange,
+          format,
+        );
         enterpriseData.detailed_analysis[reportType] = data;
       } catch (error) {
         console.warn(`Failed to generate ${reportType} data:`, error);
-        enterpriseData.detailed_analysis[reportType] = { 
+        enterpriseData.detailed_analysis[reportType] = {
           error: `Failed to generate ${reportType} data - large scale processing`,
-          fallback_data: "Enterprise summary available"
+          fallback_data: "Enterprise summary available",
         };
       }
     }
@@ -817,7 +853,7 @@ router.post("/enterprise-scale", async (req, res) => {
       );
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="enterprise-itsm-report-${format(new Date(), 'yyyy-MM-dd')}-${deviceCount}endpoints.docx"`,
+        `attachment; filename="enterprise-itsm-report-${format(new Date(), "yyyy-MM-dd")}-${deviceCount}endpoints.docx"`,
       );
       res.send(wordData);
     } else if (format === "pdf") {
@@ -830,7 +866,7 @@ router.post("/enterprise-scale", async (req, res) => {
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="enterprise-itsm-report-${format(new Date(), 'yyyy-MM-dd')}-${deviceCount}endpoints.pdf"`,
+        `attachment; filename="enterprise-itsm-report-${format(new Date(), "yyyy-MM-dd")}-${deviceCount}endpoints.pdf"`,
       );
       res.send(pdfData);
     } else {
@@ -844,7 +880,7 @@ router.post("/enterprise-scale", async (req, res) => {
           generated_at: new Date(),
           time_range: timeRange,
           scale: "enterprise",
-          device_count: deviceCount
+          device_count: deviceCount,
         },
       });
     }
@@ -854,7 +890,8 @@ router.post("/enterprise-scale", async (req, res) => {
       success: false,
       error: "Failed to generate enterprise-scale report",
       details: error.message,
-      recommendation: "Try with smaller batch size or contact enterprise support"
+      recommendation:
+        "Try with smaller batch size or contact enterprise support",
     });
   }
 });
@@ -937,7 +974,9 @@ router.post("/export-pdf", async (req, res) => {
             <th>Satisfaction</th>
             <th>Status</th>
           </tr>
-          ${reportData.agentPerformance.map(agent => `
+          ${reportData.agentPerformance
+            .map(
+              (agent) => `
             <tr>
               <td>${agent.name}</td>
               <td>${agent.ticketsResolved}</td>
@@ -945,7 +984,9 @@ router.post("/export-pdf", async (req, res) => {
               <td>${agent.satisfaction}%</td>
               <td>${agent.status}</td>
             </tr>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </table>
       </div>
 
@@ -958,14 +999,18 @@ router.post("/export-pdf", async (req, res) => {
             <th>Actual</th>
             <th>Compliance</th>
           </tr>
-          ${reportData.slaMetrics.map(sla => `
+          ${reportData.slaMetrics
+            .map(
+              (sla) => `
             <tr>
               <td>${sla.category}</td>
               <td>${sla.target}</td>
               <td>${sla.actual}</td>
               <td>${sla.compliance}%</td>
             </tr>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </table>
       </div>
 
@@ -978,14 +1023,18 @@ router.post("/export-pdf", async (req, res) => {
             <th>Resolved</th>
             <th>Pending</th>
           </tr>
-          ${reportData.tickets.map(ticket => `
+          ${reportData.tickets
+            .map(
+              (ticket) => `
             <tr>
               <td>${ticket.date}</td>
               <td>${ticket.created}</td>
               <td>${ticket.resolved}</td>
               <td>${ticket.pending}</td>
             </tr>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </table>
       </div>
     </body>
@@ -994,10 +1043,9 @@ router.post("/export-pdf", async (req, res) => {
 
     // For a simple implementation, return HTML that can be printed to PDF
     // In a production environment, you'd use a library like puppeteer
-    res.setHeader('Content-Type', 'text/html');
-    res.setHeader('Content-Disposition', 'attachment; filename=report.html');
+    res.setHeader("Content-Type", "text/html");
+    res.setHeader("Content-Disposition", "attachment; filename=report.html");
     res.send(htmlContent);
-
   } catch (error) {
     console.error("Error generating PDF report:", error);
     res.status(500).json({ message: "Failed to generate PDF report" });
@@ -1005,44 +1053,57 @@ router.post("/export-pdf", async (req, res) => {
 });
 
 // Performance analytics endpoints - require authentication for insights
-router.get("/performance/insights/:deviceId", authenticateToken, async (req, res) => {
-  try {
-    const { deviceId } = req.params;
+router.get(
+  "/performance/insights/:deviceId",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { deviceId } = req.params;
 
-    // Import performance service
-    const { performanceService } = await import("../services/performance-service");
+      // Import performance service
+      const { performanceService } = await import(
+        "../services/performance-service"
+      );
 
-    const insights = await performanceService.getApplicationPerformanceInsights(deviceId);
+      const insights =
+        await performanceService.getApplicationPerformanceInsights(deviceId);
 
-    res.json(insights);
-  } catch (error) {
-    console.error("Error getting performance insights:", error);
-    res.status(500).json({
-      error: "Failed to get performance insights",
-      message: error.message
-    });
-  }
-});
+      res.json(insights);
+    } catch (error) {
+      console.error("Error getting performance insights:", error);
+      res.status(500).json({
+        error: "Failed to get performance insights",
+        message: error.message,
+      });
+    }
+  },
+);
 
-router```text
-.get("/performance/predictions/:deviceId", authenticateToken, async (req, res) => {
-  try {
-    const { deviceId } = req.params;
+router.get(
+  "/performance/predictions/:deviceId",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { deviceId } = req.params;
 
-    // Import performance service
-    const { performanceService } = await import("../services/performance-service");
+      // Import performance service
+      const { performanceService } = await import(
+        "../services/performance-service"
+      );
 
-    const predictions = await performanceService.generateResourcePredictions(deviceId);
+      const predictions =
+        await performanceService.generateResourcePredictions(deviceId);
 
-    res.json(predictions);
-  } catch (error) {
-    console.error("Error getting performance predictions:", error);
-    res.status(500).json({
-      error: "Failed to get performance predictions", 
-      message: error.message
-    });
-  }
-});
+      res.json(predictions);
+    } catch (error) {
+      console.error("Error getting performance predictions:", error);
+      res.status(500).json({
+        error: "Failed to get performance predictions",
+        message: error.message,
+      });
+    }
+  },
+);
 
 // System performance overview - no authentication required for basic overview
 router.get("/performance/overview", async (req, res) => {
@@ -1055,29 +1116,39 @@ router.get("/performance/overview", async (req, res) => {
     // Calculate performance metrics
     const performanceOverview = {
       totalDevices: devices.length,
-      onlineDevices: devices.filter(d => d.status === 'online').length,
+      onlineDevices: devices.filter((d) => d.status === "online").length,
       avgCpuUsage: 0,
       avgMemoryUsage: 0,
       avgDiskUsage: 0,
       criticalDevices: 0,
-      performanceAlerts: 0
+      performanceAlerts: 0,
     };
 
     // Calculate averages and critical counts
-    const onlineDevices = devices.filter(d => d.status === 'online');
+    const onlineDevices = devices.filter((d) => d.status === "online");
     if (onlineDevices.length > 0) {
-      const cpuSum = onlineDevices.reduce((sum, d) => sum + parseFloat(d.latest_report?.cpu_usage || '0'), 0);
-      const memSum = onlineDevices.reduce((sum, d) => sum + parseFloat(d.latest_report?.memory_usage || '0'), 0);
-      const diskSum = onlineDevices.reduce((sum, d) => sum + parseFloat(d.latest_report?.disk_usage || '0'), 0);
+      const cpuSum = onlineDevices.reduce(
+        (sum, d) => sum + parseFloat(d.latest_report?.cpu_usage || "0"),
+        0,
+      );
+      const memSum = onlineDevices.reduce(
+        (sum, d) => sum + parseFloat(d.latest_report?.memory_usage || "0"),
+        0,
+      );
+      const diskSum = onlineDevices.reduce(
+        (sum, d) => sum + parseFloat(d.latest_report?.disk_usage || "0"),
+        0,
+      );
 
       performanceOverview.avgCpuUsage = cpuSum / onlineDevices.length;
       performanceOverview.avgMemoryUsage = memSum / onlineDevices.length;
       performanceOverview.avgDiskUsage = diskSum / onlineDevices.length;
 
-      performanceOverview.criticalDevices = onlineDevices.filter(d => 
-        parseFloat(d.latest_report?.cpu_usage || '0') > 90 ||
-        parseFloat(d.latest_report?.memory_usage || '0') > 90 ||
-        parseFloat(d.latest_report?.disk_usage || '0') > 95
+      performanceOverview.criticalDevices = onlineDevices.filter(
+        (d) =>
+          parseFloat(d.latest_report?.cpu_usage || "0") > 90 ||
+          parseFloat(d.latest_report?.memory_usage || "0") > 90 ||
+          parseFloat(d.latest_report?.disk_usage || "0") > 95,
       ).length;
     }
 
@@ -1086,7 +1157,7 @@ router.get("/performance/overview", async (req, res) => {
     console.error("Error getting performance overview:", error);
     res.status(500).json({
       error: "Failed to get performance overview",
-      message: error.message
+      message: error.message,
     });
   }
 });
@@ -1094,18 +1165,18 @@ router.get("/performance/overview", async (req, res) => {
 // Performance trends - no authentication required for trends
 router.get("/performance/trends", async (req, res) => {
   try {
-    const { timeRange = '24h' } = req.query;
+    const { timeRange = "24h" } = req.query;
 
     // For now, return mock trend data since we don't have historical tracking implemented
     const trends = {
       timeRange,
       dataPoints: [],
       summary: {
-        cpuTrend: 'stable',
-        memoryTrend: 'increasing',
-        diskTrend: 'stable',
-        alertsTrend: 'decreasing'
-      }
+        cpuTrend: "stable",
+        memoryTrend: "increasing",
+        diskTrend: "stable",
+        alertsTrend: "decreasing",
+      },
     };
 
     res.json(trends);
@@ -1113,7 +1184,7 @@ router.get("/performance/trends", async (req, res) => {
     console.error("Error getting performance trends:", error);
     res.status(500).json({
       error: "Failed to get performance trends",
-      message: error.message
+      message: error.message,
     });
   }
 });
@@ -1126,10 +1197,10 @@ router.get("/health", async (req, res) => {
     timestamp: new Date().toISOString(),
     endpoints: [
       "/performance/overview",
-      "/performance/trends", 
+      "/performance/trends",
       "/performance/insights/:deviceId",
-      "/performance/predictions/:deviceId"
-    ]
+      "/performance/predictions/:deviceId",
+    ],
   });
 });
 
@@ -1138,210 +1209,235 @@ router.get("/test", async (req, res) => {
   res.json({
     success: true,
     message: "Analytics routes are working",
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
-  // Get performance insights for a specific device
-  router.get(
-    "/performance/insights/:deviceId",
-    async (req: Request, res: Response) => {
-      try {
-        const deviceId = req.params.deviceId;
-        console.log(
-          `Getting performance insights for device: ${deviceId}`,
-        );
+// Get performance insights for a specific device
+router.get(
+  "/performance/insights/:deviceId",
+  async (req: Request, res: Response) => {
+    try {
+      const deviceId = req.params.deviceId;
+      console.log(`Getting performance insights for device: ${deviceId}`);
 
-        const insights = await performanceService.getApplicationPerformanceInsights(deviceId);
-        res.json(insights);
-      } catch (error) {
-        console.error("Error getting performance insights:", error);
-        res.status(500).json({
-          error: "Failed to get performance insights",
-          message: error.message
-        });
+      const insights =
+        await performanceService.getApplicationPerformanceInsights(deviceId);
+      res.json(insights);
+    } catch (error) {
+      console.error("Error getting performance insights:", error);
+      res.status(500).json({
+        error: "Failed to get performance insights",
+        message: error.message,
+      });
+    }
+  },
+);
+
+// Generate comprehensive Service Desk report
+router.get("/service-desk-report", async (req: Request, res: Response) => {
+  try {
+    const format = (req.query.format as string) || "json";
+    const filters = {
+      type: req.query.type as string,
+      status: req.query.status as string,
+      priority: req.query.priority as string,
+      search: req.query.search as string,
+      sla_violations_only: req.query.sla_violations_only === "true",
+      exclude_closed: req.query.exclude_closed === "true",
+    };
+
+    console.log("Generating Service Desk report with filters:", filters);
+
+    // Get ticket analytics data
+    const ticketAnalytics =
+      await analyticsService.generateTicketAnalyticsReport();
+
+    // Get current tickets with filters applied
+    const { ticketStorage } = await import("../services/ticket-storage");
+    const ticketsResult = await ticketStorage.getTickets(1, 10000, filters);
+
+    // Generate comprehensive report
+    const report = {
+      title: "Service Desk Comprehensive Report",
+      generated_at: new Date().toISOString(),
+      filters_applied: filters,
+      summary: {
+        total_tickets: ticketsResult.total,
+        filtered_tickets: ticketsResult.data.length,
+        analytics: ticketAnalytics,
+      },
+      tickets: ticketsResult.data,
+      performance_metrics: {
+        avg_resolution_time: ticketAnalytics.summary.avg_resolution_time,
+        sla_compliance: ticketAnalytics.sla_performance.sla_compliance_rate,
+        ticket_distribution: ticketAnalytics.ticket_distribution,
+      },
+    };
+
+    if (format === "pdf") {
+      // For now, return JSON and let frontend handle PDF generation
+      // In production, you might want to use a PDF library like puppeteer
+      res.setHeader("Content-Type", "application/json");
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="service-desk-report.json"',
+      );
+      return res.json(report);
+    }
+
+    res.json({
+      success: true,
+      report: report,
+    });
+  } catch (error) {
+    console.error("Error generating Service Desk report:", error);
+    res.status(500).json({
+      error: "Failed to generate Service Desk report",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+// Generate detailed agents report
+router.get("/agents-detailed-report", async (req: Request, res: Response) => {
+  try {
+    const format = (req.query.format as string) || "json";
+    const filters = {
+      status: req.query.status as string,
+      type: req.query.type as string,
+      os: req.query.os as string,
+      location: req.query.location as string,
+      health: req.query.health as string,
+      search: req.query.search as string,
+    };
+
+    console.log("Generating detailed agents report with filters:", filters);
+
+    const { storage } = await import("../storage");
+    const devices = await storage.getDevices();
+
+    // Apply filters
+    let filteredDevices = devices.filter((device) => {
+      let matches = true;
+
+      if (filters.status && filters.status !== "all") {
+        matches = matches && device.status === filters.status;
       }
-    },
-  );
 
-  // Generate comprehensive Service Desk report
-  router.get(
-    "/service-desk-report",
-    async (req: Request, res: Response) => {
-      try {
-        const format = req.query.format as string || 'json';
-        const filters = {
-          type: req.query.type as string,
-          status: req.query.status as string,
-          priority: req.query.priority as string,
-          search: req.query.search as string,
-          sla_violations_only: req.query.sla_violations_only === 'true',
-          exclude_closed: req.query.exclude_closed === 'true'
-        };
-
-        console.log('Generating Service Desk report with filters:', filters);
-
-        // Get ticket analytics data
-        const ticketAnalytics = await analyticsService.generateTicketAnalyticsReport();
-
-        // Get current tickets with filters applied
-        const { ticketStorage } = await import("../services/ticket-storage");
-        const ticketsResult = await ticketStorage.getTickets(1, 10000, filters);
-
-        // Generate comprehensive report
-        const report = {
-          title: "Service Desk Comprehensive Report",
-          generated_at: new Date().toISOString(),
-          filters_applied: filters,
-          summary: {
-            total_tickets: ticketsResult.total,
-            filtered_tickets: ticketsResult.data.length,
-            analytics: ticketAnalytics
-          },
-          tickets: ticketsResult.data,
-          performance_metrics: {
-            avg_resolution_time: ticketAnalytics.summary.avg_resolution_time,
-            sla_compliance: ticketAnalytics.sla_performance.sla_compliance_rate,
-            ticket_distribution: ticketAnalytics.ticket_distribution
-          }
-        };
-
-        if (format === 'pdf') {
-          // For now, return JSON and let frontend handle PDF generation
-          // In production, you might want to use a PDF library like puppeteer
-          res.setHeader('Content-Type', 'application/json');
-          res.setHeader('Content-Disposition', 'attachment; filename="service-desk-report.json"');
-          return res.json(report);
-        }
-
-        res.json({
-          success: true,
-          report: report
-        });
-
-      } catch (error) {
-        console.error("Error generating Service Desk report:", error);
-        res.status(500).json({
-          error: "Failed to generate Service Desk report",
-          details: error instanceof Error ? error.message : "Unknown error",
-        });
+      if (filters.search && filters.search.trim()) {
+        const searchTerm = filters.search.toLowerCase();
+        matches =
+          matches &&
+          (device.hostname.toLowerCase().includes(searchTerm) ||
+            device.assigned_user?.toLowerCase().includes(searchTerm) ||
+            device.ip_address?.toLowerCase().includes(searchTerm));
       }
-    },
-  );
 
-  // Generate detailed agents report
-  router.get(
-    "/agents-detailed-report",
-    async (req: Request, res: Response) => {
-      try {
-        const format = req.query.format as string || 'json';
-        const filters = {
-          status: req.query.status as string,
-          type: req.query.type as string,
-          os: req.query.os as string,
-          location: req.query.location as string,
-          health: req.query.health as string,
-          search: req.query.search as string
-        };
+      return matches;
+    });
 
-        console.log('Generating detailed agents report with filters:', filters);
+    // Generate comprehensive report
+    const report = {
+      title: "Managed Systems Detailed Report",
+      generated_at: new Date().toISOString(),
+      filters_applied: filters,
+      summary: {
+        total_agents: devices.length,
+        filtered_agents: filteredDevices.length,
+        online_agents: filteredDevices.filter((d) => d.status === "online")
+          .length,
+        offline_agents: filteredDevices.filter((d) => d.status === "offline")
+          .length,
+      },
+      agents: filteredDevices.map((device) => ({
+        ...device,
+        performance_summary: {
+          cpu_usage: device.latest_report?.cpu_usage || 0,
+          memory_usage: device.latest_report?.memory_usage || 0,
+          disk_usage: device.latest_report?.disk_usage || 0,
+          last_report: device.latest_report?.collected_at || null,
+        },
+      })),
+      health_summary: {
+        healthy: filteredDevices.filter((d) => {
+          const cpu = parseFloat(d.latest_report?.cpu_usage || "0");
+          const memory = parseFloat(d.latest_report?.memory_usage || "0");
+          const disk = parseFloat(d.latest_report?.disk_usage || "0");
+          return cpu < 80 && memory < 80 && disk < 80;
+        }).length,
+        warning: filteredDevices.filter((d) => {
+          const cpu = parseFloat(d.latest_report?.cpu_usage || "0");
+          const memory = parseFloat(d.latest_report?.memory_usage || "0");
+          const disk = parseFloat(d.latest_report?.disk_usage || "0");
+          return (
+            (cpu >= 80 && cpu < 90) ||
+            (memory >= 80 && memory < 90) ||
+            (disk >= 80 && disk < 90)
+          );
+        }).length,
+        critical: filteredDevices.filter((d) => {
+          const cpu = parseFloat(d.latest_report?.cpu_usage || "0");
+          const memory = parseFloat(d.latest_report?.memory_usage || "0");
+          const disk = parseFloat(d.latest_report?.disk_usage || "0");
+          return cpu >= 90 || memory >= 90 || disk >= 90;
+        }).length,
+      },
+    };
 
-        const { storage } = await import("../storage");
-        const devices = await storage.getDevices();
+    if (format === "csv") {
+      const csvData = await analyticsService.exportReport(
+        report,
+        "csv",
+        "agents-detailed-report",
+      );
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="managed-systems-detailed-report.csv"',
+      );
+      return res.send(csvData);
+    } else if (format === "excel") {
+      const excelData = await analyticsService.exportReport(
+        report,
+        "excel",
+        "agents-detailed-report",
+      );
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      );
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="managed-systems-detailed-report.xlsx"',
+      );
+      return res.send(excelData);
+    } else if (format === "pdf") {
+      const pdfData = await analyticsService.exportReport(
+        report,
+        "pdf",
+        "agents-detailed-report",
+      );
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="managed-systems-detailed-report.pdf"',
+      );
+      return res.send(pdfData);
+    }
 
-        // Apply filters
-        let filteredDevices = devices.filter(device => {
-          let matches = true;
-
-          if (filters.status && filters.status !== 'all') {
-            matches = matches && device.status === filters.status;
-          }
-
-          if (filters.search && filters.search.trim()) {
-            const searchTerm = filters.search.toLowerCase();
-            matches = matches && (
-              device.hostname.toLowerCase().includes(searchTerm) ||
-              device.assigned_user?.toLowerCase().includes(searchTerm) ||
-              device.ip_address?.toLowerCase().includes(searchTerm)
-            );
-          }
-
-          return matches;
-        });
-
-        // Generate comprehensive report
-        const report = {
-          title: "Managed Systems Detailed Report",
-          generated_at: new Date().toISOString(),
-          filters_applied: filters,
-          summary: {
-            total_agents: devices.length,
-            filtered_agents: filteredDevices.length,
-            online_agents: filteredDevices.filter(d => d.status === 'online').length,
-            offline_agents: filteredDevices.filter(d => d.status === 'offline').length,
-          },
-          agents: filteredDevices.map(device => ({
-            ...device,
-            performance_summary: {
-              cpu_usage: device.latest_report?.cpu_usage || 0,
-              memory_usage: device.latest_report?.memory_usage || 0,
-              disk_usage: device.latest_report?.disk_usage || 0,
-              last_report: device.latest_report?.collected_at || null
-            }
-          })),
-          health_summary: {
-            healthy: filteredDevices.filter(d => {
-              const cpu = parseFloat(d.latest_report?.cpu_usage || '0');
-              const memory = parseFloat(d.latest_report?.memory_usage || '0');
-              const disk = parseFloat(d.latest_report?.disk_usage || '0');
-              return cpu < 80 && memory < 80 && disk < 80;
-            }).length,
-            warning: filteredDevices.filter(d => {
-              const cpu = parseFloat(d.latest_report?.cpu_usage || '0');
-              const memory = parseFloat(d.latest_report?.memory_usage || '0');
-              const disk = parseFloat(d.latest_report?.disk_usage || '0');
-              return (cpu >= 80 && cpu < 90) || (memory >= 80 && memory < 90) || (disk >= 80 && disk < 90);
-            }).length,
-            critical: filteredDevices.filter(d => {
-              const cpu = parseFloat(d.latest_report?.cpu_usage || '0');
-              const memory = parseFloat(d.latest_report?.memory_usage || '0');
-              const disk = parseFloat(d.latest_report?.disk_usage || '0');
-              return cpu >= 90 || memory >= 90 || disk >= 90;
-            }).length
-          }
-        };
-
-        if (format === 'csv') {
-          const csvData = await analyticsService.exportReport(report, 'csv', 'agents-detailed-report');
-          res.setHeader('Content-Type', 'text/csv');
-          res.setHeader('Content-Disposition', 'attachment; filename="managed-systems-detailed-report.csv"');
-          return res.send(csvData);
-        } else if (format === 'excel') {
-          const excelData = await analyticsService.exportReport(report, 'excel', 'agents-detailed-report');
-          res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-          res.setHeader('Content-Disposition', 'attachment; filename="managed-systems-detailed-report.xlsx"');
-          return res.send(excelData);
-        } else if (format === 'pdf') {
-          const pdfData = await analyticsService.exportReport(report, 'pdf', 'agents-detailed-report');
-          res.setHeader('Content-Type', 'application/pdf');
-          res.setHeader('Content-Disposition', 'attachment; filename="managed-systems-detailed-report.pdf"');
-          return res.send(pdfData);
-        }
-
-        res.json({
-          success: true,
-          report: report
-        });
-
-      } catch (error) {
-        console.error("Error generating agents detailed report:", error);
-        res.status(500).json({
-          error: "Failed to generate agents detailed report",
-          details: error instanceof Error ? error.message : "Unknown error",
-        });
-      }
-    },
-  );
+    res.json({
+      success: true,
+      report: report,
+    });
+  } catch (error) {
+    console.error("Error generating agents detailed report:", error);
+    res.status(500).json({
+      error: "Failed to generate agents detailed report",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
 
 // Adds Service Desk and Agents detailed report generation endpoints with filtering and comprehensive data retrieval.
 export default router;
