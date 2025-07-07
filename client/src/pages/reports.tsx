@@ -519,6 +519,84 @@ export default function Reports() {
     }
   };
 
+  const downloadServiceDeskReport = async () => {
+    if (isGenerating) return;
+
+    setIsGenerating(true);
+    setError(null);
+
+    try {
+      console.log(`Downloading Service Desk ${selectedReportType} report in ${selectedFormat} format`);
+
+      const response = await fetch("/api/service-desk/analytics/download", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          reportType: selectedReportType,
+          timeRange: selectedTimeRange,
+          format: selectedFormat
+        })
+      });
+
+      if (response.ok) {
+        if (selectedFormat === "docx" || selectedFormat === "pdf" || selectedFormat === "csv" || selectedFormat === "excel") {
+          const blob = await response.blob();
+          
+          if (blob.size === 0) {
+            throw new Error("Empty file received from server");
+          }
+
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = url;
+          
+          let fileExtension = selectedFormat;
+          if (selectedFormat === "excel") fileExtension = "xlsx";
+          
+          a.download = `service-desk-${selectedReportType}-${format(new Date(), 'yyyy-MM-dd')}.${fileExtension}`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+
+          console.log(`Service Desk ${selectedFormat.toUpperCase()} download completed successfully`);
+        } else {
+          const data = await response.json();
+          if (data.success) {
+            // Download as JSON
+            const dataStr = JSON.stringify(data.report, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `service-desk-${selectedReportType}-${format(new Date(), 'yyyy-MM-dd')}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+          } else {
+            setError(data.error || "Failed to generate Service Desk report");
+          }
+        }
+      } else {
+        const errorData = await response.json();
+        console.error(`Service Desk report download failed:`, errorData);
+        setError(errorData.error || `Failed to download Service Desk report (${response.status})`);
+      }
+    } catch (error) {
+      console.error("Error downloading Service Desk report:", error);
+      if (error.name === 'AbortError') {
+        setError("Service Desk report download timed out. Please try again.");
+      } else {
+        setError("Network error while downloading Service Desk report. Please check your connection.");
+      }
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const downloadReportById = async (reportId: string, title: string) => {
     try {
       const response = await fetch(`/api/analytics/report/${reportId}`, {
@@ -1330,7 +1408,7 @@ export default function Reports() {
                   </Select>
                 </div>
 
-                <div className="flex flex-col justify-end">
+                <div className="flex flex-col justify-end space-y-2">
                   <Button 
                     onClick={generateReport}
                     disabled={isGenerating}
@@ -1348,6 +1426,16 @@ export default function Reports() {
                         Generate Report
                       </>
                     )}
+                  </Button>
+                  <Button 
+                    onClick={downloadServiceDeskReport}
+                    disabled={isGenerating}
+                    variant="outline"
+                    className="h-11"
+                    size="lg"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download Report
                   </Button>
                 </div>
               </div>

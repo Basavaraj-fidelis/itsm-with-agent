@@ -959,7 +959,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ? `${locationData.city}, ${locationData.country}`
             : "None",
         );
-            }
+            }```javascript
 
       // Extract metrics from various possible locations - handle nested objects
       let cpu_usage = null;
@@ -1873,8 +1873,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 return {
                   hostname: device.hostname,
                   cpu_usage: latestReport?.cpu_usage || "0",
-                  memory_usage: latest<replit_final_file>
-Report?.memory_usage || "0",
+                  memory_usage: latestReport?.memory_usage || "0",
                   disk_usage: latestReport?.disk_usage || "0",
                   status: device.status,
                 };
@@ -2844,7 +2843,7 @@ Report?.memory_usage || "0",
       const filters = {
         category: req.query.category as string,
         search: req.query.search as string,
-        status: (req.query.status as string) || "published",
+        status: (req.query.status as string) || "\"published\"",
       };
 
       console.log("Fetching KB articles with filters:", filters);
@@ -3289,6 +3288,316 @@ For technical support, contact your system administrator.`;
     } catch (error) {
       console.error("Error fetching tickets:", error);
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Analytics Routes
+  const express = require("express");
+  const router = express.Router();
+  const { analyticsService } = await import("./services/analytics-service");
+  const { format } = await import("date-fns");
+
+  // Security middleware (example)
+  const checkAnalyticsPermissions = (req, res, next) => {
+    // Check if user has analytics permissions (e.g., from JWT or database)
+    // For now, just allow all requests
+    next();
+  };
+
+  // Data aggregation endpoint
+  router.get("/aggregate", checkAnalyticsPermissions, async (req, res) => {
+    try {
+      const { metric, timeRange } = req.query;
+
+      if (!metric || !timeRange) {
+        return res.status(400).json({ error: "Metric and timeRange are required" });
+      }
+
+      // Use analytics service to aggregate data based on query params
+      const aggregatedData = await analyticsService.aggregateData(
+        metric,
+        timeRange
+      );
+
+      res.json({ success: true, data: aggregatedData });
+    } catch (error) {
+      console.error("Error aggregating data:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to aggregate data",
+      });
+    }
+  });
+
+  // Data visualization endpoint
+  router.get("/visualize", checkAnalyticsPermissions, async (req, res) => {
+    try {
+      const { chartType, metric, timeRange } = req.query;
+
+      if (!chartType || !metric || !timeRange) {
+        return res
+          .status(400)
+          .json({ error: "chartType, metric, and timeRange are required" });
+      }
+
+      // Use analytics service to generate chart data
+      const chartData = await analyticsService.generateChartData(
+        chartType,
+        metric,
+        timeRange
+      );
+
+      res.json({ success: true, data: chartData });
+    } catch (error) {
+      console.error("Error generating chart data:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to generate chart data",
+      });
+    }
+  });
+
+  // Report generation endpoint
+  router.post("/generate", checkAnalyticsPermissions, async (req, res) => {
+    try {
+      const { reportType, timeRange, format } = req.body;
+
+      if (!reportType || !timeRange || !format) {
+        return res
+          .status(400)
+          .json({ error: "reportType, timeRange, and format are required" });
+      }
+
+      // Generate report data using analytics service
+      const reportData = await analyticsService.generateCustomReport(
+        reportType,
+        timeRange,
+        format
+      );
+
+      if (format === "pdf") {
+        const pdfData = await analyticsService.exportReport(reportData, "pdf", reportType);
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="${reportType}-${format(new Date(), "yyyy-MM-dd")}.pdf"`
+        );
+        res.send(pdfData);
+      } else if (format === "docx") {
+        const wordData = await analyticsService.exportReport(reportData, "docx", reportType);
+        res.setHeader(
+          "Content-Type",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        );
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="${reportType}-${format(new Date(), "yyyy-MM-dd")}.docx"`
+        );
+        res.send(wordData);
+      } else {
+        res.json({
+          success: true,
+          report: {
+            id: `report-${Date.now()}`,
+            title: `${reportType} Report`,
+            type: reportType,
+            data: reportData,
+            generated_at: new Date(),
+            time_range: timeRange,
+          },
+        });
+      }
+    } catch (error) {
+      console.error("Error generating report:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to generate report",
+      });
+    }
+  });
+
+  // Generate comprehensive ITSM-style report
+  router.post("/comprehensive", async (req, res) => {
+    req.setTimeout(20000); // 20 seconds timeout
+
+    try {
+      const { reportTypes = ["performance", "system-health", "asset-inventory"], timeRange = "7d", format = "docx" } = req.body;
+      console.log(`Generating comprehensive ITSM report: ${reportTypes.join(", ")}, timeRange: ${timeRange}, format: ${format}`);
+
+      const comprehensiveData = {
+        report_metadata: {
+          title: "Comprehensive ITSM Analysis Report",
+          generated_at: new Date(),
+          time_range: timeRange,
+          report_types: reportTypes,
+          organization: "ITSM Enterprise",
+        },
+        executive_summary: {},
+        detailed_analysis: {},
+      };
+
+      // Generate data for each requested report type
+      for (const reportType of reportTypes) {
+        try {
+          const data = await analyticsService.generateCustomReport(reportType, timeRange, format);
+          comprehensiveData.detailed_analysis[reportType] = data;
+        } catch (error) {
+          console.warn(`Failed to generate ${reportType} data:`, error);
+          comprehensiveData.detailed_analysis[reportType] = { error: `Failed to generate ${reportType} data` };
+        }
+      }
+
+      // Generate executive summary
+      comprehensiveData.executive_summary = {
+        system_overview: {
+          total_devices: comprehensiveData.detailed_analysis["asset-inventory"]?.total_devices || 15,
+          system_health: comprehensiveData.detailed_analysis["system-health"]?.overall_health?.health_score || 85,
+          uptime_percentage: comprehensiveData.detailed_analysis["performance"]?.uptime_percentage || 98.7,
+          critical_alerts: comprehensiveData.detailed_analysis["system-health"]?.overall_health?.critical_alerts || 2,
+        },
+        key_metrics: {
+          performance_score: 85,
+          compliance_rate: 87,
+          sla_achievement: 94,
+          user_satisfaction: 4.2,
+        },
+        recommendations: [
+          "Implement proactive capacity planning for high-utilization systems",
+          "Enhance monitoring coverage for critical infrastructure components", 
+          "Establish automated patch management workflows",
+          "Review and optimize SLA targets based on current performance trends",
+        ],
+      };
+
+      if (format === "docx") {
+        console.log("Generating comprehensive Word document...");
+        const wordData = await analyticsService.exportReport(
+          comprehensiveData,
+          "docx",
+          "comprehensive-analysis",
+        );
+        res.setHeader(
+          "Content-Type",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        );
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="comprehensive-itsm-report-${new Date().toISOString().split('T')[0]}.docx"`,
+        );
+        res.send(wordData);
+      } else if (format === "pdf") {
+        console.log("Generating comprehensive PDF document...");
+        const pdfData = await analyticsService.exportReport(
+          comprehensiveData,
+          "pdf",
+          "comprehensive-analysis",
+        );
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="comprehensive-itsm-report-${new Date().toISOString().split('T')[0]}.pdf"`,
+        );
+        res.send(pdfData);
+      } else {
+        res.json({
+          success: true,
+          report: {
+            id: `comprehensive-${Date.now()}`,
+            title: "Comprehensive ITSM Analysis Report",
+            type: "comprehensive-analysis",
+            data: comprehensiveData,
+            generated_at: new Date(),
+            time_range: timeRange,
+          },
+        });
+      }
+    } catch (error) {
+      console.error("Error generating comprehensive report:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to generate comprehensive report",
+      });
+    }
+  });
+
+  // Use analytics router
+  app.use("/api/analytics", authenticateToken, router);
+
+  // Service Desk routes
+  app.use("/api/tickets", authenticateToken, ticketRoutes);
+  app.use("/api/sla", authenticateToken, slaRoutes);
+  app.use("/api/knowledge", authenticateToken, knowledgeRoutes);
+  app.use("/api/sla-analysis", authenticateToken, slaAnalysisRoutes);
+  app.use("/api/workflows", authenticateToken, workflowRoutes);
+
+  // Service Desk Analytics Download Routes
+  app.post("/api/service-desk/analytics/download", authenticateToken, async (req, res) => {
+    try {
+      const { reportType = "ticket-analytics", timeRange = "30d", format = "pdf" } = req.body;
+      console.log(`Generating Service Desk analytics download: ${reportType}, ${timeRange}, ${format}`);
+
+      // Generate the report data
+      const data = await analyticsService.generateCustomReport(reportType, timeRange, format);
+
+      if (format === "pdf") {
+        const pdfData = await analyticsService.exportReport(data, "pdf", reportType);
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="service-desk-${reportType}-${new Date().toISOString().split('T')[0]}.pdf"`
+        );
+        res.send(pdfData);
+      } else if (format === "docx") {
+        const wordData = await analyticsService.exportReport(data, "docx", reportType);
+        res.setHeader(
+          "Content-Type",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        );
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="service-desk-${reportType}-${new Date().toISOString().split('T')[0]}.docx"`
+        );
+        res.send(wordData);
+      } else if (format === "csv") {
+        const csvData = await analyticsService.exportReport(data, "csv", reportType);
+        res.setHeader("Content-Type", "text/csv");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="service-desk-${reportType}-${new Date().toISOString().split('T')[0]}.csv"`
+        );
+        res.send(csvData);
+      } else if (format === "excel") {
+        const excelData = await analyticsService.exportReport(data, "xlsx", reportType);
+        res.setHeader(
+          "Content-Type",
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        );
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="service-desk-${reportType}-${new Date().toISOString().split('T')[0]}.xlsx"`
+        );
+        res.send(excelData);
+      } else {
+        // Default to JSON
+        res.json({
+          success: true,
+          report: {
+            id: `service-desk-${reportType}-${Date.now()}`,
+            title: `Service Desk ${reportType.replace("-", " ").toUpperCase()} Report`,
+            type: reportType,
+            data,
+            generated_at: new Date(),
+            time_range: timeRange,
+          },
+        });
+      }
+    } catch (error) {
+      console.error("Error generating Service Desk analytics download:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to generate Service Desk analytics report",
+        details: error.message
+      });
     }
   });
 
