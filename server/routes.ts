@@ -430,6 +430,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.warn("SLA routes not available:", error.message);
   }
 
+  try {
+    const diagnosticsRoutes = await import("./routes/diagnostics-routes");
+    if (diagnosticsRoutes.default) {
+      app.use("/api/diagnostics", authenticateToken, requireRole(["admin", "manager"]), diagnosticsRoutes.default);
+    }
+  } catch (error) {
+    console.warn("Diagnostics routes not available:", error.message);
+  }
+
   const httpServer = createServer(app);
   return httpServer;
 }

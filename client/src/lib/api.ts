@@ -262,6 +262,34 @@ export const api = {
 
   // Alerts
   getAlerts2: () => apiClient.get("/api/alerts"),
+
+  // SLA Analysis
+  getSLAAnalysis: (timeRange: string = "30d") =>
+    apiRequest(`/api/sla-analysis/dashboard?timeRange=${timeRange}`),
+
+  getSLABreachDetails: () =>
+    apiRequest("/api/sla/breach-details"),
+
+  // Code Diagnostics
+  runCodeDiagnostics: () =>
+    apiRequest("/api/diagnostics/run-full", {
+      method: "POST",
+    }),
+
+  getSystemDiagnostics: () =>
+    apiRequest("/api/diagnostics/system"),
+
+  getPerformanceDiagnostics: () =>
+    apiRequest("/api/diagnostics/performance"),
+
+  getDatabaseDiagnostics: () =>
+    apiRequest("/api/diagnostics/database"),
+
+  analyzeFile: (filePath: string) =>
+    apiRequest("/api/diagnostics/analyze-file", {
+      method: "POST",
+      body: JSON.stringify({ filePath }),
+    }),
 };
 
 async function post(url: string, data?: any) {

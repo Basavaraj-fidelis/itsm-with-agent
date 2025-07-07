@@ -19,6 +19,8 @@ import {
   TrendingUp,
   Cog,
   Wifi,
+  BarChart3,
+  Code,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -214,7 +216,7 @@ export function Sidebar() {
         description: "Manage user accounts",
       },
 
-      
+
 
       {
         name: "ITSM Comparison",
@@ -225,6 +227,24 @@ export function Sidebar() {
         iconColor: "text-purple-500",
         activeColor: "bg-purple-50 border-purple-200 text-purple-700",
         description: "Platform comparison analysis",
+      },
+      {
+        name: "Performance Analytics",
+        href: "/performance-analytics",
+        icon: BarChart3,
+        roles: ["manager", "admin", "technician"],
+        iconColor: "text-amber-500",
+        activeColor: "bg-amber-50 border-amber-200 text-amber-700",
+        description: "Analyze performance metrics",
+      },
+      {
+        name: "Code Diagnostics",
+        href: "/code-diagnostics",
+        icon: Code,
+        roles: ["manager", "admin"],
+        iconColor: "text-gray-500",
+        activeColor: "bg-gray-50 border-gray-200 text-gray-700",
+        description: "Analyze code quality",
       },
     ];
 
