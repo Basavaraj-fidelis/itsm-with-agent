@@ -196,7 +196,9 @@ export const api = {
   getPerformanceInsights: async (deviceId: string) => {
     const response = await apiClient.get(`/api/analytics/performance/insights/${deviceId}`);
     if (!response.ok) {
-      throw new Error(`Failed to fetch performance insights: ${response.status}`);
+      const errorText = await response.text();
+      console.error('Performance insights API error:', response.status, errorText);
+      throw new Error(`Failed to fetch performance insights: ${response.status} ${errorText}`);
     }
     return await response.json();
   },
@@ -204,7 +206,9 @@ export const api = {
   getPerformancePredictions: async (deviceId: string) => {
     const response = await apiClient.get(`/api/analytics/performance/predictions/${deviceId}`);
     if (!response.ok) {
-      throw new Error(`Failed to fetch performance predictions: ${response.status}`);
+      const errorText = await response.text();
+      console.error('Performance predictions API error:', response.status, errorText);
+      throw new Error(`Failed to fetch performance predictions: ${response.status} ${errorText}`);
     }
     return await response.json();
   },
@@ -212,7 +216,9 @@ export const api = {
   getPerformanceOverview: async () => {
     const response = await apiClient.get("/api/analytics/performance/overview");
     if (!response.ok) {
-      throw new Error(`Failed to fetch performance overview: ${response.status}`);
+      const errorText = await response.text();
+      console.error('Performance overview API error:', response.status, errorText);
+      throw new Error(`Failed to fetch performance overview: ${response.status} ${errorText}`);
     }
     return await response.json();
   },
@@ -220,7 +226,9 @@ export const api = {
   getPerformanceTrends: async (timeRange: string = "24h") => {
     const response = await apiClient.get(`/api/analytics/performance/trends?timeRange=${timeRange}`);
     if (!response.ok) {
-      throw new Error(`Failed to fetch performance trends: ${response.status}`);
+      const errorText = await response.text();
+      console.error('Performance trends API error:', response.status, errorText);
+      throw new Error(`Failed to fetch performance trends: ${response.status} ${errorText}`);
     }
     return await response.json();
   },

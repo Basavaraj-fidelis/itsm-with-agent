@@ -5,6 +5,9 @@ import { authenticateToken } from "../middleware/auth-middleware";
 
 const router = Router();
 
+// Apply authentication middleware to all routes
+router.use(authenticateToken);
+
 // Generate performance summary report
 router.get("/performance", async (req, res) => {
   try {
@@ -968,7 +971,7 @@ router.post("/export-pdf", async (req, res) => {
 });
 
 // Performance analytics endpoints
-router.get("/performance/insights/:deviceId", authenticateToken, async (req, res) => {
+router.get("/performance/insights/:deviceId", async (req, res) => {
   try {
     const { deviceId } = req.params;
     
@@ -987,7 +990,7 @@ router.get("/performance/insights/:deviceId", authenticateToken, async (req, res
   }
 });
 
-router.get("/performance/predictions/:deviceId", authenticateToken, async (req, res) => {
+router.get("/performance/predictions/:deviceId", async (req, res) => {
   try {
     const { deviceId } = req.params;
     
@@ -1007,7 +1010,7 @@ router.get("/performance/predictions/:deviceId", authenticateToken, async (req, 
 });
 
 // System performance overview
-router.get("/performance/overview", authenticateToken, async (req, res) => {
+router.get("/performance/overview", async (req, res) => {
   try {
     const { storage } = await import("../storage");
     
@@ -1054,7 +1057,7 @@ router.get("/performance/overview", authenticateToken, async (req, res) => {
 });
 
 // Performance trends
-router.get("/performance/trends", authenticateToken, async (req, res) => {
+router.get("/performance/trends", async (req, res) => {
   try {
     const { timeRange = '24h' } = req.query;
     
