@@ -37,6 +37,8 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { formatDistanceToNow, format, subDays, subHours } from "date-fns";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { XCircle } from "lucide-react";
 
 interface MetricCardProps {
   title: string;
@@ -124,6 +126,39 @@ export default function PerformanceAnalytics() {
     enabled: !!selectedDevice,
     retry: 1
   });
+
+  // Set first device as default when devices load
+  useEffect(() => {
+    if (devices && devices.length > 0 && !selectedDevice) {
+      setSelectedDevice(devices[0].id);
+    }
+  }, [devices, selectedDevice]);
+
+  // Handle loading states
+  if (devicesLoading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <RefreshCw className="w-8 h-8 animate-spin" />
+          <span className="ml-2">Loading performance data...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (devicesError) {
+    return (
+      <div className="p-6 space-y-6">
+        <Alert variant="destructive">
+          <XCircle className="h-4 w-4" />
+          <AlertTitle>Error Loading Data</AlertTitle>
+          <AlertDescription>
+            Failed to load device data. Please refresh the page and try again.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   // Calculate comprehensive metrics
   const onlineDevices = devices?.filter((d: any) => d.status === 'online') || [];

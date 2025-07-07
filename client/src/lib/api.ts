@@ -193,21 +193,11 @@ export const api = {
     return await response.json();
   },
 
-  async getPerformanceInsights(deviceId: string): Promise<any> {
-    const response = await apiClient.get(`/api/performance/insights/${deviceId}`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch performance insights: ${response.status}`);
-    }
-    return await response.json();
-  },
+  getPerformanceInsights: (deviceId: string) => 
+    apiRequest(`/analytics/performance/insights/${deviceId}`),
 
-  async getPerformancePredictions(deviceId: string): Promise<any[]> {
-    const response = await apiClient.get(`/api/performance/predictions/${deviceId}`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch performance predictions: ${response.status}`);
-    }
-    return await response.json();
-  },
+  getPerformancePredictions: (deviceId: string) => 
+    apiRequest(`/analytics/performance/predictions/${deviceId}`),
 
   async getVulnerabilities(deviceId: string): Promise<any[]> {
     const response = await apiClient.get(`/api/security/vulnerabilities/${deviceId}`);
@@ -270,27 +260,6 @@ export const api = {
 
   getSLABreachDetails: () =>
     apiRequest("/api/sla/breach-details"),
-
-  // Code Diagnostics
-  runCodeDiagnostics: () =>
-    apiRequest("/api/diagnostics/run-full", {
-      method: "POST",
-    }),
-
-  getSystemDiagnostics: () =>
-    apiRequest("/api/diagnostics/system"),
-
-  getPerformanceDiagnostics: () =>
-    apiRequest("/api/diagnostics/performance"),
-
-  getDatabaseDiagnostics: () =>
-    apiRequest("/api/diagnostics/database"),
-
-  analyzeFile: (filePath: string) =>
-    apiRequest("/api/diagnostics/analyze-file", {
-      method: "POST",
-      body: JSON.stringify({ filePath }),
-    }),
 };
 
 async function post(url: string, data?: any) {

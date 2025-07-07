@@ -966,4 +966,117 @@ router.post("/export-pdf", async (req, res) => {
   }
 });
 
+// Performance analytics endpoints
+router.get("/performance/insights/:deviceId", async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    
+    // Import performance service
+    const { performanceService } = await import("../services/performance-service");
+    
+    const insights = await performanceService.getApplicationPerformanceInsights(deviceId);
+    
+    res.json(insights);
+  } catch (error) {
+    console.error("Error getting performance insights:", error);
+    res.status(500).json({
+      error: "Failed to get performance insights",
+      message: error.message
+    });
+  }
+});
+
+router.get("/performance/predictions/:deviceId", async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    
+    // Import performance service
+    const { performanceService } = await import("../services/performance-service");
+    
+    const predictions = await performanceService.generateResourcePredictions(deviceId);
+    
+    res.json(predictions);
+  } catch (error) {
+    console.error("Error getting performance predictions:", error);
+    res.status(500).json({
+      error: "Failed to get performance predictions", 
+      message: error.message
+    });
+  }
+});
+
+// System performance overview
+router.get("/performance/overview", async (req, res) => {
+  try {
+    const { storage } = await import("../storage");
+    
+    // Get all devices with latest performance data
+    const devices = await storage.getDevices();
+    
+    // Calculate performance metrics
+    const performanceOverview = {
+      totalDevices: devices.length,
+      onlineDevices: devices.filter(d => d.status === 'online').length,
+      avgCpuUsage: 0,
+      avgMemoryUsage: 0,
+      avgDiskUsage: 0,
+      criticalDevices: 0,
+      performanceAlerts: 0
+    };
+
+    // Calculate averages and critical counts
+    const onlineDevices = devices.filter(d => d.status === 'online');
+    if (onlineDevices.length > 0) {
+      const cpuSum = onlineDevices.reduce((sum, d) => sum + parseFloat(d.latest_report?.cpu_usage || '0'), 0);
+      const memSum = onlineDevices.reduce((sum, d) => sum + parseFloat(d.latest_report?.memory_usage || '0'), 0);
+      const diskSum = onlineDevices.reduce((sum, d) => sum + parseFloat(d.latest_report?.disk_usage || '0'), 0);
+      
+      performanceOverview.avgCpuUsage = cpuSum / onlineDevices.length;
+      performanceOverview.avgMemoryUsage = memSum / onlineDevices.length;
+      performanceOverview.avgDiskUsage = diskSum / onlineDevices.length;
+      
+      performanceOverview.criticalDevices = onlineDevices.filter(d => 
+        parseFloat(d.latest_report?.cpu_usage || '0') > 90 ||
+        parseFloat(d.latest_report?.memory_usage || '0') > 90 ||
+        parseFloat(d.latest_report?.disk_usage || '0') > 95
+      ).length;
+    }
+
+    res.json(performanceOverview);
+  } catch (error) {
+    console.error("Error getting performance overview:", error);
+    res.status(500).json({
+      error: "Failed to get performance overview",
+      message: error.message
+    });
+  }
+});
+
+// Performance trends
+router.get("/performance/trends", async (req, res) => {
+  try {
+    const { timeRange = '24h' } = req.query;
+    
+    // For now, return mock trend data since we don't have historical tracking implemented
+    const trends = {
+      timeRange,
+      dataPoints: [],
+      summary: {
+        cpuTrend: 'stable',
+        memoryTrend: 'increasing',
+        diskTrend: 'stable',
+        alertsTrend: 'decreasing'
+      }
+    };
+
+    res.json(trends);
+  } catch (error) {
+    console.error("Error getting performance trends:", error);
+    res.status(500).json({
+      error: "Failed to get performance trends",
+      message: error.message
+    });
+  }
+});
+
 export default router;
