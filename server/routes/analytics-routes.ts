@@ -1,15 +1,22 @@
 import { Router } from "express";
 import { analyticsService } from "../services/analytics-service";
 import { reportsStorage } from "../models/reports-storage";
-import { authenticateToken } from "../middleware/auth-middleware";
 
 const router = Router();
 
-// Apply authentication middleware to all routes
-router.use(authenticateToken);
+// Import auth middleware dynamically to avoid circular dependencies
+const authenticateToken = async (req: any, res: any, next: any) => {
+  try {
+    const { authenticateToken: authMiddleware } = await import("../middleware/auth-middleware");
+    return authMiddleware(req, res, next);
+  } catch (error) {
+    console.error("Auth middleware error:", error);
+    return res.status(500).json({ message: "Authentication service unavailable" });
+  }
+};
 
 // Generate performance summary report
-router.get("/performance", async (req, res) => {
+router.get("/performance", authenticateToken, async (req, res) => {
   try {
     const { timeRange = "7d" } = req.query;
     console.log(`Generating performance report for timeRange: ${timeRange}`);
@@ -51,7 +58,7 @@ router.get("/performance", async (req, res) => {
 });
 
 // Generate availability report
-router.get("/availability", async (req, res) => {
+router.get("/availability", authenticateToken, async (req, res) => {
   try {
     const { timeRange = "7d" } = req.query;
     console.log(`Generating availability report for timeRange: ${timeRange}`);
@@ -426,7 +433,7 @@ router.post("/generate", async (req, res) => {
 });
 
 // Get real-time performance metrics
-router.get("/realtime", async (req, res) => {
+router.get("/realtime", authenticateToken, async (req, res) => {
   // Set very short timeout for real-time data
   req.setTimeout(2000); // 2 seconds only
 
@@ -971,7 +978,7 @@ router.post("/export-pdf", async (req, res) => {
 });
 
 // Performance analytics endpoints
-router.get("/performance/insights/:deviceId", async (req, res) => {
+router.get("/performance/insights/:deviceId", authenticateToken, async (req, res) => {
   try {
     const { deviceId } = req.params;
     
@@ -990,7 +997,7 @@ router.get("/performance/insights/:deviceId", async (req, res) => {
   }
 });
 
-router.get("/performance/predictions/:deviceId", async (req, res) => {
+router.get("/performance/predictions/:deviceId", authenticateToken, async (req, res) => {
   try {
     const { deviceId } = req.params;
     
@@ -1010,7 +1017,7 @@ router.get("/performance/predictions/:deviceId", async (req, res) => {
 });
 
 // System performance overview
-router.get("/performance/overview", async (req, res) => {
+router.get("/performance/overview", authenticateToken, async (req, res) => {
   try {
     const { storage } = await import("../storage");
     
@@ -1057,7 +1064,7 @@ router.get("/performance/overview", async (req, res) => {
 });
 
 // Performance trends
-router.get("/performance/trends", async (req, res) => {
+router.get("/performance/trends", authenticateToken, async (req, res) => {
   try {
     const { timeRange = '24h' } = req.query;
     

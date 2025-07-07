@@ -60,22 +60,17 @@ class ApiClient {
   ): Promise<Response> {
     const url = `${this.baseURL}${endpoint}`;
 
+    // Get auth token from localStorage
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+    
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
         ...options.headers,
       },
       ...options,
     };
-
-    // Add auth token if it exists
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      config.headers = {
-        ...config.headers,
-        'Authorization': `Bearer ${token}`,
-      };
-    }
 
     console.log(`API Request: ${url}`, config);
 
@@ -84,7 +79,16 @@ class ApiClient {
 
       console.log(`API Response: ${response.status} ${response.statusText}`);
 
-      // Don't throw for client errors, let the caller handle them
+      // Handle authentication errors
+      if (response.status === 401) {
+        console.warn('Authentication failed, clearing token and redirecting to login');
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+        throw new Error('Authentication required');
+      }
+
+      // Don't throw for other client errors, let the caller handle them
       return response;
     } catch (error) {
       console.error('API Request failed:', error);

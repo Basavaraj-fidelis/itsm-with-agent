@@ -6,12 +6,16 @@ const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-producti
 
 // Auth middleware
 export const authenticateToken = async (req: any, res: any, next: any) => {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
+  try {
+    const authHeader = req.headers["authorization"];
+    const token = authHeader && authHeader.split(" ")[1];
 
-  if (!token) {
-    return res.status(401).json({ message: "Access token required" });
-  }
+    if (!token) {
+      console.log("No auth token provided for", req.path);
+      return res.status(401).json({ message: "Access token required" });
+    }
+
+    console.log("Authenticating token for", req.path);
 
   try {
     const decoded: any = jwt.verify(token, JWT_SECRET);
@@ -71,7 +75,13 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
     req.user = user;
     next();
   } catch (error) {
-    console.error("Token verification error:", error);
+    console.error("Authentication error for", req.path, ":", error);
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: "Token expired" });
+    }
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ message: "Invalid token format" });
+    }
     return res.status(403).json({ message: "Invalid token" });
   }
 };
