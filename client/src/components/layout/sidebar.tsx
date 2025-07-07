@@ -20,7 +20,6 @@ import {
   Cog,
   Wifi,
   BarChart3,
-  Code,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -236,15 +235,6 @@ export function Sidebar() {
         iconColor: "text-amber-500",
         activeColor: "bg-amber-50 border-amber-200 text-amber-700",
         description: "Analyze performance metrics",
-      },
-      {
-        name: "Code Diagnostics",
-        href: "/code-diagnostics",
-        icon: Code,
-        roles: ["manager", "admin"],
-        iconColor: "text-gray-500",
-        activeColor: "bg-gray-50 border-gray-200 text-gray-700",
-        description: "Analyze code quality",
       },
     ];
 

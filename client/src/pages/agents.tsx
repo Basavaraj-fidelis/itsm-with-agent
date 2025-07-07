@@ -4,7 +4,7 @@ import { AgentTable } from "@/components/agents/agent-table";
 import { useAgents } from "@/hooks/use-agents";
 import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Filter, Download, FileText } from "lucide-react";
 
 export default function Agents() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -43,6 +43,25 @@ export default function Agents() {
     queryClient.invalidateQueries({ queryKey: ["/api/devices"] });
     refetch();
   };
+
+  const clearAllFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setTypeFilter("all");
+  };
+
+  const handleDownloadAgentsCSV = () => {
+    // Placeholder for CSV download logic
+    console.log("Download CSV clicked");
+  };
+
+  const handleDownloadDetailedReport = () => {
+      // Placeholder for Detailed Report download logic
+      console.log("Download Detailed Report clicked");
+  };
+
+  const [loading, setLoading] = useState(false);
+
 
   return (
     <div className="p-6 space-y-6">
