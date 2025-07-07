@@ -140,7 +140,8 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://0.0.0.0:5000';
 const makeRequest = async (url: string, options: RequestInit = {}): Promise<Response> => {
   const token = getAuthToken();
 
-  console.log(`API Request: ${url}`, options.body ? JSON.parse(options.body as string) : '');
+  console.log(`API Request: ${url}`, options.body && typeof options.body === 'string' ? 
+    (() => { try { return JSON.parse(options.body as string); } catch { return options.body; } })() : '');
 
   const config: RequestInit = {
     ...options,

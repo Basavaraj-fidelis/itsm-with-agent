@@ -10,7 +10,7 @@ const router = Router();
 // Configure multer for file uploads
 const upload = multer({ 
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+  limits: { fileSize: 5 * 1024 * 124 } // 5MB limit
 });
 
 // Import end users from CSV/Excel

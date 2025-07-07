@@ -1,4 +1,3 @@
-
 import { Router } from "express";
 import { CodeDiagnosticsService } from "../services/code-diagnostics-service";
 import { execSync } from "child_process";
@@ -12,13 +11,13 @@ const diagnosticsService = new CodeDiagnosticsService();
 router.post("/run-full", async (req, res) => {
   try {
     console.log("Starting comprehensive code diagnostics...");
-    
+
     const diagnostics = await diagnosticsService.runComprehensiveDiagnostics();
-    
+
     // Save diagnostics report
     const reportPath = join(process.cwd(), 'diagnostics-report.json');
     await fs.writeFile(reportPath, JSON.stringify(diagnostics, null, 2));
-    
+
     res.json({
       success: true,
       diagnostics,
@@ -36,6 +35,27 @@ router.post("/run-full", async (req, res) => {
     });
   } catch (error) {
     console.error("Error running diagnostics:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Auto-fix code issues
+router.post("/auto-fix", async (req, res) => {
+  try {
+    const diagnosticsService = new CodeDiagnosticsService();
+    const results = await diagnosticsService.runComprehensiveDiagnostics();
+    const fixResults = await diagnosticsService.autoFixIssues(results);
+
+    res.json({
+      success: true,
+      diagnostics: results,
+      fixes: fixResults
+    });
+  } catch (error) {
+    console.error("Error auto-fixing issues:", error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -83,7 +103,7 @@ router.get("/system", async (req, res) => {
 router.post("/analyze-file", async (req, res) => {
   try {
     const { filePath } = req.body;
-    
+
     if (!filePath) {
       return res.status(400).json({
         success: false,
@@ -93,7 +113,7 @@ router.post("/analyze-file", async (req, res) => {
 
     // This would need to be implemented in the service
     // const analysis = await diagnosticsService.analyzeSpecificFile(filePath);
-    
+
     res.json({
       success: true,
       message: "File analysis endpoint - implementation needed",
@@ -112,16 +132,16 @@ router.post("/analyze-file", async (req, res) => {
 router.get("/database", async (req, res) => {
   try {
     const { db } = await import("../db");
-    
+
     // Test database connection
     const connectionTest = await testDatabaseConnection();
-    
+
     // Get table information
     const tableInfo = await getTableDiagnostics();
-    
+
     // Check for common issues
     const issues = await checkDatabaseIssues();
-    
+
     res.json({
       success: true,
       database: {
@@ -177,10 +197,10 @@ async function getDirectorySize(dirPath: string): Promise<number> {
   try {
     const stats = await fs.stat(dirPath);
     if (!stats.isDirectory()) return stats.size;
-    
+
     const files = await fs.readdir(dirPath);
     let totalSize = 0;
-    
+
     for (const file of files) {
       const filePath = join(dirPath, file);
       const fileStats = await fs.stat(filePath);
@@ -190,7 +210,7 @@ async function getDirectorySize(dirPath: string): Promise<number> {
         totalSize += fileStats.size;
       }
     }
-    
+
     return totalSize;
   } catch (error) {
     return 0;
@@ -239,10 +259,10 @@ async function analyzeDependencies(): Promise<any> {
   try {
     const packageJson = await checkPackageJson();
     if (!packageJson) return null;
-    
+
     const deps = packageJson.dependencies || {};
     const devDeps = packageJson.devDependencies || {};
-    
+
     return {
       production: Object.keys(deps).length,
       development: Object.keys(devDeps).length,
@@ -293,14 +313,14 @@ async function testDatabaseConnection(): Promise<any> {
 async function getTableDiagnostics(): Promise<any> {
   try {
     const { db } = await import("../db");
-    
+
     // Get table information
     const tables = await db.execute(`
       SELECT table_name, table_rows, data_length, index_length
       FROM information_schema.tables 
       WHERE table_schema = DATABASE()
     `);
-    
+
     return tables;
   } catch (error) {
     return { error: error.message };
@@ -309,13 +329,13 @@ async function getTableDiagnostics(): Promise<any> {
 
 async function checkDatabaseIssues(): Promise<any[]> {
   const issues = [];
-  
+
   try {
     const { db } = await import("../db");
-    
+
     // Check for missing indexes
     const slowQueries = await db.execute('SHOW PROCESSLIST');
-    
+
     // Check table sizes
     const tableSizes = await db.execute(`
       SELECT table_name, 
@@ -324,7 +344,7 @@ async function checkDatabaseIssues(): Promise<any[]> {
       WHERE table_schema = DATABASE()
       ORDER BY (data_length + index_length) DESC
     `);
-    
+
     tableSizes.forEach((table: any) => {
       if (table.size_mb > 100) {
         issues.push({
@@ -335,21 +355,21 @@ async function checkDatabaseIssues(): Promise<any[]> {
         });
       }
     });
-    
+
   } catch (error) {
     issues.push({
       type: 'connection_error',
       message: error.message
     });
   }
-  
+
   return issues;
 }
 
 async function getDatabasePerformance(): Promise<any> {
   try {
     const { db } = await import("../db");
-    
+
     const performance = await db.execute(`
       SELECT 
         COUNT(*) as total_connections,
@@ -357,7 +377,7 @@ async function getDatabasePerformance(): Promise<any> {
         SUM(IF(command != 'Sleep', 1, 0)) as active_connections
       FROM information_schema.processlist
     `);
-    
+
     return performance[0];
   } catch (error) {
     return { error: error.message };

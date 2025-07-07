@@ -73,6 +73,99 @@ export class CodeDiagnosticsService {
     this.rootPath = rootPath;
   }
 
+  async autoFixIssues(diagnostics: ProjectDiagnostics): Promise<any> {
+    const fixResults = [];
+    
+    for (const file of diagnostics.files) {
+      const fixes = await this.fixFileIssues(file);
+      if (fixes.length > 0) {
+        fixResults.push({
+          file: file.file,
+          fixes: fixes
+        });
+      }
+    }
+    
+    return fixResults;
+  }
+
+  private async fixFileIssues(fileDiagnostics: FileDiagnostics): Promise<string[]> {
+    const fixes = [];
+    const filePath = join(this.rootPath, fileDiagnostics.file);
+    
+    try {
+      let content = await fs.readFile(filePath, 'utf-8');
+      let modified = false;
+      
+      for (const issue of fileDiagnostics.issues) {
+        const fix = await this.applyFix(content, issue, filePath);
+        if (fix.applied) {
+          content = fix.content;
+          modified = true;
+          fixes.push(fix.description);
+        }
+      }
+      
+      if (modified) {
+        await fs.writeFile(filePath, content, 'utf-8');
+        console.log(`Fixed issues in ${fileDiagnostics.file}`);
+      }
+    } catch (error) {
+      console.error(`Failed to fix issues in ${fileDiagnostics.file}:`, error);
+    }
+    
+    return fixes;
+  }
+
+  private async applyFix(content: string, issue: DiagnosticIssue, filePath: string): Promise<{applied: boolean, content: string, description: string}> {
+    let newContent = content;
+    let applied = false;
+    let description = '';
+    
+    switch (issue.type) {
+      case 'typescript':
+        if (issue.message.includes("'any' type usage")) {
+          // Replace 'any' with more specific types where possible
+          newContent = content.replace(/:\s*any(?!\w)/g, ': unknown');
+          applied = true;
+          description = 'Replaced any types with unknown';
+        }
+        break;
+        
+      case 'debug-code':
+        if (issue.message.includes('console.log')) {
+          // Comment out console.log statements
+          const lines = content.split('\n');
+          if (issue.line && lines[issue.line - 1]) {
+            lines[issue.line - 1] = '// ' + lines[issue.line - 1];
+            newContent = lines.join('\n');
+            applied = true;
+            description = 'Commented out console.log statement';
+          }
+        }
+        break;
+        
+      case 'security-secret':
+        if (issue.message.includes('Hardcoded')) {
+          description = 'Flagged hardcoded secret for manual review';
+        }
+        break;
+        
+      case 'performance-sync-io':
+        if (issue.message.includes('Synchronous file operation')) {
+          // Replace sync operations with async where possible
+          newContent = content
+            .replace(/fs\.readFileSync/g, 'await fs.readFile')
+            .replace(/fs\.writeFileSync/g, 'await fs.writeFile');
+          applied = true;
+          description = 'Converted synchronous file operations to async';
+        }
+        break;
+    }
+    
+    return { applied, content: newContent, description };
+  }
+
   async runComprehensiveDiagnostics(): Promise<ProjectDiagnostics> {
     console.log('🔍 Starting comprehensive code diagnostics...');
 

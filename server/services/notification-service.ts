@@ -11,13 +11,13 @@ class NotificationService {
   }
 
   notify(data: any) {
-    for (const callback of this.subscribers.values()) {
+    this.subscribers.forEach((callback) => {
       try {
         callback(data);
       } catch (error) {
         console.error("Error in notification callback:", error);
       }
-    }
+    });
   }
 
   async sendAlert(alert: any) {
