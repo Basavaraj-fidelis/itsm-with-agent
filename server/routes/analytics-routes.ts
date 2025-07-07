@@ -5,7 +5,8 @@ import { AuthUtils } from "../utils/auth";
 import { ResponseUtils } from "../utils/response";
 import { performanceService } from "../services/performance-service";
 import { sql } from "drizzle-orm";
-import { db, devices } from "../db";
+import { db } from "../db";
+import { devices } from "@shared/schema";
 import { format } from 'date-fns';
 
 const router = Router();
