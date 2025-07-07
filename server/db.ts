@@ -3,7 +3,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { sql } from "drizzle-orm";
 import * as schema from "@shared/schema";
 
-const DATABASE_URL = process.env.DATABASE_URL;
+const DATABASE_URL = process.env.DATABASE_URL?.trim();
 
 if (!DATABASE_URL) {
   console.error("❌ DATABASE_URL is not set in environment variables");
