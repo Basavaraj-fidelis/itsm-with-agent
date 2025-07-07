@@ -1,5 +1,3 @@
-tags.
-<replit_final_file>
 import { Router } from "express";
 import { storage } from "../storage";
 
@@ -8,7 +6,9 @@ const router = Router();
 // Get software packages
 router.get("/software-packages", async (req, res) => {
   try {
-    const { automationService } = await import("../services/automation-service");
+    const { automationService } = await import(
+      "../services/automation-service"
+    );
     const packages = automationService.getSoftwarePackages();
     res.json(packages);
   } catch (error) {
@@ -23,11 +23,17 @@ router.post("/deploy-software", async (req, res) => {
     const { device_ids, package_id, scheduled_time } = req.body;
 
     if (!device_ids || !package_id) {
-      return res.status(400).json({ message: "device_ids and package_id are required" });
+      return res
+        .status(400)
+        .json({ message: "device_ids and package_id are required" });
     }
 
-    const { automationService } = await import("../services/automation-service");
-    const scheduledTime = scheduled_time ? new Date(scheduled_time) : new Date();
+    const { automationService } = await import(
+      "../services/automation-service"
+    );
+    const scheduledTime = scheduled_time
+      ? new Date(scheduled_time)
+      : new Date();
 
     const deploymentIds = await automationService.scheduleDeployment(
       device_ids,
@@ -50,8 +56,12 @@ router.post("/deploy-software", async (req, res) => {
 // Get deployment status
 router.get("/deployment/:deploymentId", async (req, res) => {
   try {
-    const { automationService } = await import("../services/automation-service");
-    const deployment = await automationService.getDeploymentStatus(req.params.deploymentId);
+    const { automationService } = await import(
+      "../services/automation-service"
+    );
+    const deployment = await automationService.getDeploymentStatus(
+      req.params.deploymentId,
+    );
 
     if (!deployment) {
       return res.status(404).json({ message: "Deployment not found" });
