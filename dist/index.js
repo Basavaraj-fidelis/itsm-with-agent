@@ -20,7 +20,7 @@ __export(schema_exports, {
   alerts: () => alerts,
   deviceReportRequestSchema: () => deviceReportRequestSchema,
   device_reports: () => device_reports,
-  devices: () => devices2,
+  devices: () => devices,
   insertAlertSchema: () => insertAlertSchema,
   insertDeviceReportSchema: () => insertDeviceReportSchema,
   insertDeviceSchema: () => insertDeviceSchema,
@@ -33,11 +33,11 @@ __export(schema_exports, {
 import { pgTable, text, timestamp, json as json2, numeric, uuid, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-var devices2, device_reports, alerts, usb_devices, reportDataSchema, deviceReportRequestSchema, insertDeviceSchema, insertDeviceReportSchema, insertAlertSchema, installed_software, patch_management, user_sessions;
+var devices, device_reports, alerts, usb_devices, reportDataSchema, deviceReportRequestSchema, insertDeviceSchema, insertDeviceReportSchema, insertAlertSchema, installed_software, patch_management, user_sessions;
 var init_schema = __esm({
   "shared/schema.ts"() {
     "use strict";
-    devices2 = pgTable("devices", {
+    devices = pgTable("devices", {
       id: uuid("id").primaryKey().defaultRandom(),
       hostname: text("hostname").notNull().unique(),
       assigned_user: text("assigned_user"),
@@ -51,7 +51,7 @@ var init_schema = __esm({
     });
     device_reports = pgTable("device_reports", {
       id: uuid("id").primaryKey().defaultRandom(),
-      device_id: uuid("device_id").references(() => devices2.id).notNull(),
+      device_id: uuid("device_id").references(() => devices.id).notNull(),
       collected_at: timestamp("collected_at").defaultNow(),
       cpu_usage: numeric("cpu_usage"),
       memory_usage: numeric("memory_usage"),
@@ -61,7 +61,7 @@ var init_schema = __esm({
     });
     alerts = pgTable("alerts", {
       id: uuid("id").primaryKey().defaultRandom(),
-      device_id: uuid("device_id").references(() => devices2.id).notNull(),
+      device_id: uuid("device_id").references(() => devices.id).notNull(),
       category: text("category").notNull(),
       severity: text("severity").notNull(),
       message: text("message").notNull(),
@@ -72,7 +72,7 @@ var init_schema = __esm({
     });
     usb_devices = pgTable("usb_devices", {
       id: uuid("id").primaryKey().defaultRandom(),
-      device_id: uuid("device_id").references(() => devices2.id).notNull(),
+      device_id: uuid("device_id").references(() => devices.id).notNull(),
       device_identifier: text("device_identifier").notNull(),
       // device_id or vid:pid combo
       description: text("description"),
@@ -112,7 +112,7 @@ var init_schema = __esm({
       os_info: z.record(z.any()).optional(),
       system_health: z.record(z.any()).optional()
     }).passthrough();
-    insertDeviceSchema = createInsertSchema(devices2).omit({
+    insertDeviceSchema = createInsertSchema(devices).omit({
       id: true,
       created_at: true,
       updated_at: true
@@ -127,7 +127,7 @@ var init_schema = __esm({
     });
     installed_software = pgTable("installed_software", {
       id: uuid("id").primaryKey().defaultRandom(),
-      device_id: uuid("device_id").references(() => devices2.id).notNull(),
+      device_id: uuid("device_id").references(() => devices.id).notNull(),
       name: text("name").notNull(),
       version: text("version"),
       publisher: text("publisher"),
@@ -139,7 +139,7 @@ var init_schema = __esm({
     });
     patch_management = pgTable("patch_management", {
       id: uuid("id").primaryKey().defaultRandom(),
-      device_id: uuid("device_id").references(() => devices2.id).notNull(),
+      device_id: uuid("device_id").references(() => devices.id).notNull(),
       patch_id: text("patch_id").notNull(),
       title: text("title").notNull(),
       description: text("description"),
@@ -152,7 +152,7 @@ var init_schema = __esm({
     user_sessions = pgTable("user_sessions", {
       id: uuid("id").primaryKey().defaultRandom(),
       user_id: uuid("user_id").notNull(),
-      device_id: uuid("device_id").references(() => devices2.id),
+      device_id: uuid("device_id").references(() => devices.id),
       session_start: timestamp("session_start").defaultNow(),
       session_end: timestamp("session_end"),
       duration_minutes: numeric("duration_minutes"),
@@ -164,14 +164,14 @@ var init_schema = __esm({
 // server/db.ts
 var db_exports = {};
 __export(db_exports, {
-  db: () => db2,
+  db: () => db,
   pool: () => pool,
-  sql: () => sql2
+  sql: () => sql
 });
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { sql as sql2 } from "drizzle-orm";
-var DATABASE_URL, pool, db2;
+import { sql } from "drizzle-orm";
+var DATABASE_URL, pool, db;
 var init_db = __esm({
   "server/db.ts"() {
     "use strict";
@@ -197,7 +197,7 @@ var init_db = __esm({
       max: 10,
       application_name: "itsm-patch-compliance"
     });
-    db2 = drizzle(pool, { schema: schema_exports });
+    db = drizzle(pool, { schema: schema_exports });
   }
 });
 
@@ -380,7 +380,7 @@ __export(storage_exports, {
   registerAgent: () => registerAgent,
   storage: () => storage
 });
-import { eq, desc, and as and2, sql as sql3 } from "drizzle-orm";
+import { eq, desc, and as and2, sql as sql2 } from "drizzle-orm";
 import os from "os";
 async function registerAgent(hostname, ip_address, currentUser) {
   try {
@@ -993,7 +993,7 @@ var init_storage = __esm({
             console.log("Demo users created in memory");
           }
           try {
-            await this.db.execute(sql3`
+            await this.db.execute(sql2`
           CREATE TABLE IF NOT EXISTS knowledge_base (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             title TEXT NOT NULL,
@@ -1019,7 +1019,7 @@ var init_storage = __esm({
       async initializeSampleKBArticles() {
         try {
           const { knowledgeBase: knowledgeBase2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-          const existingArticles = await db2.select().from(knowledgeBase2);
+          const existingArticles = await db.select().from(knowledgeBase2);
           if (existingArticles.length > 0) {
             console.log(
               "Knowledge base articles already exist, skipping initialization"
@@ -2655,26 +2655,26 @@ smartphones
               helpful_votes: 67
             }
           ];
-          await db2.insert(knowledgeBase2).values(sampleArticles);
+          await db.insert(knowledgeBase2).values(sampleArticles);
           console.log("Sample knowledge base articles created successfully");
         } catch (error) {
           console.error("Error creating sample KB articles:", error);
         }
       }
       async getDevices() {
-        const allDevices = await db2.select().from(devices2);
+        const allDevices = await db.select().from(devices);
         return allDevices;
       }
       async getDevice(id) {
-        const [device] = await db2.select().from(devices2).where(eq(devices2.id, id));
+        const [device] = await db.select().from(devices).where(eq(devices.id, id));
         return device || void 0;
       }
       async getDeviceByHostname(hostname) {
-        const [device] = await db2.select().from(devices2).where(eq(devices2.hostname, hostname));
+        const [device] = await db.select().from(devices).where(eq(devices.hostname, hostname));
         return device || void 0;
       }
       async createDevice(device) {
-        const [newDevice] = await db2.insert(devices2).values({
+        const [newDevice] = await db.insert(devices).values({
           ...device,
           assigned_user: device.assigned_user || null,
           os_name: device.os_name || null,
@@ -2686,14 +2686,14 @@ smartphones
         return newDevice;
       }
       async updateDevice(id, device) {
-        const [updatedDevice] = await db2.update(devices2).set({
+        const [updatedDevice] = await db.update(devices).set({
           ...device,
           updated_at: /* @__PURE__ */ new Date()
-        }).where(eq(devices2.id, id)).returning();
+        }).where(eq(devices.id, id)).returning();
         return updatedDevice || void 0;
       }
       async createDeviceReport(report) {
-        const [newReport] = await db2.insert(device_reports).values({
+        const [newReport] = await db.insert(device_reports).values({
           ...report,
           cpu_usage: report.cpu_usage || null,
           memory_usage: report.memory_usage || null,
@@ -2703,33 +2703,33 @@ smartphones
         return newReport;
       }
       async getDeviceReports(deviceId) {
-        const reports = await db2.select().from(device_reports).where(eq(device_reports.device_id, deviceId)).orderBy(desc(device_reports.collected_at));
+        const reports = await db.select().from(device_reports).where(eq(device_reports.device_id, deviceId)).orderBy(desc(device_reports.collected_at));
         return reports;
       }
       async getLatestDeviceReport(deviceId) {
-        const [report] = await db2.select().from(device_reports).where(eq(device_reports.device_id, deviceId)).orderBy(desc(device_reports.collected_at)).limit(1);
+        const [report] = await db.select().from(device_reports).where(eq(device_reports.device_id, deviceId)).orderBy(desc(device_reports.collected_at)).limit(1);
         return report || void 0;
       }
       async getActiveAlerts() {
-        const activeAlerts = await db2.select().from(alerts).where(eq(alerts.is_active, true)).orderBy(desc(alerts.triggered_at));
+        const activeAlerts = await db.select().from(alerts).where(eq(alerts.is_active, true)).orderBy(desc(alerts.triggered_at));
         return activeAlerts;
       }
       async getActiveAlertByDeviceAndMetric(deviceId, metric) {
-        const result = await db2.select().from(alerts).where(
+        const result = await db.select().from(alerts).where(
           and2(
             eq(alerts.device_id, deviceId),
             eq(alerts.is_active, true),
-            sql3`${alerts.metadata}->>'metric' = ${metric}`
+            sql2`${alerts.metadata}->>'metric' = ${metric}`
           )
         ).limit(1);
         return result[0] || null;
       }
       async getRecentDeviceReports(deviceId, limit = 30) {
-        const result = await db2.select().from(device_reports).where(eq(device_reports.device_id, deviceId)).orderBy(desc(device_reports.collected_at)).limit(limit);
+        const result = await db.select().from(device_reports).where(eq(device_reports.device_id, deviceId)).orderBy(desc(device_reports.collected_at)).limit(limit);
         return result;
       }
       async updateAlert(alertId, updates) {
-        await db2.update(alerts).set({
+        await db.update(alerts).set({
           ...updates,
           triggered_at: /* @__PURE__ */ new Date()
           // Update timestamp when alert is updated
@@ -2737,7 +2737,7 @@ smartphones
       }
       async getAlertById(alertId) {
         try {
-          const [alert] = await db2.select().from(alerts).where(eq(alerts.id, alertId));
+          const [alert] = await db.select().from(alerts).where(eq(alerts.id, alertId));
           return alert || null;
         } catch (error) {
           console.error("Error fetching alert by ID:", error);
@@ -2746,7 +2746,7 @@ smartphones
       }
       async resolveAlert(alertId) {
         console.log(`Resolving alert in database: ${alertId}`);
-        const result = await db2.update(alerts).set({
+        const result = await db.update(alerts).set({
           is_active: false,
           resolved_at: /* @__PURE__ */ new Date()
         }).where(eq(alerts.id, alertId)).returning();
@@ -2757,10 +2757,10 @@ smartphones
       }
       async getUSBDevicesForDevice(deviceId) {
         try {
-          const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { usb_devices: usb_devices2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
           const { eq: eq12, desc: desc10 } = await import("drizzle-orm");
-          const result = await db6.select().from(usb_devices2).where(eq12(usb_devices2.device_id, deviceId)).orderBy(desc10(usb_devices2.last_seen));
+          const result = await db5.select().from(usb_devices2).where(eq12(usb_devices2.device_id, deviceId)).orderBy(desc10(usb_devices2.last_seen));
           return result;
         } catch (error) {
           console.error("Error fetching USB devices for device:", error);
@@ -2769,10 +2769,10 @@ smartphones
       }
       async updateUSBDevices(deviceId, usbDevices) {
         try {
-          const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { usb_devices: usb_devices2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
           const { eq: eq12, and: and11 } = await import("drizzle-orm");
-          await db6.update(usb_devices2).set({ is_connected: false }).where(eq12(usb_devices2.device_id, deviceId));
+          await db5.update(usb_devices2).set({ is_connected: false }).where(eq12(usb_devices2.device_id, deviceId));
           for (const device of usbDevices) {
             let vendor_id = device.vendor_id;
             let product_id = device.product_id;
@@ -2789,14 +2789,14 @@ smartphones
               `Processing USB device: ${device.description}, VID: ${vendor_id}, PID: ${product_id}, Serial: ${serial_number}`
             );
             const deviceIdentifier = vendor_id && product_id ? `${vendor_id}:${product_id}:${serial_number || "no-serial"}` : device.device_id || device.serial_number || `unknown-${Date.now()}`;
-            const existingDevices = await db6.select().from(usb_devices2).where(
+            const existingDevices = await db5.select().from(usb_devices2).where(
               and11(
                 eq12(usb_devices2.device_id, deviceId),
                 eq12(usb_devices2.device_identifier, deviceIdentifier)
               )
             );
             if (existingDevices.length > 0) {
-              await db6.update(usb_devices2).set({
+              await db5.update(usb_devices2).set({
                 description: device.description || device.name,
                 vendor_id,
                 product_id,
@@ -2810,7 +2810,7 @@ smartphones
                 raw_data: device
               }).where(eq12(usb_devices2.id, existingDevices[0].id));
             } else {
-              await db6.insert(usb_devices2).values({
+              await db5.insert(usb_devices2).values({
                 device_id: deviceId,
                 device_identifier: deviceIdentifier,
                 description: device.description || device.name,
@@ -3156,7 +3156,7 @@ smartphones
         }
       }
       async createAlert(alert) {
-        const [newAlert] = await db2.insert(alerts).values({
+        const [newAlert] = await db.insert(alerts).values({
           ...alert,
           triggered_at: /* @__PURE__ */ new Date()
         }).returning();
@@ -3220,7 +3220,7 @@ smartphones
       //   }
       // }
       // Database connection instance
-      db = db2;
+      db = db;
     };
     storage = new DatabaseStorage();
   }
@@ -3476,7 +3476,7 @@ var init_user_storage = __esm({
     UserStorage = class {
       // User CRUD Operations
       async createUser(userData) {
-        const [newUser] = await db2.insert(users).values({
+        const [newUser] = await db.insert(users).values({
           ...userData,
           updated_at: /* @__PURE__ */ new Date()
         }).returning();
@@ -3511,8 +3511,8 @@ var init_user_storage = __esm({
           );
         }
         const whereClause = conditions.length > 0 ? and3(...conditions) : void 0;
-        const [{ total }] = await db2.select({ total: count2() }).from(users).where(whereClause);
-        const data = await db2.select({
+        const [{ total }] = await db.select({ total: count2() }).from(users).where(whereClause);
+        const data = await db.select({
           id: users.id,
           email: users.email,
           username: users.username,
@@ -3547,23 +3547,23 @@ var init_user_storage = __esm({
         };
       }
       async getUserById(id) {
-        const [user] = await db2.select().from(users).where(eq2(users.id, id));
+        const [user] = await db.select().from(users).where(eq2(users.id, id));
         return user || null;
       }
       async getUserByEmail(email) {
-        const [user] = await db2.select().from(users).where(eq2(users.email, email));
+        const [user] = await db.select().from(users).where(eq2(users.email, email));
         return user || null;
       }
       async updateUser(id, updates) {
         updates.updated_at = /* @__PURE__ */ new Date();
-        const [updatedUser] = await db2.update(users).set(updates).where(eq2(users.id, id)).returning();
+        const [updatedUser] = await db.update(users).set(updates).where(eq2(users.id, id)).returning();
         if (updatedUser) {
           await this.logUserActivity(id, "user_updated", "User profile updated");
         }
         return updatedUser || null;
       }
       async deleteUser(id) {
-        const result = await db2.update(users).set({
+        const result = await db.update(users).set({
           is_active: false,
           updated_at: /* @__PURE__ */ new Date()
         }).where(eq2(users.id, id));
@@ -3579,30 +3579,30 @@ var init_user_storage = __esm({
       }
       // Department Operations
       async createDepartment(deptData) {
-        const [newDepartment] = await db2.insert(departments).values({
+        const [newDepartment] = await db.insert(departments).values({
           ...deptData,
           updated_at: /* @__PURE__ */ new Date()
         }).returning();
         return newDepartment;
       }
       async getDepartments() {
-        return await db2.select().from(departments).where(eq2(departments.is_active, true)).orderBy(departments.name);
+        return await db.select().from(departments).where(eq2(departments.is_active, true)).orderBy(departments.name);
       }
       async getDepartmentById(id) {
-        const [department] = await db2.select().from(departments).where(eq2(departments.id, id));
+        const [department] = await db.select().from(departments).where(eq2(departments.id, id));
         return department || null;
       }
       async updateDepartment(id, updates) {
         updates.updated_at = /* @__PURE__ */ new Date();
-        const [updatedDept] = await db2.update(departments).set(updates).where(eq2(departments.id, id)).returning();
+        const [updatedDept] = await db.update(departments).set(updates).where(eq2(departments.id, id)).returning();
         return updatedDept || null;
       }
       // Role-based queries
       async getTechnicians() {
-        return await db2.select().from(users).where(and3(eq2(users.role, "technician"), eq2(users.is_active, true))).orderBy(users.first_name, users.last_name);
+        return await db.select().from(users).where(and3(eq2(users.role, "technician"), eq2(users.is_active, true))).orderBy(users.first_name, users.last_name);
       }
       async getManagers() {
-        return await db2.select().from(users).where(
+        return await db.select().from(users).where(
           and3(
             or2(eq2(users.role, "manager"), eq2(users.role, "admin")),
             eq2(users.is_active, true)
@@ -3610,7 +3610,7 @@ var init_user_storage = __esm({
         ).orderBy(users.first_name, users.last_name);
       }
       async getActiveTechnicians() {
-        return await db2.select().from(users).where(
+        return await db.select().from(users).where(
           and3(
             eq2(users.role, "technician"),
             eq2(users.is_active, true),
@@ -3626,7 +3626,7 @@ var init_user_storage = __esm({
       // User Activity Tracking
       async logUserActivity(userId, activityType, description, ipAddress, userAgent, metadata) {
         try {
-          await db2.insert(userActivity).values({
+          await db.insert(userActivity).values({
             user_id: userId,
             activity_type: activityType,
             description,
@@ -3640,8 +3640,8 @@ var init_user_storage = __esm({
       }
       async getUserActivity(userId, page = 1, limit = 20) {
         const offset = (page - 1) * limit;
-        const [{ total }] = await db2.select({ total: count2() }).from(userActivity).where(eq2(userActivity.user_id, userId));
-        const data = await db2.select().from(userActivity).where(eq2(userActivity.user_id, userId)).orderBy(desc2(userActivity.created_at)).limit(limit).offset(offset);
+        const [{ total }] = await db.select({ total: count2() }).from(userActivity).where(eq2(userActivity.user_id, userId));
+        const data = await db.select().from(userActivity).where(eq2(userActivity.user_id, userId)).orderBy(desc2(userActivity.created_at)).limit(limit).offset(offset);
         return {
           data,
           total,
@@ -3652,7 +3652,7 @@ var init_user_storage = __esm({
       }
       // Bulk Operations
       async bulkCreateUsers(usersData) {
-        const createdUsers = await db2.insert(users).values(
+        const createdUsers = await db.insert(users).values(
           usersData.map((user) => ({
             ...user,
             updated_at: /* @__PURE__ */ new Date()
@@ -3708,7 +3708,7 @@ var init_user_storage = __esm({
       }
       // Password and Security
       async updatePassword(userId, hashedPassword) {
-        const result = await db2.update(users).set({
+        const result = await db.update(users).set({
           // Note: In a real app, you'd store password hash
           last_password_change: /* @__PURE__ */ new Date(),
           password_reset_required: false,
@@ -3726,7 +3726,7 @@ var init_user_storage = __esm({
         return false;
       }
       async lockUser(userId, reason) {
-        const result = await db2.update(users).set({
+        const result = await db.update(users).set({
           is_locked: true,
           updated_at: /* @__PURE__ */ new Date()
         }).where(eq2(users.id, userId));
@@ -3741,7 +3741,7 @@ var init_user_storage = __esm({
         return false;
       }
       async unlockUser(userId) {
-        const result = await db2.update(users).set({
+        const result = await db.update(users).set({
           is_locked: false,
           failed_login_attempts: 0,
           updated_at: /* @__PURE__ */ new Date()
@@ -3759,7 +3759,7 @@ var init_user_storage = __esm({
       // User Groups Management
       async createUserGroup(groupData) {
         try {
-          const [newGroup] = await db2.insert(userGroups).values({
+          const [newGroup] = await db.insert(userGroups).values({
             ...groupData,
             updated_at: /* @__PURE__ */ new Date()
           }).returning();
@@ -3770,11 +3770,11 @@ var init_user_storage = __esm({
         }
       }
       async getUserGroups() {
-        return await db2.select().from(userGroups).where(eq2(userGroups.is_active, true)).orderBy(userGroups.name);
+        return await db.select().from(userGroups).where(eq2(userGroups.is_active, true)).orderBy(userGroups.name);
       }
       async addUserToGroup(userId, groupId, role = "member") {
         try {
-          const [membership] = await db2.insert(userGroupMemberships).values({
+          const [membership] = await db.insert(userGroupMemberships).values({
             user_id: userId,
             group_id: groupId,
             role
@@ -3786,7 +3786,7 @@ var init_user_storage = __esm({
         }
       }
       async removeUserFromGroup(userId, groupId) {
-        const result = await db2.delete(userGroupMemberships).where(
+        const result = await db.delete(userGroupMemberships).where(
           and3(
             eq2(userGroupMemberships.user_id, userId),
             eq2(userGroupMemberships.group_id, groupId)
@@ -3795,7 +3795,7 @@ var init_user_storage = __esm({
         return result.rowCount > 0;
       }
       async getUserGroupMemberships(userId) {
-        return await db2.select({
+        return await db.select({
           group_id: userGroups.id,
           group_name: userGroups.name,
           group_type: userGroups.group_type,
@@ -3892,7 +3892,7 @@ var init_sla_policy_service = __esm({
       // Find the best matching SLA policy for a ticket
       async findMatchingSLAPolicy(ticket) {
         try {
-          const exactMatch = await db2.select().from(slaPolicies2).where(
+          const exactMatch = await db.select().from(slaPolicies2).where(
             and4(
               eq3(slaPolicies2.is_active, true),
               eq3(slaPolicies2.ticket_type, ticket.type),
@@ -3905,7 +3905,7 @@ var init_sla_policy_service = __esm({
           if (exactMatch.length > 0) {
             return exactMatch[0];
           }
-          const partialMatch = await db2.select().from(slaPolicies2).where(
+          const partialMatch = await db.select().from(slaPolicies2).where(
             and4(
               eq3(slaPolicies2.is_active, true),
               eq3(slaPolicies2.ticket_type, ticket.type),
@@ -3918,7 +3918,7 @@ var init_sla_policy_service = __esm({
           if (partialMatch.length > 0) {
             return partialMatch[0];
           }
-          const priorityMatch = await db2.select().from(slaPolicies2).where(
+          const priorityMatch = await db.select().from(slaPolicies2).where(
             and4(
               eq3(slaPolicies2.is_active, true),
               eq3(slaPolicies2.priority, ticket.priority),
@@ -4011,7 +4011,7 @@ var init_sla_policy_service = __esm({
       // Create default SLA policies if none exist
       async ensureDefaultSLAPolicies() {
         try {
-          const existingPolicies = await db2.select().from(slaPolicies2).limit(1);
+          const existingPolicies = await db.select().from(slaPolicies2).limit(1);
           if (existingPolicies.length === 0) {
             console.log("Creating default SLA policies...");
             const defaultPolicies = [
@@ -4060,7 +4060,7 @@ var init_sla_policy_service = __esm({
                 business_hours_only: true
               }
             ];
-            await db2.insert(slaPolicies2).values(defaultPolicies);
+            await db.insert(slaPolicies2).values(defaultPolicies);
             console.log(
               `\u2705 Created ${defaultPolicies.length} default SLA policies`
             );
@@ -4094,7 +4094,7 @@ var init_knowledge_ai_service = __esm({
       async findRelevantArticles(ticket) {
         try {
           console.log("\u{1F50D} Finding relevant articles for ticket:", ticket.title);
-          const articles = await db2.select().from(knowledgeBase).where(eq4(knowledgeBase.status, "published")).orderBy(desc4(knowledgeBase.helpful_votes));
+          const articles = await db.select().from(knowledgeBase).where(eq4(knowledgeBase.status, "published")).orderBy(desc4(knowledgeBase.helpful_votes));
           console.log(`\u{1F4DA} Found ${articles.length} published articles in database`);
           if (!articles.length) {
             console.log("\u274C No published articles found");
@@ -4148,7 +4148,7 @@ var init_knowledge_ai_service = __esm({
             views: 0,
             helpful_votes: 0
           };
-          const [createdArticle] = await db2.insert(knowledgeBase).values(newArticle).returning();
+          const [createdArticle] = await db.insert(knowledgeBase).values(newArticle).returning();
           console.log(`\u2705 Generated and published draft article: ${createdArticle.id} - ${createdArticle.title}`);
           return createdArticle;
         } catch (error) {
@@ -4441,7 +4441,7 @@ If the above steps don't resolve the issue:
         try {
           const { tags, category, limit } = params;
           console.log("Searching for related articles with:", { tags, category, limit });
-          let query = db2.select().from(knowledgeBase).where(eq4(knowledgeBase.status, "published")).orderBy(desc4(knowledgeBase.helpful_votes), desc4(knowledgeBase.views));
+          let query = db.select().from(knowledgeBase).where(eq4(knowledgeBase.status, "published")).orderBy(desc4(knowledgeBase.helpful_votes), desc4(knowledgeBase.views));
           const allArticles = await query;
           console.log(`Found ${allArticles.length} total published articles`);
           if (tags.length === 0) {
@@ -4503,7 +4503,7 @@ __export(ticket_storage_exports, {
   TicketStorage: () => TicketStorage,
   ticketStorage: () => ticketStorage
 });
-import { eq as eq5, desc as desc5, and as and5, or as or5, sql as sql5, count as count3, ilike } from "drizzle-orm";
+import { eq as eq5, desc as desc5, and as and5, or as or5, sql as sql4, count as count3, ilike } from "drizzle-orm";
 var TicketStorage, ticketStorage;
 var init_ticket_storage = __esm({
   "server/services/ticket-storage.ts"() {
@@ -4518,10 +4518,10 @@ var init_ticket_storage = __esm({
       async generateTicketNumber(type) {
         const year = (/* @__PURE__ */ new Date()).getFullYear();
         const prefix = type.toUpperCase().substring(0, 3);
-        const [result] = await db2.select({ count: count3() }).from(tickets).where(
+        const [result] = await db.select({ count: count3() }).from(tickets).where(
           and5(
             eq5(tickets.type, type),
-            sql5`EXTRACT(YEAR FROM ${tickets.created_at}) = ${year}`
+            sql4`EXTRACT(YEAR FROM ${tickets.created_at}) = ${year}`
           )
         );
         const nextNumber = (result.count || 0) + 1;
@@ -4573,7 +4573,7 @@ var init_ticket_storage = __esm({
           );
           slaTargets = fallbackTargets;
         }
-        const [newTicket] = await db2.insert(tickets).values({
+        const [newTicket] = await db.insert(tickets).values({
           ...ticketData,
           ticket_number,
           status: assignedTechnician ? "assigned" : "new",
@@ -4676,7 +4676,7 @@ var init_ticket_storage = __esm({
       }
       async ensureSampleKBArticles() {
         try {
-          const existingArticles = await db2.select().from(knowledgeBase).limit(1);
+          const existingArticles = await db.select().from(knowledgeBase).limit(1);
           if (existingArticles.length === 0) {
             console.log("Creating sample knowledge base articles...");
             const sampleArticles = [
@@ -4772,8 +4772,8 @@ var init_ticket_storage = __esm({
           );
         }
         const whereClause = conditions.length > 0 ? and5(...conditions) : void 0;
-        const [{ total }] = await db2.select({ total: count3() }).from(tickets).where(whereClause);
-        const data = await db2.select().from(tickets).where(whereClause).orderBy(desc5(tickets.created_at)).limit(limit).offset(offset);
+        const [{ total }] = await db.select({ total: count3() }).from(tickets).where(whereClause);
+        const data = await db.select().from(tickets).where(whereClause).orderBy(desc5(tickets.created_at)).limit(limit).offset(offset);
         return {
           data,
           total,
@@ -4783,7 +4783,7 @@ var init_ticket_storage = __esm({
         };
       }
       async getTicketById(id) {
-        const [ticket] = await db2.select().from(tickets).where(eq5(tickets.id, id));
+        const [ticket] = await db.select().from(tickets).where(eq5(tickets.id, id));
         return ticket || null;
       }
       async updateTicket(id, updates, userEmail = "admin@company.com", comment) {
@@ -4836,7 +4836,7 @@ var init_ticket_storage = __esm({
           }
           if (updates.status === "resolved" && !updates.resolved_at) {
             updates.resolved_at = /* @__PURE__ */ new Date();
-            const [currentTicket2] = await db2.select().from(tickets).where(eq5(tickets.id, id));
+            const [currentTicket2] = await db.select().from(tickets).where(eq5(tickets.id, id));
             if (currentTicket2?.sla_resolution_due) {
               const wasBreached = /* @__PURE__ */ new Date() > new Date(currentTicket2.sla_resolution_due);
               updates.sla_breached = wasBreached;
@@ -4869,7 +4869,7 @@ var init_ticket_storage = __esm({
             updates.sla_breached = /* @__PURE__ */ new Date() > slaResolutionDue;
           }
           updates.updated_at = /* @__PURE__ */ new Date();
-          const [updatedTicket] = await db2.update(tickets).set(updates).where(eq5(tickets.id, id)).returning();
+          const [updatedTicket] = await db.update(tickets).set(updates).where(eq5(tickets.id, id)).returning();
           if (!updatedTicket) {
             return null;
           }
@@ -4935,23 +4935,23 @@ var init_ticket_storage = __esm({
         return [...new Set(tags)];
       }
       async deleteTicket(id) {
-        const result = await db2.delete(tickets).where(eq5(tickets.id, id));
+        const result = await db.delete(tickets).where(eq5(tickets.id, id));
         return result.rowCount > 0;
       }
       // Comment Operations
       async addComment(ticketId, commentData) {
-        const [comment] = await db2.insert(ticketComments).values({
+        const [comment] = await db.insert(ticketComments).values({
           ...commentData,
           ticket_id: ticketId
         }).returning();
         return comment;
       }
       async getTicketComments(ticketId) {
-        return await db2.select().from(ticketComments).where(eq5(ticketComments.ticket_id, ticketId)).orderBy(desc5(ticketComments.created_at));
+        return await db.select().from(ticketComments).where(eq5(ticketComments.ticket_id, ticketId)).orderBy(desc5(ticketComments.created_at));
       }
       // Knowledge Base Operations
       async createKBArticle(articleData) {
-        const [article] = await db2.insert(knowledgeBase).values(articleData).returning();
+        const [article] = await db.insert(knowledgeBase).values(articleData).returning();
         return article;
       }
       async getKBArticles(page = 1, limit = 20, filters = {}) {
@@ -4972,8 +4972,8 @@ var init_ticket_storage = __esm({
           );
         }
         const whereClause = conditions.length > 0 ? and5(...conditions) : void 0;
-        const [{ total }] = await db2.select({ total: count3() }).from(knowledgeBase).where(whereClause);
-        const data = await db2.select().from(knowledgeBase).where(whereClause).orderBy(desc5(knowledgeBase.created_at)).limit(limit).offset(offset);
+        const [{ total }] = await db.select({ total: count3() }).from(knowledgeBase).where(whereClause);
+        const data = await db.select().from(knowledgeBase).where(whereClause).orderBy(desc5(knowledgeBase.created_at)).limit(limit).offset(offset);
         return {
           data,
           total,
@@ -4983,18 +4983,18 @@ var init_ticket_storage = __esm({
         };
       }
       async getKBArticleById(id) {
-        const [article] = await db2.select().from(knowledgeBase).where(eq5(knowledgeBase.id, id));
+        const [article] = await db.select().from(knowledgeBase).where(eq5(knowledgeBase.id, id));
         return article || null;
       }
       async updateKBArticle(id, updates) {
-        const [updatedArticle] = await db2.update(knowledgeBase).set({
+        const [updatedArticle] = await db.update(knowledgeBase).set({
           ...updates,
           updated_at: /* @__PURE__ */ new Date()
         }).where(eq5(knowledgeBase.id, id)).returning();
         return updatedArticle || null;
       }
       async deleteKBArticle(id) {
-        const result = await db2.delete(knowledgeBase).where(eq5(knowledgeBase.id, id));
+        const result = await db.delete(knowledgeBase).where(eq5(knowledgeBase.id, id));
         return result.rowCount > 0;
       }
       // Export functionality
@@ -5037,7 +5037,7 @@ var init_ticket_storage = __esm({
       async logAudit(entityType, entityId, action, userId, userEmail, oldValues, newValues) {
         try {
           const changes = this.calculateChanges(oldValues, newValues);
-          await db2.insert(auditLog).values({
+          await db.insert(auditLog).values({
             entity_type: entityType,
             entity_id: entityId,
             action,
@@ -5098,9 +5098,9 @@ var init_ticket_storage = __esm({
       // Device delete operation
       async deleteDevice(id) {
         try {
-          await db2.delete(device_reports).where(eq5(device_reports.device_id, id));
-          await db2.delete(alerts).where(eq5(alerts.device_id, id));
-          const result = await db2.delete(devices2).where(eq5(devices2.id, id));
+          await db.delete(device_reports).where(eq5(device_reports.device_id, id));
+          await db.delete(alerts).where(eq5(alerts.device_id, id));
+          const result = await db.delete(devices).where(eq5(devices.id, id));
           return result.rowCount > 0;
         } catch (error) {
           console.error("Error deleting device:", error);
@@ -5118,7 +5118,7 @@ __export(enhanced_storage_exports, {
   EnhancedStorage: () => EnhancedStorage,
   enhancedStorage: () => enhancedStorage
 });
-import { sql as sql6 } from "drizzle-orm";
+import { sql as sql5 } from "drizzle-orm";
 var EnhancedStorage, enhancedStorage;
 var init_enhanced_storage = __esm({
   "server/models/enhanced-storage.ts"() {
@@ -5127,7 +5127,7 @@ var init_enhanced_storage = __esm({
     EnhancedStorage = class {
       async initializeEnhancedTables() {
         try {
-          await db2.execute(sql6`
+          await db.execute(sql5`
         CREATE TABLE IF NOT EXISTS performance_baselines (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
@@ -5140,7 +5140,7 @@ var init_enhanced_storage = __esm({
           UNIQUE(device_id, metric_type)
         )
       `);
-          await db2.execute(sql6`
+          await db.execute(sql5`
         CREATE TABLE IF NOT EXISTS performance_anomalies (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
@@ -5152,7 +5152,7 @@ var init_enhanced_storage = __esm({
           detected_at TIMESTAMP DEFAULT NOW() NOT NULL
         )
       `);
-          await db2.execute(sql6`
+          await db.execute(sql5`
         CREATE TABLE IF NOT EXISTS resource_predictions (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
@@ -5164,7 +5164,7 @@ var init_enhanced_storage = __esm({
           created_at TIMESTAMP DEFAULT NOW() NOT NULL
         )
       `);
-          await db2.execute(sql6`
+          await db.execute(sql5`
         CREATE TABLE IF NOT EXISTS software_packages (
           id VARCHAR(50) PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
@@ -5178,7 +5178,7 @@ var init_enhanced_storage = __esm({
           updated_at TIMESTAMP DEFAULT NOW() NOT NULL
         )
       `);
-          await db2.execute(sql6`
+          await db.execute(sql5`
         CREATE TABLE IF NOT EXISTS deployment_tasks (
           id VARCHAR(100) PRIMARY KEY,
           device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
@@ -5192,7 +5192,7 @@ var init_enhanced_storage = __esm({
           created_at TIMESTAMP DEFAULT NOW() NOT NULL
         )
       `);
-          await db2.execute(sql6`
+          await db.execute(sql5`
         CREATE TABLE IF NOT EXISTS configuration_templates (
           id VARCHAR(50) PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
@@ -5205,7 +5205,7 @@ var init_enhanced_storage = __esm({
           updated_at TIMESTAMP DEFAULT NOW() NOT NULL
         )
       `);
-          await db2.execute(sql6`
+          await db.execute(sql5`
         CREATE TABLE IF NOT EXISTS security_policies (
           id VARCHAR(50) PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
@@ -5217,7 +5217,7 @@ var init_enhanced_storage = __esm({
           updated_at TIMESTAMP DEFAULT NOW() NOT NULL
         )
       `);
-          await db2.execute(sql6`
+          await db.execute(sql5`
         CREATE TABLE IF NOT EXISTS vulnerability_assessments (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
@@ -5231,7 +5231,7 @@ var init_enhanced_storage = __esm({
           resolved_at TIMESTAMP
         )
       `);
-          await db2.execute(sql6`
+          await db.execute(sql5`
         CREATE TABLE IF NOT EXISTS license_compliance (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           software_name VARCHAR(255) NOT NULL,
@@ -5244,7 +5244,7 @@ var init_enhanced_storage = __esm({
           UNIQUE(software_name)
         )
       `);
-          await db2.execute(sql6`
+          await db.execute(sql5`
         CREATE TABLE IF NOT EXISTS software_installations (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
@@ -5259,7 +5259,7 @@ var init_enhanced_storage = __esm({
           UNIQUE(device_id, software_name, version)
         )
       `);
-          await db2.execute(sql6`
+          await db.execute(sql5`
         CREATE TABLE IF NOT EXISTS device_usb_history (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
@@ -5274,7 +5274,7 @@ var init_enhanced_storage = __esm({
           UNIQUE(device_id, usb_device_id)
         )
       `);
-          await db2.execute(sql6`
+          await db.execute(sql5`
         CREATE TABLE IF NOT EXISTS network_topology (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
@@ -5287,7 +5287,7 @@ var init_enhanced_storage = __esm({
           last_seen TIMESTAMP DEFAULT NOW() NOT NULL
         )
       `);
-          await db2.execute(sql6`
+          await db.execute(sql5`
         CREATE TABLE IF NOT EXISTS patch_management (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
@@ -5313,7 +5313,7 @@ var init_enhanced_storage = __esm({
       }
       async insertDefaultSoftwarePackages() {
         try {
-          await db2.execute(sql6`
+          await db.execute(sql5`
         INSERT INTO software_packages (id, name, version, installer_path, silent_install_args, supported_os, size_mb)
         VALUES 
           ('chrome-latest', 'Google Chrome', 'latest', '/software/chrome_installer.exe', '/silent /install', '["Windows"]', 95),
@@ -5332,7 +5332,7 @@ var init_enhanced_storage = __esm({
       }
       async insertDefaultSecurityPolicies() {
         try {
-          await db2.execute(sql6`
+          await db.execute(sql5`
         INSERT INTO security_policies (id, name, type, rules, enforcement_level, is_active)
         VALUES 
           ('default-usb-policy', 'Default USB Security Policy', 'usb_policy', 
@@ -5351,7 +5351,7 @@ var init_enhanced_storage = __esm({
       }
       async insertDefaultLicenseData() {
         try {
-          await db2.execute(sql6`
+          await db.execute(sql5`
         INSERT INTO license_compliance (software_name, licenses_purchased, licenses_used, cost_per_license)
         VALUES 
           ('Microsoft Office', 100, 85, 149.99),
@@ -5369,7 +5369,7 @@ var init_enhanced_storage = __esm({
       // Enhanced USB device tracking with security analysis
       async trackUSBDeviceWithSecurity(deviceId, usbDevice) {
         try {
-          await db2.execute(sql6`
+          await db.execute(sql5`
         INSERT INTO device_usb_history (device_id, usb_device_id, description, vendor_id, product_id, first_seen, last_seen)
         VALUES (${deviceId}, ${usbDevice.device_id}, ${usbDevice.description}, 
                 ${this.extractVendorId(usbDevice.device_id)}, ${this.extractProductId(usbDevice.device_id)}, 
@@ -5396,7 +5396,7 @@ var init_enhanced_storage = __esm({
       async trackSoftwareInstallations(deviceId, installedSoftware) {
         try {
           for (const software of installedSoftware) {
-            await db2.execute(sql6`
+            await db.execute(sql5`
           INSERT INTO software_installations (device_id, software_name, version, vendor, install_date, last_seen)
           VALUES (${deviceId}, ${software.name}, ${software.version}, ${software.vendor}, 
                   ${software.install_date ? new Date(software.install_date) : null}, NOW())
@@ -5414,7 +5414,7 @@ var init_enhanced_storage = __esm({
       // Store performance baselines and detect anomalies
       async updatePerformanceBaseline(deviceId, metricType, currentValue) {
         try {
-          await db2.execute(sql6`
+          await db.execute(sql5`
         INSERT INTO performance_baselines (device_id, metric_type, baseline_value, variance_threshold)
         VALUES (${deviceId}, ${metricType}, ${currentValue}, ${this.getDefaultThreshold(metricType)})
         ON CONFLICT (device_id, metric_type) 
@@ -5467,8 +5467,8 @@ var init_patch_compliance_service = __esm({
           console.log("Starting getDashboardData...");
           try {
             console.log("Checking if patch_definitions table exists...");
-            const result2 = await db2.execute(
-              sql2`SELECT 1 FROM patch_definitions LIMIT 1`
+            const result2 = await db.execute(
+              sql`SELECT 1 FROM patch_definitions LIMIT 1`
             );
             console.log(
               "patch_definitions table exists, proceeding with real data"
@@ -5478,28 +5478,28 @@ var init_patch_compliance_service = __esm({
             console.log("Table error:", tableError?.message || "Unknown error");
             return this.getMockDashboardData();
           }
-          let devices3;
+          let devices2;
           try {
             console.log("Fetching devices from database...");
-            const devicesResult = await db2.execute(sql2`
+            const devicesResult = await db.execute(sql`
           SELECT d.id, d.hostname, d.os_name, d.os_version, d.status, d.last_seen
           FROM devices d 
           WHERE d.status = 'online'
           ORDER BY d.last_seen DESC
           LIMIT 50
         `);
-            devices3 = devicesResult.rows || [];
-            console.log(`Found ${devices3.length} online devices`);
-            if (devices3.length === 0) {
+            devices2 = devicesResult.rows || [];
+            console.log(`Found ${devices2.length} online devices`);
+            if (devices2.length === 0) {
               console.log("No online devices found, checking all devices...");
-              const allDevicesResult = await db2.execute(sql2`
+              const allDevicesResult = await db.execute(sql`
             SELECT d.id, d.hostname, d.os_name, d.os_version, d.status, d.last_seen
             FROM devices d 
             ORDER BY d.last_seen DESC
             LIMIT 10
           `);
-              devices3 = allDevicesResult.rows || [];
-              console.log(`Found ${devices3.length} total devices`);
+              devices2 = allDevicesResult.rows || [];
+              console.log(`Found ${devices2.length} total devices`);
             }
           } catch (deviceFetchError) {
             console.error("Error fetching devices:", deviceFetchError);
@@ -5507,7 +5507,7 @@ var init_patch_compliance_service = __esm({
             return this.getMockDashboardData();
           }
           const deviceReports = [];
-          for (const device of devices3) {
+          for (const device of devices2) {
             try {
               console.log(
                 `Processing patches for device ${device.id} (${device.hostname})`
@@ -5515,7 +5515,7 @@ var init_patch_compliance_service = __esm({
               const deviceUuid = typeof device.id === "string" ? device.id : device.id.toString();
               console.log(`Querying patches for device UUID: ${deviceUuid}`);
               console.log(`Device UUID type: ${typeof deviceUuid}`);
-              const patchStatusResult = await db2.execute(sql2`
+              const patchStatusResult = await db.execute(sql`
             SELECT 
               COUNT(*) as total_patches,
               COUNT(CASE WHEN dps.status = 'installed' THEN 1 END) as installed_patches,
@@ -5646,7 +5646,7 @@ var init_patch_compliance_service = __esm({
           }
           await this.autoDeploySecurityPatches(deviceId);
           const deviceUuid = typeof deviceId === "string" ? deviceId : deviceId.toString();
-          await db2.execute(sql2`
+          await db.execute(sql`
         UPDATE devices 
         SET updated_at = NOW() 
         WHERE id = ${deviceUuid}::uuid
@@ -5777,7 +5777,7 @@ var init_patch_compliance_service = __esm({
         }
       }
       async upsertPatchStatus(deviceId, patchInfo) {
-        await db2.execute(sql2`
+        await db.execute(sql`
       INSERT INTO patch_definitions (patch_id, title, severity, category, requires_reboot)
       VALUES (${patchInfo.patch_id}, ${patchInfo.title}, ${patchInfo.severity}, ${patchInfo.category}, ${patchInfo.requires_reboot || false})
       ON CONFLICT (patch_id) DO UPDATE SET
@@ -5787,7 +5787,7 @@ var init_patch_compliance_service = __esm({
         updated_at = NOW()
     `);
         const deviceUuid = typeof deviceId === "string" ? deviceId : deviceId.toString();
-        await db2.execute(sql2`
+        await db.execute(sql`
       INSERT INTO device_patch_status (device_id, patch_id, status, install_date, last_scan_date)
       VALUES (${deviceUuid}::uuid, ${patchInfo.patch_id}, ${patchInfo.status}, ${patchInfo.install_date || null}, NOW())
       ON CONFLICT (device_id, patch_id) DO UPDATE SET
@@ -5813,7 +5813,7 @@ var init_patch_compliance_service = __esm({
       async autoDeploySecurityPatches(deviceId) {
         try {
           const deviceUuid = typeof deviceId === "string" ? deviceId : deviceId.toString();
-          const criticalPatchesResult = await db2.execute(sql2`
+          const criticalPatchesResult = await db.execute(sql`
         SELECT dps.patch_id, pd.title, pd.category, pd.severity
         FROM device_patch_status dps
         JOIN patch_definitions pd ON dps.patch_id = pd.patch_id
@@ -5835,7 +5835,7 @@ var init_patch_compliance_service = __esm({
               created_by: "system-auto"
             });
             for (const patch of criticalPatches) {
-              await db2.execute(sql2`
+              await db.execute(sql`
             UPDATE device_patch_status 
             SET status = 'pending', 
                 deployment_id = ${deploymentId},
@@ -5910,7 +5910,7 @@ var init_patch_compliance_service = __esm({
         return recommendations;
       }
       async createPatchDeployment(deployment) {
-        const result = await db2.execute(sql2`
+        const result = await db.execute(sql`
       INSERT INTO patch_deployments (name, description, target_patches, target_devices, schedule_type, scheduled_date, created_by)
       VALUES (${deployment.name}, ${deployment.description}, ${deployment.target_patches}, ${deployment.target_devices}, 
               ${deployment.schedule_type}, ${deployment.scheduled_date}, ${deployment.created_by})
@@ -5919,7 +5919,7 @@ var init_patch_compliance_service = __esm({
         return result.rows[0].id;
       }
       async getPatchDeployments() {
-        const result = await db2.execute(sql2`
+        const result = await db.execute(sql`
       SELECT pd.*, u.name as created_by_name
       FROM patch_deployments pd
       LEFT JOIN users u ON pd.created_by::uuid = u.id
@@ -5929,7 +5929,7 @@ var init_patch_compliance_service = __esm({
       }
       async getPendingApplicationPatches() {
         try {
-          const result = await db2.execute(sql2`
+          const result = await db.execute(sql`
         SELECT 
           dps.device_id,
           d.hostname,
@@ -6056,6 +6056,226 @@ var init_database = __esm({
         } finally {
           client.release();
         }
+      }
+    };
+  }
+});
+
+// server/utils/auth.ts
+import jwt from "jsonwebtoken";
+var JWT_SECRET, AuthUtils;
+var init_auth = __esm({
+  "server/utils/auth.ts"() {
+    "use strict";
+    init_database();
+    JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+    AuthUtils = class {
+      /**
+       * Verify JWT token and return decoded payload
+       */
+      static verifyToken(token) {
+        try {
+          return jwt.verify(token, JWT_SECRET);
+        } catch (error) {
+          throw new Error("Invalid token");
+        }
+      }
+      /**
+       * Generate JWT token
+       */
+      static generateToken(payload, expiresIn = "24h") {
+        return jwt.sign(payload, JWT_SECRET, { expiresIn });
+      }
+      /**
+       * Extract token from authorization header
+       */
+      static extractTokenFromHeader(authHeader) {
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+          return null;
+        }
+        return authHeader.substring(7);
+      }
+      /**
+       * Get user from database by ID with fallback
+       */
+      static async getUserById(userId) {
+        try {
+          const result = await DatabaseUtils.executeQuery(
+            `SELECT id, email, role, first_name, last_name, username, is_active, phone, location 
+         FROM users WHERE id = $1`,
+            [userId]
+          );
+          if (result.rows.length > 0) {
+            const user = result.rows[0];
+            return this.buildUserDisplayName(user);
+          }
+        } catch (dbError) {
+          console.log("Database user lookup failed:", dbError.message);
+        }
+        return null;
+      }
+      /**
+       * Build user display name from available fields
+       */
+      static buildUserDisplayName(user) {
+        let displayName = "";
+        if (user.first_name || user.last_name) {
+          displayName = `${user.first_name || ""} ${user.last_name || ""}`.trim();
+        } else if (user.username) {
+          displayName = user.username;
+        } else if (user.email) {
+          displayName = user.email.split("@")[0];
+        } else {
+          displayName = "Unknown User";
+        }
+        return {
+          ...user,
+          name: displayName
+        };
+      }
+      /**
+       * Check if user has required role
+       */
+      static hasRole(userRole, requiredRoles) {
+        const allowedRoles = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles];
+        return userRole === "admin" || allowedRoles.includes(userRole);
+      }
+      /**
+       * Validate user account status
+       */
+      static validateUserStatus(user) {
+        if (!user.is_active) {
+          return { valid: false, message: "User account is inactive" };
+        }
+        if (user.is_locked) {
+          return { valid: false, message: "Account is locked. Contact administrator." };
+        }
+        return { valid: true };
+      }
+      /**
+       * Update user last login timestamp
+       */
+      static async updateLastLogin(userId) {
+        try {
+          await DatabaseUtils.executeQuery(
+            `UPDATE users SET last_login = NOW() WHERE id = $1`,
+            [userId]
+          );
+        } catch (error) {
+          console.warn("Failed to update last login:", error);
+        }
+      }
+    };
+  }
+});
+
+// server/utils/response.ts
+var ResponseUtils;
+var init_response = __esm({
+  "server/utils/response.ts"() {
+    "use strict";
+    ResponseUtils = class {
+      /**
+       * Send success response
+       */
+      static success(res, data, message, statusCode = 200) {
+        return res.status(statusCode).json({
+          success: true,
+          message: message || "Operation successful",
+          data
+        });
+      }
+      /**
+       * Send error response
+       */
+      static error(res, message, statusCode = 500, error) {
+        console.error("API Error:", message, error);
+        return res.status(statusCode).json({
+          success: false,
+          message,
+          error: process.env.NODE_ENV === "development" ? error : void 0
+        });
+      }
+      /**
+       * Send validation error
+       */
+      static validationError(res, message, errors) {
+        return res.status(400).json({
+          success: false,
+          message,
+          errors
+        });
+      }
+      /**
+       * Send unauthorized error
+       */
+      static unauthorized(res, message = "Unauthorized access") {
+        return res.status(401).json({
+          success: false,
+          message
+        });
+      }
+      /**
+       * Send forbidden error
+       */
+      static forbidden(res, message = "Insufficient permissions") {
+        return res.status(403).json({
+          success: false,
+          message
+        });
+      }
+      /**
+       * Send not found error
+       */
+      static notFound(res, message = "Resource not found") {
+        return res.status(404).json({
+          success: false,
+          message
+        });
+      }
+      /**
+       * Send internal server error
+       */
+      static internalError(res, message = "Internal server error", error) {
+        console.error("Internal Server Error:", message, error);
+        return res.status(500).json({
+          success: false,
+          message,
+          error: process.env.NODE_ENV === "development" ? error?.message : void 0
+        });
+      }
+      /**
+       * Send paginated response
+       */
+      static paginated(res, data, total, page, limit) {
+        return res.json({
+          success: true,
+          data,
+          pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+            hasNext: page < Math.ceil(total / limit),
+            hasPrev: page > 1
+          }
+        });
+      }
+      /**
+       * Handle async route errors
+       */
+      static asyncHandler(fn) {
+        return (req, res, next) => {
+          Promise.resolve(fn(req, res, next)).catch(next);
+        };
+      }
+      /**
+       * Send file download response
+       */
+      static download(res, data, filename, contentType = "application/octet-stream") {
+        res.setHeader("Content-Type", contentType);
+        res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+        return res.send(data);
       }
     };
   }
@@ -6653,10 +6873,10 @@ var init_notification_routes = __esm({
         try {
           const decoded = jwt2.verify(token, JWT_SECRET2);
           const userId = decoded.id;
-          const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { desc: desc10 } = await import("drizzle-orm");
           const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-          const ticketsList = await db6.select().from(tickets2).orderBy(desc10(tickets2.updated_at));
+          const ticketsList = await db5.select().from(tickets2).orderBy(desc10(tickets2.updated_at));
           const userTickets = ticketsList.filter(
             (ticket) => ticket.assigned_to === userId || ticket.requester_email === decoded.email
           );
@@ -7427,7 +7647,7 @@ var init_agent_download_routes = __esm({
 });
 
 // server/services/analytics-service.ts
-import { sql as sql7, desc as desc7, count as count4 } from "drizzle-orm";
+import { sql as sql6, desc as desc7, count as count4 } from "drizzle-orm";
 import {
   subDays,
   format
@@ -7456,14 +7676,14 @@ var init_analytics_service = __esm({
             (_, reject) => setTimeout(() => reject(new Error("Asset inventory timeout")), 3e4)
           );
           try {
-            await db2.execute(sql7`SELECT 1 as health_check`);
+            await db.execute(sql6`SELECT 1 as health_check`);
           } catch (connError) {
             console.warn("Database connection issue detected:", connError);
             throw new Error("Database connection failed - please check your database configuration");
           }
           try {
             const totalDevicesResult = await Promise.race([
-              db2.select({ count: sql7`count(*)` }).from(devices2),
+              db.select({ count: sql6`count(*)` }).from(devices),
               timeout
             ]);
             const totalDevices = Number(totalDevicesResult[0]?.count) || 0;
@@ -7485,7 +7705,7 @@ var init_analytics_service = __esm({
               totalSoftware = softwareResults.status === "fulfilled" ? softwareResults.value : 0;
               try {
                 detailedDevices = await Promise.race([
-                  db2.select().from(devices2).orderBy(desc7(devices2.last_seen)).limit(50),
+                  db.select().from(devices).orderBy(desc7(devices.last_seen)).limit(50),
                   timeout
                 ]);
               } catch (detailError) {
@@ -7495,10 +7715,10 @@ var init_analytics_service = __esm({
             } else {
               try {
                 devicesByOS = await Promise.race([
-                  db2.select({
-                    os_name: devices2.os_name,
-                    count: sql7`count(*)`
-                  }).from(devices2).groupBy(devices2.os_name),
+                  db.select({
+                    os_name: devices.os_name,
+                    count: sql6`count(*)`
+                  }).from(devices).groupBy(devices.os_name),
                   timeout
                 ]);
               } catch (osError) {
@@ -7507,10 +7727,10 @@ var init_analytics_service = __esm({
               }
               try {
                 devicesByStatus = await Promise.race([
-                  db2.select({
-                    status: devices2.status,
-                    count: sql7`count(*)`
-                  }).from(devices2).groupBy(devices2.status),
+                  db.select({
+                    status: devices.status,
+                    count: sql6`count(*)`
+                  }).from(devices).groupBy(devices.status),
                   timeout
                 ]);
               } catch (statusError) {
@@ -7519,7 +7739,7 @@ var init_analytics_service = __esm({
               }
               try {
                 detailedDevices = await Promise.race([
-                  db2.select().from(devices2).limit(20),
+                  db.select().from(devices).limit(20),
                   timeout
                 ]);
               } catch (detailError) {
@@ -7529,7 +7749,7 @@ var init_analytics_service = __esm({
             }
             try {
               const softwareCountResult = await Promise.race([
-                db2.select({ count: sql7`count(*)` }).from(installed_software),
+                db.select({ count: sql6`count(*)` }).from(installed_software),
                 timeout
               ]);
               totalSoftware = Number(softwareCountResult[0]?.count) || 0;
@@ -7598,7 +7818,7 @@ var init_analytics_service = __esm({
           } catch (dbError) {
             console.error("Database error in asset inventory report:", dbError);
             try {
-              const basicDeviceCount = await db2.select({ count: sql7`count(*)` }).from(devices2);
+              const basicDeviceCount = await db.select({ count: sql6`count(*)` }).from(devices);
               const deviceCount = Number(basicDeviceCount[0]?.count) || 0;
               return {
                 total_devices: deviceCount,
@@ -7651,7 +7871,7 @@ var init_analytics_service = __esm({
           );
           try {
             const totalTicketsResult = await Promise.race([
-              db2.select({ count: sql7`count(*)` }).from(tickets),
+              db.select({ count: sql6`count(*)` }).from(tickets),
               timeout
             ]);
             const totalTickets = Number(totalTicketsResult[0]?.count) || 0;
@@ -7660,9 +7880,9 @@ var init_analytics_service = __esm({
             let ticketsByPriority = [];
             try {
               ticketsByStatus = await Promise.race([
-                db2.select({
+                db.select({
                   status: tickets.status,
-                  count: sql7`count(*)`
+                  count: sql6`count(*)`
                 }).from(tickets).groupBy(tickets.status),
                 timeout
               ]);
@@ -7672,9 +7892,9 @@ var init_analytics_service = __esm({
             }
             try {
               ticketsByType = await Promise.race([
-                db2.select({
+                db.select({
                   type: tickets.type,
-                  count: sql7`count(*)`
+                  count: sql6`count(*)`
                 }).from(tickets).groupBy(tickets.type),
                 timeout
               ]);
@@ -7684,9 +7904,9 @@ var init_analytics_service = __esm({
             }
             try {
               ticketsByPriority = await Promise.race([
-                db2.select({
+                db.select({
                   priority: tickets.priority,
-                  count: sql7`count(*)`
+                  count: sql6`count(*)`
                 }).from(tickets).groupBy(tickets.priority),
                 timeout
               ]);
@@ -7791,7 +8011,7 @@ var init_analytics_service = __esm({
           );
           let recentReports = [];
           let alertCounts = [];
-          const deviceCountResult = await db2.select({ count: sql7`count(*)` }).from(devices2);
+          const deviceCountResult = await db.select({ count: sql6`count(*)` }).from(devices);
           const deviceCount = Number(deviceCountResult[0]?.count) || 0;
           console.log(`Processing system health for ${deviceCount} devices`);
           const LARGE_DEPLOYMENT_THRESHOLD = 50;
@@ -7799,7 +8019,7 @@ var init_analytics_service = __esm({
           try {
             const reportLimit = isLargeDeployment ? 200 : 50;
             recentReports = await Promise.race([
-              db2.select().from(device_reports).orderBy(desc7(device_reports.created_at)).limit(reportLimit),
+              db.select().from(device_reports).orderBy(desc7(device_reports.created_at)).limit(reportLimit),
               timeout
             ]);
             console.log(`Retrieved ${recentReports.length} recent reports`);
@@ -7809,9 +8029,9 @@ var init_analytics_service = __esm({
           }
           try {
             alertCounts = await Promise.race([
-              db2.select({
+              db.select({
                 severity: alerts.severity,
-                count: sql7`count(*)`
+                count: sql6`count(*)`
               }).from(alerts).groupBy(alerts.severity).limit(10),
               timeout
             ]);
@@ -7884,7 +8104,7 @@ var init_analytics_service = __esm({
         } catch (dbError) {
           console.error("Database error in system health report:", dbError);
           try {
-            const basicDeviceCount = await db2.select({ count: sql7`count(*)` }).from(devices2);
+            const basicDeviceCount = await db.select({ count: sql6`count(*)` }).from(devices);
             const deviceCount = Number(basicDeviceCount[0]?.count) || 0;
             return {
               overall_health: {
@@ -7935,19 +8155,19 @@ var init_analytics_service = __esm({
           );
           try {
             const totalUsersResult = await Promise.race([
-              db2.select({ count: count4() }).from(users),
+              db.select({ count: count4() }).from(users),
               timeout
             ]);
             const totalUsers = totalUsersResult[0]?.count || 0;
             const activeUsersResult = await Promise.race([
-              db2.select({ count: count4() }).from(users).where(
-                sql7`${users.last_login} >= ${sql7.raw(`NOW() - INTERVAL '30 days'`)}`
+              db.select({ count: count4() }).from(users).where(
+                sql6`${users.last_login} >= ${sql6.raw(`NOW() - INTERVAL '30 days'`)}`
               ),
               timeout
             ]);
             const activeUsers = activeUsersResult[0]?.count || 0;
             const usbConnectionsResult = await Promise.race([
-              db2.select({ count: count4() }).from(usb_devices),
+              db.select({ count: count4() }).from(usb_devices),
               timeout
             ]);
             const usbConnections = usbConnectionsResult[0]?.count || 0;
@@ -8205,13 +8425,13 @@ var init_analytics_service = __esm({
       // Batch processing methods for large deployments
       async getBatchedDeviceBreakdown(field, timeout) {
         try {
-          const query = field === "os_name" ? db2.select({
-            os_name: devices2.os_name,
-            count: sql7`count(*)`
-          }).from(devices2).groupBy(devices2.os_name) : db2.select({
-            status: devices2.status,
-            count: sql7`count(*)`
-          }).from(devices2).groupBy(devices2.status);
+          const query = field === "os_name" ? db.select({
+            os_name: devices.os_name,
+            count: sql6`count(*)`
+          }).from(devices).groupBy(devices.os_name) : db.select({
+            status: devices.status,
+            count: sql6`count(*)`
+          }).from(devices).groupBy(devices.status);
           return await Promise.race([query, timeout]);
         } catch (error) {
           console.warn(`Batched ${field} query failed:`, error);
@@ -8221,7 +8441,7 @@ var init_analytics_service = __esm({
       async getBatchedSoftwareCount(timeout) {
         try {
           const result = await Promise.race([
-            db2.select({ count: sql7`count(*)` }).from(installed_software),
+            db.select({ count: sql6`count(*)` }).from(installed_software),
             timeout
           ]);
           return Number(result[0]?.count) || 0;
@@ -8232,7 +8452,7 @@ var init_analytics_service = __esm({
       }
       async getDeviceHealthBatched(limit = 100) {
         try {
-          const recentReports = await db2.select().from(device_reports).orderBy(desc7(device_reports.created_at)).limit(limit);
+          const recentReports = await db.select().from(device_reports).orderBy(desc7(device_reports.created_at)).limit(limit);
           return this.generateDeviceHealthData(recentReports);
         } catch (error) {
           console.warn("Batched device health query failed:", error);
@@ -9829,7 +10049,7 @@ var reports_storage_exports = {};
 __export(reports_storage_exports, {
   reportsStorage: () => reportsStorage
 });
-import { sql as sql8 } from "drizzle-orm";
+import { sql as sql7 } from "drizzle-orm";
 var ReportsStorage, reportsStorage;
 var init_reports_storage = __esm({
   "server/models/reports-storage.ts"() {
@@ -9838,7 +10058,7 @@ var init_reports_storage = __esm({
     ReportsStorage = class {
       async createReportsTable() {
         try {
-          await db2.execute(sql8`
+          await db.execute(sql7`
         CREATE TABLE IF NOT EXISTS reports (
           id TEXT PRIMARY KEY,
           title TEXT NOT NULL,
@@ -9857,7 +10077,7 @@ var init_reports_storage = __esm({
       }
       async saveReport(report) {
         try {
-          await db2.execute(sql8`
+          await db.execute(sql7`
         INSERT INTO reports (id, title, type, data, generated_at, time_range, user_id)
         VALUES (${report.id}, ${report.title}, ${report.type}, ${JSON.stringify(report.data)}, 
                 ${report.generated_at}, ${report.time_range}, ${report.user_id})
@@ -9876,7 +10096,7 @@ var init_reports_storage = __esm({
       }
       async getRecentReports(limit = 10) {
         try {
-          const result = await db2.execute(sql8`
+          const result = await db.execute(sql7`
         SELECT id, title, type, data, generated_at, time_range, user_id
         FROM reports
         ORDER BY generated_at DESC
@@ -9898,7 +10118,7 @@ var init_reports_storage = __esm({
       }
       async getReportById(id) {
         try {
-          const result = await db2.execute(sql8`
+          const result = await db.execute(sql7`
         SELECT id, title, type, data, generated_at, time_range, user_id
         FROM reports
         WHERE id = ${id}
@@ -9921,7 +10141,7 @@ var init_reports_storage = __esm({
       }
       async deleteReport(id) {
         try {
-          await db2.execute(sql8`DELETE FROM reports WHERE id = ${id}`);
+          await db.execute(sql7`DELETE FROM reports WHERE id = ${id}`);
           console.log(`Report ${id} deleted successfully`);
           return true;
         } catch (error) {
@@ -9934,20 +10154,374 @@ var init_reports_storage = __esm({
   }
 });
 
+// server/services/performance-service.ts
+var performance_service_exports = {};
+__export(performance_service_exports, {
+  performanceService: () => performanceService
+});
+var PerformanceService, performanceService;
+var init_performance_service = __esm({
+  "server/services/performance-service.ts"() {
+    "use strict";
+    init_storage();
+    PerformanceService = class {
+      baselines = /* @__PURE__ */ new Map();
+      async updateBaselines(deviceId, metrics) {
+        const deviceBaselines = this.baselines.get(deviceId) || [];
+        if (metrics.cpu_usage !== null) {
+          await this.updateMetricBaseline(
+            deviceId,
+            "cpu",
+            parseFloat(metrics.cpu_usage),
+            deviceBaselines
+          );
+        }
+        if (metrics.memory_usage !== null) {
+          await this.updateMetricBaseline(
+            deviceId,
+            "memory",
+            parseFloat(metrics.memory_usage),
+            deviceBaselines
+          );
+        }
+        if (metrics.disk_usage !== null) {
+          await this.updateMetricBaseline(
+            deviceId,
+            "disk",
+            parseFloat(metrics.disk_usage),
+            deviceBaselines
+          );
+        }
+        this.baselines.set(deviceId, deviceBaselines);
+      }
+      async updateMetricBaseline(deviceId, metricType, currentValue, baselines) {
+        let baseline = baselines.find((b) => b.metric_type === metricType);
+        if (!baseline) {
+          baseline = {
+            device_id: deviceId,
+            metric_type: metricType,
+            baseline_value: currentValue,
+            variance_threshold: this.getDefaultThreshold(metricType),
+            measurement_period: "7d",
+            created_at: /* @__PURE__ */ new Date(),
+            updated_at: /* @__PURE__ */ new Date()
+          };
+          baselines.push(baseline);
+        } else {
+          baseline.baseline_value = baseline.baseline_value * 0.8 + currentValue * 0.2;
+          baseline.updated_at = /* @__PURE__ */ new Date();
+        }
+        await this.checkForAnomalies(deviceId, metricType, currentValue, baseline);
+      }
+      getDefaultThreshold(metricType) {
+        switch (metricType) {
+          case "cpu":
+            return 25;
+          // 25% deviation
+          case "memory":
+            return 20;
+          // 20% deviation
+          case "disk":
+            return 15;
+          // 15% deviation
+          case "network":
+            return 50;
+          // 50% deviation
+          default:
+            return 30;
+        }
+      }
+      async checkForAnomalies(deviceId, metricType, currentValue, baseline) {
+        const deviationPercentage = Math.abs(
+          (currentValue - baseline.baseline_value) / baseline.baseline_value
+        ) * 100;
+        if (deviationPercentage > baseline.variance_threshold) {
+          const severity = deviationPercentage > 50 ? "high" : deviationPercentage > 30 ? "medium" : "low";
+          const existingAlerts = await this.getExistingAnomalyAlerts(deviceId, metricType);
+          const anomaly = {
+            device_id: deviceId,
+            metric_type: metricType,
+            current_value: currentValue,
+            baseline_value: baseline.baseline_value,
+            deviation_percentage: deviationPercentage,
+            severity,
+            detected_at: /* @__PURE__ */ new Date()
+          };
+          const alertMessage = `Performance anomaly detected: ${metricType} usage (${currentValue.toFixed(1)}%) deviates ${deviationPercentage.toFixed(1)}% from baseline`;
+          const recentAlert = existingAlerts.find(
+            (alert) => alert.metadata?.metric_type === metricType && this.isRecentAlert(alert.triggered_at)
+          );
+          if (recentAlert && this.shouldUpdateExistingAlert(recentAlert, currentValue, severity)) {
+            await storage.updateAlert(recentAlert.id, {
+              severity,
+              message: alertMessage,
+              metadata: {
+                ...recentAlert.metadata,
+                anomaly,
+                current_value: currentValue,
+                deviation_percentage: deviationPercentage,
+                previous_value: recentAlert.metadata?.current_value || baseline.baseline_value,
+                updated_at: (/* @__PURE__ */ new Date()).toISOString(),
+                update_count: (recentAlert.metadata?.update_count || 0) + 1
+              },
+              is_active: true
+            });
+          } else {
+            await storage.createAlert({
+              device_id: deviceId,
+              category: "performance",
+              severity,
+              message: alertMessage,
+              metadata: {
+                anomaly,
+                metric_type: metricType,
+                baseline_value: baseline.baseline_value,
+                current_value: currentValue,
+                deviation_percentage: deviationPercentage,
+                alert_type: "anomaly_detection",
+                created_at: (/* @__PURE__ */ new Date()).toISOString()
+              },
+              is_active: true
+            });
+          }
+        }
+      }
+      async getExistingAnomalyAlerts(deviceId, metricType) {
+        try {
+          return [];
+        } catch (error) {
+          console.error("Error fetching existing anomaly alerts:", error);
+          return [];
+        }
+      }
+      isRecentAlert(triggeredAt) {
+        const alertTime = new Date(triggeredAt).getTime();
+        const now = (/* @__PURE__ */ new Date()).getTime();
+        const hoursDiff = (now - alertTime) / (1e3 * 60 * 60);
+        return hoursDiff < 6;
+      }
+      shouldUpdateExistingAlert(existingAlert, newValue, newSeverity) {
+        const oldValue = existingAlert.metadata?.current_value || 0;
+        const valueChangePct = Math.abs((newValue - oldValue) / oldValue) * 100;
+        const severityChanged = existingAlert.severity !== newSeverity;
+        return severityChanged || valueChangePct > 5;
+      }
+      async generateResourcePredictions(deviceId) {
+        try {
+          console.log(`Generating resource predictions for device: ${deviceId}`);
+          const predictions = [];
+          const reports = await storage.getRecentDeviceReports(deviceId, 30);
+          const recentReports = reports;
+          if (recentReports.length < 7) {
+            return predictions;
+          }
+          const resources = ["cpu", "memory", "disk"];
+          for (const resource of resources) {
+            const values = recentReports.map((r) => parseFloat(r[`${resource}_usage`] || "0")).filter((v) => !isNaN(v));
+            if (values.length < 5) continue;
+            const trend = this.calculateTrend(values);
+            if (trend > 0.1) {
+              const currentAvg = values.slice(-7).reduce((a, b) => a + b, 0) / 7;
+              const daysToCapacity = (95 - currentAvg) / trend;
+              if (daysToCapacity > 0 && daysToCapacity < 365) {
+                predictions.push({
+                  device_id: deviceId,
+                  resource_type: resource,
+                  current_usage_trend: trend,
+                  predicted_capacity_date: new Date(
+                    Date.now() + daysToCapacity * 24 * 60 * 60 * 1e3
+                  ),
+                  confidence_level: Math.min(0.9, values.length / 30),
+                  recommendation: this.getResourceRecommendation(
+                    resource,
+                    daysToCapacity
+                  )
+                });
+              }
+            }
+          }
+          return predictions;
+        } catch (error) {
+          console.error("Error in generateResourcePredictions:", error);
+          return [];
+        }
+      }
+      calculateTrend(values) {
+        if (values.length < 2) return 0;
+        const n = values.length;
+        const sumX = n * (n - 1) / 2;
+        const sumY = values.reduce((a, b) => a + b, 0);
+        const sumXY = values.reduce((sum2, y, x) => sum2 + x * y, 0);
+        const sumXX = n * (n - 1) * (2 * n - 1) / 6;
+        return (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+      }
+      getResourceRecommendation(resource, daysToCapacity) {
+        if (daysToCapacity < 30) {
+          return `Urgent: ${resource} capacity will be reached in ${Math.round(daysToCapacity)} days. Immediate action required.`;
+        } else if (daysToCapacity < 90) {
+          return `Warning: ${resource} capacity will be reached in ${Math.round(daysToCapacity)} days. Plan for upgrade.`;
+        } else {
+          return `Monitor: ${resource} trending upward. Consider planning for future expansion.`;
+        }
+      }
+      async getApplicationPerformanceInsights(deviceId) {
+        try {
+          const { pool: pool3 } = await import("./db");
+          const reportResult = await pool3.query(
+            `
+        SELECT raw_data, collected_at, cpu_usage, memory_usage, disk_usage
+        FROM device_reports 
+        WHERE device_id = $1 
+        ORDER BY collected_at DESC 
+        LIMIT 1
+      `,
+            [deviceId]
+          );
+          if (reportResult.rows.length === 0) {
+            console.log(`No reports found for device ${deviceId}`);
+            return this.getDefaultInsights();
+          }
+          const report = reportResult.rows[0];
+          const rawData = report.raw_data;
+          console.log(`Processing performance data for device ${deviceId}:`, {
+            hasRawData: !!rawData,
+            reportTime: report.collected_at,
+            cpu: report.cpu_usage,
+            memory: report.memory_usage
+          });
+          const processes = rawData?.processes || rawData?.running_processes || [];
+          if (processes.length === 0) {
+            console.log(`No process data found for device ${deviceId}`);
+            if (report.cpu_usage || report.memory_usage) {
+              return {
+                top_cpu_consumers: [
+                  {
+                    name: "System Total",
+                    cpu_percent: parseFloat(report.cpu_usage || "0"),
+                    memory_percent: parseFloat(report.memory_usage || "0"),
+                    pid: 0
+                  }
+                ],
+                top_memory_consumers: [
+                  {
+                    name: "System Total",
+                    cpu_percent: parseFloat(report.cpu_usage || "0"),
+                    memory_percent: parseFloat(report.memory_usage || "0"),
+                    pid: 0
+                  }
+                ],
+                total_processes: 0,
+                system_load_analysis: {
+                  high_cpu_processes: parseFloat(report.cpu_usage || "0") > 80 ? 1 : 0,
+                  high_memory_processes: parseFloat(report.memory_usage || "0") > 85 ? 1 : 0
+                }
+              };
+            }
+            return this.getDefaultInsights();
+          }
+          console.log(`Found ${processes.length} processes for device ${deviceId}`);
+          const cpuSorted = processes.filter(
+            (p) => p.cpu_percent !== void 0 && p.cpu_percent !== null && parseFloat(p.cpu_percent.toString()) > 0
+          ).sort(
+            (a, b) => parseFloat(b.cpu_percent.toString()) - parseFloat(a.cpu_percent.toString())
+          ).slice(0, 10);
+          const memorySorted = processes.filter(
+            (p) => p.memory_percent !== void 0 && p.memory_percent !== null && parseFloat(p.memory_percent.toString()) > 0
+          ).sort(
+            (a, b) => parseFloat(b.memory_percent.toString()) - parseFloat(a.memory_percent.toString())
+          ).slice(0, 10);
+          const insights = {
+            top_cpu_consumers: cpuSorted.map((p) => ({
+              name: p.name || p.process_name || "Unknown",
+              cpu_percent: parseFloat(p.cpu_percent?.toString() || "0"),
+              memory_percent: parseFloat(p.memory_percent?.toString() || "0"),
+              pid: parseInt(p.pid?.toString() || "0")
+            })),
+            top_memory_consumers: memorySorted.map((p) => ({
+              name: p.name || p.process_name || "Unknown",
+              cpu_percent: parseFloat(p.cpu_percent?.toString() || "0"),
+              memory_percent: parseFloat(p.memory_percent?.toString() || "0"),
+              pid: parseInt(p.pid?.toString() || "0")
+            })),
+            total_processes: processes.length,
+            system_load_analysis: {
+              high_cpu_processes: processes.filter(
+                (p) => parseFloat(p.cpu_percent?.toString() || "0") > 50
+              ).length,
+              high_memory_processes: processes.filter(
+                (p) => parseFloat(p.memory_percent?.toString() || "0") > 10
+              ).length
+            }
+          };
+          console.log(`Performance insights for device ${deviceId}:`, {
+            topCpuCount: insights.top_cpu_consumers.length,
+            topMemoryCount: insights.top_memory_consumers.length,
+            totalProcesses: insights.total_processes
+          });
+          return insights;
+        } catch (error) {
+          console.error("Error getting performance insights:", error);
+          return this.getDefaultInsights();
+        }
+      }
+      getDefaultInsights() {
+        return {
+          top_cpu_consumers: [],
+          top_memory_consumers: [],
+          total_processes: 0,
+          system_load_analysis: {
+            high_cpu_processes: 0,
+            high_memory_processes: 0
+          }
+        };
+      }
+    };
+    performanceService = new PerformanceService();
+  }
+});
+
 // server/routes/analytics-routes.ts
 var analytics_routes_exports = {};
 __export(analytics_routes_exports, {
   default: () => analytics_routes_default
 });
 import { Router as Router6 } from "express";
-var router6, analytics_routes_default;
+import { sql as sql8 } from "drizzle-orm";
+var router6, authenticateToken, analytics_routes_default;
 var init_analytics_routes = __esm({
   "server/routes/analytics-routes.ts"() {
     "use strict";
     init_analytics_service();
     init_reports_storage();
+    init_auth();
+    init_response();
+    init_db();
+    init_schema();
     router6 = Router6();
-    router6.get("/performance", async (req, res) => {
+    authenticateToken = async (req, res, next) => {
+      const authHeader = req.headers["authorization"];
+      const token = AuthUtils.extractTokenFromHeader(authHeader || "");
+      if (!token) {
+        return ResponseUtils.unauthorized(res, "Access token required");
+      }
+      try {
+        const decoded = AuthUtils.verifyToken(token);
+        const user = await AuthUtils.getUserById(decoded.userId || decoded.id);
+        if (!user) {
+          return ResponseUtils.forbidden(res, "User not found");
+        }
+        const statusCheck = AuthUtils.validateUserStatus(user);
+        if (!statusCheck.valid) {
+          return ResponseUtils.forbidden(res, statusCheck.message);
+        }
+        req.user = user;
+        next();
+      } catch (error) {
+        console.error("Token verification error:", error);
+        return ResponseUtils.forbidden(res, "Invalid token");
+      }
+    };
+    router6.get("/performance", authenticateToken, async (req, res) => {
       try {
         const { timeRange = "7d" } = req.query;
         console.log(`Generating performance report for timeRange: ${timeRange}`);
@@ -9979,7 +10553,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/availability", async (req, res) => {
+    router6.get("/availability", authenticateToken, async (req, res) => {
       try {
         const { timeRange = "7d" } = req.query;
         console.log(`Generating availability report for timeRange: ${timeRange}`);
@@ -10298,7 +10872,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/realtime", async (req, res) => {
+    router6.get("/realtime", authenticateToken, async (req, res) => {
       req.setTimeout(2e3);
       try {
         console.log("Fetching real-time performance metrics...");
@@ -10536,7 +11110,7 @@ var init_analytics_routes = __esm({
       try {
         const { reportTypes = ["performance", "system-health", "asset-inventory"], timeRange = "7d", format: format2 = "docx", batchSize = 50 } = req.body;
         console.log(`Generating enterprise-scale report for ${reportTypes.join(", ")}, timeRange: ${timeRange}, batchSize: ${batchSize}`);
-        const deviceCountResult = await db.select({ count: sql`count(*)` }).from(devices);
+        const deviceCountResult = await db.select({ count: sql8`count(*)` }).from(devices);
         const deviceCount = Number(deviceCountResult[0]?.count) || 0;
         if (deviceCount > 200) {
           return res.status(413).json({
@@ -10770,6 +11344,90 @@ var init_analytics_routes = __esm({
         res.status(500).json({ message: "Failed to generate PDF report" });
       }
     });
+    router6.get("/performance/insights/:deviceId", authenticateToken, async (req, res) => {
+      try {
+        const { deviceId } = req.params;
+        const { performanceService: performanceService2 } = await Promise.resolve().then(() => (init_performance_service(), performance_service_exports));
+        const insights = await performanceService2.getApplicationPerformanceInsights(deviceId);
+        res.json(insights);
+      } catch (error) {
+        console.error("Error getting performance insights:", error);
+        res.status(500).json({
+          error: "Failed to get performance insights",
+          message: error.message
+        });
+      }
+    });
+    router6.get("/performance/predictions/:deviceId", authenticateToken, async (req, res) => {
+      try {
+        const { deviceId } = req.params;
+        const { performanceService: performanceService2 } = await Promise.resolve().then(() => (init_performance_service(), performance_service_exports));
+        const predictions = await performanceService2.generateResourcePredictions(deviceId);
+        res.json(predictions);
+      } catch (error) {
+        console.error("Error getting performance predictions:", error);
+        res.status(500).json({
+          error: "Failed to get performance predictions",
+          message: error.message
+        });
+      }
+    });
+    router6.get("/performance/overview", authenticateToken, async (req, res) => {
+      try {
+        const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
+        const devices2 = await storage3.getDevices();
+        const performanceOverview = {
+          totalDevices: devices2.length,
+          onlineDevices: devices2.filter((d) => d.status === "online").length,
+          avgCpuUsage: 0,
+          avgMemoryUsage: 0,
+          avgDiskUsage: 0,
+          criticalDevices: 0,
+          performanceAlerts: 0
+        };
+        const onlineDevices = devices2.filter((d) => d.status === "online");
+        if (onlineDevices.length > 0) {
+          const cpuSum = onlineDevices.reduce((sum2, d) => sum2 + parseFloat(d.latest_report?.cpu_usage || "0"), 0);
+          const memSum = onlineDevices.reduce((sum2, d) => sum2 + parseFloat(d.latest_report?.memory_usage || "0"), 0);
+          const diskSum = onlineDevices.reduce((sum2, d) => sum2 + parseFloat(d.latest_report?.disk_usage || "0"), 0);
+          performanceOverview.avgCpuUsage = cpuSum / onlineDevices.length;
+          performanceOverview.avgMemoryUsage = memSum / onlineDevices.length;
+          performanceOverview.avgDiskUsage = diskSum / onlineDevices.length;
+          performanceOverview.criticalDevices = onlineDevices.filter(
+            (d) => parseFloat(d.latest_report?.cpu_usage || "0") > 90 || parseFloat(d.latest_report?.memory_usage || "0") > 90 || parseFloat(d.latest_report?.disk_usage || "0") > 95
+          ).length;
+        }
+        res.json(performanceOverview);
+      } catch (error) {
+        console.error("Error getting performance overview:", error);
+        res.status(500).json({
+          error: "Failed to get performance overview",
+          message: error.message
+        });
+      }
+    });
+    router6.get("/performance/trends", authenticateToken, async (req, res) => {
+      try {
+        const { timeRange = "24h" } = req.query;
+        const trends = {
+          timeRange,
+          dataPoints: [],
+          summary: {
+            cpuTrend: "stable",
+            memoryTrend: "increasing",
+            diskTrend: "stable",
+            alertsTrend: "decreasing"
+          }
+        };
+        res.json(trends);
+      } catch (error) {
+        console.error("Error getting performance trends:", error);
+        res.status(500).json({
+          error: "Failed to get performance trends",
+          message: error.message
+        });
+      }
+    });
     analytics_routes_default = router6;
   }
 });
@@ -10792,7 +11450,7 @@ var init_user_routes = __esm({
     router7 = Router7();
     upload = multer({
       storage: multer.memoryStorage(),
-      limits: { fileSize: 5 * 1024 * 1024 }
+      limits: { fileSize: 5 * 1024 * 124 }
       // 5MB limit
     });
     router7.post("/import-end-users", upload.single("file"), async (req, res) => {
@@ -11456,7 +12114,7 @@ __export(knowledge_routes_exports, {
 import { Router as Router8 } from "express";
 import { eq as eq8, and as and8, or as or7, sql as sql9, desc as desc8, ilike as ilike2, count as count5, like as like5 } from "drizzle-orm";
 import jwt4 from "jsonwebtoken";
-var router8, storage2, authenticateToken;
+var router8, storage2, authenticateToken2;
 var init_knowledge_routes = __esm({
   "server/routes/knowledge-routes.ts"() {
     "use strict";
@@ -11466,7 +12124,7 @@ var init_knowledge_routes = __esm({
     init_knowledge_ai_service();
     router8 = Router8();
     storage2 = new TicketStorage();
-    authenticateToken = (req, res, next) => {
+    authenticateToken2 = (req, res, next) => {
       const authHeader = req.headers["authorization"];
       const token = authHeader && authHeader.split(" ")[1];
       if (!token) {
@@ -11483,7 +12141,7 @@ var init_knowledge_routes = __esm({
         next();
       });
     };
-    router8.get("/", authenticateToken, async (req, res) => {
+    router8.get("/", authenticateToken2, async (req, res) => {
       try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
@@ -11509,8 +12167,8 @@ var init_knowledge_routes = __esm({
           );
         }
         const whereClause = conditions.length > 0 ? and8(...conditions) : void 0;
-        const [{ total }] = await db2.select({ total: count5() }).from(knowledgeBase).where(whereClause);
-        const articles = await db2.select().from(knowledgeBase).where(whereClause).orderBy(desc8(knowledgeBase.helpful_votes), desc8(knowledgeBase.views), desc8(knowledgeBase.created_at)).limit(limit).offset((page - 1) * limit);
+        const [{ total }] = await db.select({ total: count5() }).from(knowledgeBase).where(whereClause);
+        const articles = await db.select().from(knowledgeBase).where(whereClause).orderBy(desc8(knowledgeBase.helpful_votes), desc8(knowledgeBase.views), desc8(knowledgeBase.created_at)).limit(limit).offset((page - 1) * limit);
         console.log(`Found ${articles.length} articles in database (total: ${total})`);
         const response = {
           data: articles,
@@ -11543,7 +12201,7 @@ var init_knowledge_routes = __esm({
           console.log(`Search words: ${searchWords.join(", ")}`);
           if (searchWords.length > 0) {
             try {
-              const exactMatches = await db2.select().from(knowledgeBase).where(
+              const exactMatches = await db.select().from(knowledgeBase).where(
                 and8(
                   eq8(knowledgeBase.status, "published"),
                   or7(
@@ -11562,7 +12220,7 @@ var init_knowledge_routes = __esm({
                   ilike2(knowledgeBase.content, `%${word}%`)
                 )
               );
-              const wordMatches = await db2.select().from(knowledgeBase).where(
+              const wordMatches = await db.select().from(knowledgeBase).where(
                 and8(
                   eq8(knowledgeBase.status, "published"),
                   or7(...wordSearches)
@@ -11601,7 +12259,7 @@ var init_knowledge_routes = __esm({
     router8.get("/related/:ticketId", async (req, res) => {
       try {
         const { ticketId } = req.params;
-        const ticket = await db2.select().from(tickets).where(eq8(tickets.id, ticketId)).limit(1);
+        const ticket = await db.select().from(tickets).where(eq8(tickets.id, ticketId)).limit(1);
         if (!ticket.length) {
           return res.status(404).json({ error: "Ticket not found" });
         }
@@ -11622,7 +12280,7 @@ var init_knowledge_routes = __esm({
             (word) => ilike2(knowledgeBase.content, `%${word}%`)
           );
           try {
-            const exactMatches = await db2.select().from(knowledgeBase).where(
+            const exactMatches = await db.select().from(knowledgeBase).where(
               and8(
                 eq8(knowledgeBase.status, "published"),
                 or7(exactPhraseSearch, exactContentSearch)
@@ -11633,7 +12291,7 @@ var init_knowledge_routes = __esm({
             if (relatedArticles.length < 5) {
               const remainingLimit = 5 - relatedArticles.length;
               const existingIds = relatedArticles.map((a) => a.id);
-              const wordMatches = await db2.select().from(knowledgeBase).where(
+              const wordMatches = await db.select().from(knowledgeBase).where(
                 and8(
                   eq8(knowledgeBase.status, "published"),
                   sql9`${knowledgeBase.id} NOT IN (${existingIds.length > 0 ? existingIds.map(() => "?").join(",") : "NULL"})`,
@@ -11648,7 +12306,7 @@ var init_knowledge_routes = __esm({
             }
           } catch (searchError) {
             console.error("Header-based search failed:", searchError);
-            relatedArticles = await db2.select().from(knowledgeBase).where(
+            relatedArticles = await db.select().from(knowledgeBase).where(
               and8(
                 eq8(knowledgeBase.status, "published"),
                 or7(
@@ -11661,7 +12319,7 @@ var init_knowledge_routes = __esm({
         }
         if (relatedArticles.length === 0) {
           console.log("No header-based matches found, returning top articles");
-          relatedArticles = await db2.select().from(knowledgeBase).where(eq8(knowledgeBase.status, "published")).orderBy(desc8(knowledgeBase.helpful_votes), desc8(knowledgeBase.views)).limit(3);
+          relatedArticles = await db.select().from(knowledgeBase).where(eq8(knowledgeBase.status, "published")).orderBy(desc8(knowledgeBase.helpful_votes), desc8(knowledgeBase.views)).limit(3);
         }
         console.log(`Returning ${relatedArticles.length} related articles for ticket: "${ticketData.title}"`);
         relatedArticles.forEach((article, index) => {
@@ -11673,7 +12331,7 @@ var init_knowledge_routes = __esm({
         res.status(500).json({ error: "Failed to fetch related articles", details: error.message });
       }
     });
-    router8.get("/:id", authenticateToken, async (req, res) => {
+    router8.get("/:id", authenticateToken2, async (req, res) => {
       try {
         const article = await storage2.getKBArticleById(req.params.id);
         if (!article) {
@@ -11685,7 +12343,7 @@ var init_knowledge_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router8.post("/", authenticateToken, async (req, res) => {
+    router8.post("/", authenticateToken2, async (req, res) => {
       try {
         const { title, content, category } = req.body;
         const newArticle = {
@@ -11722,13 +12380,13 @@ var init_notification_service = __esm({
         this.subscribers.delete(id);
       }
       notify(data) {
-        for (const callback of this.subscribers.values()) {
+        this.subscribers.forEach((callback) => {
           try {
             callback(data);
           } catch (error) {
             console.error("Error in notification callback:", error);
           }
-        }
+        });
       }
       async sendAlert(alert) {
         this.notify({
@@ -12059,7 +12717,7 @@ var init_sla_escalation_service = __esm({
         try {
           console.log("\u{1F504} Starting SLA escalation check...");
           const now = /* @__PURE__ */ new Date();
-          const openTickets = await db2.select().from(tickets).where(
+          const openTickets = await db.select().from(tickets).where(
             and9(
               not(inArray2(tickets.status, ["resolved", "closed", "cancelled"])),
               not(eq9(tickets.sla_resolution_due, null))
@@ -12070,7 +12728,7 @@ var init_sla_escalation_service = __esm({
             if (ticket.sla_resolution_due) {
               const isBreached = now > new Date(ticket.sla_resolution_due);
               if (isBreached !== ticket.sla_breached) {
-                await db2.update(tickets).set({ sla_breached: isBreached, updated_at: now }).where(eq9(tickets.id, ticket.id));
+                await db.update(tickets).set({ sla_breached: isBreached, updated_at: now }).where(eq9(tickets.id, ticket.id));
               }
             }
           }
@@ -12184,7 +12842,7 @@ var init_sla_escalation_service = __esm({
             default:
               role = "manager";
           }
-          const [target] = await db2.select().from(users).where(eq9(users.role, role)).limit(1);
+          const [target] = await db.select().from(users).where(eq9(users.role, role)).limit(1);
           return target;
         } catch (error) {
           console.error("Error getting escalation target:", error);
@@ -12239,7 +12897,7 @@ Action required: Immediate attention needed`;
       }
       async sendEscalationSummary(alerts2) {
         try {
-          const [managers] = await db2.select().from(users).where(inArray2(users.role, ["manager", "admin"]));
+          const [managers] = await db.select().from(users).where(inArray2(users.role, ["manager", "admin"]));
           const summary = this.createEscalationSummary(alerts2);
           const dashboardData = await this.getSLADashboardData();
           for (const manager of managers) {
@@ -12281,7 +12939,7 @@ Please review and take appropriate action.`;
       async getSLADashboardData() {
         try {
           const now = /* @__PURE__ */ new Date();
-          const openTickets = await db2.select().from(tickets).where(
+          const openTickets = await db.select().from(tickets).where(
             and9(
               not(inArray2(tickets.status, ["resolved", "closed", "cancelled"])),
               not(eq9(tickets.sla_resolution_due, null))
@@ -12383,7 +13041,7 @@ var init_sla_monitor_service = __esm({
           const currentlyPaused = ticket.sla_paused || false;
           if (shouldBePaused && !currentlyPaused) {
             try {
-              await db2.update(tickets2).set({
+              await db.update(tickets2).set({
                 sla_paused: true,
                 sla_pause_reason: `Ticket moved to ${ticket.status} status`,
                 sla_paused_at: now,
@@ -12398,7 +13056,7 @@ var init_sla_monitor_service = __esm({
             try {
               const pauseDuration = Math.floor((now.getTime() - new Date(ticket.sla_paused_at).getTime()) / (1e3 * 60));
               const totalPausedTime = (ticket.sla_total_paused_time || 0) + pauseDuration;
-              await db2.update(tickets2).set({
+              await db.update(tickets2).set({
                 sla_paused: false,
                 sla_pause_reason: null,
                 sla_resumed_at: now,
@@ -12417,7 +13075,7 @@ var init_sla_monitor_service = __esm({
         try {
           console.log("\u{1F50D} Checking for SLA breaches...");
           const now = /* @__PURE__ */ new Date();
-          const openTickets = await db2.select().from(tickets).where(
+          const openTickets = await db.select().from(tickets).where(
             not2(inArray3(tickets.status, ["resolved", "closed", "cancelled"]))
           );
           await this.handleSLAPauseResume(openTickets);
@@ -12441,7 +13099,7 @@ var init_sla_monitor_service = __esm({
                   new Date(ticket.created_at),
                   policy
                 );
-                await db2.update(tickets).set({
+                await db.update(tickets).set({
                   sla_policy_id: policy.id,
                   sla_policy: policy.name,
                   sla_response_time: policy.response_time,
@@ -12489,7 +13147,7 @@ var init_sla_monitor_service = __esm({
             }
             if (needsUpdate) {
               updateData.updated_at = now;
-              await db2.update(tickets).set(updateData).where(eq10(tickets.id, ticket.id));
+              await db.update(tickets).set(updateData).where(eq10(tickets.id, ticket.id));
               updates++;
               console.log(`\u26A0\uFE0F  SLA breach detected for ticket ${ticket.ticket_number} (Created: ${ticket.created_at})`);
             }
@@ -12533,10 +13191,10 @@ Immediate attention required!`;
               new Date(ticket[breachType === "response" ? "response_due_at" : "resolve_due_at"])
             );
           }
-          const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { users: users2 } = await Promise.resolve().then(() => (init_user_schema(), user_schema_exports));
           const { eq: eq12 } = await import("drizzle-orm");
-          const managers = await db6.select().from(users2).where(eq12(users2.role, "manager"));
+          const managers = await db5.select().from(users2).where(eq12(users2.role, "manager"));
           for (const manager of managers) {
             await notificationService.createNotification({
               user_email: manager.email,
@@ -12555,7 +13213,7 @@ Immediate attention required!`;
       // Get SLA metrics for dashboard
       async getSLAMetrics() {
         try {
-          const allTickets = await db2.select().from(tickets);
+          const allTickets = await db.select().from(tickets);
           const openTickets = allTickets.filter(
             (t) => !["resolved", "closed", "cancelled"].includes(t.status)
           );
@@ -12605,7 +13263,7 @@ Immediate attention required!`;
             }
             if (needsUpdate) {
               updateData.updated_at = now;
-              await db2.update(tickets).set(updateData).where(eq10(tickets.id, ticket.id));
+              await db.update(tickets).set(updateData).where(eq10(tickets.id, ticket.id));
             }
           }
           const totalTicketsWithSLA = ticketsWithSLA.length;
@@ -12635,7 +13293,7 @@ Immediate attention required!`;
       }
       async columnExists(columnName) {
         try {
-          const result = await db2.execute(`
+          const result = await db.execute(`
         SELECT 1 FROM information_schema.columns 
         WHERE table_name = 'tickets' AND column_name = '${columnName}'
       `);
@@ -12697,10 +13355,10 @@ function registerSLARoutes(app2) {
       const { id } = req.params;
       const { reason } = req.body;
       const now = /* @__PURE__ */ new Date();
-      const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
       const { eq: eq12 } = await import("drizzle-orm");
-      await db6.update(tickets2).set({
+      await db5.update(tickets2).set({
         sla_paused: true,
         sla_pause_reason: reason || "Manually paused",
         sla_paused_at: now,
@@ -12716,10 +13374,10 @@ function registerSLARoutes(app2) {
     try {
       const { id } = req.params;
       const now = /* @__PURE__ */ new Date();
-      const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
       const { eq: eq12 } = await import("drizzle-orm");
-      const [ticket] = await db6.select().from(tickets2).where(eq12(tickets2.id, id));
+      const [ticket] = await db5.select().from(tickets2).where(eq12(tickets2.id, id));
       if (!ticket || !ticket.sla_paused_at) {
         return res.status(400).json({ error: "Ticket SLA is not paused" });
       }
@@ -12727,7 +13385,7 @@ function registerSLARoutes(app2) {
         (now.getTime() - new Date(ticket.sla_paused_at).getTime()) / (1e3 * 60)
       );
       const totalPausedTime = (ticket.sla_total_paused_time || 0) + pauseDuration;
-      await db6.update(tickets2).set({
+      await db5.update(tickets2).set({
         sla_paused: false,
         sla_pause_reason: null,
         sla_resumed_at: now,
@@ -12755,10 +13413,10 @@ function registerSLARoutes(app2) {
   });
   app2.get("/api/sla/breach-details", async (req, res) => {
     try {
-      const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
       const { not: not3, inArray: inArray4, or: or8, eq: eq12 } = await import("drizzle-orm");
-      const breachedTickets = await db6.select().from(tickets2).where(
+      const breachedTickets = await db5.select().from(tickets2).where(
         and(
           not3(inArray4(tickets2.status, ["resolved", "closed", "cancelled"])),
           or8(
@@ -12803,9 +13461,9 @@ function registerSLARoutes(app2) {
   });
   app2.post("/api/sla/policies", async (req, res) => {
     try {
-      const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { slaPolicies: slaPolicies3 } = await Promise.resolve().then(() => (init_sla_schema(), sla_schema_exports));
-      const [policy] = await db6.insert(slaPolicies3).values(req.body).returning();
+      const [policy] = await db5.insert(slaPolicies3).values(req.body).returning();
       res.status(201).json(policy);
     } catch (error) {
       console.error("Error creating SLA policy:", error);
@@ -12814,9 +13472,9 @@ function registerSLARoutes(app2) {
   });
   app2.get("/api/sla/policies", async (req, res) => {
     try {
-      const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { slaPolicies: slaPolicies3 } = await Promise.resolve().then(() => (init_sla_schema(), sla_schema_exports));
-      const policies = await db6.select().from(slaPolicies3);
+      const policies = await db5.select().from(slaPolicies3);
       res.json(policies);
     } catch (error) {
       console.error("Error fetching SLA policies:", error);
@@ -12825,10 +13483,10 @@ function registerSLARoutes(app2) {
   });
   app2.post("/api/sla/sync-tickets", async (req, res) => {
     try {
-      const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
       const { eq: eq12, isNull: isNull3, not: not3, inArray: inArray4 } = await import("drizzle-orm");
-      const ticketsToUpdate = await db6.select().from(tickets2).where(isNull3(tickets2.sla_resolution_due));
+      const ticketsToUpdate = await db5.select().from(tickets2).where(isNull3(tickets2.sla_resolution_due));
       let updated = 0;
       for (const ticket of ticketsToUpdate) {
         const { ticketStorage: ticketStorage2 } = await Promise.resolve().then(() => (init_ticket_storage(), ticket_storage_exports));
@@ -12837,7 +13495,7 @@ function registerSLARoutes(app2) {
         const slaResponseDue = new Date(baseTime.getTime() + slaTargets.responseTime * 60 * 1e3);
         const slaResolutionDue = new Date(baseTime.getTime() + slaTargets.resolutionTime * 60 * 1e3);
         const isBreached = /* @__PURE__ */ new Date() > slaResolutionDue && !["resolved", "closed", "cancelled"].includes(ticket.status);
-        await db6.update(tickets2).set({
+        await db5.update(tickets2).set({
           sla_policy: slaTargets.policy,
           sla_response_time: slaTargets.responseTime,
           sla_resolution_time: slaTargets.resolutionTime,
@@ -12902,944 +13560,6 @@ var init_sla_routes = __esm({
   }
 });
 
-// server/services/code-diagnostics-service.ts
-import { promises as fs2 } from "fs";
-import { join, extname, relative } from "path";
-import { exec } from "child_process";
-import { promisify } from "util";
-var execAsync, CodeDiagnosticsService;
-var init_code_diagnostics_service = __esm({
-  "server/services/code-diagnostics-service.ts"() {
-    "use strict";
-    execAsync = promisify(exec);
-    CodeDiagnosticsService = class {
-      rootPath;
-      excludePaths = [
-        "node_modules",
-        ".git",
-        "dist",
-        "build",
-        ".next",
-        "coverage",
-        ".replit",
-        "attached_assets"
-      ];
-      constructor(rootPath = process.cwd()) {
-        this.rootPath = rootPath;
-      }
-      async runComprehensiveDiagnostics() {
-        console.log("\u{1F50D} Starting comprehensive code diagnostics...");
-        const files = await this.getAllProjectFiles();
-        const fileDiagnostics = [];
-        let totalLines = 0;
-        let totalSize = 0;
-        const languages = {};
-        const allIssues = [];
-        for (const file of files) {
-          try {
-            const diagnostics = await this.analyzeFile(file);
-            fileDiagnostics.push(diagnostics);
-            totalLines += diagnostics.lines;
-            totalSize += diagnostics.size;
-            languages[diagnostics.language] = (languages[diagnostics.language] || 0) + 1;
-            allIssues.push(...diagnostics.issues);
-          } catch (error) {
-            console.warn(`Failed to analyze ${file}:`, error.message);
-          }
-        }
-        const issueCount = {
-          errors: allIssues.filter((i) => i.severity === "error").length,
-          warnings: allIssues.filter((i) => i.severity === "warning").length,
-          info: allIssues.filter((i) => i.severity === "info").length
-        };
-        const recommendations = this.generateRecommendations(fileDiagnostics, allIssues);
-        const securityIssues = allIssues.filter((i) => i.type.includes("security"));
-        const performanceIssues = allIssues.filter((i) => i.type.includes("performance"));
-        const qualityMetrics = this.calculateQualityMetrics(fileDiagnostics);
-        return {
-          overview: {
-            totalFiles: files.length,
-            totalLines,
-            totalSize,
-            languages,
-            issueCount
-          },
-          files: fileDiagnostics,
-          recommendations,
-          securityIssues,
-          performanceIssues,
-          qualityMetrics
-        };
-      }
-      async getAllProjectFiles() {
-        const files = [];
-        const scanDirectory = async (dir) => {
-          try {
-            const entries = await fs2.readdir(dir, { withFileTypes: true });
-            for (const entry of entries) {
-              const fullPath = join(dir, entry.name);
-              const relativePath = relative(this.rootPath, fullPath);
-              if (this.excludePaths.some((excluded) => relativePath.startsWith(excluded))) {
-                continue;
-              }
-              if (entry.isDirectory()) {
-                await scanDirectory(fullPath);
-              } else if (entry.isFile()) {
-                const ext = extname(entry.name);
-                if (this.isCodeFile(ext)) {
-                  files.push(fullPath);
-                }
-              }
-            }
-          } catch (error) {
-            console.warn(`Failed to scan directory ${dir}:`, error.message);
-          }
-        };
-        await scanDirectory(this.rootPath);
-        return files;
-      }
-      isCodeFile(extension) {
-        const codeExtensions = [
-          ".ts",
-          ".tsx",
-          ".js",
-          ".jsx",
-          ".py",
-          ".sql",
-          ".json",
-          ".md",
-          ".css",
-          ".scss",
-          ".html",
-          ".vue",
-          ".go",
-          ".java",
-          ".c",
-          ".cpp",
-          ".h",
-          ".hpp",
-          ".cs",
-          ".php",
-          ".rb",
-          ".rs",
-          ".sh",
-          ".yaml",
-          ".yml"
-        ];
-        return codeExtensions.includes(extension.toLowerCase());
-      }
-      async analyzeFile(filePath) {
-        const content = await fs2.readFile(filePath, "utf-8");
-        const stats = await fs2.stat(filePath);
-        const extension = extname(filePath);
-        const language = this.getLanguageFromExtension(extension);
-        const lines = content.split("\n").length;
-        const issues = [];
-        let complexity = 0;
-        if (stats.size > 10 * 1024 * 1024) {
-          issues.push({
-            severity: "warning",
-            type: "file-size",
-            message: "File is very large (>10MB)",
-            file: filePath,
-            suggestion: "Consider splitting this file into smaller modules"
-          });
-        }
-        if (lines > 1e3) {
-          issues.push({
-            severity: "warning",
-            type: "file-length",
-            message: `File has ${lines} lines`,
-            file: filePath,
-            suggestion: "Consider breaking this file into smaller components"
-          });
-        }
-        switch (language) {
-          case "typescript":
-          case "javascript":
-            issues.push(...await this.analyzeJavaScriptTypeScript(content, filePath));
-            complexity = this.calculateJSComplexity(content);
-            break;
-          case "python":
-            issues.push(...await this.analyzePython(content, filePath));
-            complexity = this.calculatePythonComplexity(content);
-            break;
-          case "sql":
-            issues.push(...this.analyzeSQL(content, filePath));
-            break;
-          case "json":
-            issues.push(...this.analyzeJSON(content, filePath));
-            break;
-        }
-        issues.push(...this.analyzeSecurityIssues(content, filePath, language));
-        issues.push(...this.analyzePerformanceIssues(content, filePath, language));
-        return {
-          file: relative(this.rootPath, filePath),
-          size: stats.size,
-          lines,
-          language,
-          complexity,
-          issues,
-          metrics: {
-            cyclomaticComplexity: complexity,
-            maintainabilityIndex: this.calculateMaintainabilityIndex(content, complexity),
-            duplicateLines: this.findDuplicateLines(content),
-            testCoverage: this.estimateTestCoverage(content, filePath)
-          }
-        };
-      }
-      async analyzeJavaScriptTypeScript(content, filePath) {
-        const issues = [];
-        const lines = content.split("\n");
-        lines.forEach((line, index) => {
-          const lineNum = index + 1;
-          if (line.includes("console.log") && !line.includes("//")) {
-            issues.push({
-              severity: "warning",
-              type: "debug-code",
-              message: "Console.log statement found",
-              file: filePath,
-              line: lineNum,
-              suggestion: "Remove debug console.log statements in production"
-            });
-          }
-          if (line.includes("TODO") || line.includes("FIXME")) {
-            issues.push({
-              severity: "info",
-              type: "todo",
-              message: "TODO/FIXME comment found",
-              file: filePath,
-              line: lineNum,
-              suggestion: "Address TODO/FIXME comments"
-            });
-          }
-          if (line.length > 120) {
-            issues.push({
-              severity: "warning",
-              type: "line-length",
-              message: `Line exceeds 120 characters (${line.length})`,
-              file: filePath,
-              line: lineNum,
-              suggestion: "Break long lines for better readability"
-            });
-          }
-          if (line.trim().startsWith("import") && line.includes("{") && !line.includes("*")) {
-            const importMatch = line.match(/import\s*{([^}]+)}/);
-            if (importMatch) {
-              const imports = importMatch[1].split(",").map((i) => i.trim());
-              imports.forEach((imp) => {
-                if (!content.includes(imp.replace(/\s+as\s+\w+/, ""))) {
-                  issues.push({
-                    severity: "warning",
-                    type: "unused-import",
-                    message: `Possibly unused import: ${imp}`,
-                    file: filePath,
-                    line: lineNum,
-                    suggestion: "Remove unused imports"
-                  });
-                }
-              });
-            }
-          }
-          if (line.includes("await ") && !content.includes("try") && !content.includes("catch")) {
-            issues.push({
-              severity: "warning",
-              type: "error-handling",
-              message: "Async operation without error handling",
-              file: filePath,
-              line: lineNum,
-              suggestion: "Add try-catch blocks for async operations"
-            });
-          }
-        });
-        if (filePath.endsWith(".ts") || filePath.endsWith(".tsx")) {
-          if (content.includes("any") && !content.includes("// @ts-ignore")) {
-            const anyMatches = content.match(/:\s*any/g);
-            if (anyMatches) {
-              issues.push({
-                severity: "warning",
-                type: "typescript",
-                message: `Found ${anyMatches.length} 'any' type usage(s)`,
-                file: filePath,
-                suggestion: "Replace any types with specific types"
-              });
-            }
-          }
-        }
-        return issues;
-      }
-      async analyzePython(content, filePath) {
-        const issues = [];
-        const lines = content.split("\n");
-        lines.forEach((line, index) => {
-          const lineNum = index + 1;
-          if (line.includes("print(") && !line.trim().startsWith("#")) {
-            issues.push({
-              severity: "warning",
-              type: "debug-code",
-              message: "Print statement found",
-              file: filePath,
-              line: lineNum,
-              suggestion: "Use logging instead of print statements"
-            });
-          }
-          if (line.length > 79) {
-            issues.push({
-              severity: "warning",
-              type: "line-length",
-              message: `Line exceeds 79 characters (${line.length})`,
-              file: filePath,
-              line: lineNum,
-              suggestion: "Follow PEP 8 line length guidelines"
-            });
-          }
-          if (line.trim().startsWith("def ") && !line.includes("->") && !line.includes("__init__")) {
-            issues.push({
-              severity: "info",
-              type: "type-hints",
-              message: "Function missing type hints",
-              file: filePath,
-              line: lineNum,
-              suggestion: "Add type hints for better code documentation"
-            });
-          }
-        });
-        return issues;
-      }
-      analyzeSQL(content, filePath) {
-        const issues = [];
-        const lines = content.split("\n");
-        lines.forEach((line, index) => {
-          const lineNum = index + 1;
-          const upperLine = line.toUpperCase();
-          if (upperLine.includes("SELECT *")) {
-            issues.push({
-              severity: "warning",
-              type: "sql-performance",
-              message: "SELECT * usage found",
-              file: filePath,
-              line: lineNum,
-              suggestion: "Specify column names instead of using SELECT *"
-            });
-          }
-          if ((upperLine.includes("UPDATE ") || upperLine.includes("DELETE ")) && !upperLine.includes("WHERE")) {
-            issues.push({
-              severity: "error",
-              type: "sql-safety",
-              message: "UPDATE/DELETE without WHERE clause",
-              file: filePath,
-              line: lineNum,
-              suggestion: "Always include WHERE clause in UPDATE/DELETE statements"
-            });
-          }
-        });
-        return issues;
-      }
-      analyzeJSON(content, filePath) {
-        const issues = [];
-        try {
-          JSON.parse(content);
-        } catch (error) {
-          issues.push({
-            severity: "error",
-            type: "json-syntax",
-            message: "Invalid JSON syntax",
-            file: filePath,
-            suggestion: "Fix JSON syntax errors"
-          });
-        }
-        return issues;
-      }
-      analyzeSecurityIssues(content, filePath, language) {
-        const issues = [];
-        const secretPatterns = [
-          { pattern: /password\s*=\s*["'][^"']{3,}["']/i, message: "Hardcoded password detected" },
-          { pattern: /api[_-]?key\s*=\s*["'][^"']{10,}["']/i, message: "Hardcoded API key detected" },
-          { pattern: /secret\s*=\s*["'][^"']{10,}["']/i, message: "Hardcoded secret detected" },
-          { pattern: /token\s*=\s*["'][^"']{20,}["']/i, message: "Hardcoded token detected" }
-        ];
-        const lines = content.split("\n");
-        lines.forEach((line, index) => {
-          secretPatterns.forEach(({ pattern, message }) => {
-            if (pattern.test(line) && !line.includes("process.env") && !line.includes("TODO")) {
-              issues.push({
-                severity: "error",
-                type: "security-secret",
-                message,
-                file: filePath,
-                line: index + 1,
-                suggestion: "Move secrets to environment variables"
-              });
-            }
-          });
-          if (language === "javascript" || language === "typescript") {
-            if (line.includes("query(") && line.includes("${") && !line.includes("$1")) {
-              issues.push({
-                severity: "error",
-                type: "security-sql-injection",
-                message: "Potential SQL injection vulnerability",
-                file: filePath,
-                line: index + 1,
-                suggestion: "Use parameterized queries instead of string interpolation"
-              });
-            }
-          }
-        });
-        return issues;
-      }
-      analyzePerformanceIssues(content, filePath, language) {
-        const issues = [];
-        if (language === "javascript" || language === "typescript") {
-          const lines = content.split("\n");
-          lines.forEach((line, index) => {
-            if (line.includes("fs.readFileSync") || line.includes("fs.writeFileSync")) {
-              issues.push({
-                severity: "warning",
-                type: "performance-sync-io",
-                message: "Synchronous file operation detected",
-                file: filePath,
-                line: index + 1,
-                suggestion: "Use asynchronous file operations for better performance"
-              });
-            }
-            if (line.includes("for") && line.includes(".length") && content.includes("push(")) {
-              issues.push({
-                severity: "info",
-                type: "performance-loop",
-                message: "Potentially inefficient loop pattern",
-                file: filePath,
-                line: index + 1,
-                suggestion: "Consider using map, filter, or reduce methods"
-              });
-            }
-          });
-        }
-        return issues;
-      }
-      calculateJSComplexity(content) {
-        const complexityKeywords = [
-          "if",
-          "else",
-          "for",
-          "while",
-          "switch",
-          "case",
-          "catch",
-          "try",
-          "&&",
-          "||",
-          "?"
-        ];
-        let complexity = 1;
-        complexityKeywords.forEach((keyword) => {
-          const matches = content.match(new RegExp(keyword, "g"));
-          if (matches) {
-            complexity += matches.length;
-          }
-        });
-        return complexity;
-      }
-      calculatePythonComplexity(content) {
-        const complexityKeywords = [
-          "if",
-          "elif",
-          "else",
-          "for",
-          "while",
-          "try",
-          "except",
-          "and",
-          "or"
-        ];
-        let complexity = 1;
-        complexityKeywords.forEach((keyword) => {
-          const matches = content.match(new RegExp(`\\b${keyword}\\b`, "g"));
-          if (matches) {
-            complexity += matches.length;
-          }
-        });
-        return complexity;
-      }
-      calculateMaintainabilityIndex(content, complexity) {
-        const lines = content.split("\n").length;
-        const halsteadVolume = Math.log2(content.length);
-        const mi = Math.max(
-          0,
-          171 - 5.2 * Math.log(halsteadVolume) - 0.23 * complexity - 16.2 * Math.log(lines)
-        );
-        return Math.round(mi);
-      }
-      findDuplicateLines(content) {
-        const lines = content.split("\n").map((line) => line.trim()).filter((line) => line.length > 5);
-        const lineCount = /* @__PURE__ */ new Map();
-        lines.forEach((line) => {
-          lineCount.set(line, (lineCount.get(line) || 0) + 1);
-        });
-        let duplicates = 0;
-        lineCount.forEach((count6) => {
-          if (count6 > 1) {
-            duplicates += count6 - 1;
-          }
-        });
-        return duplicates;
-      }
-      estimateTestCoverage(content, filePath) {
-        if (filePath.includes(".test.") || filePath.includes(".spec.")) {
-          return 100;
-        }
-        const testPatterns = ["describe(", "it(", "test(", "expect("];
-        const hasTests = testPatterns.some((pattern) => content.includes(pattern));
-        if (hasTests) {
-          return 80;
-        }
-        return 20;
-      }
-      generateRecommendations(files, issues) {
-        const recommendations = [];
-        const errorCount = issues.filter((i) => i.severity === "error").length;
-        const warningCount = issues.filter((i) => i.severity === "warning").length;
-        if (errorCount > 0) {
-          recommendations.push(`Fix ${errorCount} critical error(s) immediately`);
-        }
-        if (warningCount > 10) {
-          recommendations.push(`Address ${warningCount} warning(s) to improve code quality`);
-        }
-        const largeFiles = files.filter((f) => f.lines > 500);
-        if (largeFiles.length > 0) {
-          recommendations.push(`Consider refactoring ${largeFiles.length} large file(s)`);
-        }
-        const complexFiles = files.filter((f) => f.complexity > 20);
-        if (complexFiles.length > 0) {
-          recommendations.push(`Reduce complexity in ${complexFiles.length} file(s)`);
-        }
-        const securityIssues = issues.filter((i) => i.type.includes("security"));
-        if (securityIssues.length > 0) {
-          recommendations.push(`Address ${securityIssues.length} security issue(s) immediately`);
-        }
-        const avgMaintainability = files.reduce((sum2, f) => sum2 + (f.metrics.maintainabilityIndex || 0), 0) / files.length;
-        if (avgMaintainability < 50) {
-          recommendations.push("Improve overall code maintainability");
-        }
-        recommendations.push("Add more unit tests to improve coverage");
-        recommendations.push("Set up automated code quality checks in CI/CD");
-        recommendations.push("Regular code reviews to maintain quality standards");
-        return recommendations;
-      }
-      calculateQualityMetrics(files) {
-        const totalFiles = files.length;
-        const avgComplexity = files.reduce((sum2, f) => sum2 + f.complexity, 0) / totalFiles;
-        const avgMaintainability = files.reduce((sum2, f) => sum2 + (f.metrics.maintainabilityIndex || 0), 0) / totalFiles;
-        const avgTestCoverage = files.reduce((sum2, f) => sum2 + (f.metrics.testCoverage || 0), 0) / totalFiles;
-        const totalDuplicates = files.reduce((sum2, f) => sum2 + (f.metrics.duplicateLines || 0), 0);
-        const totalLines = files.reduce((sum2, f) => sum2 + f.lines, 0);
-        return {
-          averageComplexity: Math.round(avgComplexity * 100) / 100,
-          maintainabilityScore: Math.round(avgMaintainability),
-          testCoveragePercentage: Math.round(avgTestCoverage),
-          duplicateCodePercentage: Math.round(totalDuplicates / totalLines * 100 * 100) / 100
-        };
-      }
-      getLanguageFromExtension(extension) {
-        const languageMap = {
-          ".ts": "typescript",
-          ".tsx": "typescript",
-          ".js": "javascript",
-          ".jsx": "javascript",
-          ".py": "python",
-          ".sql": "sql",
-          ".json": "json",
-          ".md": "markdown",
-          ".css": "css",
-          ".scss": "scss",
-          ".html": "html",
-          ".vue": "vue",
-          ".go": "go",
-          ".java": "java",
-          ".c": "c",
-          ".cpp": "cpp",
-          ".cs": "csharp",
-          ".php": "php",
-          ".rb": "ruby",
-          ".rs": "rust",
-          ".sh": "shell",
-          ".yaml": "yaml",
-          ".yml": "yaml"
-        };
-        return languageMap[extension.toLowerCase()] || "unknown";
-      }
-    };
-  }
-});
-
-// server/routes/diagnostics-routes.ts
-var diagnostics_routes_exports = {};
-__export(diagnostics_routes_exports, {
-  default: () => diagnostics_routes_default
-});
-import { Router as Router10 } from "express";
-import { execSync } from "child_process";
-import { promises as fs3 } from "fs";
-import { join as join2 } from "path";
-async function getDirectorySize(dirPath) {
-  try {
-    const stats = await fs3.stat(dirPath);
-    if (!stats.isDirectory()) return stats.size;
-    const files = await fs3.readdir(dirPath);
-    let totalSize = 0;
-    for (const file of files) {
-      const filePath = join2(dirPath, file);
-      const fileStats = await fs3.stat(filePath);
-      if (fileStats.isDirectory()) {
-        totalSize += await getDirectorySize(filePath);
-      } else {
-        totalSize += fileStats.size;
-      }
-    }
-    return totalSize;
-  } catch (error) {
-    return 0;
-  }
-}
-async function checkPackageJson() {
-  try {
-    const packagePath = join2(process.cwd(), "package.json");
-    const packageContent = await fs3.readFile(packagePath, "utf-8");
-    return JSON.parse(packageContent);
-  } catch (error) {
-    return null;
-  }
-}
-async function getGitStatus() {
-  try {
-    const status = execSync("git status --porcelain", { encoding: "utf-8" });
-    const branch = execSync("git branch --show-current", { encoding: "utf-8" }).trim();
-    return {
-      branch,
-      hasChanges: status.length > 0,
-      changes: status.split("\n").filter((line) => line.length > 0)
-    };
-  } catch (error) {
-    return { error: "Not a git repository or git not available" };
-  }
-}
-async function getDiskSpace() {
-  try {
-    if (process.platform === "win32") {
-      const output = execSync("dir /-c", { encoding: "utf-8" });
-      return { platform: "windows", raw: output };
-    } else {
-      const output = execSync("df -h .", { encoding: "utf-8" });
-      return { platform: "unix", raw: output };
-    }
-  } catch (error) {
-    return { error: "Could not get disk space information" };
-  }
-}
-async function analyzeDependencies() {
-  try {
-    const packageJson = await checkPackageJson();
-    if (!packageJson) return null;
-    const deps = packageJson.dependencies || {};
-    const devDeps = packageJson.devDependencies || {};
-    return {
-      production: Object.keys(deps).length,
-      development: Object.keys(devDeps).length,
-      total: Object.keys(deps).length + Object.keys(devDeps).length,
-      outdated: await checkOutdatedPackages()
-    };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-async function checkOutdatedPackages() {
-  try {
-    const output = execSync("npm outdated --json", { encoding: "utf-8" });
-    return JSON.parse(output);
-  } catch (error) {
-    return {};
-  }
-}
-async function securityAudit() {
-  try {
-    const output = execSync("npm audit --json", { encoding: "utf-8" });
-    return JSON.parse(output);
-  } catch (error) {
-    return { error: "Could not run security audit" };
-  }
-}
-async function testDatabaseConnection() {
-  try {
-    const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
-    const result = await db6.execute("SELECT 1 as test");
-    return {
-      status: "connected",
-      timestamp: /* @__PURE__ */ new Date(),
-      latency: Date.now()
-    };
-  } catch (error) {
-    return {
-      status: "error",
-      error: error.message,
-      timestamp: /* @__PURE__ */ new Date()
-    };
-  }
-}
-async function getTableDiagnostics() {
-  try {
-    const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
-    const tables = await db6.execute(`
-      SELECT table_name, table_rows, data_length, index_length
-      FROM information_schema.tables 
-      WHERE table_schema = DATABASE()
-    `);
-    return tables;
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-async function checkDatabaseIssues() {
-  const issues = [];
-  try {
-    const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
-    const slowQueries = await db6.execute("SHOW PROCESSLIST");
-    const tableSizes = await db6.execute(`
-      SELECT table_name, 
-             ROUND(((data_length + index_length) / 1024 / 1024), 2) AS 'size_mb'
-      FROM information_schema.tables 
-      WHERE table_schema = DATABASE()
-      ORDER BY (data_length + index_length) DESC
-    `);
-    tableSizes.forEach((table) => {
-      if (table.size_mb > 100) {
-        issues.push({
-          type: "large_table",
-          table: table.table_name,
-          size: table.size_mb,
-          message: `Table ${table.table_name} is ${table.size_mb}MB`
-        });
-      }
-    });
-  } catch (error) {
-    issues.push({
-      type: "connection_error",
-      message: error.message
-    });
-  }
-  return issues;
-}
-async function getDatabasePerformance() {
-  try {
-    const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
-    const performance = await db6.execute(`
-      SELECT 
-        COUNT(*) as total_connections,
-        SUM(IF(command = 'Sleep', 1, 0)) as sleeping_connections,
-        SUM(IF(command != 'Sleep', 1, 0)) as active_connections
-      FROM information_schema.processlist
-    `);
-    return performance[0];
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-async function getAvailableMemory() {
-  try {
-    const os2 = __require("os");
-    return {
-      total: os2.totalmem(),
-      free: os2.freemem(),
-      used: os2.totalmem() - os2.freemem()
-    };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-async function getGCStats() {
-  try {
-    const v8 = __require("v8");
-    return v8.getHeapStatistics();
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-async function getNetworkStats() {
-  try {
-    const os2 = __require("os");
-    return os2.networkInterfaces();
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-async function getFilesystemStats() {
-  try {
-    const fs5 = __require("fs");
-    const stats = await fs5.promises.stat(process.cwd());
-    return {
-      cwd: process.cwd(),
-      stats,
-      permissions: {
-        readable: true,
-        writable: true
-      }
-    };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-async function getEventLoopStats() {
-  try {
-    const { performance } = __require("perf_hooks");
-    const eventLoopUtilization = performance.eventLoopUtilization();
-    return eventLoopUtilization;
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-var router10, diagnosticsService, diagnostics_routes_default;
-var init_diagnostics_routes = __esm({
-  "server/routes/diagnostics-routes.ts"() {
-    "use strict";
-    init_code_diagnostics_service();
-    router10 = Router10();
-    diagnosticsService = new CodeDiagnosticsService();
-    router10.post("/run-full", async (req, res) => {
-      try {
-        console.log("Starting comprehensive code diagnostics...");
-        const diagnostics = await diagnosticsService.runComprehensiveDiagnostics();
-        const reportPath = join2(process.cwd(), "diagnostics-report.json");
-        await fs3.writeFile(reportPath, JSON.stringify(diagnostics, null, 2));
-        res.json({
-          success: true,
-          diagnostics,
-          reportSaved: reportPath,
-          summary: {
-            totalFiles: diagnostics.overview.totalFiles,
-            totalIssues: diagnostics.overview.issueCount.errors + diagnostics.overview.issueCount.warnings + diagnostics.overview.issueCount.info,
-            criticalIssues: diagnostics.overview.issueCount.errors,
-            securityIssues: diagnostics.securityIssues.length,
-            performanceIssues: diagnostics.performanceIssues.length,
-            qualityScore: diagnostics.qualityMetrics.maintainabilityScore
-          }
-        });
-      } catch (error) {
-        console.error("Error running diagnostics:", error);
-        res.status(500).json({
-          success: false,
-          error: error.message
-        });
-      }
-    });
-    router10.get("/system", async (req, res) => {
-      try {
-        const systemInfo = {
-          node: {
-            version: process.version,
-            platform: process.platform,
-            arch: process.arch,
-            uptime: process.uptime(),
-            memory: process.memoryUsage(),
-            cpuUsage: process.cpuUsage()
-          },
-          project: {
-            directory: process.cwd(),
-            nodeModulesSize: await getDirectorySize("node_modules"),
-            packageJson: await checkPackageJson(),
-            gitStatus: await getGitStatus(),
-            diskSpace: await getDiskSpace()
-          },
-          dependencies: await analyzeDependencies(),
-          security: await securityAudit()
-        };
-        res.json({
-          success: true,
-          systemInfo
-        });
-      } catch (error) {
-        console.error("Error getting system diagnostics:", error);
-        res.status(500).json({
-          success: false,
-          error: error.message
-        });
-      }
-    });
-    router10.post("/analyze-file", async (req, res) => {
-      try {
-        const { filePath } = req.body;
-        if (!filePath) {
-          return res.status(400).json({
-            success: false,
-            error: "File path is required"
-          });
-        }
-        res.json({
-          success: true,
-          message: "File analysis endpoint - implementation needed",
-          filePath
-        });
-      } catch (error) {
-        console.error("Error analyzing file:", error);
-        res.status(500).json({
-          success: false,
-          error: error.message
-        });
-      }
-    });
-    router10.get("/database", async (req, res) => {
-      try {
-        const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
-        const connectionTest = await testDatabaseConnection();
-        const tableInfo = await getTableDiagnostics();
-        const issues = await checkDatabaseIssues();
-        res.json({
-          success: true,
-          database: {
-            connection: connectionTest,
-            tables: tableInfo,
-            issues,
-            performance: await getDatabasePerformance()
-          }
-        });
-      } catch (error) {
-        console.error("Error running database diagnostics:", error);
-        res.status(500).json({
-          success: false,
-          error: error.message
-        });
-      }
-    });
-    router10.get("/performance", async (req, res) => {
-      try {
-        const performanceMetrics = {
-          memory: {
-            used: process.memoryUsage(),
-            available: await getAvailableMemory(),
-            gc: await getGCStats()
-          },
-          cpu: {
-            usage: process.cpuUsage(),
-            loadAverage: __require("os").loadavg(),
-            cores: __require("os").cpus().length
-          },
-          network: await getNetworkStats(),
-          filesystem: await getFilesystemStats(),
-          eventLoop: await getEventLoopStats()
-        };
-        res.json({
-          success: true,
-          performance: performanceMetrics
-        });
-      } catch (error) {
-        console.error("Error running performance diagnostics:", error);
-        res.status(500).json({
-          success: false,
-          error: error.message
-        });
-      }
-    });
-    diagnostics_routes_default = router10;
-  }
-});
-
 // server/migrations/migrate-admin-tables.ts
 var migrate_admin_tables_exports = {};
 __export(migrate_admin_tables_exports, {
@@ -13850,7 +13570,7 @@ import { sql as sql11 } from "drizzle-orm";
 async function createAdminTables() {
   try {
     console.log("\u{1F680} Creating admin tables...");
-    await db5.execute(sql11`
+    await db4.execute(sql11`
       CREATE TABLE IF NOT EXISTS groups (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name VARCHAR(100) NOT NULL,
@@ -13864,7 +13584,7 @@ async function createAdminTables() {
         updated_at TIMESTAMP DEFAULT NOW() NOT NULL
       )
     `);
-    await db5.execute(sql11`
+    await db4.execute(sql11`
       CREATE TABLE IF NOT EXISTS group_members (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         group_id UUID REFERENCES groups(id) NOT NULL,
@@ -13874,7 +13594,7 @@ async function createAdminTables() {
         is_active BOOLEAN DEFAULT true
       )
     `);
-    await db5.execute(sql11`
+    await db4.execute(sql11`
       CREATE TABLE IF NOT EXISTS audit_log (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         entity_type VARCHAR(50) NOT NULL,
@@ -13890,7 +13610,7 @@ async function createAdminTables() {
         timestamp TIMESTAMP DEFAULT NOW() NOT NULL
       )
     `);
-    await db5.execute(sql11`
+    await db4.execute(sql11`
       CREATE TABLE IF NOT EXISTS sla_policies (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name VARCHAR(100) NOT NULL,
@@ -13911,7 +13631,7 @@ async function createAdminTables() {
         updated_at TIMESTAMP DEFAULT NOW() NOT NULL
       )
     `);
-    await db5.execute(sql11`
+    await db4.execute(sql11`
       CREATE TABLE IF NOT EXISTS sla_breaches (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         ticket_id UUID NOT NULL,
@@ -13923,16 +13643,16 @@ async function createAdminTables() {
         created_at TIMESTAMP DEFAULT NOW() NOT NULL
       )
     `);
-    await db5.execute(sql11`CREATE INDEX IF NOT EXISTS idx_groups_type ON groups(type)`);
-    await db5.execute(sql11`CREATE INDEX IF NOT EXISTS idx_groups_parent ON groups(parent_group_id)`);
-    await db5.execute(sql11`CREATE INDEX IF NOT EXISTS idx_group_members_group ON group_members(group_id)`);
-    await db5.execute(sql11`CREATE INDEX IF NOT EXISTS idx_group_members_user ON group_members(user_id)`);
-    await db5.execute(sql11`CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_log(entity_type, entity_id)`);
-    await db5.execute(sql11`CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_log(user_id)`);
-    await db5.execute(sql11`CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp)`);
-    await db5.execute(sql11`CREATE INDEX IF NOT EXISTS idx_sla_policies_active ON sla_policies(is_active)`);
-    await db5.execute(sql11`CREATE INDEX IF NOT EXISTS idx_sla_breaches_ticket ON sla_breaches(ticket_id)`);
-    await db5.execute(sql11`
+    await db4.execute(sql11`CREATE INDEX IF NOT EXISTS idx_groups_type ON groups(type)`);
+    await db4.execute(sql11`CREATE INDEX IF NOT EXISTS idx_groups_parent ON groups(parent_group_id)`);
+    await db4.execute(sql11`CREATE INDEX IF NOT EXISTS idx_group_members_group ON group_members(group_id)`);
+    await db4.execute(sql11`CREATE INDEX IF NOT EXISTS idx_group_members_user ON group_members(user_id)`);
+    await db4.execute(sql11`CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_log(entity_type, entity_id)`);
+    await db4.execute(sql11`CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_log(user_id)`);
+    await db4.execute(sql11`CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp)`);
+    await db4.execute(sql11`CREATE INDEX IF NOT EXISTS idx_sla_policies_active ON sla_policies(is_active)`);
+    await db4.execute(sql11`CREATE INDEX IF NOT EXISTS idx_sla_breaches_ticket ON sla_breaches(ticket_id)`);
+    await db4.execute(sql11`
       INSERT INTO sla_policies (name, description, priority, response_time, resolution_time)
       VALUES 
         ('Critical Priority SLA', 'Critical issues requiring immediate attention', 'critical', 15, 240),
@@ -13941,7 +13661,7 @@ async function createAdminTables() {
         ('Low Priority SLA', 'Low priority requests', 'low', 480, 2880)
       ON CONFLICT DO NOTHING
     `);
-    await db5.execute(sql11`
+    await db4.execute(sql11`
       INSERT INTO groups (name, description, type, email)
       VALUES 
         ('IT Support', 'Primary IT support team', 'team', 'itsupport@company.com'),
@@ -13956,12 +13676,12 @@ async function createAdminTables() {
     throw error;
   }
 }
-var db5;
+var db4;
 var init_migrate_admin_tables = __esm({
   "server/migrations/migrate-admin-tables.ts"() {
     "use strict";
     init_db();
-    db5 = drizzle2(pool);
+    db4 = drizzle2(pool);
     if (import.meta.url === `file://${process.argv[1]}`) {
       createAdminTables().then(() => {
         console.log("Migration completed successfully!");
@@ -13979,14 +13699,14 @@ var patch_routes_exports = {};
 __export(patch_routes_exports, {
   default: () => patch_routes_default
 });
-import { Router as Router12 } from "express";
-var router12, patch_routes_default;
+import { Router as Router11 } from "express";
+var router11, patch_routes_default;
 var init_patch_routes = __esm({
   "server/routes/patch-routes.ts"() {
     "use strict";
     init_patch_compliance_service();
-    router12 = Router12();
-    router12.get("/patch-compliance/dashboard", async (req, res) => {
+    router11 = Router11();
+    router11.get("/patch-compliance/dashboard", async (req, res) => {
       try {
         console.log("\u{1F4CA} Fetching patch compliance dashboard data...");
         console.log("Request timestamp:", (/* @__PURE__ */ new Date()).toISOString());
@@ -14105,7 +13825,7 @@ var init_patch_routes = __esm({
         }
       }
     });
-    router12.get("/patch-compliance/report/:deviceId?", async (req, res) => {
+    router11.get("/patch-compliance/report/:deviceId?", async (req, res) => {
       try {
         const { deviceId } = req.params;
         const reports = await patchComplianceService.getDashboardData();
@@ -14115,7 +13835,7 @@ var init_patch_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    router12.post("/patch-compliance/scan/:deviceId", async (req, res) => {
+    router11.post("/patch-compliance/scan/:deviceId", async (req, res) => {
       try {
         const { deviceId } = req.params;
         const result = await patchComplianceService.processPatchData(
@@ -14128,7 +13848,7 @@ var init_patch_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    router12.post("/patch-compliance/deploy", async (req, res) => {
+    router11.post("/patch-compliance/deploy", async (req, res) => {
       try {
         const deployment = req.body;
         const deploymentId = await patchComplianceService.createPatchDeployment(deployment);
@@ -14138,7 +13858,7 @@ var init_patch_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    router12.get("/patch-compliance/pending-applications", async (req, res) => {
+    router11.get("/patch-compliance/pending-applications", async (req, res) => {
       try {
         const pendingPatches = await patchComplianceService.getPendingApplicationPatches();
         res.json({ success: true, patches: pendingPatches });
@@ -14147,7 +13867,7 @@ var init_patch_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    patch_routes_default = router12;
+    patch_routes_default = router11;
   }
 });
 
@@ -14341,18 +14061,18 @@ function registerTicketRoutes(app2) {
 
 // server/routes/device-routes.ts
 init_storage();
-function registerDeviceRoutes(app2, authenticateToken3) {
-  app2.get("/api/devices", authenticateToken3, async (req, res) => {
+function registerDeviceRoutes(app2, authenticateToken4) {
+  app2.get("/api/devices", authenticateToken4, async (req, res) => {
     try {
       console.log("Fetching devices - checking for agent activity...");
-      const devices3 = await storage.getDevices();
-      const onlineCount = devices3.filter((d) => d.status === "online").length;
-      const offlineCount = devices3.filter((d) => d.status === "offline").length;
+      const devices2 = await storage.getDevices();
+      const onlineCount = devices2.filter((d) => d.status === "online").length;
+      const offlineCount = devices2.filter((d) => d.status === "offline").length;
       console.log(
-        `Device Status Summary: ${onlineCount} online, ${offlineCount} offline, ${devices3.length} total`
+        `Device Status Summary: ${onlineCount} online, ${offlineCount} offline, ${devices2.length} total`
       );
       const devicesWithReports = await Promise.all(
-        devices3.map(async (device) => {
+        devices2.map(async (device) => {
           const latestReport = await storage.getLatestDeviceReport(device.id);
           const now = /* @__PURE__ */ new Date();
           const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
@@ -14384,7 +14104,7 @@ function registerDeviceRoutes(app2, authenticateToken3) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
-  app2.get("/api/devices/:id", authenticateToken3, async (req, res) => {
+  app2.get("/api/devices/:id", authenticateToken4, async (req, res) => {
     try {
       let device = await storage.getDevice(req.params.id);
       if (!device) {
@@ -14433,12 +14153,12 @@ function registerDeviceRoutes(app2, authenticateToken3) {
   });
   app2.get(
     "/api/devices/:id/performance-insights",
-    authenticateToken3,
+    authenticateToken4,
     async (req, res) => {
       try {
         const { id } = req.params;
-        const { performanceService } = await import("./performance-service");
-        const insights = await performanceService.getApplicationPerformanceInsights(id);
+        const { performanceService: performanceService2 } = await import("./performance-service");
+        const insights = await performanceService2.getApplicationPerformanceInsights(id);
         res.json(insights);
       } catch (error) {
         console.error("Error fetching performance insights:", error);
@@ -14457,7 +14177,7 @@ function registerDeviceRoutes(app2, authenticateToken3) {
   );
   app2.get(
     "/api/devices/:id/ai-insights",
-    authenticateToken3,
+    authenticateToken4,
     async (req, res) => {
       try {
         const { id } = req.params;
@@ -14475,7 +14195,7 @@ function registerDeviceRoutes(app2, authenticateToken3) {
   );
   app2.get(
     "/api/devices/:id/ai-recommendations",
-    authenticateToken3,
+    authenticateToken4,
     async (req, res) => {
       try {
         const { id } = req.params;
@@ -14491,11 +14211,11 @@ function registerDeviceRoutes(app2, authenticateToken3) {
       }
     }
   );
-  app2.get("/api/debug/devices", authenticateToken3, async (req, res) => {
+  app2.get("/api/debug/devices", authenticateToken4, async (req, res) => {
     try {
-      const devices3 = await storage.getDevices();
+      const devices2 = await storage.getDevices();
       const now = /* @__PURE__ */ new Date();
-      const deviceDetails = devices3.map((device) => {
+      const deviceDetails = devices2.map((device) => {
         const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
         const minutesAgo = lastSeen ? Math.floor((now.getTime() - lastSeen.getTime()) / (1e3 * 60)) : null;
         return {
@@ -14511,7 +14231,7 @@ function registerDeviceRoutes(app2, authenticateToken3) {
         };
       });
       res.json({
-        total_devices: devices3.length,
+        total_devices: devices2.length,
         devices: deviceDetails,
         summary: {
           online: deviceDetails.filter((d) => d.status === "online").length,
@@ -14530,10 +14250,10 @@ function registerDeviceRoutes(app2, authenticateToken3) {
 init_storage();
 init_enhanced_storage();
 init_patch_compliance_service();
-function registerAgentRoutes(app2, authenticateToken3, requireRole2) {
+function registerAgentRoutes(app2, authenticateToken4, requireRole2) {
   app2.post(
     "/api/agents/:id/test-connectivity",
-    authenticateToken3,
+    authenticateToken4,
     async (req, res) => {
       try {
         const { id } = req.params;
@@ -14565,7 +14285,7 @@ function registerAgentRoutes(app2, authenticateToken3, requireRole2) {
   );
   app2.get(
     "/api/agents/:id/connection-status",
-    authenticateToken3,
+    authenticateToken4,
     async (req, res) => {
       try {
         const agentId = req.params.id;
@@ -14594,7 +14314,7 @@ function registerAgentRoutes(app2, authenticateToken3, requireRole2) {
   );
   app2.post(
     "/api/agents/:id/remote-connect",
-    authenticateToken3,
+    authenticateToken4,
     async (req, res) => {
       try {
         const agentId = req.params.id;
@@ -14673,7 +14393,7 @@ function registerAgentRoutes(app2, authenticateToken3, requireRole2) {
   );
   app2.post(
     "/api/agents/:id/execute-command",
-    authenticateToken3,
+    authenticateToken4,
     requireRole2(["admin", "manager"]),
     async (req, res) => {
       try {
@@ -14843,216 +14563,10 @@ function registerAgentRoutes(app2, authenticateToken3, requireRole2) {
 }
 
 // server/routes.ts
+init_auth();
+init_response();
 import bcrypt3 from "bcrypt";
 import jwt5 from "jsonwebtoken";
-
-// server/utils/auth.ts
-init_database();
-import jwt from "jsonwebtoken";
-var JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-var AuthUtils = class {
-  /**
-   * Verify JWT token and return decoded payload
-   */
-  static verifyToken(token) {
-    try {
-      return jwt.verify(token, JWT_SECRET);
-    } catch (error) {
-      throw new Error("Invalid token");
-    }
-  }
-  /**
-   * Generate JWT token
-   */
-  static generateToken(payload, expiresIn = "24h") {
-    return jwt.sign(payload, JWT_SECRET, { expiresIn });
-  }
-  /**
-   * Extract token from authorization header
-   */
-  static extractTokenFromHeader(authHeader) {
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return null;
-    }
-    return authHeader.substring(7);
-  }
-  /**
-   * Get user from database by ID with fallback
-   */
-  static async getUserById(userId) {
-    try {
-      const result = await DatabaseUtils.executeQuery(
-        `SELECT id, email, role, first_name, last_name, username, is_active, phone, location 
-         FROM users WHERE id = $1`,
-        [userId]
-      );
-      if (result.rows.length > 0) {
-        const user = result.rows[0];
-        return this.buildUserDisplayName(user);
-      }
-    } catch (dbError) {
-      console.log("Database user lookup failed:", dbError.message);
-    }
-    return null;
-  }
-  /**
-   * Build user display name from available fields
-   */
-  static buildUserDisplayName(user) {
-    let displayName = "";
-    if (user.first_name || user.last_name) {
-      displayName = `${user.first_name || ""} ${user.last_name || ""}`.trim();
-    } else if (user.username) {
-      displayName = user.username;
-    } else if (user.email) {
-      displayName = user.email.split("@")[0];
-    } else {
-      displayName = "Unknown User";
-    }
-    return {
-      ...user,
-      name: displayName
-    };
-  }
-  /**
-   * Check if user has required role
-   */
-  static hasRole(userRole, requiredRoles) {
-    const allowedRoles = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles];
-    return userRole === "admin" || allowedRoles.includes(userRole);
-  }
-  /**
-   * Validate user account status
-   */
-  static validateUserStatus(user) {
-    if (!user.is_active) {
-      return { valid: false, message: "User account is inactive" };
-    }
-    if (user.is_locked) {
-      return { valid: false, message: "Account is locked. Contact administrator." };
-    }
-    return { valid: true };
-  }
-  /**
-   * Update user last login timestamp
-   */
-  static async updateLastLogin(userId) {
-    try {
-      await DatabaseUtils.executeQuery(
-        `UPDATE users SET last_login = NOW() WHERE id = $1`,
-        [userId]
-      );
-    } catch (error) {
-      console.warn("Failed to update last login:", error);
-    }
-  }
-};
-
-// server/utils/response.ts
-var ResponseUtils = class {
-  /**
-   * Send success response
-   */
-  static success(res, data, message, statusCode = 200) {
-    return res.status(statusCode).json({
-      success: true,
-      message: message || "Operation successful",
-      data
-    });
-  }
-  /**
-   * Send error response
-   */
-  static error(res, message, statusCode = 500, error) {
-    console.error("API Error:", message, error);
-    return res.status(statusCode).json({
-      success: false,
-      message,
-      error: process.env.NODE_ENV === "development" ? error : void 0
-    });
-  }
-  /**
-   * Send validation error
-   */
-  static validationError(res, message, errors) {
-    return res.status(400).json({
-      success: false,
-      message,
-      errors
-    });
-  }
-  /**
-   * Send unauthorized error
-   */
-  static unauthorized(res, message = "Unauthorized access") {
-    return res.status(401).json({
-      success: false,
-      message
-    });
-  }
-  /**
-   * Send forbidden error
-   */
-  static forbidden(res, message = "Insufficient permissions") {
-    return res.status(403).json({
-      success: false,
-      message
-    });
-  }
-  /**
-   * Send not found error
-   */
-  static notFound(res, message = "Resource not found") {
-    return res.status(404).json({
-      success: false,
-      message
-    });
-  }
-  /**
-   * Send internal server error
-   */
-  static internalError(res, message = "Internal server error", error) {
-    console.error("Internal Server Error:", message, error);
-    return res.status(500).json({
-      success: false,
-      message,
-      error: process.env.NODE_ENV === "development" ? error?.message : void 0
-    });
-  }
-  /**
-   * Send paginated response
-   */
-  static paginated(res, data, total, page, limit) {
-    return res.json({
-      success: true,
-      data,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-        hasNext: page < Math.ceil(total / limit),
-        hasPrev: page > 1
-      }
-    });
-  }
-  /**
-   * Handle async route errors
-   */
-  static asyncHandler(fn) {
-    return (req, res, next) => {
-      Promise.resolve(fn(req, res, next)).catch(next);
-    };
-  }
-  /**
-   * Send file download response
-   */
-  static download(res, data, filename, contentType = "application/octet-stream") {
-    res.setHeader("Content-Type", contentType);
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-    return res.send(data);
-  }
-};
 
 // server/utils/user.ts
 var UserUtils = class {
@@ -15168,7 +14682,7 @@ var UserUtils = class {
 
 // server/routes.ts
 var JWT_SECRET4 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-var authenticateToken2 = async (req, res, next) => {
+var authenticateToken3 = async (req, res, next) => {
   const authHeader = req.headers["authorization"];
   const token = AuthUtils.extractTokenFromHeader(authHeader || "");
   if (!token) {
@@ -15385,7 +14899,7 @@ async function registerRoutes(app2) {
       res.status(500).json({ message: "Failed to create user", error: error.message });
     }
   });
-  app2.get("/api/auth/verify", authenticateToken2, async (req, res) => {
+  app2.get("/api/auth/verify", authenticateToken3, async (req, res) => {
     try {
       const { password_hash, ...userWithoutPassword } = req.user;
       res.json(userWithoutPassword);
@@ -15437,7 +14951,7 @@ async function registerRoutes(app2) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
-  app2.get("/api/dashboard/summary", authenticateToken2, async (req, res) => {
+  app2.get("/api/dashboard/summary", authenticateToken3, async (req, res) => {
     try {
       const summary = await storage.getDashboardSummary();
       res.json(summary);
@@ -15450,12 +14964,12 @@ async function registerRoutes(app2) {
     res.json({ status: "ok", timestamp: /* @__PURE__ */ new Date() });
   });
   registerTicketRoutes(app2);
-  registerDeviceRoutes(app2, authenticateToken2);
-  registerAgentRoutes(app2, authenticateToken2, requireRole);
+  registerDeviceRoutes(app2, authenticateToken3);
+  registerAgentRoutes(app2, authenticateToken3, requireRole);
   try {
     const alertRoutes = await Promise.resolve().then(() => (init_alert_routes(), alert_routes_exports));
     if (alertRoutes.default) {
-      app2.use("/api/alerts", authenticateToken2, alertRoutes.default);
+      app2.use("/api/alerts", authenticateToken3, alertRoutes.default);
     }
   } catch (error) {
     console.warn("Alert routes not available:", error.message);
@@ -15463,7 +14977,7 @@ async function registerRoutes(app2) {
   try {
     const notificationRoutes = await Promise.resolve().then(() => (init_notification_routes(), notification_routes_exports));
     if (notificationRoutes.default) {
-      app2.use("/api/notifications", authenticateToken2, notificationRoutes.default);
+      app2.use("/api/notifications", authenticateToken3, notificationRoutes.default);
     }
   } catch (error) {
     console.warn("Notification routes not available:", error.message);
@@ -15471,7 +14985,7 @@ async function registerRoutes(app2) {
   try {
     const automationRoutes = await Promise.resolve().then(() => (init_automation_routes(), automation_routes_exports));
     if (automationRoutes.default) {
-      app2.use("/api/automation", authenticateToken2, requireRole(["admin", "manager"]), automationRoutes.default);
+      app2.use("/api/automation", authenticateToken3, requireRole(["admin", "manager"]), automationRoutes.default);
     }
   } catch (error) {
     console.warn("Automation routes not available:", error.message);
@@ -15479,7 +14993,7 @@ async function registerRoutes(app2) {
   try {
     const { adRoutes } = await Promise.resolve().then(() => (init_ad_routes(), ad_routes_exports));
     if (adRoutes) {
-      app2.use("/api/ad", authenticateToken2, requireRole(["admin"]), adRoutes);
+      app2.use("/api/ad", authenticateToken3, requireRole(["admin"]), adRoutes);
     }
   } catch (error) {
     console.warn("AD routes not available:", error.message);
@@ -15495,7 +15009,7 @@ async function registerRoutes(app2) {
   try {
     const analyticsRoutes = await Promise.resolve().then(() => (init_analytics_routes(), analytics_routes_exports));
     if (analyticsRoutes.default) {
-      app2.use("/api/analytics", authenticateToken2, analyticsRoutes.default);
+      app2.use("/api/analytics", analyticsRoutes.default);
     }
   } catch (error) {
     console.warn("Analytics routes not available:", error.message);
@@ -15503,7 +15017,7 @@ async function registerRoutes(app2) {
   try {
     const userRoutes = await Promise.resolve().then(() => (init_user_routes(), user_routes_exports));
     if (userRoutes.default) {
-      app2.use("/api/users", authenticateToken2, userRoutes.default);
+      app2.use("/api/users", authenticateToken3, userRoutes.default);
     }
   } catch (error) {
     console.warn("User routes not available:", error.message);
@@ -15511,7 +15025,7 @@ async function registerRoutes(app2) {
   try {
     const knowledgeRoutes = await Promise.resolve().then(() => (init_knowledge_routes(), knowledge_routes_exports));
     if (knowledgeRoutes.default) {
-      app2.use("/api/knowledge", authenticateToken2, knowledgeRoutes.default);
+      app2.use("/api/knowledge", authenticateToken3, knowledgeRoutes.default);
     }
   } catch (error) {
     console.warn("Knowledge routes not available:", error.message);
@@ -15519,18 +15033,14 @@ async function registerRoutes(app2) {
   try {
     const slaRoutes = await Promise.resolve().then(() => (init_sla_routes(), sla_routes_exports));
     if (slaRoutes.default) {
-      app2.use("/api/sla", authenticateToken2, slaRoutes.default);
+      app2.use("/api/sla", authenticateToken3, slaRoutes.default);
     }
   } catch (error) {
     console.warn("SLA routes not available:", error.message);
   }
   try {
-    const diagnosticsRoutes = await Promise.resolve().then(() => (init_diagnostics_routes(), diagnostics_routes_exports));
-    if (diagnosticsRoutes.default) {
-      app2.use("/api/diagnostics", authenticateToken2, requireRole(["admin", "manager"]), diagnosticsRoutes.default);
-    }
   } catch (error) {
-    console.warn("Diagnostics routes not available:", error.message);
+    console.warn(" routes not available:", error.message);
   }
   const httpServer = createServer(app2);
   return httpServer;
@@ -15541,7 +15051,7 @@ init_user_routes();
 
 // server/vite.ts
 import express from "express";
-import fs4 from "fs";
+import fs2 from "fs";
 import path2 from "path";
 import { createServer as createViteServer, createLogger } from "vite";
 var viteLogger = createLogger();
@@ -15585,7 +15095,7 @@ async function setupVite(app2, server) {
         "client",
         "index.html"
       );
-      let template = await fs4.promises.readFile(clientTemplate, "utf-8");
+      let template = await fs2.promises.readFile(clientTemplate, "utf-8");
       template = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(template);
     } catch (e) {
@@ -15601,7 +15111,7 @@ import { sql as sql10 } from "drizzle-orm";
 async function createTicketTables() {
   try {
     console.log("Creating ticket tables...");
-    await db2.execute(sql10`
+    await db.execute(sql10`
       CREATE TABLE IF NOT EXISTS tickets (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         ticket_number VARCHAR(20) UNIQUE NOT NULL,
@@ -15645,7 +15155,7 @@ async function createTicketTables() {
         due_date TIMESTAMP
       )
     `);
-    await db2.execute(sql10`
+    await db.execute(sql10`
       CREATE TABLE IF NOT EXISTS ticket_comments (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         ticket_id UUID NOT NULL,
@@ -15656,7 +15166,7 @@ async function createTicketTables() {
         created_at TIMESTAMP DEFAULT NOW() NOT NULL
       )
     `);
-    await db2.execute(sql10`
+    await db.execute(sql10`
       CREATE TABLE IF NOT EXISTS ticket_attachments (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         ticket_id UUID NOT NULL,
@@ -15667,7 +15177,7 @@ async function createTicketTables() {
         uploaded_at TIMESTAMP DEFAULT NOW() NOT NULL
       )
     `);
-    await db2.execute(sql10`
+    await db.execute(sql10`
       CREATE TABLE IF NOT EXISTS ticket_approvals (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         ticket_id UUID NOT NULL,
@@ -15678,7 +15188,7 @@ async function createTicketTables() {
         created_at TIMESTAMP DEFAULT NOW() NOT NULL
       )
     `);
-    await db2.execute(sql10`
+    await db.execute(sql10`
       CREATE TABLE IF NOT EXISTS knowledge_base (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         title TEXT NOT NULL,
@@ -15693,15 +15203,15 @@ async function createTicketTables() {
         updated_at TIMESTAMP DEFAULT NOW() NOT NULL
       )
     `);
-    await db2.execute(sql10`CREATE INDEX IF NOT EXISTS idx_tickets_type ON tickets(type)`);
-    await db2.execute(sql10`CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status)`);
-    await db2.execute(sql10`CREATE INDEX IF NOT EXISTS idx_tickets_priority ON tickets(priority)`);
-    await db2.execute(sql10`CREATE INDEX IF NOT EXISTS idx_tickets_created_at ON tickets(created_at)`);
-    await db2.execute(sql10`CREATE INDEX IF NOT EXISTS idx_tickets_requester_email ON tickets(requester_email)`);
-    await db2.execute(sql10`CREATE INDEX IF NOT EXISTS idx_ticket_comments_ticket_id ON ticket_comments(ticket_id)`);
-    await db2.execute(sql10`CREATE INDEX IF NOT EXISTS idx_knowledge_base_category ON knowledge_base(category)`);
-    await db2.execute(sql10`CREATE INDEX IF NOT EXISTS idx_knowledge_base_status ON knowledge_base(status)`);
-    await db2.execute(sql10`
+    await db.execute(sql10`CREATE INDEX IF NOT EXISTS idx_tickets_type ON tickets(type)`);
+    await db.execute(sql10`CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status)`);
+    await db.execute(sql10`CREATE INDEX IF NOT EXISTS idx_tickets_priority ON tickets(priority)`);
+    await db.execute(sql10`CREATE INDEX IF NOT EXISTS idx_tickets_created_at ON tickets(created_at)`);
+    await db.execute(sql10`CREATE INDEX IF NOT EXISTS idx_tickets_requester_email ON tickets(requester_email)`);
+    await db.execute(sql10`CREATE INDEX IF NOT EXISTS idx_ticket_comments_ticket_id ON ticket_comments(ticket_id)`);
+    await db.execute(sql10`CREATE INDEX IF NOT EXISTS idx_knowledge_base_category ON knowledge_base(category)`);
+    await db.execute(sql10`CREATE INDEX IF NOT EXISTS idx_knowledge_base_status ON knowledge_base(status)`);
+    await db.execute(sql10`
       CREATE TABLE IF NOT EXISTS users (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         email TEXT NOT NULL UNIQUE,
@@ -15716,7 +15226,7 @@ async function createTicketTables() {
         updated_at TIMESTAMP DEFAULT NOW() NOT NULL
       )
     `);
-    await db2.execute(sql10`
+    await db.execute(sql10`
       CREATE TABLE IF NOT EXISTS user_sessions (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id UUID NOT NULL,
@@ -15725,11 +15235,11 @@ async function createTicketTables() {
         created_at TIMESTAMP DEFAULT NOW() NOT NULL
       )
     `);
-    await db2.execute(sql10`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`);
-    await db2.execute(sql10`CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)`);
-    await db2.execute(sql10`CREATE INDEX IF NOT EXISTS idx_user_sessions_token ON user_sessions(token)`);
-    await db2.execute(sql10`CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id)`);
-    await db2.execute(sql10`
+    await db.execute(sql10`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`);
+    await db.execute(sql10`CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)`);
+    await db.execute(sql10`CREATE INDEX IF NOT EXISTS idx_user_sessions_token ON user_sessions(token)`);
+    await db.execute(sql10`CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id)`);
+    await db.execute(sql10`
       CREATE TABLE IF NOT EXISTS usb_devices (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         device_id UUID,
@@ -15748,8 +15258,8 @@ async function createTicketTables() {
         raw_data JSON DEFAULT '{}'::json
       )
     `);
-    await db2.execute(sql10`CREATE INDEX IF NOT EXISTS idx_usb_devices_device_id ON usb_devices(device_id)`);
-    await db2.execute(sql10`CREATE INDEX IF NOT EXISTS idx_usb_devices_identifier ON usb_devices(device_id, device_identifier)`);
+    await db.execute(sql10`CREATE INDEX IF NOT EXISTS idx_usb_devices_device_id ON usb_devices(device_id)`);
+    await db.execute(sql10`CREATE INDEX IF NOT EXISTS idx_usb_devices_identifier ON usb_devices(device_id, device_identifier)`);
     console.log("All tables created successfully!");
   } catch (error) {
     console.error("Error creating ticket tables:", error);
@@ -15764,7 +15274,7 @@ init_knowledge_routes();
 import { eq as eq11, desc as desc9 } from "drizzle-orm";
 
 // server/routes/agent-ad-sync-routes.ts
-import { Router as Router11 } from "express";
+import { Router as Router10 } from "express";
 
 // server/agent-tunnel-service.ts
 import { EventEmitter } from "events";
@@ -15865,14 +15375,14 @@ var agentTunnelService = new AgentTunnelService();
 
 // server/routes/agent-ad-sync-routes.ts
 import expressWs from "express-ws";
-var router11 = Router11();
-var wsInstance = expressWs(router11);
+var router10 = Router10();
+var wsInstance = expressWs(router10);
 wsInstance.app.ws("/agent-tunnel/:agentId", (ws, req) => {
   const agentId = req.params.agentId;
   const capabilities = req.query.capabilities?.toString().split(",") || [];
   agentTunnelService.registerAgent(agentId, ws, capabilities);
 });
-router11.post("/agents/:id/sync-ad", async (req, res) => {
+router10.post("/agents/:id/sync-ad", async (req, res) => {
   try {
     const agentId = req.params.id;
     if (!agentTunnelService.isAgentConnected(agentId)) {
@@ -15909,7 +15419,7 @@ router11.post("/agents/:id/sync-ad", async (req, res) => {
     });
   }
 });
-router11.get("/agents/:id/ad-status", async (req, res) => {
+router10.get("/agents/:id/ad-status", async (req, res) => {
   try {
     const agentId = req.params.id;
     if (!agentTunnelService.isAgentConnected(agentId)) {
@@ -15934,7 +15444,7 @@ router11.get("/agents/:id/ad-status", async (req, res) => {
     });
   }
 });
-router11.post("/agents/:id/test-ad", async (req, res) => {
+router10.post("/agents/:id/test-ad", async (req, res) => {
   try {
     const agentId = req.params.id;
     if (!agentTunnelService.isAgentConnected(agentId)) {
@@ -15961,7 +15471,7 @@ router11.post("/agents/:id/test-ad", async (req, res) => {
     });
   }
 });
-router11.post("/agents/:id/remote-command", async (req, res) => {
+router10.post("/agents/:id/remote-command", async (req, res) => {
   try {
     const agentId = req.params.id;
     const { command, params } = req.body;
@@ -16129,7 +15639,7 @@ app.use((req, res, next) => {
         console.log("\u{1F527} Please check your database configuration in Replit");
         process.exit(1);
       }
-      await db2.execute(sql2`SELECT 1`);
+      await db.execute(sql`SELECT 1`);
       console.log("\u2705 Database connection successful");
       await createTicketTables();
       console.log("\u2705 Database tables initialized successfully");
@@ -16167,7 +15677,7 @@ app.use((req, res, next) => {
     const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
     const { reportsStorage: reportsStorage2 } = await Promise.resolve().then(() => (init_reports_storage(), reports_storage_exports));
     await reportsStorage2.createReportsTable();
-    const authenticateToken3 = async (req, res, next) => {
+    const authenticateToken4 = async (req, res, next) => {
       const authHeader = req.headers["authorization"];
       const token = authHeader && authHeader.split(" ")[1];
       if (!token) {
@@ -16208,7 +15718,7 @@ app.use((req, res, next) => {
           status: req.query.status || "published"
         };
         console.log("KB API - Filters:", filters);
-        const articles = await db2.select().from(knowledgeBase).where(eq11(knowledgeBase.status, filters.status)).orderBy(desc9(knowledgeBase.created_at));
+        const articles = await db.select().from(knowledgeBase).where(eq11(knowledgeBase.status, filters.status)).orderBy(desc9(knowledgeBase.created_at));
         console.log(`KB API - Found ${articles.length} articles in database`);
         let filteredArticles = articles;
         if (filters.search) {
@@ -16310,7 +15820,7 @@ app.use((req, res, next) => {
       }
     });
     app.use("/api/knowledge", router8);
-    app.use("/api/agent-sync", router11);
+    app.use("/api/agent-sync", router10);
     app.get("/api/health", (req, res) => {
       res.json({ status: "ok", timestamp: /* @__PURE__ */ new Date() });
     });
