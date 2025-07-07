@@ -219,7 +219,7 @@ const colorSchemes = {
 export default function Reports() {
   const [selectedReportType, setSelectedReportType] = useState("performance");
   const [selectedTimeRange, setSelectedTimeRange] = useState("7d");
-  const [selectedFormat, setSelectedFormat] = useState("docx");
+  const [selectedFormat, setSelectedFormat] = useState("xlsx");
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentReport, setCurrentReport] = useState<Report | null>(null);
   const [recentReports, setRecentReports] = useState<any[]>([]);
@@ -246,11 +246,11 @@ export default function Reports() {
   ];
 
   const formats = [
-    { value: "docx", label: "MS Word (DOCX)" },
+    { value: "xlsx", label: "Excel Workbook (XLSX) - Recommended" },
     { value: "pdf", label: "PDF Report" },
     { value: "csv", label: "CSV Data" },
-    { value: "json", label: "JSON Data" },
-    { value: "excel", label: "Excel Workbook" }
+    { value: "docx", label: "MS Word (DOCX)" },
+    { value: "json", label: "JSON Data" }
   ];
 
   const [realTimeMetrics, setRealTimeMetrics] = useState<any>(null);
@@ -453,7 +453,7 @@ export default function Reports() {
       clearTimeout(timeoutId);
 
       if (response.ok) {
-        if (selectedFormat === "docx" || selectedFormat === "csv" || selectedFormat === "pdf" || selectedFormat === "excel") {
+        if (selectedFormat === "docx" || selectedFormat === "csv" || selectedFormat === "pdf" || selectedFormat === "xlsx" || selectedFormat === "excel") {
           try {
             const blob = await response.blob();
 
@@ -465,13 +465,20 @@ export default function Reports() {
             const a = document.createElement('a');
             a.style.display = 'none';
             a.href = url;
-            a.download = `${selectedReportType}-report-${format(new Date(), 'yyyy-MM-dd')}.${selectedFormat}`;
+            
+            // Determine file extension
+            let fileExtension = selectedFormat;
+            if (selectedFormat === "xlsx" || selectedFormat === "excel") {
+              fileExtension = "xlsx";
+            }
+            
+            a.download = `${selectedReportType}-report-${format(new Date(), 'yyyy-MM-dd')}.${fileExtension}`;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
 
-            console.log(`${selectedFormat.toUpperCase()} download completed successfully`);
+            console.log(`${fileExtension.toUpperCase()} download completed successfully`);
             await fetchRecentReports().catch(err => console.warn("Failed to refresh recent reports:", err));
           } catch (blobError) {
             console.error("Error processing downloaded file:", blobError);
@@ -541,23 +548,23 @@ export default function Reports() {
     setError(null);
 
     try {
-      console.log(`Downloading Service Desk ${selectedReportType} report in ${selectedFormat} format`);
+      console.log(`Downloading Service Desk report in ${selectedFormat} format`);
 
-      const response = await fetch("/api/service-desk/analytics/download", {
-        method: "POST",
+      const queryParams = new URLSearchParams({
+        format: selectedFormat,
+        type: selectedReportType || 'all',
+        timeRange: selectedTimeRange
+      });
+
+      const response = await fetch(`/api/analytics/service-desk-report?${queryParams}`, {
+        method: "GET",
         headers: {
-          "Content-Type": "application/json",
           "Authorization": `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          reportType: selectedReportType,
-          timeRange: selectedTimeRange,
-          format: selectedFormat
-        })
+        }
       });
 
       if (response.ok) {
-        if (selectedFormat === "docx" || selectedFormat === "pdf" || selectedFormat === "csv" || selectedFormat === "excel") {
+        if (selectedFormat === "xlsx" || selectedFormat === "excel" || selectedFormat === "docx" || selectedFormat === "pdf" || selectedFormat === "csv") {
           const blob = await response.blob();
           
           if (blob.size === 0) {
@@ -570,15 +577,17 @@ export default function Reports() {
           a.href = url;
           
           let fileExtension = selectedFormat;
-          if (selectedFormat === "excel") fileExtension = "xlsx";
+          if (selectedFormat === "xlsx" || selectedFormat === "excel") {
+            fileExtension = "xlsx";
+          }
           
-          a.download = `service-desk-${selectedReportType}-${format(new Date(), 'yyyy-MM-dd')}.${fileExtension}`;
+          a.download = `service-desk-full-report-${format(new Date(), 'yyyy-MM-dd')}.${fileExtension}`;
           document.body.appendChild(a);
           a.click();
           window.URL.revokeObjectURL(url);
           document.body.removeChild(a);
 
-          console.log(`Service Desk ${selectedFormat.toUpperCase()} download completed successfully`);
+          console.log(`Service Desk ${fileExtension.toUpperCase()} download completed successfully`);
         } else {
           const data = await response.json();
           if (data.success) {
@@ -588,7 +597,7 @@ export default function Reports() {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `service-desk-${selectedReportType}-${format(new Date(), 'yyyy-MM-dd')}.json`;
+            a.download = `service-desk-full-report-${format(new Date(), 'yyyy-MM-dd')}.json`;
             a.click();
             URL.revokeObjectURL(url);
           } else {
@@ -1361,7 +1370,7 @@ export default function Reports() {
                 <Activity className="h-6 w-6 mr-2 text-green-600" />
                 Service Desk Analytics
               </CardTitle>
-              <p className="text-sm text-gray-600">Download comprehensive Service Desk performance reports and analytics</p>
+              <p className="text-sm text-gray-600">Download comprehensive Service Desk performance reports with charts, multiple sheets, and advanced formatting in Excel format</p>
             </CardHeader>
             <CardContent className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">

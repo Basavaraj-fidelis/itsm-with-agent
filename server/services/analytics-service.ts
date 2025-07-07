@@ -614,7 +614,7 @@ class AnalyticsService {
       // Get device count first to determine processing strategy
       const deviceCountResult = await db.select({ count: sql`count(*)` }).from(devices);
       const deviceCount = Number(deviceCountResult[0]?.count) || 0;
-      
+
       console.log(`Processing system health for ${deviceCount} devices`);
 
       const LARGE_DEPLOYMENT_THRESHOLD = 50;
@@ -623,7 +623,7 @@ class AnalyticsService {
       try {
         // Adjust query limits based on deployment size
         const reportLimit = isLargeDeployment ? 200 : 50;
-        
+
         recentReports = (await Promise.race([
           db
             .select()
@@ -632,7 +632,7 @@ class AnalyticsService {
             .limit(reportLimit),
           timeout,
         ])) as any[];
-        
+
         console.log(`Retrieved ${recentReports.length} recent reports`);
       } catch (reportsError) {
         console.warn("Recent reports query failed, using fallback");
@@ -891,6 +891,8 @@ class AnalyticsService {
       return JSON.stringify(reportData, null, 2);
     } else if (format === "pdf") {
       return await this.convertToPDF(reportData, reportType);
+    } else if (format === "xlsx") {
+        return await this.convertToExcel(reportData, reportType);
     }
     throw new Error("Unsupported format");
   }
@@ -1045,7 +1047,7 @@ class AnalyticsService {
                 alignment: AlignmentType.CENTER,
                 spacing: { after: 1200 },
               }),
-              
+
               // Report details box
               this.createInfoBox([
                 `Report Type: ${reportType.toUpperCase()}`,
@@ -1073,9 +1075,9 @@ class AnalyticsService {
               }),
 
               this.generateExecutiveSummary(data, reportType),
-              
+
               ...content,
-              
+
               // Conclusion section
               new Paragraph({
                 children: [
@@ -1088,7 +1090,7 @@ class AnalyticsService {
                 ],
                 spacing: { before: 600, after: 200 },
               }),
-              
+
               this.generateConclusions(data, reportType),
             ],
           },
@@ -1100,7 +1102,7 @@ class AnalyticsService {
       return buffer;
     } catch (error) {
       console.error("Error generating enhanced Word document:", error);
-      
+
       // Fallback to simple text-based document
       console.log("Attempting fallback Word document generation...");
       try {
@@ -2176,13 +2178,382 @@ class AnalyticsService {
     return content;
   }
 
+  private async convertToExcel(reportData: any, reportType: string): Promise<Buffer> {
+    const ExcelJS = require('exceljs');
+
+    try {
+      const workbook = new ExcelJS.Workbook();
+
+      workbook.creator = 'ITSM System';
+      workbook.lastModifiedBy = 'ITSM System';
+      workbook.created = new Date();
+      workbook.modified = new Date();
+      workbook.lastPrinted = new Date();
+
+      // Create Summary Sheet
+      const summarySheet = workbook.addWorksheet('Executive Summary', {
+        properties: { tabColor: { argb: '2E75B6' } }
+      });
+
+      // Header styling
+      summarySheet.mergeCells('A1:F1');
+      summarySheet.getCell('A1').value = 'ITSM SYSTEM REPORT';
+      summarySheet.getCell('A1').font = { name: 'Arial', size: 20, bold: true, color: { argb: '2E75B6' } };
+      summarySheet.getCell('A1').alignment = { horizontal: 'center' };
+
+      summarySheet.mergeCells('A2:F2');
+      summarySheet.getCell('A2').value = this.getReportTitle(reportType);
+      summarySheet.getCell('A2').font = { name: 'Arial', size: 16, bold: true };
+      summarySheet.getCell('A2').alignment = { horizontal: 'center' };
+
+      summarySheet.mergeCells('A3:F3');
+      summarySheet.getCell('A3').value = `Generated: ${format(new Date(), "MMMM dd, yyyy 'at' HH:mm")}`;
+      summarySheet.getCell('A3').font = { name: 'Arial', size: 11, italics: true };
+      summarySheet.getCell('A3').alignment = { horizontal: 'center' };
+
+      let currentRow = 5;
+
+      // Add report-specific content based on type
+      switch (reportType) {
+        case 'service-desk-tickets':
+        case 'ticket-analytics':
+          this.addTicketAnalyticsToExcel(summarySheet, reportData, currentRow);
+          this.addTicketDetailsSheet(workbook, reportData);
+          break;
+        case 'agents-detailed-report':
+        case 'managed-systems':
+          this.addAgentAnalyticsToExcel(summarySheet, reportData, currentRow);
+          this.addAgentDetailsSheet(workbook, reportData);
+          break;
+        default:
+          this.addGenericAnalyticsToExcel(summarySheet, reportData, currentRow);
+      }
+
+      // Auto-fit columns
+      summarySheet.columns.forEach(column => {
+        column.width = 20;
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      return buffer as Buffer;
+
+    } catch (error) {
+      console.error('Excel generation error:', error);
+      throw new Error('Failed to generate Excel file: ' + error.message);
+    }
+  }
+
+  private addTicketAnalyticsToExcel(sheet: any, data: any, startRow: number): void {
+    const analytics = data.analytics || data.summary || {};
+
+    // Key Metrics Section
+    sheet.getCell(`A${startRow}`).value = 'KEY METRICS';
+    sheet.getCell(`A${startRow}`).font = { name: 'Arial', size: 14, bold: true, color: { argb: '2E75B6' } };
+    startRow += 2;
+
+    const metrics = [
+      ['Total Tickets', analytics.total_tickets || data.summary?.total_tickets || 0],
+      ['Open Tickets', analytics.open_tickets || 0],
+      ['Resolved Tickets', analytics.resolved_tickets || 0],
+      ['SLA Compliance', `${analytics.sla_compliance_rate || analytics.sla_performance?.sla_compliance_rate || 0}%`],
+      ['Avg Resolution Time', `${analytics.avg_resolution_time || 0} hours`]
+    ];
+
+    metrics.forEach((metric, index) => {
+      const row = startRow + index;
+      sheet.getCell(`A${row}`).value = metric[0];
+      sheet.getCell(`A${row}`).font = { name: 'Arial', size: 11, bold: true };
+      sheet.getCell(`B${row}`).value = metric[1];
+      sheet.getCell(`B${row}`).font = { name: 'Arial', size: 11 };
+
+      // Add background color to alternate rows
+      if (index % 2 === 0) {
+        sheet.getCell(`A${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
+        sheet.getCell(`B${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
+      }
+    });
+
+    startRow += metrics.length + 2;
+
+    // Ticket Distribution Section
+    sheet.getCell(`A${startRow}`).value = 'TICKET DISTRIBUTION';
+    sheet.getCell(`A${startRow}`).font = { name: 'Arial', size: 14, bold: true, color: { argb: '2E75B6' } };
+    startRow += 2;
+
+    // By Priority
+    const distribution = analytics.ticket_distribution || {};
+    sheet.getCell(`A${startRow}`).value = 'By Priority:';
+    sheet.getCell(`A${startRow}`).font = { name: 'Arial', size: 12, bold: true };
+    startRow++;
+
+    if (distribution.by_priority) {
+      Object.entries(distribution.by_priority).forEach(([priority, count], index) => {
+        const row = startRow + index;
+        sheet.getCell(`B${row}`).value = priority.charAt(0).toUpperCase() + priority.slice(1);
+        sheet.getCell(`C${row}`).value = count;
+        sheet.getCell(`C${row}`).numFmt = '0';
+      });
+      startRow += Object.keys(distribution.by_priority).length + 1;
+    }
+
+    // By Type
+    if (distribution.by_type) {
+      sheet.getCell(`A${startRow}`).value = 'By Type:';
+      sheet.getCell(`A${startRow}`).font = { name: 'Arial', size: 12, bold: true };
+      startRow++;
+
+      Object.entries(distribution.by_type).forEach(([type, count], index) => {
+        const row = startRow + index;
+        sheet.getCell(`B${row}`).value = type.charAt(0).toUpperCase() + type.slice(1);
+        sheet.getCell(`C${row}`).value = count;
+        sheet.getCell(`C${row}`).numFmt = '0';
+      });
+    }
+  }
+
+  private addAgentAnalyticsToExcel(sheet: any, data: any, startRow: number): void {
+    const summary = data.summary || {};
+
+    // System Overview Section
+    sheet.getCell(`A${startRow}`).value = 'SYSTEM OVERVIEW';
+    sheet.getCell(`A${startRow}`).font = { name: 'Arial', size: 14, bold: true, color: { argb: '2E75B6' } };
+    startRow += 2;
+
+    const metrics = [
+      ['Total Agents', summary.total_agents || summary.filtered_agents || 0],
+      ['Online Agents', summary.online_agents || 0],
+      ['Offline Agents', summary.offline_agents || 0],
+      ['Healthy Systems', summary.healthy || 0],
+      ['Systems with Warnings', summary.warning || 0],
+      ['Critical Systems', summary.critical || 0]
+    ];
+
+    metrics.forEach((metric, index) => {
+      const row = startRow + index;
+      sheet.getCell(`A${row}`).value = metric[0];
+      sheet.getCell(`A${row}`).font = { name: 'Arial', size: 11, bold: true };
+      sheet.getCell(`B${row}`).value = metric[1];
+      sheet.getCell(`B${row}`).font = { name: 'Arial', size: 11 };
+
+      // Color coding for status
+      if (metric[0].includes('Critical') && metric[1] > 0) {
+        sheet.getCell(`B${row}`).font = { name: 'Arial', size: 11, color: { argb: 'DC3545' } };
+      } else if (metric[0].includes('Warning') && metric[1] > 0) {
+        sheet.getCell(`B${row}`).font = { name: 'Arial', size: 11, color: { argb: 'FFC107' } };
+      } else if (metric[0].includes('Healthy') || metric[0].includes('Online')) {
+        sheet.getCell(`B${row}`).font = { name: 'Arial', size: 11, color: { argb: '28A745' } };
+      }
+
+      // Add background color to alternate rows
+      if (index % 2 === 0) {
+        sheet.getCell(`A${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
+        sheet.getCell(`B${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
+      }
+    });
+  }
+
+  private addGenericAnalyticsToExcel(sheet: any, data: any, startRow: number): void {
+    sheet.getCell(`A${startRow}`).value = 'REPORT DATA';
+    sheet.getCell(`A${startRow}`).font = { name: 'Arial', size: 14, bold: true, color: { argb: '2E75B6' } };
+    startRow += 2;
+
+    // Convert data to key-value pairs for display
+    const flattenObject = (obj: any, prefix = ''): any[] => {
+      const result: any[] = [];
+      for (const [key, value] of Object.entries(obj)) {
+        const newKey = prefix ? `${prefix}.${key}` : key;
+        if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+          result.push(...flattenObject(value, newKey));
+        } else {
+          result.push([newKey, value]);
+        }
+      }
+      return result;
+    };
+
+    const flatData = flattenObject(data);
+    flatData.slice(0, 20).forEach(([key, value], index) => {
+      const row = startRow + index;
+      sheet.getCell(`A${row}`).value = key;
+      sheet.getCell(`A${row}`).font = { name: 'Arial', size: 11 };
+      sheet.getCell(`B${row}`).value = value;
+      sheet.getCell(`B${row}`).font = { name: 'Arial', size: 11 };
+
+      // Add background color to alternate rows
+      if (index % 2 === 0) {
+        sheet.getCell(`A${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
+        sheet.getCell(`B${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
+      }
+    });
+  }
+
+  private addTicketDetailsSheet(workbook: any, data: any): void {
+    const detailsSheet = workbook.addWorksheet('Ticket Details', {
+      properties: { tabColor: { argb: '4472C4' } }
+    });
+
+    // Headers
+    const headers = [
+      'Ticket Number', 'Type', 'Title', 'Priority', 'Status', 
+      'Assigned To', 'Created', 'Due Date', 'SLA Breached'
+    ];
+
+    headers.forEach((header, index) => {
+      const cell = detailsSheet.getCell(1, index + 1);
+      cell.value = header;
+      cell.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '4472C4' } };
+      cell.alignment = { horizontal: 'center' };
+      cell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' }
+      };
+    });
+
+    // Data rows
+    const tickets = data.tickets || [];
+    tickets.forEach((ticket: any, index: number) => {
+      const row = index + 2;
+      const values = [
+        ticket.ticket_number,
+        ticket.type,
+        ticket.title,
+        ticket.priority,
+        ticket.status,
+        ticket.assigned_to || 'Unassigned',
+        ticket.created_at ? format(new Date(ticket.created_at), 'MMM dd, yyyy') : '',
+        ticket.due_date ? format(new Date(ticket.due_date), 'MMM dd, yyyy') : '',
+        ticket.sla_breached ? 'Yes' : 'No'
+      ];
+
+      values.forEach((value, colIndex) => {
+        const cell = detailsSheet.getCell(row, colIndex + 1);
+        cell.value = value;
+        cell.font = { name: 'Arial', size: 10 };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'E0E0E0' } },
+          left: { style: 'thin', color: { argb: 'E0E0E0' } },
+          bottom: { style: 'thin', color: { argb: 'E0E0E0' } },
+          right: { style: 'thin', color: { argb: 'E0E0E0' } }
+        };
+
+        // Color coding for status and priority
+        if (colIndex === 3) { // Priority column
+          if (value === 'critical') cell.font = { name: 'Arial', size: 10, color: { argb: 'DC3545' } };
+          else if (value === 'high') cell.font = { name: 'Arial', size: 10, color: { argb: 'FD7E14' } };
+          else if (value === 'medium') cell.font = { name: 'Arial', size: 10, color: { argb: 'FFC107' } };
+          else if (value === 'low') cell.font = { name: 'Arial', size: 10, color: { argb: '28A745' } };
+        }
+
+        if (colIndex === 8 && value === 'Yes') { // SLA Breached column
+          cell.font = { name: 'Arial', size: 10, color: { argb: 'DC3545' }, bold: true };
+        }
+
+        // Alternate row background
+        if (index % 2 === 0) {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
+        }
+      });
+    });
+
+    // Auto-fit columns
+    detailsSheet.columns.forEach(column => {
+      column.width = 15;
+    });
+  }
+
+  private addAgentDetailsSheet(workbook: any, data: any): void {
+    const detailsSheet = workbook.addWorksheet('Agent Details', {
+      properties: { tabColor: { argb: '28A745' } }
+    });
+
+    // Headers
+    const headers = [
+      'Hostname', 'IP Address', 'OS', 'Status', 'CPU %', 
+      'Memory %', 'Disk %', 'Last Seen', 'Assigned User'
+    ];
+
+    headers.forEach((header, index) => {
+      const cell = detailsSheet.getCell(1, index + 1);
+      cell.value = header;
+      cell.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '28A745' } };
+      cell.alignment = { horizontal: 'center' };
+      cell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' }
+      };
+    });
+
+    // Data rows
+    const agents = data.agents || [];
+    agents.forEach((agent: any, index: number) => {
+      const row = index + 2;
+      const performance = agent.performance_summary || {};
+      const values = [
+        agent.hostname,
+        agent.ip_address,
+        agent.os_name,
+        agent.status,
+        performance.cpu_usage || 0,
+        performance.memory_usage || 0,
+        performance.disk_usage || 0,
+        agent.last_seen ? format(new Date(agent.last_seen), 'MMM dd, yyyy HH:mm') : '',
+        agent.assigned_user || 'Unassigned'
+      ];
+
+      values.forEach((value, colIndex) => {
+        const cell = detailsSheet.getCell(row, colIndex + 1);
+        cell.value = value;
+        cell.font = { name: 'Arial', size: 10 };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'E0E0E0' } },
+          left: { style: 'thin', color: { argb: 'E0E0E0' } },
+          bottom: { style: 'thin', color: { argb: 'E0E0E0' } },
+          right: { style: 'thin', color: { argb: 'E0E0E0' } }
+        };
+
+        // Format percentage columns
+        if (colIndex >= 4 && colIndex <= 6) {
+          cell.numFmt = '0.0"%"';
+          // Color coding for performance metrics
+          const numValue = parseFloat(value) || 0;
+          if (numValue >= 90) cell.font = { name: 'Arial', size: 10, color: { argb: 'DC3545' } };
+          else if (numValue >= 80) cell.font = { name: 'Arial', size: 10, color: { argb: 'FFC107' } };
+          else cell.font = { name: 'Arial', size: 10, color: { argb: '28A745' } };
+        }
+
+        // Color coding for status
+        if (colIndex === 3) {
+          if (value === 'online') cell.font = { name: 'Arial', size: 10, color: { argb: '28A745' } };
+          else if (value === 'offline') cell.font = { name: 'Arial', size: 10, color: { argb: 'DC3545' } };
+          else cell.font = { name: 'Arial', size: 10, color: { argb: 'FFC107' } };
+        }
+
+        // Alternate row background
+        if (index % 2 === 0) {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
+        }
+      });
+    });
+
+    // Auto-fit columns
+    detailsSheet.columns.forEach(column => {
+      column.width = 15;
+    });
+  }
+
   private async convertToPDF(
     data: any,
     reportType: string = "generic",
   ): Promise<Buffer> {
     try {
       console.log("Generating PDF document...");
-      
+
       // Generate a properly formatted text document for PDF
       const textContent = this.generateEnhancedTextDocument(data, reportType);
 
@@ -2203,27 +2574,27 @@ class AnalyticsService {
 
     // Enhanced PDF content with professional structure
     let streamContent = `BT\n`;
-    
+
     // Header with company branding
     streamContent += `/F1 20 Tf\n50 750 Td\n(ITSM SYSTEM REPORT) Tj\n`;
     streamContent += `0 -25 Td\n/F1 14 Tf\n(Enterprise IT Service Management Platform) Tj\n`;
     streamContent += `0 -40 Td\n/F1 16 Tf\n(${title}) Tj\n`;
-    
+
     // Report metadata box
-    streamContent += `0 -40 Td\n/F1 10 Tf\n(Report Date: ${reportDate}) Tj\n`;
+    streamContent += `0 -40Td\n/F1 10 Tf\n(Report Date: ${reportDate}) Tj\n`;
     streamContent += `0 -15 Td\n(Generated: ${timestamp}) Tj\n`;
     streamContent += `0 -15 Td\n(Classification: Internal Use Only) Tj\n`;
     streamContent += `0 -15 Td\n(Report Type: ${reportType.toUpperCase()}) Tj\n`;
-    
+
     // Separator line
     streamContent += `0 -30 Td\n/F1 12 Tf\n(================================================================) Tj\n`;
-    
+
     // Executive summary section
     streamContent += `0 -25 Td\n/F1 14 Tf\n(EXECUTIVE SUMMARY) Tj\n`;
     streamContent += `0 -20 Td\n/F1 10 Tf\n(This report provides comprehensive analysis of system performance,) Tj\n`;
     streamContent += `0 -12 Td\n(operational metrics, and strategic recommendations for your) Tj\n`;
     streamContent += `0 -12 Td\n(IT infrastructure management and optimization.) Tj\n`;
-    
+
     // Content sections based on report type
     if (reportType === "performance") {
       streamContent += `0 -25 Td\n/F1 14 Tf\n(PERFORMANCE METRICS) Tj\n`;
@@ -2232,32 +2603,32 @@ class AnalyticsService {
       streamContent += `0 -12 Td\n(Storage Utilization: 78.3% Average) Tj\n`;
       streamContent += `0 -12 Td\n(System Uptime: 98.7% Availability) Tj\n`;
       streamContent += `0 -12 Td\n(Active Devices: 15 Systems Monitored) Tj\n`;
-      
+
       streamContent += `0 -25 Td\n/F1 14 Tf\n(TREND ANALYSIS) Tj\n`;
       streamContent += `0 -20 Td\n/F1 10 Tf\n(CPU Trend: +2.1% increase over period) Tj\n`;
       streamContent += `0 -12 Td\n(Memory Trend: -1.5% optimization improvement) Tj\n`;
       streamContent += `0 -12 Td\n(Storage Trend: +0.8% gradual increase) Tj\n`;
     }
-    
+
     // Key findings section
     streamContent += `0 -25 Td\n/F1 14 Tf\n(KEY FINDINGS) Tj\n`;
     streamContent += `0 -20 Td\n/F1 10 Tf\n(• System performance within acceptable parameters) Tj\n`;
     streamContent += `0 -12 Td\n(• No critical infrastructure issues identified) Tj\n`;
     streamContent += `0 -12 Td\n(• Opportunities for optimization in high-utilization areas) Tj\n`;
     streamContent += `0 -12 Td\n(• Proactive monitoring recommendations implemented) Tj\n`;
-    
+
     // Recommendations section
     streamContent += `0 -25 Td\n/F1 14 Tf\n(RECOMMENDATIONS) Tj\n`;
     streamContent += `0 -20 Td\n/F1 10 Tf\n(1. Implement capacity planning for projected growth) Tj\n`;
     streamContent += `0 -12 Td\n(2. Enhance monitoring for critical resource thresholds) Tj\n`;
     streamContent += `0 -12 Td\n(3. Schedule preventive maintenance windows) Tj\n`;
     streamContent += `0 -12 Td\n(4. Review and optimize high-utilization systems) Tj\n`;
-    
+
     // Footer
     streamContent += `0 -40 Td\n/F1 8 Tf\n(This report is generated automatically by the ITSM System.) Tj\n`;
     streamContent += `0 -10 Td\n(For technical support, contact your system administrator.) Tj\n`;
     streamContent += `0 -10 Td\n(Confidential - Do not distribute outside organization.) Tj\n`;
-    
+
     streamContent += `ET\n`;
 
     const streamLength = streamContent.length;
@@ -2384,7 +2755,7 @@ class AnalyticsService {
 
   private generateExecutiveSummary(data: any, reportType: string): Paragraph {
     let summaryText = "";
-    
+
     switch (reportType) {
       case "performance":
         summaryText = `This performance analysis reveals system utilization averaging ${data.average_cpu || 45}% CPU, ${data.average_memory || 63}% memory, and ${data.average_disk || 78}% storage across ${data.device_count || 15} monitored devices. System uptime maintains ${data.uptime_percentage || 98.7}% availability with ${data.critical_alerts || 1} critical alerts requiring attention.`;
@@ -2415,7 +2786,7 @@ class AnalyticsService {
 
   private generateConclusions(data: any, reportType: string): Paragraph {
     let conclusionText = "";
-    
+
     switch (reportType) {
       case "performance":
         conclusionText = "Based on performance analysis, the system demonstrates stable operation with opportunities for optimization in high-utilization areas. Recommend implementing capacity planning for projected growth and proactive monitoring for critical resource thresholds.";

@@ -1237,7 +1237,7 @@ router.get(
 // Generate comprehensive Service Desk report
 router.get("/service-desk-report", async (req: Request, res: Response) => {
   try {
-    const format = (req.query.format as string) || "json";
+    const format = (req.query.format as string) || "xlsx";
     const filters = {
       type: req.query.type as string,
       status: req.query.status as string,
@@ -1275,15 +1275,21 @@ router.get("/service-desk-report", async (req: Request, res: Response) => {
       },
     };
 
-    if (format === "pdf") {
-      // For now, return JSON and let frontend handle PDF generation
-      // In production, you might want to use a PDF library like puppeteer
-      res.setHeader("Content-Type", "application/json");
-      res.setHeader(
-        "Content-Disposition",
-        'attachment; filename="service-desk-report.json"',
-      );
-      return res.json(report);
+    if (format === "xlsx" || format === "excel") {
+      const excelData = await analyticsService.exportReport(report, 'excel', 'service-desk-tickets');
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename="service-desk-full-report.xlsx"');
+      return res.send(excelData);
+    } else if (format === "pdf") {
+      const pdfData = await analyticsService.exportReport(report, 'pdf', 'service-desk-tickets');
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename="service-desk-full-report.pdf"');
+      return res.send(pdfData);
+    } else if (format === "csv") {
+      const csvData = await analyticsService.exportReport(report, 'csv', 'service-desk-tickets');
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="service-desk-full-report.csv"');
+      return res.send(csvData);
     }
 
     res.json({
