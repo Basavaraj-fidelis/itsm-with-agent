@@ -165,13 +165,13 @@ var init_schema = __esm({
 var db_exports = {};
 __export(db_exports, {
   db: () => db2,
-  pool: () => pool2,
+  pool: () => pool,
   sql: () => sql2
 });
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { sql as sql2 } from "drizzle-orm";
-var DATABASE_URL, pool2, db2;
+var DATABASE_URL, pool, db2;
 var init_db = __esm({
   "server/db.ts"() {
     "use strict";
@@ -185,7 +185,7 @@ var init_db = __esm({
       );
     }
     console.log("\u{1F517} Using database URL:", DATABASE_URL.replace(/:[^:@]*@/, ":***@"));
-    pool2 = new Pool({
+    pool = new Pool({
       connectionString: DATABASE_URL,
       ssl: DATABASE_URL.includes("aivencloud.com") ? {
         rejectUnauthorized: false
@@ -197,7 +197,7 @@ var init_db = __esm({
       max: 10,
       application_name: "itsm-patch-compliance"
     });
-    db2 = drizzle(pool2, { schema: schema_exports });
+    db2 = drizzle(pool, { schema: schema_exports });
   }
 });
 
@@ -802,8 +802,8 @@ var init_storage = __esm({
         try {
           console.log("Initializing demo users...");
           try {
-            const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
-            await pool4.query(`
+            const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+            await pool3.query(`
           CREATE TABLE IF NOT EXISTS users (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             email VARCHAR(255) UNIQUE NOT NULL,
@@ -824,7 +824,7 @@ var init_storage = __esm({
           )
         `);
             console.log("Users table ensured");
-            const existingCheck = await pool4.query(
+            const existingCheck = await pool3.query(
               `
           SELECT COUNT(*) as count FROM users WHERE email = $1
         `,
@@ -895,7 +895,7 @@ var init_storage = __esm({
               }
             ];
             for (const user of demoUsers) {
-              await pool4.query(
+              await pool3.query(
                 `
             INSERT INTO users (
               email, username, name, first_name, last_name, password_hash, 
@@ -2757,10 +2757,10 @@ smartphones
       }
       async getUSBDevicesForDevice(deviceId) {
         try {
-          const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { usb_devices: usb_devices2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
           const { eq: eq12, desc: desc10 } = await import("drizzle-orm");
-          const result = await db5.select().from(usb_devices2).where(eq12(usb_devices2.device_id, deviceId)).orderBy(desc10(usb_devices2.last_seen));
+          const result = await db6.select().from(usb_devices2).where(eq12(usb_devices2.device_id, deviceId)).orderBy(desc10(usb_devices2.last_seen));
           return result;
         } catch (error) {
           console.error("Error fetching USB devices for device:", error);
@@ -2769,10 +2769,10 @@ smartphones
       }
       async updateUSBDevices(deviceId, usbDevices) {
         try {
-          const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { usb_devices: usb_devices2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
           const { eq: eq12, and: and11 } = await import("drizzle-orm");
-          await db5.update(usb_devices2).set({ is_connected: false }).where(eq12(usb_devices2.device_id, deviceId));
+          await db6.update(usb_devices2).set({ is_connected: false }).where(eq12(usb_devices2.device_id, deviceId));
           for (const device of usbDevices) {
             let vendor_id = device.vendor_id;
             let product_id = device.product_id;
@@ -2789,14 +2789,14 @@ smartphones
               `Processing USB device: ${device.description}, VID: ${vendor_id}, PID: ${product_id}, Serial: ${serial_number}`
             );
             const deviceIdentifier = vendor_id && product_id ? `${vendor_id}:${product_id}:${serial_number || "no-serial"}` : device.device_id || device.serial_number || `unknown-${Date.now()}`;
-            const existingDevices = await db5.select().from(usb_devices2).where(
+            const existingDevices = await db6.select().from(usb_devices2).where(
               and11(
                 eq12(usb_devices2.device_id, deviceId),
                 eq12(usb_devices2.device_identifier, deviceIdentifier)
               )
             );
             if (existingDevices.length > 0) {
-              await db5.update(usb_devices2).set({
+              await db6.update(usb_devices2).set({
                 description: device.description || device.name,
                 vendor_id,
                 product_id,
@@ -2810,7 +2810,7 @@ smartphones
                 raw_data: device
               }).where(eq12(usb_devices2.id, existingDevices[0].id));
             } else {
-              await db5.insert(usb_devices2).values({
+              await db6.insert(usb_devices2).values({
                 device_id: deviceId,
                 device_identifier: deviceIdentifier,
                 description: device.description || device.name,
@@ -2838,8 +2838,8 @@ smartphones
       // Knowledge Base methods - Database storage
       async getKBArticle(id) {
         try {
-          const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
-          const result = await pool4.query(
+          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const result = await pool3.query(
             `
         SELECT 
           id, title, content, author_email, category, tags, 
@@ -2867,8 +2867,8 @@ smartphones
       }
       async incrementArticleViews(id) {
         try {
-          const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
-          await pool4.query(
+          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          await pool3.query(
             `
         UPDATE knowledge_base 
         SET views = COALESCE(views, 0) + 1 
@@ -2885,8 +2885,8 @@ smartphones
         try {
           console.log("DatabaseStorage.getUsers called with filters:", filters);
           try {
-            const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
-            const tableCheck = await pool4.query(`
+            const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+            const tableCheck = await pool3.query(`
           SELECT column_name, data_type 
           FROM information_schema.columns 
           WHERE table_name = 'users' 
@@ -2927,7 +2927,7 @@ smartphones
             query += ` ORDER BY email`;
             console.log("Executing query:", query);
             console.log("With params:", params);
-            const result = await pool4.query(query, params);
+            const result = await pool3.query(query, params);
             console.log(`Database returned ${result.rows.length} users`);
             const users2 = result.rows.map((user) => ({
               ...user,
@@ -2976,8 +2976,8 @@ smartphones
       }
       async getUserById(id) {
         try {
-          const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
-          const result = await pool4.query(
+          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const result = await pool3.query(
             `
         SELECT 
           id, email, name, role, department, phone, is_active, 
@@ -3000,12 +3000,12 @@ smartphones
       }
       async createUser(data) {
         try {
-          const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const nameParts = (data.name || "").trim().split(" ");
           const first_name = nameParts[0] || "";
           const last_name = nameParts.slice(1).join(" ") || "";
           const username = data.email?.split("@")[0] || "";
-          const result = await pool4.query(
+          const result = await pool3.query(
             `
         INSERT INTO users (
           first_name, last_name, username, email, password_hash, role, 
@@ -3040,7 +3040,7 @@ smartphones
       }
       async updateUser(id, updates) {
         try {
-          const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const setClause = [];
           const params = [];
           let paramCount = 0;
@@ -3074,7 +3074,7 @@ smartphones
           job_title, location, employee_id, manager_id, last_login, 
           is_locked, failed_login_attempts
       `;
-          const result = await pool4.query(query, params);
+          const result = await pool3.query(query, params);
           if (result.rows.length > 0) {
             const user = result.rows[0];
             user.name = `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.username || user.email?.split("@")[0];
@@ -3088,8 +3088,8 @@ smartphones
       }
       async deleteUser(id) {
         try {
-          const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
-          const result = await pool4.query(
+          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const result = await pool3.query(
             `
         UPDATE users SET is_active = false WHERE id = $1
       `,
@@ -3104,7 +3104,7 @@ smartphones
       // Knowledge Base methods for database storage
       async getKBArticles(page = 1, limit = 20, filters = {}) {
         try {
-          const { pool: pool4 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const offset = (page - 1) * limit;
           let query = `
         SELECT 
@@ -3134,11 +3134,11 @@ smartphones
             /SELECT.*FROM/,
             "SELECT COUNT(*) as total FROM"
           );
-          const countResult = await pool4.query(countQuery, params);
+          const countResult = await pool3.query(countQuery, params);
           const total = parseInt(countResult.rows[0].total);
           query += ` ORDER BY created_at DESC LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;
           params.push(limit, offset);
-          const result = await pool4.query(query, params);
+          const result = await pool3.query(query, params);
           const articles = result.rows.map((article) => ({
             ...article,
             tags: typeof article.tags === "string" ? JSON.parse(article.tags || "[]") : article.tags || []
@@ -5972,14 +5972,14 @@ var init_database = __esm({
        * Get database pool instance
        */
       static async getPool() {
-        return pool2;
+        return pool;
       }
       /**
        * Execute a query with error handling
        */
       static async executeQuery(query, params = []) {
         try {
-          const result = await pool2.query(query, params);
+          const result = await pool.query(query, params);
           return result;
         } catch (error) {
           console.error("Database query error:", error);
@@ -5991,7 +5991,7 @@ var init_database = __esm({
        */
       static async tableExists(tableName) {
         try {
-          const result = await pool2.query(
+          const result = await pool.query(
             `SELECT EXISTS (
           SELECT FROM information_schema.tables 
           WHERE table_schema = 'public' 
@@ -6010,7 +6010,7 @@ var init_database = __esm({
        */
       static async getTableColumns(tableName) {
         try {
-          const result = await pool2.query(
+          const result = await pool.query(
             `SELECT column_name, data_type 
          FROM information_schema.columns 
          WHERE table_name = $1 AND table_schema = 'public'
@@ -6040,7 +6040,7 @@ var init_database = __esm({
        * Execute transaction
        */
       static async executeTransaction(queries) {
-        const client = await pool2.connect();
+        const client = await pool.connect();
         try {
           await client.query("BEGIN");
           const results = [];
@@ -6653,10 +6653,10 @@ var init_notification_routes = __esm({
         try {
           const decoded = jwt2.verify(token, JWT_SECRET2);
           const userId = decoded.id;
-          const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { desc: desc10 } = await import("drizzle-orm");
           const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-          const ticketsList = await db5.select().from(tickets2).orderBy(desc10(tickets2.updated_at));
+          const ticketsList = await db6.select().from(tickets2).orderBy(desc10(tickets2.updated_at));
           const userTickets = ticketsList.filter(
             (ticket) => ticket.assigned_to === userId || ticket.requester_email === decoded.email
           );
@@ -10835,7 +10835,7 @@ var init_user_routes = __esm({
               console.log(`Skipping user: missing email or name - ${JSON.stringify(userData)}`);
               continue;
             }
-            const existingUser = await db2.query(
+            const existingUser = await pool.query(
               `SELECT id FROM users WHERE email = $1`,
               [email]
             );
@@ -10853,7 +10853,7 @@ var init_user_routes = __esm({
               finalFirstName = nameParts[0] || "";
               finalLastName = nameParts.slice(1).join(" ") || "";
             }
-            await db2.query(`
+            await pool.query(`
           INSERT INTO users (
             email, username, first_name, last_name, role, 
             password_hash, phone, department, location, is_active,
@@ -10964,12 +10964,12 @@ var init_user_routes = __esm({
         params.push(offset);
         console.log("Executing enhanced user query:", query);
         console.log("With parameters:", params);
-        const result = await db2.query(query, params);
+        const result = await pool.query(query, params);
         let countQuery = `SELECT COUNT(*) as total FROM users`;
         if (conditions.length > 0) {
           countQuery += ` WHERE ${conditions.join(" AND ")}`;
         }
-        const countResult = await db2.query(countQuery, params.slice(0, -2));
+        const countResult = await pool.query(countQuery, params.slice(0, -2));
         const total = parseInt(countResult.rows[0]?.total || 0);
         const statsQuery = `
       SELECT 
@@ -10980,7 +10980,7 @@ var init_user_routes = __esm({
         COUNT(CASE WHEN COALESCE(preferences, '{}')->>'ad_synced' IS NULL OR COALESCE(preferences, '{}')->>'ad_synced' = 'false' THEN 1 END) as local_users
       FROM users
     `;
-        const statsResult = await db2.query(statsQuery);
+        const statsResult = await pool.query(statsQuery);
         const stats = statsResult.rows[0];
         const users2 = result.rows.map((user) => {
           let preferences = {};
@@ -11043,7 +11043,7 @@ var init_user_routes = __esm({
     });
     router7.get("/departments", async (req, res) => {
       try {
-        const result = await db2.query(`
+        const result = await pool.query(`
       SELECT DISTINCT department 
       FROM users 
       WHERE department IS NOT NULL AND department != ''
@@ -11097,7 +11097,7 @@ var init_user_routes = __esm({
     });
     router7.get("/:id", async (req, res) => {
       try {
-        const result = await db2.query(`
+        const result = await pool.query(`
       SELECT 
         id, email, username, first_name, last_name, role,
         phone, job_title, location, is_active, is_locked,
@@ -11135,7 +11135,7 @@ var init_user_routes = __esm({
           lastName = nameParts.slice(1).join(" ") || "";
         }
         const username = email.split("@")[0];
-        const existingUser = await db2.query(`
+        const existingUser = await pool.query(`
       SELECT id FROM users WHERE email = $1 OR username = $2
     `, [email.toLowerCase(), username]);
         if (existingUser.rows.length > 0) {
@@ -11143,7 +11143,7 @@ var init_user_routes = __esm({
         }
         const saltRounds = 10;
         const password_hash = await bcrypt2.hash(password, saltRounds);
-        const result = await db2.query(`
+        const result = await pool.query(`
       INSERT INTO users (
         email, username, first_name, last_name, role, 
         password_hash, phone, location, department, is_active,
@@ -11188,7 +11188,7 @@ var init_user_routes = __esm({
         if (!email || !name && !first_name || !role) {
           return res.status(400).json({ message: "Email, name/first_name, and role are required" });
         }
-        const userCheck = await db2.query(`SELECT id, email, is_locked, first_name, last_name FROM users WHERE id = $1`, [req.params.id]);
+        const userCheck = await pool.query(`SELECT id, email, is_locked, first_name, last_name FROM users WHERE id = $1`, [req.params.id]);
         if (userCheck.rows.length === 0) {
           return res.status(404).json({ message: "User not found" });
         }
@@ -11210,7 +11210,7 @@ var init_user_routes = __esm({
         }
         const currentUser = userCheck.rows[0];
         if (email.toLowerCase() !== currentUser.email.toLowerCase()) {
-          const emailCheck = await db2.query(`SELECT id FROM users WHERE email = $1 AND id != $2`, [email.toLowerCase(), req.params.id]);
+          const emailCheck = await pool.query(`SELECT id FROM users WHERE email = $1 AND id != $2`, [email.toLowerCase(), req.params.id]);
           if (emailCheck.rows.length > 0) {
             return res.status(400).json({ message: "Email already exists for another user" });
           }
@@ -11244,7 +11244,7 @@ var init_user_routes = __esm({
         updateQuery += ` RETURNING id, email, username, first_name, last_name, role, phone, location, department, is_active, is_locked, created_at, updated_at`;
         console.log("Executing update query:", updateQuery);
         console.log("With values (excluding password):", values.map((v, i) => i === values.length - 2 && password ? "[PASSWORD HASH]" : v));
-        const result = await db2.query(updateQuery, values);
+        const result = await pool.query(updateQuery, values);
         if (result.rows.length === 0) {
           return res.status(404).json({ message: "User not found or update failed" });
         }
@@ -11270,7 +11270,7 @@ var init_user_routes = __esm({
     });
     router7.delete("/:id", async (req, res) => {
       try {
-        const result = await db2.query(`
+        const result = await pool.query(`
       UPDATE users 
       SET is_active = false, updated_at = NOW() 
       WHERE id = $1 
@@ -11300,7 +11300,7 @@ var init_user_routes = __esm({
           console.log(`User ${userId} is already locked`);
           return res.status(400).json({ message: "User is already locked" });
         }
-        const result = await db2.query(`
+        const result = await pool.query(`
       UPDATE users 
       SET is_locked = true, updated_at = NOW() 
       WHERE id = $1 
@@ -11358,7 +11358,7 @@ var init_user_routes = __esm({
           console.log(`User ${userId} is already unlocked`);
           return res.status(400).json({ message: "User is already unlocked" });
         }
-        const result = await db2.query(`
+        const result = await pool.query(`
       UPDATE users 
       SET is_locked = false, failed_login_attempts = 0, updated_at = NOW() 
       WHERE id = $1 
@@ -11410,7 +11410,7 @@ var init_user_routes = __esm({
           return res.status(401).json({ message: "Unauthorized" });
         }
         const token = authHeader.substring(7);
-        const session = await db2.query(`
+        const session = await pool.query(`
       SELECT 
         user_id, token
       FROM user_sessions
@@ -11419,7 +11419,7 @@ var init_user_routes = __esm({
         if (session.rows.length === 0) {
           return res.status(401).json({ message: "Invalid session" });
         }
-        const user = await db2.query(`
+        const user = await pool.query(`
       SELECT 
         id, password_hash
       FROM users
@@ -11434,7 +11434,7 @@ var init_user_routes = __esm({
         }
         const saltRounds = 10;
         const newPasswordHash = await bcrypt2.hash(newPassword, saltRounds);
-        await db2.query(`
+        await pool.query(`
       UPDATE users
       SET password_hash = $1, updated_at = NOW()
       WHERE id = $2
@@ -12533,10 +12533,10 @@ Immediate attention required!`;
               new Date(ticket[breachType === "response" ? "response_due_at" : "resolve_due_at"])
             );
           }
-          const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { users: users2 } = await Promise.resolve().then(() => (init_user_schema(), user_schema_exports));
           const { eq: eq12 } = await import("drizzle-orm");
-          const managers = await db5.select().from(users2).where(eq12(users2.role, "manager"));
+          const managers = await db6.select().from(users2).where(eq12(users2.role, "manager"));
           for (const manager of managers) {
             await notificationService.createNotification({
               user_email: manager.email,
@@ -12697,10 +12697,10 @@ function registerSLARoutes(app2) {
       const { id } = req.params;
       const { reason } = req.body;
       const now = /* @__PURE__ */ new Date();
-      const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
       const { eq: eq12 } = await import("drizzle-orm");
-      await db5.update(tickets2).set({
+      await db6.update(tickets2).set({
         sla_paused: true,
         sla_pause_reason: reason || "Manually paused",
         sla_paused_at: now,
@@ -12716,10 +12716,10 @@ function registerSLARoutes(app2) {
     try {
       const { id } = req.params;
       const now = /* @__PURE__ */ new Date();
-      const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
       const { eq: eq12 } = await import("drizzle-orm");
-      const [ticket] = await db5.select().from(tickets2).where(eq12(tickets2.id, id));
+      const [ticket] = await db6.select().from(tickets2).where(eq12(tickets2.id, id));
       if (!ticket || !ticket.sla_paused_at) {
         return res.status(400).json({ error: "Ticket SLA is not paused" });
       }
@@ -12727,7 +12727,7 @@ function registerSLARoutes(app2) {
         (now.getTime() - new Date(ticket.sla_paused_at).getTime()) / (1e3 * 60)
       );
       const totalPausedTime = (ticket.sla_total_paused_time || 0) + pauseDuration;
-      await db5.update(tickets2).set({
+      await db6.update(tickets2).set({
         sla_paused: false,
         sla_pause_reason: null,
         sla_resumed_at: now,
@@ -12755,10 +12755,10 @@ function registerSLARoutes(app2) {
   });
   app2.get("/api/sla/breach-details", async (req, res) => {
     try {
-      const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
       const { not: not3, inArray: inArray4, or: or8, eq: eq12 } = await import("drizzle-orm");
-      const breachedTickets = await db5.select().from(tickets2).where(
+      const breachedTickets = await db6.select().from(tickets2).where(
         and(
           not3(inArray4(tickets2.status, ["resolved", "closed", "cancelled"])),
           or8(
@@ -12803,9 +12803,9 @@ function registerSLARoutes(app2) {
   });
   app2.post("/api/sla/policies", async (req, res) => {
     try {
-      const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { slaPolicies: slaPolicies3 } = await Promise.resolve().then(() => (init_sla_schema(), sla_schema_exports));
-      const [policy] = await db5.insert(slaPolicies3).values(req.body).returning();
+      const [policy] = await db6.insert(slaPolicies3).values(req.body).returning();
       res.status(201).json(policy);
     } catch (error) {
       console.error("Error creating SLA policy:", error);
@@ -12814,9 +12814,9 @@ function registerSLARoutes(app2) {
   });
   app2.get("/api/sla/policies", async (req, res) => {
     try {
-      const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { slaPolicies: slaPolicies3 } = await Promise.resolve().then(() => (init_sla_schema(), sla_schema_exports));
-      const policies = await db5.select().from(slaPolicies3);
+      const policies = await db6.select().from(slaPolicies3);
       res.json(policies);
     } catch (error) {
       console.error("Error fetching SLA policies:", error);
@@ -12825,10 +12825,10 @@ function registerSLARoutes(app2) {
   });
   app2.post("/api/sla/sync-tickets", async (req, res) => {
     try {
-      const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
       const { eq: eq12, isNull: isNull3, not: not3, inArray: inArray4 } = await import("drizzle-orm");
-      const ticketsToUpdate = await db5.select().from(tickets2).where(isNull3(tickets2.sla_resolution_due));
+      const ticketsToUpdate = await db6.select().from(tickets2).where(isNull3(tickets2.sla_resolution_due));
       let updated = 0;
       for (const ticket of ticketsToUpdate) {
         const { ticketStorage: ticketStorage2 } = await Promise.resolve().then(() => (init_ticket_storage(), ticket_storage_exports));
@@ -12837,7 +12837,7 @@ function registerSLARoutes(app2) {
         const slaResponseDue = new Date(baseTime.getTime() + slaTargets.responseTime * 60 * 1e3);
         const slaResolutionDue = new Date(baseTime.getTime() + slaTargets.resolutionTime * 60 * 1e3);
         const isBreached = /* @__PURE__ */ new Date() > slaResolutionDue && !["resolved", "closed", "cancelled"].includes(ticket.status);
-        await db5.update(tickets2).set({
+        await db6.update(tickets2).set({
           sla_policy: slaTargets.policy,
           sla_response_time: slaTargets.responseTime,
           sla_resolution_time: slaTargets.resolutionTime,
@@ -13569,8 +13569,8 @@ async function securityAudit() {
 }
 async function testDatabaseConnection() {
   try {
-    const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
-    const result = await db5.execute("SELECT 1 as test");
+    const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
+    const result = await db6.execute("SELECT 1 as test");
     return {
       status: "connected",
       timestamp: /* @__PURE__ */ new Date(),
@@ -13586,8 +13586,8 @@ async function testDatabaseConnection() {
 }
 async function getTableDiagnostics() {
   try {
-    const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
-    const tables = await db5.execute(`
+    const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
+    const tables = await db6.execute(`
       SELECT table_name, table_rows, data_length, index_length
       FROM information_schema.tables 
       WHERE table_schema = DATABASE()
@@ -13600,9 +13600,9 @@ async function getTableDiagnostics() {
 async function checkDatabaseIssues() {
   const issues = [];
   try {
-    const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
-    const slowQueries = await db5.execute("SHOW PROCESSLIST");
-    const tableSizes = await db5.execute(`
+    const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
+    const slowQueries = await db6.execute("SHOW PROCESSLIST");
+    const tableSizes = await db6.execute(`
       SELECT table_name, 
              ROUND(((data_length + index_length) / 1024 / 1024), 2) AS 'size_mb'
       FROM information_schema.tables 
@@ -13629,8 +13629,8 @@ async function checkDatabaseIssues() {
 }
 async function getDatabasePerformance() {
   try {
-    const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
-    const performance = await db5.execute(`
+    const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
+    const performance = await db6.execute(`
       SELECT 
         COUNT(*) as total_connections,
         SUM(IF(command = 'Sleep', 1, 0)) as sleeping_connections,
@@ -13786,7 +13786,7 @@ var init_diagnostics_routes = __esm({
     });
     router10.get("/database", async (req, res) => {
       try {
-        const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
+        const { db: db6 } = await Promise.resolve().then(() => (init_db(), db_exports));
         const connectionTest = await testDatabaseConnection();
         const tableInfo = await getTableDiagnostics();
         const issues = await checkDatabaseIssues();
@@ -13850,7 +13850,7 @@ import { sql as sql11 } from "drizzle-orm";
 async function createAdminTables() {
   try {
     console.log("\u{1F680} Creating admin tables...");
-    await db4.execute(sql11`
+    await db5.execute(sql11`
       CREATE TABLE IF NOT EXISTS groups (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name VARCHAR(100) NOT NULL,
@@ -13864,7 +13864,7 @@ async function createAdminTables() {
         updated_at TIMESTAMP DEFAULT NOW() NOT NULL
       )
     `);
-    await db4.execute(sql11`
+    await db5.execute(sql11`
       CREATE TABLE IF NOT EXISTS group_members (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         group_id UUID REFERENCES groups(id) NOT NULL,
@@ -13874,7 +13874,7 @@ async function createAdminTables() {
         is_active BOOLEAN DEFAULT true
       )
     `);
-    await db4.execute(sql11`
+    await db5.execute(sql11`
       CREATE TABLE IF NOT EXISTS audit_log (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         entity_type VARCHAR(50) NOT NULL,
@@ -13890,7 +13890,7 @@ async function createAdminTables() {
         timestamp TIMESTAMP DEFAULT NOW() NOT NULL
       )
     `);
-    await db4.execute(sql11`
+    await db5.execute(sql11`
       CREATE TABLE IF NOT EXISTS sla_policies (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name VARCHAR(100) NOT NULL,
@@ -13911,7 +13911,7 @@ async function createAdminTables() {
         updated_at TIMESTAMP DEFAULT NOW() NOT NULL
       )
     `);
-    await db4.execute(sql11`
+    await db5.execute(sql11`
       CREATE TABLE IF NOT EXISTS sla_breaches (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         ticket_id UUID NOT NULL,
@@ -13923,16 +13923,16 @@ async function createAdminTables() {
         created_at TIMESTAMP DEFAULT NOW() NOT NULL
       )
     `);
-    await db4.execute(sql11`CREATE INDEX IF NOT EXISTS idx_groups_type ON groups(type)`);
-    await db4.execute(sql11`CREATE INDEX IF NOT EXISTS idx_groups_parent ON groups(parent_group_id)`);
-    await db4.execute(sql11`CREATE INDEX IF NOT EXISTS idx_group_members_group ON group_members(group_id)`);
-    await db4.execute(sql11`CREATE INDEX IF NOT EXISTS idx_group_members_user ON group_members(user_id)`);
-    await db4.execute(sql11`CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_log(entity_type, entity_id)`);
-    await db4.execute(sql11`CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_log(user_id)`);
-    await db4.execute(sql11`CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp)`);
-    await db4.execute(sql11`CREATE INDEX IF NOT EXISTS idx_sla_policies_active ON sla_policies(is_active)`);
-    await db4.execute(sql11`CREATE INDEX IF NOT EXISTS idx_sla_breaches_ticket ON sla_breaches(ticket_id)`);
-    await db4.execute(sql11`
+    await db5.execute(sql11`CREATE INDEX IF NOT EXISTS idx_groups_type ON groups(type)`);
+    await db5.execute(sql11`CREATE INDEX IF NOT EXISTS idx_groups_parent ON groups(parent_group_id)`);
+    await db5.execute(sql11`CREATE INDEX IF NOT EXISTS idx_group_members_group ON group_members(group_id)`);
+    await db5.execute(sql11`CREATE INDEX IF NOT EXISTS idx_group_members_user ON group_members(user_id)`);
+    await db5.execute(sql11`CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_log(entity_type, entity_id)`);
+    await db5.execute(sql11`CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_log(user_id)`);
+    await db5.execute(sql11`CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp)`);
+    await db5.execute(sql11`CREATE INDEX IF NOT EXISTS idx_sla_policies_active ON sla_policies(is_active)`);
+    await db5.execute(sql11`CREATE INDEX IF NOT EXISTS idx_sla_breaches_ticket ON sla_breaches(ticket_id)`);
+    await db5.execute(sql11`
       INSERT INTO sla_policies (name, description, priority, response_time, resolution_time)
       VALUES 
         ('Critical Priority SLA', 'Critical issues requiring immediate attention', 'critical', 15, 240),
@@ -13941,7 +13941,7 @@ async function createAdminTables() {
         ('Low Priority SLA', 'Low priority requests', 'low', 480, 2880)
       ON CONFLICT DO NOTHING
     `);
-    await db4.execute(sql11`
+    await db5.execute(sql11`
       INSERT INTO groups (name, description, type, email)
       VALUES 
         ('IT Support', 'Primary IT support team', 'team', 'itsupport@company.com'),
@@ -13956,12 +13956,12 @@ async function createAdminTables() {
     throw error;
   }
 }
-var db4;
+var db5;
 var init_migrate_admin_tables = __esm({
   "server/migrations/migrate-admin-tables.ts"() {
     "use strict";
     init_db();
-    db4 = drizzle2(pool2);
+    db5 = drizzle2(pool);
     if (import.meta.url === `file://${process.argv[1]}`) {
       createAdminTables().then(() => {
         console.log("Migration completed successfully!");
@@ -14698,8 +14698,8 @@ function registerAgentRoutes(app2, authenticateToken3, requireRole2) {
             message: `Agent is ${device.status}. Only online agents can execute commands.`
           });
         }
-        const { pool: pool4 } = await import("./db");
-        const result = await pool4.query(
+        const { pool: pool3 } = await import("./db");
+        const result = await pool3.query(
           `INSERT INTO agent_commands (device_id, type, command, priority, status, created_by, created_at)
          VALUES ($1, $2, $3, $4, 'pending', $5, NOW())
          RETURNING id`,
