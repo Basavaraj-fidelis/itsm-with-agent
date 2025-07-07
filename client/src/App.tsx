@@ -258,6 +258,13 @@ export default function App() {
               </ProtectedRoute>
             </Route>
 
+             <Route path="/code-diagnostics">
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <CodeDiagnostics />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            </Route>
 
 
             {/* Default redirect */}

@@ -3,6 +3,10 @@ import { slaEscalationService } from "../services/sla-escalation-service";
 import { slaMonitorService } from "../services/sla-monitor-service";
 import { slaPolicyService } from "../services/sla-policy-service";
 
+import { Router } from "express";
+
+const router = Router();
+
 export function registerSLARoutes(app: Express) {
   // Get SLA dashboard data
   app.get("/api/sla/dashboard", async (req, res) => {
@@ -291,3 +295,28 @@ export function registerSLARoutes(app: Express) {
     }
   });
 }
+
+// Also export as default router for modular route loading
+router.get("/dashboard", async (req, res) => {
+  try {
+    const { slaEscalationService } = await import("../services/sla-escalation-service");
+    const data = await slaEscalationService.getSLADashboardData();
+    res.json(data);
+  } catch (error) {
+    console.error("Error fetching SLA dashboard data:", error);
+    res.status(500).json({ error: "Failed to fetch SLA dashboard data" });
+  }
+});
+
+router.get("/metrics", async (req, res) => {
+  try {
+    const { slaMonitorService } = await import("../services/sla-monitor-service");
+    const metrics = await slaMonitorService.getSLAMetrics();
+    res.json(metrics);
+  } catch (error) {
+    console.error("Error fetching SLA metrics:", error);
+    res.status(500).json({ error: "Failed to fetch SLA metrics" });
+  }
+});
+
+export default router;
