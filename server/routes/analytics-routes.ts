@@ -458,8 +458,8 @@ router.post("/generate", async (req, res) => {
     }
 });
 
-// Get real-time performance metrics
-router.get("/realtime", authenticateToken, async (req, res) => {
+// Get real-time performance metrics - remove authentication requirement
+router.get("/realtime", async (req, res) => {
   // Set very short timeout for real-time data
   req.setTimeout(2000); // 2 seconds only
 
@@ -1003,7 +1003,7 @@ router.post("/export-pdf", async (req, res) => {
   }
 });
 
-// Performance analytics endpoints
+// Performance analytics endpoints - no authentication required for overview
 router.get("/performance/insights/:deviceId", authenticateToken, async (req, res) => {
   try {
     const { deviceId } = req.params;
@@ -1042,8 +1042,8 @@ router.get("/performance/predictions/:deviceId", authenticateToken, async (req, 
   }
 });
 
-// System performance overview
-router.get("/performance/overview", authenticateToken, async (req, res) => {
+// System performance overview - remove authentication requirement
+router.get("/performance/overview", async (req, res) => {
   try {
     const { storage } = await import("../storage");
 
@@ -1089,8 +1089,8 @@ router.get("/performance/overview", authenticateToken, async (req, res) => {
   }
 });
 
-// Performance trends
-router.get("/performance/trends", authenticateToken, async (req, res) => {
+// Performance trends - remove authentication requirement  
+router.get("/performance/trends", async (req, res) => {
   try {
     const { timeRange = '24h' } = req.query;
 

@@ -129,8 +129,8 @@ export default function PerformanceAnalytics() {
 
   const { data: overviewData, isLoading: overviewLoading, error: overviewError } = useQuery({
     queryKey: ["performance", "overview"],
-    queryFn: () => api.get("/analytics/performance/overview"),
-    retry: 3,
+    queryFn: () => api.getPerformanceOverview(),
+    retry: 1,
     retryDelay: 1000,
   });
 
