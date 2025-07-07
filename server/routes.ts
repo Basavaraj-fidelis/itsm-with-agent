@@ -959,7 +959,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ? `${locationData.city}, ${locationData.country}`
             : "None",
         );
-      }
+            }
 
       // Extract metrics from various possible locations - handle nested objects
       let cpu_usage = null;
@@ -1873,7 +1873,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 return {
                   hostname: device.hostname,
                   cpu_usage: latestReport?.cpu_usage || "0",
-                  memory_usage: latestReport?.memory_usage || "0",
+                  memory_usage: latest<replit_final_file>
+Report?.memory_usage || "0",
                   disk_usage: latestReport?.disk_usage || "0",
                   status: device.status,
                 };
@@ -2835,135 +2836,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Analytics endpoints
-  app.post(
-    "/api/analytics/generate-report",
-    authenticateToken,
-    async (req, res) => {
-      try {
-        const { type, period, format } = req.body;
-
-        // Mock report generation - replace with actual implementation
-        const reportData = {
-          type,
-          period,
-          generatedAt: new Date().toISOString(),
-          data: {
-            summary: `${type} report for ${period}`,
-            metrics: {
-              totalTickets: 150,
-              resolvedTickets: 120,
-              avgResolutionTime: "4.2 hours",
-            },
-          },
-        };
-
-        if (format === "pdf") {
-          res.setHeader("Content-Type", "application/pdf");
-          res.setHeader(
-            "Content-Disposition",
-            `attachment; filename="${type}-report.pdf"`,
-          );
-          res.send(
-            Buffer.from(`PDF Report: ${JSON.stringify(reportData, null, 2)}`),
-          );
-        } else if (format === "csv") {
-          res.setHeader("Content-Type", "text/csv");
-          res.setHeader(
-            "Content-Disposition",
-            `attachment; filename="${type}-report.csv"`,
-          );
-          res.send(
-            `Type,Period,Generated\n${type},${period},${reportData.generatedAt}`,
-          );
-        } else {
-          res.json(reportData);
-        }
-      } catch (error) {
-        console.error("Error generating report:", error);
-        res.status(500).json({ error: "Failed to generate report" });
-      }
-    },
-  );
-
-  app.post(
-    "/api/analytics/download-report",
-    authenticateToken,
-    async (req, res) => {
-      try {
-        const { reportName, format } = req.body;
-
-        //        // Mock report download
-        res.setHeader("Content-Type", "application/pdf");
-        res.setHeader(
-          "Content-Disposition",
-          `attachment; filename="${reportName.replace(/\s+/g, "-")}.pdf"`,
-        );
-        res.send(Buffer.from(`Downloaded Report: ${reportName}`));
-      } catch (error) {
-        console.error("Error downloading report:", error);
-        res.status(500).json({ error: "Failed to download report" });
-      }
-    },
-  );
-
-  // Security Alert generation and duplicate alert suppression
-  const generateSecurityAlert = async (
-    deviceId: string,
-    alertType: string,
-    severity: string,
-    message: string,
-  ) => {
-    try {
-      // Get device name for alert message
-      const device = await storage.getDevice(deviceId);
-      const deviceName = device?.hostname || "Unknown Device";
-
-      // Check for existing alert of same type for this device (more comprehensive check)
-      const { pool } = await import("./db");
-      const existingAlert = await pool.query(
-        `
-        SELECT id, created_at FROM alerts 
-        WHERE device_id = $1 AND type = $2 AND is_active = true
-        AND message = $3
-        AND created_at > NOW() - INTERVAL '5 minutes'
-        ORDER BY created_at DESC 
-        LIMIT 1
-      `,
-        [deviceId, alertType, message],
-      );
-
-      if (existingAlert.rows.length > 0) {
-        console.log(
-          `Skipping duplicate ${alertType} alert for device ${deviceName} (last alert: ${existingAlert.rows[0].created_at})`,
-        );
-        return;
-      }
-
-      // Create a new alert in database
-      await pool.query(
-        `
-        INSERT INTO alerts (device_id, type, category, severity, message, is_active, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      `,
-        [
-          deviceId,
-          alertType,
-          "security",
-          severity,
-          message,
-          true,
-          new Date(),
-          new Date(),
-        ],
-      );
-
-      console.log(`Generated new ${alertType} alert for device ${deviceName}`);
-    } catch (error) {
-      console.error("Error generating security alert:", error);
-    }
-  };
-
   // Knowledge Base Routes (publicly accessible)
   app.get("/api/knowledge-base", async (req, res) => {
     try {
@@ -3341,7 +3213,7 @@ For technical support, contact your system administrator.`;
    \`\`\`
 5. Start the agent:
    \`\`\`
-   sudo python3 /opt/itsm-agent/itsm_agent.py
+   sudo python3 /opt/itsm_agent/itsm_agent.py
    \`\`\`
 
 ## Support

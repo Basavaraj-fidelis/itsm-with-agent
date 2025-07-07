@@ -3,7 +3,6 @@ import {
   Users,
   Ticket,
   AlertTriangle,
-  BarChart3,
   Settings,
   HelpCircle,
   Shield,
@@ -215,16 +214,7 @@ export function Sidebar() {
         description: "Manage user accounts",
       },
 
-      {
-        name: "Analytics",
-        href: "/reports",
-        icon: BarChart3,
-        current: location === "/reports",
-        roles: ["manager", "admin"],
-        iconColor: "text-indigo-500",
-        activeColor: "bg-indigo-50 border-indigo-200 text-indigo-700",
-        description: "Performance insights",
-      },
+      
 
       {
         name: "ITSM Comparison",

@@ -20,7 +20,6 @@ import Notifications from "@/pages/notifications";
 import Profile from "@/pages/profile";
 import Users from "@/pages/users";
 import Settings from "@/pages/settings";
-import Reports from "@/pages/reports";
 import VNCPage from "@/pages/vnc";
 import RDPPage from "@/pages/rdp";
 import SSHPage from "@/pages/ssh";
@@ -211,13 +210,6 @@ export default function App() {
               </ProtectedRoute>
             </Route>
 
-            <Route path="/reports">
-              <ProtectedRoute requiredRole={["admin", "manager"]}>
-                <AuthenticatedLayout>
-                  <Reports />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
 
             <Route path="/itsm-comparison">
               <ProtectedRoute requiredRole={["admin", "manager"]}>
