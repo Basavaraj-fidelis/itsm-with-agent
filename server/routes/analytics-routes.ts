@@ -7,7 +7,8 @@ import { AuthUtils } from "../utils/auth";
 import { ResponseUtils } from "../utils/response";
 import { sql, desc } from "drizzle-orm";
 import { db } from "../db";
-import { devices, tickets } from "@shared/schema";
+import { devices } from "@shared/schema";
+import { tickets } from "@shared/ticket-schema";
 import { format } from "date-fns";
 import { AnalyticsService } from "../services/analytics-service";
 
