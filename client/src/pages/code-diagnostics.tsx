@@ -84,9 +84,10 @@ export default function CodeDiagnostics() {
 
   const { data: diagnosticsData, isLoading, error, refetch } = useQuery({
     queryKey: ["code-diagnostics"],
-    queryFn: () => runDiagnostics(),
+    queryFn: runDiagnostics,
     enabled: false, // Don't run automatically
-    retry: 1
+    retry: 1,
+    initialData: null
   });
 
   const { data: systemDiagnostics } = useQuery({
@@ -105,7 +106,10 @@ export default function CodeDiagnostics() {
     setIsRunning(true);
     try {
       const response = await api.post("/api/diagnostics/run-full");
-      return response.diagnostics;
+      return response.diagnostics || null;
+    } catch (error) {
+      console.error('Diagnostics error:', error);
+      return null;
     } finally {
       setIsRunning(false);
     }

@@ -113,6 +113,9 @@ export default function UsersPage() {
       return await response.json();
     },
     refetchInterval: 120000, // Reduced from 30 seconds to 2 minutes
+    onError: (error) => {
+      console.error('Failed to load users:', error);
+    }
   });
 
   // Extract users array from response
