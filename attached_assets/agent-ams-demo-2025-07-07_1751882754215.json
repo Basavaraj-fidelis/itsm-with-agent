@@ -1,0 +1,927 @@
+{
+  "agent": {
+    "id": "37a9c1bc-0033-43c8-a48b-adf795abbd5a",
+    "hostname": "ams-demo",
+    "assigned_user": "mysql",
+    "os_name": "Ubuntu",
+    "os_version": "20.04.6 LTS (Focal Fossa)",
+    "ip_address": "10.3.0.31",
+    "status": "offline",
+    "last_seen": "2025-06-29T04:46:41.203Z",
+    "created_at": "2025-06-27T10:32:40.741Z",
+    "updated_at": "2025-06-29T04:55:17.847Z",
+    "latest_report": {
+      "cpu_usage": "1",
+      "memory_usage": "31.6",
+      "disk_usage": "46.77558823103547",
+      "network_io": "341048016753",
+      "collected_at": "2025-06-29T04:46:41.865Z",
+      "raw_data": {
+        "timestamp": "2025-06-29T04:46:39.348665Z",
+        "hostname": "ams-demo",
+        "os_info": {
+          "name": "Ubuntu",
+          "version": "20.04.6 LTS (Focal Fossa)",
+          "release": "5.15.0-1042-azure",
+          "architecture": "64bit",
+          "machine": "x86_64",
+          "processor": "x86_64",
+          "platform_string": "Linux-5.15.0-1042-azure-x86_64-with-glibc2.29",
+          "boot_time": "2023-07-28T05:46:07",
+          "uptime_seconds": 60649232,
+          "id": "ubuntu",
+          "id_like": "debian",
+          "pretty_name": "Ubuntu 20.04.6 LTS",
+          "version_id": "20.04",
+          "home_url": "https://www.ubuntu.com/",
+          "support_url": "https://help.ubuntu.com/",
+          "bug_report_url": "https://bugs.launchpad.net/ubuntu/",
+          "privacy_policy_url": "https://www.ubuntu.com/legal/terms-and-policies/privacy-policy",
+          "version_codename": "focal",
+          "ubuntu_codename": "focal",
+          "kernel_version": "5.15.0-1042-azure",
+          "last_update": "2025-06-27  10:30:18",
+          "patch_summary": {
+            "total_installed": 976,
+            "recent_patches": [
+              {
+                "date": "2025-06-11  06:55:41",
+                "type": "system_update"
+              },
+              {
+                "date": "2025-06-11  06:55:45",
+                "type": "system_update"
+              },
+              {
+                "date": "2025-06-17  06:11:05",
+                "type": "system_update"
+              },
+              {
+                "date": "2025-06-27  10:30:18",
+                "type": "system_update"
+              }
+            ],
+            "last_update_date": "2025-06-27  10:30:18",
+            "system_type": "debian"
+          }
+        },
+        "network": {
+          "public_ip": "20.197.8.101",
+          "primary_mac": "00:22:48:6e:58:41",
+          "interfaces": [
+            {
+              "name": "eth0",
+              "addresses": [
+                {
+                  "family": "AF_INET",
+                  "address": "10.3.0.31",
+                  "netmask": "255.255.255.192",
+                  "broadcast": "10.3.0.63"
+                },
+                {
+                  "family": "AF_INET6",
+                  "address": "fe80::222:48ff:fe6e:5841%eth0",
+                  "netmask": "ffff:ffff:ffff:ffff::",
+                  "broadcast": null
+                },
+                {
+                  "family": "AF_PACKET",
+                  "address": "00:22:48:6e:58:41",
+                  "netmask": null,
+                  "broadcast": "ff:ff:ff:ff:ff:ff"
+                }
+              ],
+              "mac_address": "00:22:48:6e:58:41",
+              "stats": {
+                "is_up": true,
+                "duplex": "NIC_DUPLEX_FULL",
+                "speed": 50000,
+                "mtu": 1500
+              }
+            }
+          ],
+          "io_counters": {
+            "bytes_sent": 212575963341,
+            "bytes_recv": 128472053412,
+            "packets_sent": 682330669,
+            "packets_recv": 642587963,
+            "errin": 0,
+            "errout": 0,
+            "dropin": 0,
+            "dropout": 0
+          }
+        },
+        "hardware": {
+          "cpu": {
+            "physical_cores": 2,
+            "logical_cores": 2,
+            "current_freq": 2593.905,
+            "max_freq": 0,
+            "usage_percent": 1,
+            "load_average": [
+              0.01,
+              0.02,
+              0
+            ],
+            "model": "Intel(R) Xeon(R) Platinum 8272CL CPU @ 2.60GHz"
+          },
+          "memory": {
+            "total": 4050874368,
+            "available": 2769862656,
+            "used": 946655232,
+            "percentage": 31.6,
+            "swap_total": 0,
+            "swap_used": 0,
+            "swap_percentage": 0
+          },
+          "system": {
+            "manufacturer": "Microsoft Corporation",
+            "model": "Virtual Machine",
+            "serial_number": "0000-0011-0116-4753-1231-6255-42"
+          }
+        },
+        "storage": {
+          "disks": [
+            {
+              "device": "/dev/sda1",
+              "mountpoint": "/",
+              "filesystem": "ext4",
+              "total": 31025332224,
+              "used": 17870708736,
+              "free": 13137846272,
+              "percent": 57.6,
+              "usage": {
+                "total": 31025332224,
+                "used": 17870708736,
+                "free": 13137846272,
+                "percentage": 57.6
+              },
+              "io_counters": {
+                "read_count": 4891288,
+                "write_count": 480790163,
+                "read_bytes": 71064656896,
+                "write_bytes": 3869494087680,
+                "read_time": 8029649,
+                "write_time": 681793712
+              }
+            },
+            {
+              "device": "/dev/sda15",
+              "mountpoint": "/boot/efi",
+              "filesystem": "vfat",
+              "total": 109422592,
+              "used": 6342144,
+              "free": 103080448,
+              "percent": 5.8,
+              "usage": {
+                "total": 109422592,
+                "used": 6342144,
+                "free": 103080448,
+                "percentage": 5.8
+              },
+              "io_counters": {
+                "read_count": 23040,
+                "write_count": 925,
+                "read_bytes": 238701568,
+                "write_bytes": 19900416,
+                "read_time": 11704,
+                "write_time": 795
+              }
+            },
+            {
+              "device": "/dev/sdb1",
+              "mountpoint": "/mnt",
+              "filesystem": "ext4",
+              "total": 8348200960,
+              "used": 28672,
+              "free": 7902003200,
+              "percent": 0,
+              "usage": {
+                "total": 8348200960,
+                "used": 28672,
+                "free": 7902003200,
+                "percentage": 0
+              },
+              "io_counters": {
+                "read_count": 1056,
+                "write_count": 327,
+                "read_bytes": 15879168,
+                "write_bytes": 206348288,
+                "read_time": 1025,
+                "write_time": 21521
+              }
+            },
+            {
+              "device": "/dev/loop7",
+              "mountpoint": "/snap/lxd/29619",
+              "filesystem": "squashfs",
+              "total": 96468992,
+              "used": 96468992,
+              "free": 0,
+              "percent": 100,
+              "usage": {
+                "total": 96468992,
+                "used": 96468992,
+                "free": 0,
+                "percentage": 100
+              },
+              "io_counters": {
+                "read_count": 852,
+                "write_count": 0,
+                "read_bytes": 16863232,
+                "write_bytes": 0,
+                "read_time": 108,
+                "write_time": 0
+              }
+            },
+            {
+              "device": "/dev/loop0",
+              "mountpoint": "/snap/lxd/32662",
+              "filesystem": "squashfs",
+              "total": 96468992,
+              "used": 96468992,
+              "free": 0,
+              "percent": 100,
+              "usage": {
+                "total": 96468992,
+                "used": 96468992,
+                "free": 0,
+                "percentage": 100
+              },
+              "io_counters": {
+                "read_count": 1771,
+                "write_count": 0,
+                "read_bytes": 45381632,
+                "write_bytes": 0,
+                "read_time": 276,
+                "write_time": 0
+              }
+            },
+            {
+              "device": "/dev/loop5",
+              "mountpoint": "/snap/snapd/24505",
+              "filesystem": "squashfs",
+              "total": 53477376,
+              "used": 53477376,
+              "free": 0,
+              "percent": 100,
+              "usage": {
+                "total": 53477376,
+                "used": 53477376,
+                "free": 0,
+                "percentage": 100
+              },
+              "io_counters": {
+                "read_count": 6289,
+                "write_count": 0,
+                "read_bytes": 232971264,
+                "write_bytes": 0,
+                "read_time": 4153,
+                "write_time": 0
+              }
+            },
+            {
+              "device": "/dev/loop9",
+              "mountpoint": "/snap/core20/2582",
+              "filesystem": "squashfs",
+              "total": 66977792,
+              "used": 66977792,
+              "free": 0,
+              "percent": 100,
+              "usage": {
+                "total": 66977792,
+                "used": 66977792,
+                "free": 0,
+                "percentage": 100
+              },
+              "io_counters": {
+                "read_count": 2965,
+                "write_count": 0,
+                "read_bytes": 93195264,
+                "write_bytes": 0,
+                "read_time": 1006,
+                "write_time": 0
+              }
+            },
+            {
+              "device": "/dev/loop2",
+              "mountpoint": "/snap/core20/2599",
+              "filesystem": "squashfs",
+              "total": 66977792,
+              "used": 66977792,
+              "free": 0,
+              "percent": 100,
+              "usage": {
+                "total": 66977792,
+                "used": 66977792,
+                "free": 0,
+                "percentage": 100
+              },
+              "io_counters": {
+                "read_count": 734,
+                "write_count": 0,
+                "read_bytes": 15269888,
+                "write_bytes": 0,
+                "read_time": 137,
+                "write_time": 0
+              }
+            },
+            {
+              "device": "/dev/loop6",
+              "mountpoint": "/snap/snapd/24718",
+              "filesystem": "squashfs",
+              "total": 53477376,
+              "used": 53477376,
+              "free": 0,
+              "percent": 100,
+              "usage": {
+                "total": 53477376,
+                "used": 53477376,
+                "free": 0,
+                "percentage": 100
+              },
+              "io_counters": {
+                "read_count": 3618,
+                "write_count": 0,
+                "read_bytes": 130724864,
+                "write_bytes": 0,
+                "read_time": 660,
+                "write_time": 0
+              }
+            },
+            {
+              "device": "/dev/loop10",
+              "mountpoint": "/snap/code/197",
+              "filesystem": "squashfs",
+              "total": 338558976,
+              "used": 338558976,
+              "free": 0,
+              "percent": 100,
+              "usage": {
+                "total": 338558976,
+                "used": 338558976,
+                "free": 0,
+                "percentage": 100
+              },
+              "io_counters": {
+                "read_count": 359,
+                "write_count": 0,
+                "read_bytes": 5414912,
+                "write_bytes": 0,
+                "read_time": 21,
+                "write_time": 0
+              }
+            },
+            {
+              "device": "/dev/loop3",
+              "mountpoint": "/snap/code/198",
+              "filesystem": "squashfs",
+              "total": 338558976,
+              "used": 338558976,
+              "free": 0,
+              "percent": 100,
+              "usage": {
+                "total": 338558976,
+                "used": 338558976,
+                "free": 0,
+                "percentage": 100
+              },
+              "io_counters": {
+                "read_count": 3847,
+                "write_count": 0,
+                "read_bytes": 125156352,
+                "write_bytes": 0,
+                "read_time": 922,
+                "write_time": 0
+              }
+            }
+          ],
+          "smart_data": []
+        },
+        "software": [
+          {
+            "name": "accountsservice",
+            "version": "0.6.55-0ubuntu12~20.04.7",
+            "vendor": "debian"
+          },
+          {
+            "name": "adduser",
+            "version": "3.118ubuntu2",
+            "vendor": "debian"
+          },
+          {
+            "name": "alsa-topology-conf",
+            "version": "1.2.2-1",
+            "vendor": "debian"
+          },
+          {
+            "name": "alsa-ucm-conf",
+            "version": "1.2.2-1ubuntu0.13",
+            "vendor": "debian"
+          },
+          {
+            "name": "apache2",
+            "version": "2.4.41-4ubuntu3.23",
+            "vendor": "debian"
+          },
+          {
+            "name": "apache2-bin",
+            "version": "2.4.41-4ubuntu3.23",
+            "vendor": "debian"
+          },
+          {
+            "name": "apache2-data",
+            "version": "2.4.41-4ubuntu3.23",
+            "vendor": "debian"
+          },
+          {
+            "name": "apache2-utils",
+            "version": "2.4.41-4ubuntu3.23",
+            "vendor": "debian"
+          },
+          {
+            "name": "apparmor",
+            "version": "2.13.3-7ubuntu5.4",
+            "vendor": "debian"
+          },
+          {
+            "name": "apport",
+            "version": "2.20.11-0ubuntu27.29",
+            "vendor": "debian"
+          },
+          {
+            "name": "apport-symptoms",
+            "version": "0.23",
+            "vendor": "debian"
+          },
+          {
+            "name": "apt",
+            "version": "2.0.11",
+            "vendor": "debian"
+          },
+          {
+            "name": "apt-utils",
+            "version": "2.0.11",
+            "vendor": "debian"
+          },
+          {
+            "name": "at",
+            "version": "3.1.23-1ubuntu1",
+            "vendor": "debian"
+          },
+          {
+            "name": "augeas-lenses",
+            "version": "1.12.0-1build1",
+            "vendor": "debian"
+          },
+          {
+            "name": "autoconf",
+            "version": "2.69-11.1",
+            "vendor": "debian"
+          },
+          {
+            "name": "automake",
+            "version": "1:1.16.1-4ubuntu6",
+            "vendor": "debian"
+          },
+          {
+            "name": "autopoint",
+            "version": "0.19.8.1-10build1",
+            "vendor": "debian"
+          },
+          {
+            "name": "autotools-dev",
+            "version": "20180224.1",
+            "vendor": "debian"
+          },
+          {
+            "name": "base-files",
+            "version": "11ubuntu5.8",
+            "vendor": "debian"
+          },
+          {
+            "name": "base-passwd",
+            "version": "3.5.47",
+            "vendor": "debian"
+          },
+          {
+            "name": "bash",
+            "version": "5.0-6ubuntu1.2",
+            "vendor": "debian"
+          },
+          {
+            "name": "bash-completion",
+            "version": "1:2.10-1ubuntu1",
+            "vendor": "debian"
+          },
+          {
+            "name": "bc",
+            "version": "1.07.1-2build1",
+            "vendor": "debian"
+          },
+          {
+            "name": "bcache-tools",
+            "version": "1.0.8-3ubuntu0.1",
+            "vendor": "debian"
+          },
+          {
+            "name": "bind9-dnsutils",
+            "version": "1:9.18.30-0ubuntu0.20.04.2",
+            "vendor": "debian"
+          },
+          {
+            "name": "bind9-host",
+            "version": "1:9.18.30-0ubuntu0.20.04.2",
+            "vendor": "debian"
+          },
+          {
+            "name": "bind9-libs:amd64",
+            "version": "1:9.18.30-0ubuntu0.20.04.2",
+            "vendor": "debian"
+          },
+          {
+            "name": "binutils",
+            "version": "2.34-6ubuntu1.11",
+            "vendor": "debian"
+          },
+          {
+            "name": "binutils-common:amd64",
+            "version": "2.34-6ubuntu1.11",
+            "vendor": "debian"
+          },
+          {
+            "name": "binutils-x86-64-linux-gnu",
+            "version": "2.34-6ubuntu1.11",
+            "vendor": "debian"
+          },
+          {
+            "name": "bolt",
+            "version": "0.9.1-2~ubuntu20.04.2",
+            "vendor": "debian"
+          },
+          {
+            "name": "bsdmainutils",
+            "version": "11.1.2ubuntu3",
+            "vendor": "debian"
+          },
+          {
+            "name": "bsdutils",
+            "version": "1:2.34-0.1ubuntu9.6",
+            "vendor": "debian"
+          },
+          {
+            "name": "btrfs-progs",
+            "version": "5.4.1-2",
+            "vendor": "debian"
+          },
+          {
+            "name": "build-essential",
+            "version": "12.8ubuntu1.1",
+            "vendor": "debian"
+          },
+          {
+            "name": "busybox-initramfs",
+            "version": "1:1.30.1-4ubuntu6.5",
+            "vendor": "debian"
+          },
+          {
+            "name": "busybox-static",
+            "version": "1:1.30.1-4ubuntu6.5",
+            "vendor": "debian"
+          },
+          {
+            "name": "byobu",
+            "version": "5.133-0ubuntu1",
+            "vendor": "debian"
+          },
+          {
+            "name": "bzip2",
+            "version": "1.0.8-2",
+            "vendor": "debian"
+          },
+          {
+            "name": "ca-certificates",
+            "version": "20240203~20.04.1",
+            "vendor": "debian"
+          },
+          {
+            "name": "certbot",
+            "version": "0.40.0-1ubuntu0.1",
+            "vendor": "debian"
+          },
+          {
+            "name": "chrony",
+            "version": "3.5-6ubuntu6.2",
+            "vendor": "debian"
+          },
+          {
+            "name": "cifs-utils",
+            "version": "2:6.9-1ubuntu0.4",
+            "vendor": "debian"
+          },
+          {
+            "name": "cloud-guest-utils",
+            "version": "0.31-7-gd99b2d76-0ubuntu1",
+            "vendor": "debian"
+          },
+          {
+            "name": "cloud-init",
+            "version": "24.4.1-0ubuntu0~20.04.2",
+            "vendor": "debian"
+          },
+          {
+            "name": "cloud-initramfs-copymods",
+            "version": "0.45ubuntu2",
+            "vendor": "debian"
+          },
+          {
+            "name": "cloud-initramfs-dyn-netconf",
+            "version": "0.45ubuntu2",
+            "vendor": "debian"
+          },
+          {
+            "name": "command-not-found",
+            "version": "20.04.6",
+            "vendor": "debian"
+          },
+          {
+            "name": "console-setup",
+            "version": "1.194ubuntu3",
+            "vendor": "debian"
+          }
+        ],
+        "processes": [
+          {
+            "pid": 3153055,
+            "name": "mysqld",
+            "username": "mysql",
+            "cpu_percent": 0.6,
+            "memory_percent": 10.688151363572478,
+            "create_time": "2025-05-07T06:04:27.920000"
+          },
+          {
+            "pid": 2589754,
+            "name": "python3",
+            "username": "root",
+            "cpu_percent": 0.1,
+            "memory_percent": 0.8342913882240646,
+            "create_time": "2025-06-27T11:21:27.190000"
+          },
+          {
+            "pid": 2412975,
+            "name": "python3",
+            "username": "root",
+            "cpu_percent": 0.1,
+            "memory_percent": 0.7249871838039683,
+            "create_time": "2025-06-24T13:55:13.440000"
+          },
+          {
+            "pid": 1,
+            "name": "systemd",
+            "username": "root",
+            "cpu_percent": 0,
+            "memory_percent": 0.3196212675040926,
+            "create_time": "2023-07-28T05:46:07.630000"
+          },
+          {
+            "pid": 2,
+            "name": "kthreadd",
+            "username": "root",
+            "cpu_percent": 0,
+            "memory_percent": 0,
+            "create_time": "2023-07-28T05:46:07.630000"
+          },
+          {
+            "pid": 3,
+            "name": "rcu_gp",
+            "username": "root",
+            "cpu_percent": 0,
+            "memory_percent": 0,
+            "create_time": "2023-07-28T05:46:07.630000"
+          },
+          {
+            "pid": 4,
+            "name": "rcu_par_gp",
+            "username": "root",
+            "cpu_percent": 0,
+            "memory_percent": 0,
+            "create_time": "2023-07-28T05:46:07.630000"
+          },
+          {
+            "pid": 5,
+            "name": "slub_flushwq",
+            "username": "root",
+            "cpu_percent": 0,
+            "memory_percent": 0,
+            "create_time": "2023-07-28T05:46:07.630000"
+          },
+          {
+            "pid": 6,
+            "name": "netns",
+            "username": "root",
+            "cpu_percent": 0,
+            "memory_percent": 0,
+            "create_time": "2023-07-28T05:46:07.630000"
+          },
+          {
+            "pid": 8,
+            "name": "kworker/0:0H-events_highpri",
+            "username": "root",
+            "cpu_percent": 0,
+            "memory_percent": 0,
+            "create_time": "2023-07-28T05:46:07.630000"
+          },
+          {
+            "pid": 10,
+            "name": "mm_percpu_wq",
+            "username": "root",
+            "cpu_percent": 0,
+            "memory_percent": 0,
+            "create_time": "2023-07-28T05:46:07.630000"
+          },
+          {
+            "pid": 11,
+            "name": "rcu_tasks_rude_",
+            "username": "root",
+            "cpu_percent": 0,
+            "memory_percent": 0,
+            "create_time": "2023-07-28T05:46:07.630000"
+          },
+          {
+            "pid": 12,
+            "name": "rcu_tasks_trace",
+            "username": "root",
+            "cpu_percent": 0,
+            "memory_percent": 0,
+            "create_time": "2023-07-28T05:46:07.630000"
+          },
+          {
+            "pid": 13,
+            "name": "ksoftirqd/0",
+            "username": "root",
+            "cpu_percent": 0,
+            "memory_percent": 0,
+            "create_time": "2023-07-28T05:46:07.630000"
+          },
+          {
+            "pid": 14,
+            "name": "rcu_sched",
+            "username": "root",
+            "cpu_percent": 0,
+            "memory_percent": 0,
+            "create_time": "2023-07-28T05:46:07.630000"
+          },
+          {
+            "pid": 15,
+            "name": "migration/0",
+            "username": "root",
+            "cpu_percent": 0,
+            "memory_percent": 0,
+            "create_time": "2023-07-28T05:46:07.630000"
+          },
+          {
+            "pid": 17,
+            "name": "cpuhp/0",
+            "username": "root",
+            "cpu_percent": 0,
+            "memory_percent": 0,
+            "create_time": "2023-07-28T05:46:07.640000"
+          },
+          {
+            "pid": 18,
+            "name": "cpuhp/1",
+            "username": "root",
+            "cpu_percent": 0,
+            "memory_percent": 0,
+            "create_time": "2023-07-28T05:46:07.640000"
+          },
+          {
+            "pid": 19,
+            "name": "migration/1",
+            "username": "root",
+            "cpu_percent": 0,
+            "memory_percent": 0,
+            "create_time": "2023-07-28T05:46:07.640000"
+          },
+          {
+            "pid": 20,
+            "name": "ksoftirqd/1",
+            "username": "root",
+            "cpu_percent": 0,
+            "memory_percent": 0,
+            "create_time": "2023-07-28T05:46:07.640000"
+          }
+        ],
+        "usb_devices": [],
+        "virtualization": {
+          "is_virtual": true,
+          "hypervisor": "hyper-v",
+          "detection_methods": [
+            "cpuinfo_hypervisor_flag",
+            "dmi_hyperv",
+            "dmi_hyperv"
+          ]
+        },
+        "system_health": {
+          "cpu_temperature": null,
+          "disk_health": {
+            "status": "healthy",
+            "note": "Basic disk health check - see storage section for SMART data"
+          },
+          "memory_pressure": {
+            "pressure_level": "low",
+            "usage_percent": 31.6
+          },
+          "system_load": {
+            "load_1min": 0.01,
+            "load_5min": 0.02,
+            "load_15min": 0
+          }
+        },
+        "security": {},
+        "assigned_user": "snipeitapp",
+        "active_ports": [
+          {
+            "LocalPort": 3306,
+            "RemotePort": 57624
+          },
+          {
+            "LocalPort": 57624,
+            "RemotePort": 3306
+          },
+          {
+            "LocalPort": 36326,
+            "RemotePort": 443
+          },
+          {
+            "LocalPort": 54349,
+            "RemotePort": 1514
+          }
+        ],
+        "extracted_mac_addresses": [
+          {
+            "interface": "eth0",
+            "mac": "00:22:48:6e:58:41"
+          },
+          {
+            "interface": "eth0",
+            "mac": "00:22:48:6e:58:41"
+          }
+        ],
+        "extracted_primary_mac": "00:22:48:6e:58:41",
+        "extracted_usb_devices": [],
+        "extracted_current_user": "mysql",
+        "extracted_ip_address": "10.3.0.31",
+        "extracted_public_ip": "20.197.8.101",
+        "extracted_location_data": {
+          "ip": "20.197.8.101",
+          "city": "Pune",
+          "region": "Maharashtra",
+          "country": "India",
+          "countryCode": "IN",
+          "loc": "18.5144,73.864235",
+          "postal": "411001",
+          "timezone": "Asia/Kolkata",
+          "org": "Microsoft Azure Cloud (centralindia)",
+          "isp": "Microsoft Corporation",
+          "as": "AS8075 Microsoft Corporation"
+        },
+        "extracted_active_ports": [
+          {
+            "LocalPort": 3306,
+            "RemotePort": 57624
+          },
+          {
+            "LocalPort": 57624,
+            "RemotePort": 3306
+          },
+          {
+            "LocalPort": 36326,
+            "RemotePort": 443
+          },
+          {
+            "LocalPort": 54349,
+            "RemotePort": 1514
+          }
+        ],
+        "extracted_update_info": {
+          "last_boot_time": "2023-07-28T05:46:07",
+          "system_uptime_hours": 16847,
+          "last_update": "2025-06-27  10:30:18"
+        },
+        "extracted_security_info": {},
+        "extracted_virtualization": {
+          "is_virtual": true,
+          "hypervisor": "hyper-v",
+          "detection_methods": [
+            "cpuinfo_hypervisor_flag",
+            "dmi_hyperv",
+            "dmi_hyperv"
+          ]
+        },
+        "processed_at": "2025-06-29T04:46:41.834Z"
+      }
+    }
+  },
+  "exportedAt": "2025-07-07T10:04:54.263Z"
+}
