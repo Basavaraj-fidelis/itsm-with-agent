@@ -171,7 +171,7 @@ __export(db_exports, {
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { sql } from "drizzle-orm";
-var DATABASE_URL, pool, db;
+var DATABASE_URL, urlParts, username, hostname, port, database, pool, db;
 var init_db = __esm({
   "server/db.ts"() {
     "use strict";
@@ -184,6 +184,24 @@ var init_db = __esm({
         "DATABASE_URL must be set. Please provision a PostgreSQL database in Replit."
       );
     }
+    if (!DATABASE_URL.startsWith("postgres://") && !DATABASE_URL.startsWith("postgresql://")) {
+      console.error("\u274C Invalid DATABASE_URL format. Expected postgres:// or postgresql://");
+      console.error("\u{1F4CB} Current DATABASE_URL:", DATABASE_URL);
+      throw new Error("DATABASE_URL must be a valid PostgreSQL connection string");
+    }
+    urlParts = DATABASE_URL.match(/postgres(?:ql)?:\/\/([^:]+):([^@]+)@([^:/]+):(\d+)\/([^?]+)/);
+    if (!urlParts) {
+      console.error("\u274C DATABASE_URL is malformed");
+      console.error("\u{1F4CB} Expected format: postgres://username:password@hostname:port/database");
+      console.error("\u{1F4CB} Current DATABASE_URL:", DATABASE_URL.replace(/:[^:@]*@/, ":***@"));
+      throw new Error("DATABASE_URL is malformed");
+    }
+    [, username, , hostname, port, database] = urlParts;
+    console.log("\u{1F517} Database connection details:");
+    console.log("  Hostname:", hostname);
+    console.log("  Port:", port);
+    console.log("  Database:", database);
+    console.log("  Username:", username);
     console.log("\u{1F517} Using database URL:", DATABASE_URL.replace(/:[^:@]*@/, ":***@"));
     pool = new Pool({
       connectionString: DATABASE_URL,
@@ -382,17 +400,17 @@ __export(storage_exports, {
 });
 import { eq, desc, and as and2, sql as sql2 } from "drizzle-orm";
 import os from "os";
-async function registerAgent(hostname, ip_address, currentUser) {
+async function registerAgent(hostname2, ip_address, currentUser) {
   try {
     const osInfo = {
       platform: os.platform(),
       version: os.release(),
       name: os.type()
     };
-    let device = await storage.getDeviceByHostname(hostname);
+    let device = await storage.getDeviceByHostname(hostname2);
     if (!device) {
       device = await storage.createDevice({
-        hostname,
+        hostname: hostname2,
         assigned_user: currentUser,
         os_name: osInfo.name || osInfo.platform || osInfo.system || null,
         os_version: osInfo.version || osInfo.release || osInfo.version_info || null,
@@ -404,7 +422,7 @@ async function registerAgent(hostname, ip_address, currentUser) {
         "\u{1F195} Created new device:",
         device.id,
         "Hostname:",
-        hostname,
+        hostname2,
         "User:",
         currentUser,
         "IP:",
@@ -423,7 +441,7 @@ async function registerAgent(hostname, ip_address, currentUser) {
         "\u{1F504} Updated existing device:",
         device.id,
         "Hostname:",
-        hostname,
+        hostname2,
         "User:",
         currentUser,
         "IP:",
@@ -675,9 +693,9 @@ var init_storage = __esm({
       async getDevice(id) {
         return this.devices.get(id);
       }
-      async getDeviceByHostname(hostname) {
+      async getDeviceByHostname(hostname2) {
         return Array.from(this.devices.values()).find(
-          (device) => device.hostname === hostname
+          (device) => device.hostname === hostname2
         );
       }
       async createDevice(device) {
@@ -2669,8 +2687,8 @@ smartphones
         const [device] = await db.select().from(devices).where(eq(devices.id, id));
         return device || void 0;
       }
-      async getDeviceByHostname(hostname) {
-        const [device] = await db.select().from(devices).where(eq(devices.hostname, hostname));
+      async getDeviceByHostname(hostname2) {
+        const [device] = await db.select().from(devices).where(eq(devices.hostname, hostname2));
         return device || void 0;
       }
       async createDevice(device) {
@@ -3004,7 +3022,7 @@ smartphones
           const nameParts = (data.name || "").trim().split(" ");
           const first_name = nameParts[0] || "";
           const last_name = nameParts.slice(1).join(" ") || "";
-          const username = data.email?.split("@")[0] || "";
+          const username2 = data.email?.split("@")[0] || "";
           const result = await pool3.query(
             `
         INSERT INTO users (
@@ -3019,7 +3037,7 @@ smartphones
             [
               first_name,
               last_name,
-              username,
+              username2,
               data.email,
               data.password_hash,
               data.role || "end_user",
@@ -6370,7 +6388,7 @@ var init_ad_service = __esm({
           };
         }
       }
-      async authenticateUser(username, password) {
+      async authenticateUser(username2, password) {
         if (!this.config.enabled) {
           throw new Error("Active Directory is not enabled");
         }
@@ -6382,7 +6400,7 @@ var init_ad_service = __esm({
               else resolve();
             });
           });
-          const searchFilter = this.config.userFilter.replace("{{username}}", username);
+          const searchFilter = this.config.userFilter.replace("{{username}}", username2);
           const searchOptions = {
             filter: searchFilter,
             scope: "sub",
@@ -6447,7 +6465,7 @@ var init_ad_service = __esm({
           client.unbind();
         }
       }
-      async getUserByUsername(username) {
+      async getUserByUsername(username2) {
         if (!this.config.enabled) {
           throw new Error("Active Directory is not enabled");
         }
@@ -6459,7 +6477,7 @@ var init_ad_service = __esm({
               else resolve();
             });
           });
-          const searchFilter = this.config.userFilter.replace("{{username}}", username);
+          const searchFilter = this.config.userFilter.replace("{{username}}", username2);
           const searchOptions = {
             filter: searchFilter,
             scope: "sub",
@@ -7293,19 +7311,19 @@ var init_ad_routes = __esm({
     });
     router4.post("/sync-user", async (req, res) => {
       try {
-        const { username } = req.body;
-        if (!username) {
+        const { username: username2 } = req.body;
+        if (!username2) {
           return res.status(400).json({ message: "Username is required" });
         }
-        const adUser = await adService.getUserByUsername(username);
+        const adUser = await adService.getUserByUsername(username2);
         if (!adUser) {
           return res.status(404).json({
-            message: `User '${username}' not found in Active Directory`
+            message: `User '${username2}' not found in Active Directory`
           });
         }
         const localUser = await adService.syncUserToDatabase(adUser);
         res.json({
-          message: `User '${username}' synced successfully`,
+          message: `User '${username2}' synced successfully`,
           user: {
             username: adUser.username,
             email: adUser.email,
@@ -11501,7 +11519,7 @@ var init_user_routes = __esm({
               skipped++;
               continue;
             }
-            const username = email.split("@")[0];
+            const username2 = email.split("@")[0];
             const tempPassword = `TempPass${Math.random().toString(36).slice(-6)}!`;
             const password_hash = await bcrypt2.hash(tempPassword, 10);
             let finalFirstName = firstName;
@@ -11519,7 +11537,7 @@ var init_user_routes = __esm({
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
         `, [
               email,
-              username,
+              username2,
               finalFirstName,
               finalLastName,
               "end_user",
@@ -11792,10 +11810,10 @@ var init_user_routes = __esm({
           firstName = nameParts[0] || "";
           lastName = nameParts.slice(1).join(" ") || "";
         }
-        const username = email.split("@")[0];
+        const username2 = email.split("@")[0];
         const existingUser = await pool.query(`
       SELECT id FROM users WHERE email = $1 OR username = $2
-    `, [email.toLowerCase(), username]);
+    `, [email.toLowerCase(), username2]);
         if (existingUser.rows.length > 0) {
           return res.status(400).json({ message: "User with this email or username already exists" });
         }
@@ -11810,7 +11828,7 @@ var init_user_routes = __esm({
       RETURNING id, email, username, first_name, last_name, role, phone, location, department, is_active, created_at
     `, [
           email.toLowerCase(),
-          username,
+          username2,
           firstName,
           lastName,
           role || "end_user",
@@ -14320,7 +14338,7 @@ function registerAgentRoutes(app2, authenticateToken4, requireRole2) {
         const agentId = req.params.id;
         const {
           connection_type = "vnc",
-          port = 5900,
+          port: port2 = 5900,
           use_tunnel = false,
           jump_host = null
         } = req.body;
@@ -14342,7 +14360,7 @@ function registerAgentRoutes(app2, authenticateToken4, requireRole2) {
           message: `Remote connection initiated by ${req.user.email}`,
           metadata: {
             connection_type,
-            port,
+            port: port2,
             user: req.user.email,
             timestamp: (/* @__PURE__ */ new Date()).toISOString()
           },
@@ -14357,7 +14375,7 @@ function registerAgentRoutes(app2, authenticateToken4, requireRole2) {
         const connectionInfo = {
           hostname: device.hostname,
           ip_address: device.ip_address,
-          port,
+          port: port2,
           connection_type,
           instructions: instructions[connection_type] || "Ensure remote access is enabled on the target machine",
           teamviewer_id: connection_type === "teamviewer" ? device.teamviewer_id : void 0,
@@ -14368,7 +14386,7 @@ function registerAgentRoutes(app2, authenticateToken4, requireRole2) {
           connectionInfo.tunnel_suggestions = [
             {
               method: "ssh_tunnel",
-              command: `ssh -L ${port}:${device.ip_address}:${port} ${jump_host || "your_jump_host"}`,
+              command: `ssh -L ${port2}:${device.ip_address}:${port2} ${jump_host || "your_jump_host"}`,
               description: "Create SSH tunnel via jump host"
             },
             {
@@ -14461,14 +14479,14 @@ function registerAgentRoutes(app2, authenticateToken4, requireRole2) {
   app2.post("/api/heartbeat", async (req, res) => {
     try {
       console.log("Agent heartbeat received:", req.body);
-      const { hostname, systemInfo } = req.body;
-      if (!hostname) {
+      const { hostname: hostname2, systemInfo } = req.body;
+      if (!hostname2) {
         return res.status(400).json({ error: "Hostname is required" });
       }
-      let device = await storage.getDeviceByHostname(hostname);
+      let device = await storage.getDeviceByHostname(hostname2);
       if (!device) {
         device = await storage.createDevice({
-          hostname,
+          hostname: hostname2,
           assigned_user: systemInfo?.current_user || null,
           os_name: systemInfo?.platform || null,
           os_version: systemInfo?.version || null,
@@ -14604,8 +14622,8 @@ var UserUtils = class {
   /**
    * Filter out system accounts from user strings
    */
-  static isSystemAccount(username) {
-    if (!username || typeof username !== "string") return true;
+  static isSystemAccount(username2) {
+    if (!username2 || typeof username2 !== "string") return true;
     const systemPatterns = [
       "NT AUTHORITY",
       "SYSTEM",
@@ -14615,7 +14633,7 @@ var UserUtils = class {
       "Unknown",
       "N/A"
     ];
-    return systemPatterns.some((pattern) => username.includes(pattern)) || username.endsWith("$") || username.trim() === "";
+    return systemPatterns.some((pattern) => username2.includes(pattern)) || username2.endsWith("$") || username2.trim() === "";
   }
   /**
    * Extract real user from process list
@@ -14628,8 +14646,8 @@ var UserUtils = class {
     });
     if (userProcesses.length === 0) return null;
     const firstUserProcess = userProcesses[0];
-    const username = firstUserProcess.username || firstUserProcess.user;
-    return this.extractDomainUser(username);
+    const username2 = firstUserProcess.username || firstUserProcess.user;
+    return this.extractDomainUser(username2);
   }
   /**
    * Normalize user data object
@@ -14749,9 +14767,9 @@ async function registerRoutes(app2) {
       if (useActiveDirectory) {
         try {
           const { adService: adService2 } = await Promise.resolve().then(() => (init_ad_service(), ad_service_exports));
-          const username = email.includes("@") ? email.split("@")[0] : email;
-          console.log("Attempting AD authentication for:", username);
-          const adUser = await adService2.authenticateUser(username, password);
+          const username2 = email.includes("@") ? email.split("@")[0] : email;
+          console.log("Attempting AD authentication for:", username2);
+          const adUser = await adService2.authenticateUser(username2, password);
           if (adUser) {
             const localUser = await adService2.syncUserToDatabase(adUser);
             const token = jwt5.sign(
@@ -14780,7 +14798,7 @@ async function registerRoutes(app2) {
             });
             return;
           } else {
-            console.log("AD authentication failed for:", username);
+            console.log("AD authentication failed for:", username2);
             return res.status(401).json({ message: "Invalid Active Directory credentials" });
           }
         } catch (adError) {
@@ -14916,14 +14934,14 @@ async function registerRoutes(app2) {
       console.log("Timestamp:", (/* @__PURE__ */ new Date()).toISOString());
       console.log("Report data keys:", Object.keys(req.body));
       const data = req.body;
-      const hostname = data.hostname || data.system_info?.hostname || data.os_info?.hostname;
-      if (!hostname) {
+      const hostname2 = data.hostname || data.system_info?.hostname || data.os_info?.hostname;
+      if (!hostname2) {
         return res.status(400).json({ message: "Hostname is required" });
       }
-      let device = await storage.getDeviceByHostname(hostname);
+      let device = await storage.getDeviceByHostname(hostname2);
       if (!device) {
         device = await storage.createDevice({
-          hostname,
+          hostname: hostname2,
           assigned_user: data.current_user || null,
           os_name: data.os_info?.name || data.system_info?.platform || null,
           os_version: data.os_info?.version || data.system_info?.release || null,
@@ -15835,8 +15853,8 @@ app.use((req, res, next) => {
     } else {
       serveStatic(app);
     }
-    const port = 5e3;
-    const PORT = process.env.PORT || port;
+    const port2 = 5e3;
+    const PORT = process.env.PORT || port2;
     const { slaMonitorService: slaMonitorService2 } = await Promise.resolve().then(() => (init_sla_monitor_service(), sla_monitor_service_exports));
     slaMonitorService2.start(5);
     const serv = app.listen(PORT, "0.0.0.0", () => {
@@ -15876,7 +15894,7 @@ app.use((req, res, next) => {
         socket.destroy();
       }
     });
-    console.log("\u2705 Server started successfully on port", port);
+    console.log("\u2705 Server started successfully on port", port2);
   } catch (error) {
     console.error("\u274C Server startup failed:", error);
     process.exit(1);
