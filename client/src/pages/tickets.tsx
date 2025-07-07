@@ -532,6 +532,101 @@ export default function Tickets() {
     }
   };
 
+  const handleDownloadTicketsCSV = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      
+      if (selectedType && selectedType !== "all") params.append("type", selectedType);
+      if (selectedStatus && selectedStatus !== "all") params.append("status", selectedStatus);
+      if (selectedPriority && selectedPriority !== "all") params.append("priority", selectedPriority);
+      if (searchTerm && searchTerm.trim()) params.append("search", searchTerm.trim());
+      if (slaViolationFilter) params.append("sla_violations_only", "true");
+      if (!showClosed) params.append("exclude_closed", "true");
+
+      const response = await fetch(`/api/tickets/export/csv?${params}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "text/csv",
+        },
+      });
+
+      if (response.ok) {
+        const csvData = await response.text();
+        const blob = new Blob([csvData], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `service-desk-tickets-${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        toast({
+          title: "Success",
+          description: "Tickets exported successfully",
+        });
+      } else {
+        throw new Error("Failed to export tickets");
+      }
+    } catch (error) {
+      console.error("Error exporting tickets:", error);
+      toast({
+        title: "Error",
+        description: "Failed to export tickets",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownloadFullReport = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      
+      if (selectedType && selectedType !== "all") params.append("type", selectedType);
+      if (selectedStatus && selectedStatus !== "all") params.append("status", selectedStatus);
+      if (selectedPriority && selectedPriority !== "all") params.append("priority", selectedPriority);
+      if (searchTerm && searchTerm.trim()) params.append("search", searchTerm.trim());
+      if (slaViolationFilter) params.append("sla_violations_only", "true");
+      if (!showClosed) params.append("exclude_closed", "true");
+
+      const response = await fetch(`/api/analytics/service-desk-report?format=pdf&${params}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/pdf",
+        },
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `service-desk-full-report-${new Date().toISOString().split('T')[0]}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        toast({
+          title: "Success",
+          description: "Full Service Desk report downloaded successfully",
+        });
+      } else {
+        throw new Error("Failed to generate full report");
+      }
+    } catch (error) {
+      console.error("Error downloading full report:", error);
+      toast({
+        title: "Error",
+        description: "Failed to download full report",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -1375,9 +1470,26 @@ export default function Tickets() {
             Clear All Filters
           </Button>
 
-          <Button variant="outline" size="sm">
-            <Download className="w-4 h-4 mr-2" />
-            Export
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleDownloadTicketsCSV}
+            disabled={loading}
+            className="flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            {loading ? "Exporting..." : "Export CSV"}
+          </Button>
+
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleDownloadFullReport}
+            disabled={loading}
+            className="flex items-center gap-2"
+          >
+            <FileText className="w-4 h-4" />
+            {loading ? "Generating..." : "Full Report"}
           </Button>
         </div>
 

@@ -1140,4 +1140,189 @@ router.get("/test", async (req, res) => {
   });
 });
 
+  // Get performance insights for a specific device
+  router.get(
+    "/performance/insights/:deviceId",
+    async (req: Request, res: Response) => {
+      try {
+        const deviceId = req.params.deviceId;
+        console.log(
+          `Getting performance insights for device: ${deviceId}`,
+        );
+
+        const insights = await performanceService.getApplicationPerformanceInsights(deviceId);
+        res.json(insights);
+      } catch (error) {
+        console.error("Error getting performance insights:", error);
+        res.status(500).json({
+          error: "Failed to get performance insights",
+          message: error.message
+        });
+      }
+    },
+  );
+
+  // Generate comprehensive Service Desk report
+  router.get(
+    "/service-desk-report",
+    async (req: Request, res: Response) => {
+      try {
+        const format = req.query.format as string || 'json';
+        const filters = {
+          type: req.query.type as string,
+          status: req.query.status as string,
+          priority: req.query.priority as string,
+          search: req.query.search as string,
+          sla_violations_only: req.query.sla_violations_only === 'true',
+          exclude_closed: req.query.exclude_closed === 'true'
+        };
+
+        console.log('Generating Service Desk report with filters:', filters);
+
+        // Get ticket analytics data
+        const ticketAnalytics = await analyticsService.generateTicketAnalyticsReport();
+
+        // Get current tickets with filters applied
+        const { ticketStorage } = await import("../services/ticket-storage");
+        const ticketsResult = await ticketStorage.getTickets(1, 10000, filters);
+
+        // Generate comprehensive report
+        const report = {
+          title: "Service Desk Comprehensive Report",
+          generated_at: new Date().toISOString(),
+          filters_applied: filters,
+          summary: {
+            total_tickets: ticketsResult.total,
+            filtered_tickets: ticketsResult.data.length,
+            analytics: ticketAnalytics
+          },
+          tickets: ticketsResult.data,
+          performance_metrics: {
+            avg_resolution_time: ticketAnalytics.summary.avg_resolution_time,
+            sla_compliance: ticketAnalytics.sla_performance.sla_compliance_rate,
+            ticket_distribution: ticketAnalytics.ticket_distribution
+          }
+        };
+
+        if (format === 'pdf') {
+          // For now, return JSON and let frontend handle PDF generation
+          // In production, you might want to use a PDF library like puppeteer
+          res.setHeader('Content-Type', 'application/json');
+          res.setHeader('Content-Disposition', 'attachment; filename="service-desk-report.json"');
+          return res.json(report);
+        }
+
+        res.json({
+          success: true,
+          report: report
+        });
+
+      } catch (error) {
+        console.error("Error generating Service Desk report:", error);
+        res.status(500).json({
+          error: "Failed to generate Service Desk report",
+          details: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    },
+  );
+
+  // Generate detailed agents report
+  router.get(
+    "/agents-detailed-report",
+    async (req: Request, res: Response) => {
+      try {
+        const format = req.query.format as string || 'json';
+        const filters = {
+          status: req.query.status as string,
+          type: req.query.type as string,
+          os: req.query.os as string,
+          location: req.query.location as string,
+          health: req.query.health as string,
+          search: req.query.search as string
+        };
+
+        console.log('Generating detailed agents report with filters:', filters);
+
+        const { storage } = await import("../storage");
+        const devices = await storage.getDevices();
+
+        // Apply filters
+        let filteredDevices = devices.filter(device => {
+          let matches = true;
+
+          if (filters.status && filters.status !== 'all') {
+            matches = matches && device.status === filters.status;
+          }
+
+          if (filters.search && filters.search.trim()) {
+            const searchTerm = filters.search.toLowerCase();
+            matches = matches && (
+              device.hostname.toLowerCase().includes(searchTerm) ||
+              device.assigned_user?.toLowerCase().includes(searchTerm) ||
+              device.ip_address?.toLowerCase().includes(searchTerm)
+            );
+          }
+
+          return matches;
+        });
+
+        // Generate comprehensive report
+        const report = {
+          title: "Managed Systems Detailed Report",
+          generated_at: new Date().toISOString(),
+          filters_applied: filters,
+          summary: {
+            total_agents: devices.length,
+            filtered_agents: filteredDevices.length,
+            online_agents: filteredDevices.filter(d => d.status === 'online').length,
+            offline_agents: filteredDevices.filter(d => d.status === 'offline').length,
+          },
+          agents: filteredDevices.map(device => ({
+            ...device,
+            performance_summary: {
+              cpu_usage: device.latest_report?.cpu_usage || 0,
+              memory_usage: device.latest_report?.memory_usage || 0,
+              disk_usage: device.latest_report?.disk_usage || 0,
+              last_report: device.latest_report?.collected_at || null
+            }
+          })),
+          health_summary: {
+            healthy: filteredDevices.filter(d => {
+              const cpu = parseFloat(d.latest_report?.cpu_usage || '0');
+              const memory = parseFloat(d.latest_report?.memory_usage || '0');
+              const disk = parseFloat(d.latest_report?.disk_usage || '0');
+              return cpu < 80 && memory < 80 && disk < 80;
+            }).length,
+            warning: filteredDevices.filter(d => {
+              const cpu = parseFloat(d.latest_report?.cpu_usage || '0');
+              const memory = parseFloat(d.latest_report?.memory_usage || '0');
+              const disk = parseFloat(d.latest_report?.disk_usage || '0');
+              return (cpu >= 80 && cpu < 90) || (memory >= 80 && memory < 90) || (disk >= 80 && disk < 90);
+            }).length,
+            critical: filteredDevices.filter(d => {
+              const cpu = parseFloat(d.latest_report?.cpu_usage || '0');
+              const memory = parseFloat(d.latest_report?.memory_usage || '0');
+              const disk = parseFloat(d.latest_report?.disk_usage || '0');
+              return cpu >= 90 || memory >= 90 || disk >= 90;
+            }).length
+          }
+        };
+
+        res.json({
+          success: true,
+          report: report
+        });
+
+      } catch (error) {
+        console.error("Error generating agents detailed report:", error);
+        res.status(500).json({
+          error: "Failed to generate agents detailed report",
+          details: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    },
+  );
+
+// Adds Service Desk and Agents detailed report generation endpoints with filtering and comprehensive data retrieval.
 export default router;

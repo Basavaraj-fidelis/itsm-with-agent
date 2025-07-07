@@ -13,9 +13,13 @@ interface AgentFiltersProps {
   searchTerm: string;
   statusFilter: string;
   typeFilter: string;
+  osFilter: string;
+  healthFilter: string;
   onSearchChange: (value: string) => void;
   onStatusChange: (value: string) => void;
   onTypeChange: (value: string) => void;
+  onOsChange: (value: string) => void;
+  onHealthChange: (value: string) => void;
   onRefresh: () => void;
 }
 
@@ -23,9 +27,13 @@ export function AgentFilters({
   searchTerm,
   statusFilter,
   typeFilter,
+  osFilter,
+  healthFilter,
   onSearchChange,
   onStatusChange,
   onTypeChange,
+  onOsChange,
+  onHealthChange,
   onRefresh,
 }: AgentFiltersProps) {
   return (
@@ -55,14 +63,38 @@ export function AgentFilters({
           </Select>
 
           <Select value={typeFilter} onValueChange={onTypeChange}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="All Types" />
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Agent Type" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="workstation">Workstation</SelectItem>
-              <SelectItem value="server">Server</SelectItem>
-              <SelectItem value="laptop">Laptop</SelectItem>
+              <SelectItem value="server">Servers</SelectItem>
+              <SelectItem value="workstation">Workstations</SelectItem>
+              <SelectItem value="laptop">Laptops</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={osFilter} onValueChange={onOsChange}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="OS" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All OS</SelectItem>
+              <SelectItem value="windows">Windows</SelectItem>
+              <SelectItem value="linux">Linux</SelectItem>
+              <SelectItem value="macos">macOS</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={healthFilter} onValueChange={onHealthChange}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Health" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Health</SelectItem>
+              <SelectItem value="healthy">Healthy</SelectItem>
+              <SelectItem value="warning">Warning</SelectItem>
+              <SelectItem value="critical">Critical</SelectItem>
             </SelectContent>
           </Select>
         </div>

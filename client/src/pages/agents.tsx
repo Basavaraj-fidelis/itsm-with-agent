@@ -53,16 +53,50 @@ export default function Agents() {
             <h1 className="text-2xl font-semibold text-[#201F1E] dark:text-[#F3F2F1] mb-2">Managed Systems</h1>
             <p className="text-neutral-600">Monitor and manage all registered agents</p>
           </div>
-          <Button 
-            className="bg-blue-600 hover:bg-blue-700"
-            onClick={() => {
-              // Redirect to settings agent tab
-              window.location.href = '/settings?tab=agent';
-            }}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Create New Agent
-          </Button>
+          <div className="flex items-center space-x-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearAllFilters}
+              className="flex items-center gap-2"
+            >
+              <Filter className="w-4 h-4" />
+              Clear Filters
+            </Button>
+
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleDownloadAgentsCSV}
+              disabled={loading || isLoading}
+              className="flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              {loading ? "Exporting..." : "Export CSV"}
+            </Button>
+
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleDownloadDetailedReport}
+              disabled={loading || isLoading}
+              className="flex items-center gap-2"
+            >
+              <FileText className="w-4 h-4" />
+              {loading ? "Generating..." : "Detailed Report"}
+            </Button>
+
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => {
+                // Redirect to settings agent tab
+                window.location.href = '/settings?tab=agent';
+              }}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create New Agent
+            </Button>
+          </div>
         </div>
       </div>
 

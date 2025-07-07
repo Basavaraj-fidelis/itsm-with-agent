@@ -2,6 +2,80 @@ import type { Express } from "express";
 import { storage } from "../storage";
 
 export function registerDeviceRoutes(app: Express, authenticateToken: any) {
+
+  // Export devices as CSV
+  app.get("/api/devices/export/csv", async (req, res) => {
+    try {
+      const filters = {
+        status: req.query.status as string,
+        type: req.query.type as string,
+        os: req.query.os as string,
+        location: req.query.location as string,
+        health: req.query.health as string,
+        search: req.query.search as string
+      };
+
+      const devices = await storage.getDevices();
+
+      // Apply filters
+      let filteredDevices = devices.filter(device => {
+        let matches = true;
+
+        if (filters.status && filters.status !== 'all') {
+          matches = matches && device.status === filters.status;
+        }
+
+        if (filters.search && filters.search.trim()) {
+          const searchTerm = filters.search.toLowerCase();
+          matches = matches && (
+            device.hostname.toLowerCase().includes(searchTerm) ||
+            device.assigned_user?.toLowerCase().includes(searchTerm) ||
+            device.ip_address?.toLowerCase().includes(searchTerm)
+          );
+        }
+
+        return matches;
+      });
+
+      // Generate CSV
+      const headers = [
+        "Hostname",
+        "IP Address", 
+        "Status",
+        "OS Name",
+        "OS Version",
+        "Assigned User",
+        "Last Seen",
+        "CPU Usage",
+        "Memory Usage", 
+        "Disk Usage"
+      ];
+
+      const csvRows = [
+        headers.join(","),
+        ...filteredDevices.map(device => [
+          device.hostname,
+          device.ip_address || "",
+          device.status,
+          device.os_name || "",
+          device.os_version || "",
+          device.assigned_user || "",
+          device.last_seen ? new Date(device.last_seen).toISOString() : "",
+          device.latest_report?.cpu_usage || "",
+          device.latest_report?.memory_usage || "",
+          device.latest_report?.disk_usage || ""
+        ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(","))
+      ];
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="managed-systems.csv"');
+      res.send(csvRows.join("\n"));
+
+    } catch (error) {
+      console.error("Error exporting devices:", error);
+      res.status(500).json({ error: "Failed to export devices" });
+    }
+  });
   // Get all devices
   app.get("/api/devices", authenticateToken, async (req, res) => {
     try {
