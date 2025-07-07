@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db } from "../db";
+import { db, pool } from "../db";
 import bcrypt from "bcrypt";
 import multer from "multer";
 import csv from "csv-parser";
@@ -70,7 +70,7 @@ router.post("/import-end-users", upload.single('file'), async (req, res) => {
         }
 
         // Check if user already exists
-        const existingUser = await db.query(
+        const existingUser = await pool.query(
           `SELECT id FROM users WHERE email = $1`,
           [email]
         );
@@ -97,7 +97,7 @@ router.post("/import-end-users", upload.single('file'), async (req, res) => {
         }
 
         // Insert new end user
-        await db.query(`
+        await pool.query(`
           INSERT INTO users (
             email, username, first_name, last_name, role, 
             password_hash, phone, department, location, is_active,
@@ -225,14 +225,14 @@ router.get("/", async (req, res) => {
     console.log("Executing enhanced user query:", query);
     console.log("With parameters:", params);
 
-    const result = await db.query(query, params);
+    const result = await pool.query(query, params);
 
     let countQuery = `SELECT COUNT(*) as total FROM users`;
     if (conditions.length > 0) {
       countQuery += ` WHERE ${conditions.join(' AND ')}`;
     }
 
-    const countResult = await db.query(countQuery, params.slice(0, -2));
+    const countResult = await pool.query(countQuery, params.slice(0, -2));
     const total = parseInt(countResult.rows[0]?.total || 0);
 
     // Get user statistics with proper null handling
@@ -246,7 +246,7 @@ router.get("/", async (req, res) => {
       FROM users
     `;
 
-    const statsResult = await db.query(statsQuery);
+    const statsResult = await pool.query(statsQuery);
     const stats = statsResult.rows[0];
 
     const users = result.rows.map(user => {
@@ -316,7 +316,7 @@ router.get("/", async (req, res) => {
 // Get user departments for filtering
 router.get("/departments", async (req, res) => {
   try {
-    const result = await db.query(`
+    const result = await pool.query(`
       SELECT DISTINCT department 
       FROM users 
       WHERE department IS NOT NULL AND department != ''
@@ -382,7 +382,7 @@ router.post("/bulk-ad-sync", async (req, res) => {
 // Get user by ID
 router.get("/:id", async (req, res) => {
   try {
-    const result = await db.query(`
+    const result = await pool.query(`
       SELECT 
         id, email, username, first_name, last_name, role,
         phone, job_title, location, is_active, is_locked,
@@ -431,7 +431,7 @@ router.post("/", async (req, res) => {
     const username = email.split('@')[0]; // Generate username from email
 
     // Check if user already exists
-    const existingUser = await db.query(`
+    const existingUser = await pool.query(`
       SELECT id FROM users WHERE email = $1 OR username = $2
     `, [email.toLowerCase(), username]);
 
@@ -443,7 +443,7 @@ router.post("/", async (req, res) => {
     const saltRounds = 10;
     const password_hash = await bcrypt.hash(password, saltRounds);
 
-    const result = await db.query(`
+    const result = await pool.query(`
       INSERT INTO users (
         email, username, first_name, last_name, role, 
         password_hash, phone, location, department, is_active,
@@ -496,7 +496,7 @@ router.put("/:id", async (req, res) => {
     }
 
     // Check if user exists first
-    const userCheck = await db.query(`SELECT id, email, is_locked, first_name, last_name FROM users WHERE id = $1`, [req.params.id]);
+    const userCheck = await pool.query(`SELECT id, email, is_locked, first_name, last_name FROM users WHERE id = $1`, [req.params.id]);
     if (userCheck.rows.length === 0) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -523,7 +523,7 @@ router.put("/:id", async (req, res) => {
     // Check if email is being changed and if it conflicts with another user
     const currentUser = userCheck.rows[0];
     if (email.toLowerCase() !== currentUser.email.toLowerCase()) {
-      const emailCheck = await db.query(`SELECT id FROM users WHERE email = $1 AND id != $2`, [email.toLowerCase(), req.params.id]);
+      const emailCheck = await pool.query(`SELECT id FROM users WHERE email = $1 AND id != $2`, [email.toLowerCase(), req.params.id]);
       if (emailCheck.rows.length > 0) {
         return res.status(400).json({ message: "Email already exists for another user" });
       }
@@ -563,7 +563,7 @@ router.put("/:id", async (req, res) => {
     console.log("Executing update query:", updateQuery);
     console.log("With values (excluding password):", values.map((v, i) => i === values.length - 2 && password ? '[PASSWORD HASH]' : v));
 
-    const result = await db.query(updateQuery, values);
+    const result = await pool.query(updateQuery, values);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ message: "User not found or update failed" });
@@ -595,7 +595,7 @@ router.put("/:id", async (req, res) => {
 // Delete user (soft delete)
 router.delete("/:id", async (req, res) => {
   try {
-    const result = await db.query(`
+    const result = await pool.query(`
       UPDATE users 
       SET is_active = false, updated_at = NOW() 
       WHERE id = $1 
@@ -637,7 +637,7 @@ router.post("/:id/lock", async (req, res) => {
     }
 
     // Update user to locked status
-    const result = await db.query(`
+    const result = await pool.query(`
       UPDATE users 
       SET is_locked = true, updated_at = NOW() 
       WHERE id = $1 
@@ -710,7 +710,7 @@ router.post("/:id/unlock", async (req, res) => {
     }
 
     // Update user to unlocked status
-    const result = await db.query(`
+    const result = await pool.query(`
       UPDATE users 
       SET is_locked = false, failed_login_attempts = 0, updated_at = NOW() 
       WHERE id = $1 
@@ -773,7 +773,7 @@ router.post("/change-password", async (req, res) => {
     const token = authHeader.substring(7);
 
     // Get user from session
-    const session = await db.query(`
+    const session = await pool.query(`
       SELECT 
         user_id, token
       FROM user_sessions
@@ -784,7 +784,7 @@ router.post("/change-password", async (req, res) => {
       return res.status(401).json({ message: "Invalid session" });
     }
 
-    const user = await db.query(`
+    const user = await pool.query(`
       SELECT 
         id, password_hash
       FROM users
@@ -807,7 +807,7 @@ router.post("/change-password", async (req, res) => {
     const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
 
     // Update password
-    await db.query(`
+    await pool.query(`
       UPDATE users
       SET password_hash = $1, updated_at = NOW()
       WHERE id = $2
