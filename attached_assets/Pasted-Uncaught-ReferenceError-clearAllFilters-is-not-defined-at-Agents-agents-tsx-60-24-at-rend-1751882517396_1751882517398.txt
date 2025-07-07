@@ -1,0 +1,40 @@
+Uncaught ReferenceError: clearAllFilters is not defined
+    at Agents (agents.tsx:60:24)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=f52a6e6d:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=f52a6e6d:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=f52a6e6d:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=f52a6e6d:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=f52a6e6d:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=f52a6e6d:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=f52a6e6d:19765:15)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=f52a6e6d:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=f52a6e6d:19137:13)
+chunk-RPCDYKBN.js?v=f52a6e6d:14032 The above error occurred in the <Agents> component:
+
+    at Agents (https://c5f898e9-13f1-404a-903f-573e123bdcc9-00-a6a2bwkblrh9.sisko.replit.dev/src/pages/agents.tsx:27:39)
+    at main
+    at div
+    at div
+    at AuthenticatedLayout (https://c5f898e9-13f1-404a-903f-573e123bdcc9-00-a6a2bwkblrh9.sisko.replit.dev/src/App.tsx:57:32)
+    at ProtectedRoute (https://c5f898e9-13f1-404a-903f-573e123bdcc9-00-a6a2bwkblrh9.sisko.replit.dev/src/components/auth/protected-route.tsx:76:3)
+    at Route (https://c5f898e9-13f1-404a-903f-573e123bdcc9-00-a6a2bwkblrh9.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f52a6e6d:206:16)
+    at Switch (https://c5f898e9-13f1-404a-903f-573e123bdcc9-00-a6a2bwkblrh9.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f52a6e6d:262:17)
+    at Router (https://c5f898e9-13f1-404a-903f-573e123bdcc9-00-a6a2bwkblrh9.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f52a6e6d:161:17)
+    at AuthProvider (https://c5f898e9-13f1-404a-903f-573e123bdcc9-00-a6a2bwkblrh9.sisko.replit.dev/src/components/auth/protected-route.tsx:36:32)
+    at QueryClientProvider (https://c5f898e9-13f1-404a-903f-573e123bdcc9-00-a6a2bwkblrh9.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=f52a6e6d:2933:3)
+    at App (https://c5f898e9-13f1-404a-903f-573e123bdcc9-00-a6a2bwkblrh9.sisko.replit.dev/src/App.tsx:89:49)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-RPCDYKBN.js?v=f52a6e6d:14032
+chunk-RPCDYKBN.js?v=f52a6e6d:9129 Uncaught ReferenceError: clearAllFilters is not defined
+    at Agents (agents.tsx:60:24)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=f52a6e6d:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=f52a6e6d:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=f52a6e6d:15914:22)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=f52a6e6d:19753:22)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=f52a6e6d:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=f52a6e6d:19137:13)
+    at renderRootSync (chunk-RPCDYKBN.js?v=f52a6e6d:19116:15)
+    at recoverFromConcurrentError (chunk-RPCDYKBN.js?v=f52a6e6d:18736:28)
+    at performSyncWorkOnRoot (chunk-RPCDYKBN.js?v=f52a6e6d:18879:28)
