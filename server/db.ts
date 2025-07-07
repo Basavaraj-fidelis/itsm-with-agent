@@ -21,7 +21,7 @@ if (!DATABASE_URL.startsWith('postgres://') && !DATABASE_URL.startsWith('postgre
 }
 
 // Check if URL contains proper hostname
-const urlParts = DATABASE_URL.match(/postgres(?:ql)?:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)/);
+const urlParts = DATABASE_URL.match(/postgres(?:ql)?:\/\/([^:]+):([^@]+)@([^:/]+):(\d+)\/([^?]+)/);
 if (!urlParts) {
   console.error("❌ DATABASE_URL is malformed");
   console.error("📋 Expected format: postgres://username:password@hostname:port/database");
