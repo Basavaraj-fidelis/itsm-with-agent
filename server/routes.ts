@@ -7,26 +7,29 @@ import { registerAgentRoutes } from "./routes/agent-routes";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 // Removed validation schema import - using flexible data parsing
-import { schema } from "@shared/schema";
-import { userSchema } from "@shared/user-schema";
-import { adminSchema } from "@shared/admin-schema";
-import { knowledgeSchema } from "@shared/knowledge-schema";
-import { tickets } from "@shared/ticket-schema";
-import { userStorage } from "./services/user-storage";
-import { knowledgeStorage } from "./knowledge-storage";
-import { ticketStorage } from "./services/ticket-storage";
-import { securityService } from "./services/security-service";
-import { performanceService } from "./services/performance-service";
-import { automationService } from "./services/automation-service";
-import { aiService } from "./services/ai-service";
+//import { schema } from "@shared/schema";
+//import { userSchema } from "@shared/user-schema";
+//import { adminSchema } from "@shared/admin-schema";
+//import { knowledgeSchema } from "@shared/knowledge-schema";
+//import { tickets } from "@shared/ticket-schema";
+//import { userStorage } from "./services/user-storage";
+//import { knowledgeStorage } from "./knowledge-storage";
+//import { ticketStorage } from "./services/ticket-storage";
+//import { securityService } from "./services/security-service";
+//import { performanceService } from "./services/performance-service";
+//import { automationService } from "./services/automation-service";
+//import { aiService } from "./services/ai-service";
 
 // Import utility functions
-import { DatabaseUtils } from "./utils/database";
+//import { DatabaseUtils } from "./utils/database";
 import { AuthUtils } from "./utils/auth";
-import { TimeUtils } from "./utils/time";
+//import { TimeUtils } from "./utils/time";
 import { ResponseUtils } from "./utils/response";
 import { UserUtils } from "./utils/user";
-import { AlertUtils } from "./utils/alerts";
+//import { AlertUtils } from "./utils/alerts";
+
+import fs from "fs";
+import path from "path";
 
 const JWT_SECRET =
   process.env.JWT_SECRET || "your-secret-key-change-in-production";
@@ -108,34 +111,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Authentication routes
-  // Authentication
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { email, password, useActiveDirectory } = req.body;
       console.log("Login attempt for:", email, "AD:", useActiveDirectory);
 
       if (!email || !password) {
-        return res
-          .status(400)
-          .json({ message: "Email and password are required" });
+        return res.status(400).json({ message: "Email and password are required" });
       }
 
       // Active Directory Authentication
       if (useActiveDirectory) {
         try {
-          const { adService } = await import("./ad-service");
-
-          // Extract username from email if needed
+          const { adService } = await import("./services/ad-service");
           const username = email.includes("@") ? email.split("@")[0] : email;
-
           console.log("Attempting AD authentication for:", username);
           const adUser = await adService.authenticateUser(username, password);
 
           if (adUser) {
-            // Sync user to local database
             const localUser = await adService.syncUserToDatabase(adUser);
-
-            // Generate JWT token
             const token = jwt.sign(
               {
                 userId: localUser.id,
@@ -145,7 +139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 authMethod: "ad",
               },
               JWT_SECRET,
-              { expiresIn: "24h" },
+              { expiresIn: "24h" }
             );
 
             console.log("AD login successful for:", email);
@@ -164,15 +158,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return;
           } else {
             console.log("AD authentication failed for:", username);
-            return res
-              .status(401)
-              .json({ message: "Invalid Active Directory credentials" });
+            return res.status(401).json({ message: "Invalid Active Directory credentials" });
           }
         } catch (adError) {
           console.error("AD authentication error:", adError);
-          return res
-            .status(500)
-            .json({ message: "Active Directory authentication failed" });
+          return res.status(500).json({ message: "Active Directory authentication failed" });
         }
       }
 
@@ -259,12 +249,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Update last login if column exists
-        if (availableColumns.includes("last_login")) {
-          await pool.query(
-            `UPDATE users SET last_login = NOW() WHERE id = $1`,
-            [user.id],
-          );
-        }
+        //if (availableColumns.includes("last_login")) {
+        //  await pool.query(
+        //    `UPDATE users SET last_login = NOW() WHERE id = $1`,
+        //    [user.id],
+        //  );
+        //}
 
         // Generate JWT token
         const token = AuthUtils.generateToken({
@@ -348,7 +338,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .json({ message: "Name, email and password required" });
       }
 
-      // Check if user already exists
       const existingUsers = await storage.getUsers({ search: email });
       if (
         existingUsers.some((u) => u.email.toLowerCase() === email.toLowerCase())
@@ -359,8 +348,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Hash password
       const password_hash = await bcrypt.hash(password, 10);
 
-      // Create user
-      const newUser = await storage.createUser({
+      const userData = {
         name,
         email: email.toLowerCase(),
         password_hash,
@@ -368,22 +356,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         department: department || "",
         phone: phone || "",
         is_active: true,
-      });
+      };
 
-      // Return user data without password
-      const { password_hash: _, ...userWithoutPassword } = newUser as any;
-
-      res.status(201).json({
-        message: "Account created successfully",
-        user: userWithoutPassword,
-      });
+      const newUser = await storage.createUser(userData);
+      console.log("Created user:", newUser);
+      res.status(201).json(newUser);
     } catch (error) {
       console.error("Signup error:", error);
-      if (error.message?.includes("duplicate")) {
-        res.status(400).json({ message: "Email already exists" });
-      } else {
-        res.status(500).json({ message: "Internal server error" });
-      }
+      res
+        .status(500)
+        .json({ message: "Failed to create user", error: error.message });
     }
   });
 
@@ -413,138 +395,138 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all alerts
-  app.get("/api/alerts", authenticateToken, async (req, res) => {
-    try {
-      console.log("Fetching alerts for user:", req.user?.email);
-      const alerts = await storage.getActiveAlerts();
-      console.log(`Found ${alerts.length} alerts`);
+  //app.get("/api/alerts", authenticateToken, async (req, res) => {
+  //  try {
+  //    console.log("Fetching alerts for user:", req.user?.email);
+  //    const alerts = await storage.getActiveAlerts();
+  //    console.log(`Found ${alerts.length} alerts`);
 
-      // Enhance alerts with device hostname
-      const enhancedAlerts = await Promise.all(
-        alerts.map(async (alert) => {
-          try {
-            const device = await storage.getDevice(alert.device_id);
-            return {
-              ...alert,
-              device_hostname: device?.hostname || "Unknown Device",
-            };
-          } catch (deviceError) {
-            console.warn(
-              `Failed to get device for alert ${alert.id}:`,
-              deviceError,
-            );
-            return {
-              ...alert,
-              device_hostname: "Unknown Device",
-            };
-          }
-        }),
-      );
+  //    // Enhance alerts with device hostname
+  //    const enhancedAlerts = await Promise.all(
+  //      alerts.map(async (alert) => {
+  //        try {
+  //          const device = await storage.getDevice(alert.device_id);
+  //          return {
+  //            ...alert,
+  //            device_hostname: device?.hostname || "Unknown Device",
+  //          };
+  //        } catch (deviceError) {
+  //          console.warn(
+  //            `Failed to get device for alert ${alert.id}:`,
+  //            deviceError,
+  //          );
+  //          return {
+  //            ...alert,
+  //            device_hostname: "Unknown Device",
+  //          };
+  //        }
+  //      }),
+  //    );
 
-      console.log(`Returning ${enhancedAlerts.length} enhanced alerts`);
-      res.json(enhancedAlerts);
-    } catch (error) {
-      console.error("Error fetching alerts:", error);
-      res.status(500).json({
-        message: "Internal server error",
-        error: error.message,
-      });
-    }
-  });
+  //    console.log(`Returning ${enhancedAlerts.length} enhanced alerts`);
+  //    res.json(enhancedAlerts);
+  //  } catch (error) {
+  //    console.error("Error fetching alerts:", error);
+  //    res.status(500).json({
+  //      message: "Internal server error",
+  //      error: error.message,
+  //    });
+  //  }
+  //});
 
-  // Get single alert endpoint
-  app.get("/api/alerts/:id", authenticateToken, async (req, res) => {
-    try {
-      const alertId = req.params.id;
-      console.log(`Fetching alert: ${alertId}`);
+  //// Get single alert endpoint
+  //app.get("/api/alerts/:id", authenticateToken, async (req, res) => {
+  //  try {
+  //    const alertId = req.params.id;
+  //    console.log(`Fetching alert: ${alertId}`);
 
-      const alert = await storage.getAlertById(alertId);
+  //    const alert = await storage.getAlertById(alertId);
 
-      if (!alert) {
-        return res.status(404).json({ message: "Alert not found" });
-      }
+  //    if (!alert) {
+  //      return res.status(404).json({ message: "Alert not found" });
+  //    }
 
-      res.json(alert);
-    } catch (error) {
-      console.error("Error fetching alert:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
+  //    res.json(alert);
+  //  } catch (error) {
+  //    console.error("Error fetching alert:", error);
+  //    res.status(500).json({ message: "Internal server error" });
+  //  }
+  //});
 
-  // Resolve alert endpoint
-  app.post("/api/alerts/:id/resolve", authenticateToken, async (req, res) => {
-    try {
-      const alertId = req.params.id;
-      const userId = req.user?.id || req.user?.email;
-      console.log(`User ${userId} attempting to resolve alert: ${alertId}`);
+  //// Resolve alert endpoint
+  //app.post("/api/alerts/:id/resolve", authenticateToken, async (req, res) => {
+  //  try {
+  //    const alertId = req.params.id;
+  //    const userId = req.user?.id || req.user?.email;
+  //    console.log(`User ${userId} attempting to resolve alert: ${alertId}`);
 
-      if (!alertId) {
-        return res.status(400).json({
-          message: "Alert ID is required",
-          success: false,
-        });
-      }
+  //    if (!alertId) {
+  //      return res.status(400).json({
+  //        message: "Alert ID is required",
+  //        success: false,
+  //      });
+  //    }
 
-      // Check if alert exists first
-      let alert;
-      try {
-        alert = await storage.getAlertById(alertId);
-      } catch (fetchError) {
-        console.error(`Error fetching alert ${alertId}:`, fetchError);
-        return res.status(500).json({
-          message: "Error fetching alert",
-          error: fetchError.message,
-          success: false,
-        });
-      }
+  //    // Check if alert exists first
+  //    let alert;
+  //    try {
+  //      alert = await storage.getAlertById(alertId);
+  //    } catch (fetchError) {
+  //      console.error(`Error fetching alert ${alertId}:`, fetchError);
+  //      return res.status(500).json({
+  //        message: "Error fetching alert",
+  //        error: fetchError.message,
+  //        success: false,
+  //      });
+  //    }
 
-      if (!alert) {
-        console.log(`Alert ${alertId} not found`);
-        return res.status(404).json({
-          message: "Alert not found",
-          alertId: alertId,
-          success: false,
-        });
-      }
+  //    if (!alert) {
+  //      console.log(`Alert ${alertId} not found`);
+  //      return res.status(404).json({
+  //        message: "Alert not found",
+  //        alertId: alertId,
+  //        success: false,
+  //      });
+  //    }
 
-      if (!alert.is_active) {
-        console.log(`Alert ${alertId} is already resolved`);
-        return res.status(400).json({
-          message: "Alert is already resolved",
-          alertId: alertId,
-          success: false,
-        });
-      }
+  //    if (!alert.is_active) {
+  //      console.log(`Alert ${alertId} is already resolved`);
+  //      return res.status(400).json({
+  //        message: "Alert is already resolved",
+  //        alertId: alertId,
+  //        success: false,
+  //      });
+  //    }
 
-      try {
-        await storage.resolveAlert(alertId);
-        console.log(`Alert ${alertId} resolved successfully by ${userId}`);
+  //    try {
+  //      await storage.resolveAlert(alertId);
+  //      console.log(`Alert ${alertId} resolved successfully by ${userId}`);
 
-        res.json({
-          message: "Alert resolved successfully",
-          alertId: alertId,
-          success: true,
-          resolvedBy: userId,
-          resolvedAt: new Date().toISOString(),
-        });
-      } catch (resolveError) {
-        console.error(`Error resolving alert ${alertId}:`, resolveError);
-        res.status(500).json({
-          message: "Failed to resolve alert",
-          error: resolveError.message,
-          alertId: alertId,
-          success: false,
-        });
-      }
-    } catch (error) {
-      console.error("Error in resolve alert endpoint:", error);
-      res.status(500).json({
-        message: "Internal server error",
-        error: error.message,
-        success: false,
-      });
-    }
-  });
+  //      res.json({
+  //        message: "Alert resolved successfully",
+  //        alertId: alertId,
+  //        success: true,
+  //        resolvedBy: userId,
+  //        resolvedAt: new Date().toISOString(),
+  //      });
+  //    } catch (resolveError) {
+  //      console.error(`Error resolving alert ${alertId}:`, resolveError);
+  //      res.status(500).json({
+  //        message: "Failed to resolve alert",
+  //        error: resolveError.message,
+  //        alertId: alertId,
+  //        success: false,
+  //      });
+  //    }
+  //  } catch (error) {
+  //    console.error("Error in resolve alert endpoint:", error);
+  //    res.status(500).json({
+  //      message: "Internal server error",
+  //      error: error.message,
+  //      success: false,
+  //    });
+  //  }
+  //});
 
   // Report endpoint (from ITSM agents) - moved to ensure proper routing
   app.post("/api/report", async (req, res) => {
@@ -601,7 +583,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             !processUser.includes("SYSTEM") &&
             !processUser.includes("LOCAL SERVICE") &&
             !processUser.includes("NETWORK SERVICE") &&
-            !processUser.includes("Window Manager") &&
             !processUser.endsWith("$") &&
             processUser !== "Unknown" &&
             processUser !== "N/A"
@@ -1679,6 +1660,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerDeviceRoutes(app, authenticateToken);
   registerAgentRoutes(app, authenticateToken, requireRole);
 
+  // Register alert routes
+  const alertRoutes = await import("./routes/alert-routes");
+  app.use("/api/alerts", authenticateToken, alertRoutes.default);
+
+  // Register notification routes
+  const notificationRoutes = await import("./routes/notification-routes");
+  app.use("/api/notifications", authenticateToken, notificationRoutes.default);
+
+  // Register automation routes
+  const automationRoutes = await import("./routes/automation-routes");
+  app.use("/api/automation", authenticateToken, requireRole(["admin", "manager"]), automationRoutes.default);
+
   // Register Active Directory routes
   const { adRoutes } = await import("./routes/ad-routes");
   app.use("/api/ad", authenticateToken, requireRole(["admin"]), adRoutes);
@@ -2326,7 +2319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
          JOIN devices d ON c.device_id = d.id
          ORDER BY c.created_at DESC
          LIMIT 100`,
-      );
+        );
 
       res.json(result.rows);
     } catch (error) {
@@ -2966,8 +2959,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Add installation instructions
         const instructions = `# ITSM Agent Installation Instructions
-
-## ${platform.charAt(0).toUpperCase() + platform.slice(1)} Installation
+        
+# ${platform.charAt(0).toUpperCase() + platform.slice(1)} Installation
 
 ### Prerequisites
 - Python 3.7 or higher
@@ -2980,15 +2973,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 ${
   platform === "windows"
-    ? "   python install_windows.py"
-    : "   sudo python3 itsm_agent.py install"
+    ? " python install_windows.py"
+    : " sudo python3 itsm_agent.py install"
 }
 
 4. Start the service:
 ${
   platform === "windows"
-    ? "   python itsm_agent.py start"
-    : "   sudo systemctl start itsm-agent"
+    ? " python itsm_agent.py start"
+    : " sudo systemctl start itsm-agent"
 }
 
 ### Configuration
@@ -3105,8 +3098,8 @@ For technical support, contact your system administrator.
         );
 
         // Create zip archive
-        const archiver = require("archiver");
-        const archive = archiver("zip", {
+        const archiver = await import("archiver");
+        const archive = archiver.default("zip", {
           zlib: { level: 9 }, // Maximum compression
         });
 
@@ -3463,7 +3456,7 @@ For technical support, contact your system administrator.`;
         },
         recommendations: [
           "Implement proactive capacity planning for high-utilization systems",
-          "Enhance monitoring coverage for critical infrastructure components", 
+          "Enhance monitoring coverage for critical infrastructure components",
           "Establish automated patch management workflows",
           "Review and optimize SLA targets based on current performance trends",
         ],
@@ -3604,8 +3597,6 @@ For technical support, contact your system administrator.`;
   const httpServer = createServer(app);
   return httpServer;
 }
-import fs from "fs";
-import path from "path";
 
 // Get location data from IPinfo API
 const getLocationFromIP = async (ipAddress: string) => {
