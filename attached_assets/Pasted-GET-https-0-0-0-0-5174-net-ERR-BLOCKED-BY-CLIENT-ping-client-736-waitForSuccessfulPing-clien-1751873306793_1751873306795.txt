@@ -1,0 +1,38 @@
+GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+api.ts:80 API Request: /api/users? {headers: {…}, method: 'GET'}
+api.ts:83  GET https://0cb67b47-53b9-41ca-ad3c-c5ede510ad9e-00-31tfcoxw9ixjn.pike.replit.dev/api/users? 500 (Internal Server Error)
+request @ api.ts:83
+get @ api.ts:100
+get @ api.ts:174
+queryFn @ users.tsx:111
+fetchFn @ @tanstack_react-query.js?v=dba0b5cb:881
+run @ @tanstack_react-query.js?v=dba0b5cb:513
+start @ @tanstack_react-query.js?v=dba0b5cb:555
+fetch @ @tanstack_react-query.js?v=dba0b5cb:969
+executeFetch_fn @ @tanstack_react-query.js?v=dba0b5cb:2279
+fetch @ @tanstack_react-query.js?v=dba0b5cb:2090
+refetch @ @tanstack_react-query.js?v=dba0b5cb:2080
+onClick @ users.tsx:537
+callCallback2 @ chunk-RPCDYKBN.js?v=c016a8c4:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=c016a8c4:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=c016a8c4:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=c016a8c4:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=c016a8c4:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=c016a8c4:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=c016a8c4:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=c016a8c4:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=c016a8c4:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=c016a8c4:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=c016a8c4:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=c016a8c4:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=c016a8c4:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=c016a8c4:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=c016a8c4:5449
+api.ts:85 API Response: 500 Internal Server Error
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+api.ts:80 API Request: /api/users? {headers: {…}, method: 'GET'}
+api.ts:83  GET https://0cb67b47-53b9-41ca-ad3c-c5ede510ad9e-00-31tfcoxw9ixjn.pike.replit.dev/api/users? 500 (Internal Server Error)
