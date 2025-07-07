@@ -1,14 +1,15 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import { analyticsService } from "../services/analytics-service";
 import { performanceService } from "../services/performance-service";
 import "../services/device-storage";
 import { reportsStorage } from "../models/reports-storage";
 import { AuthUtils } from "../utils/auth";
 import { ResponseUtils } from "../utils/response";
-import { sql } from "drizzle-orm";
+import { sql, desc } from "drizzle-orm";
 import { db } from "../db";
-import { devices } from "@shared/schema";
+import { devices, tickets } from "@shared/schema";
 import { format } from "date-fns";
+import { AnalyticsService } from "../services/analytics-service";
 
 const router = Router();
 
@@ -1216,7 +1217,7 @@ router.get("/test", async (req, res) => {
 // Get performance insights for a specific device
 router.get(
   "/performance/insights/:deviceId",
-  async (req: Request, res: Response) => {
+  async (req: any, res: any) => {
     try {
       const deviceId = req.params.deviceId;
       console.log(`Getting performance insights for device: ${deviceId}`);
@@ -1224,7 +1225,7 @@ router.get(
       const insights =
         await performanceService.getApplicationPerformanceInsights(deviceId);
       res.json(insights);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error getting performance insights:", error);
       res.status(500).json({
         error: "Failed to get performance insights",
@@ -1235,7 +1236,7 @@ router.get(
 );
 
 // Generate Service Desk comprehensive report
-router.get("/service-desk-report", async (req: Request, res: Response) => {
+router.get("/service-desk-report", async (req: any, res: any) => {
   try {
     const format = (req.query.format as string) || "json";
     const timeRange = (req.query.timeRange as string) || "30d";
@@ -1284,7 +1285,6 @@ router.get("/service-desk-report", async (req: Request, res: Response) => {
     }
 
     // Generate analytics
-    const analyticsService = new AnalyticsService();
     const analytics = await analyticsService.generateTicketAnalyticsReport(
       timeRange,
     );
@@ -1336,7 +1336,7 @@ router.get("/service-desk-report", async (req: Request, res: Response) => {
           'attachment; filename="service-desk-full-report.xlsx"',
         );
         return res.send(excelData);
-      } catch (excelError) {
+      } catch (excelError: any) {
         console.error("Excel generation failed:", excelError);
         // Fallback to CSV
         const csvData = await analyticsService.exportReport(
@@ -1377,7 +1377,7 @@ router.get("/service-desk-report", async (req: Request, res: Response) => {
       success: true,
       report: report,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating Service Desk report:", error);
     res.status(500).json({
       error: "Failed to generate Service Desk report",
@@ -1387,7 +1387,7 @@ router.get("/service-desk-report", async (req: Request, res: Response) => {
 });
 
 // Generate detailed agents report
-router.get("/agents-detailed-report", async (req: Request, res: Response) => {
+router.get("/agents-detailed-report", async (req: any, res: any) => {
   try {
     const format = (req.query.format as string) || "json";
     const filters = {
@@ -1520,7 +1520,7 @@ router.get("/agents-detailed-report", async (req: Request, res: Response) => {
       success: true,
       report: report,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating agents detailed report:", error);
     res.status(500).json({
       error: "Failed to generate agents detailed report",
