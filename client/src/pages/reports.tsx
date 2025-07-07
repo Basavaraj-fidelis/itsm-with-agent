@@ -1339,6 +1339,120 @@ export default function Reports() {
         </TabsList>
 
         <TabsContent value="generate" className="space-y-8">
+          {/* Service Desk Analytics Section */}
+          <Card className="shadow-lg border-0 mb-6">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-t-lg">
+              <CardTitle className="text-xl font-semibold text-gray-800 flex items-center">
+                <Activity className="h-6 w-6 mr-2 text-green-600" />
+                Service Desk Analytics
+              </CardTitle>
+              <p className="text-sm text-gray-600">Download comprehensive Service Desk performance reports and analytics</p>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                <div>
+                  <label className="text-sm font-semibold mb-3 block text-gray-700">Report Type</label>
+                  <Select value={selectedReportType} onValueChange={setSelectedReportType}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ticket-analytics">
+                        <div className="flex items-center space-x-2">
+                          <FileText className="h-4 w-4" />
+                          <div>
+                            <div className="font-medium">Ticket Analytics</div>
+                            <div className="text-xs text-gray-500">Comprehensive ticket performance analysis</div>
+                          </div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="sla-performance">
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle className="h-4 w-4" />
+                          <div>
+                            <div className="font-medium">SLA Performance</div>
+                            <div className="text-xs text-gray-500">Service level agreement compliance</div>
+                          </div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="agent-productivity">
+                        <div className="flex items-center space-x-2">
+                          <TrendingUp className="h-4 w-4" />
+                          <div>
+                            <div className="font-medium">Agent Productivity</div>
+                            <div className="text-xs text-gray-500">Support team performance metrics</div>
+                          </div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="customer-satisfaction">
+                        <div className="flex items-center space-x-2">
+                          <Badge className="h-4 w-4" />
+                          <div>
+                            <div className="font-medium">Customer Satisfaction</div>
+                            <div className="text-xs text-gray-500">User feedback and satisfaction scores</div>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold mb-3 block text-gray-700">Time Period</label>
+                  <Select value={selectedTimeRange} onValueChange={setSelectedTimeRange}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timeRanges.map((range) => (
+                        <SelectItem key={range.value} value={range.value}>
+                          {range.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold mb-3 block text-gray-700">Export Format</label>
+                  <Select value={selectedFormat} onValueChange={setSelectedFormat}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formats.map((format) => (
+                        <SelectItem key={format.value} value={format.value}>
+                          {format.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex flex-col justify-end">
+                  <Button 
+                    onClick={downloadServiceDeskReport}
+                    disabled={isGenerating}
+                    className="h-11 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                    size="lg"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Downloading...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4 mr-2" />
+                        Download Analytics
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="shadow-lg border-0">
             <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg">
               <CardTitle className="text-xl font-semibold text-gray-800">Generate Advanced Report</CardTitle>
@@ -1431,11 +1545,11 @@ export default function Reports() {
                     onClick={downloadServiceDeskReport}
                     disabled={isGenerating}
                     variant="outline"
-                    className="h-11"
+                    className="h-11 bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
                     size="lg"
                   >
                     <Download className="h-4 w-4 mr-2" />
-                    Download Report
+                    Service Desk Analytics
                   </Button>
                 </div>
               </div>
