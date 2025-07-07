@@ -849,4 +849,121 @@ router.delete("/report/:id", async (req, res) => {
   }
 });
 
+// Export PDF report
+router.post("/export-pdf", async (req, res) => {
+  try {
+    const reportData = req.body;
+    
+    // Simple HTML to PDF conversion (you could use a library like puppeteer for better formatting)
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Service Desk Analytics Report</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .section { margin-bottom: 30px; }
+        .metrics { display: flex; justify-content: space-around; margin: 20px 0; }
+        .metric { text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>${reportData.title}</h1>
+        <p>Generated: ${reportData.generatedDate}</p>
+        <p>Date Range: ${reportData.dateRange}</p>
+      </div>
+
+      <div class="section">
+        <h2>Executive Summary</h2>
+        <div class="summary-grid">
+          <div><strong>Total Tickets:</strong> ${reportData.summary.totalTickets}</div>
+          <div><strong>Avg Resolution Time:</strong> ${reportData.summary.avgResolutionTime}</div>
+          <div><strong>Customer Satisfaction:</strong> ${reportData.summary.customerSatisfaction}%</div>
+          <div><strong>SLA Compliance:</strong> ${reportData.summary.slaCompliance}%</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Agent Performance</h2>
+        <table>
+          <tr>
+            <th>Agent</th>
+            <th>Tickets Resolved</th>
+            <th>Avg Resolution Time</th>
+            <th>Satisfaction</th>
+            <th>Status</th>
+          </tr>
+          ${reportData.agentPerformance.map(agent => `
+            <tr>
+              <td>${agent.name}</td>
+              <td>${agent.ticketsResolved}</td>
+              <td>${agent.avgResolutionTime}</td>
+              <td>${agent.satisfaction}%</td>
+              <td>${agent.status}</td>
+            </tr>
+          `).join('')}
+        </table>
+      </div>
+
+      <div class="section">
+        <h2>SLA Metrics</h2>
+        <table>
+          <tr>
+            <th>Category</th>
+            <th>Target</th>
+            <th>Actual</th>
+            <th>Compliance</th>
+          </tr>
+          ${reportData.slaMetrics.map(sla => `
+            <tr>
+              <td>${sla.category}</td>
+              <td>${sla.target}</td>
+              <td>${sla.actual}</td>
+              <td>${sla.compliance}%</td>
+            </tr>
+          `).join('')}
+        </table>
+      </div>
+
+      <div class="section">
+        <h2>Ticket Trends</h2>
+        <table>
+          <tr>
+            <th>Date</th>
+            <th>Created</th>
+            <th>Resolved</th>
+            <th>Pending</th>
+          </tr>
+          ${reportData.tickets.map(ticket => `
+            <tr>
+              <td>${ticket.date}</td>
+              <td>${ticket.created}</td>
+              <td>${ticket.resolved}</td>
+              <td>${ticket.pending}</td>
+            </tr>
+          `).join('')}
+        </table>
+      </div>
+    </body>
+    </html>
+    `;
+
+    // For a simple implementation, return HTML that can be printed to PDF
+    // In a production environment, you'd use a library like puppeteer
+    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Content-Disposition', 'attachment; filename=report.html');
+    res.send(htmlContent);
+
+  } catch (error) {
+    console.error("Error generating PDF report:", error);
+    res.status(500).json({ message: "Failed to generate PDF report" });
+  }
+});
+
 export default router;

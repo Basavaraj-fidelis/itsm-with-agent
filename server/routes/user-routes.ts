@@ -622,7 +622,7 @@ router.post("/:id/lock", async (req, res) => {
     console.log(`Attempting to lock user ${userId} with reason: ${reason}`);
 
     // First check if user exists
-    const userCheck = await db.query(`SELECT id, email, username, is_locked FROM users WHERE id = $1`, [userId]);
+    const userCheck = await pool.query(`SELECT id, email, username, is_locked FROM users WHERE id = $1`, [userId]);
 
     if (userCheck.rows.length === 0) {
       console.log(`User ${userId} not found`);
@@ -651,7 +651,7 @@ router.post("/:id/lock", async (req, res) => {
 
     // Log the action in audit trail
     try {
-      await db.query(`
+      await pool.query(`
         INSERT INTO audit_logs (user_id, action, table_name, record_id, new_values, ip_address)
         VALUES ($1, $2, $3, $4, $5, $6)
       `, [
@@ -695,7 +695,7 @@ router.post("/:id/unlock", async (req, res) => {
     console.log(`Attempting to unlock user ${userId}`);
 
     // First check if user exists
-    const userCheck = await db.query(`SELECT id, email, username, is_locked FROM users WHERE id = $1`, [userId]);
+    const userCheck = await pool.query(`SELECT id, email, username, is_locked FROM users WHERE id = $1`, [userId]);
 
     if (userCheck.rows.length === 0) {
       console.log(`User ${userId} not found`);
@@ -724,7 +724,7 @@ router.post("/:id/unlock", async (req, res) => {
 
     // Log the action in audit trail
     try {
-      await db.query(`
+      await pool.query(`
         INSERT INTO audit_logs (user_id, action, table_name, record_id, new_values, ip_address)
         VALUES ($1, $2, $3, $4, $5, $6)
       `, [
