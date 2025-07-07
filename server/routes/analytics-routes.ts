@@ -1234,10 +1234,11 @@ router.get(
   },
 );
 
-// Generate comprehensive Service Desk report
+// Generate Service Desk comprehensive report
 router.get("/service-desk-report", async (req: Request, res: Response) => {
   try {
-    const format = (req.query.format as string) || "xlsx";
+    const format = (req.query.format as string) || "json";
+    const timeRange = (req.query.timeRange as string) || "30d";
     const filters = {
       type: req.query.type as string,
       status: req.query.status as string,
@@ -1247,52 +1248,129 @@ router.get("/service-desk-report", async (req: Request, res: Response) => {
       exclude_closed: req.query.exclude_closed === "true",
     };
 
-    console.log(`Generating Service Desk report in ${format.toUpperCase()} format with filters:`, filters);
+    console.log(`Generating Service Desk report in ${format} format with filters:`, filters);
 
-    // Get ticket analytics data
-    const ticketAnalytics =
-      await analyticsService.generateTicketAnalyticsReport();
+    // Get tickets data
+    const ticketsQuery = db
+      .select()
+      .from(tickets)
+      .orderBy(desc(tickets.created_at))
+      .limit(1000);
 
-    // Get current tickets with filters applied
-    const { ticketStorage } = await import("../services/ticket-storage");
-    const ticketsResult = await ticketStorage.getTickets(1, 10000, filters);
+    let ticketsData = await ticketsQuery;
 
-    // Generate comprehensive report
+    // Apply filters
+    if (filters.type && filters.type !== "all") {
+      ticketsData = ticketsData.filter((ticket) => ticket.type === filters.type);
+    }
+    if (filters.status && filters.status !== "all") {
+      ticketsData = ticketsData.filter(
+        (ticket) => ticket.status === filters.status,
+      );
+    }
+    if (filters.priority && filters.priority !== "all") {
+      ticketsData = ticketsData.filter(
+        (ticket) => ticket.priority === filters.priority,
+      );
+    }
+    if (filters.search && filters.search.trim()) {
+      const searchTerm = filters.search.toLowerCase();
+      ticketsData = ticketsData.filter(
+        (ticket) =>
+          ticket.title.toLowerCase().includes(searchTerm) ||
+          ticket.description.toLowerCase().includes(searchTerm) ||
+          ticket.ticket_number.toLowerCase().includes(searchTerm),
+      );
+    }
+
+    // Generate analytics
+    const analyticsService = new AnalyticsService();
+    const analytics = await analyticsService.generateTicketAnalyticsReport(
+      timeRange,
+    );
+
     const report = {
-      title: "Service Desk Comprehensive Report",
       generated_at: new Date().toISOString(),
-      filters_applied: filters,
+      time_range: timeRange,
+      filters: filters,
       summary: {
-        total_tickets: ticketsResult.total,
-        filtered_tickets: ticketsResult.data.length,
-        analytics: ticketAnalytics,
+        total_tickets: ticketsData.length,
+        analytics: analytics,
       },
-      tickets: ticketsResult.data,
-      performance_metrics: {
-        avg_resolution_time: ticketAnalytics.summary.avg_resolution_time,
-        sla_compliance: ticketAnalytics.sla_performance.sla_compliance_rate,
-        ticket_distribution: ticketAnalytics.ticket_distribution,
-      },
+      tickets: ticketsData,
+      filtered_tickets: ticketsData.length,
     };
 
-    if (format === "xlsx" || format === "excel") {
+    if (format === "csv") {
+      console.log("Exporting Service Desk report as CSV...");
+      const csvData = await analyticsService.exportReport(
+        report,
+        "csv",
+        "service-desk-tickets",
+      );
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="service-desk-tickets.csv"',
+      );
+      return res.send(csvData);
+    } else if (format === "xlsx" || format === "excel") {
       console.log("Exporting Service Desk report as Excel...");
-      const excelData = await analyticsService.exportReport(report, 'xlsx', 'service-desk-tickets');
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename="service-desk-full-report.xlsx"');
-      return res.send(excelData);
+      try {
+        const excelData = await analyticsService.exportReport(
+          report,
+          "xlsx",
+          "service-desk-tickets",
+        );
+
+        if (!excelData || (Buffer.isBuffer(excelData) && excelData.length === 0)) {
+          throw new Error("Empty Excel file generated");
+        }
+
+        res.setHeader(
+          "Content-Type",
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        );
+        res.setHeader(
+          "Content-Disposition",
+          'attachment; filename="service-desk-full-report.xlsx"',
+        );
+        return res.send(excelData);
+      } catch (excelError) {
+        console.error("Excel generation failed:", excelError);
+        // Fallback to CSV
+        const csvData = await analyticsService.exportReport(
+          report,
+          "csv",
+          "service-desk-tickets",
+        );
+        res.setHeader("Content-Type", "text/csv");
+        res.setHeader(
+          "Content-Disposition",
+          'attachment; filename="service-desk-full-report-fallback.csv"',
+        );
+        return res.send(csvData);
+      }
     } else if (format === "pdf") {
       console.log("Exporting Service Desk report as PDF...");
-      const pdfData = await analyticsService.exportReport(report, 'pdf', 'service-desk-tickets');
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'attachment; filename="service-desk-full-report.pdf"');
+      const pdfData = await analyticsService.exportReport(
+        report,
+        "pdf",
+        "service-desk-tickets",
+      );
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="service-desk-full-report.pdf"',
+      );
       return res.send(pdfData);
-    } else if (format === "csv") {
-      console.log("Exporting Service Desk report as CSV...");
-      const csvData = await analyticsService.exportReport(report, 'csv', 'service-desk-tickets');
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename="service-desk-full-report.csv"');
-      return res.send(csvData);
+    } else if (format === "json" && req.query.download === "true") {
+      res.setHeader("Content-Type", "application/json");
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="service-desk-report.json"',
+      );
+      return res.json(report);
     }
 
     res.json({

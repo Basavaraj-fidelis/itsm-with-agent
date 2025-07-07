@@ -58,17 +58,14 @@ export default function Agents() {
       if (statusFilter && statusFilter !== "all") params.append("status", statusFilter);
       if (typeFilter && typeFilter !== "all") params.append("type", typeFilter);
       if (searchTerm && searchTerm.trim()) params.append("search", searchTerm.trim());
+      params.append("format", "csv");
 
-      const response = await fetch(`/api/analytics/agents-csv?${params}`, {
+      const response = await fetch(`/api/analytics/agents-detailed-report?${params}`, {
         method: "GET",
-        headers: {
-          "Content-Type": "text/csv",
-        },
       });
 
       if (response.ok) {
-        const csvData = await response.text();
-        const blob = new Blob([csvData], { type: "text/csv" });
+        const blob = await response.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -78,10 +75,13 @@ export default function Agents() {
         
         console.log("CSV export completed successfully");
       } else {
+        const errorText = await response.text();
+        console.error("CSV export failed:", errorText);
         throw new Error("Failed to export CSV");
       }
     } catch (error) {
       console.error("Error exporting CSV:", error);
+      alert("Failed to export CSV. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -99,13 +99,15 @@ export default function Agents() {
 
       const response = await fetch(`/api/analytics/agents-detailed-report?${params}`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
       });
 
       if (response.ok) {
         const blob = await response.blob();
+        
+        if (blob.size === 0) {
+          throw new Error("Empty file received from server");
+        }
+        
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -115,10 +117,13 @@ export default function Agents() {
         
         console.log("Detailed report download completed successfully");
       } else {
+        const errorText = await response.text();
+        console.error("XLSX export failed:", errorText);
         throw new Error("Failed to generate detailed report");
       }
     } catch (error) {
       console.error("Error downloading detailed report:", error);
+      alert("Failed to download XLSX report. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -155,7 +160,7 @@ export default function Agents() {
               className="flex items-center gap-2"
             >
               <Download className="w-4 h-4" />
-              {loading ? "Exporting..." : "Export CSV"}
+              {loading ? "Exporting..." : "Download CSV"}
             </Button>
 
             <Button 
@@ -166,7 +171,7 @@ export default function Agents() {
               className="flex items-center gap-2"
             >
               <FileText className="w-4 h-4" />
-              {loading ? "Generating..." : "Download XLSX Report"}
+              {loading ? "Generating..." : "Download XLSX"}
             </Button>
 
             <Button 

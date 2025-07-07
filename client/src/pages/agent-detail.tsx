@@ -1,4 +1,3 @@
-
 import { Link, useParams } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,7 +54,7 @@ import { formatDistanceToNow } from "date-fns";
 
 export default function AgentDetail() {
   const { id } = useParams();
-  
+
   // ALL HOOKS MUST BE CALLED AT THE TOP LEVEL - NO EXCEPTIONS
   const { data: agent, isLoading, error, refetch } = useAgent(id || "");
   const processedData = useProcessedAgentData(agent);
@@ -65,6 +64,7 @@ export default function AgentDetail() {
   const [showConnectionInfo, setShowConnectionInfo] = useState(false);
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
   const [showVNCModal, setShowVNCModal] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // Auto-refresh effect - must be called at top level
   useEffect(() => {
@@ -360,6 +360,78 @@ export default function AgentDetail() {
     }
   };
 
+  const handleExportData = async () => {
+    if (!agent) return;
+
+    try {
+      setLoading(true);
+
+      // Prepare agent data for export
+      const params = new URLSearchParams();
+      params.append("format", "xlsx");
+      params.append("search", agent.hostname);
+
+      const response = await fetch(`/api/analytics/agents-detailed-report?${params}`, {
+        method: "GET",
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+
+        if (blob.size === 0) {
+          throw new Error("Empty file received from server");
+        }
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `agent-${agent.hostname}-${new Date().toISOString().split('T')[0]}.xlsx`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        toast({
+          title: "Success",
+          description: "Agent data exported as Excel file successfully",
+        });
+      } else {
+        // Fallback to PDF export
+        const pdfParams = new URLSearchParams();
+        pdfParams.append("format", "pdf");
+        pdfParams.append("search", agent.hostname);
+
+        const pdfResponse = await fetch(`/api/analytics/agents-detailed-report?${pdfParams}`, {
+          method: "GET",
+        });
+
+        if (pdfResponse.ok) {
+          const pdfBlob = await pdfResponse.blob();
+          const url = URL.createObjectURL(pdfBlob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `agent-${agent.hostname}-${new Date().toISOString().split('T')[0]}.pdf`;
+          a.click();
+          URL.revokeObjectURL(url);
+
+          toast({
+            title: "Success",
+            description: "Agent data exported as PDF successfully",
+          });
+        } else {
+          throw new Error("Failed to export in both XLSX and PDF formats");
+        }
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to export agent data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AgentErrorBoundary
       fallbackTitle="Agent Detail Error"
@@ -466,23 +538,7 @@ export default function AgentDetail() {
               variant="outline"
               size="sm"
               className="flex items-center space-x-2"
-              onClick={() => {
-                const data = {
-                  agent: agent,
-                  exportedAt: new Date().toISOString(),
-                };
-                const blob = new Blob([JSON.stringify(data, null, 2)], {
-                  type: "application/json",
-                });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `agent-${agent.hostname}-${new Date().toISOString().split("T")[0]}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-              }}
+              onClick={handleExportData}
             >
               <Download className="w-4 h-4" />
               <span>Export Data</span>
