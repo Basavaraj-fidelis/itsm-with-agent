@@ -1317,10 +1317,7 @@ export default function Tickets() {
                                   }
                                 }}
                               >
-                                {totalForType > 0
-                                  ? Math.round((count / totalForType) * 100)
-                                  : 0}
-                                %
+                                Filter
                               </Badge>
                             </div>
                           </div>
@@ -2007,11 +2004,7 @@ export default function Tickets() {
                       >
                         {status.replace("_", " ")}
                       </p>
-                      {totalForType > 0 && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {Math.round((count / totalForType) * 100)}%
-                        </p>
-                      )}
+                      
                     </div>
                   </CardContent>
                 </Card>
