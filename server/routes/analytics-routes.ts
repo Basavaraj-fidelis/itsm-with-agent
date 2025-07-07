@@ -1054,6 +1054,7 @@ router.post("/export-pdf", async (req, res) => {
   }
 });
 
+```typescript
 // Performance analytics endpoints - require authentication for insights
 router.get(
   "/performance/insights/:deviceId",
@@ -1378,7 +1379,7 @@ router.get("/service-desk-report", async (req: any, res: any) => {
       success: true,
       report: report,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error generating Service Desk report:", error);
     res.status(500).json({
       error: "Failed to generate Service Desk report",
@@ -1521,7 +1522,7 @@ router.get("/agents-detailed-report", async (req: any, res: any) => {
       success: true,
       report: report,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error generating agents detailed report:", error);
     res.status(500).json({
       error: "Failed to generate agents detailed report",
