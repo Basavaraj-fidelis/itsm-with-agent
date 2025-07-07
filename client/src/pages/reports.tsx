@@ -291,14 +291,29 @@ export default function Reports() {
   // Auto-refresh real-time metrics
   useEffect(() => {
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      console.warn('Unhandled promise rejection in analytics:', event.reason);
-      event.preventDefault(); // Prevent default browser error handling
+      // Only handle analytics-related rejections
+      if (event.reason?.message?.includes('analytics') || event.reason?.message?.includes('fetch')) {
+        console.warn('Analytics error handled:', event.reason);
+        event.preventDefault();
+      }
     };
 
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
 
-    fetchRealTimeMetrics();
-    const interval = setInterval(fetchRealTimeMetrics, 60000);
+    const initializeAnalytics = async () => {
+      try {
+        await fetchRealTimeMetrics();
+      } catch (error) {
+        console.warn('Failed to initialize real-time metrics:', error);
+      }
+    };
+
+    initializeAnalytics();
+    const interval = setInterval(() => {
+      fetchRealTimeMetrics().catch(error => {
+        console.warn('Real-time metrics update failed:', error);
+      });
+    }, 60000);
 
     return () => {
       clearInterval(interval);

@@ -1024,7 +1024,8 @@ router.get("/performance/insights/:deviceId", authenticateToken, async (req, res
   }
 });
 
-router.get("/performance/predictions/:deviceId", authenticateToken, async (req, res) => {
+router```text
+.get("/performance/predictions/:deviceId", authenticateToken, async (req, res) => {
   try {
     const { deviceId } = req.params;
 
@@ -1309,6 +1310,23 @@ router.get("/test", async (req, res) => {
             }).length
           }
         };
+
+        if (format === 'csv') {
+          const csvData = await analyticsService.exportReport(report, 'csv', 'agents-detailed-report');
+          res.setHeader('Content-Type', 'text/csv');
+          res.setHeader('Content-Disposition', 'attachment; filename="managed-systems-detailed-report.csv"');
+          return res.send(csvData);
+        } else if (format === 'excel') {
+          const excelData = await analyticsService.exportReport(report, 'excel', 'agents-detailed-report');
+          res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+          res.setHeader('Content-Disposition', 'attachment; filename="managed-systems-detailed-report.xlsx"');
+          return res.send(excelData);
+        } else if (format === 'pdf') {
+          const pdfData = await analyticsService.exportReport(report, 'pdf', 'agents-detailed-report');
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', 'attachment; filename="managed-systems-detailed-report.pdf"');
+          return res.send(pdfData);
+        }
 
         res.json({
           success: true,
