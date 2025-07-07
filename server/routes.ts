@@ -348,33 +348,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerDeviceRoutes(app, authenticateToken);
   registerAgentRoutes(app, authenticateToken, requireRole);
 
-  // Register additional modular routes
-  const alertRoutes = await import("./routes/alert-routes");
-  app.use("/api/alerts", authenticateToken, alertRoutes.default);
+  // Register additional modular routes with error handling
+  try {
+    const alertRoutes = await import("./routes/alert-routes");
+    if (alertRoutes.default) {
+      app.use("/api/alerts", authenticateToken, alertRoutes.default);
+    }
+  } catch (error) {
+    console.warn("Alert routes not available:", error.message);
+  }
 
-  const notificationRoutes = await import("./routes/notification-routes");
-  app.use("/api/notifications", authenticateToken, notificationRoutes.default);
+  try {
+    const notificationRoutes = await import("./routes/notification-routes");
+    if (notificationRoutes.default) {
+      app.use("/api/notifications", authenticateToken, notificationRoutes.default);
+    }
+  } catch (error) {
+    console.warn("Notification routes not available:", error.message);
+  }
 
-  const automationRoutes = await import("./routes/automation-routes");
-  app.use("/api/automation", authenticateToken, requireRole(["admin", "manager"]), automationRoutes.default);
+  try {
+    const automationRoutes = await import("./routes/automation-routes");
+    if (automationRoutes.default) {
+      app.use("/api/automation", authenticateToken, requireRole(["admin", "manager"]), automationRoutes.default);
+    }
+  } catch (error) {
+    console.warn("Automation routes not available:", error.message);
+  }
 
-  const { adRoutes } = await import("./routes/ad-routes");
-  app.use("/api/ad", authenticateToken, requireRole(["admin"]), adRoutes);
+  try {
+    const { adRoutes } = await import("./routes/ad-routes");
+    if (adRoutes) {
+      app.use("/api/ad", authenticateToken, requireRole(["admin"]), adRoutes);
+    }
+  } catch (error) {
+    console.warn("AD routes not available:", error.message);
+  }
 
-  const agentDownloadRoutes = await import("./routes/agent-download-routes");
-  app.use("/api/download/agent", agentDownloadRoutes.default);
+  try {
+    const agentDownloadRoutes = await import("./routes/agent-download-routes");
+    if (agentDownloadRoutes.default) {
+      app.use("/api/download/agent", agentDownloadRoutes.default);
+    }
+  } catch (error) {
+    console.warn("Agent download routes not available:", error.message);
+  }
 
-  const analyticsRoutes = await import("./routes/analytics-routes");
-  app.use("/api/analytics", authenticateToken, analyticsRoutes.default);
+  try {
+    const analyticsRoutes = await import("./routes/analytics-routes");
+    if (analyticsRoutes.default) {
+      app.use("/api/analytics", authenticateToken, analyticsRoutes.default);
+    }
+  } catch (error) {
+    console.warn("Analytics routes not available:", error.message);
+  }
 
-  const userRoutes = await import("./routes/user-routes");
-  app.use("/api/users", authenticateToken, userRoutes.default);
+  try {
+    const userRoutes = await import("./routes/user-routes");
+    if (userRoutes.default) {
+      app.use("/api/users", authenticateToken, userRoutes.default);
+    }
+  } catch (error) {
+    console.warn("User routes not available:", error.message);
+  }
 
-  const knowledgeRoutes = await import("./routes/knowledge-routes");
-  app.use("/api/knowledge", authenticateToken, knowledgeRoutes.default);
+  try {
+    const knowledgeRoutes = await import("./routes/knowledge-routes");
+    if (knowledgeRoutes.default) {
+      app.use("/api/knowledge", authenticateToken, knowledgeRoutes.default);
+    }
+  } catch (error) {
+    console.warn("Knowledge routes not available:", error.message);
+  }
 
-  const slaRoutes = await import("./routes/sla-routes");
-  app.use("/api/sla", authenticateToken, slaRoutes.default);
+  try {
+    const slaRoutes = await import("./routes/sla-routes");
+    if (slaRoutes.default) {
+      app.use("/api/sla", authenticateToken, slaRoutes.default);
+    }
+  } catch (error) {
+    console.warn("SLA routes not available:", error.message);
+  }
 
   const httpServer = createServer(app);
   return httpServer;

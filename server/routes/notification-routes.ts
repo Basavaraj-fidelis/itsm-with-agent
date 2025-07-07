@@ -1,4 +1,3 @@
-
 import { Router } from "express";
 import jwt from "jsonwebtoken";
 
@@ -23,7 +22,7 @@ router.get("/", async (req, res) => {
       const { db } = await import("../db");
       const { desc } = await import("drizzle-orm");
       const { tickets } = await import("@shared/ticket-schema");
-      
+
       const ticketsList = await db
         .select()
         .from(tickets)
