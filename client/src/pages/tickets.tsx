@@ -1258,46 +1258,42 @@ export default function Tickets() {
                       "resolved",
                       "closed",
                       "on_hold",
-                    ].map((status) => {
-                      const count = data.statuses[status] || 0;
+                    ]
+                      .filter((status) => (data.statuses[status] || 0) > 0)
+                      .map((status) => {
+                        const count = data.statuses[status] || 0;
 
-                      // Show all statuses but indicate when count is 0
-                      return (
-                        <div
-                          key={status}
-                          className="flex items-center justify-between"
-                        >
-                          <div className="flex items-center space-x-2">
-                            <div
-                              className={`w-2 h-2 rounded-full ${
-                                status === "new"
-                                  ? "bg-blue-500"
-                                  : status === "assigned"
-                                    ? "bg-purple-500"
-                                    : status === "in_progress"
-                                      ? "bg-yellow-500"
-                                      : status === "pending"
-                                        ? "bg-orange-500"
-                                        : status === "on_hold"
-                                          ? "bg-indigo-500"
-                                          : status === "resolved"
-                                            ? "bg-green-500"
-                                            : "bg-gray-500"
-                              }`}
-                            />
-                            <span
-                              className={`text-sm capitalize ${count > 0 ? "text-gray-700 dark:text-gray-300" : "text-gray-400 dark:text-gray-600"}`}
-                            >
-                              {status.replace("_", " ")}
-                            </span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <span
-                              className={`text-sm font-medium ${count > 0 ? "text-gray-900 dark:text-gray-100" : "text-gray-400 dark:text-gray-600"}`}
-                            >
-                              {count}
-                            </span>
-                            {count > 0 && (
+                        return (
+                          <div
+                            key={status}
+                            className="flex items-center justify-between"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <div
+                                className={`w-2 h-2 rounded-full ${
+                                  status === "new"
+                                    ? "bg-blue-500"
+                                    : status === "assigned"
+                                      ? "bg-purple-500"
+                                      : status === "in_progress"
+                                        ? "bg-yellow-500"
+                                        : status === "pending"
+                                          ? "bg-orange-500"
+                                          : status === "on_hold"
+                                            ? "bg-indigo-500"
+                                            : status === "resolved"
+                                              ? "bg-green-500"
+                                              : "bg-gray-500"
+                                }`}
+                              />
+                              <span className="text-sm capitalize text-gray-700 dark:text-gray-300">
+                                {status.replace("_", " ")}
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {count}
+                              </span>
                               <Badge
                                 variant="outline"
                                 className={`cursor-pointer hover:bg-opacity-80 ${
@@ -1326,11 +1322,10 @@ export default function Tickets() {
                                   : 0}
                                 %
                               </Badge>
-                            )}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
 
                     {totalForType === 0 && (
                       <p className="text-sm text-gray-500 dark:text-gray-400 italic text-center py-4">
@@ -1955,71 +1950,73 @@ export default function Tickets() {
             "on_hold",
             "resolved",
             "closed",
-          ].map((status) => {
-            const count = data.statuses[status] || 0;
-            const isSelected = selectedStatus === status;
+          ]
+            .filter((status) => (data.statuses[status] || 0) > 0)
+            .map((status) => {
+              const count = data.statuses[status] || 0;
+              const isSelected = selectedStatus === status;
 
-            return (
-              <Card
-                key={status}
-                className={`hover:shadow-md transition-shadow cursor-pointer ${
-                  isSelected
-                    ? "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                    : ""
-                }`}
-                onClick={() => {
-                  setSelectedStatus(isSelected ? "all" : status);
-                }}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div
-                      className={`w-3 h-3 rounded-full ${
-                        status === "new"
-                          ? "bg-blue-500"
-                          : status === "assigned"
-                            ? "bg-purple-500"
-                            : status === "in_progress"
-                              ? "bg-yellow-500"
-                              : status === "pending"
-                                ? "bg-orange-500"
-                                : status === "on_hold"
-                                  ? "bg-indigo-500"
-                                  : status === "resolved"
-                                    ? "bg-green-500"
-                                    : "bg-gray-500"
-                      }`}
-                    />
-                    <span
-                      className={`text-2xl font-bold ${
-                        isSelected
-                          ? "text-blue-600 dark:text-blue-400"
-                          : "text-gray-900 dark:text-gray-100"
-                      }`}
-                    >
-                      {count}
-                    </span>
-                  </div>
-                  <div className="text-center">
-                    <p
-                      className={`text-sm font-medium capitalize ${
-                        isSelected
-                          ? "text-blue-700 dark:text-blue-300"
-                          : "text-gray-700 dark:text-gray-300"
-                      }`}
-                    >
-                      {status.replace("_", " ")}
-                    </p>
-                    {totalForType > 0 && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {Math.round((count / totalForType) * 100)}%
+              return (
+                <Card
+                  key={status}
+                  className={`hover:shadow-md transition-shadow cursor-pointer ${
+                    isSelected
+                      ? "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                      : ""
+                  }`}
+                  onClick={() => {
+                    setSelectedStatus(isSelected ? "all" : status);
+                  }}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div
+                        className={`w-3 h-3 rounded-full ${
+                          status === "new"
+                            ? "bg-blue-500"
+                            : status === "assigned"
+                              ? "bg-purple-500"
+                              : status === "in_progress"
+                                ? "bg-yellow-500"
+                                : status === "pending"
+                                  ? "bg-orange-500"
+                                  : status === "on_hold"
+                                    ? "bg-indigo-500"
+                                    : status === "resolved"
+                                      ? "bg-green-500"
+                                      : "bg-gray-500"
+                        }`}
+                      />
+                      <span
+                        className={`text-2xl font-bold ${
+                          isSelected
+                            ? "text-blue-600 dark:text-blue-400"
+                            : "text-gray-900 dark:text-gray-100"
+                        }`}
+                      >
+                        {count}
+                      </span>
+                    </div>
+                    <div className="text-center">
+                      <p
+                        className={`text-sm font-medium capitalize ${
+                          isSelected
+                            ? "text-blue-700 dark:text-blue-300"
+                            : "text-gray-700 dark:text-gray-300"
+                        }`}
+                      >
+                        {status.replace("_", " ")}
                       </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                      {totalForType > 0 && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {Math.round((count / totalForType) * 100)}%
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
         </div>
 
         {totalForType === 0 && (
