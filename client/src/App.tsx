@@ -252,13 +252,21 @@ export default function App() {
               </ProtectedRoute>
             </Route>
 
+             <Route path="/performance-analytics">
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <PerformanceAnalytics />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            </Route>
+
             <Route path="/portal">
               <ProtectedRoute>
                 <EndUserPortal />
               </ProtectedRoute>
             </Route>
 
-             
+
 
 
             {/* Default redirect */}

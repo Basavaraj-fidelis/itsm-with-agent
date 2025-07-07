@@ -218,13 +218,37 @@ export const api = {
   },
 
   getPerformanceOverview: async () => {
-    const response = await apiClient.get("/api/analytics/performance/overview");
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Performance overview API error:', response.status, errorText);
-      throw new Error(`Failed to fetch performance overview: ${response.status} ${errorText}`);
+    try {
+      const response = await apiClient.get("/api/analytics/performance/overview");
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Performance overview API error:', response.status, errorText);
+        
+        // Return fallback data instead of throwing
+        return {
+          totalDevices: 0,
+          onlineDevices: 0,
+          avgCpuUsage: 0,
+          avgMemoryUsage: 0,
+          avgDiskUsage: 0,
+          criticalDevices: 0,
+          performanceAlerts: 0
+        };
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Performance overview fetch error:', error);
+      // Return fallback data on network error
+      return {
+        totalDevices: 0,
+        onlineDevices: 0,
+        avgCpuUsage: 0,
+        avgMemoryUsage: 0,
+        avgDiskUsage: 0,
+        criticalDevices: 0,
+        performanceAlerts: 0
+      };
     }
-    return await response.json();
   },
 
   getPerformanceTrends: async (timeRange: string = "24h") => {

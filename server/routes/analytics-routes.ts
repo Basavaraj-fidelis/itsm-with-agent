@@ -1003,7 +1003,7 @@ router.post("/export-pdf", async (req, res) => {
   }
 });
 
-// Performance analytics endpoints - no authentication required for overview
+// Performance analytics endpoints - require authentication for insights
 router.get("/performance/insights/:deviceId", authenticateToken, async (req, res) => {
   try {
     const { deviceId } = req.params;
@@ -1042,7 +1042,7 @@ router.get("/performance/predictions/:deviceId", authenticateToken, async (req, 
   }
 });
 
-// System performance overview - remove authentication requirement
+// System performance overview - no authentication required for basic overview
 router.get("/performance/overview", async (req, res) => {
   try {
     const { storage } = await import("../storage");
@@ -1089,7 +1089,7 @@ router.get("/performance/overview", async (req, res) => {
   }
 });
 
-// Performance trends - remove authentication requirement  
+// Performance trends - no authentication required for trends
 router.get("/performance/trends", async (req, res) => {
   try {
     const { timeRange = '24h' } = req.query;
@@ -1114,6 +1114,30 @@ router.get("/performance/trends", async (req, res) => {
       message: error.message
     });
   }
+});
+
+// Health check endpoint for analytics
+router.get("/health", async (req, res) => {
+  res.json({
+    status: "ok",
+    service: "analytics",
+    timestamp: new Date().toISOString(),
+    endpoints: [
+      "/performance/overview",
+      "/performance/trends", 
+      "/performance/insights/:deviceId",
+      "/performance/predictions/:deviceId"
+    ]
+  });
+});
+
+// Test endpoint for diagnostics
+router.get("/test", async (req, res) => {
+  res.json({
+    success: true,
+    message: "Analytics routes are working",
+    timestamp: new Date().toISOString()
+  });
 });
 
 export default router;

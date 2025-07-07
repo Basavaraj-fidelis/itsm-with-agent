@@ -129,8 +129,8 @@ app.use((req, res, next) => {
     app.use("/api/users", userRoutes);
 
     // Register analytics routes
-    const analyticsRoutes = await import("./routes/analytics-routes");
-    app.use("/api/analytics", analyticsRoutes.default);
+    const { default: analyticsRoutes } = await import("./routes/analytics-routes");
+    app.use("/api/analytics", analyticsRoutes);
 
     // Register patch compliance routes
     const patchRoutes = await import("./routes/patch-routes");
