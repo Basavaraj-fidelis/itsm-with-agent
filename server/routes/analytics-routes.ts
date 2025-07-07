@@ -1247,7 +1247,7 @@ router.get("/service-desk-report", async (req: Request, res: Response) => {
       exclude_closed: req.query.exclude_closed === "true",
     };
 
-    console.log("Generating Service Desk report with filters:", filters);
+    console.log(`Generating Service Desk report in ${format.toUpperCase()} format with filters:`, filters);
 
     // Get ticket analytics data
     const ticketAnalytics =
@@ -1276,16 +1276,19 @@ router.get("/service-desk-report", async (req: Request, res: Response) => {
     };
 
     if (format === "xlsx" || format === "excel") {
-      const excelData = await analyticsService.exportReport(report, 'excel', 'service-desk-tickets');
+      console.log("Exporting Service Desk report as Excel...");
+      const excelData = await analyticsService.exportReport(report, 'xlsx', 'service-desk-tickets');
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', 'attachment; filename="service-desk-full-report.xlsx"');
       return res.send(excelData);
     } else if (format === "pdf") {
+      console.log("Exporting Service Desk report as PDF...");
       const pdfData = await analyticsService.exportReport(report, 'pdf', 'service-desk-tickets');
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', 'attachment; filename="service-desk-full-report.pdf"');
       return res.send(pdfData);
     } else if (format === "csv") {
+      console.log("Exporting Service Desk report as CSV...");
       const csvData = await analyticsService.exportReport(report, 'csv', 'service-desk-tickets');
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', 'attachment; filename="service-desk-full-report.csv"');
@@ -1392,6 +1395,7 @@ router.get("/agents-detailed-report", async (req: Request, res: Response) => {
     };
 
     if (format === "csv") {
+      console.log("Exporting agents report as CSV...");
       const csvData = await analyticsService.exportReport(
         report,
         "csv",
@@ -1403,10 +1407,11 @@ router.get("/agents-detailed-report", async (req: Request, res: Response) => {
         'attachment; filename="managed-systems-detailed-report.csv"',
       );
       return res.send(csvData);
-    } else if (format === "excel") {
+    } else if (format === "excel" || format === "xlsx") {
+      console.log("Exporting agents report as Excel...");
       const excelData = await analyticsService.exportReport(
         report,
-        "excel",
+        "xlsx",
         "agents-detailed-report",
       );
       res.setHeader(
@@ -1419,6 +1424,7 @@ router.get("/agents-detailed-report", async (req: Request, res: Response) => {
       );
       return res.send(excelData);
     } else if (format === "pdf") {
+      console.log("Exporting agents report as PDF...");
       const pdfData = await analyticsService.exportReport(
         report,
         "pdf",

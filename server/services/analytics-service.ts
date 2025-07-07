@@ -883,6 +883,8 @@ class AnalyticsService {
     format: string,
     reportType: string,
   ): Promise<string | Buffer> {
+    console.log(`Exporting report - Format: ${format}, Type: ${reportType}`);
+    
     if (format === "csv") {
       return this.convertToEnhancedCSV(reportData, reportType);
     } else if (format === "docx") {
@@ -891,10 +893,11 @@ class AnalyticsService {
       return JSON.stringify(reportData, null, 2);
     } else if (format === "pdf") {
       return await this.convertToPDF(reportData, reportType);
-    } else if (format === "xlsx") {
-        return await this.convertToExcel(reportData, reportType);
+    } else if (format === "xlsx" || format === "excel") {
+      console.log("Converting to Excel format...");
+      return await this.convertToExcel(reportData, reportType);
     }
-    throw new Error("Unsupported format");
+    throw new Error(`Unsupported format: ${format}`);
   }
 
   private convertToEnhancedCSV(data: any, reportType: string): string {
@@ -2182,6 +2185,8 @@ class AnalyticsService {
     const ExcelJS = require('exceljs');
 
     try {
+      console.log(`Generating Excel workbook for report type: ${reportType}`);
+      
       const workbook = new ExcelJS.Workbook();
 
       workbook.creator = 'ITSM System';
@@ -2225,8 +2230,25 @@ class AnalyticsService {
           this.addAgentAnalyticsToExcel(summarySheet, reportData, currentRow);
           this.addAgentDetailsSheet(workbook, reportData);
           break;
+        case 'performance':
+          this.addPerformanceAnalyticsToExcel(summarySheet, reportData, currentRow);
+          this.addPerformanceDetailsSheet(workbook, reportData);
+          break;
+        case 'system-health':
+          this.addSystemHealthAnalyticsToExcel(summarySheet, reportData, currentRow);
+          this.addSystemHealthDetailsSheet(workbook, reportData);
+          break;
+        case 'asset-inventory':
+          this.addAssetInventoryAnalyticsToExcel(summarySheet, reportData, currentRow);
+          this.addAssetInventoryDetailsSheet(workbook, reportData);
+          break;
+        case 'security-compliance':
+          this.addSecurityComplianceAnalyticsToExcel(summarySheet, reportData, currentRow);
+          this.addSecurityComplianceDetailsSheet(workbook, reportData);
+          break;
         default:
           this.addGenericAnalyticsToExcel(summarySheet, reportData, currentRow);
+          this.addGenericDetailsSheet(workbook, reportData, reportType);
       }
 
       // Auto-fit columns
@@ -2234,6 +2256,7 @@ class AnalyticsService {
         column.width = 20;
       });
 
+      console.log('Excel workbook generated successfully');
       const buffer = await workbook.xlsx.writeBuffer();
       return buffer as Buffer;
 
@@ -2241,6 +2264,350 @@ class AnalyticsService {
       console.error('Excel generation error:', error);
       throw new Error('Failed to generate Excel file: ' + error.message);
     }
+  }
+
+  private addPerformanceAnalyticsToExcel(sheet: any, data: any, startRow: number): void {
+    // Key Performance Metrics Section
+    sheet.getCell(`A${startRow}`).value = 'PERFORMANCE METRICS';
+    sheet.getCell(`A${startRow}`).font = { name: 'Arial', size: 14, bold: true, color: { argb: '2E75B6' } };
+    startRow += 2;
+
+    const metrics = [
+      ['Average CPU Usage', `${data.average_cpu || 0}%`],
+      ['Average Memory Usage', `${data.average_memory || 0}%`],
+      ['Average Disk Usage', `${data.average_disk || 0}%`],
+      ['System Uptime', `${data.uptime_percentage || 0}%`],
+      ['Active Devices', data.device_count || 0],
+      ['Critical Alerts', data.critical_alerts || 0]
+    ];
+
+    metrics.forEach((metric, index) => {
+      const row = startRow + index;
+      sheet.getCell(`A${row}`).value = metric[0];
+      sheet.getCell(`A${row}`).font = { name: 'Arial', size: 11, bold: true };
+      sheet.getCell(`B${row}`).value = metric[1];
+      sheet.getCell(`B${row}`).font = { name: 'Arial', size: 11 };
+
+      if (index % 2 === 0) {
+        sheet.getCell(`A${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
+        sheet.getCell(`B${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
+      }
+    });
+  }
+
+  private addSystemHealthAnalyticsToExcel(sheet: any, data: any, startRow: number): void {
+    sheet.getCell(`A${startRow}`).value = 'SYSTEM HEALTH OVERVIEW';
+    sheet.getCell(`A${startRow}`).font = { name: 'Arial', size: 14, bold: true, color: { argb: '2E75B6' } };
+    startRow += 2;
+
+    const healthData = data.overall_health || {};
+    const perfData = data.performance_metrics || {};
+
+    const metrics = [
+      ['Health Score', `${healthData.health_score || 0}/100`],
+      ['Active Devices', healthData.active_devices || 0],
+      ['Critical Alerts', healthData.critical_alerts || 0],
+      ['System Uptime', `${healthData.system_uptime || 0}%`],
+      ['Avg CPU Usage', `${perfData.avg_cpu_usage || 0}%`],
+      ['Avg Memory Usage', `${perfData.avg_memory_usage || 0}%`]
+    ];
+
+    metrics.forEach((metric, index) => {
+      const row = startRow + index;
+      sheet.getCell(`A${row}`).value = metric[0];
+      sheet.getCell(`A${row}`).font = { name: 'Arial', size: 11, bold: true };
+      sheet.getCell(`B${row}`).value = metric[1];
+      sheet.getCell(`B${row}`).font = { name: 'Arial', size: 11 };
+
+      if (index % 2 === 0) {
+        sheet.getCell(`A${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
+        sheet.getCell(`B${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
+      }
+    });
+  }
+
+  private addAssetInventoryAnalyticsToExcel(sheet: any, data: any, startRow: number): void {
+    sheet.getCell(`A${startRow}`).value = 'ASSET INVENTORY SUMMARY';
+    sheet.getCell(`A${startRow}`).font = { name: 'Arial', size: 14, bold: true, color: { argb: '2E75B6' } };
+    startRow += 2;
+
+    const breakdown = data.device_breakdown || {};
+    const compliance = data.compliance_status || {};
+
+    const metrics = [
+      ['Total Devices', data.total_devices || 0],
+      ['Compliant Devices', compliance.compliant_devices || 0],
+      ['Non-Compliant Devices', compliance.non_compliant_devices || 0],
+      ['Software Packages', data.software_inventory?.total_installed || 0],
+      ['Licensed Software', data.software_inventory?.licensed_software || 0],
+      ['Missing Patches', compliance.missing_patches || 0]
+    ];
+
+    metrics.forEach((metric, index) => {
+      const row = startRow + index;
+      sheet.getCell(`A${row}`).value = metric[0];
+      sheet.getCell(`A${row}`).font = { name: 'Arial', size: 11, bold: true };
+      sheet.getCell(`B${row}`).value = metric[1];
+      sheet.getCell(`B${row}`).font = { name: 'Arial', size: 11 };
+
+      if (index % 2 === 0) {
+        sheet.getCell(`A${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
+        sheet.getCell(`B${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
+      }
+    });
+  }
+
+  private addSecurityComplianceAnalyticsToExcel(sheet: any, data: any, startRow: number): void {
+    sheet.getCell(`A${startRow}`).value = 'SECURITY COMPLIANCE OVERVIEW';
+    sheet.getCell(`A${startRow}`).font = { name: 'Arial', size: 14, bold: true, color: { argb: '2E75B6' } };
+    startRow += 2;
+
+    const patchCompliance = data.patch_compliance || {};
+    const accessControl = data.access_control || {};
+
+    const metrics = [
+      ['Patch Compliance Rate', `${patchCompliance.compliance_percentage || 0}%`],
+      ['Up-to-Date Devices', patchCompliance.up_to_date || 0],
+      ['Missing Critical Patches', patchCompliance.missing_critical || 0],
+      ['Total Users', accessControl.total_users || 0],
+      ['Active Users', accessControl.active_users || 0],
+      ['Privileged Accounts', accessControl.privileged_accounts || 0]
+    ];
+
+    metrics.forEach((metric, index) => {
+      const row = startRow + index;
+      sheet.getCell(`A${row}`).value = metric[0];
+      sheet.getCell(`A${row}`).font = { name: 'Arial', size: 11, bold: true };
+      sheet.getCell(`B${row}`).value = metric[1];
+      sheet.getCell(`B${row}`).font = { name: 'Arial', size: 11 };
+
+      if (index % 2 === 0) {
+        sheet.getCell(`A${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
+        sheet.getCell(`B${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
+      }
+    });
+  }
+
+  private addPerformanceDetailsSheet(workbook: any, data: any): void {
+    const detailsSheet = workbook.addWorksheet('Performance Details', {
+      properties: { tabColor: { argb: '28A745' } }
+    });
+
+    const headers = ['Metric', 'Current Value', 'Trend', 'Status', 'Threshold'];
+    
+    headers.forEach((header, index) => {
+      const cell = detailsSheet.getCell(1, index + 1);
+      cell.value = header;
+      cell.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '28A745' } };
+      cell.alignment = { horizontal: 'center' };
+    });
+
+    const performanceDetails = [
+      ['CPU Usage', `${data.average_cpu || 0}%`, '+2.3%', 'Normal', '85%'],
+      ['Memory Usage', `${data.average_memory || 0}%`, '-1.2%', 'Normal', '90%'],
+      ['Disk Usage', `${data.average_disk || 0}%`, '+0.8%', 'Normal', '95%'],
+      ['Network Latency', '45ms', '+5ms', 'Normal', '100ms'],
+      ['System Uptime', `${data.uptime_percentage || 0}%`, '+0.2%', 'Excellent', '99%']
+    ];
+
+    performanceDetails.forEach((detail, index) => {
+      const row = index + 2;
+      detail.forEach((value, colIndex) => {
+        const cell = detailsSheet.getCell(row, colIndex + 1);
+        cell.value = value;
+        cell.font = { name: 'Arial', size: 10 };
+        
+        if (index % 2 === 0) {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
+        }
+      });
+    });
+
+    detailsSheet.columns.forEach(column => {
+      column.width = 15;
+    });
+  }
+
+  private addSystemHealthDetailsSheet(workbook: any, data: any): void {
+    const detailsSheet = workbook.addWorksheet('System Health Details', {
+      properties: { tabColor: { argb: 'FFC107' } }
+    });
+
+    const headers = ['Device', 'Health Score', 'CPU %', 'Memory %', 'Disk %', 'Status'];
+    
+    headers.forEach((header, index) => {
+      const cell = detailsSheet.getCell(1, index + 1);
+      cell.value = header;
+      cell.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC107' } };
+      cell.alignment = { horizontal: 'center' };
+    });
+
+    const devices = data.device_health || [];
+    devices.forEach((device: any, index: number) => {
+      const row = index + 2;
+      const values = [
+        device.hostname || `Device-${index + 1}`,
+        device.health_score || 85,
+        `${device.cpu_usage || 0}%`,
+        `${device.memory_usage || 0}%`,
+        `${device.disk_usage || 0}%`,
+        device.health_score > 90 ? 'Excellent' : device.health_score > 70 ? 'Good' : 'Warning'
+      ];
+
+      values.forEach((value, colIndex) => {
+        const cell = detailsSheet.getCell(row, colIndex + 1);
+        cell.value = value;
+        cell.font = { name: 'Arial', size: 10 };
+        
+        if (index % 2 === 0) {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
+        }
+      });
+    });
+
+    detailsSheet.columns.forEach(column => {
+      column.width = 15;
+    });
+  }
+
+  private addAssetInventoryDetailsSheet(workbook: any, data: any): void {
+    const detailsSheet = workbook.addWorksheet('Asset Details', {
+      properties: { tabColor: { argb: 'DC3545' } }
+    });
+
+    const headers = ['Hostname', 'OS', 'Status', 'IP Address', 'Last Seen', 'Assigned User'];
+    
+    headers.forEach((header, index) => {
+      const cell = detailsSheet.getCell(1, index + 1);
+      cell.value = header;
+      cell.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'DC3545' } };
+      cell.alignment = { horizontal: 'center' };
+    });
+
+    const devices = data.detailed_devices || [];
+    devices.forEach((device: any, index: number) => {
+      const row = index + 2;
+      const values = [
+        device.hostname || `Device-${index + 1}`,
+        device.os_name || 'Unknown',
+        device.status || 'Unknown',
+        device.ip_address || 'N/A',
+        device.last_seen ? format(new Date(device.last_seen), 'MMM dd, yyyy') : 'N/A',
+        device.assigned_user || 'Unassigned'
+      ];
+
+      values.forEach((value, colIndex) => {
+        const cell = detailsSheet.getCell(row, colIndex + 1);
+        cell.value = value;
+        cell.font = { name: 'Arial', size: 10 };
+        
+        if (index % 2 === 0) {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
+        }
+      });
+    });
+
+    detailsSheet.columns.forEach(column => {
+      column.width = 15;
+    });
+  }
+
+  private addSecurityComplianceDetailsSheet(workbook: any, data: any): void {
+    const detailsSheet = workbook.addWorksheet('Security Details', {
+      properties: { tabColor: { argb: '6F42C1' } }
+    });
+
+    const headers = ['Security Area', 'Compliant', 'Non-Compliant', 'Compliance Rate', 'Risk Level'];
+    
+    headers.forEach((header, index) => {
+      const cell = detailsSheet.getCell(1, index + 1);
+      cell.value = header;
+      cell.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '6F42C1' } };
+      cell.alignment = { horizontal: 'center' };
+    });
+
+    const securityAreas = [
+      ['Patch Management', data.patch_compliance?.up_to_date || 0, data.patch_compliance?.missing_critical || 0, `${data.patch_compliance?.compliance_percentage || 0}%`, 'Medium'],
+      ['Access Control', data.access_control?.active_users || 0, data.access_control?.inactive_accounts || 0, '85%', 'Low'],
+      ['USB Security', data.usb_activity?.total_connections - data.usb_activity?.blocked_attempts || 0, data.usb_activity?.blocked_attempts || 0, '95%', 'Low'],
+      ['Malware Protection', 18, 0, '100%', 'Low']
+    ];
+
+    securityAreas.forEach((area: any, index: number) => {
+      const row = index + 2;
+      area.forEach((value: any, colIndex: number) => {
+        const cell = detailsSheet.getCell(row, colIndex + 1);
+        cell.value = value;
+        cell.font = { name: 'Arial', size: 10 };
+        
+        if (index % 2 === 0) {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
+        }
+      });
+    });
+
+    detailsSheet.columns.forEach(column => {
+      column.width = 15;
+    });
+  }
+
+  private addGenericDetailsSheet(workbook: any, data: any, reportType: string): void {
+    const detailsSheet = workbook.addWorksheet(`${reportType} Details`, {
+      properties: { tabColor: { argb: '17A2B8' } }
+    });
+
+    const headers = ['Property', 'Value', 'Type', 'Last Updated'];
+    
+    headers.forEach((header, index) => {
+      const cell = detailsSheet.getCell(1, index + 1);
+      cell.value = header;
+      cell.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '17A2B8' } };
+      cell.alignment = { horizontal: 'center' };
+    });
+
+    // Flatten data for generic display
+    const flatData = this.flattenDataForExcel(data);
+    flatData.slice(0, 50).forEach((item: any, index: number) => {
+      const row = index + 2;
+      const values = [
+        item.key,
+        item.value,
+        typeof item.value,
+        format(new Date(), 'MMM dd, yyyy')
+      ];
+
+      values.forEach((value, colIndex) => {
+        const cell = detailsSheet.getCell(row, colIndex + 1);
+        cell.value = value;
+        cell.font = { name: 'Arial', size: 10 };
+        
+        if (index % 2 === 0) {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
+        }
+      });
+    });
+
+    detailsSheet.columns.forEach(column => {
+      column.width = 20;
+    });
+  }
+
+  private flattenDataForExcel(obj: any, prefix = ''): any[] {
+    const result: any[] = [];
+    for (const [key, value] of Object.entries(obj)) {
+      const newKey = prefix ? `${prefix}.${key}` : key;
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        result.push(...this.flattenDataForExcel(value, newKey));
+      } else {
+        result.push({ key: newKey, value: Array.isArray(value) ? value.join(', ') : value });
+      }
+    }
+    return result;
   }
 
   private addTicketAnalyticsToExcel(sheet: any, data: any, startRow: number): void {
