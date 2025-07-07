@@ -50,14 +50,78 @@ export default function Agents() {
     setTypeFilter("all");
   };
 
-  const handleDownloadAgentsCSV = () => {
-    // Placeholder for CSV download logic
-    console.log("Download CSV clicked");
+  const handleDownloadAgentsCSV = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      
+      if (statusFilter && statusFilter !== "all") params.append("status", statusFilter);
+      if (typeFilter && typeFilter !== "all") params.append("type", typeFilter);
+      if (searchTerm && searchTerm.trim()) params.append("search", searchTerm.trim());
+
+      const response = await fetch(`/api/analytics/agents-csv?${params}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "text/csv",
+        },
+      });
+
+      if (response.ok) {
+        const csvData = await response.text();
+        const blob = new Blob([csvData], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `managed-systems-${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        console.log("CSV export completed successfully");
+      } else {
+        throw new Error("Failed to export CSV");
+      }
+    } catch (error) {
+      console.error("Error exporting CSV:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDownloadDetailedReport = () => {
-      // Placeholder for Detailed Report download logic
-      console.log("Download Detailed Report clicked");
+  const handleDownloadDetailedReport = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      
+      if (statusFilter && statusFilter !== "all") params.append("status", statusFilter);
+      if (typeFilter && typeFilter !== "all") params.append("type", typeFilter);
+      if (searchTerm && searchTerm.trim()) params.append("search", searchTerm.trim());
+      params.append("format", "pdf");
+
+      const response = await fetch(`/api/analytics/agents-detailed-report?${params}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `managed-systems-detailed-report-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        console.log("Detailed report download completed successfully");
+      } else {
+        throw new Error("Failed to generate detailed report");
+      }
+    } catch (error) {
+      console.error("Error downloading detailed report:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const [loading, setLoading] = useState(false);

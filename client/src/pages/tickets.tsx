@@ -536,7 +536,7 @@ export default function Tickets() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      
+
       if (selectedType && selectedType !== "all") params.append("type", selectedType);
       if (selectedStatus && selectedStatus !== "all") params.append("status", selectedStatus);
       if (selectedPriority && selectedPriority !== "all") params.append("priority", selectedPriority);
@@ -560,7 +560,7 @@ export default function Tickets() {
         a.download = `service-desk-tickets-${new Date().toISOString().split('T')[0]}.csv`;
         a.click();
         URL.revokeObjectURL(url);
-        
+
         toast({
           title: "Success",
           description: "Tickets exported successfully",
@@ -584,7 +584,7 @@ export default function Tickets() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      
+
       if (selectedType && selectedType !== "all") params.append("type", selectedType);
       if (selectedStatus && selectedStatus !== "all") params.append("status", selectedStatus);
       if (selectedPriority && selectedPriority !== "all") params.append("priority", selectedPriority);
@@ -607,7 +607,7 @@ export default function Tickets() {
         a.download = `service-desk-full-report-${new Date().toISOString().split('T')[0]}.pdf`;
         a.click();
         URL.revokeObjectURL(url);
-        
+
         toast({
           title: "Success",
           description: "Full Service Desk report downloaded successfully",
@@ -1471,26 +1471,26 @@ export default function Tickets() {
           </Button>
 
           <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleDownloadTicketsCSV}
-            disabled={loading}
-            className="flex items-center gap-2"
-          >
-            <Download className="w-4 h-4" />
-            {loading ? "Exporting..." : "Export CSV"}
-          </Button>
+              variant="outline" 
+              size="sm"
+              onClick={handleDownloadTicketsCSV}
+              disabled={loading}
+              className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
+            >
+              <Download className="w-4 h-4" />
+              {loading ? "Exporting..." : "Export CSV"}
+            </Button>
 
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleDownloadFullReport}
-            disabled={loading}
-            className="flex items-center gap-2"
-          >
-            <FileText className="w-4 h-4" />
-            {loading ? "Generating..." : "Full Report"}
-          </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleDownloadFullReport}
+              disabled={loading}
+              className="flex items-center gap-2 bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
+            >
+              <FileText className="w-4 h-4" />
+              {loading ? "Generating..." : "Full Report"}
+            </Button>
         </div>
 
         {/* Tickets List */}
@@ -1925,6 +1925,7 @@ export default function Tickets() {
                 (Filtered by: {selectedStatus.replace("_", " ")})
               </span>
             )}
+                      )}
           </h2>
           <div className="flex items-center space-x-2">
             <span className="text-sm text-gray-500">

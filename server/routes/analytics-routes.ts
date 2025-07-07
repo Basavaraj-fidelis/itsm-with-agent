@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { analyticsService } from "../services/analytics-service";
+import { performanceService } from "../services/performance-service";
+import "../services/device-storage";
 import { reportsStorage } from "../models/reports-storage";
 import { AuthUtils } from "../utils/auth";
 import { ResponseUtils } from "../utils/response";
-import { performanceService } from "../services/performance-service";
 import { sql } from "drizzle-orm";
 import { db } from "../db";
 import { devices } from "@shared/schema";
