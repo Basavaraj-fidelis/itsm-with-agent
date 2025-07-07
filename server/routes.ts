@@ -959,7 +959,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ? `${locationData.city}, ${locationData.country}`
             : "None",
         );
-            }```javascript
+            }
 
       // Extract metrics from various possible locations - handle nested objects
       let cpu_usage = null;
