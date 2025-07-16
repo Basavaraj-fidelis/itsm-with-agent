@@ -141,8 +141,30 @@ router.post("/import-end-users", upload.single('file'), async (req, res) => {
   }
 });
 
-// Get all users with enhanced ITSM fields and AD sync status
-router.get("/", async (req, res) => {
+import { storage } from '../storage';
+import { DatabaseUtils } from '../utils/database';
+
+// Get user statistics
+router.get('/stats', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        COUNT(*) as total_users,
+        COUNT(CASE WHEN is_active = true THEN 1 END) as active_users,
+        COUNT(CASE WHEN is_locked = true THEN 1 END) as locked_users,
+		COUNT(CASE WHEN is_active = false THEN 1 END) as inactive_users
+      FROM users
+    `);
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching user stats:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Get all users with enhanced filtering
+router.get('/', async (req, res) => {
   try {
     const { search, role, department, status, page = 1, limit = 50, sync_source } = req.query;
 

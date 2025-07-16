@@ -314,10 +314,125 @@ export const api = {
   getAgents: () => apiClient.get("/api/agents"),
   getAgent: (id: string) => apiClient.get(`/api/agents/${id}`),
 
-  // Users
-  getUsers: async () => {
-    const response = await apiClient.get("/api/users");
+  // Users - Enhanced with full CRUD operations
+  getUsers: async (filters?: { role?: string; department?: string; status?: string; search?: string }) => {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value && value !== 'all') params.append(key, value);
+      });
+    }
+    const response = await apiClient.get(`/api/users?${params.toString()}`);
     return response.json();
+  },
+
+  getUserStats: async () => {
+    const response = await apiClient.get("/api/users/stats");
+    return response.json();
+  },
+
+  createUser: async (userData: any) => {
+    const response = await apiClient.post("/api/users", userData);
+    return response.json();
+  },
+
+  updateUser: async (id: string, userData: any) => {
+    const response = await apiClient.put(`/api/users/${id}`, userData);
+    return response.json();
+  },
+
+  deleteUser: async (id: string) => {
+    const response = await apiClient.delete(`/api/users/${id}`);
+    return response.json();
+  },
+
+  lockUser: async (id: string, locked: boolean) => {
+    const response = await apiClient.post(`/api/users/${id}/lock`, { locked });
+    return response.json();
+  },
+
+  resetUserPassword: async (id: string, password: string) => {
+    const response = await apiClient.post(`/api/users/${id}/reset-password`, { password });
+    return response.json();
+  },
+
+  // Enhanced Analytics
+  getSystemAnalytics: async () => {
+    const response = await apiClient.get("/api/analytics/system");
+    return response.json();
+  },
+
+  getTicketAnalytics: async (timeRange: string = "30d") => {
+    const response = await apiClient.get(`/api/analytics/tickets?timeRange=${timeRange}`);
+    return response.json();
+  },
+
+  getUserAnalytics: async (timeRange: string = "30d") => {
+    const response = await apiClient.get(`/api/analytics/users?timeRange=${timeRange}`);
+    return response.json();
+  },
+
+  // Enhanced Security
+  getSecurityAlerts: async () => {
+    const response = await apiClient.get("/api/security/alerts");
+    return response.json();
+  },
+
+  getAuditLogs: async (filters?: { user?: string; action?: string; resource?: string }) => {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value);
+      });
+    }
+    const response = await apiClient.get(`/api/audit/logs?${params.toString()}`);
+    return response.json();
+  },
+
+  // Enhanced Knowledge Base
+  getKnowledgeBaseStats: async () => {
+    const response = await apiClient.get("/api/knowledge/stats");
+    return response.json();
+  },
+
+  searchKnowledgeBase: async (query: string, filters?: { category?: string; tags?: string[] }) => {
+    const params = new URLSearchParams({ q: query });
+    if (filters?.category) params.append('category', filters.category);
+    if (filters?.tags) params.append('tags', filters.tags.join(','));
+    const response = await apiClient.get(`/api/knowledge/search?${params.toString()}`);
+    return response.json();
+  },
+
+  // Enhanced Automation
+  getAutomationWorkflows: async () => {
+    const response = await apiClient.get("/api/automation/workflows");
+    return response.json();
+  },
+
+  createAutomationWorkflow: async (workflow: any) => {
+    const response = await apiClient.post("/api/automation/workflows", workflow);
+    return response.json();
+  },
+
+  executeAutomationWorkflow: async (id: string, parameters?: any) => {
+    const response = await apiClient.post(`/api/automation/workflows/${id}/execute`, parameters);
+    return response.json();
+  },
+
+  // Enhanced Reporting
+  generateReport: async (type: string, parameters: any) => {
+    const response = await apiClient.post(`/api/reports/generate/${type}`, parameters);
+    return response.json();
+  },
+
+  getReportHistory: async () => {
+    const response = await apiClient.get("/api/reports/history");
+    return response.json();
+  },
+
+  downloadReport: async (reportId: string) => {
+    const response = await apiClient.get(`/api/reports/download/${reportId}`);
+    return response.blob();
   },
 
   // Alerts
