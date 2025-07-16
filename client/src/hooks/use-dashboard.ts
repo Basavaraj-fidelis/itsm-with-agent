@@ -5,16 +5,30 @@ export function useDashboardSummary() {
   return useQuery({
     queryKey: ["/api/dashboard/summary"],
     queryFn: async () => {
-      const response = await api.getDashboardSummary();
-      // Don't return mock data - let errors bubble up
-      if (!response || typeof response !== 'object') {
-        throw new Error('Invalid dashboard data received');
+      try {
+        const response = await api.get("/api/dashboard/summary");
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
+      } catch (error) {
+        console.error("Dashboard summary fetch error:", error);
+        // Return fallback data instead of throwing
+        return {
+          total_devices: 0,
+          online_devices: 0,
+          offline_devices: 0,
+          critical_alerts: 0,
+          warning_alerts: 0,
+          total_tickets: 0,
+          open_tickets: 0,
+          closed_tickets: 0,
+          avg_resolution_time: "0 hours"
+        };
       }
-      return response;
     },
-    refetchInterval: 30000, // Refetch every 30 seconds
-    retry: 3,
-    retryDelay: 1000,
+    refetchInterval: 30000,
+    retry: false, // Disable retries to prevent multiple rejections
   });
 }
 

@@ -86,57 +86,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { email, password, useActiveDirectory } = req.body;
-      console.log("Login attempt for:", email, "AD:", useActiveDirectory);
+      const { email, password } = req.body;
+      console.log("Login attempt for:", email);
 
       if (!email || !password) {
         return res.status(400).json({ message: "Email and password are required" });
-      }
-
-      // Active Directory Authentication
-      if (useActiveDirectory) {
-        try {
-          const { adService } = await import("./services/ad-service");
-          const username = email.includes("@") ? email.split("@")[0] : email;
-          console.log("Attempting AD authentication for:", username);
-          const adUser = await adService.authenticateUser(username, password);
-
-          if (adUser) {
-            const localUser = await adService.syncUserToDatabase(adUser);
-            const token = jwt.sign(
-              {
-                userId: localUser.id,
-                id: localUser.id,
-                email: localUser.email,
-                role: localUser.role,
-                authMethod: "ad",
-              },
-              JWT_SECRET,
-              { expiresIn: "24h" }
-            );
-
-            console.log("AD login successful for:", email);
-            res.json({
-              message: "Login successful",
-              token,
-              user: {
-                id: localUser.id,
-                email: localUser.email,
-                name: localUser.name,
-                role: localUser.role,
-                department: localUser.department,
-                authMethod: "ad",
-              },
-            });
-            return;
-          } else {
-            console.log("AD authentication failed for:", username);
-            return res.status(401).json({ message: "Invalid Active Directory credentials" });
-          }
-        } catch (adError) {
-          console.error("AD authentication error:", adError);
-          return res.status(500).json({ message: "Active Directory authentication failed" });
-        }
       }
 
       // Database authentication fallback
@@ -376,14 +330,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.warn("Automation routes not available:", error.message);
   }
 
-  try {
-    const { adRoutes } = await import("./routes/ad-routes");
-    if (adRoutes) {
-      app.use("/api/ad", authenticateToken, requireRole(["admin"]), adRoutes);
-    }
-  } catch (error) {
-    console.warn("AD routes not available:", error.message);
-  }
+  // AD integration removed - no longer needed
 
   try {
     const agentDownloadRoutes = await import("./routes/agent-download-routes");
