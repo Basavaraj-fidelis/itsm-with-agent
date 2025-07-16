@@ -126,10 +126,10 @@ class ApiClient {
 // Create and export a singleton instance
 const apiClient = new ApiClient();
 
-function getAuthHeaders() {
-  const token = localStorage.getItem('auth_token');
-  return token ? { 'Authorization': `Bearer ${token}` } : {};
-}
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 const getAuthToken = () => {
   return localStorage.getItem('auth_token');
@@ -223,7 +223,7 @@ export const api = {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Performance overview API error:', response.status, errorText);
-        
+
         // Return fallback data instead of throwing
         return {
           totalDevices: 0,
@@ -294,7 +294,14 @@ export const api = {
   },
 
   // Auth
-  login: (credentials: { email: string; password: string }) => apiClient.post("/api/auth/login", credentials),
+  login: (credentials: { email: string; password: string }) => 
+    apiRequest('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    }).catch(error => {
+      console.error('Login API error:', error);
+      throw error;
+    }),
   register: (userData: any) => apiClient.post("/api/auth/register", userData),
   logout: () => apiClient.post("/api/auth/logout", {}),
   getProfile: () => apiClient.get("/api/auth/profile"),
@@ -357,10 +364,10 @@ class ApiError extends Error {
   }
 }
 
-export async function apiRequest<T>(
+const apiRequest = async <T>(
   endpoint: string,
   options: RequestInit = {}
-): Promise<T> {
+): Promise<T> => {
   try {
     console.log('API Request:', `${API_BASE}${endpoint}`);
 
@@ -379,33 +386,26 @@ export async function apiRequest<T>(
     console.log('API Response:', response.status, response.statusText);
 
     if (!response.ok) {
-      let errorMessage = `API Error: ${response.status} ${response.statusText}`;
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorMessage;
-      } catch {
-        const errorText = await response.text();
-        errorMessage = errorText || errorMessage;
+      console.error(`API Error: ${response.status} ${response.statusText} for ${endpoint}`);
+
+      // Handle specific error cases
+      if (response.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('auth_token');
+        window.location.href = '/login';
+        throw new Error('Authentication required');
       }
-      throw new ApiError(errorMessage, response.status, response.statusText);
+
+      if (response.status === 403) {
+        throw new Error('Access denied');
+      }
+
+      throw new Error(`API Error: ${response.status} ${response.statusText}`);
     }
 
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-      return await response.json();
-    } else {
-      return await response.text() as unknown as T;
-    }
+    return response.json();
   } catch (error) {
-      console.error("API request failed:", error);
-      // Return a structured error response instead of throwing
-      if (error instanceof Error) {
-        return Promise.reject({
-          error: true,
-          message: error.message,
-          status: 'network_error'
-        });
-      }
-      throw error;
-    }
-}
+    console.error('API Request failed:', error);
+    throw error;
+  }
+};

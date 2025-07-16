@@ -25,27 +25,33 @@ const authenticateToken = async (req: any, res: any, next: any) => {
     const decoded: any = AuthUtils.verifyToken(token);
     console.log("Decoded token:", decoded);
 
-    const user = await AuthUtils.getUserById(decoded.userId || decoded.id);
-    if (user) {
-      const statusCheck = AuthUtils.validateUserStatus(user);
-      if (!statusCheck.valid) {
-        return ResponseUtils.forbidden(res, statusCheck.message);
-      }
-      req.user = user;
-      return next();
+    // Try database authentication first
+    let user = null;
+    try {
+      user = await AuthUtils.getUserById(decoded.userId || decoded.id);
+    } catch (dbError) {
+      console.log("Database user lookup failed, trying file storage");
     }
 
-    const fileUser = await storage.getUserById(decoded.userId || decoded.id);
-    if (!fileUser) {
+    if (!user) {
+      try {
+        user = await storage.getUserById(decoded.userId || decoded.id);
+      } catch (fileError) {
+        console.error("Both database and file storage failed:", fileError);
+        return ResponseUtils.forbidden(res, "User not found");
+      }
+    }
+
+    if (!user) {
       return ResponseUtils.forbidden(res, "User not found");
     }
 
-    const statusCheck = AuthUtils.validateUserStatus(fileUser);
+    const statusCheck = AuthUtils.validateUserStatus(user);
     if (!statusCheck.valid) {
       return ResponseUtils.forbidden(res, statusCheck.message);
     }
 
-    req.user = fileUser;
+    req.user = user;
     next();
   } catch (error) {
     console.error("Token verification error:", error);

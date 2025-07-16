@@ -6,9 +6,10 @@ export function useDashboardSummary() {
     queryKey: ["/api/dashboard/summary"],
     queryFn: async () => {
       try {
+        const token = localStorage.getItem("token") || localStorage.getItem("auth_token");
         const response = await fetch("/api/dashboard/summary", {
           headers: {
-            "Authorization": `Bearer ${localStorage.getItem("auth_token")}`,
+            "Authorization": `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         });

@@ -47,7 +47,9 @@ export default function Login() {
 
       if (response.ok) {
         const data = await response.json();
+        // Store token with both keys for compatibility
         localStorage.setItem("auth_token", data.token);
+        localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
 
         toast({
