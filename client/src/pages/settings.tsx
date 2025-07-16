@@ -102,11 +102,6 @@ export default function Settings() {
     agentMonitoring: true,
     agentPort: 8080,
     heartbeatInterval: 60,
-    adEnabled: false,
-    adServer: "",
-    adBaseDN: "",
-    adBindDN: "",
-    adBindPassword: "",
   });
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -779,8 +774,7 @@ export default function Settings() {
         return <SLAManagementContent />;
       case "agent":
         return renderAgentSettings();
-      case "active-directory":
-        return renderActiveDirectorySettings();
+      // Active Directory settings removed
       default:
         return renderGeneralSettings();
     }

@@ -31,7 +31,6 @@ export default function Login() {
     password: "",
     remember: false
   });
-  const [useActiveDirectory, setUseActiveDirectory] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -258,18 +257,6 @@ export default function Login() {
                     Forgot password?
                   </Link>
                 </div>
-                 <div className="flex items-center space-x-2 mb-4">
-                    <input
-                      type="checkbox"
-                      id="useActiveDirectory"
-                      checked={useActiveDirectory}
-                      onChange={(e) => setUseActiveDirectory(e.target.checked)}
-                      className="rounded border-gray-300"
-                    />
-                    <label htmlFor="useActiveDirectory" className="text-sm text-gray-600 dark:text-gray-400">
-                      Use Active Directory Authentication
-                    </label>
-                  </div>
 
                 <Button 
                   type="submit" 

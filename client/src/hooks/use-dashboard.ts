@@ -8,7 +8,7 @@ export function useDashboardSummary() {
       try {
         const response = await fetch("/api/dashboard/summary", {
           headers: {
-            "Authorization": `Bearer ${localStorage.getItem("token")}`,
+            "Authorization": `Bearer ${localStorage.getItem("auth_token")}`,
             "Content-Type": "application/json",
           },
         });
@@ -17,18 +17,17 @@ export function useDashboardSummary() {
         }
         return await response.json();
       } catch (error) {
-        console.error("Dashboard summary fetch error:", error);
-        // Return fallback data instead of throwing
+        console.error("Dashboard summary error:", error);
+        // Return default data instead of throwing to prevent promise rejection
         return {
+          total_tickets: 0,
+          open_tickets: 0,
+          resolved_tickets: 0,
           total_devices: 0,
           online_devices: 0,
           offline_devices: 0,
           critical_alerts: 0,
-          warning_alerts: 0,
-          total_tickets: 0,
-          open_tickets: 0,
-          closed_tickets: 0,
-          avg_resolution_time: "0 hours"
+          warnings: 0
         };
       }
     },
