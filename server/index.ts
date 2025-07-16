@@ -8,7 +8,7 @@ import { db, sql } from "./db";
 import { knowledgeBase } from "@shared/ticket-schema";
 import { eq, desc } from "drizzle-orm";
 import { knowledgeRoutes } from "./routes/knowledge-routes";
-import { agentADSyncRoutes } from "./routes/agent-ad-sync-routes";
+// AD sync routes removed - no longer needed
 import { initAIService } from './services/ai-service';
 import { init as initSlaEscalationService } from './services/sla-escalation-service';
 import { webSocketService } from './websocket-service';
@@ -332,8 +332,7 @@ app.use((req, res, next) => {
     // Register knowledge base routes
     app.use("/api/knowledge", knowledgeRoutes);
 
-    // Register agent sync routes
-    app.use("/api/agent-sync", agentADSyncRoutes);
+    // Agent AD sync routes removed - no longer needed
 
     // Health check
     app.get("/api/health", (req, res) => {

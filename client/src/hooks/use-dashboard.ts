@@ -6,7 +6,12 @@ export function useDashboardSummary() {
     queryKey: ["/api/dashboard/summary"],
     queryFn: async () => {
       try {
-        const response = await api.get("/api/dashboard/summary");
+        const response = await fetch("/api/dashboard/summary", {
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        });
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }

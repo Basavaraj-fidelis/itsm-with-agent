@@ -556,17 +556,7 @@ export default function UsersPage() {
             <p className="text-gray-600">Manage system users and Active Directory integration</p>
           </div>
           <div className="flex items-center space-x-2">
-            {adSyncStatus?.enabled && (
-              <Button
-                onClick={() => adSyncMutation.mutate()}
-                disabled={adSyncMutation.isPending}
-                variant="outline"
-                size="sm"
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                {adSyncMutation.isPending ? "Syncing..." : "Sync AD"}
-              </Button>
-            )}
+            {/* AD sync functionality removed */}
             <div>
               <input
                 type="file"

@@ -722,38 +722,7 @@ export default function Settings() {
     </div>
   );
 
-  const renderActiveDirectorySettings = () => (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Active Directory Integration
-          </CardTitle>
-          <CardDescription>
-            Configure Active Directory settings to sync users and groups
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="adServer">AD Server Address</Label>
-              <Input
-                id="adServer"
-                placeholder="ldap://your-ad-server.com"
-                value={settings.adServer}
-                onChange={(e) => updateSetting("adServer", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="adBaseDN">Base DN</Label>
-              <Input
-                id="adBaseDN"
-                placeholder="OU=Users,DC=your-domain,DC=com"
-                value={settings.adBaseDN}
-                onChange={(e) => updateSetting("adBaseDN", e.target.value)}
-              />
-            </div>
+  // Active Directory settings removed - no longer needed
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
