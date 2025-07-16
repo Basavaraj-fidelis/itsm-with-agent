@@ -1,3 +1,4 @@
+typescript
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -121,27 +122,27 @@ export default function UsersPage() {
   // Extract users array from response
   const users = usersResponse?.data || usersResponse || [];
 
-  // Fetch AD sync status
-  const { data: adSyncStatus } = useQuery({
-    queryKey: ["/api/ad/sync-status"],
-    queryFn: async () => {
-      try {
-        const response = await api.get("/api/ad/sync-status");
-        if (!response.ok) throw new Error("Failed to fetch AD sync status");
-        return await response.json();
-      } catch (error) {
-        return {
-          enabled: false,
-          last_sync: null,
-          sync_status: 'error',
-          total_users: 0,
-          synced_users: 0,
-          errors: []
-        };
-      }
-    },
-    refetchInterval: 30000,
-  });
+  // Fetch AD sync status - REMOVED
+  // const { data: adSyncStatus } = useQuery({
+  //   queryKey: ["/api/ad/sync-status"],
+  //   queryFn: async () => {
+  //     try {
+  //       const response = await api.get("/api/ad/sync-status");
+  //       if (!response.ok) throw new Error("Failed to fetch AD sync status");
+  //       return await response.json();
+  //     } catch (error) {
+  //       return {
+  //         enabled: false,
+  //         last_sync: null,
+  //         sync_status: 'error',
+  //         total_users: 0,
+  //         synced_users: 0,
+  //         errors: []
+  //       };
+  //     }
+  //   },
+  //   refetchInterval: 30000,
+  // });
 
   // Create user mutation
   const createUserMutation = useMutation({
@@ -298,29 +299,29 @@ export default function UsersPage() {
     }
   });
 
-  // AD Sync mutation
-  const adSyncMutation = useMutation({
-    mutationFn: async () => {
-      const response = await api.post("/api/ad/sync-users");
-      if (!response.ok) throw new Error("Failed to sync AD users");
-      return await response.json();
-    },
-    onSuccess: (data) => {
-      toast({ 
-        title: "Success", 
-        description: `AD sync completed. ${data.synced_count || 0} users synced.`
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/ad/sync-status"] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to sync AD users",
-        variant: "destructive",
-      });
-    },
-  });
+  // AD Sync mutation - REMOVED
+  // const adSyncMutation = useMutation({
+  //   mutationFn: async () => {
+  //     const response = await api.post("/api/ad/sync-users");
+  //     if (!response.ok) throw new Error("Failed to sync AD users");
+  //     return await response.json();
+  //   },
+  //   onSuccess: (data) => {
+  //     toast({ 
+  //       title: "Success", 
+  //       description: `AD sync completed. ${data.synced_count || 0} users synced.`
+  //     });
+  //     queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+  //     queryClient.invalidateQueries({ queryKey: ["/api/ad/sync-status"] });
+  //   },
+  //   onError: (error: any) => {
+  //     toast({
+  //       title: "Error",
+  //       description: error.message || "Failed to sync AD users",
+  //       variant: "destructive",
+  //     });
+  //   },
+  // });
 
   // Import end users mutation
   const importMutation = useMutation({
@@ -369,11 +370,9 @@ export default function UsersPage() {
       (statusFilter === "active" && user.is_active) ||
       (statusFilter === "inactive" && !user.is_active);
 
-    const matchesSyncSource = syncSourceFilter === "all" ||
-      (syncSourceFilter === "ad" && user.ad_synced) ||
-      (syncSourceFilter === "local" && !user.ad_synced);
+    // REMOVE ad_synced filter here
 
-    return matchesSearch && matchesRole && matchesDepartment && matchesStatus && matchesSyncSource;
+    return matchesSearch && matchesRole && matchesDepartment && matchesStatus; //&& matchesSyncSource;
   });
 
   // Get unique departments for filter
@@ -645,8 +644,8 @@ export default function UsersPage() {
           </Card>
         </div>
 
-        {/* AD Sync Status */}
-        {adSyncStatus?.enabled && (
+        {/* AD Sync Status - REMOVED */}
+        {/* {adSyncStatus?.enabled && (
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -674,7 +673,7 @@ export default function UsersPage() {
               </div>
             </CardContent>
           </Card>
-        )}
+        )} */}
       </div>
 
       {/* Filters and Search */}
@@ -705,7 +704,8 @@ export default function UsersPage() {
               </SelectContent>
             </Select>
 
-            <Select value={syncSourceFilter} onValueChange={setSyncSourceFilter}>
+            {/* REMOVED AD Sync Source Filter */}
+            {/* <Select value={syncSourceFilter} onValueChange={setSyncSourceFilter}>
               <SelectTrigger className="w-32">
                 <SelectValue placeholder="Source" />
               </SelectTrigger>
@@ -714,7 +714,7 @@ export default function UsersPage() {
                 <SelectItem value="ad">AD Synced</SelectItem>
                 <SelectItem value="local">Local Only</SelectItem>
               </SelectContent>
-            </Select>
+            </Select> */}
 
             <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
               <SelectTrigger className="w-40">

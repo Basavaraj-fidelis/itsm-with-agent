@@ -386,20 +386,18 @@ const apiRequest = async <T>(
     console.log('API Response:', response.status, response.statusText);
 
     if (!response.ok) {
-      console.error(`API Error: ${response.status} ${response.statusText} for ${endpoint}`);
-
-      // Handle specific error cases
       if (response.status === 401) {
-        localStorage.removeItem('token');
+        // Token expired or invalid - handle gracefully
         localStorage.removeItem('auth_token');
         window.location.href = '/login';
         throw new Error('Authentication required');
       }
 
       if (response.status === 403) {
-        throw new Error('Access denied');
+        throw new Error('Access forbidden');
       }
 
+      const errorText = await response.text();
       throw new Error(`API Error: ${response.status} ${response.statusText}`);
     }
 

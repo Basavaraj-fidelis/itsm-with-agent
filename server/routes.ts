@@ -336,8 +336,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.warn("Automation routes not available:", error.message);
   }
 
-  // AD integration removed - no longer needed
-
   try {
     const agentDownloadRoutes = await import("./routes/agent-download-routes");
     if (agentDownloadRoutes.default) {

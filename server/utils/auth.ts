@@ -10,9 +10,18 @@ export class AuthUtils {
    */
   static verifyToken(token: string): any {
     try {
+      if (!token) {
+        throw new Error("No token provided");
+      }
       return jwt.verify(token, JWT_SECRET);
     } catch (error) {
-      throw new Error("Invalid token");
+      if (error.name === 'TokenExpiredError') {
+        throw new Error("Token expired");
+      }
+      if (error.name === 'JsonWebTokenError') {
+        throw new Error("Invalid token format");
+      }
+      throw new Error("Token verification failed");
     }
   }
 

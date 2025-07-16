@@ -722,74 +722,114 @@ export default function Settings() {
     </div>
   );
 
-  const renderActiveDirectorySettings = () => (
+  const clearAllFilters = () => {
+    
+  }
+
+  const renderAdminSettings = () => (
     <div className="space-y-6">
+      {/* Agent Download Section */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Active Directory Integration
+            <Server className="h-5 w-5" />
+            Agent Download & Distribution
           </CardTitle>
-          <CardDescription>
-            Configure Active Directory settings to sync users and groups
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="adServer">AD Server Address</Label>
-              <Input
-                id="adServer"
-                placeholder="ldap://your-ad-server.com"
-                value={settings.adServer}
-                onChange={(e) => updateSetting("adServer", e.target.value)}
-              />
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Download ITSM agents for deployment across your organization.
+              These agents collect system information and enable remote
+              management capabilities.
+            </p>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              {agentOptions.map((agent) => (
+                <Card
+                  key={agent.platform}
+                  className="cursor-pointer hover:bg-accent transition-colors"
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                        <agent.icon className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium">{agent.name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {agent.description}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      className="w-full mt-3"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => downloadAgent(agent.platform)}
+                    >
+                      <Monitor className="w-4 h-4 mr-2" />
+                      Download
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="adBaseDN">Base DN</Label>
-              <Input
-                id="adBaseDN"
-                placeholder="OU=Users,DC=your-domain,DC=com"
-                value={settings.adBaseDN}
-                onChange={(e) => updateSetting("adBaseDN", e.target.value)}
-              />
+
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
+              <div className="flex items-start space-x-3">
+                <Info className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-yellow-900 dark:text-yellow-100">
+                    InstallationNotes
+                  </h4>
+                  <ul className="text-sm text-yellow-700 dark:text-yellow-300 mt-1 space-y-1">
+                    <li>
+                      • Configure config.ini with your server details before
+                      deployment
+                    </li>
+                    <li>• Ensure Python 3.7+ is installed on target systems</li>
+                    <li>
+                      • Administrator/root privileges required for installation
+                    </li>
+                    <li>• Check firewall settings for outbound connectivity</li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="adBindDN">Bind DN (User)</Label>
-              <Input
-                id="adBindDN"
-                placeholder="CN=Bind User,OU=Service Accounts,DC=your-domain,DC=com"
-                value={settings.adBindDN}
-                onChange={(e) => updateSetting("adBindDN", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="adBindPassword">Bind Password</Label>
-              <Input
-                id="adBindPassword"
-                type="password"
-                value={settings.adBindPassword}
-                onChange={(e) =>
-                  updateSetting("adBindPassword", e.target.value)
-                }
-              />
-            </div>
-          </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Admin Controls</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Advanced administrative functions and system controls.
+          </p>
 
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Enable Active Directory</Label>
-              <p className="text-sm text-muted-foreground">
-                Enable synchronization with Active Directory
-              </p>
-            </div>
-            <Switch
-              checked={settings.adEnabled}
-              onCheckedChange={(checked) => updateSetting("adEnabled", checked)}
-            />
+          <div className="grid gap-4 md:grid-cols-2">
+            <Button variant="outline" className="justify-start h-auto p-4">
+              <Database className="w-4 h-4 mr-2" />
+              <div className="text-left">
+                <div className="font-medium">Database Management</div>
+                <div className="text-sm text-muted-foreground">
+                  Manage database connections and migrations
+                </div>
+              </div>
+            </Button>
+
+            <Button variant="outline" className="justify-start h-auto p-4">
+              <Shield className="w-4 h-4 mr-2" />
+              <div className="text-left">
+                <div className="font-medium">Security Settings</div>
+                <div className="text-sm text-muted-foreground">
+                  Configure security policies and access controls
+                </div>
+              </div>
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -798,20 +838,20 @@ export default function Settings() {
 
   const renderContent = () => {
     switch (activeSection) {
-      case "general":
+      case 'general':
         return renderGeneralSettings();
-      case "monitoring":
+      case 'monitoring':
         return renderMonitoringSettings();
-      case "notifications":
+      case 'notifications':
         return renderNotificationSettings();
-      case "security":
+      case 'security':
         return renderSecuritySettings();
-      case "sla":
-        return <SLAManagementContent />;
-      case "agent":
+      case 'sla':
+        return renderSLAPolicies();
+      case 'agent':
         return renderAgentSettings();
-      case "active-directory":
-        return renderActiveDirectorySettings();
+      case 'admin':
+        return renderAdminSettings();
       default:
         return renderGeneralSettings();
     }
@@ -825,7 +865,7 @@ export default function Settings() {
             <Clock className="h-5 w-5" />
             Business Hours & SLA
           </CardTitle>
-          <CardDescription>
+        <CardDescription>
             Configure service level agreement policies
           </CardDescription>
         </CardHeader>
@@ -972,226 +1012,6 @@ export default function Settings() {
     },
   ];
 
-  const renderAdminSettings = () => (
-    <div className="space-y-6">
-      {/* Agent Download Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Server className="h-5 w-5" />
-            Agent Download & Distribution
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Download ITSM agents for deployment across your organization.
-              These agents collect system information and enable remote
-              management capabilities.
-            </p>
-
-            <div className="grid gap-4 md:grid-cols-3">
-              {agentOptions.map((agent) => (
-                <Card
-                  key={agent.platform}
-                  className="cursor-pointer hover:bg-accent transition-colors"
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                        <agent.icon className="w-5 h-5 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium">{agent.name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {agent.description}
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      className="w-full mt-3"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => downloadAgent(agent.platform)}
-                    >
-                      <Monitor className="w-4 h-4 mr-2" />
-                      Download
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
-              <div className="flex items-start space-x-3">
-                <Info className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
-                <div>
-                  <h4 className="font-medium text-yellow-900 dark:text-yellow-100">
-                    InstallationNotes
-                  </h4>
-                  <ul className="text-sm text-yellow-700 dark:text-yellow-300 mt-1 space-y-1">
-                    <li>
-                      • Configure config.ini with your server details before
-                      deployment
-                    </li>
-                    <li>• Ensure Python 3.7+ is installed on target systems</li>
-                    <li>
-                      • Administrator/root privileges required for installation
-                    </li>
-                    <li>• Check firewall settings for outbound connectivity</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Admin Controls</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Advanced administrative functions and system controls.
-          </p>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <Button variant="outline" className="justify-start h-auto p-4">
-              <Database className="w-4 h-4 mr-2" />
-              <div className="text-left">
-                <div className="font-medium">Database Management</div>
-                <div className="text-sm text-muted-foreground">
-                  Manage database connections and migrations
-                </div>
-              </div>
-            </Button>
-
-            <Button variant="outline" className="justify-start h-auto p-4">
-              <Shield className="w-4 h-4 mr-2" />
-              <div className="text-left">
-                <div className="font-medium">Security Settings</div>
-                <div className="text-sm text-muted-foreground">
-                  Configure security policies and access controls
-                </div>
-              </div>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  // const renderContent = () => {
-  //   switch (activeSection) {
-  //     case 'general':
-  //       return renderGeneralSettings();
-  //     case 'monitoring':
-  //       return renderMonitoringSettings();
-  //     case 'notifications':
-  //       return renderNotificationSettings();
-  //     case 'security':
-  //       return renderSecuritySettings();
-  //     case 'sla':
-  //       return renderSLAPolicies();
-  //     case 'agent':
-  //       return renderAgentSettings();
-  //     case 'active-directory':
-  //       return renderActiveDirectorySettings();
-  //     case 'admin':
-  //       return renderAdminSettings();
-  //     default:
-  //       return renderGeneralSettings();
-  //   }
-  // };
-
-  // const SLAManagementContent = () => (
-  //   <div className="space-y-6">
-  //     <Card>
-  //       <CardHeader>
-  //         <CardTitle className="flex items-center gap-2">
-  //           <Clock className="h-5 w-5" />
-  //           Business Hours & SLA
-  //         </CardTitle>
-  //         <CardDescription>
-  //           Configure service level agreement policies
-  //         </CardDescription>
-  //       </CardHeader>
-  //       <CardContent className="space-y-4">
-  //         <div className="grid grid-cols-2 gap-4">
-  //           <div className="space-y-2">
-  //             <Label htmlFor="business-start">Business Hours Start</Label>
-  //             <Input
-  //               id="business-start"
-  //               type="time"
-  //               value={settings.businessHoursStart}
-  //               onChange={(e) =>
-  //                 updateSetting("businessHoursStart", e.target.value)
-  //               }
-  //             />
-  //           </div>
-  //           <div className="space-y-2">
-  //             <Label htmlFor="business-end">Business Hours End</Label>
-  //             <Input
-  //               id="business-end"
-  //               type="time"
-  //               value={settings.businessHoursEnd}
-  //               onChange={(e) =>
-  //                 updateSetting("businessHoursEnd", e.target.value)
-  //               }
-  //             />
-  //           </div>
-  //         </div>
-
-  //         <div className="flex items-center justify-between">
-  //           <div className="space-y-0.5">
-  //             <Label>Auto-Escalation</Label>
-  //             <p className="text-sm text-muted-foreground">
-  //               Automatically escalate tickets approaching SLA breach
-  //             </p>
-  //           </div>
-  //           <Switch
-  //             checked={settings.autoEscalation}
-  //             onCheckedChange={(checked) =>
-  //               updateSetting("autoEscalation", checked)
-  //             }
-  //           />
-  //         </div>
-
-  //         <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/10">
-  //           <h4 className="font-medium mb-2">SLA Response Times</h4>
-  //           <div className="grid grid-cols-2 gap-4 text-sm">
-  //             <div>
-  //               <Badge variant="destructive" className="mb-1">
-  //                 Critical
-  //               </Badge>
-  //               <p>Response: 15 minutes | Resolution: 4 hours</p>
-  //             </div>
-  //             <div>
-  //               <Badge variant="secondary" className="mb-1">
-  //                 High
-  //               </Badge>
-  //               <p>Response: 2 hours | Resolution: 24 hours</p>
-  //             </div>
-  //             <div>
-  //               <Badge variant="outline" className="mb-1">
-  //                 Medium
-  //               </Badge>
-  //               <p>Response: 8 hours | Resolution: 72 hours</p>
-  //             </div>
-  //             <div>
-  //               <Badge variant="outline" className="mb-1">
-  //                 Low
-  //               </Badge>
-  //               <p>Response: 24 hours | Resolution: 7 days</p>
-  //             </div>
-  //           </div>
-  //         </div>
-  //       </CardContent>
-  //     </Card>
-  //   </div>
-  // );
-
   return (
     <div className="flex h-screen bg-neutral-50 dark:bg-neutral-900">
       <SettingsSidebar activeTab={activeSection} onTabChange={() => {}} />
@@ -1210,7 +1030,7 @@ export default function Settings() {
           {/* Save Button */}
           <div className="flex justify-end pt-4 border-t border-neutral-200 dark:border-neutral-700">
             <Button
-              onClick={saveSettings}
+              onClickRemoving Active Directory references from the settings page and navigation.{(saveSettings}
               className="flex items-center space-x-2"
               variant={hasChanges ? "default" : "outline"}
             >
