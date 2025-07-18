@@ -1,0 +1,6 @@
+email,first_name,last_name,department,role,phone,job_title,location,password
+john.doe@company.com,John,Doe,IT Support,technician,9874563210,Senior Technician,New York,TempPass123!
+jane.smith@company.com,Jane,Smith,Engineering,end_user,9874563211,Software Developer,Boston,TempPass456!
+mike.johnson@company.com,Mike,Johnson,HR,manager,9874563212,HR Manager,Chicago,TempPass789!
+sarah.wilson@company.com,Sarah,Wilson,Finance,end_user,9874563213,Financial Analyst,Miami,TempPass101!
+admin.user@company.com,Admin,User,IT Management,admin,9874563214,System Administrator,New York,AdminPass999!
