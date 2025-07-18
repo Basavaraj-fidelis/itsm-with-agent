@@ -1,5 +1,6 @@
 
-import { pool } from '../db.ts';
+
+import { pool } from '../db';
 
 async function createAdvancedMonitoringTables() {
 
@@ -165,3 +166,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 }
 
 export { createAdvancedMonitoringTables };
+
