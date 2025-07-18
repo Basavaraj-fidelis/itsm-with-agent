@@ -833,7 +833,8 @@ router.post("/change-password", async (req, res) => {
       UPDATE users
       SET password_hash = $1, updated_at = NOW()
       WHERE id = $2
-    `, [newPasswordHash, user.rows[0].id]);
+    `, [```text
+newPasswordHash, user.rows[0].id]);
 
     res.json({ message: "Password changed successfully" });
   } catch (error: any) {

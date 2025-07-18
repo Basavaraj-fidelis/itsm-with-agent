@@ -422,17 +422,60 @@ export const api = {
   // Enhanced Reporting
   generateReport: async (type: string, parameters: any) => {
     const response = await apiClient.post(`/api/reports/generate/${type}`, parameters);
+    if (!response.ok) {
+      throw new Error(`Failed to generate report: ${response.status}`);
+    }
     return response.json();
   },
 
   getReportHistory: async () => {
     const response = await apiClient.get("/api/reports/history");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch report history: ${response.status}`);
+    }
     return response.json();
   },
 
   downloadReport: async (reportId: string) => {
     const response = await apiClient.get(`/api/reports/download/${reportId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to download report: ${response.status}`);
+    }
     return response.blob();
+  },
+
+  // Enhanced Backend Integration
+  getSystemHealth: async () => {
+    const response = await apiClient.get("/api/system/health");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch system health: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  getAIInsights: async (deviceId?: string) => {
+    const endpoint = deviceId ? `/api/ai/insights/${deviceId}` : "/api/ai/insights";
+    const response = await apiClient.get(endpoint);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch AI insights: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  getAutomationStats: async () => {
+    const response = await apiClient.get("/api/automation/stats");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch automation stats: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  getComplianceReport: async () => {
+    const response = await apiClient.get("/api/compliance/report");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch compliance report: ${response.status}`);
+    }
+    return response.json();
   },
 
   // Alerts

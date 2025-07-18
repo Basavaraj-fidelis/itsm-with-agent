@@ -102,11 +102,7 @@ export default function Settings() {
     agentMonitoring: true,
     agentPort: 8080,
     heartbeatInterval: 60,
-    adEnabled: false,
-    adServer: "",
-    adBaseDN: "",
-    adBindDN: "",
-    adBindPassword: "",
+    
   });
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -722,79 +718,7 @@ export default function Settings() {
     </div>
   );
 
-  const renderActiveDirectorySettings = () => (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Active Directory Integration
-          </CardTitle>
-          <CardDescription>
-            Configure Active Directory settings to sync users and groups
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="adServer">AD Server Address</Label>
-              <Input
-                id="adServer"
-                placeholder="ldap://your-ad-server.com"
-                value={settings.adServer}
-                onChange={(e) => updateSetting("adServer", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="adBaseDN">Base DN</Label>
-              <Input
-                id="adBaseDN"
-                placeholder="OU=Users,DC=your-domain,DC=com"
-                value={settings.adBaseDN}
-                onChange={(e) => updateSetting("adBaseDN", e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="adBindDN">Bind DN (User)</Label>
-              <Input
-                id="adBindDN"
-                placeholder="CN=Bind User,OU=Service Accounts,DC=your-domain,DC=com"
-                value={settings.adBindDN}
-                onChange={(e) => updateSetting("adBindDN", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="adBindPassword">Bind Password</Label>
-              <Input
-                id="adBindPassword"
-                type="password"
-                value={settings.adBindPassword}
-                onChange={(e) =>
-                  updateSetting("adBindPassword", e.target.value)
-                }
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Enable Active Directory</Label>
-              <p className="text-sm text-muted-foreground">
-                Enable synchronization with Active Directory
-              </p>
-            </div>
-            <Switch
-              checked={settings.adEnabled}
-              onCheckedChange={(checked) => updateSetting("adEnabled", checked)}
-            />
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  
 
   const renderContent = () => {
     switch (activeSection) {
@@ -810,8 +734,7 @@ export default function Settings() {
         return <SLAManagementContent />;
       case "agent":
         return renderAgentSettings();
-      case "active-directory":
-        return renderActiveDirectorySettings();
+      
       default:
         return renderGeneralSettings();
     }
