@@ -1,10 +1,7 @@
 
-import { Pool } from 'pg';
+import { pool } from '../db.js';
 
 async function createAdvancedMonitoringTables() {
-  const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-  });
 
   try {
     console.log('Creating advanced monitoring tables...');
@@ -150,7 +147,7 @@ async function createAdvancedMonitoringTables() {
     console.error('Error creating advanced monitoring tables:', error);
     throw error;
   } finally {
-    await pool.end();
+    // Pool is managed by the main application
   }
 }
 
