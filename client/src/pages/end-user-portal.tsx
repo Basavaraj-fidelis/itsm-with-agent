@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EnhancedErrorBoundary } from "@/components/ui/enhanced-error-boundary";
@@ -198,46 +197,38 @@ export default function EndUserPortal() {
   const [userEmail, setUserEmail] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { toast } = useToast();
+  const [error, setError] = useState("");
 
   // Simple authentication for end users
   const handleLogin = async (email: string) => {
     try {
-      setLoading(true);
+      setError('');
 
-      // For end users, we'll do a simple email-based authentication
-      const response = await fetch("/api/auth/portal-login", {
-        method: "POST",
+      const response = await fetch('/api/auth/portal-login', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data.user);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
+      }
+
+      if (data.success && data.token) {
+        // Store token
+        localStorage.setItem('auth_token', data.token);
         setIsAuthenticated(true);
-        fetchUserTickets(email);
-        toast({
-          title: "Success",
-          description: "Logged in successfully",
-        });
+        setUser(data.user);
       } else {
-        const errorData = await response.json();
-        toast({
-          title: "Error",
-          description: errorData.message || "Invalid email or user not found",
-          variant: "destructive",
-        });
+        throw new Error(data.error || 'Login failed');
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to login",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+      console.error('Login error:', error);
+      setError(error.message || 'Failed to login');
     }
   };
 
@@ -323,7 +314,7 @@ export default function EndUserPortal() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900 flex items-center justify-center p-4 relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%2323ffffff%22%20fill-opacity%3D%220.03%22%3E%3Ccircle%20cx%3D%227%22%20cy%3D%227%22%20r%3D%227%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-50"></div>
-        
+
         <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-12 items-center relative z-10">
           {/* Left Side - Branding & Features */}
           <div className="hidden lg:block text-slate-700 dark:text-white space-y-8">
@@ -364,7 +355,7 @@ export default function EndUserPortal() {
                   Quick and simple issue reporting
                 </p>
               </div>
-              
+
               <div className="bg-white/80 dark:bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-slate-200/50 dark:border-white/20 hover:shadow-lg transition-shadow">
                 <Clock className="w-8 h-8 text-green-600 dark:text-green-400 mb-3" />
                 <h3 className="font-semibold text-slate-800 dark:text-white mb-2">
@@ -374,7 +365,7 @@ export default function EndUserPortal() {
                   Monitor your requests live
                 </p>
               </div>
-              
+
               <div className="bg-white/80 dark:bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-slate-200/50 dark:border-white/20 hover:shadow-lg transition-shadow">
                 <Users className="w-8 h-8 text-purple-600 dark:text-purple-400 mb-3" />
                 <h3 className="font-semibold text-slate-800 dark:text-white mb-2">
@@ -384,7 +375,7 @@ export default function EndUserPortal() {
                   Dedicated IT professionals
                 </p>
               </div>
-              
+
               <div className="bg-white/80 dark:bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-slate-200/50 dark:border-white/20 hover:shadow-lg transition-shadow">
                 <Zap className="w-8 h-8 text-orange-600 dark:text-orange-400 mb-3" />
                 <h3 className="font-semibold text-slate-800 dark:text-white mb-2">
@@ -444,7 +435,7 @@ export default function EndUserPortal() {
                   Enter your company email to continue
                 </p>
               </CardHeader>
-              
+
               <CardContent className="space-y-6">
                 <div className="space-y-4">
                   <div className="space-y-2">
