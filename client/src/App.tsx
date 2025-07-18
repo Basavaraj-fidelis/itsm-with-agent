@@ -25,7 +25,6 @@ import RDPPage from "@/pages/rdp";
 import SSHPage from "@/pages/ssh";
 import EndUserPortal from "./pages/end-user-portal";
 import NotFound from "@/pages/not-found";
-import ActiveDirectory from "@/pages/active-directory";
 import ITSMComparison from "@/pages/itsm-comparison";
 import PatchCompliancePage from "@/pages/patch-compliance";
 import PerformanceAnalytics from "./pages/performance-analytics";

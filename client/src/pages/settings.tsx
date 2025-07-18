@@ -102,7 +102,7 @@ export default function Settings() {
     agentMonitoring: true,
     agentPort: 8080,
     heartbeatInterval: 60,
-    
+
   });
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -718,7 +718,7 @@ export default function Settings() {
     </div>
   );
 
-  
+
 
   const renderContent = () => {
     switch (activeSection) {
@@ -734,7 +734,8 @@ export default function Settings() {
         return <SLAManagementContent />;
       case "agent":
         return renderAgentSettings();
-      
+      case "admin":
+        return renderAdminSettings();
       default:
         return renderGeneralSettings();
     }
@@ -1005,116 +1006,6 @@ export default function Settings() {
     </div>
   );
 
-  // const renderContent = () => {
-  //   switch (activeSection) {
-  //     case 'general':
-  //       return renderGeneralSettings();
-  //     case 'monitoring':
-  //       return renderMonitoringSettings();
-  //     case 'notifications':
-  //       return renderNotificationSettings();
-  //     case 'security':
-  //       return renderSecuritySettings();
-  //     case 'sla':
-  //       return renderSLAPolicies();
-  //     case 'agent':
-  //       return renderAgentSettings();
-  //     case 'active-directory':
-  //       return renderActiveDirectorySettings();
-  //     case 'admin':
-  //       return renderAdminSettings();
-  //     default:
-  //       return renderGeneralSettings();
-  //   }
-  // };
-
-  // const SLAManagementContent = () => (
-  //   <div className="space-y-6">
-  //     <Card>
-  //       <CardHeader>
-  //         <CardTitle className="flex items-center gap-2">
-  //           <Clock className="h-5 w-5" />
-  //           Business Hours & SLA
-  //         </CardTitle>
-  //         <CardDescription>
-  //           Configure service level agreement policies
-  //         </CardDescription>
-  //       </CardHeader>
-  //       <CardContent className="space-y-4">
-  //         <div className="grid grid-cols-2 gap-4">
-  //           <div className="space-y-2">
-  //             <Label htmlFor="business-start">Business Hours Start</Label>
-  //             <Input
-  //               id="business-start"
-  //               type="time"
-  //               value={settings.businessHoursStart}
-  //               onChange={(e) =>
-  //                 updateSetting("businessHoursStart", e.target.value)
-  //               }
-  //             />
-  //           </div>
-  //           <div className="space-y-2">
-  //             <Label htmlFor="business-end">Business Hours End</Label>
-  //             <Input
-  //               id="business-end"
-  //               type="time"
-  //               value={settings.businessHoursEnd}
-  //               onChange={(e) =>
-  //                 updateSetting("businessHoursEnd", e.target.value)
-  //               }
-  //             />
-  //           </div>
-  //         </div>
-
-  //         <div className="flex items-center justify-between">
-  //           <div className="space-y-0.5">
-  //             <Label>Auto-Escalation</Label>
-  //             <p className="text-sm text-muted-foreground">
-  //               Automatically escalate tickets approaching SLA breach
-  //             </p>
-  //           </div>
-  //           <Switch
-  //             checked={settings.autoEscalation}
-  //             onCheckedChange={(checked) =>
-  //               updateSetting("autoEscalation", checked)
-  //             }
-  //           />
-  //         </div>
-
-  //         <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/10">
-  //           <h4 className="font-medium mb-2">SLA Response Times</h4>
-  //           <div className="grid grid-cols-2 gap-4 text-sm">
-  //             <div>
-  //               <Badge variant="destructive" className="mb-1">
-  //                 Critical
-  //               </Badge>
-  //               <p>Response: 15 minutes | Resolution: 4 hours</p>
-  //             </div>
-  //             <div>
-  //               <Badge variant="secondary" className="mb-1">
-  //                 High
-  //               </Badge>
-  //               <p>Response: 2 hours | Resolution: 24 hours</p>
-  //             </div>
-  //             <div>
-  //               <Badge variant="outline" className="mb-1">
-  //                 Medium
-  //               </Badge>
-  //               <p>Response: 8 hours | Resolution: 72 hours</p>
-  //             </div>
-  //             <div>
-  //               <Badge variant="outline" className="mb-1">
-  //                 Low
-  //               </Badge>
-  //               <p>Response: 24 hours | Resolution: 7 days</p>
-  //             </div>
-  //           </div>
-  //         </div>
-  //       </CardContent>
-  //     </Card>
-  //   </div>
-  // );
-
   return (
     <div className="flex h-screen bg-neutral-50 dark:bg-neutral-900">
       <SettingsSidebar activeTab={activeSection} onTabChange={() => {}} />
@@ -1137,8 +1028,7 @@ export default function Settings() {
               className="flex items-center space-x-2"
               variant={hasChanges ? "default" : "outline"}
             >
-              <Save className="w-4 h-4" />
-              <span>{hasChanges ? "Save Changes" : "Settings Saved"}</span>
+              <Save className="w-4 h-4" />              <span>{hasChanges ? "Save Changes" : "Settings Saved"}</span>
             </Button>
           </div>
         </div>

@@ -46,12 +46,6 @@ export default function SettingsSidebar({ activeTab, onTabChange }: SettingsSide
       icon: Server,
       description: 'Agent deployment and configuration'
     },
-    {
-      id: 'active-directory',
-      name: 'Active Directory',
-      icon: Shield,
-      description: 'Manage Active Directory integration'
-    }
   ];
 
   const [, setLocation] = useLocation();
@@ -73,11 +67,7 @@ export default function SettingsSidebar({ activeTab, onTabChange }: SettingsSide
             <li key={item.id}>
               <button
                 onClick={() => {
-                  if (item.id === 'active-directory') {
-                    setLocation('/settings/active-directory');
-                  } else {
-                    setLocation(`/settings/${item.id}`);
-                  }
+                  setLocation(`/settings/${item.id}`);
                 }}
                 className={cn(
                   "w-full flex items-start space-x-3 p-3 rounded-lg text-left transition-colors",
