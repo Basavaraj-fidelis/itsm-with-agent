@@ -330,81 +330,99 @@ export function registerAuthRoutes(app: Express) {
   });
 }
 
-// End user portal login
-// Assuming 'db' is your database connection pool
-// You'll need to import your database connection
+// Portal login route for end users
+  app.post("/api/auth/portal-login", async (req, res) => {
+    try {
+      const { email } = req.body;
 
-import { Router } from 'express';
-const router = Router();
-import { pool as db } from "../db";
-
-router.post("/end-user-login", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ message: "Email and password are required" });
-    }
-
-    // Find end user by email
-    const result = await db.query(`
-      SELECT id, email, username, first_name, last_name, password_hash, is_active, role
-      FROM users 
-      WHERE email = $1 AND role = 'end_user'
-    `, [email.toLowerCase()]);
-
-    if (result.rows.length === 0) {
-      return res.status(401).json({ message: "Invalid email or password" });
-    }
-
-    const user = result.rows[0];
-
-    if (!user.is_active) {
-      return res.status(401).json({ message: "Account is inactive. Please contact IT support." });
-    }
-
-    // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password_hash);
-    if (!isValidPassword) {
-      return res.status(401).json({ message: "Invalid email or password" });
-    }
-
-    // Generate JWT token
-    const token = jwt.sign(
-      { 
-        userId: user.id,
-        id: user.id,
-        email: user.email,
-        role: user.role
-      },
-      process.env.JWT_SECRET || "your-secret-key",
-      { expiresIn: "24h" }
-    );
-
-    // Update last login
-    await db.query(`
-      UPDATE users 
-      SET last_login = NOW() 
-      WHERE id = $1
-    `, [user.id]);
-
-    res.json({
-      message: "Login successful",
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        role: user.role
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
       }
-    });
 
-  } catch (error: any) {
-    console.error("End user login error:", error);
-    res.status(500).json({ message: "Login failed" });
-  }
-});
+      console.log("Portal login attempt for:", email);
 
-export { router as authRoutes };
+      try {
+        // Try database first
+        const { pool } = await import("../db");
+        
+        const result = await pool.query(`
+          SELECT id, email, role, first_name, last_name, username, name, is_active
+          FROM users 
+          WHERE email = $1
+        `, [email.toLowerCase()]);
+
+        if (result.rows.length === 0) {
+          console.log("User not found in database, trying file storage");
+          throw new Error("User not found in database");
+        }
+
+        const user = result.rows[0];
+        console.log("Found user in database:", user.email, "Role:", user.role);
+
+        if (user.is_active === false) {
+          return res.status(401).json({ message: "Account is inactive. Contact administrator." });
+        }
+
+        // Build display name
+        let displayName = "";
+        if (user.name) {
+          displayName = user.name;
+        } else if (user.first_name || user.last_name) {
+          displayName = `${user.first_name || ""} ${user.last_name || ""}`.trim();
+        } else if (user.username) {
+          displayName = user.username;
+        } else {
+          displayName = user.email.split("@")[0];
+        }
+
+        res.json({
+          message: "Portal login successful",
+          user: {
+            id: user.id,
+            email: user.email,
+            name: displayName,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            role: user.role
+          }
+        });
+
+      } catch (dbError) {
+        console.log("Database lookup failed, trying file storage:", dbError.message);
+        
+        // Fallback to file storage
+        try {
+          const demoUsers = await storage.getUsers({ search: email });
+          const user = demoUsers.find(
+            (u) => u.email.toLowerCase() === email.toLowerCase()
+          );
+
+          if (!user) {
+            return res.status(401).json({ message: "User not found" });
+          }
+
+          if (!user.is_active) {
+            return res.status(401).json({ message: "Account is inactive. Contact administrator." });
+          }
+
+          console.log("File storage portal login successful for:", email);
+          res.json({
+            message: "Portal login successful",
+            user: {
+              id: user.id,
+              email: user.email,
+              name: user.name || user.email.split("@")[0],
+              role: user.role
+            }
+          });
+        } catch (fileError) {
+          console.error("File storage also failed:", fileError);
+          return res.status(401).json({ message: "User not found" });
+        }
+      }
+
+    } catch (error) {
+      console.error("Portal login error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });

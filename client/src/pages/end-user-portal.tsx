@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EnhancedErrorBoundary } from "@/components/ui/enhanced-error-boundary";
@@ -35,6 +36,14 @@ import {
   TicketIcon,
   Eye,
   Lock,
+  Shield,
+  ArrowRight,
+  LogIn,
+  Headphones,
+  FileText,
+  Users,
+  Zap,
+  Globe,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -214,9 +223,10 @@ export default function EndUserPortal() {
           description: "Logged in successfully",
         });
       } else {
+        const errorData = await response.json();
         toast({
           title: "Error",
-          description: "Invalid email or user not found",
+          description: errorData.message || "Invalid email or user not found",
           variant: "destructive",
         });
       }
@@ -310,39 +320,214 @@ export default function EndUserPortal() {
   // Show login form if not authenticated
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center">Self Service Portal</CardTitle>
-            <p className="text-center text-gray-600 dark:text-gray-400">
-              Enter your email to access your tickets
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="email">Email Address</Label>
-              <Input
-                id="email"
-                type="email"
-                value={userEmail}
-                onChange={(e) => setUserEmail(e.target.value)}
-                placeholder="your.email@company.com"
-                onKeyPress={(e) => {
-                  if (e.key === "Enter" && userEmail.trim()) {
-                    handleLogin(userEmail.trim());
-                  }
-                }}
-              />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900 flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Background Effects */}
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%2323ffffff%22%20fill-opacity%3D%220.03%22%3E%3Ccircle%20cx%3D%227%22%20cy%3D%227%22%20r%3D%227%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-50"></div>
+        
+        <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-12 items-center relative z-10">
+          {/* Left Side - Branding & Features */}
+          <div className="hidden lg:block text-slate-700 dark:text-white space-y-8">
+            <div className="space-y-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-4 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-2xl">
+                  <Headphones className="w-12 h-12 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    IT Service Portal
+                  </h1>
+                  <p className="text-xl text-slate-600 dark:text-blue-200">
+                    Your Gateway to IT Support
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h2 className="text-3xl font-bold text-slate-800 dark:text-blue-100">
+                  Get Help. Stay Productive.
+                </h2>
+                <p className="text-lg text-slate-600 dark:text-blue-200 leading-relaxed">
+                  Submit tickets, track requests, and access IT resources all in one place. 
+                  Our support team is here to keep you running smoothly.
+                </p>
+              </div>
             </div>
-            <Button
-              onClick={() => handleLogin(userEmail.trim())}
-              disabled={loading || !userEmail.trim()}
-              className="w-full"
-            >
-              {loading ? "Accessing..." : "Access Portal"}
-            </Button>
-          </CardContent>
-        </Card>
+
+            {/* Feature Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white/80 dark:bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-slate-200/50 dark:border-white/20 hover:shadow-lg transition-shadow">
+                <TicketIcon className="w-8 h-8 text-blue-600 dark:text-blue-400 mb-3" />
+                <h3 className="font-semibold text-slate-800 dark:text-white mb-2">
+                  Easy Ticket Submission
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-blue-200">
+                  Quick and simple issue reporting
+                </p>
+              </div>
+              
+              <div className="bg-white/80 dark:bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-slate-200/50 dark:border-white/20 hover:shadow-lg transition-shadow">
+                <Clock className="w-8 h-8 text-green-600 dark:text-green-400 mb-3" />
+                <h3 className="font-semibold text-slate-800 dark:text-white mb-2">
+                  Real-time Tracking
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-blue-200">
+                  Monitor your requests live
+                </p>
+              </div>
+              
+              <div className="bg-white/80 dark:bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-slate-200/50 dark:border-white/20 hover:shadow-lg transition-shadow">
+                <Users className="w-8 h-8 text-purple-600 dark:text-purple-400 mb-3" />
+                <h3 className="font-semibold text-slate-800 dark:text-white mb-2">
+                  Expert Support
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-blue-200">
+                  Dedicated IT professionals
+                </p>
+              </div>
+              
+              <div className="bg-white/80 dark:bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-slate-200/50 dark:border-white/20 hover:shadow-lg transition-shadow">
+                <Zap className="w-8 h-8 text-orange-600 dark:text-orange-400 mb-3" />
+                <h3 className="font-semibold text-slate-800 dark:text-white mb-2">
+                  Fast Resolution
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-blue-200">
+                  Quick turnaround times
+                </p>
+              </div>
+            </div>
+
+            {/* Support Hours */}
+            <div className="bg-gradient-to-r from-blue-600/10 to-indigo-600/10 dark:from-blue-600/20 dark:to-indigo-600/20 rounded-xl p-6 border border-blue-200/50 dark:border-blue-400/30">
+              <div className="flex items-center space-x-3 mb-3">
+                <Globe className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                <h3 className="font-semibold text-slate-800 dark:text-white">
+                  Support Hours
+                </h3>
+              </div>
+              <div className="space-y-1 text-sm text-slate-600 dark:text-blue-200">
+                <p><strong>Monday - Friday:</strong> 8:00 AM - 6:00 PM</p>
+                <p><strong>Emergency Support:</strong> 24/7 Available</p>
+                <p><strong>Response Time:</strong> Within 4 hours</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Side - Login Form */}
+          <div className="w-full max-w-md mx-auto lg:mx-0">
+            {/* Mobile Header */}
+            <div className="lg:hidden text-center mb-8">
+              <div className="flex justify-center mb-4">
+                <div className="p-3 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl shadow-lg">
+                  <Headphones className="w-8 h-8 text-white" />
+                </div>
+              </div>
+              <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">
+                IT Service Portal
+              </h1>
+              <p className="text-slate-600 dark:text-slate-400">
+                Your Gateway to IT Support
+              </p>
+            </div>
+
+            {/* Login Card */}
+            <Card className="shadow-2xl border-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg">
+              <CardHeader className="space-y-2 pb-8 text-center">
+                <div className="flex justify-center mb-4">
+                  <div className="p-3 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl shadow-lg">
+                    <LogIn className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+                <CardTitle className="text-2xl font-bold text-slate-800 dark:text-white">
+                  Access Your Portal
+                </CardTitle>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Enter your company email to continue
+                </p>
+              </CardHeader>
+              
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="flex items-center space-x-2 text-slate-700 dark:text-slate-300">
+                      <Mail className="w-4 h-4" />
+                      <span>Company Email Address</span>
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={userEmail}
+                      onChange={(e) => setUserEmail(e.target.value)}
+                      placeholder="your.email@company.com"
+                      className="h-12 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400 text-base"
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter" && userEmail.trim()) {
+                          handleLogin(userEmail.trim());
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <Button
+                    onClick={() => handleLogin(userEmail.trim())}
+                    disabled={loading || !userEmail.trim()}
+                    className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium shadow-lg"
+                  >
+                    {loading ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <span>Accessing Portal...</span>
+                      </div>
+                    ) : (
+                      <>
+                        Access Portal
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                <Separator className="my-6" />
+
+                {/* Demo Notice */}
+                <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                    <div className="text-sm">
+                      <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">
+                        Demo Portal Access
+                      </p>
+                      <p className="text-blue-700 dark:text-blue-300 mb-2">
+                        Try these demo accounts:
+                      </p>
+                      <div className="space-y-1 text-xs text-blue-600 dark:text-blue-400">
+                        <p>• user@company.com</p>
+                        <p>• john.doe@company.com</p>
+                        <p>• admin@company.com</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Security Notice */}
+                <div className="text-center space-y-2">
+                  <div className="flex items-center justify-center space-x-2 text-xs text-slate-500 dark:text-slate-400">
+                    <Lock className="w-3 h-3" />
+                    <span>Secure • Encrypted • Protected</span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Your data is protected with enterprise-grade security
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Footer */}
+            <div className="mt-8 text-center text-xs text-slate-500 dark:text-slate-400">
+              <p>© 2024 IT Service Portal. Professional IT Support.</p>
+              <p className="mt-1">Need help? Contact IT Support: support@company.com</p>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
