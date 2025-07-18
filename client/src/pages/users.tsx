@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { EnhancedErrorBoundary } from '@/components/ui/enhanced-error-boundary';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { api } from '@/lib/api';
@@ -567,6 +568,7 @@ export default function UsersPage() {
   }
 
   return (
+    <EnhancedErrorBoundary>
     <div className="p-6 space-y-6">
       {/* Header with Statistics */}
       <div className="space-y-4">
@@ -1339,5 +1341,6 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </EnhancedErrorBoundary>
   );
 }

@@ -34,18 +34,26 @@ router.post("/import-end-users", upload.single('file'), async (req, res) => {
     // Parse CSV files
     else if (filename.endsWith('.csv')) {
       const csvData = fileBuffer.toString('utf-8');
-      users = await new Promise(async (resolve, reject) => {
+      users = await new Promise((resolve, reject) => {
         const results: any[] = [];
-        const { Readable } = await import('stream');
-        const readable = new Readable();
-        readable.push(csvData);
-        readable.push(null);
-
-        readable
-          .pipe(csv())
-          .on('data', (data: any) => results.push(data))
-          .on('end', () => resolve(results))
-          .on('error', reject);
+        
+        // Create readable stream synchronously
+        const lines = csvData.split('\n');
+        const headers = lines[0].split(',').map(h => h.trim());
+        
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (line) {
+            const values = line.split(',').map(v => v.trim());
+            const record: any = {};
+            headers.forEach((header, index) => {
+              record[header] = values[index] || '';
+            });
+            results.push(record);
+          }
+        }
+        
+        resolve(results);
       });
     } else {
       return res.status(400).json({ message: "Unsupported file format. Please upload CSV or Excel files." });
@@ -145,9 +153,22 @@ router.post("/import-end-users", upload.single('file'), async (req, res) => {
 
   } catch (error: any) {
     console.error("Error importing end users:", error);
+    console.error("Error stack:", error.stack);
+    
+    // Provide more specific error messages
+    let errorMessage = "Failed to import end users";
+    if (error.message?.includes('duplicate')) {
+      errorMessage = "Duplicate entries found in import file";
+    } else if (error.message?.includes('validation')) {
+      errorMessage = "Invalid data format in import file";
+    } else if (error.message?.includes('database')) {
+      errorMessage = "Database error during import";
+    }
+    
     res.status(500).json({ 
-      message: "Failed to import end users",
-      error: error.message 
+      message: errorMessage,
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
