@@ -1,5 +1,5 @@
 
-const { Pool } = require('pg');
+import { Pool } from 'pg';
 
 async function createAdvancedMonitoringTables() {
   const pool = new Pool({
@@ -154,7 +154,8 @@ async function createAdvancedMonitoringTables() {
   }
 }
 
-if (require.main === module) {
+// Check if this file is being run directly
+if (import.meta.url === `file://${process.argv[1]}`) {
   createAdvancedMonitoringTables()
     .then(() => {
       console.log('Advanced monitoring setup completed');
@@ -166,4 +167,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { createAdvancedMonitoringTables };
+export { createAdvancedMonitoringTables };
