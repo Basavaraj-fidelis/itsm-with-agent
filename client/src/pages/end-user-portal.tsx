@@ -1,7 +1,5 @@
 The code has been modified to fix end user portal routing and authentication, add portal login UI, fix portal functionality, and fix the fetchUserTickets function.
-```
 
-```replit_final_file
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
