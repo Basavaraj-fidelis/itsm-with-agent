@@ -57,12 +57,12 @@ router.post("/import-end-users", upload.single('file'), async (req, res) => {
     for (const userData of users) {
       try {
         // Normalize field names (handle different column naming conventions)
-        const email = (userData.email || userData.Email || userData.EMAIL || '').trim().toLowerCase();
-        const firstName = (userData.first_name || userData['First Name'] || userData.firstname || userData.FirstName || '').trim();
-        const lastName = (userData.last_name || userData['Last Name'] || userData.lastname || userData.LastName || '').trim();
-        const name = (userData.name || userData.Name || userData.NAME || `${firstName} ${lastName}`).trim();
-        const phone = (userData.phone || userData.Phone || userData.PHONE || '').trim();
-        const department = (userData.department || userData.Department || userData.DEPARTMENT || '').trim();
+        const email = String(userData.email || userData.Email || userData.EMAIL || '').trim().toLowerCase();
+        const firstName = String(userData.first_name || userData['First Name'] || userData.firstname || userData.FirstName || '').trim();
+        const lastName = String(userData.last_name || userData['Last Name'] || userData.lastname || userData.LastName || '').trim();
+        const name = String(userData.name || userData.Name || userData.NAME || `${firstName} ${lastName}`).trim();
+        const phone = String(userData.phone || userData.Phone || userData.PHONE || '').trim();
+        const department = String(userData.department || userData.Department || userData.DEPARTMENT || '').trim();
 
         if (!email || !name) {
           console.log(`Skipping user: missing email or name - ${JSON.stringify(userData)}`);
@@ -83,9 +83,15 @@ router.post("/import-end-users", upload.single('file'), async (req, res) => {
         // Generate username from email
         const username = email.split('@')[0];
 
-        // Generate temporary password
-        const tempPassword = `TempPass${Math.random().toString(36).slice(-6)}!`;
-        const password_hash = await bcrypt.hash(tempPassword, 10);
+        // Handle role - default to end_user for import, but allow override
+        const role = String(userData.role || userData.Role || userData.ROLE || 'end_user').toLowerCase();
+        
+        // Handle password - use provided password or generate temporary one
+        let password = userData.password || userData.Password || userData.PASSWORD;
+        if (!password) {
+          password = `TempPass${Math.random().toString(36).slice(-6)}!`;
+        }
+        const password_hash = await bcrypt.hash(String(password), 10);
 
         // Parse name into first and last name if needed
         let finalFirstName = firstName;
@@ -96,25 +102,30 @@ router.post("/import-end-users", upload.single('file'), async (req, res) => {
           finalLastName = nameParts.slice(1).join(' ') || '';
         }
 
-        // Insert new end user
+        // Handle job title and location
+        const jobTitle = String(userData.job_title || userData['Job Title'] || userData.jobTitle || userData.JobTitle || '').trim();
+        const location = String(userData.location || userData.Location || userData.LOCATION || '').trim();
+
+        // Insert new user
         await pool.query(`
           INSERT INTO users (
             email, username, first_name, last_name, role, 
-            password_hash, phone, department, location, is_active,
+            password_hash, phone, job_title, department, location, is_active,
             preferences, permissions, created_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
         `, [
           email,
           username,
           finalFirstName,
           finalLastName,
-          'end_user',
+          role,
           password_hash,
           phone || null,
+          jobTitle || null,
           department || null,
-          department || null,
+          location || department || null,
           true,
-          JSON.stringify({ temp_password: tempPassword }), // Store temp password in preferences for now
+          JSON.stringify({ temp_password: !userData.password ? password : undefined }), // Store temp password only if generated
           JSON.stringify([])
         ]);
 
