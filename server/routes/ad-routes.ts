@@ -1,3 +1,14 @@
 
-// This file has been removed as Active Directory integration is no longer needed
-// All AD-related functionality has been migrated to local authentication
+import { Router } from "express";
+
+const router = Router();
+
+// AD integration has been removed
+router.all('*', (req, res) => {
+  res.status(410).json({ 
+    message: "Active Directory integration has been removed",
+    error: "AD_INTEGRATION_DISABLED" 
+  });
+});
+
+export { router as adRoutes };
