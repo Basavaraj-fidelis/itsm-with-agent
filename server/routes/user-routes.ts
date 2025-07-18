@@ -843,7 +843,7 @@ router.post("/change-password", async (req, res) => {
 });
 
 // Add authMiddleware import
-import { authMiddleware } from '../middleware/auth';
+import { authenticateToken as authMiddleware } from '../middleware/auth-middleware';
 
 // Lock user endpoint
 router.post('/:id/lock', authMiddleware, async (req: any, res: any) => {
