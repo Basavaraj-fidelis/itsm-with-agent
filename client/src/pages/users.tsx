@@ -514,6 +514,27 @@ export default function UsersPage() {
     setBulkAction("");
   };
 
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Clear all filters function
+  const clearAllFilters = () => {
+    setFilters({
+      search: "",
+      role: "",
+      department: "",
+      status: "",
+      sync_source: ""
+    });
+  };
+
+  // Get sync status icon function
+  const getSyncStatusIcon = (syncSource: string) => {
+    if (syncSource === 'ad') {
+      return <Users className="w-4 h-4 text-blue-500" title="Active Directory" />;
+    }
+    return <User className="w-4 h-4 text-gray-500" title="Local User" />;
+  };
 
 
   if (isLoading) {

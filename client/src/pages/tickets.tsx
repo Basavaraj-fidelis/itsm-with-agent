@@ -146,6 +146,7 @@ export default function Tickets() {
   const [showEditTicketDialog, setShowEditTicketDialog] = useState(false);
   const [showAddCommentDialog, setShowAddCommentDialog] = useState(false);
   const [newCommentText, setNewCommentText] = useState("");
+  const [technicians, setTechnicians] = useState<any[]>([]);
   const [newTicketData, setNewTicketData] = useState<NewTicketFormData>({
     type: "request",
     title: "",
@@ -292,6 +293,27 @@ export default function Tickets() {
 
     loadTickets();
   }, [selectedType, selectedStatus, selectedPriority, searchTerm]);
+
+  // Fetch technicians for reassignment
+  useEffect(() => {
+    const fetchTechnicians = async () => {
+      try {
+        const response = await fetch('/api/users?role=technician', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setTechnicians(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching technicians:', error);
+      }
+    };
+    fetchTechnicians();
+  }, []);
 
   // Reset filters when switching tabs
   useEffect(() => {

@@ -1,4 +1,3 @@
-
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { storage } from "../storage";
@@ -239,7 +238,49 @@ export class AuthController {
   }
 
   static async logout(req: any, res: any) {
-    // In a more sophisticated setup, you'd invalidate the token
-    res.json({ message: "Logged out successfully" });
+    try {
+      // In a real implementation, you might want to blacklist the token
+      res.json({ message: "Logout successful" });
+    } catch (error) {
+      console.error("Error during logout:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+
+  static async portalLogin(req: any, res: any) {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      // Check if user exists in database
+      const user = await storage.getUserByEmail(email);
+
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      // For end user portal, we don't need admin privileges
+      if (!user.is_active) {
+        return res.status(401).json({ error: "User account is inactive" });
+      }
+
+      res.json({
+        message: "Portal login successful",
+        user: {
+          id: user.id,
+          email: user.email,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          role: user.role
+        }
+      });
+
+    } catch (error) {
+      console.error("Error during portal login:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
   }
 }
