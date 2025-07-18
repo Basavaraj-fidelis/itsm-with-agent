@@ -57,12 +57,12 @@ router.post("/import-end-users", upload.single('file'), async (req, res) => {
     for (const userData of users) {
       try {
         // Normalize field names (handle different column naming conventions)
-        const email = String(userData.email || userData.Email || userData.EMAIL || '').trim().toLowerCase();
-        const firstName = String(userData.first_name || userData['First Name'] || userData.firstname || userData.FirstName || '').trim();
-        const lastName = String(userData.last_name || userData['Last Name'] || userData.lastname || userData.LastName || '').trim();
-        const name = String(userData.name || userData.Name || userData.NAME || `${firstName} ${lastName}`).trim();
-        const phone = String(userData.phone || userData.Phone || userData.PHONE || '').trim();
-        const department = String(userData.department || userData.Department || userData.DEPARTMENT || '').trim();
+        const email = (userData.email || userData.Email || userData.EMAIL || '').trim().toLowerCase();
+        const firstName = (userData.first_name || userData['First Name'] || userData.firstname || userData.FirstName || '').trim();
+        const lastName = (userData.last_name || userData['Last Name'] || userData.lastname || userData.LastName || '').trim();
+        const name = (userData.name || userData.Name || userData.NAME || `${firstName} ${lastName}`).trim();
+        const phone = (userData.phone || userData.Phone || userData.PHONE || '').trim();
+        const department = (userData.department || userData.Department || userData.DEPARTMENT || '').trim();
 
         if (!email || !name) {
           console.log(`Skipping user: missing email or name - ${JSON.stringify(userData)}`);
