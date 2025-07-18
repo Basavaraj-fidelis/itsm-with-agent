@@ -3370,14 +3370,14 @@ var user_schema_exports = {};
 __export(user_schema_exports, {
   departments: () => departments,
   userActivity: () => userActivity,
-  userGroupMemberships: () => userGroupMemberships2,
-  userGroups: () => userGroups2,
+  userGroupMemberships: () => userGroupMemberships,
+  userGroups: () => userGroups,
   userRoles: () => userRoles,
   userSessions: () => userSessions,
   users: () => users
 });
 import { pgTable as pgTable4, text as text4, timestamp as timestamp4, uuid as uuid4, varchar as varchar3, boolean as boolean4, integer as integer3, json as json5 } from "drizzle-orm/pg-core";
-var userRoles, users, departments, userSessions, userGroups2, userGroupMemberships2, userActivity;
+var userRoles, users, departments, userSessions, userGroups, userGroupMemberships, userActivity;
 var init_user_schema = __esm({
   "shared/user-schema.ts"() {
     "use strict";
@@ -3444,7 +3444,7 @@ var init_user_schema = __esm({
       expires_at: timestamp4("expires_at").notNull(),
       created_at: timestamp4("created_at").defaultNow().notNull()
     });
-    userGroups2 = pgTable4("user_groups", {
+    userGroups = pgTable4("user_groups", {
       id: uuid4("id").primaryKey().defaultRandom(),
       name: varchar3("name", { length: 100 }).notNull(),
       description: text4("description"),
@@ -3456,10 +3456,10 @@ var init_user_schema = __esm({
       created_at: timestamp4("created_at").defaultNow().notNull(),
       updated_at: timestamp4("updated_at").defaultNow().notNull()
     });
-    userGroupMemberships2 = pgTable4("user_group_memberships", {
+    userGroupMemberships = pgTable4("user_group_memberships", {
       id: uuid4("id").primaryKey().defaultRandom(),
       user_id: uuid4("user_id").notNull().references(() => users.id),
-      group_id: uuid4("group_id").notNull().references(() => userGroups2.id),
+      group_id: uuid4("group_id").notNull().references(() => userGroups.id),
       role: varchar3("role", { length: 50 }).default("member"),
       // member, leader, admin
       joined_at: timestamp4("joined_at").defaultNow().notNull()
@@ -3617,7 +3617,31 @@ var init_user_storage = __esm({
       }
       // Role-based queries
       async getTechnicians() {
-        return await db.select().from(users).where(and3(eq2(users.role, "technician"), eq2(users.is_active, true))).orderBy(users.first_name, users.last_name);
+        return await db.select({
+          id: users.id,
+          email: users.email,
+          username: users.username,
+          first_name: users.first_name,
+          last_name: users.last_name,
+          role: users.role,
+          department_id: users.department_id,
+          manager_id: users.manager_id,
+          phone: users.phone,
+          employee_id: users.employee_id,
+          job_title: users.job_title,
+          location: users.location,
+          profile_picture: users.profile_picture,
+          permissions: users.permissions,
+          preferences: users.preferences,
+          is_active: users.is_active,
+          is_locked: users.is_locked,
+          password_reset_required: users.password_reset_required,
+          failed_login_attempts: users.failed_login_attempts,
+          last_login: users.last_login,
+          last_password_change: users.last_password_change,
+          created_at: users.created_at,
+          updated_at: users.updated_at
+        }).from(users).where(and3(eq2(users.role, "technician"), eq2(users.is_active, true))).orderBy(users.first_name, users.last_name);
       }
       async getManagers() {
         return await db.select().from(users).where(
@@ -3628,7 +3652,31 @@ var init_user_storage = __esm({
         ).orderBy(users.first_name, users.last_name);
       }
       async getActiveTechnicians() {
-        return await db.select().from(users).where(
+        return await db.select({
+          id: users.id,
+          email: users.email,
+          username: users.username,
+          first_name: users.first_name,
+          last_name: users.last_name,
+          role: users.role,
+          department_id: users.department_id,
+          manager_id: users.manager_id,
+          phone: users.phone,
+          employee_id: users.employee_id,
+          job_title: users.job_title,
+          location: users.location,
+          profile_picture: users.profile_picture,
+          permissions: users.permissions,
+          preferences: users.preferences,
+          is_active: users.is_active,
+          is_locked: users.is_locked,
+          password_reset_required: users.password_reset_required,
+          failed_login_attempts: users.failed_login_attempts,
+          last_login: users.last_login,
+          last_password_change: users.last_password_change,
+          created_at: users.created_at,
+          updated_at: users.updated_at
+        }).from(users).where(
           and3(
             eq2(users.role, "technician"),
             eq2(users.is_active, true),
@@ -12008,6 +12056,85 @@ var init_analytics_routes = __esm({
   }
 });
 
+// server/middleware/auth-middleware.ts
+import jwt4 from "jsonwebtoken";
+var JWT_SECRET4, authenticateToken2;
+var init_auth_middleware = __esm({
+  "server/middleware/auth-middleware.ts"() {
+    "use strict";
+    init_storage();
+    JWT_SECRET4 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+    authenticateToken2 = async (req, res, next) => {
+      try {
+        const authHeader = req.headers["authorization"];
+        const token = authHeader && authHeader.split(" ")[1];
+        if (!token) {
+          console.log("No auth token provided for", req.path);
+          return res.status(401).json({ message: "Access token required" });
+        }
+        console.log("Authenticating token for", req.path);
+        try {
+          const decoded = jwt4.verify(token, JWT_SECRET4);
+          console.log("Decoded token:", decoded);
+          try {
+            const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+            const result = await pool3.query(
+              `
+        SELECT id, email, role, first_name, last_name, username, is_active, phone, location 
+        FROM users WHERE id = $1
+      `,
+              [decoded.userId || decoded.id]
+            );
+            if (result.rows.length > 0) {
+              const user2 = result.rows[0];
+              let displayName = "";
+              if (user2.first_name || user2.last_name) {
+                displayName = `${user2.first_name || ""} ${user2.last_name || ""}`.trim();
+              } else if (user2.username) {
+                displayName = user2.username;
+              } else {
+                displayName = user2.email.split("@")[0];
+              }
+              user2.name = displayName;
+              if (!user2.is_active) {
+                return res.status(403).json({ message: "User account is inactive" });
+              }
+              req.user = user2;
+              return next();
+            }
+          } catch (dbError) {
+            console.log(
+              "Database lookup failed, trying file storage:",
+              dbError.message
+            );
+          }
+          const user = await storage.getUserById(decoded.userId || decoded.id);
+          if (!user) {
+            return res.status(403).json({ message: "User not found" });
+          }
+          if (user.is_active === false) {
+            return res.status(403).json({ message: "User account is inactive" });
+          }
+          req.user = user;
+          next();
+        } catch (error) {
+          console.error("Database user lookup failed:", error);
+          return null;
+        }
+      } catch (error) {
+        console.error("Authentication error for", req.path, ":", error);
+        if (error.name === "TokenExpiredError") {
+          return res.status(401).json({ message: "Token expired" });
+        }
+        if (error.name === "JsonWebTokenError") {
+          return res.status(401).json({ message: "Invalid token format" });
+        }
+        return res.status(403).json({ message: "Invalid token" });
+      }
+    };
+  }
+});
+
 // server/routes/user-routes.ts
 var user_routes_exports = {};
 __export(user_routes_exports, {
@@ -12023,6 +12150,8 @@ var init_user_routes = __esm({
   "server/routes/user-routes.ts"() {
     "use strict";
     init_db();
+    init_storage();
+    init_auth_middleware();
     router6 = Router6();
     upload = multer({
       storage: multer.memoryStorage(),
@@ -12695,6 +12824,44 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to change password" });
       }
     });
+    router6.post("/:id/lock", authenticateToken2, async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { reason } = req.body;
+        if (!reason) {
+          return res.status(400).json({ message: "Reason for locking is required" });
+        }
+        const success = await storage.lockUser(id, reason);
+        if (!success) {
+          return res.status(404).json({ message: "User not found" });
+        }
+        const user = await storage.getUserById(id);
+        res.json({
+          message: "User locked successfully",
+          user
+        });
+      } catch (error) {
+        console.error("Error locking user:", error);
+        res.status(500).json({ message: "Failed to lock user" });
+      }
+    });
+    router6.post("/:id/unlock", authenticateToken2, async (req, res) => {
+      try {
+        const { id } = req.params;
+        const success = await storage.unlockUser(id);
+        if (!success) {
+          return res.status(404).json({ message: "User not found" });
+        }
+        const user = await storage.getUserById(id);
+        res.json({
+          message: "User unlocked successfully",
+          user
+        });
+      } catch (error) {
+        console.error("Error unlocking user:", error);
+        res.status(500).json({ message: "Failed to unlock user" });
+      }
+    });
   }
 });
 
@@ -12705,8 +12872,8 @@ __export(knowledge_routes_exports, {
 });
 import { Router as Router7 } from "express";
 import { eq as eq9, and as and9, or as or8, sql as sql9, desc as desc9, ilike as ilike3, count as count5, like as like5 } from "drizzle-orm";
-import jwt4 from "jsonwebtoken";
-var router7, storage2, authenticateToken2;
+import jwt5 from "jsonwebtoken";
+var router7, storage2, authenticateToken3;
 var init_knowledge_routes = __esm({
   "server/routes/knowledge-routes.ts"() {
     "use strict";
@@ -12716,14 +12883,14 @@ var init_knowledge_routes = __esm({
     init_knowledge_ai_service();
     router7 = Router7();
     storage2 = new TicketStorage();
-    authenticateToken2 = (req, res, next) => {
+    authenticateToken3 = (req, res, next) => {
       const authHeader = req.headers["authorization"];
       const token = authHeader && authHeader.split(" ")[1];
       if (!token) {
         req.user = null;
         return next();
       }
-      jwt4.verify(token, process.env.JWT_SECRET || "your-secret-key", (err, decoded) => {
+      jwt5.verify(token, process.env.JWT_SECRET || "your-secret-key", (err, decoded) => {
         if (err) {
           console.error("Token verification error:", err);
           req.user = null;
@@ -12733,7 +12900,7 @@ var init_knowledge_routes = __esm({
         next();
       });
     };
-    router7.get("/", authenticateToken2, async (req, res) => {
+    router7.get("/", authenticateToken3, async (req, res) => {
       try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
@@ -12923,7 +13090,7 @@ var init_knowledge_routes = __esm({
         res.status(500).json({ error: "Failed to fetch related articles", details: error.message });
       }
     });
-    router7.get("/:id", authenticateToken2, async (req, res) => {
+    router7.get("/:id", authenticateToken3, async (req, res) => {
       try {
         const article = await storage2.getKBArticleById(req.params.id);
         if (!article) {
@@ -12935,7 +13102,7 @@ var init_knowledge_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router7.post("/", authenticateToken2, async (req, res) => {
+    router7.post("/", authenticateToken3, async (req, res) => {
       try {
         const { title, content, category } = req.body;
         const newArticle = {
@@ -14653,7 +14820,7 @@ function registerTicketRoutes(app2) {
 
 // server/routes/device-routes.ts
 init_storage();
-function registerDeviceRoutes(app2, authenticateToken4) {
+function registerDeviceRoutes(app2, authenticateToken5) {
   app2.get("/api/devices/export/csv", async (req, res) => {
     try {
       const filters = {
@@ -14711,7 +14878,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       res.status(500).json({ error: "Failed to export devices" });
     }
   });
-  app2.get("/api/devices", authenticateToken4, async (req, res) => {
+  app2.get("/api/devices", authenticateToken5, async (req, res) => {
     try {
       console.log("Fetching devices - checking for agent activity...");
       const devices2 = await storage.getDevices();
@@ -14753,7 +14920,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
-  app2.get("/api/devices/:id", authenticateToken4, async (req, res) => {
+  app2.get("/api/devices/:id", authenticateToken5, async (req, res) => {
     try {
       let device = await storage.getDevice(req.params.id);
       if (!device) {
@@ -14802,7 +14969,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
   });
   app2.get(
     "/api/devices/:id/performance-insights",
-    authenticateToken4,
+    authenticateToken5,
     async (req, res) => {
       try {
         const { id } = req.params;
@@ -14826,7 +14993,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
   );
   app2.get(
     "/api/devices/:id/ai-insights",
-    authenticateToken4,
+    authenticateToken5,
     async (req, res) => {
       try {
         const { id } = req.params;
@@ -14844,7 +15011,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
   );
   app2.get(
     "/api/devices/:id/ai-recommendations",
-    authenticateToken4,
+    authenticateToken5,
     async (req, res) => {
       try {
         const { id } = req.params;
@@ -14860,7 +15027,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       }
     }
   );
-  app2.get("/api/debug/devices", authenticateToken4, async (req, res) => {
+  app2.get("/api/debug/devices", authenticateToken5, async (req, res) => {
     try {
       const devices2 = await storage.getDevices();
       const now = /* @__PURE__ */ new Date();
@@ -14899,10 +15066,10 @@ function registerDeviceRoutes(app2, authenticateToken4) {
 init_storage();
 init_enhanced_storage();
 init_patch_compliance_service();
-function registerAgentRoutes(app2, authenticateToken4, requireRole2) {
+function registerAgentRoutes(app2, authenticateToken5, requireRole2) {
   app2.post(
     "/api/agents/:id/test-connectivity",
-    authenticateToken4,
+    authenticateToken5,
     async (req, res) => {
       try {
         const { id } = req.params;
@@ -14934,7 +15101,7 @@ function registerAgentRoutes(app2, authenticateToken4, requireRole2) {
   );
   app2.get(
     "/api/agents/:id/connection-status",
-    authenticateToken4,
+    authenticateToken5,
     async (req, res) => {
       try {
         const agentId = req.params.id;
@@ -14963,7 +15130,7 @@ function registerAgentRoutes(app2, authenticateToken4, requireRole2) {
   );
   app2.post(
     "/api/agents/:id/remote-connect",
-    authenticateToken4,
+    authenticateToken5,
     async (req, res) => {
       try {
         const agentId = req.params.id;
@@ -15042,7 +15209,7 @@ function registerAgentRoutes(app2, authenticateToken4, requireRole2) {
   );
   app2.post(
     "/api/agents/:id/execute-command",
-    authenticateToken4,
+    authenticateToken5,
     requireRole2(["admin", "manager"]),
     async (req, res) => {
       try {
@@ -15215,7 +15382,7 @@ function registerAgentRoutes(app2, authenticateToken4, requireRole2) {
 init_auth();
 init_response();
 import bcrypt2 from "bcrypt";
-import jwt5 from "jsonwebtoken";
+import jwt6 from "jsonwebtoken";
 
 // server/utils/user.ts
 var UserUtils = class {
@@ -15330,8 +15497,8 @@ var UserUtils = class {
 };
 
 // server/routes.ts
-var JWT_SECRET4 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-var authenticateToken3 = async (req, res, next) => {
+var JWT_SECRET5 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+var authenticateToken4 = async (req, res, next) => {
   const authHeader = req.headers["authorization"];
   const token = AuthUtils.extractTokenFromHeader(authHeader || "");
   if (!token) {
@@ -15467,9 +15634,9 @@ async function registerRoutes(app2) {
         if (!validPasswords.includes(password)) {
           return res.status(401).json({ message: "Invalid credentials" });
         }
-        const token = jwt5.sign(
+        const token = jwt6.sign(
           { userId: user.id, id: user.email, role: user.role },
-          JWT_SECRET4,
+          JWT_SECRET5,
           { expiresIn: "24h" }
         );
         res.json({
@@ -15510,7 +15677,7 @@ async function registerRoutes(app2) {
       res.status(500).json({ message: "Failed to create user", error: error.message });
     }
   });
-  app2.get("/api/auth/verify", authenticateToken3, async (req, res) => {
+  app2.get("/api/auth/verify", authenticateToken4, async (req, res) => {
     try {
       const { password_hash, ...userWithoutPassword } = req.user;
       res.json(userWithoutPassword);
@@ -15562,7 +15729,7 @@ async function registerRoutes(app2) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
-  app2.get("/api/dashboard/summary", authenticateToken3, async (req, res) => {
+  app2.get("/api/dashboard/summary", authenticateToken4, async (req, res) => {
     try {
       const summary = await storage.getDashboardSummary();
       res.json(summary);
@@ -15575,12 +15742,12 @@ async function registerRoutes(app2) {
     res.json({ status: "ok", timestamp: /* @__PURE__ */ new Date() });
   });
   registerTicketRoutes(app2);
-  registerDeviceRoutes(app2, authenticateToken3);
-  registerAgentRoutes(app2, authenticateToken3, requireRole);
+  registerDeviceRoutes(app2, authenticateToken4);
+  registerAgentRoutes(app2, authenticateToken4, requireRole);
   try {
     const alertRoutes = await Promise.resolve().then(() => (init_alert_routes(), alert_routes_exports));
     if (alertRoutes.default) {
-      app2.use("/api/alerts", authenticateToken3, alertRoutes.default);
+      app2.use("/api/alerts", authenticateToken4, alertRoutes.default);
     }
   } catch (error) {
     console.warn("Alert routes not available:", error.message);
@@ -15588,7 +15755,7 @@ async function registerRoutes(app2) {
   try {
     const notificationRoutes = await Promise.resolve().then(() => (init_notification_routes(), notification_routes_exports));
     if (notificationRoutes.default) {
-      app2.use("/api/notifications", authenticateToken3, notificationRoutes.default);
+      app2.use("/api/notifications", authenticateToken4, notificationRoutes.default);
     }
   } catch (error) {
     console.warn("Notification routes not available:", error.message);
@@ -15596,7 +15763,7 @@ async function registerRoutes(app2) {
   try {
     const automationRoutes = await Promise.resolve().then(() => (init_automation_routes(), automation_routes_exports));
     if (automationRoutes.default) {
-      app2.use("/api/automation", authenticateToken3, requireRole(["admin", "manager"]), automationRoutes.default);
+      app2.use("/api/automation", authenticateToken4, requireRole(["admin", "manager"]), automationRoutes.default);
     }
   } catch (error) {
     console.warn("Automation routes not available:", error.message);
@@ -15620,7 +15787,7 @@ async function registerRoutes(app2) {
   try {
     const userRoutes = await Promise.resolve().then(() => (init_user_routes(), user_routes_exports));
     if (userRoutes.default) {
-      app2.use("/api/users", authenticateToken3, userRoutes.default);
+      app2.use("/api/users", authenticateToken4, userRoutes.default);
     }
   } catch (error) {
     console.warn("User routes not available:", error.message);
@@ -15628,7 +15795,7 @@ async function registerRoutes(app2) {
   try {
     const knowledgeRoutes = await Promise.resolve().then(() => (init_knowledge_routes(), knowledge_routes_exports));
     if (knowledgeRoutes.default) {
-      app2.use("/api/knowledge", authenticateToken3, knowledgeRoutes.default);
+      app2.use("/api/knowledge", authenticateToken4, knowledgeRoutes.default);
     }
   } catch (error) {
     console.warn("Knowledge routes not available:", error.message);
@@ -15636,7 +15803,7 @@ async function registerRoutes(app2) {
   try {
     const slaRoutes = await Promise.resolve().then(() => (init_sla_routes(), sla_routes_exports));
     if (slaRoutes.default) {
-      app2.use("/api/sla", authenticateToken3, slaRoutes.default);
+      app2.use("/api/sla", authenticateToken4, slaRoutes.default);
     }
   } catch (error) {
     console.warn("SLA routes not available:", error.message);
@@ -16054,16 +16221,16 @@ app.use((req, res, next) => {
     const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
     const { reportsStorage: reportsStorage2 } = await Promise.resolve().then(() => (init_reports_storage(), reports_storage_exports));
     await reportsStorage2.createReportsTable();
-    const authenticateToken4 = async (req, res, next) => {
+    const authenticateToken5 = async (req, res, next) => {
       const authHeader = req.headers["authorization"];
       const token = authHeader && authHeader.split(" ")[1];
       if (!token) {
         return res.status(401).json({ message: "Access token required" });
       }
       try {
-        const jwt6 = await import("jsonwebtoken");
-        const JWT_SECRET5 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-        const decoded = jwt6.default.verify(token, JWT_SECRET5);
+        const jwt7 = await import("jsonwebtoken");
+        const JWT_SECRET6 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+        const decoded = jwt7.default.verify(token, JWT_SECRET6);
         const user = await storage3.getUserById(decoded.userId);
         if (!user || !user.is_active) {
           return res.status(403).json({ message: "User not found or inactive" });
