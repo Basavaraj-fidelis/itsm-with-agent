@@ -260,9 +260,7 @@ export default function App() {
             </Route>
 
             <Route path="/portal">
-              <ProtectedRoute>
-                <EndUserPortal />
-              </ProtectedRoute>
+              <EndUserPortal />
             </Route>
 
 
