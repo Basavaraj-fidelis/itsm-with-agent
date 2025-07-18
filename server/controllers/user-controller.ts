@@ -89,8 +89,7 @@ export class UserController {
         phone: phone || "",
         job_title: job_title || "",
         location: location || "",
-        is_active: true,
-        vip_user: false
+        is_active: true
       };
 
       const newUser = await storage.createUser(userData);

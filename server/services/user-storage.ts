@@ -238,7 +238,31 @@ export class UserStorage {
   // Role-based queries
   async getTechnicians(): Promise<User[]> {
     return await db
-      .select()
+      .select({
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        first_name: users.first_name,
+        last_name: users.last_name,
+        role: users.role,
+        department_id: users.department_id,
+        manager_id: users.manager_id,
+        phone: users.phone,
+        employee_id: users.employee_id,
+        job_title: users.job_title,
+        location: users.location,
+        profile_picture: users.profile_picture,
+        permissions: users.permissions,
+        preferences: users.preferences,
+        is_active: users.is_active,
+        is_locked: users.is_locked,
+        password_reset_required: users.password_reset_required,
+        failed_login_attempts: users.failed_login_attempts,
+        last_login: users.last_login,
+        last_password_change: users.last_password_change,
+        created_at: users.created_at,
+        updated_at: users.updated_at,
+      })
       .from(users)
       .where(and(eq(users.role, "technician"), eq(users.is_active, true)))
       .orderBy(users.first_name, users.last_name);
@@ -259,7 +283,31 @@ export class UserStorage {
 
   async getActiveTechnicians(): Promise<User[]> {
     return await db
-      .select()
+      .select({
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        first_name: users.first_name,
+        last_name: users.last_name,
+        role: users.role,
+        department_id: users.department_id,
+        manager_id: users.manager_id,
+        phone: users.phone,
+        employee_id: users.employee_id,
+        job_title: users.job_title,
+        location: users.location,
+        profile_picture: users.profile_picture,
+        permissions: users.permissions,
+        preferences: users.preferences,
+        is_active: users.is_active,
+        is_locked: users.is_locked,
+        password_reset_required: users.password_reset_required,
+        failed_login_attempts: users.failed_login_attempts,
+        last_login: users.last_login,
+        last_password_change: users.last_password_change,
+        created_at: users.created_at,
+        updated_at: users.updated_at,
+      })
       .from(users)
       .where(
         and(
