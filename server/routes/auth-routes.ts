@@ -348,7 +348,7 @@ router.post("/end-user-login", async (req, res) => {
 
     // Find end user by email
     const result = await db.query(`
-      SELECT id, email, username, first_name, last_name, password_hash, is_active, role
+      SELECT id, email, username, first_name, last_name, password_hash, is_active, role, preferences
       FROM users 
       WHERE email = $1 AND role = 'end_user'
     `, [email.toLowerCase()]);
@@ -363,8 +363,17 @@ router.post("/end-user-login", async (req, res) => {
       return res.status(401).json({ message: "Account is inactive. Please contact IT support." });
     }
 
-    // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+    let isValidPassword = false;
+
+    // Check if user has a stored temporary password in preferences
+    const preferences = user.preferences || {};
+    if (preferences.temp_password && preferences.temp_password === password) {
+      isValidPassword = true;
+    } else if (user.password_hash) {
+      // Verify hashed password
+      isValidPassword = await bcrypt.compare(password, user.password_hash);
+    }
+
     if (!isValidPassword) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
