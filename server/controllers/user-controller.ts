@@ -68,25 +68,29 @@ export class UserController {
   static async createUser(req: any, res: any) {
     try {
       console.log("POST /api/users - Creating user:", req.body);
-      const { name, email, password, role, department, phone } = req.body;
+      const { first_name, last_name, email, password, role, department, phone, job_title, location } = req.body;
 
-      if (!name || !email || !password) {
+      if (!first_name || !email || !password) {
         return res
           .status(400)
-          .json({ message: "Name, email, and password are required" });
+          .json({ message: "First name, email, and password are required" });
       }
 
       // Hash password
       const password_hash = await bcrypt.hash(password, 10);
 
       const userData = {
-        name,
         email: email.toLowerCase(),
+        username: email.toLowerCase(),
+        first_name: first_name || "",
+        last_name: last_name || "",
         password_hash,
-        role: role || "user",
-        department: department || "",
+        role: role || "technician",
         phone: phone || "",
+        job_title: job_title || "",
+        location: location || "",
         is_active: true,
+        vip_user: false
       };
 
       const newUser = await storage.createUser(userData);
@@ -105,16 +109,18 @@ export class UserController {
         req.params.id,
         req.body,
       );
-      const { name, email, password, role, department, phone, is_active } =
+      const { first_name, last_name, email, password, role, department, phone, is_active, job_title, location } =
         req.body;
 
       const updates: any = {
-        name,
+        first_name,
+        last_name,
         email: email?.toLowerCase(),
         role,
-        department,
         phone,
         is_active,
+        job_title,
+        location
       };
 
       // Hash password if provided

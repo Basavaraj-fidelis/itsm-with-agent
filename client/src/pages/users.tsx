@@ -79,6 +79,11 @@ function getSyncStatusIcon(user: UserInterface) {
   }
 }
 
+// Helper function to get user source icon
+function getUserSourceIcon(user: UserInterface) {
+  return <Database className="w-4 h-4 text-gray-500" />;
+}
+
 export default function UsersPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -509,7 +514,7 @@ export default function UsersPage() {
     setBulkAction("");
   };
 
-  
+
 
   if (isLoading) {
     return (
@@ -550,7 +555,7 @@ export default function UsersPage() {
             <p className="text-gray-600">Manage system users and permissions</p>
           </div>
           <div className="flex items-center space-x-2">
-            
+
             <div>
               <input
                 type="file"
@@ -639,7 +644,7 @@ export default function UsersPage() {
           </Card>
         </div>
 
-        
+
       </div>
 
       {/* Filters and Search */}
@@ -854,9 +859,9 @@ export default function UsersPage() {
                     </td>
                     <td className="p-2">
                       <div className="flex items-center space-x-1">
-                        {getSyncStatusIcon(user)}
+                        {getUserSourceIcon(user)}
                         <span className="text-sm">
-                          {user.ad_synced ? 'AD' : 'Local'}
+                          Local
                         </span>
                       </div>
                     </td>
@@ -1103,14 +1108,12 @@ export default function UsersPage() {
                   <h3 className="text-xl font-semibold">{selectedUser.name}</h3>
                   <p className="text-gray-600">{selectedUser.email}</p>
                   <div className="flex items-center space-x-2 mt-1">
-                    <Badge variant={selectedUser.is_active ? 'default' : 'secondary'}>
-                      {selectedUser.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
-                    {getSyncStatusIcon(selectedUser)}
-                    <span className="text-sm text-gray-600">
-                      {selectedUser.ad_synced ? 'AD Synced' : 'Local User'}
-                    </span>
-                  </div>
+                      <Badge variant={selectedUser.is_active ? 'default' : 'secondary'}>
+                        {selectedUser.is_active ? 'Active' : 'Inactive'}
+                      </Badge>
+                      {getUserSourceIcon(selectedUser)}
+                      <span className="text-sm text-gray-600">Local User</span>
+                    </div>
                 </div>
               </div>
 

@@ -842,4 +842,54 @@ router.post("/change-password", async (req, res) => {
   }
 });
 
+// Add authMiddleware import
+import { authMiddleware } from '../middleware/auth';
+
+// Lock user endpoint
+router.post('/:id/lock', authMiddleware, async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    if (!reason) {
+      return res.status(400).json({ message: 'Reason for locking is required' });
+    }
+
+    const success = await storage.lockUser(id, reason);
+    if (!success) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const user = await storage.getUserById(id);
+    res.json({ 
+      message: 'User locked successfully',
+      user: user
+    });
+  } catch (error) {
+    console.error('Error locking user:', error);
+    res.status(500).json({ message: 'Failed to lock user' });
+  }
+});
+
+// Unlock user endpoint
+router.post('/:id/unlock', authMiddleware, async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+
+    const success = await storage.unlockUser(id);
+    if (!success) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const user = await storage.getUserById(id);
+    res.json({ 
+      message: 'User unlocked successfully',
+      user: user
+    });
+  } catch (error) {
+    console.error('Error unlocking user:', error);
+    res.status(500).json({ message: 'Failed to unlock user' });
+  }
+});
+
 export { router as userRoutes };

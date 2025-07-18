@@ -4,6 +4,8 @@ import {
   departments,
   userActivity,
   userSessions,
+  userGroups,
+  userGroupMemberships,
   type User,
   type NewUser,
   type Department,
