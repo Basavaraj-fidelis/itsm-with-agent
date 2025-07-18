@@ -1,0 +1,40 @@
+Uncaught ReferenceError: getSyncStatusIcon is not defined
+    at users.tsx:848:26
+    at Array.map (<anonymous>)
+    at UsersPage (users.tsx:792:32)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=cbc9a3a6:11548:26)
+    at updateFunctionComponent (chunk-RPCDYKBN.js?v=cbc9a3a6:14582:28)
+    at beginWork (chunk-RPCDYKBN.js?v=cbc9a3a6:15924:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=cbc9a3a6:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=cbc9a3a6:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=cbc9a3a6:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=cbc9a3a6:19765:15)
+chunk-RPCDYKBN.js?v=cbc9a3a6:14032 The above error occurred in the <UsersPage> component:
+
+    at UsersPage (https://c2ed9512-4f00-4276-9239-a1d7ec3e1a8a-00-glbvfk6j3ukp.pike.replit.dev/src/pages/users.tsx:50:21)
+    at main
+    at div
+    at div
+    at AuthenticatedLayout (https://c2ed9512-4f00-4276-9239-a1d7ec3e1a8a-00-glbvfk6j3ukp.pike.replit.dev/src/App.tsx:57:32)
+    at ProtectedRoute (https://c2ed9512-4f00-4276-9239-a1d7ec3e1a8a-00-glbvfk6j3ukp.pike.replit.dev/src/components/auth/protected-route.tsx:76:3)
+    at Route (https://c2ed9512-4f00-4276-9239-a1d7ec3e1a8a-00-glbvfk6j3ukp.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=cbc9a3a6:206:16)
+    at Switch (https://c2ed9512-4f00-4276-9239-a1d7ec3e1a8a-00-glbvfk6j3ukp.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=cbc9a3a6:262:17)
+    at Router (https://c2ed9512-4f00-4276-9239-a1d7ec3e1a8a-00-glbvfk6j3ukp.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=cbc9a3a6:161:17)
+    at AuthProvider (https://c2ed9512-4f00-4276-9239-a1d7ec3e1a8a-00-glbvfk6j3ukp.pike.replit.dev/src/components/auth/protected-route.tsx:36:32)
+    at QueryClientProvider (https://c2ed9512-4f00-4276-9239-a1d7ec3e1a8a-00-glbvfk6j3ukp.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=cbc9a3a6:2933:3)
+    at App (https://c2ed9512-4f00-4276-9239-a1d7ec3e1a8a-00-glbvfk6j3ukp.pike.replit.dev/src/App.tsx:89:49)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-RPCDYKBN.js?v=cbc9a3a6:14032
+chunk-RPCDYKBN.js?v=cbc9a3a6:9129 Uncaught ReferenceError: getSyncStatusIcon is not defined
+    at users.tsx:848:26
+    at Array.map (<anonymous>)
+    at UsersPage (users.tsx:792:32)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=cbc9a3a6:11548:26)
+    at updateFunctionComponent (chunk-RPCDYKBN.js?v=cbc9a3a6:14582:28)
+    at beginWork (chunk-RPCDYKBN.js?v=cbc9a3a6:15924:22)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=cbc9a3a6:19753:22)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=cbc9a3a6:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=cbc9a3a6:19137:13)
+    at renderRootSync (chunk-RPCDYKBN.js?v=cbc9a3a6:19116:15)
