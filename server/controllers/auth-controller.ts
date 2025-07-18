@@ -21,8 +21,6 @@ export class AuthController {
           .json({ message: "Email and password are required" });
       }
 
-      
-
       try {
         // Try database query using raw SQL - use only columns that definitely exist
         const availableColumns = await DatabaseUtils.getTableColumns("users");

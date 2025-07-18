@@ -459,31 +459,7 @@ Authorization: Bearer <admin-token>
 
 ## Integration Management
 
-### Active Directory Configuration
-```http
-GET /api/admin/integrations/active-directory
-Authorization: Bearer <admin-token>
-```
 
-**Response:**
-```json
-{
-  "ad_configuration": {
-    "enabled": true,
-    "server": "ldap://dc.company.com:389",
-    "base_dn": "DC=company,DC=com",
-    "connection_status": "connected",
-    "last_sync": "2024-01-15T08:00:00Z",
-    "sync_schedule": "every_4_hours",
-    "group_mappings": {
-      "IT-Admins": "admin",
-      "IT-Support": "technician",
-      "Managers": "manager",
-      "Employees": "end_user"
-    }
-  }
-}
-```
 
 ### Email Configuration
 ```http

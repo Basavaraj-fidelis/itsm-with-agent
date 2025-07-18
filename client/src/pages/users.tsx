@@ -500,20 +500,7 @@ export default function UsersPage() {
     setBulkAction("");
   };
 
-  const getSyncStatusIcon = (user: UserInterface) => {
-    if (user.ad_synced) {
-      if (user.ad_last_sync) {
-        const lastSync = new Date(user.ad_last_sync);
-        const hoursSinceSync = (Date.now() - lastSync.getTime()) / (1000 * 60 * 60);
-        if (hoursSinceSync > 24) {
-          return <Clock className="w-4 h-4 text-yellow-500" title="Sync outdated" />;
-        }
-        return <CheckCircle className="w-4 h-4 text-green-500" title="AD Synced" />;
-      }
-      return <Cloud className="w-4 h-4 text-blue-500" title="AD User" />;
-    }
-    return <Database className="w-4 h-4 text-gray-500" title="Local User" />;
-  };
+  
 
   if (isLoading) {
     return (
@@ -551,10 +538,10 @@ export default function UsersPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">User Directory</h1>
-            <p className="text-gray-600">Manage system users and Active Directory integration</p>
+            <p className="text-gray-600">Manage system users and permissions</p>
           </div>
           <div className="flex items-center space-x-2">
-            {/* AD sync functionality removed */}
+            
             <div>
               <input
                 type="file"
@@ -643,36 +630,7 @@ export default function UsersPage() {
           </Card>
         </div>
 
-        {/* AD Sync Status - REMOVED */}
-        {/* {adSyncStatus?.enabled && (
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className={`w-3 h-3 rounded-full ${
-                    adSyncStatus.sync_status === 'success' ? 'bg-green-500' :
-                    adSyncStatus.sync_status === 'error' ? 'bg-red-500' : 'bg-yellow-500'
-                  }`} />
-                  <div>
-                    <p className="font-medium">Active Directory Sync Status</p>
-                    <p className="text-sm text-gray-600">
-                      Last sync: {adSyncStatus.last_sync ? 
-                        formatDistanceToNow(new Date(adSyncStatus.last_sync), { addSuffix: true }) : 
-                        'Never'
-                      }
-                    </p>
-                  </div>
-                </div>
-                <Badge variant={
-                  adSyncStatus.sync_status === 'success' ? 'default' :
-                  adSyncStatus.sync_status === 'error' ? 'destructive' : 'secondary'
-                }>
-                  {adSyncStatus.sync_status}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        )} */}
+        
       </div>
 
       {/* Filters and Search */}

@@ -46,68 +46,9 @@ class SystemCollector:
             self.os_collector = None
             self.logger.warning(f"Unsupported OS: {platform.system()}")
 
-    def sync_active_directory(self, config):
-        """Sync with Active Directory from agent's network"""
-        try:
-            import ldap3
-            from ldap3 import Server, Connection, ALL
+    
 
-            server = Server(config['server'], get_info=ALL)
-            conn = Connection(
-                server,
-                user=config['bindDN'],
-                password=config['bindPassword'],
-                auto_bind=True
-            )
-
-            # Search for users
-            users = []
-            conn.search(
-                config['searchBase'],
-                '(&(objectClass=user)(mail=*))',
-                attributes=['sAMAccountName', 'mail', 'displayName', 'department', 'memberOf']
-            )
-
-            for entry in conn.entries:
-                users.append({
-                    'username': str(entry.sAMAccountName),
-                    'email': str(entry.mail),
-                    'displayName': str(entry.displayName),
-                    'department': str(entry.department) if entry.department else '',
-                    'groups': [str(group) for group in entry.memberOf] if entry.memberOf else []
-                })
-
-            # Search for groups
-            groups = []
-            conn.search(
-                config['searchBase'].replace('OU=Users', 'OU=Groups'),
-                '(objectClass=group)',
-                attributes=['cn', 'description', 'member']
-            )
-
-            for entry in conn.entries:
-                groups.append({
-                    'name': str(entry.cn),
-                    'description': str(entry.description) if entry.description else '',
-                    'members': [str(member) for member in entry.member] if entry.member else []
-                })
-
-            conn.unbind()
-
-            return {
-                'success': True,
-                'users': users,
-                'groups': groups,
-                'timestamp': datetime.utcnow().isoformat()
-            }
-
-        except Exception as e:
-            self.logger.error(f"AD sync error: {e}")
-            return {
-                'success': False,
-                'error': str(e),
-                'timestamp': datetime.utcnow().isoformat()
-            }
+            
 
     def test_ad_connection(self, config):
         """Test AD connection from agent's network"""

@@ -1,9 +1,8 @@
-
 # User Directory Module
 
 ## Overview
 
-The User Directory module provides comprehensive user and identity management capabilities with Active Directory integration, role-based access control, and self-service features. It serves as the central identity provider for the ITSM system with support for single sign-on and automated user provisioning.
+The User Directory module provides comprehensive user and identity management capabilities with role-based access control, and self-service features. It serves as the central identity provider for the ITSM system with support for single sign-on and automated user provisioning.
 
 ## Key Features
 
@@ -13,13 +12,6 @@ The User Directory module provides comprehensive user and identity management ca
 - **Role Assignment**: Hierarchical role-based access control
 - **Group Membership**: Dynamic and static group management
 - **Account Status**: Active, inactive, locked, and suspended states
-
-### Active Directory Integration
-- **LDAP Synchronization**: Real-time AD user synchronization
-- **SSO Support**: Single sign-on with SAML and OAuth
-- **Group Mapping**: AD group to system role mapping
-- **Password Policies**: Enforce AD password policies
-- **Authentication Methods**: Multiple authentication options
 
 ### Self-Service Features
 - **Password Reset**: Secure self-service password reset
@@ -58,9 +50,7 @@ The User Directory module provides comprehensive user and identity management ca
       "sms": false,
       "push": true
     }
-  },
-  "ad_synced": true,
-  "ad_groups": ["IT-Support", "VPN-Users", "Office-365-Users"]
+  }
 }
 ```
 
@@ -129,15 +119,13 @@ Authorization: Bearer <token>
       "role": "technician",
       "department": "IT Support",
       "status": "active",
-      "last_login": "2024-01-15T10:30:00Z",
-      "ad_synced": true
+      "last_login": "2024-01-15T10:30:00Z"
     }
   ],
   "stats": {
     "total": 156,
     "active": 142,
     "inactive": 14,
-    "ad_synced": 134,
     "local": 22
   },
   "pagination": {
@@ -195,86 +183,6 @@ POST /api/users/{id}/unlock
 Authorization: Bearer <token>
 ```
 
-## Active Directory Integration
-
-### Configuration
-AD integration settings in environment variables:
-
-```bash
-# Active Directory Configuration
-AD_SERVER=ldap://dc.company.com:389
-AD_BASE_DN=DC=company,DC=com
-AD_BIND_DN=CN=service-account,OU=Service Accounts,DC=company,DC=com
-AD_BIND_PASSWORD=service-password
-AD_ENABLED=true
-
-# Group Mapping
-AD_GROUP_MAPPING='{"IT-Admins":"admin","IT-Support":"technician","Managers":"manager","Employees":"end_user"}'
-```
-
-### Synchronization Process
-```typescript
-// AD sync workflow
-const syncFromActiveDirectory = async () => {
-  const adUsers = await adService.getAllUsers();
-  
-  for (const adUser of adUsers) {
-    const localUser = await userStorage.findByEmail(adUser.email);
-    
-    if (localUser) {
-      // Update existing user
-      await userStorage.updateUser(localUser.id, {
-        first_name: adUser.firstName,
-        last_name: adUser.lastName,
-        department: adUser.department,
-        role: mapADGroupsToRole(adUser.groups),
-        ad_synced: true,
-        last_ad_sync: new Date()
-      });
-    } else {
-      // Create new user
-      await userStorage.createUser({
-        email: adUser.email,
-        first_name: adUser.firstName,
-        last_name: adUser.lastName,
-        department: adUser.department,
-        role: mapADGroupsToRole(adUser.groups),
-        ad_synced: true,
-        is_active: true
-      });
-    }
-  }
-};
-```
-
-### AD Authentication Flow
-```http
-POST /api/auth/login
-Content-Type: application/json
-
-{
-  "email": "john.doe@company.com",
-  "password": "user-password",
-  "useActiveDirectory": true
-}
-```
-
-**Response:**
-```json
-{
-  "message": "Login successful",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": "user-001",
-    "email": "john.doe@company.com",
-    "name": "John Doe",
-    "role": "technician",
-    "department": "IT Support",
-    "authMethod": "ad"
-  }
-}
-```
-
 ## Role-Based Access Control (RBAC)
 
 ### Permission System
@@ -284,10 +192,10 @@ Granular permissions for different system areas:
 // Permission checking example
 const checkPermission = (user: User, resource: string, action: string): boolean => {
   const permission = `${resource}:${action}`;
-  
+
   // Admin has all permissions
   if (user.role === 'admin') return true;
-  
+
   // Check role-specific permissions
   const rolePermissions = getRolePermissions(user.role);
   return rolePermissions.includes(permission) || rolePermissions.includes(`${resource}:*`);
@@ -391,7 +299,6 @@ Track authentication patterns and security metrics:
     "peak_hours": ["09:00", "13:00", "17:00"],
     "authentication_methods": {
       "password": 0.65,
-      "active_directory": 0.30,
       "sso": 0.05
     },
     "geographic_distribution": {
@@ -499,20 +406,6 @@ john.doe@company.com,John,Doe,IT Support,technician,+1-555-0123
 jane.smith@company.com,Jane,Smith,Engineering,end_user,+1-555-0124
 ```
 
-### Bulk Active Directory Sync
-```http
-POST /api/users/bulk-ad-sync
-Content-Type: application/json
-Authorization: Bearer <token>
-
-{
-  "userEmails": [
-    "john.doe@company.com",
-    "jane.smith@company.com"
-  ]
-}
-```
-
 ## Integration Points
 
 ### SAML SSO Integration
@@ -542,19 +435,6 @@ Authorization: Bearer <token>
 
 ### Common Issues
 
-**AD Sync Failures**
-```bash
-# Test AD connectivity
-curl -X POST -H "Authorization: Bearer <admin-token>" \
-     -H "Content-Type: application/json" \
-     -d '{"server": "ldap://dc.company.com"}' \
-     "http://0.0.0.0:5000/api/ad/test-connection"
-
-# Check AD sync status
-curl -H "Authorization: Bearer <admin-token>" \
-     "http://0.0.0.0:5000/api/ad/sync-status"
-```
-
 **Authentication Issues**
 - Verify JWT secret configuration
 - Check token expiration times
@@ -576,4 +456,3 @@ curl -H "Authorization: Bearer <admin-token>" \
 # Optimize large user directory queries
 curl -H "Authorization: Bearer <token>" \
      "http://0.0.0.0:5000/api/users?limit=50&page=1&fields=id,email,name,role"
-```

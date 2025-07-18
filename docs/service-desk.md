@@ -218,7 +218,7 @@ Different SLA policies based on:
 ### API Integration
 - **REST API**: Full CRUD operations via REST endpoints
 - **Webhooks**: Real-time notifications to external systems
-- **SSO Integration**: SAML, OAuth, Active Directory integration
+- **SSO Integration**: SAML, OAuth integration
 - **Third-party Tools**: Integration with monitoring, ITSM, and business tools
 
 ### Example Webhook Configuration

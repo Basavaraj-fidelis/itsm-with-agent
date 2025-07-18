@@ -3,11 +3,11 @@ import { Router } from "express";
 
 const router = Router();
 
-// AD integration has been removed
+// AD integration completely removed
 router.all('*', (req, res) => {
-  res.status(410).json({ 
-    message: "Active Directory integration has been removed",
-    error: "AD_INTEGRATION_DISABLED" 
+  res.status(404).json({ 
+    message: "Active Directory endpoints no longer exist",
+    error: "AD_REMOVED" 
   });
 });
 
