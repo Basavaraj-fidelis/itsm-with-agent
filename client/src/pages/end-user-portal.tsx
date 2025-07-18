@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EnhancedErrorBoundary } from "@/components/ui/enhanced-error-boundary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -347,8 +348,13 @@ export default function EndUserPortal() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
+    <EnhancedErrorBoundary 
+      context="End User Portal"
+      allowRetry={true}
+      showReportButton={true}
+    >
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        {/* Header */}
       <div className="bg-white dark:bg-gray-800 shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -613,5 +619,6 @@ export default function EndUserPortal() {
         </Tabs>
       </div>
     </div>
+    </EnhancedErrorBoundary>
   );
 }
