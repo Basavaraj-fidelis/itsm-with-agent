@@ -853,7 +853,7 @@ var init_storage = __esm({
               return;
             }
             console.log("Creating demo users...");
-            const bcrypt4 = await import("bcrypt");
+            const bcrypt3 = await import("bcrypt");
             const demoUsers = [
               {
                 email: "admin@company.com",
@@ -861,7 +861,7 @@ var init_storage = __esm({
                 name: "System Administrator",
                 first_name: "System",
                 last_name: "Administrator",
-                password_hash: await bcrypt4.hash("admin123", 10),
+                password_hash: await bcrypt3.hash("admin123", 10),
                 role: "admin",
                 department: "IT",
                 phone: "+1-555-0101",
@@ -875,7 +875,7 @@ var init_storage = __esm({
                 name: "IT Manager",
                 first_name: "IT",
                 last_name: "Manager",
-                password_hash: await bcrypt4.hash("demo123", 10),
+                password_hash: await bcrypt3.hash("demo123", 10),
                 role: "manager",
                 department: "IT",
                 phone: "+1-555-0102",
@@ -889,7 +889,7 @@ var init_storage = __esm({
                 name: "Senior Technician",
                 first_name: "Senior",
                 last_name: "Technician",
-                password_hash: await bcrypt4.hash("tech123", 10),
+                password_hash: await bcrypt3.hash("tech123", 10),
                 role: "technician",
                 department: "IT Support",
                 phone: "+1-555-0103",
@@ -903,7 +903,7 @@ var init_storage = __esm({
                 name: "End User",
                 first_name: "End",
                 last_name: "User",
-                password_hash: await bcrypt4.hash("demo123", 10),
+                password_hash: await bcrypt3.hash("demo123", 10),
                 role: "user",
                 department: "Sales",
                 phone: "+1-555-0104",
@@ -950,14 +950,14 @@ var init_storage = __esm({
               console.log("Demo users already exist in memory");
               return;
             }
-            const bcrypt4 = await import("bcrypt");
+            const bcrypt3 = await import("bcrypt");
             const memoryUsers = [
               {
                 id: "1",
                 email: "admin@company.com",
                 username: "admin",
                 name: "System Administrator",
-                password_hash: await bcrypt4.hash("admin123", 10),
+                password_hash: await bcrypt3.hash("admin123", 10),
                 role: "admin",
                 department: "IT",
                 phone: "+1-555-0101",
@@ -970,7 +970,7 @@ var init_storage = __esm({
                 email: "manager@company.com",
                 username: "manager",
                 name: "IT Manager",
-                password_hash: await bcrypt4.hash("demo123", 10),
+                password_hash: await bcrypt3.hash("demo123", 10),
                 role: "manager",
                 department: "IT",
                 phone: "+1-555-0102",
@@ -983,7 +983,7 @@ var init_storage = __esm({
                 email: "tech@company.com",
                 username: "tech",
                 name: "Senior Technician",
-                password_hash: await bcrypt4.hash("tech123", 10),
+                password_hash: await bcrypt3.hash("tech123", 10),
                 role: "technician",
                 department: "IT Support",
                 phone: "+1-555-0103",
@@ -996,7 +996,7 @@ var init_storage = __esm({
                 email: "user@company.com",
                 username: "enduser",
                 name: "End User",
-                password_hash: await bcrypt4.hash("demo123", 10),
+                password_hash: await bcrypt3.hash("demo123", 10),
                 role: "user",
                 department: "Sales",
                 phone: "+1-555-0104",
@@ -6093,9 +6093,18 @@ var init_auth = __esm({
        */
       static verifyToken(token) {
         try {
+          if (!token) {
+            throw new Error("No token provided");
+          }
           return jwt.verify(token, JWT_SECRET);
         } catch (error) {
-          throw new Error("Invalid token");
+          if (error.name === "TokenExpiredError") {
+            throw new Error("Token expired");
+          }
+          if (error.name === "JsonWebTokenError") {
+            throw new Error("Invalid token format");
+          }
+          throw new Error("Token verification failed");
         }
       }
       /**
@@ -6296,447 +6305,6 @@ var init_response = __esm({
         return res.send(data);
       }
     };
-  }
-});
-
-// server/services/ad-service.ts
-var ad_service_exports = {};
-__export(ad_service_exports, {
-  ActiveDirectoryService: () => ActiveDirectoryService,
-  adService: () => adService
-});
-import { Client } from "ldapjs";
-import bcrypt from "bcryptjs";
-var ActiveDirectoryService, adService;
-var init_ad_service = __esm({
-  "server/services/ad-service.ts"() {
-    "use strict";
-    ActiveDirectoryService = class {
-      config;
-      constructor(customConfig) {
-        this.config = {
-          enabled: process.env.AD_ENABLED === "true" || false,
-          url: process.env.AD_URL || "ldap://192.168.1.195:389",
-          bindDN: process.env.AD_BIND_DN || "CN=test,CN=Users,DC=fidelisgroup,DC=local",
-          bindCredentials: process.env.AD_BIND_PASSWORD || "Fidelis@123",
-          searchBase: process.env.AD_SEARCH_BASE || "CN=Users,DC=fidelisgroup,DC=local",
-          userFilter: process.env.AD_USER_FILTER || "(sAMAccountName={{username}})",
-          groupFilter: process.env.AD_GROUP_FILTER || "(objectClass=group)",
-          useTLS: process.env.AD_USE_TLS === "true" || false,
-          timeout: parseInt(process.env.AD_TIMEOUT || "30000"),
-          ...customConfig
-        };
-      }
-      updateConfig(newConfig) {
-        this.config = { ...this.config, ...newConfig };
-      }
-      async testConnection(testConfig) {
-        const config = testConfig ? { ...this.config, ...testConfig } : this.config;
-        const client = new Client({
-          url: config.url,
-          timeout: config.timeout,
-          connectTimeout: config.timeout
-        });
-        try {
-          await new Promise((resolve, reject) => {
-            client.bind(config.bindDN, config.bindCredentials, (err) => {
-              if (err) {
-                reject(new Error(`Authentication failed: ${err.message}`));
-              } else {
-                resolve();
-              }
-            });
-          });
-          await new Promise((resolve, reject) => {
-            client.search(config.searchBase, {
-              filter: "(objectClass=*)",
-              scope: "base",
-              attributes: ["dn"]
-            }, (err, res) => {
-              if (err) {
-                reject(new Error(`Search test failed: ${err.message}`));
-                return;
-              }
-              res.on("searchEntry", () => {
-                resolve();
-              });
-              res.on("error", (error) => {
-                reject(new Error(`Search error: ${error.message}`));
-              });
-              res.on("end", (result) => {
-                if (result?.status !== 0) {
-                  reject(new Error("Search test failed - no results"));
-                }
-              });
-            });
-          });
-          client.unbind();
-          return {
-            connected: true,
-            message: "Successfully connected to Active Directory",
-            serverInfo: {
-              domain: this.extractDomainFromDN(config.searchBase),
-              version: "Active Directory"
-            }
-          };
-        } catch (error) {
-          client.unbind();
-          console.error("AD Connection test failed:", error);
-          return {
-            connected: false,
-            message: error.message || "Failed to connect to Active Directory"
-          };
-        }
-      }
-      async authenticateUser(username2, password) {
-        if (!this.config.enabled) {
-          throw new Error("Active Directory is not enabled");
-        }
-        const client = new Client({ url: this.config.url });
-        try {
-          await new Promise((resolve, reject) => {
-            client.bind(this.config.bindDN, this.config.bindCredentials, (err) => {
-              if (err) reject(err);
-              else resolve();
-            });
-          });
-          const searchFilter = this.config.userFilter.replace("{{username}}", username2);
-          const searchOptions = {
-            filter: searchFilter,
-            scope: "sub",
-            attributes: [
-              "sAMAccountName",
-              "mail",
-              "givenName",
-              "sn",
-              "displayName",
-              "department",
-              "title",
-              "memberOf",
-              "userPrincipalName",
-              "dn"
-            ]
-          };
-          const searchResult = await new Promise((resolve, reject) => {
-            const entries = [];
-            client.search(this.config.searchBase, searchOptions, (err, res) => {
-              if (err) {
-                reject(err);
-                return;
-              }
-              res.on("searchEntry", (entry) => {
-                entries.push(entry.object);
-              });
-              res.on("error", (err2) => {
-                reject(err2);
-              });
-              res.on("end", () => {
-                if (entries.length === 0) {
-                  reject(new Error("User not found"));
-                } else {
-                  resolve(entries[0]);
-                }
-              });
-            });
-          });
-          const userDN = searchResult.dn;
-          await new Promise((resolve, reject) => {
-            client.bind(userDN, password, (err) => {
-              if (err) reject(new Error("Invalid credentials"));
-              else resolve();
-            });
-          });
-          const adUser = {
-            username: searchResult.sAMAccountName || searchResult.userPrincipalName,
-            email: searchResult.mail,
-            firstName: searchResult.givenName || "",
-            lastName: searchResult.sn || "",
-            displayName: searchResult.displayName || "",
-            department: searchResult.department || "",
-            title: searchResult.title || "",
-            groups: Array.isArray(searchResult.memberOf) ? searchResult.memberOf : [searchResult.memberOf || ""],
-            dn: searchResult.dn
-          };
-          return adUser;
-        } catch (error) {
-          console.error("AD Authentication error:", error);
-          return null;
-        } finally {
-          client.unbind();
-        }
-      }
-      async getUserByUsername(username2) {
-        if (!this.config.enabled) {
-          throw new Error("Active Directory is not enabled");
-        }
-        const client = new Client({ url: this.config.url });
-        try {
-          await new Promise((resolve, reject) => {
-            client.bind(this.config.bindDN, this.config.bindCredentials, (err) => {
-              if (err) reject(err);
-              else resolve();
-            });
-          });
-          const searchFilter = this.config.userFilter.replace("{{username}}", username2);
-          const searchOptions = {
-            filter: searchFilter,
-            scope: "sub",
-            attributes: [
-              "sAMAccountName",
-              "mail",
-              "givenName",
-              "sn",
-              "displayName",
-              "department",
-              "title",
-              "memberOf",
-              "userPrincipalName",
-              "dn"
-            ]
-          };
-          const searchResult = await new Promise((resolve, reject) => {
-            const entries = [];
-            client.search(this.config.searchBase, searchOptions, (err, res) => {
-              if (err) {
-                reject(err);
-                return;
-              }
-              res.on("searchEntry", (entry) => {
-                entries.push(entry.object);
-              });
-              res.on("error", (err2) => {
-                reject(err2);
-              });
-              res.on("end", () => {
-                if (entries.length === 0) {
-                  resolve(null);
-                } else {
-                  resolve(entries[0]);
-                }
-              });
-            });
-          });
-          if (!searchResult) {
-            return null;
-          }
-          const adUser = {
-            username: searchResult.sAMAccountName || searchResult.userPrincipalName,
-            email: searchResult.mail,
-            firstName: searchResult.givenName || "",
-            lastName: searchResult.sn || "",
-            displayName: searchResult.displayName || "",
-            department: searchResult.department || "",
-            title: searchResult.title || "",
-            groups: Array.isArray(searchResult.memberOf) ? searchResult.memberOf : [searchResult.memberOf || ""],
-            dn: searchResult.dn
-          };
-          return adUser;
-        } catch (error) {
-          console.error("AD User lookup error:", error);
-          return null;
-        } finally {
-          client.unbind();
-        }
-      }
-      async getAllUsers() {
-        if (!this.config.enabled) {
-          throw new Error("Active Directory is not enabled");
-        }
-        const client = new Client({ url: this.config.url });
-        try {
-          await new Promise((resolve, reject) => {
-            client.bind(this.config.bindDN, this.config.bindCredentials, (err) => {
-              if (err) reject(err);
-              else resolve();
-            });
-          });
-          const searchOptions = {
-            filter: "(&(objectClass=user)(mail=*))",
-            // Users with email addresses
-            scope: "sub",
-            attributes: [
-              "sAMAccountName",
-              "mail",
-              "givenName",
-              "sn",
-              "displayName",
-              "department",
-              "title",
-              "memberOf",
-              "userPrincipalName",
-              "dn"
-            ]
-          };
-          const searchResults = await new Promise((resolve, reject) => {
-            const entries = [];
-            client.search(this.config.searchBase, searchOptions, (err, res) => {
-              if (err) {
-                reject(err);
-                return;
-              }
-              res.on("searchEntry", (entry) => {
-                entries.push(entry.object);
-              });
-              res.on("error", (err2) => {
-                reject(err2);
-              });
-              res.on("end", () => {
-                resolve(entries);
-              });
-            });
-          });
-          const adUsers = searchResults.map((result) => ({
-            username: result.sAMAccountName || result.userPrincipalName,
-            email: result.mail,
-            firstName: result.givenName || "",
-            lastName: result.sn || "",
-            displayName: result.displayName || "",
-            department: result.department || "",
-            title: result.title || "",
-            groups: Array.isArray(result.memberOf) ? result.memberOf : [result.memberOf || ""],
-            dn: result.dn
-          }));
-          return adUsers;
-        } catch (error) {
-          console.error("AD Users lookup error:", error);
-          return [];
-        } finally {
-          client.unbind();
-        }
-      }
-      async getGroups() {
-        if (!this.config.enabled) {
-          throw new Error("Active Directory is not enabled");
-        }
-        const client = new Client({ url: this.config.url });
-        try {
-          await new Promise((resolve, reject) => {
-            client.bind(this.config.bindDN, this.config.bindCredentials, (err) => {
-              if (err) reject(err);
-              else resolve();
-            });
-          });
-          const searchOptions = {
-            filter: this.config.groupFilter,
-            scope: "sub",
-            attributes: ["cn", "dn", "description", "member"]
-          };
-          const searchResults = await new Promise((resolve, reject) => {
-            const entries = [];
-            client.search(this.config.searchBase.replace("OU=Users", "OU=Groups"), searchOptions, (err, res) => {
-              if (err) {
-                reject(err);
-                return;
-              }
-              res.on("searchEntry", (entry) => {
-                entries.push(entry.object);
-              });
-              res.on("error", (err2) => {
-                reject(err2);
-              });
-              res.on("end", () => {
-                resolve(entries);
-              });
-            });
-          });
-          const adGroups = searchResults.map((result) => ({
-            name: result.cn,
-            dn: result.dn,
-            description: result.description || "",
-            members: Array.isArray(result.member) ? result.member : [result.member || ""]
-          }));
-          return adGroups;
-        } catch (error) {
-          console.error("AD Groups lookup error:", error);
-          return [];
-        } finally {
-          client.unbind();
-        }
-      }
-      async syncUserToDatabase(adUser) {
-        try {
-          const { storage: storage3 } = await import("./storage");
-          let existingUser = await storage3.getUserByEmail(adUser.email);
-          if (existingUser) {
-            const updatedUser = await storage3.updateUser(existingUser.id, {
-              name: adUser.displayName || `${adUser.firstName} ${adUser.lastName}`.trim(),
-              department: adUser.department,
-              role: this.mapADGroupsToRole(adUser.groups),
-              is_active: true,
-              updated_at: /* @__PURE__ */ new Date()
-            });
-            return updatedUser;
-          } else {
-            const newUser = await storage3.createUser({
-              name: adUser.displayName || `${adUser.firstName} ${adUser.lastName}`.trim(),
-              email: adUser.email,
-              password_hash: await bcrypt.hash(Math.random().toString(), 10),
-              // Dummy password for AD users
-              role: this.mapADGroupsToRole(adUser.groups),
-              department: adUser.department,
-              phone: "",
-              is_active: true
-            });
-            return newUser;
-          }
-        } catch (error) {
-          console.error("Error syncing AD user to database:", error);
-          throw error;
-        }
-      }
-      mapADGroupsToRole(groups2) {
-        const groupMappings = {
-          // IT Team - Admin and Technician roles
-          "CN=IT-team,OU=Groups,DC=company,DC=com": "admin",
-          "CN=IT-Admins,OU=Groups,DC=company,DC=com": "admin",
-          "CN=IT-Support,OU=Groups,DC=company,DC=com": "technician",
-          "CN=IT-Helpdesk,OU=Groups,DC=company,DC=com": "technician",
-          // Finance Team - Manager role for leads, end_user for others
-          "CN=Finance-team,OU=Groups,DC=company,DC=com": "end_user",
-          "CN=Finance-Managers,OU=Groups,DC=company,DC=com": "manager",
-          // HR Team - Manager role for leads, end_user for others
-          "CN=HR-team,OU=Groups,DC=company,DC=com": "end_user",
-          "CN=HR-Managers,OU=Groups,DC=company,DC=com": "manager",
-          // Department specific groups
-          "CN=Department-Managers,OU=Groups,DC=company,DC=com": "manager",
-          "CN=Team-Leads,OU=Groups,DC=company,DC=com": "manager",
-          // Legacy mappings (keeping for compatibility)
-          "CN=ITSM-Admins,OU=Groups,DC=company,DC=com": "admin",
-          "CN=ITSM-Managers,OU=Groups,DC=company,DC=com": "manager",
-          "CN=ITSM-Technicians,OU=Groups,DC=company,DC=com": "technician"
-        };
-        for (const group of groups2) {
-          if (groupMappings[group]) {
-            return groupMappings[group];
-          }
-        }
-        for (const group of groups2) {
-          const groupLower = group.toLowerCase();
-          if (groupLower.includes("it-team") || groupLower.includes("it-support")) {
-            return "technician";
-          }
-          if (groupLower.includes("admin")) {
-            return "admin";
-          }
-          if (groupLower.includes("manager") || groupLower.includes("lead")) {
-            return "manager";
-          }
-        }
-        return "end_user";
-      }
-      extractDomainFromDN(dn) {
-        const dcParts = dn.match(/DC=([^,]+)/g);
-        if (dcParts) {
-          return dcParts.map((dc) => dc.replace("DC=", "")).join(".");
-        }
-        return "Unknown";
-      }
-      async validateConnection() {
-        const result = await this.testConnection();
-        return result.connected;
-      }
-    };
-    adService = new ActiveDirectoryService();
   }
 });
 
@@ -7257,248 +6825,12 @@ var init_automation_routes = __esm({
   }
 });
 
-// server/routes/ad-routes.ts
-var ad_routes_exports = {};
-__export(ad_routes_exports, {
-  adRoutes: () => router4
-});
-import { Router as Router4 } from "express";
-var router4;
-var init_ad_routes = __esm({
-  "server/routes/ad-routes.ts"() {
-    "use strict";
-    init_ad_service();
-    router4 = Router4();
-    router4.post("/configure", async (req, res) => {
-      try {
-        const config = req.body;
-        adService.updateConfig(config);
-        res.json({
-          message: "Active Directory configuration updated successfully",
-          configured: true
-        });
-      } catch (error) {
-        res.status(500).json({
-          message: "Error updating AD configuration",
-          error: error.message
-        });
-      }
-    });
-    router4.post("/test-connection", async (req, res) => {
-      try {
-        const testConfig = req.body;
-        const result = await adService.testConnection(testConfig);
-        res.json(result);
-      } catch (error) {
-        res.status(500).json({
-          connected: false,
-          message: "Error testing AD connection",
-          error: error.message
-        });
-      }
-    });
-    router4.get("/test-connection", async (req, res) => {
-      try {
-        const result = await adService.testConnection();
-        res.json(result);
-      } catch (error) {
-        res.status(500).json({
-          connected: false,
-          message: "Error testing AD connection",
-          error: error.message
-        });
-      }
-    });
-    router4.post("/sync-user", async (req, res) => {
-      try {
-        const { username: username2 } = req.body;
-        if (!username2) {
-          return res.status(400).json({ message: "Username is required" });
-        }
-        const adUser = await adService.getUserByUsername(username2);
-        if (!adUser) {
-          return res.status(404).json({
-            message: `User '${username2}' not found in Active Directory`
-          });
-        }
-        const localUser = await adService.syncUserToDatabase(adUser);
-        res.json({
-          message: `User '${username2}' synced successfully`,
-          user: {
-            username: adUser.username,
-            email: adUser.email,
-            displayName: adUser.displayName,
-            department: adUser.department,
-            role: localUser.role
-          }
-        });
-      } catch (error) {
-        res.status(500).json({
-          message: "Error syncing user from AD",
-          error: error.message
-        });
-      }
-    });
-    router4.post("/sync-all-users", async (req, res) => {
-      try {
-        const adUsers = await adService.getAllUsers();
-        const syncedUsers = [];
-        let successCount = 0;
-        let errorCount = 0;
-        for (const adUser of adUsers) {
-          try {
-            const localUser = await adService.syncUserToDatabase(adUser);
-            syncedUsers.push({
-              username: adUser.username,
-              email: adUser.email,
-              displayName: adUser.displayName,
-              department: adUser.department,
-              role: localUser.role
-            });
-            successCount++;
-          } catch (error) {
-            console.error(`Failed to sync user ${adUser.username}:`, error);
-            errorCount++;
-          }
-        }
-        res.json({
-          message: `Bulk sync completed: ${successCount} users synced successfully, ${errorCount} errors`,
-          syncedCount: successCount,
-          errorCount,
-          users: syncedUsers
-        });
-      } catch (error) {
-        res.status(500).json({
-          message: "Error during bulk user sync",
-          error: error.message
-        });
-      }
-    });
-    router4.get("/groups", async (req, res) => {
-      try {
-        const groups2 = await adService.getGroups();
-        res.json(groups2.map((group) => ({
-          name: group.name,
-          dn: group.dn,
-          description: group.description,
-          memberCount: group.members.length
-        })));
-      } catch (error) {
-        res.status(500).json({
-          message: "Error fetching AD groups",
-          error: error.message
-        });
-      }
-    });
-    router4.get("/config", async (req, res) => {
-      try {
-        const config = {
-          server: process.env.AD_SERVER || "",
-          baseDN: process.env.AD_BASE_DN || "",
-          bindDN: process.env.AD_BIND_DN || "",
-          enabled: !!process.env.AD_ENABLED
-        };
-        res.json(config);
-      } catch (error) {
-        console.error("Error getting AD config:", error);
-        res.status(500).json({ error: "Failed to get AD configuration" });
-      }
-    });
-    router4.get("/sync-history", async (req, res) => {
-      try {
-        const mockHistory = [
-          {
-            type: "Manual Sync",
-            scope: "All Users",
-            summary: "Synced 25 users, 3 new, 2 updated",
-            timestamp: new Date(Date.now() - 2 * 60 * 1e3),
-            initiated_by: "admin@company.com",
-            status: "success",
-            duration: 1250,
-            errors: []
-          },
-          {
-            type: "Scheduled Sync",
-            scope: "Daily",
-            summary: "Synced 25 users, 0 new, 1 updated",
-            timestamp: new Date(Date.now() - 24 * 60 * 60 * 1e3),
-            initiated_by: "system",
-            status: "success",
-            duration: 890,
-            errors: []
-          }
-        ];
-        res.json(mockHistory);
-      } catch (error) {
-        console.error("Error getting sync history:", error);
-        res.status(500).json({ error: "Failed to get sync history" });
-      }
-    });
-    router4.get("/group-mappings", async (req, res) => {
-      try {
-        const mockMappings = [
-          { ad_group: "IT-Admins", system_role: "admin", user_count: 3 },
-          { ad_group: "IT-Support", system_role: "technician", user_count: 8 },
-          { ad_group: "Managers", system_role: "manager", user_count: 12 },
-          { ad_group: "Employees", system_role: "user", user_count: 45 }
-        ];
-        res.json(mockMappings);
-      } catch (error) {
-        console.error("Error getting group mappings:", error);
-        res.status(500).json({ error: "Failed to get group mappings" });
-      }
-    });
-    router4.get("/real-time-status", async (req, res) => {
-      try {
-        const mockStatus = {
-          status: "idle",
-          last_sync: new Date(Date.now() - 2 * 60 * 1e3),
-          synced_users: 68,
-          total_users: 70,
-          conflicts: 0,
-          current_operation: null,
-          progress: 0
-        };
-        res.json(mockStatus);
-      } catch (error) {
-        console.error("Error getting real-time status:", error);
-        res.status(500).json({ error: "Failed to get real-time status" });
-      }
-    });
-    router4.get("/orphaned-accounts", async (req, res) => {
-      try {
-        const mockOrphaned = [];
-        res.json(mockOrphaned);
-      } catch (error) {
-        console.error("Error getting orphaned accounts:", error);
-        res.status(500).json({ error: "Failed to get orphaned accounts" });
-      }
-    });
-    router4.post("/scheduled-sync", async (req, res) => {
-      try {
-        const { enabled, interval, time, sync_users, sync_groups } = req.body;
-        console.log("Scheduled sync settings updated:", {
-          enabled,
-          interval,
-          time,
-          sync_users,
-          sync_groups
-        });
-        res.json({ message: "Scheduled sync settings saved successfully" });
-      } catch (error) {
-        console.error("Error saving scheduled sync settings:", error);
-        res.status(500).json({ error: "Failed to save scheduled sync settings" });
-      }
-    });
-  }
-});
-
 // server/routes/agent-download-routes.ts
 var agent_download_routes_exports = {};
 __export(agent_download_routes_exports, {
   default: () => agent_download_routes_default
 });
-import { Router as Router5 } from "express";
+import { Router as Router4 } from "express";
 import path from "path";
 import fs from "fs";
 import archiver from "archiver";
@@ -7588,13 +6920,13 @@ For technical support, contact your system administrator.`;
       return baseInstructions;
   }
 }
-var router5, JWT_SECRET3, agent_download_routes_default;
+var router4, JWT_SECRET3, agent_download_routes_default;
 var init_agent_download_routes = __esm({
   "server/routes/agent-download-routes.ts"() {
     "use strict";
-    router5 = Router5();
+    router4 = Router4();
     JWT_SECRET3 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-    router5.get("/:platform", async (req, res) => {
+    router4.get("/:platform", async (req, res) => {
       try {
         const { platform } = req.params;
         console.log(`${platform} agent download requested - no auth required`);
@@ -7660,7 +6992,7 @@ var init_agent_download_routes = __esm({
         }
       }
     });
-    agent_download_routes_default = router5;
+    agent_download_routes_default = router4;
   }
 });
 
@@ -11395,9 +10727,9 @@ var analytics_routes_exports = {};
 __export(analytics_routes_exports, {
   default: () => analytics_routes_default
 });
-import { Router as Router6 } from "express";
+import { Router as Router5 } from "express";
 import { sql as sql8, desc as desc8 } from "drizzle-orm";
-var router6, authenticateToken, analytics_routes_default;
+var router5, authenticateToken, analytics_routes_default;
 var init_analytics_routes = __esm({
   "server/routes/analytics-routes.ts"() {
     "use strict";
@@ -11410,7 +10742,7 @@ var init_analytics_routes = __esm({
     init_db();
     init_schema();
     init_ticket_schema();
-    router6 = Router6();
+    router5 = Router5();
     authenticateToken = async (req, res, next) => {
       const authHeader = req.headers["authorization"];
       const token = AuthUtils.extractTokenFromHeader(authHeader || "");
@@ -11434,7 +10766,7 @@ var init_analytics_routes = __esm({
         return ResponseUtils.forbidden(res, "Invalid token");
       }
     };
-    router6.get("/performance", authenticateToken, async (req, res) => {
+    router5.get("/performance", authenticateToken, async (req, res) => {
       try {
         const { timeRange = "7d" } = req.query;
         console.log(`Generating performance report for timeRange: ${timeRange}`);
@@ -11466,7 +10798,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/availability", authenticateToken, async (req, res) => {
+    router5.get("/availability", authenticateToken, async (req, res) => {
       try {
         const { timeRange = "7d" } = req.query;
         console.log(`Generating availability report for timeRange: ${timeRange}`);
@@ -11498,7 +10830,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/inventory", async (req, res) => {
+    router5.get("/inventory", async (req, res) => {
       try {
         console.log("Generating system inventory report");
         const data = await analyticsService.generateSystemInventory();
@@ -11527,7 +10859,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/asset-inventory", async (req, res) => {
+    router5.get("/asset-inventory", async (req, res) => {
       try {
         console.log("Generating comprehensive asset inventory report");
         const data = await analyticsService.generateAssetInventoryReport();
@@ -11556,7 +10888,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/ticket-analytics", async (req, res) => {
+    router5.get("/ticket-analytics", async (req, res) => {
       try {
         const { timeRange = "30d" } = req.query;
         console.log(`Generating ticket analytics report for ${timeRange}`);
@@ -11588,7 +10920,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/system-health", async (req, res) => {
+    router5.get("/system-health", async (req, res) => {
       try {
         console.log("Generating comprehensive system health report");
         const data = await analyticsService.generateSystemHealthReport();
@@ -11617,7 +10949,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/security-compliance", async (req, res) => {
+    router5.get("/security-compliance", async (req, res) => {
       try {
         console.log("Generating comprehensive security compliance report");
         const data = await analyticsService.generateSecurityComplianceReport();
@@ -11646,7 +10978,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.post("/generate", async (req, res) => {
+    router5.post("/generate", async (req, res) => {
       req.setTimeout(45e3);
       try {
         const { reportType, timeRange = "7d", format: format2 = "docx" } = req.body;
@@ -11785,7 +11117,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/realtime", async (req, res) => {
+    router5.get("/realtime", async (req, res) => {
       req.setTimeout(2e3);
       try {
         console.log("Fetching real-time performance metrics...");
@@ -11813,7 +11145,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/trends", async (req, res) => {
+    router5.get("/trends", async (req, res) => {
       try {
         const { metric = "cpu", timeRange = "7d" } = req.query;
         console.log(`Generating trend analysis for ${metric} over ${timeRange}`);
@@ -11833,7 +11165,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/capacity", async (req, res) => {
+    router5.get("/capacity", async (req, res) => {
       try {
         console.log("Generating capacity planning recommendations...");
         const recommendations = await analyticsService.getCapacityRecommendations();
@@ -11849,7 +11181,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/recent", async (req, res) => {
+    router5.get("/recent", async (req, res) => {
       req.setTimeout(5e3);
       try {
         console.log("Fetching recent reports from database...");
@@ -11900,7 +11232,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/report/:id", async (req, res) => {
+    router5.get("/report/:id", async (req, res) => {
       try {
         const { id } = req.params;
         console.log(`Fetching report with ID: ${id}`);
@@ -11923,7 +11255,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.post("/comprehensive", async (req, res) => {
+    router5.post("/comprehensive", async (req, res) => {
       req.setTimeout(2e4);
       try {
         const {
@@ -12030,7 +11362,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.post("/enterprise-scale", async (req, res) => {
+    router5.post("/enterprise-scale", async (req, res) => {
       req.setTimeout(12e4);
       try {
         const {
@@ -12148,7 +11480,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.delete("/report/:id", async (req, res) => {
+    router5.delete("/report/:id", async (req, res) => {
       try {
         const { id } = req.params;
         console.log(`Deleting report with ID: ${id}`);
@@ -12171,7 +11503,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.post("/export-pdf", async (req, res) => {
+    router5.post("/export-pdf", async (req, res) => {
       try {
         const reportData = req.body;
         const htmlContent = `
@@ -12286,7 +11618,7 @@ var init_analytics_routes = __esm({
         res.status(500).json({ message: "Failed to generate PDF report" });
       }
     });
-    router6.get(
+    router5.get(
       "/performance/insights/:deviceId",
       authenticateToken,
       async (req, res) => {
@@ -12304,7 +11636,7 @@ var init_analytics_routes = __esm({
         }
       }
     );
-    router6.get(
+    router5.get(
       "/performance/predictions/:deviceId",
       authenticateToken,
       async (req, res) => {
@@ -12322,7 +11654,7 @@ var init_analytics_routes = __esm({
         }
       }
     );
-    router6.get("/performance/overview", async (req, res) => {
+    router5.get("/performance/overview", async (req, res) => {
       try {
         const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
         const devices2 = await storage3.getDevices();
@@ -12365,7 +11697,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/performance/trends", async (req, res) => {
+    router5.get("/performance/trends", async (req, res) => {
       try {
         const { timeRange = "24h" } = req.query;
         const trends = {
@@ -12387,7 +11719,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/health", async (req, res) => {
+    router5.get("/health", async (req, res) => {
       res.json({
         status: "ok",
         service: "analytics",
@@ -12400,14 +11732,14 @@ var init_analytics_routes = __esm({
         ]
       });
     });
-    router6.get("/test", async (req, res) => {
+    router5.get("/test", async (req, res) => {
       res.json({
         success: true,
         message: "Analytics routes are working",
         timestamp: (/* @__PURE__ */ new Date()).toISOString()
       });
     });
-    router6.get("/performance/insights/:deviceId", async (req, res) => {
+    router5.get("/performance/insights/:deviceId", async (req, res) => {
       try {
         const deviceId = req.params.deviceId;
         console.log(`Getting performance insights for device: ${deviceId}`);
@@ -12421,7 +11753,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/service-desk-report", async (req, res) => {
+    router5.get("/service-desk-report", async (req, res) => {
       try {
         const format2 = req.query.format || "json";
         const timeRange = req.query.timeRange || "30d";
@@ -12552,7 +11884,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/agents-detailed-report", async (req, res) => {
+    router5.get("/agents-detailed-report", async (req, res) => {
       try {
         const format2 = req.query.format || "json";
         const filters = {
@@ -12672,32 +12004,32 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    analytics_routes_default = router6;
+    analytics_routes_default = router5;
   }
 });
 
 // server/routes/user-routes.ts
 var user_routes_exports = {};
 __export(user_routes_exports, {
-  userRoutes: () => router7
+  userRoutes: () => router6
 });
-import { Router as Router7 } from "express";
-import bcrypt2 from "bcrypt";
+import { Router as Router6 } from "express";
+import bcrypt from "bcrypt";
 import multer from "multer";
 import csv from "csv-parser";
 import * as XLSX from "xlsx";
-var router7, upload;
+var router6, upload;
 var init_user_routes = __esm({
   "server/routes/user-routes.ts"() {
     "use strict";
     init_db();
-    router7 = Router7();
+    router6 = Router6();
     upload = multer({
       storage: multer.memoryStorage(),
       limits: { fileSize: 5 * 1024 * 124 }
       // 5MB limit
     });
-    router7.post("/import-end-users", upload.single("file"), async (req, res) => {
+    router6.post("/import-end-users", upload.single("file"), async (req, res) => {
       try {
         if (!req.file) {
           return res.status(400).json({ message: "No file uploaded" });
@@ -12747,7 +12079,7 @@ var init_user_routes = __esm({
             }
             const username2 = email.split("@")[0];
             const tempPassword = `TempPass${Math.random().toString(36).slice(-6)}!`;
-            const password_hash = await bcrypt2.hash(tempPassword, 10);
+            const password_hash = await bcrypt.hash(tempPassword, 10);
             let finalFirstName = firstName;
             let finalLastName = lastName;
             if (!firstName && !lastName && name) {
@@ -12796,7 +12128,23 @@ var init_user_routes = __esm({
         });
       }
     });
-    router7.get("/", async (req, res) => {
+    router6.get("/stats", async (req, res) => {
+      try {
+        const result = await pool.query(`
+      SELECT 
+        COUNT(*) as total_users,
+        COUNT(CASE WHEN is_active = true THEN 1 END) as active_users,
+        COUNT(CASE WHEN is_locked = true THEN 1 END) as locked_users,
+		COUNT(CASE WHEN is_active = false THEN 1 END) as inactive_users
+      FROM users
+    `);
+        res.json(result.rows[0]);
+      } catch (error) {
+        console.error("Error fetching user stats:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+    router6.get("/", async (req, res) => {
       try {
         const { search, role, department, status, page = 1, limit = 50, sync_source } = req.query;
         console.log("GET /api/users - Enhanced query with filters:", { search, role, department, status, sync_source });
@@ -12943,7 +12291,7 @@ var init_user_routes = __esm({
         });
       }
     });
-    router7.get("/departments", async (req, res) => {
+    router6.get("/departments", async (req, res) => {
       try {
         const result = await pool.query(`
       SELECT DISTINCT department 
@@ -12958,7 +12306,7 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to fetch departments" });
       }
     });
-    router7.post("/bulk-ad-sync", async (req, res) => {
+    router6.post("/bulk-ad-sync", async (req, res) => {
       try {
         const { userEmails } = req.body;
         if (!userEmails || !Array.isArray(userEmails)) {
@@ -12997,7 +12345,7 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to perform bulk AD sync" });
       }
     });
-    router7.get("/:id", async (req, res) => {
+    router6.get("/:id", async (req, res) => {
       try {
         const result = await pool.query(`
       SELECT 
@@ -13018,7 +12366,7 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to fetch user" });
       }
     });
-    router7.post("/", async (req, res) => {
+    router6.post("/", async (req, res) => {
       try {
         const { email, name, first_name, last_name, role, password, department, phone } = req.body;
         if (!email || !name && !first_name) {
@@ -13044,7 +12392,7 @@ var init_user_routes = __esm({
           return res.status(400).json({ message: "User with this email or username already exists" });
         }
         const saltRounds = 10;
-        const password_hash = await bcrypt2.hash(password, saltRounds);
+        const password_hash = await bcrypt.hash(password, saltRounds);
         const result = await pool.query(`
       INSERT INTO users (
         email, username, first_name, last_name, role, 
@@ -13082,7 +12430,7 @@ var init_user_routes = __esm({
         });
       }
     });
-    router7.put("/:id", async (req, res) => {
+    router6.put("/:id", async (req, res) => {
       try {
         console.log("PUT /api/users/:id - Updating user:", req.params.id);
         console.log("Request body:", req.body);
@@ -13136,7 +12484,7 @@ var init_user_routes = __esm({
         ];
         if (password && password.trim()) {
           const saltRounds = 10;
-          const password_hash = await bcrypt2.hash(password, saltRounds);
+          const password_hash = await bcrypt.hash(password, saltRounds);
           updateQuery += `, password_hash = $10, last_password_change = NOW() WHERE id = $11`;
           values.push(password_hash, req.params.id);
         } else {
@@ -13170,7 +12518,7 @@ var init_user_routes = __esm({
         });
       }
     });
-    router7.delete("/:id", async (req, res) => {
+    router6.delete("/:id", async (req, res) => {
       try {
         const result = await pool.query(`
       UPDATE users 
@@ -13187,7 +12535,7 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to delete user" });
       }
     });
-    router7.post("/:id/lock", async (req, res) => {
+    router6.post("/:id/lock", async (req, res) => {
       try {
         const { reason } = req.body;
         const userId = req.params.id;
@@ -13246,7 +12594,7 @@ var init_user_routes = __esm({
         });
       }
     });
-    router7.post("/:id/unlock", async (req, res) => {
+    router6.post("/:id/unlock", async (req, res) => {
       try {
         const userId = req.params.id;
         console.log(`Attempting to unlock user ${userId}`);
@@ -13304,7 +12652,7 @@ var init_user_routes = __esm({
         });
       }
     });
-    router7.post("/change-password", async (req, res) => {
+    router6.post("/change-password", async (req, res) => {
       try {
         const { currentPassword, newPassword } = req.body;
         const authHeader = req.headers.authorization;
@@ -13330,12 +12678,12 @@ var init_user_routes = __esm({
         if (user.rows.length === 0) {
           return res.status(404).json({ message: "User not found" });
         }
-        const isValidPassword = await bcrypt2.compare(currentPassword, user.rows[0].password_hash);
+        const isValidPassword = await bcrypt.compare(currentPassword, user.rows[0].password_hash);
         if (!isValidPassword) {
           return res.status(400).json({ message: "Current password is incorrect" });
         }
         const saltRounds = 10;
-        const newPasswordHash = await bcrypt2.hash(newPassword, saltRounds);
+        const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
         await pool.query(`
       UPDATE users
       SET password_hash = $1, updated_at = NOW()
@@ -13353,12 +12701,12 @@ var init_user_routes = __esm({
 // server/routes/knowledge-routes.ts
 var knowledge_routes_exports = {};
 __export(knowledge_routes_exports, {
-  knowledgeRoutes: () => router8
+  knowledgeRoutes: () => router7
 });
-import { Router as Router8 } from "express";
+import { Router as Router7 } from "express";
 import { eq as eq9, and as and9, or as or8, sql as sql9, desc as desc9, ilike as ilike3, count as count5, like as like5 } from "drizzle-orm";
 import jwt4 from "jsonwebtoken";
-var router8, storage2, authenticateToken2;
+var router7, storage2, authenticateToken2;
 var init_knowledge_routes = __esm({
   "server/routes/knowledge-routes.ts"() {
     "use strict";
@@ -13366,7 +12714,7 @@ var init_knowledge_routes = __esm({
     init_ticket_schema();
     init_ticket_storage();
     init_knowledge_ai_service();
-    router8 = Router8();
+    router7 = Router7();
     storage2 = new TicketStorage();
     authenticateToken2 = (req, res, next) => {
       const authHeader = req.headers["authorization"];
@@ -13385,7 +12733,7 @@ var init_knowledge_routes = __esm({
         next();
       });
     };
-    router8.get("/", authenticateToken2, async (req, res) => {
+    router7.get("/", authenticateToken2, async (req, res) => {
       try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
@@ -13432,7 +12780,7 @@ var init_knowledge_routes = __esm({
         });
       }
     });
-    router8.get("/related", async (req, res) => {
+    router7.get("/related", async (req, res) => {
       try {
         const { tags, category, limit = "5", header, title } = req.query;
         console.log("Related articles request:", { tags, category, limit, header, title });
@@ -13500,7 +12848,7 @@ var init_knowledge_routes = __esm({
         });
       }
     });
-    router8.get("/related/:ticketId", async (req, res) => {
+    router7.get("/related/:ticketId", async (req, res) => {
       try {
         const { ticketId } = req.params;
         const ticket = await db.select().from(tickets).where(eq9(tickets.id, ticketId)).limit(1);
@@ -13575,7 +12923,7 @@ var init_knowledge_routes = __esm({
         res.status(500).json({ error: "Failed to fetch related articles", details: error.message });
       }
     });
-    router8.get("/:id", authenticateToken2, async (req, res) => {
+    router7.get("/:id", authenticateToken2, async (req, res) => {
       try {
         const article = await storage2.getKBArticleById(req.params.id);
         if (!article) {
@@ -13587,7 +12935,7 @@ var init_knowledge_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router8.post("/", authenticateToken2, async (req, res) => {
+    router7.post("/", authenticateToken2, async (req, res) => {
       try {
         const { title, content, category } = req.body;
         const newArticle = {
@@ -14558,7 +13906,7 @@ __export(sla_routes_exports, {
   default: () => sla_routes_default,
   registerSLARoutes: () => registerSLARoutes
 });
-import { Router as Router9 } from "express";
+import { Router as Router8 } from "express";
 function registerSLARoutes(app2) {
   app2.get("/api/sla/dashboard", async (req, res) => {
     try {
@@ -14773,14 +14121,14 @@ function registerSLARoutes(app2) {
     }
   });
 }
-var router9, sla_routes_default;
+var router8, sla_routes_default;
 var init_sla_routes = __esm({
   "server/routes/sla-routes.ts"() {
     "use strict";
     init_sla_escalation_service();
     init_sla_monitor_service();
-    router9 = Router9();
-    router9.get("/dashboard", async (req, res) => {
+    router8 = Router8();
+    router8.get("/dashboard", async (req, res) => {
       try {
         const { slaEscalationService: slaEscalationService2 } = await Promise.resolve().then(() => (init_sla_escalation_service(), sla_escalation_service_exports));
         const data = await slaEscalationService2.getSLADashboardData();
@@ -14790,7 +14138,7 @@ var init_sla_routes = __esm({
         res.status(500).json({ error: "Failed to fetch SLA dashboard data" });
       }
     });
-    router9.get("/metrics", async (req, res) => {
+    router8.get("/metrics", async (req, res) => {
       try {
         const { slaMonitorService: slaMonitorService2 } = await Promise.resolve().then(() => (init_sla_monitor_service(), sla_monitor_service_exports));
         const metrics = await slaMonitorService2.getSLAMetrics();
@@ -14800,7 +14148,7 @@ var init_sla_routes = __esm({
         res.status(500).json({ error: "Failed to fetch SLA metrics" });
       }
     });
-    sla_routes_default = router9;
+    sla_routes_default = router8;
   }
 });
 
@@ -14943,14 +14291,14 @@ var patch_routes_exports = {};
 __export(patch_routes_exports, {
   default: () => patch_routes_default
 });
-import { Router as Router11 } from "express";
-var router11, patch_routes_default;
+import { Router as Router9 } from "express";
+var router9, patch_routes_default;
 var init_patch_routes = __esm({
   "server/routes/patch-routes.ts"() {
     "use strict";
     init_patch_compliance_service();
-    router11 = Router11();
-    router11.get("/patch-compliance/dashboard", async (req, res) => {
+    router9 = Router9();
+    router9.get("/patch-compliance/dashboard", async (req, res) => {
       try {
         console.log("\u{1F4CA} Fetching patch compliance dashboard data...");
         console.log("Request timestamp:", (/* @__PURE__ */ new Date()).toISOString());
@@ -15069,7 +14417,7 @@ var init_patch_routes = __esm({
         }
       }
     });
-    router11.get("/patch-compliance/report/:deviceId?", async (req, res) => {
+    router9.get("/patch-compliance/report/:deviceId?", async (req, res) => {
       try {
         const { deviceId } = req.params;
         const reports = await patchComplianceService.getDashboardData();
@@ -15079,7 +14427,7 @@ var init_patch_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    router11.post("/patch-compliance/scan/:deviceId", async (req, res) => {
+    router9.post("/patch-compliance/scan/:deviceId", async (req, res) => {
       try {
         const { deviceId } = req.params;
         const result = await patchComplianceService.processPatchData(
@@ -15092,7 +14440,7 @@ var init_patch_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    router11.post("/patch-compliance/deploy", async (req, res) => {
+    router9.post("/patch-compliance/deploy", async (req, res) => {
       try {
         const deployment = req.body;
         const deploymentId = await patchComplianceService.createPatchDeployment(deployment);
@@ -15102,7 +14450,7 @@ var init_patch_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    router11.get("/patch-compliance/pending-applications", async (req, res) => {
+    router9.get("/patch-compliance/pending-applications", async (req, res) => {
       try {
         const pendingPatches = await patchComplianceService.getPendingApplicationPatches();
         res.json({ success: true, patches: pendingPatches });
@@ -15111,7 +14459,7 @@ var init_patch_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    patch_routes_default = router11;
+    patch_routes_default = router9;
   }
 });
 
@@ -15866,7 +15214,7 @@ function registerAgentRoutes(app2, authenticateToken4, requireRole2) {
 // server/routes.ts
 init_auth();
 init_response();
-import bcrypt3 from "bcrypt";
+import bcrypt2 from "bcrypt";
 import jwt5 from "jsonwebtoken";
 
 // server/utils/user.ts
@@ -15992,24 +15340,28 @@ var authenticateToken3 = async (req, res, next) => {
   try {
     const decoded = AuthUtils.verifyToken(token);
     console.log("Decoded token:", decoded);
-    const user = await AuthUtils.getUserById(decoded.userId || decoded.id);
-    if (user) {
-      const statusCheck2 = AuthUtils.validateUserStatus(user);
-      if (!statusCheck2.valid) {
-        return ResponseUtils.forbidden(res, statusCheck2.message);
-      }
-      req.user = user;
-      return next();
+    let user = null;
+    try {
+      user = await AuthUtils.getUserById(decoded.userId || decoded.id);
+    } catch (dbError) {
+      console.log("Database user lookup failed, trying file storage");
     }
-    const fileUser = await storage.getUserById(decoded.userId || decoded.id);
-    if (!fileUser) {
+    if (!user) {
+      try {
+        user = await storage.getUserById(decoded.userId || decoded.id);
+      } catch (fileError) {
+        console.error("Both database and file storage failed:", fileError);
+        return ResponseUtils.forbidden(res, "User not found");
+      }
+    }
+    if (!user) {
       return ResponseUtils.forbidden(res, "User not found");
     }
-    const statusCheck = AuthUtils.validateUserStatus(fileUser);
+    const statusCheck = AuthUtils.validateUserStatus(user);
     if (!statusCheck.valid) {
       return ResponseUtils.forbidden(res, statusCheck.message);
     }
-    req.user = fileUser;
+    req.user = user;
     next();
   } catch (error) {
     console.error("Token verification error:", error);
@@ -16042,52 +15394,10 @@ async function registerRoutes(app2) {
   }
   app2.post("/api/auth/login", async (req, res) => {
     try {
-      const { email, password, useActiveDirectory } = req.body;
-      console.log("Login attempt for:", email, "AD:", useActiveDirectory);
+      const { email, password } = req.body;
+      console.log("Login attempt for:", email);
       if (!email || !password) {
         return res.status(400).json({ message: "Email and password are required" });
-      }
-      if (useActiveDirectory) {
-        try {
-          const { adService: adService2 } = await Promise.resolve().then(() => (init_ad_service(), ad_service_exports));
-          const username2 = email.includes("@") ? email.split("@")[0] : email;
-          console.log("Attempting AD authentication for:", username2);
-          const adUser = await adService2.authenticateUser(username2, password);
-          if (adUser) {
-            const localUser = await adService2.syncUserToDatabase(adUser);
-            const token = jwt5.sign(
-              {
-                userId: localUser.id,
-                id: localUser.id,
-                email: localUser.email,
-                role: localUser.role,
-                authMethod: "ad"
-              },
-              JWT_SECRET4,
-              { expiresIn: "24h" }
-            );
-            console.log("AD login successful for:", email);
-            res.json({
-              message: "Login successful",
-              token,
-              user: {
-                id: localUser.id,
-                email: localUser.email,
-                name: localUser.name,
-                role: localUser.role,
-                department: localUser.department,
-                authMethod: "ad"
-              }
-            });
-            return;
-          } else {
-            console.log("AD authentication failed for:", username2);
-            return res.status(401).json({ message: "Invalid Active Directory credentials" });
-          }
-        } catch (adError) {
-          console.error("AD authentication error:", adError);
-          return res.status(500).json({ message: "Active Directory authentication failed" });
-        }
       }
       try {
         const { DatabaseUtils: DatabaseUtils2 } = await Promise.resolve().then(() => (init_database(), database_exports));
@@ -16124,7 +15434,7 @@ async function registerRoutes(app2) {
           return res.status(401).json({ message: "Account is inactive. Contact administrator." });
         }
         if (user.password_hash) {
-          const isValidPassword = await bcrypt3.compare(password, user.password_hash);
+          const isValidPassword = await bcrypt2.compare(password, user.password_hash);
           if (!isValidPassword) {
             return res.status(401).json({ message: "Invalid credentials" });
           }
@@ -16183,7 +15493,7 @@ async function registerRoutes(app2) {
       if (existingUsers.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
         return res.status(400).json({ message: "Email already exists" });
       }
-      const password_hash = await bcrypt3.hash(password, 10);
+      const password_hash = await bcrypt2.hash(password, 10);
       const userData = {
         name,
         email: email.toLowerCase(),
@@ -16290,14 +15600,6 @@ async function registerRoutes(app2) {
     }
   } catch (error) {
     console.warn("Automation routes not available:", error.message);
-  }
-  try {
-    const { adRoutes } = await Promise.resolve().then(() => (init_ad_routes(), ad_routes_exports));
-    if (adRoutes) {
-      app2.use("/api/ad", authenticateToken3, requireRole(["admin"]), adRoutes);
-    }
-  } catch (error) {
-    console.warn("AD routes not available:", error.message);
   }
   try {
     const agentDownloadRoutes = await Promise.resolve().then(() => (init_agent_download_routes(), agent_download_routes_exports));
@@ -16574,232 +15876,6 @@ init_ticket_schema();
 init_knowledge_routes();
 import { eq as eq12, desc as desc10 } from "drizzle-orm";
 
-// server/routes/agent-ad-sync-routes.ts
-import { Router as Router10 } from "express";
-
-// server/agent-tunnel-service.ts
-import { EventEmitter } from "events";
-var AgentTunnelService = class extends EventEmitter {
-  connections = /* @__PURE__ */ new Map();
-  registerAgent(agentId, ws, capabilities) {
-    const connection = {
-      agentId,
-      websocket: ws,
-      lastPing: /* @__PURE__ */ new Date(),
-      capabilities
-    };
-    this.connections.set(agentId, connection);
-    ws.on("message", (data) => {
-      try {
-        const message = JSON.parse(data.toString());
-        this.handleAgentMessage(agentId, message);
-      } catch (error) {
-        console.error(`Invalid message from agent ${agentId}:`, error);
-      }
-    });
-    ws.on("close", () => {
-      this.connections.delete(agentId);
-      console.log(`Agent ${agentId} disconnected`);
-    });
-    console.log(`Agent ${agentId} connected with capabilities:`, capabilities);
-  }
-  async executeRemoteCommand(agentId, command, params = {}) {
-    const connection = this.connections.get(agentId);
-    if (!connection) {
-      throw new Error(`Agent ${agentId} not connected`);
-    }
-    const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error("Command timeout"));
-      }, 3e4);
-      const responseHandler = (response) => {
-        if (response.requestId === requestId) {
-          clearTimeout(timeout);
-          this.removeListener("commandResponse", responseHandler);
-          if (response.success) {
-            resolve(response.data);
-          } else {
-            reject(new Error(response.error || "Command failed"));
-          }
-        }
-      };
-      this.on("commandResponse", responseHandler);
-      connection.websocket.send(JSON.stringify({
-        type: "command",
-        requestId,
-        command,
-        params
-      }));
-    });
-  }
-  handleAgentMessage(agentId, message) {
-    switch (message.type) {
-      case "ping":
-        const connection = this.connections.get(agentId);
-        if (connection) {
-          connection.lastPing = /* @__PURE__ */ new Date();
-          connection.websocket.send(JSON.stringify({ type: "pong" }));
-        }
-        break;
-      case "commandResponse":
-        this.emit("commandResponse", message);
-        break;
-      case "adSync":
-        this.handleADSync(agentId, message.data);
-        break;
-      default:
-        console.warn(`Unknown message type from agent ${agentId}:`, message.type);
-    }
-  }
-  async handleADSync(agentId, adData) {
-    try {
-      console.log(`Processing AD sync from agent ${agentId}:`, adData);
-      this.emit("adSyncReceived", { agentId, data: adData });
-    } catch (error) {
-      console.error(`Error processing AD sync from agent ${agentId}:`, error);
-    }
-  }
-  getConnectedAgents() {
-    return Array.from(this.connections.entries()).map(([agentId, connection]) => ({
-      agentId,
-      lastPing: connection.lastPing,
-      capabilities: connection.capabilities,
-      connected: true
-    }));
-  }
-  isAgentConnected(agentId) {
-    return this.connections.has(agentId);
-  }
-};
-var agentTunnelService = new AgentTunnelService();
-
-// server/routes/agent-ad-sync-routes.ts
-import expressWs from "express-ws";
-var router10 = Router10();
-var wsInstance = expressWs(router10);
-wsInstance.app.ws("/agent-tunnel/:agentId", (ws, req) => {
-  const agentId = req.params.agentId;
-  const capabilities = req.query.capabilities?.toString().split(",") || [];
-  agentTunnelService.registerAgent(agentId, ws, capabilities);
-});
-router10.post("/agents/:id/sync-ad", async (req, res) => {
-  try {
-    const agentId = req.params.id;
-    if (!agentTunnelService.isAgentConnected(agentId)) {
-      return res.status(404).json({
-        success: false,
-        message: "Agent not connected"
-      });
-    }
-    const adConfig = req.body.adConfig || {
-      server: "ldap://192.168.1.195:389",
-      searchBase: "CN=Users,DC=fidelisgroup,DC=local",
-      bindDN: "CN=test,CN=Users,DC=fidelisgroup,DC=local",
-      bindPassword: "Fidelis@123"
-    };
-    const result = await agentTunnelService.executeRemoteCommand(
-      agentId,
-      "syncAD",
-      {
-        config: adConfig,
-        syncUsers: true,
-        syncGroups: true
-      }
-    );
-    res.json({
-      success: true,
-      message: "AD sync initiated via agent",
-      data: result
-    });
-  } catch (error) {
-    console.error("Agent AD sync error:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Failed to sync AD via agent"
-    });
-  }
-});
-router10.get("/agents/:id/ad-status", async (req, res) => {
-  try {
-    const agentId = req.params.id;
-    if (!agentTunnelService.isAgentConnected(agentId)) {
-      return res.status(404).json({
-        success: false,
-        message: "Agent not connected"
-      });
-    }
-    const status = await agentTunnelService.executeRemoteCommand(
-      agentId,
-      "getADStatus"
-    );
-    res.json({
-      success: true,
-      status
-    });
-  } catch (error) {
-    console.error("Agent AD status error:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Failed to get AD status from agent"
-    });
-  }
-});
-router10.post("/agents/:id/test-ad", async (req, res) => {
-  try {
-    const agentId = req.params.id;
-    if (!agentTunnelService.isAgentConnected(agentId)) {
-      return res.status(404).json({
-        success: false,
-        message: "Agent not connected"
-      });
-    }
-    const adConfig = req.body;
-    const result = await agentTunnelService.executeRemoteCommand(
-      agentId,
-      "testADConnection",
-      adConfig
-    );
-    res.json({
-      success: true,
-      result
-    });
-  } catch (error) {
-    console.error("Agent AD test error:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Failed to test AD connection via agent"
-    });
-  }
-});
-router10.post("/agents/:id/remote-command", async (req, res) => {
-  try {
-    const agentId = req.params.id;
-    const { command, params } = req.body;
-    if (!agentTunnelService.isAgentConnected(agentId)) {
-      return res.status(404).json({
-        success: false,
-        message: "Agent not connected"
-      });
-    }
-    const result = await agentTunnelService.executeRemoteCommand(
-      agentId,
-      command,
-      params
-    );
-    res.json({
-      success: true,
-      result
-    });
-  } catch (error) {
-    console.error("Remote command error:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Failed to execute remote command"
-    });
-  }
-});
-
 // server/websocket-service.ts
 import WebSocket from "ws";
 var WebSocketService = class {
@@ -16887,9 +15963,9 @@ var webSocketService = new WebSocketService();
 
 // server/index.ts
 init_sla_escalation_service();
-import expressWs2 from "express-ws";
+import expressWs from "express-ws";
 var app = express2();
-var wsInstance2 = expressWs2(app);
+var wsInstance = expressWs(app);
 app.use(express2.json());
 app.use(express2.urlencoded({ extended: false }));
 app.use((req, res, next) => {
@@ -16970,7 +16046,7 @@ app.use((req, res, next) => {
     const server = await registerRoutes(app);
     const { registerSLARoutes: registerSLARoutes2 } = await Promise.resolve().then(() => (init_sla_routes(), sla_routes_exports));
     registerSLARoutes2(app);
-    app.use("/api/users", router7);
+    app.use("/api/users", router6);
     const { default: analyticsRoutes } = await Promise.resolve().then(() => (init_analytics_routes(), analytics_routes_exports));
     app.use("/api/analytics", analyticsRoutes);
     const patchRoutes = await Promise.resolve().then(() => (init_patch_routes(), patch_routes_exports));
@@ -17120,8 +16196,7 @@ app.use((req, res, next) => {
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    app.use("/api/knowledge", router8);
-    app.use("/api/agent-sync", router10);
+    app.use("/api/knowledge", router7);
     app.get("/api/health", (req, res) => {
       res.json({ status: "ok", timestamp: /* @__PURE__ */ new Date() });
     });
