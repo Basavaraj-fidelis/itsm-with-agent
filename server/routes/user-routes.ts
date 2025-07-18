@@ -34,7 +34,7 @@ router.post("/import-end-users", upload.single('file'), async (req, res) => {
     // Parse CSV files
     else if (filename.endsWith('.csv')) {
       const csvData = fileBuffer.toString('utf-8');
-      users = await new Promise((resolve, reject) => {
+      users = await new Promise(async (resolve, reject) => {
         const results: any[] = [];
         const { Readable } = await import('stream');
         const readable = new Readable();
