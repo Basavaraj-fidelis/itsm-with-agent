@@ -239,7 +239,10 @@ export default function EndUserPortal() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(loginData),
+        body: JSON.stringify({
+          email: loginData.email,
+          password: loginData.password
+        }),
       });
 
       if (response.ok) {
@@ -257,7 +260,7 @@ export default function EndUserPortal() {
         const error = await response.json();
         toast({
           title: "Login failed",
-          description: error.message || "Invalid email or password",
+          description: error.error || error.message || "Invalid email or password",
           variant: "destructive",
         });
       }

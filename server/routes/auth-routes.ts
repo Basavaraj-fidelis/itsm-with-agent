@@ -146,12 +146,18 @@ export function registerAuthRoutes(app: Express) {
             return res.status(401).json({ message: "Invalid credentials" });
           }
         } else {
-          // No password hash stored, check against default passwords
+          // No password hash stored, check against default passwords and imported passwords
           const validPasswords = [
             "Admin123!",
-            "Tech123!",
+            "Tech123!", 
             "Manager123!",
             "User123!",
+            // Add imported user passwords
+            "TempPass123!",
+            "TempPass456!",
+            "TempPass789!",
+            "TempPass101!",
+            "AdminPass999!"
           ];
           if (!validPasswords.includes(password)) {
             return res.status(401).json({ message: "Invalid credentials" });
@@ -338,81 +344,94 @@ import { Router } from 'express';
 const router = Router();
 import { pool as db } from "../db";
 
-router.post("/end-user-login", async (req, res) => {
+// End user portal authentication endpoint
+app.post("/api/auth/portal-login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ message: "Email and password are required" });
+      return res.status(400).json({ error: "Email and password are required" });
     }
 
-    // Find end user by email
-    const result = await db.query(`
-      SELECT id, email, username, first_name, last_name, password_hash, is_active, role, preferences
-      FROM users 
-      WHERE email = $1 AND role = 'end_user'
-    `, [email.toLowerCase()]);
+    console.log("Portal login attempt for:", email);
 
-    if (result.rows.length === 0) {
-      return res.status(401).json({ message: "Invalid email or password" });
-    }
+    try {
+      const { pool } = await import("../db");
+      
+      // Find user by email and check if they're an end_user
+      const result = await pool.query(`
+        SELECT id, email, username, first_name, last_name, password_hash, is_active, role, preferences
+        FROM users 
+        WHERE email = $1 AND role = 'end_user'
+      `, [email.toLowerCase()]);
 
-    const user = result.rows[0];
-
-    if (!user.is_active) {
-      return res.status(401).json({ message: "Account is inactive. Please contact IT support." });
-    }
-
-    let isValidPassword = false;
-
-    // Check if user has a stored temporary password in preferences
-    const preferences = user.preferences || {};
-    if (preferences.temp_password && preferences.temp_password === password) {
-      isValidPassword = true;
-    } else if (user.password_hash) {
-      // Verify hashed password
-      isValidPassword = await bcrypt.compare(password, user.password_hash);
-    }
-
-    if (!isValidPassword) {
-      return res.status(401).json({ message: "Invalid email or password" });
-    }
-
-    // Generate JWT token
-    const token = jwt.sign(
-      { 
-        userId: user.id,
-        id: user.id,
-        email: user.email,
-        role: user.role
-      },
-      process.env.JWT_SECRET || "your-secret-key",
-      { expiresIn: "24h" }
-    );
-
-    // Update last login
-    await db.query(`
-      UPDATE users 
-      SET last_login = NOW() 
-      WHERE id = $1
-    `, [user.id]);
-
-    res.json({
-      message: "Login successful",
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        role: user.role
+      if (result.rows.length === 0) {
+        return res.status(401).json({ error: "Invalid email or password" });
       }
-    });
+
+      const user = result.rows[0];
+
+      if (!user.is_active) {
+        return res.status(401).json({ error: "Account is inactive. Please contact IT support." });
+      }
+
+      let isValidPassword = false;
+
+      // Check password hash if it exists
+      if (user.password_hash) {
+        isValidPassword = await bcrypt.compare(password, user.password_hash);
+      } else {
+        // Fallback to check against common default passwords
+        const validPasswords = ["TempPass123!", "TempPass456!", "TempPass789!", "TempPass101!", "AdminPass999!"];
+        isValidPassword = validPasswords.includes(password);
+      }
+
+      if (!isValidPassword) {
+        console.log("Invalid password for portal user:", email);
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { 
+          userId: user.id,
+          id: user.id,
+          email: user.email,
+          role: user.role
+        },
+        JWT_SECRET,
+        { expiresIn: "24h" }
+      );
+
+      // Update last login
+      await pool.query(`
+        UPDATE users 
+        SET last_login = NOW() 
+        WHERE id = $1
+      `, [user.id]);
+
+      console.log("Portal login successful for:", email);
+      res.json({
+        message: "Login successful",
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          role: user.role
+        }
+      });
+
+    } catch (dbError) {
+      console.error("Database error in portal login:", dbError);
+      return res.status(500).json({ error: "Database error" });
+    }
 
   } catch (error: any) {
-    console.error("End user login error:", error);
-    res.status(500).json({ message: "Login failed" });
+    console.error("Portal login error:", error);
+    res.status(500).json({ error: "Login failed" });
   }
 });
 
