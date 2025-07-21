@@ -39,6 +39,13 @@ export default defineConfig(async () => {
         /\.sisko\.replit\.dev$/,
         "88186cac-3fa4-43b8-ad9b-4c6e922d4ace-00-2fygaswwelqwv.pike.replit.dev",
       ],
+      proxy: {
+        "/api": {
+          target: "http://0.0.0.0:5000",
+          changeOrigin: true,
+          secure: false,
+        },
+      },
     },
   };
 });
