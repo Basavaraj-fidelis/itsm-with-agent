@@ -1,4 +1,3 @@
-
 import jwt from "jsonwebtoken";
 import { DatabaseUtils } from "./database";
 
@@ -10,18 +9,28 @@ export class AuthUtils {
    */
   static verifyToken(token: string): any {
     try {
-      if (!token) {
-        throw new Error("No token provided");
+      if (!token || typeof token !== 'string') {
+        throw new Error('Invalid token format');
       }
-      return jwt.verify(token, JWT_SECRET);
+
+      // Remove 'Bearer ' prefix if present
+      const cleanToken = token.replace(/^Bearer\s+/, '');
+
+      if (!cleanToken) {
+        throw new Error('Invalid token format');
+      }
+
+      const decoded = jwt.verify(cleanToken, JWT_SECRET);
+      return decoded;
     } catch (error) {
       if (error.name === 'TokenExpiredError') {
-        throw new Error("Token expired");
+        throw new Error('Token expired');
       }
       if (error.name === 'JsonWebTokenError') {
-        throw new Error("Invalid token format");
+        throw new Error('Invalid token format');
       }
-      throw new Error("Token verification failed");
+      console.error('Token verification failed:', error);
+      throw new Error('Invalid token format');
     }
   }
 
@@ -61,7 +70,7 @@ export class AuthUtils {
     } catch (dbError) {
       console.log("Database user lookup failed:", dbError.message);
     }
-    
+
     return null;
   }
 
@@ -101,11 +110,11 @@ export class AuthUtils {
     if (!user.is_active) {
       return { valid: false, message: "User account is inactive" };
     }
-    
+
     if (user.is_locked) {
       return { valid: false, message: "Account is locked. Contact administrator." };
     }
-    
+
     return { valid: true };
   }
 
