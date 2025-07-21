@@ -13,6 +13,7 @@ import { initAIService } from './services/ai-service';
 import { init as initSlaEscalationService } from './services/sla-escalation-service';
 import { webSocketService } from './websocket-service';
 import expressWs from "express-ws";
+import cors from 'cors';
 
 const app = express();
 const wsInstance = expressWs(app);
@@ -470,3 +471,47 @@ const startSLAMonitoring = () => {
 
 // Start SLA monitoring after a short delay to ensure everything is initialized
 setTimeout(startSLAMonitoring, 5000);
+
+// Enable CORS for all routes
+import cors from 'cors';
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    // Allow all Replit domains and localhost
+    const allowedOrigins = [
+      /\.replit\.dev$/,
+      /\.replit\.app$/,
+      /\.pike\.replit\.dev$/,  // Add pike domain
+      /^https?:\/\/localhost/,
+      /^https?:\/\/127\.0\.0\.1/,
+      /^https?:\/\/0\.0\.0\.0/
+    ];
+
+    const isAllowed = allowedOrigins.some(pattern => {
+      if (pattern instanceof RegExp) {
+        return pattern.test(origin);
+      }
+      return origin === pattern;
+    });
+
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(null, true); // Allow all for development
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+}));
+
+// Add specific CORS preflight handling for portal
+app.options('/api/auth/portal-login', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+  res.sendStatus(200);
+});

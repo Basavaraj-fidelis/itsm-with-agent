@@ -459,7 +459,8 @@ app.post("/api/auth/portal-login", async (req, res) => {
   console.log("Portal login request received:", {
     body: req.body ? 'present' : 'missing',
     email: req.body?.email || 'not provided',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    headers: req.headers['content-type']
   });
 
 
@@ -523,10 +524,18 @@ app.post("/api/auth/portal-login", async (req, res) => {
     }
   });
 
+  // Add CORS headers
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
   try {
     const { email, password } = req.body;
 
+    console.log("Portal login request body:", JSON.stringify(req.body, null, 2));
+
     if (!email || !password) {
+      console.log("Missing credentials - email:", !!email, "password:", !!password);
       return res.status(400).json({ error: "Email and password are required" });
     }
 
