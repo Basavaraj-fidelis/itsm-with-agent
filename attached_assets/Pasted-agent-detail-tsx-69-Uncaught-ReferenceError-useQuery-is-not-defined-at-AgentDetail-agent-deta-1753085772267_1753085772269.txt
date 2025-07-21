@@ -1,0 +1,25 @@
+agent-detail.tsx:69 Uncaught ReferenceError: useQuery is not defined
+    at AgentDetail (agent-detail.tsx:69:28)
+agent-data-processor.ts:582 No agent provided to useProcessedAgentData
+agent-data-processor.ts:582 No agent provided to useProcessedAgentData
+agent-detail.tsx:69 Uncaught ReferenceError: useQuery is not defined
+    at AgentDetail (agent-detail.tsx:69:28)
+chunk-RPCDYKBN.js?v=cbc9a3a6:14032 The above error occurred in the <AgentDetail> component:
+
+    at AgentDetail (https://6e3b4fb6-2116-4c55-b1d9-fdaa61206378-00-18bqacfqo5pex.pike.replit.dev/src/pages/agent-detail.tsx:42:18)
+    at main
+    at div
+    at div
+    at AuthenticatedLayout (https://6e3b4fb6-2116-4c55-b1d9-fdaa61206378-00-18bqacfqo5pex.pike.replit.dev/src/App.tsx:57:32)
+    at ProtectedRoute (https://6e3b4fb6-2116-4c55-b1d9-fdaa61206378-00-18bqacfqo5pex.pike.replit.dev/src/components/auth/protected-route.tsx:76:3)
+    at Route (https://6e3b4fb6-2116-4c55-b1d9-fdaa61206378-00-18bqacfqo5pex.pike.replit.d…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=cbc9a3a6:206:16)
+    at Switch (https://6e3b4fb6-2116-4c55-b1d9-fdaa61206378-00-18bqacfqo5pex.pike.replit.d…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=cbc9a3a6:262:17)
+    at Router (https://6e3b4fb6-2116-4c55-b1d9-fdaa61206378-00-18bqacfqo5pex.pike.replit.d…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=cbc9a3a6:161:17)
+    at AuthProvider (https://6e3b4fb6-2116-4c55-b1d9-fdaa61206378-00-18bqacfqo5pex.pike.replit.dev/src/components/auth/protected-route.tsx:36:32)
+    at QueryClientProvider (https://6e3b4fb6-2116-4c55-b1d9-fdaa61206378-00-18bqacfqo5pex.pike.replit.d…rkspace/node_modules/.vite/deps/@tanstack_react-query.js?v=cbc9a3a6:2933:3)
+    at App (https://6e3b4fb6-2116-4c55-b1d9-fdaa61206378-00-18bqacfqo5pex.pike.replit.dev/src/App.tsx:89:49)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+chunk-RPCDYKBN.js?v=cbc9a3a6:9129 Uncaught ReferenceError: useQuery is not defined
+    at AgentDetail (agent-detail.tsx:69:28)
