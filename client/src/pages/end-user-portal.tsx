@@ -312,7 +312,8 @@ export default function EndUserPortal() {
     setIsLoggingIn(true);
 
     try {
-      console.log('Attempting login with:', loginData.email);
+      console.log('🔑 Attempting portal login with:', loginData.email);
+      console.log('🌐 Making request to:', '/api/auth/portal-login');
 
       const response = await fetch('/api/auth/portal-login', {
         method: 'POST',
@@ -327,7 +328,10 @@ export default function EndUserPortal() {
         }),
       });
 
-      console.log('Login response status:', response.status);
+      console.log('📡 Login response received');
+      console.log('📊 Response status:', response.status);
+      console.log('📋 Response headers:', response.headers);
+      console.log('🔍 Response ok:', response.ok);
 
       if (response.ok) {
         const result = await response.json();
@@ -357,13 +361,30 @@ export default function EndUserPortal() {
         });
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ Login error occurred:', error);
+      console.error('Error type:', typeof error);
+      console.error('Error name:', error?.name);
+      console.error('Error message:', error?.message);
 
-      toast({
-        title: "Connection Error",
-        description: "Unable to connect to the server. Please check your internet connection and try again.",
-        variant: "destructive",
-      });
+      if (error?.name === 'TypeError' && error?.message?.includes('fetch')) {
+        toast({
+          title: "Connection Error",
+          description: "Network request failed. Check if the server is running and try again.",
+          variant: "destructive",
+        });
+      } else if (error?.name === 'AbortError') {
+        toast({
+          title: "Request Timeout",
+          description: "The login request timed out. Please try again.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Login Error",
+          description: `An unexpected error occurred: ${error?.message || 'Unknown error'}`,
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoggingIn(false);
     }

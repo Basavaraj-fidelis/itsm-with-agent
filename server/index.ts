@@ -444,6 +444,16 @@ app.use((req, res, next) => {
   process.exit(1);
 });
 
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+});
+
 // // Start the server
 // const PORT = process.env.PORT || 5000;
 // // Start the server
@@ -515,3 +525,5 @@ app.options('/api/auth/portal-login', (req, res) => {
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
   res.sendStatus(200);
 });
+
+export default app;

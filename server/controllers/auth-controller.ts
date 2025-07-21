@@ -249,13 +249,18 @@ export class AuthController {
 
   static async portalLogin(req: any, res: any) {
     try {
+      console.log("🔑 Portal login request received");
+      console.log("Request body:", req.body);
+      console.log("Request headers:", req.headers);
+
       const { email, password } = req.body;
 
       if (!email || !password) {
+        console.log("❌ Missing email or password");
         return res.status(400).json({ error: "Email and password are required" });
       }
 
-      console.log("Portal login attempt for:", email);
+      console.log("✅ Portal login attempt for:", email);
 
       try {
         // Try database first
@@ -389,8 +394,17 @@ export class AuthController {
         }
       }
     } catch (error) {
-      console.error("Portal login error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error("❌ Portal login error:", error);
+      console.error("Error stack:", error.stack);
+      
+      // Send more specific error information
+      if (error.message?.includes('database')) {
+        res.status(500).json({ error: "Database connection error" });
+      } else if (error.message?.includes('timeout')) {
+        res.status(500).json({ error: "Request timeout" });
+      } else {
+        res.status(500).json({ error: "Internal server error", details: error.message });
+      }
     }
   }
 }
