@@ -180,11 +180,25 @@ export default function EndUserPortal() {
 
       if (response.ok) {
         const result = await response.json();
+        // Handle different response formats
+        const ticketsData = Array.isArray(result?.data) 
+          ? result.data 
+          : result?.tickets || 
+            (Array.isArray(result) ? result : []);
+            
         // Filter tickets by user email
-        const userTickets = result.data.filter((ticket: UserTicket) => 
+        const userTickets = ticketsData.filter((ticket: UserTicket) => 
           ticket.requester_email?.toLowerCase() === userInfo.email.toLowerCase()
         );
         setUserTickets(userTickets);
+        console.log('Loaded user tickets:', userTickets.length);
+      } else {
+        console.error('Failed to load tickets:', response.status, response.statusText);
+        toast({
+          title: "Error loading tickets",
+          description: "Unable to load your tickets. Please try again.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Error loading user tickets:', error);
@@ -210,20 +224,28 @@ export default function EndUserPortal() {
       });
 
       if (response.ok) {
-        const devices = await response.json();
+        const result = await response.json();
+        // Handle different response formats
+        const devicesData = Array.isArray(result?.data) 
+          ? result.data 
+          : result?.devices || 
+            (Array.isArray(result) ? result : []);
+            
         // Filter devices by user email (assigned_user field)
-        const userDevices = devices.filter((device: UserDevice) => 
+        const userDevices = devicesData.filter((device: UserDevice) => 
           device.assigned_user?.toLowerCase() === userInfo.email.toLowerCase()
         );
         setUserDevices(userDevices);
+        console.log('Loaded user devices:', userDevices.length);
+      } else {
+        console.error('Failed to load devices:', response.status, response.statusText);
+        // Don't show error for devices since they might not be assigned yet
+        setUserDevices([]);
       }
     } catch (error) {
       console.error('Error loading user devices:', error);
-      toast({
-        title: "Error loading devices",
-        description: "Unable to load your devices",
-        variant: "destructive",
-      });
+      // Don't show toast error for devices as it's not critical
+      setUserDevices([]);
     } finally {
       setIsLoadingDevices(false);
     }
@@ -453,6 +475,13 @@ export default function EndUserPortal() {
                 <p className="text-sm text-slate-600 text-center">
                   Sign in to access your IT services
                 </p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
+                  <p className="text-xs text-blue-700 font-medium mb-2">Demo Credentials:</p>
+                  <div className="space-y-1 text-xs text-blue-600">
+                    <div>Email: john.doe@company.com</div>
+                    <div>Password: TempPass123!</div>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 <form onSubmit={handleLogin} className="space-y-4">
