@@ -156,7 +156,7 @@ export default function EndUserPortal() {
       if (token && user) {
         try {
           // Verify token is still valid
-          const response = await fetch('/api/auth/verify', {
+          const response = await fetch('http://0.0.0.0:5000/api/auth/verify', {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json',
@@ -206,13 +206,13 @@ export default function EndUserPortal() {
 
       console.log('Loading tickets for user:', userInfo?.email);
 
-      const response = await fetch('/api/tickets?limit=1000', {
+      const response = await fetch('http://0.0.0.0:5000/api/tickets?limit=1000', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        credentials: 'same-origin',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -272,7 +272,7 @@ export default function EndUserPortal() {
     setIsLoadingDevices(true);
     try {
       const token = localStorage.getItem('end_user_token');
-      const response = await fetch('/api/devices', {
+      const response = await fetch('http://0.0.0.0:5000/api/devices', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -314,13 +314,13 @@ export default function EndUserPortal() {
     try {
       console.log('Attempting login with:', loginData.email);
 
-      const response = await fetch('/api/auth/portal-login', {
+      const response = await fetch('http://0.0.0.0:5000/api/auth/portal-login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        credentials: 'same-origin',
+        credentials: 'include',
         body: JSON.stringify({
           email: loginData.email.trim(),
           password: loginData.password
@@ -409,7 +409,7 @@ export default function EndUserPortal() {
 
     try {
       const token = localStorage.getItem('end_user_token');
-      const response = await fetch('/api/tickets', {
+      const response = await fetch('http://0.0.0.0:5000/api/tickets', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
