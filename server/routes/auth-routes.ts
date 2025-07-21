@@ -6,6 +6,15 @@ import { storage } from "../storage";
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
 export function registerAuthRoutes(app: Express) {
+  // Test endpoint for portal connectivity
+  app.get("/api/auth/portal-test", (req, res) => {
+    res.json({ 
+      message: "Portal API is accessible", 
+      timestamp: new Date().toISOString(),
+      server: "Express"
+    });
+  });
+
   // Login route
   app.post("/api/auth/login", async (req, res) => {
     try {
@@ -447,6 +456,11 @@ import { pool as db } from "../db";
 
 // End user portal authentication endpoint
 app.post("/api/auth/portal-login", async (req, res) => {
+  console.log("Portal login request received:", {
+    body: req.body ? 'present' : 'missing',
+    email: req.body?.email || 'not provided',
+    timestamp: new Date().toISOString()
+  });
 
 
   // Test endpoint to create end users for portal testing
@@ -675,7 +689,11 @@ app.post("/api/auth/portal-login", async (req, res) => {
 
   } catch (error: any) {
     console.error("Portal login error:", error);
-    res.status(500).json({ error: "Login failed" });
+    res.status(500).json({ 
+      error: "Login failed", 
+      details: error.message || "Unknown server error",
+      timestamp: new Date().toISOString()
+    });
   }
 });
 

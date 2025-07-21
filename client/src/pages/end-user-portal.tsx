@@ -150,13 +150,41 @@ export default function EndUserPortal() {
 
   // Check if user is already authenticated
   React.useEffect(() => {
-    const token = localStorage.getItem('end_user_token');
-    const user = localStorage.getItem('end_user_info');
-    if (token && user) {
-      setIsAuthenticated(true);
-      setUserInfo(JSON.parse(user));
-      setFormData(prev => ({ ...prev, email: JSON.parse(user).email }));
-    }
+    const checkAuth = async () => {
+      const token = localStorage.getItem('end_user_token');
+      const user = localStorage.getItem('end_user_info');
+      
+      if (token && user) {
+        try {
+          // Verify token is still valid
+          const response = await fetch('/api/auth/verify', {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (response.ok) {
+            const userData = JSON.parse(user);
+            setIsAuthenticated(true);
+            setUserInfo(userData);
+            setFormData(prev => ({ ...prev, email: userData.email }));
+            console.log('Auto-login successful for:', userData.email);
+          } else {
+            // Token invalid, clear storage
+            localStorage.removeItem('end_user_token');
+            localStorage.removeItem('end_user_info');
+            console.log('Token expired, requiring fresh login');
+          }
+        } catch (error) {
+          console.error('Token verification failed:', error);
+          localStorage.removeItem('end_user_token');
+          localStorage.removeItem('end_user_info');
+        }
+      }
+    };
+
+    checkAuth();
   }, []);
 
   // Load user tickets and devices when authenticated
@@ -171,15 +199,27 @@ export default function EndUserPortal() {
     setIsLoadingTickets(true);
     try {
       const token = localStorage.getItem('end_user_token');
+      if (!token) {
+        console.warn('No auth token available for loading tickets');
+        setUserTickets([]);
+        return;
+      }
+
+      console.log('Loading tickets for user:', userInfo?.email);
+      
       const response = await fetch('/api/tickets?limit=1000', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
+        credentials: 'same-origin',
       });
 
       if (response.ok) {
         const result = await response.json();
+        console.log('Tickets API response:', result);
+        
         // Handle different response formats
         const ticketsData = Array.isArray(result?.data) 
           ? result.data 
@@ -188,10 +228,19 @@ export default function EndUserPortal() {
             
         // Filter tickets by user email
         const userTickets = ticketsData.filter((ticket: UserTicket) => 
-          ticket.requester_email?.toLowerCase() === userInfo.email.toLowerCase()
+          ticket.requester_email?.toLowerCase() === userInfo?.email?.toLowerCase()
         );
+        
         setUserTickets(userTickets);
-        console.log('Loaded user tickets:', userTickets.length);
+        console.log('Loaded user tickets:', userTickets.length, 'of', ticketsData.length, 'total');
+      } else if (response.status === 401) {
+        // Token expired, logout user
+        handleLogout();
+        toast({
+          title: "Session expired",
+          description: "Please log in again to continue.",
+          variant: "destructive",
+        });
       } else {
         console.error('Failed to load tickets:', response.status, response.statusText);
         toast({
@@ -202,11 +251,19 @@ export default function EndUserPortal() {
       }
     } catch (error) {
       console.error('Error loading user tickets:', error);
-      toast({
-        title: "Error loading tickets",
-        description: "Unable to load your tickets",
-        variant: "destructive",
-      });
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        toast({
+          title: "Connection Error",
+          description: "Unable to connect to the server. Please check your connection.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error loading tickets",
+          description: "Unable to load your tickets. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoadingTickets(false);
     }
@@ -256,40 +313,56 @@ export default function EndUserPortal() {
     setIsLoggingIn(true);
 
     try {
+      console.log('Attempting login with:', loginData.email);
+      
       const response = await fetch('/api/auth/portal-login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
+        credentials: 'same-origin',
         body: JSON.stringify({
-          email: loginData.email,
+          email: loginData.email.trim(),
           password: loginData.password
         }),
       });
 
+      console.log('Login response status:', response.status);
+
       if (response.ok) {
         const result = await response.json();
-        localStorage.setItem('end_user_token', result.token || 'portal_session');
+        console.log('Login successful:', result);
+        
+        // Store authentication data
+        localStorage.setItem('end_user_token', result.token);
         localStorage.setItem('end_user_info', JSON.stringify(result.user));
+        
+        // Update state
         setIsAuthenticated(true);
         setUserInfo(result.user);
         setFormData(prev => ({ ...prev, email: result.user.email }));
+        
         toast({
           title: "Login successful",
-          description: "Welcome to the IT Service Portal",
+          description: `Welcome ${result.user.first_name || result.user.name || result.user.email}!`,
         });
       } else {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({ error: 'Invalid response from server' }));
+        console.error('Login failed:', error);
+        
         toast({
-          title: "Login failed",
+          title: "Login failed", 
           description: error.error || error.message || "Invalid email or password",
           variant: "destructive",
         });
       }
     } catch (error) {
+      console.error('Login error:', error);
+      
       toast({
-        title: "Login failed",
-        description: "Unable to connect to the server",
+        title: "Connection Error",
+        description: "Unable to connect to the server. Please check your internet connection and try again.",
         variant: "destructive",
       });
     } finally {
@@ -478,8 +551,12 @@ export default function EndUserPortal() {
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
                   <p className="text-xs text-blue-700 font-medium mb-2">Demo Credentials:</p>
                   <div className="space-y-1 text-xs text-blue-600">
-                    <div>Email: john.doe@company.com</div>
-                    <div>Password: TempPass123!</div>
+                    <div><strong>End User:</strong> john.doe@company.com | TempPass123!</div>
+                    <div><strong>Admin Test:</strong> admin@company.com | Admin123!</div>
+                    <div><strong>Alt User:</strong> jane.smith@company.com | TempPass456!</div>
+                  </div>
+                  <div className="mt-2 text-xs text-blue-500">
+                    <div>⚠️ If login fails, check browser console for details</div>
                   </div>
                 </div>
               </CardHeader>
