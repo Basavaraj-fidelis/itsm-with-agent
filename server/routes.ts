@@ -433,8 +433,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   try {
+    const slaAnalysisRoutes = await import("./routes/sla-analysis-routes");
+    if (slaAnalysisRoutes.default) {
+      app.use("/api/sla-analysis", authenticateToken, slaAnalysisRoutes.default);
+    }
   } catch (error) {
-    console.warn(" routes not available:", error.message);
+    console.warn("SLA analysis routes not available:", error.message);
+  }
+
+  try {
+    const aiRoutes = await import("./routes/ai-routes");
+    if (aiRoutes.default) {
+      app.use("/api/ai", authenticateToken, aiRoutes.default);
+    }
+  } catch (error) {
+    console.warn("AI routes not available:", error.message);
+  }
+
+  try {
+    const auditRoutes = await import("./routes/audit-routes");
+    if (auditRoutes.default) {
+      app.use("/api/audit", authenticateToken, requireRole(["admin", "manager"]), auditRoutes.default);
+    }
+  } catch (error) {
+    console.warn("Audit routes not available:", error.message);
+  }
+
+  try {
+    const securityRoutes = await import("./routes/security-routes");
+    if (securityRoutes.default) {
+      app.use("/api/security", authenticateToken, securityRoutes.default);
+    }
+  } catch (error) {
+    console.warn("Security routes not available:", error.message);
+  }
+
+  try {
+    const patchRoutes = await import("./routes/patch-routes");
+    if (patchRoutes.default) {
+      app.use("/api/patch", authenticateToken, patchRoutes.default);
+    }
+  } catch (error) {
+    console.warn("Patch routes not available:", error.message);
   }
 
   const httpServer = createServer(app);

@@ -66,6 +66,24 @@ export default function AgentDetail() {
   const [showVNCModal, setShowVNCModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const { data: device } = useQuery({
+    queryKey: ["device", id],
+    queryFn: () => api.getDevice(id!),
+    enabled: !!id,
+  });
+
+  const { data: aiInsights } = useQuery({
+    queryKey: ["aiInsights", id],
+    queryFn: () => api.getDeviceAIInsights(id!),
+    enabled: !!id,
+  });
+
+  const { data: advancedMetrics } = useQuery({
+    queryKey: ["advancedMetrics", id],
+    queryFn: () => api.getAdvancedDeviceAnalytics(id!),
+    enabled: !!id,
+  });
+
   // Auto-refresh effect - must be called at top level
   useEffect(() => {
     if (!autoRefresh || !agent) return;

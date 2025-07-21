@@ -109,6 +109,45 @@ export default function Dashboard() {
     staleTime: 15000,
   });
 
+  // Add AI insights and security overview data fetching
+  const { data: aiInsights } = useQuery({
+    queryKey: ["dashboard-ai-insights"],
+    queryFn: async () => {
+      try {
+        const response = await api.get("/api/ai-insights");
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
+      } catch (error) {
+        console.warn("Failed to fetch AI insights:", error);
+        return {};
+      }
+    },
+    refetchInterval: 60000,
+    retry: 1,
+    staleTime: 30000,
+  });
+
+  const { data: securityOverview } = useQuery({
+    queryKey: ["security-overview"],
+    queryFn: async () => {
+      try {
+        const response = await api.get("/api/security-overview");
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
+      } catch (error) {
+        console.warn("Failed to fetch security overview:", error);
+        return {};
+      }
+    },
+    refetchInterval: 30000,
+    retry: 1,
+    staleTime: 15000,
+  });
+
   // Handle different response formats from the API
   const tickets = Array.isArray(ticketsResponse?.data) 
     ? ticketsResponse.data 

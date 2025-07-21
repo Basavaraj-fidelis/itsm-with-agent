@@ -285,6 +285,31 @@ export const api = {
     return data;
   },
 
+  // Security Dashboard
+  getSecurityOverview: async () => {
+    const response = await apiClient.get("/api/security/overview");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch security overview: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  getSecurityIncidents: async () => {
+    const response = await apiClient.get("/api/security/incidents");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch security incidents: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  getComplianceStatus: async () => {
+    const response = await apiClient.get("/api/security/compliance");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch compliance status: ${response.status}`);
+    }
+    return response.json();
+  },
+
   async getDevice(id: string): Promise<Device> {
     const response = await apiClient.get(`/api/devices/${id}`);
     return response.json();
@@ -402,6 +427,32 @@ export const api = {
     return response.json();
   },
 
+  // Advanced Monitoring
+  getAdvancedMetrics: async (deviceId: string, timeRange: string = "24h") => {
+    const response = await apiClient.get(`/api/monitoring/advanced/${deviceId}?timeRange=${timeRange}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch advanced metrics: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  getPredictiveAnalysis: async (deviceId: string) => {
+    const response = await apiClient.get(`/api/analytics/predictive/${deviceId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch predictive analysis: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  getAnomalyDetection: async (deviceId?: string) => {
+    const endpoint = deviceId ? `/api/monitoring/anomalies/${deviceId}` : "/api/monitoring/anomalies";
+    const response = await apiClient.get(endpoint);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch anomaly detection: ${response.status}`);
+    }
+    return response.json();
+  },
+
   // Enhanced Knowledge Base
   getKnowledgeBaseStats: async () => {
     const response = await apiClient.get("/api/knowledge/stats");
@@ -429,6 +480,39 @@ export const api = {
 
   executeAutomationWorkflow: async (id: string, parameters?: any) => {
     const response = await apiClient.post(`/api/automation/workflows/${id}/execute`, parameters);
+    return response.json();
+  },
+
+  // Workflow Management
+  getWorkflows: async () => {
+    const response = await apiClient.get("/api/workflows");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch workflows: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  createWorkflow: async (workflow: any) => {
+    const response = await apiClient.post("/api/workflows", workflow);
+    if (!response.ok) {
+      throw new Error(`Failed to create workflow: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  updateWorkflow: async (id: string, workflow: any) => {
+    const response = await apiClient.put(`/api/workflows/${id}`, workflow);
+    if (!response.ok) {
+      throw new Error(`Failed to update workflow: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  executeWorkflow: async (id: string, parameters?: any) => {
+    const response = await apiClient.post(`/api/workflows/${id}/execute`, parameters);
+    if (!response.ok) {
+      throw new Error(`Failed to execute workflow: ${response.status}`);
+    }
     return response.json();
   },
 
@@ -487,6 +571,33 @@ export const api = {
     const response = await apiClient.get("/api/compliance/report");
     if (!response.ok) {
       throw new Error(`Failed to fetch compliance report: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  // AI Insights
+  getAIInsights: async (deviceId?: string) => {
+    const endpoint = deviceId ? `/api/ai/insights/${deviceId}` : "/api/ai/insights";
+    const response = await apiClient.get(endpoint);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch AI insights: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  getDeviceAIInsights: async (deviceId: string) => {
+    const response = await apiClient.get(`/api/ai/insights/device/${deviceId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch device AI insights: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  // Advanced Analytics
+  getAdvancedDeviceAnalytics: async (deviceId: string) => {
+    const response = await apiClient.get(`/api/analytics/device/${deviceId}/advanced`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch advanced analytics: ${response.status}`);
     }
     return response.json();
   },
