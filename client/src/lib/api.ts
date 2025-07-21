@@ -575,16 +575,6 @@ export const api = {
     return response.json();
   },
 
-  // AI Insights
-  getAIInsights: async (deviceId?: string) => {
-    const endpoint = deviceId ? `/api/ai/insights/${deviceId}` : "/api/ai/insights";
-    const response = await apiClient.get(endpoint);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch AI insights: ${response.status}`);
-    }
-    return response.json();
-  },
-
   getDeviceAIInsights: async (deviceId: string) => {
     const response = await apiClient.get(`/api/ai/insights/device/${deviceId}`);
     if (!response.ok) {

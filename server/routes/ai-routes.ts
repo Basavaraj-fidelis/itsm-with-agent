@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { aiService } from "../ai-service";
-import { aiInsightsStorage } from "../ai-insights-storage";
+import { aiService } from "../services/ai-service";
+import { aiInsightsStorage } from "../models/ai-insights-storage";
 
 const router = Router();
 
