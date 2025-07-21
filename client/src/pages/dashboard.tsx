@@ -271,7 +271,7 @@ export default function Dashboard() {
   const slaStatus = getSLAStatus();
   const assignmentDistribution = getAssignmentDistribution();
 
-  const { data: recentTickets, isLoading: ticketsLoading, error: ticketsError } = useQuery({
+  const { data: recentTickets, isLoading: recentTicketsLoading, error: recentTicketsError } = useQuery({
     queryKey: ['recent-tickets'],
     queryFn: async () => {
       try {
@@ -725,12 +725,12 @@ export default function Dashboard() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              {ticketsLoading ? (
+              {recentTicketsLoading ? (
                 <div className="p-6 text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
                   <p className="mt-2 text-sm text-neutral-600">Loading tickets...</p>
                 </div>
-              ) : ticketsError ? (
+              ) : recentTicketsError ? (
                 <div className="p-6 text-center">
                   <div className="text-red-500 mb-2">⚠️</div>
                   <p className="text-sm text-neutral-600">Unable to load recent tickets</p>
