@@ -12954,13 +12954,17 @@ var init_knowledge_routes = __esm({
         }
         if (filters.search && filters.search.trim() !== "") {
           const searchTerm = `%${filters.search.toLowerCase()}%`;
-          conditions.push(
-            or8(
-              like5(knowledgeBase.title, searchTerm),
-              like5(knowledgeBase.content, searchTerm),
-              like5(knowledgeBase.category, searchTerm)
-            )
-          );
+          try {
+            conditions.push(
+              or8(
+                like5(knowledgeBase.title, searchTerm),
+                like5(knowledgeBase.content, searchTerm),
+                like5(knowledgeBase.category, searchTerm)
+              )
+            );
+          } catch (searchError) {
+            console.warn("Search filter error:", searchError);
+          }
         }
         const whereClause = conditions.length > 0 ? and9(...conditions) : void 0;
         const [{ total }] = await db.select({ total: count5() }).from(knowledgeBase).where(whereClause);
