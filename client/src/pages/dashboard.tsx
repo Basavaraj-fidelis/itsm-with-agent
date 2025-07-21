@@ -275,10 +275,21 @@ export default function Dashboard() {
     queryKey: ['recent-tickets'],
     queryFn: async () => {
       try {
-        const response = await api.get('/tickets', {
-          params: { limit: '5', page: '1' }
-        });
-        return response.data?.data || [];
+        const response = await api.get('/api/tickets?limit=5&page=1');
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        const result = await response.json();
+        
+        // Handle different response formats
+        const ticketsData = Array.isArray(result?.data) 
+          ? result.data 
+          : result?.data?.tickets || 
+            result?.tickets || 
+            (Array.isArray(result) ? result : []);
+            
+        console.log('Recent tickets fetched:', ticketsData.length, 'tickets');
+        return ticketsData.slice(0, 5);
       } catch (error) {
         console.warn('Failed to fetch recent tickets:', error);
         return [];
@@ -736,9 +747,9 @@ export default function Dashboard() {
                   <p className="text-sm text-neutral-600">Unable to load recent tickets</p>
                   <p className="text-xs text-neutral-400 mt-1">Check network connection</p>
                 </div>
-              ) : recentTickets && recentTickets.length > 0 ? (
+              ) : (recentTickets && recentTickets.length > 0) || (tickets && tickets.length > 0) ? (
                 <div className="space-y-4">
-                  {recentTickets
+                  {((recentTickets && recentTickets.length > 0) ? recentTickets : tickets.slice(0, 5))
                     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                     .slice(0, 4)
                     .map((ticket) => (

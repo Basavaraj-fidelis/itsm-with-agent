@@ -246,6 +246,15 @@ export default function KnowledgeBase() {
         console.error(
           `Single article fetch error: ${response.status} - ${errorText}`,
         );
+        
+        // Try to find the article in the existing articles list as fallback
+        const existingArticle = articles.find(a => a.id === id);
+        if (existingArticle) {
+          console.log("Using cached article:", existingArticle);
+          setSelectedArticle(existingArticle);
+          return;
+        }
+        
         throw new Error(`Failed to fetch article: ${response.status}`);
       }
 
@@ -254,7 +263,20 @@ export default function KnowledgeBase() {
       setSelectedArticle(article);
     } catch (err) {
       console.error("Error fetching article:", err);
-      setSelectedArticle(null);
+      
+      // Try to find the article in the existing articles list as final fallback
+      const existingArticle = articles.find(a => a.id === id);
+      if (existingArticle) {
+        console.log("Using cached article as fallback:", existingArticle);
+        setSelectedArticle(existingArticle);
+      } else {
+        setSelectedArticle(null);
+        toast({
+          title: "Error",
+          description: "Unable to load the article. Please try again.",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -282,7 +304,8 @@ export default function KnowledgeBase() {
 
   const handleArticleClick = (article: any) => {
     console.log("Opening article:", article);
-    // Navigate to dedicated article page
+    // Set the selected article directly for immediate display
+    setSelectedArticle(article);
     setLocation(`/knowledge-base/${article.id}`);
   };
 

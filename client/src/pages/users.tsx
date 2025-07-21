@@ -1104,7 +1104,7 @@ export default function UsersPage() {
             </Button>
             <Button 
               onClick={handleCreateUser}
-              disabled={createUserMutation.isPending || !newUser.first_name || !newUser.email || !newUser.password}
+              disabled={createUserMutation.isPending || !newUser.first_name || !newUser.email || !newUser.password || !newUser.role}
             >
               {createUserMutation.isPending ? "Creating..." : "Create User"}
             </Button>
