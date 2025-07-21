@@ -249,9 +249,16 @@ export class AuthController {
 
   static async portalLogin(req: any, res: any) {
     try {
-      console.log("🔑 Portal login request received");
+      console.log("🔑 Portal login request received at", new Date().toISOString());
+      console.log("Request method:", req.method);
+      console.log("Request URL:", req.url);
       console.log("Request body:", req.body);
-      console.log("Request headers:", req.headers);
+      console.log("Request headers:", {
+        'content-type': req.headers['content-type'],
+        'accept': req.headers['accept'],
+        'origin': req.headers['origin'],
+        'user-agent': req.headers['user-agent']
+      });
 
       const { email, password } = req.body;
 

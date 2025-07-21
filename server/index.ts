@@ -520,10 +520,17 @@ app.use(cors({
 
 // Add specific CORS preflight handling for portal
 app.options('/api/auth/portal-login', (req, res) => {
+  console.log('🌐 CORS preflight for portal-login from:', req.headers.origin);
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
   res.sendStatus(200);
+});
+
+// Add a simple test endpoint to verify connectivity
+app.get('/api/auth/test', (req, res) => {
+  console.log('🧪 Test endpoint hit from:', req.headers.origin);
+  res.json({ message: 'API is reachable', timestamp: new Date().toISOString() });
 });
 
 export default app;

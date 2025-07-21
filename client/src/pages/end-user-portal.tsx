@@ -313,29 +313,36 @@ export default function EndUserPortal() {
 
     try {
       console.log('🔑 Attempting portal login with:', loginData.email);
-      console.log('🌐 Making request to:', '/api/auth/portal-login');
+      
+      // Use the full URL for the request to ensure it goes to the right place
+      const apiUrl = `${window.location.protocol}//${window.location.hostname}:5000/api/auth/portal-login`;
+      console.log('🌐 Making request to:', apiUrl);
 
-      const response = await fetch('/api/auth/portal-login', {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        credentials: 'include',
+        signal: controller.signal,
         body: JSON.stringify({
           email: loginData.email.trim(),
           password: loginData.password
         }),
       });
 
+      clearTimeout(timeoutId);
+
       console.log('📡 Login response received');
       console.log('📊 Response status:', response.status);
-      console.log('📋 Response headers:', response.headers);
       console.log('🔍 Response ok:', response.ok);
 
       if (response.ok) {
         const result = await response.json();
-        console.log('Login successful:', result);
+        console.log('✅ Login successful:', result);
 
         // Store authentication data
         localStorage.setItem('end_user_token', result.token);
@@ -351,37 +358,41 @@ export default function EndUserPortal() {
           description: `Welcome ${result.user.first_name || result.user.name || result.user.email}!`,
         });
       } else {
-        const error = await response.json().catch(() => ({ error: 'Invalid response from server' }));
-        console.error('Login failed:', error);
+        let errorMessage = 'Login failed';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || `Server error: ${response.status}`;
+        } catch {
+          errorMessage = `Server error: ${response.status} ${response.statusText}`;
+        }
+        
+        console.error('❌ Login failed:', response.status, errorMessage);
 
         toast({
           title: "Login failed", 
-          description: error.error || error.message || "Invalid email or password",
+          description: errorMessage,
           variant: "destructive",
         });
       }
     } catch (error) {
       console.error('❌ Login error occurred:', error);
-      console.error('Error type:', typeof error);
-      console.error('Error name:', error?.name);
-      console.error('Error message:', error?.message);
 
-      if (error?.name === 'TypeError' && error?.message?.includes('fetch')) {
-        toast({
-          title: "Connection Error",
-          description: "Network request failed. Check if the server is running and try again.",
-          variant: "destructive",
-        });
-      } else if (error?.name === 'AbortError') {
+      if (error.name === 'AbortError') {
         toast({
           title: "Request Timeout",
-          description: "The login request timed out. Please try again.",
+          description: "The login request took too long. Please try again.",
+          variant: "destructive",
+        });
+      } else if (error.name === 'TypeError' && error.message?.includes('fetch')) {
+        toast({
+          title: "Connection Error",
+          description: "Unable to connect to the server. Please check your internet connection and try again.",
           variant: "destructive",
         });
       } else {
         toast({
           title: "Login Error",
-          description: `An unexpected error occurred: ${error?.message || 'Unknown error'}`,
+          description: `Network error: ${error.message || 'Please try again'}`,
           variant: "destructive",
         });
       }

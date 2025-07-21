@@ -9,6 +9,7 @@ import jwt from "jsonwebtoken";
 import { AuthUtils } from "./utils/auth";
 import { ResponseUtils } from "./utils/response";
 import { UserUtils } from "./utils/user";
+import { authRoutes } from "./routes/auth-routes";
 
 const JWT_SECRET =
   process.env.JWT_SECRET || "your-secret-key-change-in-production";
@@ -73,6 +74,11 @@ const requireRole = (roles: string | string[]) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  const server = createServer(app);
+
+  console.log("🔗 Registering auth routes...");
+  app.use("/api/auth", authRoutes);
+  console.log("✅ Auth routes registered");
   // Initialize demo users on startup
   try {
     await storage.initializeDemoUsers();
@@ -477,6 +483,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.warn("Patch routes not available:", error.message);
   }
 
-  const httpServer = createServer(app);
-  return httpServer;
+  return server;
 }
