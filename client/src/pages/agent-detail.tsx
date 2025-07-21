@@ -1,3 +1,49 @@
+import React, { useState, useEffect } from "react";
+import { useParams } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AgentTabs } from "@/components/agent-detail/agent-tabs";
+import { AIInsights } from "@/components/agent-detail/ai-insights";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { useProcessedAgentData } from "@/lib/agent-data-processor";
+import { api } from "@/lib/api";
+import {
+  Monitor,
+  Cpu,
+  MemoryStick,
+  HardDrive,
+  Network,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Activity,
+  Wifi,
+  Server,
+  Settings,
+  Zap,
+  RefreshCw,
+  Download,
+  Eye,
+  Shield,
+  Database,
+  Terminal,
+  Smartphone,
+  Laptop,
+  Desktop,
+  Calendar,
+  MapPin,
+  User,
+  Building,
+  Globe,
+  Power,
+  Thermometer,
+  Battery,
+  Gauge
+} from "lucide-react";
 import { Link, useParams } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
