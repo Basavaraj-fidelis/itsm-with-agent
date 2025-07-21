@@ -7910,24 +7910,24 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
         return content;
       }
       convertToEnhancedCSV(data, reportType) {
-        let csv2 = "";
+        let csv = "";
         switch (reportType) {
           case "asset-inventory":
-            csv2 = this.generateAssetInventoryCSV(data);
+            csv = this.generateAssetInventoryCSV(data);
             break;
           case "ticket-analytics":
-            csv2 = this.generateTicketAnalyticsCSV(data);
+            csv = this.generateTicketAnalyticsCSV(data);
             break;
           case "system-health":
-            csv2 = this.generateSystemHealthCSV(data);
+            csv = this.generateSystemHealthCSV(data);
             break;
           case "security-compliance":
-            csv2 = this.generateSecurityComplianceCSV(data);
+            csv = this.generateSecurityComplianceCSV(data);
             break;
           default:
-            csv2 = this.generateGenericCSV(data);
+            csv = this.generateGenericCSV(data);
         }
-        return csv2;
+        return csv;
       }
       async convertToEnhancedWord(data, reportType) {
         try {
@@ -8750,102 +8750,102 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
         ];
       }
       generateAssetInventoryCSV(data) {
-        let csv2 = "ASSET INVENTORY REPORT\n";
-        csv2 += `Generated on,${format(/* @__PURE__ */ new Date(), "PPpp")}
+        let csv = "ASSET INVENTORY REPORT\n";
+        csv += `Generated on,${format(/* @__PURE__ */ new Date(), "PPpp")}
 
 `;
-        csv2 += "SUMMARY\n";
-        csv2 += "Metric,Value\n";
-        csv2 += `Total Devices,${data.total_devices}
+        csv += "SUMMARY\n";
+        csv += "Metric,Value\n";
+        csv += `Total Devices,${data.total_devices}
 `;
-        csv2 += `Compliant Devices,${data.compliance_status.compliant_devices}
+        csv += `Compliant Devices,${data.compliance_status.compliant_devices}
 `;
-        csv2 += `Non-Compliant Devices,${data.compliance_status.non_compliant_devices}
+        csv += `Non-Compliant Devices,${data.compliance_status.non_compliant_devices}
 `;
-        csv2 += `Total Software,${data.software_inventory.total_installed}
+        csv += `Total Software,${data.software_inventory.total_installed}
 
 `;
-        csv2 += "DEVICE BREAKDOWN BY OS\n";
-        csv2 += "Operating System,Count\n";
+        csv += "DEVICE BREAKDOWN BY OS\n";
+        csv += "Operating System,Count\n";
         Object.entries(data.device_breakdown.by_os).forEach(([os2, count6]) => {
-          csv2 += `${os2},${count6}
+          csv += `${os2},${count6}
 `;
         });
-        return csv2;
+        return csv;
       }
       generateTicketAnalyticsCSV(data) {
-        let csv2 = "TICKET ANALYTICS REPORT\n";
-        csv2 += `Generated on,${format(/* @__PURE__ */ new Date(), "PPpp")}
+        let csv = "TICKET ANALYTICS REPORT\n";
+        csv += `Generated on,${format(/* @__PURE__ */ new Date(), "PPpp")}
 
 `;
-        csv2 += "SUMMARY\n";
-        csv2 += "Metric,Value\n";
-        csv2 += `Total Tickets,${data.summary.total_tickets}
+        csv += "SUMMARY\n";
+        csv += "Metric,Value\n";
+        csv += `Total Tickets,${data.summary.total_tickets}
 `;
-        csv2 += `Open Tickets,${data.summary.open_tickets}
+        csv += `Open Tickets,${data.summary.open_tickets}
 `;
-        csv2 += `Resolved Tickets,${data.summary.resolved_tickets}
+        csv += `Resolved Tickets,${data.summary.resolved_tickets}
 `;
-        csv2 += `SLA Compliance Rate,${data.sla_performance.sla_compliance_rate}%
+        csv += `SLA Compliance Rate,${data.sla_performance.sla_compliance_rate}%
 
 `;
-        csv2 += "TOP ISSUES\n";
-        csv2 += "Category,Count,Avg Resolution Time (hours)\n";
+        csv += "TOP ISSUES\n";
+        csv += "Category,Count,Avg Resolution Time (hours)\n";
         data.top_issues.forEach((issue) => {
-          csv2 += `${issue.category},${issue.count},${issue.avg_resolution_time}
+          csv += `${issue.category},${issue.count},${issue.avg_resolution_time}
 `;
         });
-        return csv2;
+        return csv;
       }
       generateSystemHealthCSV(data) {
-        let csv2 = "SYSTEM HEALTH REPORT\n";
-        csv2 += `Generated on,${format(/* @__PURE__ */ new Date(), "PPpp")}
+        let csv = "SYSTEM HEALTH REPORT\n";
+        csv += `Generated on,${format(/* @__PURE__ */ new Date(), "PPpp")}
 
 `;
-        csv2 += "OVERVIEW\n";
-        csv2 += "Metric,Value\n";
-        csv2 += `Health Score,${data.overall_health.health_score}/100
+        csv += "OVERVIEW\n";
+        csv += "Metric,Value\n";
+        csv += `Health Score,${data.overall_health.health_score}/100
 `;
-        csv2 += `Active Devices,${data.overall_health.active_devices}
+        csv += `Active Devices,${data.overall_health.active_devices}
 `;
-        csv2 += `Critical Alerts,${data.overall_health.critical_alerts}
+        csv += `Critical Alerts,${data.overall_health.critical_alerts}
 `;
-        csv2 += `System Uptime,${data.overall_health.system_uptime}%
+        csv += `System Uptime,${data.overall_health.system_uptime}%
 
 `;
-        csv2 += "PERFORMANCE METRICS\n";
-        csv2 += "Metric,Value\n";
-        csv2 += `Average CPU Usage,${data.performance_metrics.avg_cpu_usage}%
+        csv += "PERFORMANCE METRICS\n";
+        csv += "Metric,Value\n";
+        csv += `Average CPU Usage,${data.performance_metrics.avg_cpu_usage}%
 `;
-        csv2 += `Average Memory Usage,${data.performance_metrics.avg_memory_usage}%
+        csv += `Average Memory Usage,${data.performance_metrics.avg_memory_usage}%
 `;
-        csv2 += `Average Disk Usage,${data.performance_metrics.avg_disk_usage}%
+        csv += `Average Disk Usage,${data.performance_metrics.avg_disk_usage}%
 `;
-        return csv2;
+        return csv;
       }
       generateSecurityComplianceCSV(data) {
-        let csv2 = "SECURITY COMPLIANCE REPORT\n";
-        csv2 += `Generated on,${format(/* @__PURE__ */ new Date(), "PPpp")}
+        let csv = "SECURITY COMPLIANCE REPORT\n";
+        csv += `Generated on,${format(/* @__PURE__ */ new Date(), "PPpp")}
 
 `;
-        csv2 += "PATCH COMPLIANCE\n";
-        csv2 += "Metric,Value\n";
-        csv2 += `Compliance Rate,${data.patch_compliance.compliance_percentage}%
+        csv += "PATCH COMPLIANCE\n";
+        csv += "Metric,Value\n";
+        csv += `Compliance Rate,${data.patch_compliance.compliance_percentage}%
 `;
-        csv2 += `Up-to-Date Devices,${data.patch_compliance.up_to_date}
+        csv += `Up-to-Date Devices,${data.patch_compliance.up_to_date}
 `;
-        csv2 += `Missing Critical Patches,${data.patch_compliance.missing_critical}
+        csv += `Missing Critical Patches,${data.patch_compliance.missing_critical}
 
 `;
-        csv2 += "ACCESS CONTROL\n";
-        csv2 += "Metric,Value\n";
-        csv2 += `Total Users,${data.access_control.total_users}
+        csv += "ACCESS CONTROL\n";
+        csv += "Metric,Value\n";
+        csv += `Total Users,${data.access_control.total_users}
 `;
-        csv2 += `Active Users,${data.access_control.active_users}
+        csv += `Active Users,${data.access_control.active_users}
 `;
-        csv2 += `Privileged Accounts,${data.access_control.privileged_accounts}
+        csv += `Privileged Accounts,${data.access_control.privileged_accounts}
 `;
-        return csv2;
+        return csv;
       }
       generateGenericCSV(data) {
         const headers = Object.keys(data);
@@ -12143,7 +12143,6 @@ __export(user_routes_exports, {
 import { Router as Router6 } from "express";
 import bcrypt from "bcrypt";
 import multer from "multer";
-import csv from "csv-parser";
 import * as XLSX from "xlsx";
 var router6, upload;
 var init_user_routes = __esm({
@@ -12175,11 +12174,20 @@ var init_user_routes = __esm({
           const csvData = fileBuffer.toString("utf-8");
           users2 = await new Promise((resolve, reject) => {
             const results = [];
-            const stream = __require("stream");
-            const readable = new stream.Readable();
-            readable.push(csvData);
-            readable.push(null);
-            readable.pipe(csv()).on("data", (data) => results.push(data)).on("end", () => resolve(results)).on("error", reject);
+            const lines = csvData.split("\n");
+            const headers = lines[0].split(",").map((h) => h.trim());
+            for (let i = 1; i < lines.length; i++) {
+              const line = lines[i].trim();
+              if (line) {
+                const values = line.split(",").map((v) => v.trim());
+                const record = {};
+                headers.forEach((header, index) => {
+                  record[header] = values[index] || "";
+                });
+                results.push(record);
+              }
+            }
+            resolve(results);
           });
         } else {
           return res.status(400).json({ message: "Unsupported file format. Please upload CSV or Excel files." });
@@ -12188,12 +12196,12 @@ var init_user_routes = __esm({
         let skipped = 0;
         for (const userData of users2) {
           try {
-            const email = (userData.email || userData.Email || userData.EMAIL || "").trim().toLowerCase();
-            const firstName = (userData.first_name || userData["First Name"] || userData.firstname || userData.FirstName || "").trim();
-            const lastName = (userData.last_name || userData["Last Name"] || userData.lastname || userData.LastName || "").trim();
-            const name = (userData.name || userData.Name || userData.NAME || `${firstName} ${lastName}`).trim();
-            const phone = (userData.phone || userData.Phone || userData.PHONE || "").trim();
-            const department = (userData.department || userData.Department || userData.DEPARTMENT || "").trim();
+            const email = String(userData.email || userData.Email || userData.EMAIL || "").trim().toLowerCase();
+            const firstName = String(userData.first_name || userData["First Name"] || userData.firstname || userData.FirstName || "").trim();
+            const lastName = String(userData.last_name || userData["Last Name"] || userData.lastname || userData.LastName || "").trim();
+            const name = String(userData.name || userData.Name || userData.NAME || `${firstName} ${lastName}`).trim();
+            const phone = String(userData.phone || userData.Phone || userData.PHONE || "").trim();
+            const department = String(userData.department || userData.Department || userData.DEPARTMENT || "").trim();
             if (!email || !name) {
               console.log(`Skipping user: missing email or name - ${JSON.stringify(userData)}`);
               continue;
@@ -12207,8 +12215,12 @@ var init_user_routes = __esm({
               continue;
             }
             const username2 = email.split("@")[0];
-            const tempPassword = `TempPass${Math.random().toString(36).slice(-6)}!`;
-            const password_hash = await bcrypt.hash(tempPassword, 10);
+            const role = String(userData.role || userData.Role || userData.ROLE || "end_user").toLowerCase();
+            let password = userData.password || userData.Password || userData.PASSWORD;
+            if (!password) {
+              password = `TempPass${Math.random().toString(36).slice(-6)}!`;
+            }
+            const password_hash = await bcrypt.hash(String(password), 10);
             let finalFirstName = firstName;
             let finalLastName = lastName;
             if (!firstName && !lastName && name) {
@@ -12216,25 +12228,28 @@ var init_user_routes = __esm({
               finalFirstName = nameParts[0] || "";
               finalLastName = nameParts.slice(1).join(" ") || "";
             }
+            const jobTitle = String(userData.job_title || userData["Job Title"] || userData.jobTitle || userData.JobTitle || "").trim();
+            const location = String(userData.location || userData.Location || userData.LOCATION || "").trim();
             await pool.query(`
           INSERT INTO users (
             email, username, first_name, last_name, role, 
-            password_hash, phone, department, location, is_active,
+            password_hash, phone, job_title, department, location, is_active,
             preferences, permissions, created_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
         `, [
               email,
               username2,
               finalFirstName,
               finalLastName,
-              "end_user",
+              role,
               password_hash,
               phone || null,
+              jobTitle || null,
               department || null,
-              department || null,
+              location || department || null,
               true,
-              JSON.stringify({ temp_password: tempPassword }),
-              // Store temp password in preferences for now
+              JSON.stringify({ temp_password: !userData.password ? password : void 0 }),
+              // Store temp password only if generated
               JSON.stringify([])
             ]);
             imported++;
@@ -12251,9 +12266,19 @@ var init_user_routes = __esm({
         });
       } catch (error) {
         console.error("Error importing end users:", error);
+        console.error("Error stack:", error.stack);
+        let errorMessage = "Failed to import end users";
+        if (error.message?.includes("duplicate")) {
+          errorMessage = "Duplicate entries found in import file";
+        } else if (error.message?.includes("validation")) {
+          errorMessage = "Invalid data format in import file";
+        } else if (error.message?.includes("database")) {
+          errorMessage = "Database error during import";
+        }
         res.status(500).json({
-          message: "Failed to import end users",
-          error: error.message
+          message: errorMessage,
+          error: error.message,
+          details: process.env.NODE_ENV === "development" ? error.stack : void 0
         });
       }
     });
