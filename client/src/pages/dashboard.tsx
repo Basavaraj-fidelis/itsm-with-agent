@@ -271,6 +271,25 @@ export default function Dashboard() {
   const slaStatus = getSLAStatus();
   const assignmentDistribution = getAssignmentDistribution();
 
+  const { data: recentTickets, isLoading: ticketsLoading, error: ticketsError } = useQuery({
+    queryKey: ['recent-tickets'],
+    queryFn: async () => {
+      try {
+        const response = await api.get('/tickets', {
+          params: { limit: '5', page: '1' }
+        });
+        return response.data?.data || [];
+      } catch (error) {
+        console.warn('Failed to fetch recent tickets:', error);
+        return [];
+      }
+    },
+    refetchInterval: 30000,
+    retry: 2,
+    retryDelay: 1000,
+    staleTime: 5000
+  });
+
   // Debug authentication state
   React.useEffect(() => {
     const token = localStorage.getItem('auth_token');
@@ -705,61 +724,21 @@ export default function Dashboard() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="p-0">
               {ticketsLoading ? (
-                <div className="space-y-4">
-                  {[...Array(4)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="animate-pulse flex items-start space-x-3 p-3 rounded-lg"
-                    >
-                      <div className="w-2 h-2 bg-gray-300 dark:bg-gray-600 rounded-full mt-2"></div>
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-1/4"></div>
-                        <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-3/4"></div>
-                        <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-1/2"></div>
-                        <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-1/3"></div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="p-6 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-2 text-sm text-neutral-600">Loading tickets...</p>
                 </div>
               ) : ticketsError ? (
-                <div className="text-center py-8">
-                  <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-red-600 mb-2">
-                    Failed to Load Tickets
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">
-                    Unable to fetch recent tickets data
-                  </p>
-                  <button
-                    onClick={() => window.location.reload()}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <RefreshCw className="w-4 h-4 inline mr-2" />
-                    Retry
-                  </button>
+                <div className="p-6 text-center">
+                  <div className="text-red-500 mb-2">⚠️</div>
+                  <p className="text-sm text-neutral-600">Unable to load recent tickets</p>
+                  <p className="text-xs text-neutral-400 mt-1">Check network connection</p>
                 </div>
-              ) : !tickets || tickets.length === 0 ? (
-                <div className="text-center py-8">
-                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300 mb-2">
-                    No Tickets Found
-                  </h3>
-                  <p className="text-gray-500 dark:text-gray-400 mb-4">
-                    No tickets have been created yet
-                  </p>
-                  <button
-                    onClick={() => setLocation("/tickets")}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                  >
-                    <Plus className="w-4 h-4 inline mr-2" />
-                    Create First Ticket
-                  </button>
-                </div>
-              ) : (
+              ) : recentTickets && recentTickets.length > 0 ? (
                 <div className="space-y-4">
-                  {tickets
+                  {recentTickets
                     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                     .slice(0, 4)
                     .map((ticket) => (
@@ -828,6 +807,23 @@ export default function Dashboard() {
                         </div>
                       </div>
                     ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300 mb-2">
+                    No Tickets Found
+                  </h3>
+                  <p className="text-gray-500 dark:text-gray-400 mb-4">
+                    No tickets have been created yet
+                  </p>
+                  <button
+                    onClick={() => setLocation("/tickets")}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    <Plus className="w-4 h-4 inline mr-2" />
+                    Create First Ticket
+                  </button>
                 </div>
               )}
             </CardContent>

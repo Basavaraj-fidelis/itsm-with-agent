@@ -147,43 +147,78 @@ export default function KnowledgeBase() {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`/api/knowledge-base?${params.toString()}`, {
-        headers,
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`KB API Error: ${response.status} - ${errorText}`);
+      try {
+        const response = await fetch(`/api/knowledge-base?${params.toString()}`, {
+          headers,
+          signal: controller.signal,
+        });
 
-        if (response.status === 401) {
-          console.warn(
-            "Authentication issue for KB articles, trying without auth",
-          );
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`KB API Error: ${response.status} - ${errorText}`);
+
+          if (response.status === 401) {
+            console.warn("Authentication issue for KB articles, trying without auth");
+            // Retry without auth token
+            const retryResponse = await fetch(`/api/knowledge-base?${params.toString()}`, {
+              headers: { "Content-Type": "application/json" },
+            });
+            
+            if (retryResponse.ok) {
+              const retryResult = await retryResponse.json();
+              setArticles(Array.isArray(retryResult) ? retryResult : retryResult.data || []);
+              return;
+            }
+          }
+
+          throw new Error(`Failed to fetch articles: ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log("KB API Response:", result);
+
+        // Handle both paginated and direct array responses
+        let articlesData = [];
+        if (result.data && Array.isArray(result.data)) {
+          articlesData = result.data;
+        } else if (Array.isArray(result)) {
+          articlesData = result;
+        }
+
+        console.log(`Received ${articlesData.length} articles for category: ${selectedCategory}`);
+        setArticles(articlesData);
+
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          console.warn('KB API request timed out');
+          toast({
+            title: "Request Timeout",
+            description: "Knowledge base request took too long. Please try again.",
+            variant: "destructive"
+          });
         } else {
-          throw new Error(
-            `Failed to fetch articles: ${response.status} - ${errorText}`,
-          );
+          throw fetchError;
         }
       }
 
-      const result = await response.json();
-      console.log("KB API Response:", result);
-
-      // Handle both paginated and direct array responses
-      let articlesData = [];
-      if (result.data && Array.isArray(result.data)) {
-        articlesData = result.data;
-      } else if (Array.isArray(result)) {
-        articlesData = result;
-      }
-
-      console.log(
-        `Received ${articlesData.length} articles for category: ${selectedCategory}`,
-      );
-      setArticles(articlesData);
     } catch (err) {
       console.error("Error fetching articles:", err);
       setArticles([]);
+      
+      // Show user-friendly error message
+      if (err.message.includes('fetch')) {
+        toast({
+          title: "Connection Error",
+          description: "Unable to load articles. Please check your connection and try again.",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsLoading(false);
     }

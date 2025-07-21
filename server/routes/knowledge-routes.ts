@@ -59,13 +59,18 @@ router.get("/", authenticateToken, async (req, res) => {
     // Add search filter if specified
     if (filters.search && filters.search.trim() !== '') {
       const searchTerm = `%${filters.search.toLowerCase()}%`;
-      conditions.push(
-        or(
-          like(knowledgeBase.title, searchTerm),
-          like(knowledgeBase.content, searchTerm),
-          like(knowledgeBase.category, searchTerm)
-        )
-      );
+      try {
+        conditions.push(
+          or(
+            like(knowledgeBase.title, searchTerm),
+            like(knowledgeBase.content, searchTerm),
+            like(knowledgeBase.category, searchTerm)
+          )
+        );
+      } catch (searchError) {
+        console.warn('Search filter error:', searchError);
+        // Continue without search filter if there's an issue
+      }
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
