@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 """
 Test Agent System Reporting
@@ -14,7 +13,7 @@ from datetime import datetime
 
 def generate_test_system_data():
     """Generate realistic test system data similar to what the agent collects"""
-    
+
     return {
         'timestamp': datetime.utcnow().isoformat() + 'Z',
         'hostname': socket.gethostname(),
@@ -115,25 +114,25 @@ def generate_test_system_data():
 
 def test_agent_report():
     """Test the agent system report endpoint"""
-    
-    base_url = "https://0.0.0.0:5000"
-    
+
+    base_url = "http://0.0.0.0:5000"
+
     headers = {
         'Authorization': 'Bearer dashboard-api-token',
         'Content-Type': 'application/json',
         'User-Agent': 'ITSM-Agent/2.0.0'
     }
-    
+
     # Generate test system data
     system_data = generate_test_system_data()
-    
+
     print("Testing Agent System Report Endpoint")
     print("="*60)
     print(f"URL: {base_url}/api/report")
     print(f"Hostname: {system_data['hostname']}")
     print(f"Data size: {len(json.dumps(system_data))} bytes")
     print()
-    
+
     try:
         response = requests.post(
             f"{base_url}/api/report", 
@@ -141,10 +140,10 @@ def test_agent_report():
             headers=headers, 
             timeout=30
         )
-        
+
         print(f"Status Code: {response.status_code}")
         print(f"Response Headers: {dict(response.headers)}")
-        
+
         if response.status_code == 200:
             print("✅ SUCCESS: Agent report endpoint is working!")
             try:
@@ -155,7 +154,7 @@ def test_agent_report():
         else:
             print(f"❌ ERROR: Status {response.status_code}")
             print(f"Response: {response.text[:500]}")
-            
+
     except requests.exceptions.Timeout:
         print("❌ ERROR: Request timed out")
     except requests.exceptions.ConnectionError as e:
@@ -165,29 +164,29 @@ def test_agent_report():
 
 def test_device_registration():
     """Test if the device appears in the devices list after reporting"""
-    
-    base_url = "https://0.0.0.0:5000"
+
+    base_url = "http://0.0.0.0:5000"
     headers = {
         'Authorization': 'Bearer dashboard-api-token',
         'Content-Type': 'application/json'
     }
-    
+
     print("\nTesting Device Registration")
     print("="*60)
-    
+
     try:
         response = requests.get(
             f"{base_url}/api/devices",
             headers=headers,
             timeout=10
         )
-        
+
         print(f"Status Code: {response.status_code}")
-        
+
         if response.status_code == 200:
             devices = response.json()
             print(f"✅ SUCCESS: Found {len(devices)} devices in system")
-            
+
             # Look for our test device
             test_hostname = socket.gethostname()
             for device in devices:
@@ -200,7 +199,7 @@ def test_device_registration():
                 print(f"ℹ️  Test device '{test_hostname}' not found (may need to run report test first)")
         else:
             print(f"❌ ERROR: Status {response.status_code}")
-            
+
     except Exception as e:
         print(f"❌ ERROR: {e}")
 
@@ -208,10 +207,10 @@ def main():
     print("ITSM Agent System Reporting Test")
     print("=================================")
     print()
-    
+
     test_agent_report()
     test_device_registration()
-    
+
     print()
     print("Test complete!")
 

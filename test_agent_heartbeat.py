@@ -14,7 +14,7 @@ def test_agent_heartbeat():
     """Test the agent heartbeat/registration endpoint"""
     
     # Your current server URL
-    base_url = "https://0.0.0.0:5000"  # Update if different
+    base_url = "http://0.0.0.0:5000"  # Update if different
     
     headers = {
         'Authorization': 'Bearer dashboard-api-token',
