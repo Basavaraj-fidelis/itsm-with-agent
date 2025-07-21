@@ -1,102 +1,29 @@
-import React, { useState, useEffect } from "react";
-import { useParams } from "wouter";
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AgentTabs } from "@/components/agent-detail/agent-tabs";
-import { AIInsights } from "@/components/agent-detail/ai-insights";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { useProcessedAgentData } from "@/lib/agent-data-processor";
-import { api } from "@/lib/api";
-import {
-  Monitor,
-  Cpu,
-  MemoryStick,
-  HardDrive,
-  Network,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Activity,
-  Wifi,
-  Server,
-  Settings,
-  Zap,
-  RefreshCw,
-  Download,
-  Eye,
-  Shield,
-  Database,
-  Terminal,
-  Smartphone,
-  Laptop,
-  Desktop,
-  Calendar,
-  MapPin,
-  User,
-  Building,
-  Globe,
-  Power,
-  Thermometer,
-  Battery,
-  Gauge
-} from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Link, useParams } from "wouter";
-import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { MetricCard } from "@/components/agent-detail/metric-card";
 import AgentTabs from "@/components/agent-detail/agent-tabs";
 import { AgentErrorBoundary } from "@/components/ui/agent-error-boundary";
 import { useProcessedAgentData } from "@/lib/agent-data-processor";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { useAgent } from "@/hooks/use-agents";
-import { useState, useMemo, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { api } from "@/lib/api";
 import {
   ArrowLeft,
   Download,
   Monitor,
   RefreshCw,
-  Wifi,
-  AlertTriangle,
-  Users,
-  HardDrive,
+  Activity,
   Cpu,
   MemoryStick,
+  HardDrive,
   Network,
-  Shield,
-  Clock,
-  Info,
-  ExternalLink,
-  Eye,
-  EyeOff,
-  Activity,
-  Package,
-  Settings,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Globe,
-  Calendar,
-  MapPin,
-  Building,
-  User,
-  Database,
-  Server,
-  Zap,
-  Gauge,
-  FileText,
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
 
 export default function AgentDetail() {
   const { id } = useParams();
@@ -111,6 +38,7 @@ export default function AgentDetail() {
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
   const [showVNCModal, setShowVNCModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   const { data: device } = useQuery({
     queryKey: ["device", id],

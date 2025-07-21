@@ -168,7 +168,7 @@ export default function KnowledgeBase() {
             const retryResponse = await fetch(`/api/knowledge-base?${params.toString()}`, {
               headers: { "Content-Type": "application/json" },
             });
-            
+
             if (retryResponse.ok) {
               const retryResult = await retryResponse.json();
               setArticles(Array.isArray(retryResult) ? retryResult : retryResult.data || []);
@@ -210,7 +210,7 @@ export default function KnowledgeBase() {
     } catch (err) {
       console.error("Error fetching articles:", err);
       setArticles([]);
-      
+
       // Show user-friendly error message
       if (err.message.includes('fetch')) {
         toast({
