@@ -2777,8 +2777,8 @@ smartphones
         try {
           const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { usb_devices: usb_devices2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-          const { eq: eq13, desc: desc11 } = await import("drizzle-orm");
-          const result = await db5.select().from(usb_devices2).where(eq13(usb_devices2.device_id, deviceId)).orderBy(desc11(usb_devices2.last_seen));
+          const { eq: eq14, desc: desc12 } = await import("drizzle-orm");
+          const result = await db5.select().from(usb_devices2).where(eq14(usb_devices2.device_id, deviceId)).orderBy(desc12(usb_devices2.last_seen));
           return result;
         } catch (error) {
           console.error("Error fetching USB devices for device:", error);
@@ -2789,8 +2789,8 @@ smartphones
         try {
           const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { usb_devices: usb_devices2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-          const { eq: eq13, and: and12 } = await import("drizzle-orm");
-          await db5.update(usb_devices2).set({ is_connected: false }).where(eq13(usb_devices2.device_id, deviceId));
+          const { eq: eq14, and: and13 } = await import("drizzle-orm");
+          await db5.update(usb_devices2).set({ is_connected: false }).where(eq14(usb_devices2.device_id, deviceId));
           for (const device of usbDevices) {
             let vendor_id = device.vendor_id;
             let product_id = device.product_id;
@@ -2808,9 +2808,9 @@ smartphones
             );
             const deviceIdentifier = vendor_id && product_id ? `${vendor_id}:${product_id}:${serial_number || "no-serial"}` : device.device_id || device.serial_number || `unknown-${Date.now()}`;
             const existingDevices = await db5.select().from(usb_devices2).where(
-              and12(
-                eq13(usb_devices2.device_id, deviceId),
-                eq13(usb_devices2.device_identifier, deviceIdentifier)
+              and13(
+                eq14(usb_devices2.device_id, deviceId),
+                eq14(usb_devices2.device_identifier, deviceIdentifier)
               )
             );
             if (existingDevices.length > 0) {
@@ -2826,7 +2826,7 @@ smartphones
                 last_seen: /* @__PURE__ */ new Date(),
                 is_connected: true,
                 raw_data: device
-              }).where(eq13(usb_devices2.id, existingDevices[0].id));
+              }).where(eq14(usb_devices2.id, existingDevices[0].id));
             } else {
               await db5.insert(usb_devices2).values({
                 device_id: deviceId,
@@ -6141,10 +6141,15 @@ var init_auth = __esm({
        */
       static verifyToken(token) {
         try {
-          if (!token) {
-            throw new Error("No token provided");
+          if (!token || typeof token !== "string") {
+            throw new Error("Invalid token format");
           }
-          return jwt.verify(token, JWT_SECRET);
+          const cleanToken = token.replace(/^Bearer\s+/, "");
+          if (!cleanToken) {
+            throw new Error("Invalid token format");
+          }
+          const decoded = jwt.verify(cleanToken, JWT_SECRET);
+          return decoded;
         } catch (error) {
           if (error.name === "TokenExpiredError") {
             throw new Error("Token expired");
@@ -6152,7 +6157,8 @@ var init_auth = __esm({
           if (error.name === "JsonWebTokenError") {
             throw new Error("Invalid token format");
           }
-          throw new Error("Token verification failed");
+          console.error("Token verification failed:", error);
+          throw new Error("Invalid token format");
         }
       }
       /**
@@ -6508,9 +6514,9 @@ var init_notification_routes = __esm({
           const decoded = jwt2.verify(token, JWT_SECRET2);
           const userId = decoded.id;
           const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
-          const { desc: desc11 } = await import("drizzle-orm");
+          const { desc: desc12 } = await import("drizzle-orm");
           const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-          const ticketsList = await db5.select().from(tickets2).orderBy(desc11(tickets2.updated_at));
+          const ticketsList = await db5.select().from(tickets2).orderBy(desc12(tickets2.updated_at));
           const userTickets = ticketsList.filter(
             (ticket) => ticket.assigned_to === userId || ticket.requester_email === decoded.email
           );
@@ -10486,7 +10492,7 @@ var init_performance_service = __esm({
       }
       async getApplicationPerformanceInsights(deviceId) {
         try {
-          const { pool: pool3 } = await import("./db");
+          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const reportResult = await pool3.query(
             `
         SELECT raw_data, collected_at, cpu_usage, memory_usage, disk_usage
@@ -12080,9 +12086,9 @@ var init_auth_middleware = __esm({
             const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
             const result = await pool3.query(
               `
-        SELECT id, email, role, first_name, last_name, username, is_active, phone, location 
-        FROM users WHERE id = $1
-      `,
+          SELECT id, email, role, first_name, last_name, username, is_active, phone, location 
+          FROM users WHERE id = $1
+        `,
               [decoded.userId || decoded.id]
             );
             if (result.rows.length > 0) {
@@ -12118,8 +12124,14 @@ var init_auth_middleware = __esm({
           req.user = user;
           next();
         } catch (error) {
-          console.error("Database user lookup failed:", error);
-          return null;
+          console.error("Authentication error for", req.path, ":", error);
+          if (error.name === "TokenExpiredError") {
+            return res.status(401).json({ message: "Token expired" });
+          }
+          if (error.name === "JsonWebTokenError") {
+            return res.status(401).json({ message: "Invalid token format" });
+          }
+          return res.status(403).json({ message: "Invalid token" });
         }
       } catch (error) {
         console.error("Authentication error for", req.path, ":", error);
@@ -13977,8 +13989,8 @@ Immediate attention required!`;
           }
           const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { users: users2 } = await Promise.resolve().then(() => (init_user_schema(), user_schema_exports));
-          const { eq: eq13 } = await import("drizzle-orm");
-          const managers = await db5.select().from(users2).where(eq13(users2.role, "manager"));
+          const { eq: eq14 } = await import("drizzle-orm");
+          const managers = await db5.select().from(users2).where(eq14(users2.role, "manager"));
           for (const manager of managers) {
             await notificationService.createNotification({
               user_email: manager.email,
@@ -14141,13 +14153,13 @@ function registerSLARoutes(app2) {
       const now = /* @__PURE__ */ new Date();
       const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-      const { eq: eq13 } = await import("drizzle-orm");
+      const { eq: eq14 } = await import("drizzle-orm");
       await db5.update(tickets2).set({
         sla_paused: true,
         sla_pause_reason: reason || "Manually paused",
         sla_paused_at: now,
         updated_at: now
-      }).where(eq13(tickets2.id, id));
+      }).where(eq14(tickets2.id, id));
       res.json({ message: "SLA paused successfully" });
     } catch (error) {
       console.error("Error pausing SLA:", error);
@@ -14160,8 +14172,8 @@ function registerSLARoutes(app2) {
       const now = /* @__PURE__ */ new Date();
       const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-      const { eq: eq13 } = await import("drizzle-orm");
-      const [ticket] = await db5.select().from(tickets2).where(eq13(tickets2.id, id));
+      const { eq: eq14 } = await import("drizzle-orm");
+      const [ticket] = await db5.select().from(tickets2).where(eq14(tickets2.id, id));
       if (!ticket || !ticket.sla_paused_at) {
         return res.status(400).json({ error: "Ticket SLA is not paused" });
       }
@@ -14175,7 +14187,7 @@ function registerSLARoutes(app2) {
         sla_resumed_at: now,
         sla_total_paused_time: totalPausedTime,
         updated_at: now
-      }).where(eq13(tickets2.id, id));
+      }).where(eq14(tickets2.id, id));
       res.json({
         message: "SLA resumed successfully",
         pausedFor: `${pauseDuration} minutes`,
@@ -14199,14 +14211,14 @@ function registerSLARoutes(app2) {
     try {
       const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-      const { not: not3, inArray: inArray4, or: or9, eq: eq13 } = await import("drizzle-orm");
+      const { not: not4, inArray: inArray5, or: or9, eq: eq14 } = await import("drizzle-orm");
       const breachedTickets = await db5.select().from(tickets2).where(
         and(
-          not3(inArray4(tickets2.status, ["resolved", "closed", "cancelled"])),
+          not4(inArray5(tickets2.status, ["resolved", "closed", "cancelled"])),
           or9(
-            eq13(tickets2.sla_response_breached, true),
-            eq13(tickets2.sla_resolution_breached, true),
-            eq13(tickets2.sla_breached, true)
+            eq14(tickets2.sla_response_breached, true),
+            eq14(tickets2.sla_resolution_breached, true),
+            eq14(tickets2.sla_breached, true)
           )
         )
       );
@@ -14269,7 +14281,7 @@ function registerSLARoutes(app2) {
     try {
       const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-      const { eq: eq13, isNull: isNull3, not: not3, inArray: inArray4 } = await import("drizzle-orm");
+      const { eq: eq14, isNull: isNull3, not: not4, inArray: inArray5 } = await import("drizzle-orm");
       const ticketsToUpdate = await db5.select().from(tickets2).where(isNull3(tickets2.sla_resolution_due));
       let updated = 0;
       for (const ticket of ticketsToUpdate) {
@@ -14288,7 +14300,7 @@ function registerSLARoutes(app2) {
           due_date: slaResolutionDue,
           sla_breached: isBreached,
           updated_at: /* @__PURE__ */ new Date()
-        }).where(eq13(tickets2.id, ticket.id));
+        }).where(eq14(tickets2.id, ticket.id));
         updated++;
       }
       res.json({
@@ -14341,6 +14353,1354 @@ var init_sla_routes = __esm({
       }
     });
     sla_routes_default = router8;
+  }
+});
+
+// server/routes/sla-analysis-routes.ts
+var sla_analysis_routes_exports = {};
+__export(sla_analysis_routes_exports, {
+  default: () => sla_analysis_routes_default
+});
+import { Router as Router9 } from "express";
+import { eq as eq12, and as and12, not as not3, inArray as inArray4 } from "drizzle-orm";
+async function validateSLACalculation(ticket) {
+  try {
+    const policy = await slaPolicyService.findMatchingSLAPolicy({
+      type: ticket.type,
+      priority: ticket.priority,
+      impact: ticket.impact,
+      urgency: ticket.urgency,
+      category: ticket.category
+    });
+    if (!policy) {
+      return {
+        isValid: false,
+        error: "No matching SLA policy found",
+        expectedPolicy: null,
+        expectedResponseTime: null,
+        expectedResolutionTime: null
+      };
+    }
+    const slaTargets = slaPolicyService.calculateSLADueDates(
+      new Date(ticket.created_at),
+      policy
+    );
+    const actualResponse = ticket.response_due_at || ticket.sla_response_due;
+    const actualResolution = ticket.resolve_due_at || ticket.sla_resolution_due;
+    const responseDiff = actualResponse ? Math.abs(new Date(actualResponse).getTime() - slaTargets.responseDue.getTime()) : null;
+    const resolutionDiff = actualResolution ? Math.abs(new Date(actualResolution).getTime() - slaTargets.resolutionDue.getTime()) : null;
+    return {
+      isValid: true,
+      matchedPolicy: policy.name,
+      expectedResponseTime: policy.response_time,
+      expectedResolutionTime: policy.resolution_time,
+      expectedResponseDue: slaTargets.responseDue,
+      expectedResolutionDue: slaTargets.resolutionDue,
+      actualResponseDue: actualResponse,
+      actualResolutionDue: actualResolution,
+      responseDifference: responseDiff ? Math.floor(responseDiff / (1e3 * 60)) : null,
+      // in minutes
+      resolutionDifference: resolutionDiff ? Math.floor(resolutionDiff / (1e3 * 60)) : null,
+      // in minutes
+      calculationAccurate: (responseDiff === null || responseDiff < 6e4) && (resolutionDiff === null || resolutionDiff < 6e4)
+      // within 1 minute tolerance
+    };
+  } catch (error) {
+    return {
+      isValid: false,
+      error: error.message,
+      expectedPolicy: null,
+      expectedResponseTime: null,
+      expectedResolutionTime: null
+    };
+  }
+}
+async function testFutureTicketSLA() {
+  try {
+    const testCases = [
+      { type: "incident", priority: "critical", impact: "high", urgency: "high" },
+      { type: "incident", priority: "high", impact: "medium", urgency: "high" },
+      { type: "request", priority: "medium", impact: "low", urgency: "medium" },
+      { type: "request", priority: "low", impact: "low", urgency: "low" }
+    ];
+    const results = [];
+    const now = /* @__PURE__ */ new Date();
+    for (const testCase of testCases) {
+      const policy = await slaPolicyService.findMatchingSLAPolicy(testCase);
+      if (policy) {
+        const slaTargets = slaPolicyService.calculateSLADueDates(now, policy);
+        results.push({
+          testCase,
+          policy: policy.name,
+          responseTime: policy.response_time,
+          resolutionTime: policy.resolution_time,
+          responseDue: slaTargets.responseDue,
+          resolutionDue: slaTargets.resolutionDue,
+          businessHoursOnly: policy.business_hours_only,
+          willWork: true
+        });
+      } else {
+        results.push({
+          testCase,
+          policy: null,
+          willWork: false,
+          error: "No matching SLA policy found"
+        });
+      }
+    }
+    return {
+      testTime: now.toISOString(),
+      results,
+      summary: {
+        totalTests: testCases.length,
+        passed: results.filter((r) => r.willWork).length,
+        failed: results.filter((r) => !r.willWork).length
+      }
+    };
+  } catch (error) {
+    return {
+      error: error.message,
+      testTime: (/* @__PURE__ */ new Date()).toISOString()
+    };
+  }
+}
+var router9, sla_analysis_routes_default;
+var init_sla_analysis_routes = __esm({
+  "server/routes/sla-analysis-routes.ts"() {
+    "use strict";
+    init_db();
+    init_ticket_schema();
+    init_sla_schema();
+    init_sla_policy_service();
+    router9 = Router9();
+    router9.get("/api/sla/analysis", async (req, res) => {
+      try {
+        const now = /* @__PURE__ */ new Date();
+        const allTickets = await db.select().from(tickets);
+        const analysis = {
+          summary: {
+            totalTickets: allTickets.length,
+            openTickets: allTickets.filter((t) => !["resolved", "closed", "cancelled"].includes(t.status)).length,
+            closedTickets: allTickets.filter((t) => ["resolved", "closed", "cancelled"].includes(t.status)).length,
+            slaBreached: allTickets.filter((t) => t.sla_breached || t.sla_resolution_breached).length,
+            slaOnTrack: 0,
+            responseBreached: allTickets.filter((t) => t.sla_response_breached).length,
+            resolutionBreached: allTickets.filter((t) => t.sla_resolution_breached).length
+          },
+          ticketDetails: [],
+          slaValidation: {
+            ticketsWithSLA: 0,
+            ticketsWithoutSLA: 0,
+            slaCalculationErrors: []
+          },
+          futureTicketTest: null
+        };
+        for (const ticket of allTickets) {
+          const hasSLA = ticket.resolve_due_at || ticket.sla_resolution_due;
+          if (hasSLA) {
+            analysis.slaValidation.ticketsWithSLA++;
+          } else {
+            analysis.slaValidation.ticketsWithoutSLA++;
+          }
+          let slaStatus = "Unknown";
+          let timeToSLA = null;
+          let slaHealth = "unknown";
+          if (ticket.resolve_due_at || ticket.sla_resolution_due) {
+            const dueDate = new Date(ticket.resolve_due_at || ticket.sla_resolution_due);
+            const timeDiff = dueDate.getTime() - now.getTime();
+            const hoursRemaining = Math.floor(timeDiff / (1e3 * 3600));
+            const minutesRemaining = Math.floor(timeDiff % (1e3 * 3600) / (1e3 * 60));
+            if (["resolved", "closed", "cancelled"].includes(ticket.status)) {
+              slaStatus = "Completed";
+              slaHealth = ticket.sla_breached ? "breached" : "met";
+            } else if (timeDiff < 0) {
+              slaStatus = `Overdue by ${Math.abs(hoursRemaining)}h ${Math.abs(minutesRemaining)}m`;
+              slaHealth = "breached";
+            } else if (hoursRemaining < 2) {
+              slaStatus = `Due in ${hoursRemaining}h ${minutesRemaining}m`;
+              slaHealth = "critical";
+            } else if (hoursRemaining < 24) {
+              slaStatus = `Due in ${hoursRemaining}h ${minutesRemaining}m`;
+              slaHealth = "warning";
+            } else {
+              slaStatus = `Due in ${Math.floor(hoursRemaining / 24)}d ${hoursRemaining % 24}h`;
+              slaHealth = "good";
+            }
+            timeToSLA = {
+              hours: hoursRemaining,
+              minutes: minutesRemaining,
+              status: slaHealth
+            };
+          }
+          if (slaHealth === "good") {
+            analysis.summary.slaOnTrack++;
+          }
+          const expectedSLA = await validateSLACalculation(ticket);
+          analysis.ticketDetails.push({
+            ticketNumber: ticket.ticket_number,
+            title: ticket.title,
+            type: ticket.type,
+            priority: ticket.priority,
+            status: ticket.status,
+            createdAt: ticket.created_at,
+            assignedTo: ticket.assigned_to || "Unassigned",
+            slaPolicy: ticket.sla_policy,
+            slaResponseTime: ticket.sla_response_time,
+            slaResolutionTime: ticket.sla_resolution_time,
+            responseDue: ticket.response_due_at || ticket.sla_response_due,
+            resolutionDue: ticket.resolve_due_at || ticket.sla_resolution_due,
+            firstResponseAt: ticket.first_response_at,
+            resolvedAt: ticket.resolved_at,
+            slaBreached: ticket.sla_breached,
+            slaResponseBreached: ticket.sla_response_breached,
+            slaResolutionBreached: ticket.sla_resolution_breached,
+            currentSLAStatus: slaStatus,
+            timeToSLA,
+            slaHealth,
+            expectedSLA,
+            slaValidationPass: expectedSLA.isValid
+          });
+        }
+        analysis.futureTicketTest = await testFutureTicketSLA();
+        const policies = await db.select().from(slaPolicies2);
+        res.json({
+          analysis,
+          policies,
+          timestamp: now.toISOString()
+        });
+      } catch (error) {
+        console.error("Error in SLA analysis:", error);
+        res.status(500).json({ error: "Failed to analyze SLA data" });
+      }
+    });
+    router9.post("/api/sla/fix-tickets", async (req, res) => {
+      try {
+        const ticketsToFix = await db.select().from(tickets).where(
+          and12(
+            eq12(tickets.resolve_due_at, null),
+            not3(inArray4(tickets.status, ["resolved", "closed", "cancelled"]))
+          )
+        );
+        let fixed = 0;
+        const now = /* @__PURE__ */ new Date();
+        for (const ticket of ticketsToFix) {
+          const policy = await slaPolicyService.findMatchingSLAPolicy({
+            type: ticket.type,
+            priority: ticket.priority,
+            impact: ticket.impact,
+            urgency: ticket.urgency,
+            category: ticket.category
+          });
+          if (policy) {
+            const slaTargets = slaPolicyService.calculateSLADueDates(
+              new Date(ticket.created_at),
+              policy
+            );
+            const isResponseBreached = !ticket.first_response_at && now > slaTargets.responseDue;
+            const isResolutionBreached = now > slaTargets.resolutionDue;
+            await db.update(tickets).set({
+              sla_policy_id: policy.id,
+              sla_policy: policy.name,
+              sla_response_time: policy.response_time,
+              sla_resolution_time: policy.resolution_time,
+              response_due_at: slaTargets.responseDue,
+              resolve_due_at: slaTargets.resolutionDue,
+              sla_response_due: slaTargets.responseDue,
+              sla_resolution_due: slaTargets.resolutionDue,
+              sla_response_breached: isResponseBreached,
+              sla_resolution_breached: isResolutionBreached,
+              sla_breached: isResolutionBreached,
+              updated_at: now
+            }).where(eq12(tickets.id, ticket.id));
+            fixed++;
+          }
+        }
+        res.json({
+          message: `Fixed SLA data for ${fixed} tickets`,
+          ticketsProcessed: ticketsToFix.length,
+          ticketsFixed: fixed
+        });
+      } catch (error) {
+        console.error("Error fixing ticket SLA data:", error);
+        res.status(500).json({ error: "Failed to fix ticket SLA data" });
+      }
+    });
+    router9.post("/api/sla/check-breaches", async (req, res) => {
+      try {
+        const { slaMonitorService: slaMonitorService2 } = await Promise.resolve().then(() => (init_sla_monitor_service(), sla_monitor_service_exports));
+        console.log("\u{1F50D} Manual SLA breach check initiated...");
+        await slaMonitorService2.checkSLABreaches();
+        const metrics = await slaMonitorService2.getSLAMetrics();
+        res.json({
+          message: "SLA breach check completed",
+          metrics,
+          timestamp: (/* @__PURE__ */ new Date()).toISOString()
+        });
+      } catch (error) {
+        console.error("Error in manual SLA check:", error);
+        res.status(500).json({ error: "Failed to perform SLA check" });
+      }
+    });
+    sla_analysis_routes_default = router9;
+  }
+});
+
+// server/services/ai-service.ts
+var AIService, aiService;
+var init_ai_service = __esm({
+  "server/services/ai-service.ts"() {
+    "use strict";
+    init_storage();
+    AIService = class {
+      async generateDeviceInsights(deviceId) {
+        try {
+          const device = await storage.getDevice(deviceId);
+          if (!device) {
+            throw new Error("Device not found");
+          }
+          console.log(`Generating AI insights for device: ${device.hostname} (${deviceId})`);
+          const reportsPromise = storage.getRecentDeviceReports(deviceId, 7);
+          const timeout = new Promise(
+            (_, reject) => setTimeout(() => reject(new Error("Database query timeout")), 3e3)
+          );
+          const reports = await Promise.race([reportsPromise, timeout]);
+          if (!reports || reports.length === 0) {
+            console.log(`No reports found for device ${deviceId}`);
+            return [];
+          }
+          const latestReport = reports[0];
+          const analysisPromises = [
+            this.analyzePerformancePatterns(deviceId, reports, []).catch(
+              (err) => console.warn("Performance analysis failed:", err.message)
+            ),
+            this.analyzeSecurityPosture(deviceId, latestReport, []).catch(
+              (err) => console.warn("Security analysis failed:", err.message)
+            ),
+            this.generateResourcePredictions(deviceId, reports, []).catch(
+              (err) => console.warn("Resource prediction failed:", err.message)
+            ),
+            this.analyzeProcessBehavior(deviceId, latestReport, []).catch(
+              (err) => console.warn("Process analysis failed:", err.message)
+            ),
+            this.analyzeSystemHealth(deviceId, latestReport, []).catch(
+              (err) => console.warn("System health analysis failed:", err.message)
+            )
+          ];
+          const analysisTimeout = new Promise(
+            (_, reject) => setTimeout(() => reject(new Error("Analysis timeout")), 2e3)
+          );
+          await Promise.race([
+            Promise.allSettled(analysisPromises),
+            analysisTimeout
+          ]);
+          let insights = [];
+          for (const analysisResult of await Promise.allSettled(analysisPromises)) {
+            if (analysisResult.status === "fulfilled" && Array.isArray(analysisResult.value)) {
+              insights = insights.concat(analysisResult.value);
+            }
+          }
+          console.log(`Generated ${insights.length} AI insights for device ${deviceId}`);
+          return insights;
+        } catch (error) {
+          console.warn(`Error generating AI insights for device ${deviceId}:`, error.message);
+          return [];
+        }
+      }
+      async analyzePerformancePatterns(deviceId, reports, insights) {
+        const newInsights = [];
+        if (reports.length < 3) return newInsights;
+        const existingAlerts = await this.getExistingPerformanceAlerts(deviceId);
+        const cpuValues = reports.map((r) => parseFloat(r.cpu_usage || "0")).filter((v) => !isNaN(v));
+        const cpuTrend = this.calculateTrend(cpuValues);
+        if (cpuTrend > 2) {
+          const newSeverity = cpuTrend > 5 ? "high" : "medium";
+          const alertKey = "cpu-trend";
+          const existingAlert = existingAlerts.find((a) => a.metadata?.metric === "cpu" && a.title.includes("Trend"));
+          if (existingAlert && this.shouldUpdateAlert(existingAlert, cpuTrend, newSeverity)) {
+            newInsights.push({
+              ...existingAlert,
+              severity: newSeverity,
+              description: `CPU usage trending upward by ${cpuTrend.toFixed(1)}% per day over the last week`,
+              metadata: {
+                ...existingAlert.metadata,
+                trend: cpuTrend,
+                previous_trend: existingAlert.metadata?.trend || 0,
+                last_updated: (/* @__PURE__ */ new Date()).toISOString()
+              },
+              created_at: /* @__PURE__ */ new Date()
+            });
+          } else if (!existingAlert) {
+            newInsights.push({
+              id: `cpu-trend-${deviceId}`,
+              device_id: deviceId,
+              type: "performance",
+              severity: newSeverity,
+              title: "Rising CPU Usage Trend",
+              description: `CPU usage trending upward by ${cpuTrend.toFixed(1)}% per day over the last week`,
+              recommendation: "Monitor for runaway processes or consider CPU upgrade if trend continues",
+              confidence: 0.8,
+              metadata: { trend: cpuTrend, metric: "cpu", alert_type: "trend" },
+              created_at: /* @__PURE__ */ new Date()
+            });
+          }
+        }
+        const memoryValues = reports.map((r) => parseFloat(r.memory_usage || "0")).filter((v) => !isNaN(v));
+        const memoryTrend = this.calculateTrend(memoryValues);
+        if (memoryTrend > 1.5) {
+          const newSeverity = memoryTrend > 3 ? "high" : "medium";
+          const existingAlert = existingAlerts.find((a) => a.metadata?.metric === "memory" && a.title.includes("Climbing"));
+          if (existingAlert && this.shouldUpdateAlert(existingAlert, memoryTrend, newSeverity)) {
+            newInsights.push({
+              ...existingAlert,
+              severity: newSeverity,
+              description: `Memory usage increasing by ${memoryTrend.toFixed(1)}% per day`,
+              metadata: {
+                ...existingAlert.metadata,
+                trend: memoryTrend,
+                previous_trend: existingAlert.metadata?.trend || 0,
+                last_updated: (/* @__PURE__ */ new Date()).toISOString()
+              },
+              created_at: /* @__PURE__ */ new Date()
+            });
+          } else if (!existingAlert) {
+            newInsights.push({
+              id: `memory-trend-${deviceId}`,
+              device_id: deviceId,
+              type: "performance",
+              severity: newSeverity,
+              title: "Memory Usage Climbing",
+              description: `Memory usage increasing by ${memoryTrend.toFixed(1)}% per day`,
+              recommendation: "Check for memory leaks or plan for memory upgrade",
+              confidence: 0.75,
+              metadata: { trend: memoryTrend, metric: "memory", alert_type: "trend" },
+              created_at: /* @__PURE__ */ new Date()
+            });
+          }
+        }
+        const cpuVolatility = this.calculateVolatility(cpuValues);
+        if (cpuVolatility > 15) {
+          const existingAlert = existingAlerts.find((a) => a.metadata?.metric === "cpu" && a.title.includes("Volatility"));
+          if (!existingAlert) {
+            newInsights.push({
+              id: `cpu-volatility-${deviceId}`,
+              device_id: deviceId,
+              type: "performance",
+              severity: "medium",
+              title: "Unstable CPU Performance",
+              description: `High CPU usage volatility detected (${cpuVolatility.toFixed(1)}% std deviation)`,
+              recommendation: "Investigate intermittent high-CPU processes or system instability",
+              confidence: 0.7,
+              metadata: { volatility: cpuVolatility, metric: "cpu", alert_type: "volatility" },
+              created_at: /* @__PURE__ */ new Date()
+            });
+          }
+        }
+        return newInsights;
+      }
+      async analyzeSecurityPosture(deviceId, latestReport, insights) {
+        const newInsights = [];
+        if (!latestReport.raw_data) return newInsights;
+        const rawData = JSON.parse(latestReport.raw_data);
+        const securityData = rawData.security || {};
+        const processes = rawData.processes || [];
+        if (securityData.firewall_status !== "enabled" || securityData.antivirus_status !== "enabled") {
+          newInsights.push({
+            id: `security-services-${deviceId}`,
+            device_id: deviceId,
+            type: "security",
+            severity: "critical",
+            title: "Critical Security Services Disabled",
+            description: `${securityData.firewall_status !== "enabled" ? "Firewall disabled. " : ""}${securityData.antivirus_status !== "enabled" ? "Antivirus disabled." : ""}`,
+            recommendation: "Immediately enable all security services and run full system scan",
+            confidence: 0.95,
+            metadata: { firewall: securityData.firewall_status, antivirus: securityData.antivirus_status },
+            created_at: /* @__PURE__ */ new Date()
+          });
+        }
+        const suspiciousProcesses = processes.filter(
+          (p) => p.cpu_percent > 50 || p.name && (p.name.includes("crypto") || p.name.includes("miner"))
+        );
+        if (suspiciousProcesses.length > 0) {
+          newInsights.push({
+            id: `suspicious-processes-${deviceId}`,
+            device_id: deviceId,
+            type: "security",
+            severity: "high",
+            title: "Suspicious Process Activity",
+            description: `${suspiciousProcesses.length} potentially suspicious processes detected`,
+            recommendation: "Review process activity and run malware scan",
+            confidence: 0.6,
+            metadata: { processes: suspiciousProcesses.map((p) => p.name) },
+            created_at: /* @__PURE__ */ new Date()
+          });
+        }
+        return newInsights;
+      }
+      async generateResourcePredictions(deviceId, reports, insights) {
+        const newInsights = [];
+        if (reports.length < 5) return newInsights;
+        const timestamps = reports.map((r) => new Date(r.timestamp || r.created_at));
+        const diskValues = reports.map((r) => parseFloat(r.disk_usage || "0")).filter((v) => !isNaN(v));
+        const diskAnalysis = this.analyzeTimeSeriesPatterns(diskValues, timestamps);
+        if (diskAnalysis.trend > 0.5) {
+          const currentDisk = diskValues[0] || 0;
+          const forecast = diskAnalysis.forecast;
+          let daysToFull = -1;
+          for (let i = 0; i < forecast.length; i++) {
+            if (forecast[i] >= 95) {
+              daysToFull = i + 1;
+              break;
+            }
+          }
+          if (daysToFull > 0) {
+            newInsights.push({
+              id: `disk-prediction-${deviceId}`,
+              device_id: deviceId,
+              type: "prediction",
+              severity: daysToFull < 30 ? "high" : "medium",
+              title: "Advanced Disk Space Forecast",
+              description: `Predictive model shows disk reaching 95% capacity in ${daysToFull} days. Pattern: ${diskAnalysis.seasonality}`,
+              recommendation: this.generateMaintenanceRecommendation(daysToFull, diskAnalysis.volatility),
+              confidence: Math.min(0.95, reports.length / 15),
+              metadata: {
+                days_to_full: daysToFull,
+                current_usage: currentDisk,
+                trend: diskAnalysis.trend,
+                seasonality: diskAnalysis.seasonality,
+                volatility: diskAnalysis.volatility,
+                forecast: forecast.slice(0, 7)
+              },
+              created_at: /* @__PURE__ */ new Date()
+            });
+          }
+        }
+        const memoryValues = reports.map((r) => parseFloat(r.memory_usage || "0")).filter((v) => !isNaN(v));
+        const memoryAnalysis = this.analyzeTimeSeriesPatterns(memoryValues, timestamps);
+        if (memoryAnalysis.volatility > 20 && memoryAnalysis.trend > 1) {
+          newInsights.push({
+            id: `memory-degradation-${deviceId}`,
+            device_id: deviceId,
+            type: "prediction",
+            severity: "medium",
+            title: "Memory Performance Degradation Predicted",
+            description: `Memory usage patterns suggest potential degradation. Volatility: ${memoryAnalysis.volatility.toFixed(1)}%`,
+            recommendation: "Consider memory diagnostics and potential hardware refresh planning",
+            confidence: 0.7,
+            metadata: {
+              current_trend: memoryAnalysis.trend,
+              volatility: memoryAnalysis.volatility,
+              anomaly_count: memoryAnalysis.anomalies.length
+            },
+            created_at: /* @__PURE__ */ new Date()
+          });
+        }
+        const hardwareFailures = await this.predictHardwareFailures(deviceId, reports, []);
+        newInsights.push(...hardwareFailures);
+        return newInsights;
+      }
+      async predictHardwareFailures(deviceId, reports, insights) {
+        const newInsights = [];
+        const timestamps = reports.map((r) => new Date(r.timestamp || r.created_at));
+        const metrics = ["cpu_usage", "memory_usage", "disk_usage", "cpu_temperature"];
+        let riskScore = 0;
+        const riskFactors = [];
+        for (const metric of metrics) {
+          const values = reports.map((r) => parseFloat(r[metric] || "0")).filter((v) => !isNaN(v) && v > 0);
+          if (values.length < 3) continue;
+          const analysis = this.analyzeTimeSeriesPatterns(values, timestamps);
+          if (analysis.volatility > 25) {
+            riskScore += analysis.volatility / 25;
+            riskFactors.push(`${metric} volatility: ${analysis.volatility.toFixed(1)}%`);
+          }
+          if (metric === "cpu_temperature" && analysis.trend > 1) {
+            riskScore += 2;
+            riskFactors.push(`Rising temperature trend: +${analysis.trend.toFixed(1)}\xB0C/day`);
+          }
+          if (analysis.anomalies.length > values.length * 0.1) {
+            riskScore += 1;
+            riskFactors.push(`${metric} anomalies: ${analysis.anomalies.length}/${values.length} readings`);
+          }
+        }
+        if (riskScore > 3) {
+          newInsights.push({
+            id: `hardware-failure-risk-${deviceId}`,
+            device_id: deviceId,
+            type: "prediction",
+            severity: riskScore > 6 ? "high" : "medium",
+            title: "Hardware Failure Risk Detected",
+            description: `Predictive analysis indicates elevated hardware failure risk. Risk score: ${riskScore.toFixed(1)}`,
+            recommendation: "Schedule comprehensive hardware diagnostics and consider preventive replacement",
+            confidence: Math.min(0.9, riskScore / 10),
+            metadata: {
+              risk_score: riskScore,
+              risk_factors: riskFactors,
+              analysis_period_days: Math.ceil(((/* @__PURE__ */ new Date()).getTime() - timestamps[timestamps.length - 1].getTime()) / (1e3 * 60 * 60 * 24))
+            },
+            created_at: /* @__PURE__ */ new Date()
+          });
+        }
+        return newInsights;
+      }
+      generateMaintenanceRecommendation(daysToFull, volatility) {
+        if (daysToFull < 7) return "CRITICAL: Immediate action required within 24 hours";
+        if (daysToFull < 30) return "HIGH: Schedule maintenance within 1 week";
+        if (volatility > 15) return "MEDIUM: Volatile pattern detected, monitor closely and plan maintenance";
+        return "LOW: Plan routine maintenance within the month";
+      }
+      async analyzeProcessBehavior(deviceId, latestReport, insights) {
+        const newInsights = [];
+        if (!latestReport.raw_data) return newInsights;
+        const rawData = JSON.parse(latestReport.raw_data);
+        const processes = rawData.processes || [];
+        const highCPUProcesses = processes.filter((p) => p.cpu_percent > 20);
+        const highMemoryProcesses = processes.filter((p) => p.memory_percent > 10);
+        if (highCPUProcesses.length >= 3) {
+          newInsights.push({
+            id: `high-cpu-processes-${deviceId}`,
+            device_id: deviceId,
+            type: "performance",
+            severity: "medium",
+            title: "Multiple High-CPU Processes",
+            description: `${highCPUProcesses.length} processes consuming >20% CPU each`,
+            recommendation: "Review process efficiency and consider workload optimization",
+            confidence: 0.8,
+            metadata: { processes: highCPUProcesses.slice(0, 5).map((p) => ({ name: p.name, cpu: p.cpu_percent })) },
+            created_at: /* @__PURE__ */ new Date()
+          });
+        }
+        if (processes.length > 100) {
+          newInsights.push({
+            id: `process-optimization-${deviceId}`,
+            device_id: deviceId,
+            type: "optimization",
+            severity: "info",
+            title: "Process Optimization Opportunity",
+            description: `${processes.length} running processes detected - system may benefit from cleanup`,
+            recommendation: "Review and disable unnecessary startup programs and services",
+            confidence: 0.6,
+            metadata: { process_count: processes.length },
+            created_at: /* @__PURE__ */ new Date()
+          });
+        }
+        return newInsights;
+      }
+      async analyzeSystemHealth(deviceId, latestReport, insights) {
+        const newInsights = [];
+        if (!latestReport.raw_data) return newInsights;
+        const rawData = JSON.parse(latestReport.raw_data);
+        const systemHealth = rawData.system_health || {};
+        if (systemHealth.memory_pressure?.pressure_level === "high") {
+          newInsights.push({
+            id: `memory-pressure-${deviceId}`,
+            device_id: deviceId,
+            type: "maintenance",
+            severity: "high",
+            title: "High Memory Pressure",
+            description: "System experiencing significant memory pressure",
+            recommendation: "Close unnecessary applications or restart system to free memory",
+            confidence: 0.9,
+            metadata: { pressure_level: systemHealth.memory_pressure.pressure_level },
+            created_at: /* @__PURE__ */ new Date()
+          });
+        }
+        if (systemHealth.disk_health?.status !== "healthy") {
+          newInsights.push({
+            id: `disk-health-${deviceId}`,
+            device_id: deviceId,
+            type: "maintenance",
+            severity: "medium",
+            title: "Disk Health Warning",
+            description: `Disk health status: ${systemHealth.disk_health?.status || "unknown"}`,
+            recommendation: "Run disk diagnostics and ensure data backups are current",
+            confidence: 0.8,
+            metadata: { disk_status: systemHealth.disk_health?.status },
+            created_at: /* @__PURE__ */ new Date()
+          });
+        }
+        return newInsights;
+      }
+      calculateTrend(values) {
+        if (values.length < 2) return 0;
+        const n = values.length;
+        const sumX = n * (n - 1) / 2;
+        const sumY = values.reduce((a, b) => a + b, 0);
+        const sumXY = values.reduce((sum2, y, x) => sum2 + x * y, 0);
+        const sumXX = n * (n - 1) * (2 * n - 1) / 6;
+        const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+        return slope || 0;
+      }
+      analyzeTimeSeriesPatterns(values, timestamps) {
+        const trend = this.calculateTrend(values);
+        const volatility = this.calculateVolatility(values);
+        const anomalies = this.detectAnomalies(values);
+        const forecast = this.generateForecast(values, 7);
+        const seasonality = this.detectSeasonalityPatterns(values, timestamps);
+        return { trend, seasonality, volatility, anomalies, forecast };
+      }
+      generateForecast(values, periods) {
+        if (values.length < 3) return [];
+        const trend = this.calculateTrend(values);
+        const lastValue = values[values.length - 1];
+        const forecast = [];
+        for (let i = 1; i <= periods; i++) {
+          forecast.push(Math.max(0, lastValue + trend * i));
+        }
+        return forecast;
+      }
+      detectSeasonalityPatterns(values, timestamps) {
+        if (values.length < 14) return "insufficient_data";
+        const hourlyPatterns = this.analyzeHourlyPatterns(values, timestamps);
+        const weeklyPatterns = this.analyzeWeeklyPatterns(values, timestamps);
+        if (hourlyPatterns.strength > 0.3) return "daily";
+        if (weeklyPatterns.strength > 0.3) return "weekly";
+        return "random";
+      }
+      analyzeHourlyPatterns(values, timestamps) {
+        const hourlyBuckets = new Array(24).fill(0).map(() => []);
+        timestamps.forEach((timestamp6, index) => {
+          const hour = timestamp6.getHours();
+          hourlyBuckets[hour].push(values[index]);
+        });
+        const hourlyAverages = hourlyBuckets.map(
+          (bucket) => bucket.length > 0 ? bucket.reduce((a, b) => a + b, 0) / bucket.length : 0
+        );
+        const overallMean = values.reduce((a, b) => a + b, 0) / values.length;
+        const betweenHourVariance = hourlyAverages.reduce((sum2, avg2) => sum2 + Math.pow(avg2 - overallMean, 2), 0) / 24;
+        const totalVariance = values.reduce((sum2, val) => sum2 + Math.pow(val - overallMean, 2), 0) / values.length;
+        return { strength: betweenHourVariance / (totalVariance || 1) };
+      }
+      analyzeWeeklyPatterns(values, timestamps) {
+        const weeklyBuckets = new Array(7).fill(0).map(() => []);
+        timestamps.forEach((timestamp6, index) => {
+          const dayOfWeek = timestamp6.getDay();
+          weeklyBuckets[dayOfWeek].push(values[index]);
+        });
+        const weeklyAverages = weeklyBuckets.map(
+          (bucket) => bucket.length > 0 ? bucket.reduce((a, b) => a + b, 0) / bucket.length : 0
+        );
+        const overallMean = values.reduce((a, b) => a + b, 0) / values.length;
+        const betweenDayVariance = weeklyAverages.reduce((sum2, avg2) => sum2 + Math.pow(avg2 - overallMean, 2), 0) / 7;
+        const totalVariance = values.reduce((sum2, val) => sum2 + Math.pow(val - overallMean, 2), 0) / values.length;
+        return { strength: betweenDayVariance / (totalVariance || 1) };
+      }
+      calculateVolatility(values) {
+        if (values.length < 2) return 0;
+        const mean = values.reduce((a, b) => a + b, 0) / values.length;
+        const variance = values.reduce((sum2, value) => sum2 + Math.pow(value - mean, 2), 0) / values.length;
+        return Math.sqrt(variance);
+      }
+      detectAnomalies(values, threshold = 2.5) {
+        if (values.length < 3) return [];
+        const mean = values.reduce((a, b) => a + b, 0) / values.length;
+        const std = Math.sqrt(values.reduce((sum2, val) => sum2 + Math.pow(val - mean, 2), 0) / values.length);
+        return values.filter((value) => Math.abs(value - mean) > threshold * std);
+      }
+      calculateSeasonality(values) {
+        if (values.length < 7) return { pattern: "insufficient_data", confidence: 0 };
+        const weeklyAvg = [];
+        for (let day = 0; day < 7; day++) {
+          const dayValues = values.filter((_, index) => index % 7 === day);
+          weeklyAvg[day] = dayValues.reduce((a, b) => a + b, 0) / dayValues.length;
+        }
+        const totalVariance = values.reduce((sum2, val) => {
+          const overallMean = values.reduce((a, b) => a + b, 0) / values.length;
+          return sum2 + Math.pow(val - overallMean, 2);
+        }, 0) / values.length;
+        const weeklyVariance = weeklyAvg.reduce((sum2, dayMean) => {
+          const overallMean = weeklyAvg.reduce((a, b) => a + b, 0) / 7;
+          return sum2 + Math.pow(dayMean - overallMean, 2);
+        }, 0) / 7;
+        const seasonalityStrength = weeklyVariance / totalVariance;
+        return {
+          pattern: seasonalityStrength > 0.3 ? "weekly" : "random",
+          confidence: Math.min(seasonalityStrength, 1)
+        };
+      }
+      async getExistingPerformanceAlerts(deviceId) {
+        try {
+          return [];
+        } catch (error) {
+          console.error("Error fetching existing alerts:", error);
+          return [];
+        }
+      }
+      shouldUpdateAlert(existingAlert, newValue, newSeverity) {
+        const timeSinceCreated = (/* @__PURE__ */ new Date()).getTime() - new Date(existingAlert.created_at).getTime();
+        const hoursSinceCreated = timeSinceCreated / (1e3 * 60 * 60);
+        const severityChanged = existingAlert.severity !== newSeverity;
+        const significantTimeElapsed = hoursSinceCreated > 1;
+        const oldValue = existingAlert.metadata?.trend || existingAlert.metadata?.volatility || 0;
+        const valueChangePercent = Math.abs((newValue - oldValue) / oldValue) * 100;
+        const significantChange = valueChangePercent > 10;
+        return severityChanged || significantChange || significantTimeElapsed;
+      }
+      async getDeviceRecommendations(deviceId) {
+        const insights = await this.generateDeviceInsights(deviceId);
+        return insights.filter((insight) => insight.severity === "high" || insight.severity === "critical").map((insight) => insight.recommendation).slice(0, 5);
+      }
+    };
+    aiService = new AIService();
+  }
+});
+
+// server/models/ai-insights-storage.ts
+var AIInsightsStorage, aiInsightsStorage;
+var init_ai_insights_storage = __esm({
+  "server/models/ai-insights-storage.ts"() {
+    "use strict";
+    AIInsightsStorage = class {
+      async storeInsight(insight) {
+        try {
+          const { pool: pool3 } = await import("./db");
+          const result = await pool3.query(
+            `
+        INSERT INTO ai_insights (
+          device_id, insight_type, severity, title, description, 
+          recommendation, confidence, metadata, created_at, is_active
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), $9)
+        RETURNING *
+      `,
+            [
+              insight.device_id,
+              insight.insight_type,
+              insight.severity,
+              insight.title,
+              insight.description,
+              insight.recommendation,
+              insight.confidence,
+              JSON.stringify(insight.metadata),
+              insight.is_active
+            ]
+          );
+          return result.rows[0];
+        } catch (error) {
+          console.error("Error storing AI insight:", error);
+          throw error;
+        }
+      }
+      async getInsightsForDevice(deviceId, limit = 50) {
+        try {
+          const { pool: pool3 } = await import("./db");
+          const result = await pool3.query(
+            `
+        SELECT * FROM ai_insights 
+        WHERE device_id = $1 AND is_active = true
+        ORDER BY created_at DESC 
+        LIMIT $2
+      `,
+            [deviceId, limit]
+          );
+          return result.rows.map((row) => ({
+            ...row,
+            metadata: typeof row.metadata === "string" ? JSON.parse(row.metadata) : row.metadata
+          }));
+        } catch (error) {
+          console.error("Error fetching AI insights:", error);
+          return [];
+        }
+      }
+      async createAIInsightsTable() {
+        try {
+          const { pool: pool3 } = await import("./db");
+          await pool3.query(`
+        CREATE TABLE IF NOT EXISTS ai_insights (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          device_id UUID REFERENCES devices(id) ON DELETE CASCADE,
+          insight_type VARCHAR(50) NOT NULL,
+          severity VARCHAR(20) NOT NULL,
+          title VARCHAR(255) NOT NULL,
+          description TEXT NOT NULL,
+          recommendation TEXT NOT NULL,
+          confidence DECIMAL(3,2) NOT NULL,
+          metadata JSONB,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+          is_active BOOLEAN DEFAULT true,
+          INDEX (device_id, created_at),
+          INDEX (insight_type, severity)
+        )
+      `);
+          console.log("AI insights table created successfully");
+        } catch (error) {
+          console.error("Error creating AI insights table:", error);
+        }
+      }
+    };
+    aiInsightsStorage = new AIInsightsStorage();
+  }
+});
+
+// server/routes/ai-routes.ts
+var ai_routes_exports = {};
+__export(ai_routes_exports, {
+  default: () => ai_routes_default
+});
+import { Router as Router10 } from "express";
+var router10, ai_routes_default;
+var init_ai_routes = __esm({
+  "server/routes/ai-routes.ts"() {
+    "use strict";
+    init_ai_service();
+    init_ai_insights_storage();
+    router10 = Router10();
+    router10.get("/insights/:deviceId", async (req, res) => {
+      try {
+        const { deviceId } = req.params;
+        const { refresh } = req.query;
+        if (!deviceId) {
+          return res.status(400).json({ success: false, error: "Device ID is required" });
+        }
+        const timeout = new Promise(
+          (_, reject) => setTimeout(() => reject(new Error("Request timeout")), 5e3)
+        );
+        let insights = [];
+        try {
+          const insightsPromise = (async () => {
+            if (refresh === "true") {
+              const generatedInsights = await aiService.generateDeviceInsights(deviceId);
+              if (Array.isArray(generatedInsights)) {
+                setImmediate(async () => {
+                  for (const insight of generatedInsights) {
+                    try {
+                      await aiInsightsStorage.storeInsight({
+                        device_id: deviceId,
+                        insight_type: insight.type,
+                        severity: insight.severity,
+                        title: insight.title,
+                        description: insight.description,
+                        recommendation: insight.recommendation,
+                        confidence: insight.confidence,
+                        metadata: insight.metadata || {},
+                        is_active: true
+                      });
+                    } catch (storeError) {
+                      console.warn("Failed to store insight:", storeError.message);
+                    }
+                  }
+                });
+              }
+              return generatedInsights;
+            } else {
+              try {
+                const cachedInsights = await aiInsightsStorage.getInsightsForDevice(
+                  deviceId,
+                  20
+                );
+                if (cachedInsights && cachedInsights.length > 0) {
+                  return cachedInsights;
+                }
+              } catch (cacheError) {
+                console.warn("Failed to get cached insights:", cacheError.message);
+              }
+              return await aiService.generateDeviceInsights(deviceId);
+            }
+          })();
+          insights = await Promise.race([insightsPromise, timeout]);
+          if (!Array.isArray(insights)) {
+            insights = [];
+          }
+          res.json({ success: true, insights });
+        } catch (serviceError) {
+          console.warn("AI service timeout or error:", serviceError.message);
+          res.json({ success: true, insights: [] });
+        }
+      } catch (error) {
+        console.error("Error in AI insights API:", error);
+        res.status(500).json({ success: false, error: "Internal server error" });
+      }
+    });
+    router10.get("/recommendations/:deviceId", async (req, res) => {
+      try {
+        const { deviceId } = req.params;
+        const recommendations = await aiService.getDeviceRecommendations(deviceId);
+        res.json({ success: true, recommendations });
+      } catch (error) {
+        console.error("Error getting AI recommendations:", error);
+        res.status(500).json({ success: false, error: error.message });
+      }
+    });
+    router10.post("/insights/batch", async (req, res) => {
+      try {
+        const { deviceIds } = req.body;
+        const results = [];
+        for (const deviceId of deviceIds) {
+          try {
+            const insights = await aiService.generateDeviceInsights(deviceId);
+            results.push({ deviceId, success: true, insights });
+          } catch (error) {
+            results.push({ deviceId, success: false, error: error.message });
+          }
+        }
+        res.json({ success: true, results });
+      } catch (error) {
+        console.error("Error in batch AI processing:", error);
+        res.status(500).json({ success: false, error: error.message });
+      }
+    });
+    ai_routes_default = router10;
+  }
+});
+
+// server/routes/audit-routes.ts
+var audit_routes_exports = {};
+__export(audit_routes_exports, {
+  default: () => audit_routes_default
+});
+import { Router as Router11 } from "express";
+var router11, audit_routes_default;
+var init_audit_routes = __esm({
+  "server/routes/audit-routes.ts"() {
+    "use strict";
+    router11 = Router11();
+    router11.get("/logs", async (req, res) => {
+      try {
+        const { user, action, resource, startDate, endDate } = req.query;
+        const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
+        let query = `
+      SELECT 
+        al.id, al.user_id, al.action, al.resource_type, al.resource_id,
+        al.details, al.ip_address, al.user_agent, al.timestamp,
+        u.name as user_name, u.email as user_email
+      FROM audit_logs al
+      LEFT JOIN users u ON al.user_id = u.id
+      WHERE 1=1
+    `;
+        const params = [];
+        let paramIndex = 1;
+        if (user) {
+          query += ` AND (u.name ILIKE $${paramIndex} OR u.email ILIKE $${paramIndex})`;
+          params.push(`%${user}%`);
+          paramIndex++;
+        }
+        if (action) {
+          query += ` AND al.action = $${paramIndex}`;
+          params.push(action);
+          paramIndex++;
+        }
+        if (resource) {
+          query += ` AND al.resource_type = $${paramIndex}`;
+          params.push(resource);
+          paramIndex++;
+        }
+        if (startDate) {
+          query += ` AND al.timestamp >= $${paramIndex}`;
+          params.push(startDate);
+          paramIndex++;
+        }
+        if (endDate) {
+          query += ` AND al.timestamp <= $${paramIndex}`;
+          params.push(endDate);
+          paramIndex++;
+        }
+        query += ` ORDER BY al.timestamp DESC LIMIT 1000`;
+        const result = await db5.query(query, params);
+        res.json(result.rows);
+      } catch (error) {
+        console.error("Error fetching audit logs:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+    router11.post("/logs", async (req, res) => {
+      try {
+        const { user_id, action, resource_type, resource_id, details, ip_address, user_agent } = req.body;
+        const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
+        const result = await db5.query(`
+      INSERT INTO audit_logs (user_id, action, resource_type, resource_id, details, ip_address, user_agent, timestamp)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+      RETURNING id, timestamp
+    `, [user_id, action, resource_type, resource_id, JSON.stringify(details), ip_address, user_agent]);
+        res.status(201).json(result.rows[0]);
+      } catch (error) {
+        console.error("Error creating audit log:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+    audit_routes_default = router11;
+  }
+});
+
+// server/routes/security-routes.ts
+var security_routes_exports = {};
+__export(security_routes_exports, {
+  default: () => security_routes_default
+});
+import { Router as Router12 } from "express";
+var router12, security_routes_default;
+var init_security_routes = __esm({
+  "server/routes/security-routes.ts"() {
+    "use strict";
+    router12 = Router12();
+    router12.get("/alerts", async (req, res) => {
+      try {
+        const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
+        const securityAlerts = await db5.query(`
+      SELECT 
+        a.id, a.device_id, a.category, a.severity, a.message, a.triggered_at,
+        d.hostname, d.ip_address
+      FROM alerts a
+      JOIN devices d ON a.device_id = d.id
+      WHERE a.category IN ('security', 'vulnerability', 'malware', 'unauthorized_access')
+        AND a.is_active = true
+      ORDER BY a.triggered_at DESC
+      LIMIT 100
+    `);
+        res.json(securityAlerts.rows);
+      } catch (error) {
+        console.error("Error fetching security alerts:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+    router12.get("/vulnerabilities/:deviceId", async (req, res) => {
+      try {
+        const { deviceId } = req.params;
+        const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
+        const vulnerabilities = await db5.query(`
+      SELECT 
+        v.id, v.cve_id, v.severity, v.description, v.solution,
+        v.discovered_at, v.patched_at, v.status
+      FROM vulnerabilities v
+      WHERE v.device_id = $1
+      ORDER BY v.severity DESC, v.discovered_at DESC
+    `, [deviceId]);
+        res.json(vulnerabilities.rows);
+      } catch (error) {
+        console.error("Error fetching vulnerabilities:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+    router12.get("/compliance", async (req, res) => {
+      try {
+        const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
+        const compliance = await db5.query(`
+      SELECT 
+        COUNT(DISTINCT d.id) as total_devices,
+        COUNT(DISTINCT CASE WHEN pc.compliance_status = 'compliant' THEN d.id END) as compliant_devices,
+        COUNT(DISTINCT CASE WHEN pc.compliance_status = 'non_compliant' THEN d.id END) as non_compliant_devices,
+        COUNT(DISTINCT CASE WHEN pc.compliance_status = 'unknown' THEN d.id END) as unknown_devices
+      FROM devices d
+      LEFT JOIN patch_compliance pc ON d.id = pc.device_id
+    `);
+        res.json(compliance.rows[0]);
+      } catch (error) {
+        console.error("Error fetching compliance data:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+    router12.get("/audit", async (req, res) => {
+      try {
+        const { user, action, resource } = req.query;
+        const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
+        let query = `
+      SELECT 
+        al.id, al.user_id, al.action, al.resource_type, al.resource_id,
+        al.details, al.ip_address, al.user_agent, al.timestamp,
+        u.name as user_name, u.email as user_email
+      FROM audit_logs al
+      LEFT JOIN users u ON al.user_id = u.id
+      WHERE 1=1
+    `;
+        const params = [];
+        let paramIndex = 1;
+        if (user) {
+          query += ` AND (u.name ILIKE $${paramIndex} OR u.email ILIKE $${paramIndex})`;
+          params.push(`%${user}%`);
+          paramIndex++;
+        }
+        if (action) {
+          query += ` AND al.action = $${paramIndex}`;
+          params.push(action);
+          paramIndex++;
+        }
+        if (resource) {
+          query += ` AND al.resource_type = $${paramIndex}`;
+          params.push(resource);
+          paramIndex++;
+        }
+        query += ` ORDER BY al.timestamp DESC LIMIT 100`;
+        const result = await db5.query(query, params);
+        res.json(result.rows);
+      } catch (error) {
+        console.error("Error fetching audit logs:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+    security_routes_default = router12;
+  }
+});
+
+// server/routes/patch-routes.ts
+var patch_routes_exports = {};
+__export(patch_routes_exports, {
+  default: () => patch_routes_default
+});
+import { Router as Router13 } from "express";
+var router13, patch_routes_default;
+var init_patch_routes = __esm({
+  "server/routes/patch-routes.ts"() {
+    "use strict";
+    init_patch_compliance_service();
+    router13 = Router13();
+    router13.get("/patch-compliance/dashboard", async (req, res) => {
+      try {
+        console.log("\u{1F4CA} Fetching patch compliance dashboard data...");
+        console.log("Request timestamp:", (/* @__PURE__ */ new Date()).toISOString());
+        console.log("User agent:", req.headers["user-agent"]);
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("Dashboard query timeout")), 1e4);
+        });
+        console.log("Calling patchComplianceService.getDashboardData()...");
+        const dashboardPromise = patchComplianceService.getDashboardData();
+        const dashboard = await Promise.race([dashboardPromise, timeoutPromise]);
+        console.log("\u2705 Dashboard data fetched successfully");
+        console.log("Summary:", dashboard.summary);
+        console.log("Devices count:", dashboard.devices?.length || 0);
+        res.status(200).json(dashboard);
+      } catch (error) {
+        console.error("\u274C Error fetching patch compliance dashboard:", error);
+        console.error("Error type:", typeof error);
+        console.error("Error message:", error?.message || "No message");
+        console.error("Error stack:", error?.stack || "No stack");
+        console.error("Error name:", error?.name || "No name");
+        console.error("Error code:", error?.code || "No code");
+        const isDatabaseError = error?.message?.includes("connection") || error?.message?.includes("timeout") || error?.code === "ECONNREFUSED" || error?.code === "ETIMEDOUT";
+        const isTypeError = error?.message?.includes("operator does not exist") || error?.message?.includes("uuid = character varying");
+        let errorMessage = "Failed to load patch compliance data";
+        let recommendations = [
+          "Patch compliance system is initializing",
+          "Try refreshing the page in a few moments"
+        ];
+        if (isDatabaseError) {
+          errorMessage = "Database connection issue";
+          recommendations = [
+            "Database connection timeout",
+            "Check database connectivity",
+            "Try refreshing the page"
+          ];
+        } else if (isTypeError) {
+          errorMessage = "Database schema mismatch - UUID comparison error";
+          recommendations = [
+            "Database schema needs to be updated",
+            "Contact system administrator",
+            "Check server logs for details"
+          ];
+        }
+        const errorResponse = {
+          summary: {
+            total_devices: 2,
+            compliant_devices: 1,
+            compliance_rate: 50,
+            devices_with_critical_gaps: 1,
+            average_compliance: 88.9
+          },
+          devices: [
+            {
+              device_id: "mock-device-1",
+              hostname: "DESKTOP-MOCK01",
+              os_name: "Windows 10",
+              os_version: "21H2",
+              total_patches: 45,
+              installed_patches: 38,
+              missing_critical: 2,
+              missing_important: 5,
+              failed_patches: 1,
+              compliance_percentage: 84.4,
+              risk_score: 60,
+              last_scan: (/* @__PURE__ */ new Date()).toISOString()
+            },
+            {
+              device_id: "mock-device-2",
+              hostname: "DESKTOP-MOCK02",
+              os_name: "Windows 11",
+              os_version: "22H2",
+              total_patches: 52,
+              installed_patches: 48,
+              missing_critical: 0,
+              missing_important: 2,
+              failed_patches: 0,
+              compliance_percentage: 92.3,
+              risk_score: 25,
+              last_scan: (/* @__PURE__ */ new Date()).toISOString()
+            }
+          ],
+          top_non_compliant: [
+            {
+              device_id: "mock-device-1",
+              hostname: "DESKTOP-MOCK01",
+              compliance_percentage: 84.4,
+              missing_critical: 2,
+              missing_important: 5,
+              risk_score: 60
+            }
+          ],
+          upcoming_maintenance: [],
+          risk_distribution: {
+            high_risk: 0,
+            medium_risk: 1,
+            low_risk: 1
+          },
+          recommendations: [
+            "System is currently in mock mode - patch compliance tables are being initialized",
+            "Security patches are automatically deployed when system is fully operational",
+            "Database connection will be restored shortly"
+          ],
+          mock_mode: true,
+          error_message: errorMessage
+        };
+        if (error.message === "Dashboard query timeout") {
+          console.log("Returning timeout error response");
+          return res.status(408).json({
+            error: "Dashboard query timeout",
+            message: "The query took too long to execute. Please try again.",
+            mock_mode: true
+          });
+        } else {
+          console.log("Returning mock data response due to database error");
+          return res.status(200).json(errorResponse);
+        }
+      }
+    });
+    router13.get("/patch-compliance/report/:deviceId?", async (req, res) => {
+      try {
+        const { deviceId } = req.params;
+        const reports = await patchComplianceService.getDashboardData();
+        res.json({ success: true, reports });
+      } catch (error) {
+        console.error("Error getting compliance report:", error);
+        res.status(500).json({ success: false, error: error.message });
+      }
+    });
+    router13.post("/patch-compliance/scan/:deviceId", async (req, res) => {
+      try {
+        const { deviceId } = req.params;
+        const result = await patchComplianceService.processPatchData(
+          deviceId,
+          req.body
+        );
+        res.json({ success: true, result });
+      } catch (error) {
+        console.error("Error scanning device patches:", error);
+        res.status(500).json({ success: false, error: error.message });
+      }
+    });
+    router13.post("/patch-compliance/deploy", async (req, res) => {
+      try {
+        const deployment = req.body;
+        const deploymentId = await patchComplianceService.createPatchDeployment(deployment);
+        res.json({ success: true, deployment_id: deploymentId });
+      } catch (error) {
+        console.error("Error scheduling patch deployment:", error);
+        res.status(500).json({ success: false, error: error.message });
+      }
+    });
+    router13.get("/patch-compliance/pending-applications", async (req, res) => {
+      try {
+        const pendingPatches = await patchComplianceService.getPendingApplicationPatches();
+        res.json({ success: true, patches: pendingPatches });
+      } catch (error) {
+        console.error("Error getting pending application patches:", error);
+        res.status(500).json({ success: false, error: error.message });
+      }
+    });
+    patch_routes_default = router13;
   }
 });
 
@@ -14475,183 +15835,6 @@ var init_migrate_admin_tables = __esm({
         process.exit(1);
       });
     }
-  }
-});
-
-// server/routes/patch-routes.ts
-var patch_routes_exports = {};
-__export(patch_routes_exports, {
-  default: () => patch_routes_default
-});
-import { Router as Router9 } from "express";
-var router9, patch_routes_default;
-var init_patch_routes = __esm({
-  "server/routes/patch-routes.ts"() {
-    "use strict";
-    init_patch_compliance_service();
-    router9 = Router9();
-    router9.get("/patch-compliance/dashboard", async (req, res) => {
-      try {
-        console.log("\u{1F4CA} Fetching patch compliance dashboard data...");
-        console.log("Request timestamp:", (/* @__PURE__ */ new Date()).toISOString());
-        console.log("User agent:", req.headers["user-agent"]);
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error("Dashboard query timeout")), 1e4);
-        });
-        console.log("Calling patchComplianceService.getDashboardData()...");
-        const dashboardPromise = patchComplianceService.getDashboardData();
-        const dashboard = await Promise.race([dashboardPromise, timeoutPromise]);
-        console.log("\u2705 Dashboard data fetched successfully");
-        console.log("Summary:", dashboard.summary);
-        console.log("Devices count:", dashboard.devices?.length || 0);
-        res.status(200).json(dashboard);
-      } catch (error) {
-        console.error("\u274C Error fetching patch compliance dashboard:", error);
-        console.error("Error type:", typeof error);
-        console.error("Error message:", error?.message || "No message");
-        console.error("Error stack:", error?.stack || "No stack");
-        console.error("Error name:", error?.name || "No name");
-        console.error("Error code:", error?.code || "No code");
-        const isDatabaseError = error?.message?.includes("connection") || error?.message?.includes("timeout") || error?.code === "ECONNREFUSED" || error?.code === "ETIMEDOUT";
-        const isTypeError = error?.message?.includes("operator does not exist") || error?.message?.includes("uuid = character varying");
-        let errorMessage = "Failed to load patch compliance data";
-        let recommendations = [
-          "Patch compliance system is initializing",
-          "Try refreshing the page in a few moments"
-        ];
-        if (isDatabaseError) {
-          errorMessage = "Database connection issue";
-          recommendations = [
-            "Database connection timeout",
-            "Check database connectivity",
-            "Try refreshing the page"
-          ];
-        } else if (isTypeError) {
-          errorMessage = "Database schema mismatch - UUID comparison error";
-          recommendations = [
-            "Database schema needs to be updated",
-            "Contact system administrator",
-            "Check server logs for details"
-          ];
-        }
-        const errorResponse = {
-          summary: {
-            total_devices: 2,
-            compliant_devices: 1,
-            compliance_rate: 50,
-            devices_with_critical_gaps: 1,
-            average_compliance: 88.9
-          },
-          devices: [
-            {
-              device_id: "mock-device-1",
-              hostname: "DESKTOP-MOCK01",
-              os_name: "Windows 10",
-              os_version: "21H2",
-              total_patches: 45,
-              installed_patches: 38,
-              missing_critical: 2,
-              missing_important: 5,
-              failed_patches: 1,
-              compliance_percentage: 84.4,
-              risk_score: 60,
-              last_scan: (/* @__PURE__ */ new Date()).toISOString()
-            },
-            {
-              device_id: "mock-device-2",
-              hostname: "DESKTOP-MOCK02",
-              os_name: "Windows 11",
-              os_version: "22H2",
-              total_patches: 52,
-              installed_patches: 48,
-              missing_critical: 0,
-              missing_important: 2,
-              failed_patches: 0,
-              compliance_percentage: 92.3,
-              risk_score: 25,
-              last_scan: (/* @__PURE__ */ new Date()).toISOString()
-            }
-          ],
-          top_non_compliant: [
-            {
-              device_id: "mock-device-1",
-              hostname: "DESKTOP-MOCK01",
-              compliance_percentage: 84.4,
-              missing_critical: 2,
-              missing_important: 5,
-              risk_score: 60
-            }
-          ],
-          upcoming_maintenance: [],
-          risk_distribution: {
-            high_risk: 0,
-            medium_risk: 1,
-            low_risk: 1
-          },
-          recommendations: [
-            "System is currently in mock mode - patch compliance tables are being initialized",
-            "Security patches are automatically deployed when system is fully operational",
-            "Database connection will be restored shortly"
-          ],
-          mock_mode: true,
-          error_message: errorMessage
-        };
-        if (error.message === "Dashboard query timeout") {
-          console.log("Returning timeout error response");
-          return res.status(408).json({
-            error: "Dashboard query timeout",
-            message: "The query took too long to execute. Please try again.",
-            mock_mode: true
-          });
-        } else {
-          console.log("Returning mock data response due to database error");
-          return res.status(200).json(errorResponse);
-        }
-      }
-    });
-    router9.get("/patch-compliance/report/:deviceId?", async (req, res) => {
-      try {
-        const { deviceId } = req.params;
-        const reports = await patchComplianceService.getDashboardData();
-        res.json({ success: true, reports });
-      } catch (error) {
-        console.error("Error getting compliance report:", error);
-        res.status(500).json({ success: false, error: error.message });
-      }
-    });
-    router9.post("/patch-compliance/scan/:deviceId", async (req, res) => {
-      try {
-        const { deviceId } = req.params;
-        const result = await patchComplianceService.processPatchData(
-          deviceId,
-          req.body
-        );
-        res.json({ success: true, result });
-      } catch (error) {
-        console.error("Error scanning device patches:", error);
-        res.status(500).json({ success: false, error: error.message });
-      }
-    });
-    router9.post("/patch-compliance/deploy", async (req, res) => {
-      try {
-        const deployment = req.body;
-        const deploymentId = await patchComplianceService.createPatchDeployment(deployment);
-        res.json({ success: true, deployment_id: deploymentId });
-      } catch (error) {
-        console.error("Error scheduling patch deployment:", error);
-        res.status(500).json({ success: false, error: error.message });
-      }
-    });
-    router9.get("/patch-compliance/pending-applications", async (req, res) => {
-      try {
-        const pendingPatches = await patchComplianceService.getPendingApplicationPatches();
-        res.json({ success: true, patches: pendingPatches });
-      } catch (error) {
-        console.error("Error getting pending application patches:", error);
-        res.status(500).json({ success: false, error: error.message });
-      }
-    });
-    patch_routes_default = router9;
   }
 });
 
@@ -15022,8 +16205,8 @@ function registerDeviceRoutes(app2, authenticateToken5) {
     async (req, res) => {
       try {
         const { id } = req.params;
-        const { aiService } = await import("./ai-service");
-        const insights = await aiService.generateDeviceInsights(id);
+        const { aiService: aiService2 } = await import("./ai-service");
+        const insights = await aiService2.generateDeviceInsights(id);
         res.json(insights);
       } catch (error) {
         console.error("Error generating AI insights:", error);
@@ -15040,8 +16223,8 @@ function registerDeviceRoutes(app2, authenticateToken5) {
     async (req, res) => {
       try {
         const { id } = req.params;
-        const { aiService } = await import("./ai-service");
-        const recommendations = await aiService.getDeviceRecommendations(id);
+        const { aiService: aiService2 } = await import("./ai-service");
+        const recommendations = await aiService2.getDeviceRecommendations(id);
         res.json({ recommendations });
       } catch (error) {
         console.error("Error getting AI recommendations:", error);
@@ -15614,7 +16797,9 @@ async function registerRoutes(app2) {
           }
         });
         const query = DatabaseUtils2.buildSelectQuery("users", columnNames, selectColumns) + " WHERE email = $1";
-        const result = await DatabaseUtils2.executeQuery(query, [email.toLowerCase()]);
+        const result = await DatabaseUtils2.executeQuery(query, [
+          email.toLowerCase()
+        ]);
         if (result.rows.length === 0) {
           throw new Error("User not found in database, trying file storage");
         }
@@ -15626,12 +16811,20 @@ async function registerRoutes(app2) {
           return res.status(401).json({ message: "Account is inactive. Contact administrator." });
         }
         if (user.password_hash) {
-          const isValidPassword = await bcrypt2.compare(password, user.password_hash);
+          const isValidPassword = await bcrypt2.compare(
+            password,
+            user.password_hash
+          );
           if (!isValidPassword) {
             return res.status(401).json({ message: "Invalid credentials" });
           }
         } else {
-          const validPasswords = ["Admin123!", "Tech123!", "Manager123!", "User123!"];
+          const validPasswords = [
+            "Admin123!",
+            "Tech123!",
+            "Manager123!",
+            "User123!"
+          ];
           if (!validPasswords.includes(password)) {
             return res.status(401).json({ message: "Invalid credentials" });
           }
@@ -15651,11 +16844,18 @@ async function registerRoutes(app2) {
         });
       } catch (dbError) {
         const demoUsers = await storage.getUsers({ search: email });
-        const user = demoUsers.find((u) => u.email.toLowerCase() === email.toLowerCase());
+        const user = demoUsers.find(
+          (u) => u.email.toLowerCase() === email.toLowerCase()
+        );
         if (!user) {
           return res.status(401).json({ message: "Invalid credentials" });
         }
-        const validPasswords = ["Admin123!", "Tech123!", "Manager123!", "User123!"];
+        const validPasswords = [
+          "Admin123!",
+          "Tech123!",
+          "Manager123!",
+          "User123!"
+        ];
         if (!validPasswords.includes(password)) {
           return res.status(401).json({ message: "Invalid credentials" });
         }
@@ -15780,7 +16980,11 @@ async function registerRoutes(app2) {
   try {
     const notificationRoutes = await Promise.resolve().then(() => (init_notification_routes(), notification_routes_exports));
     if (notificationRoutes.default) {
-      app2.use("/api/notifications", authenticateToken4, notificationRoutes.default);
+      app2.use(
+        "/api/notifications",
+        authenticateToken4,
+        notificationRoutes.default
+      );
     }
   } catch (error) {
     console.warn("Notification routes not available:", error.message);
@@ -15788,7 +16992,12 @@ async function registerRoutes(app2) {
   try {
     const automationRoutes = await Promise.resolve().then(() => (init_automation_routes(), automation_routes_exports));
     if (automationRoutes.default) {
-      app2.use("/api/automation", authenticateToken4, requireRole(["admin", "manager"]), automationRoutes.default);
+      app2.use(
+        "/api/automation",
+        authenticateToken4,
+        requireRole(["admin", "manager"]),
+        automationRoutes.default
+      );
     }
   } catch (error) {
     console.warn("Automation routes not available:", error.message);
@@ -15834,8 +17043,44 @@ async function registerRoutes(app2) {
     console.warn("SLA routes not available:", error.message);
   }
   try {
+    const slaAnalysisRoutes = await Promise.resolve().then(() => (init_sla_analysis_routes(), sla_analysis_routes_exports));
+    if (slaAnalysisRoutes.default) {
+      app2.use("/api/sla-analysis", authenticateToken4, slaAnalysisRoutes.default);
+    }
   } catch (error) {
-    console.warn(" routes not available:", error.message);
+    console.warn("SLA analysis routes not available:", error.message);
+  }
+  try {
+    const aiRoutes = await Promise.resolve().then(() => (init_ai_routes(), ai_routes_exports));
+    if (aiRoutes.default) {
+      app2.use("/api/ai", authenticateToken4, aiRoutes.default);
+    }
+  } catch (error) {
+    console.warn("AI routes not available:", error.message);
+  }
+  try {
+    const auditRoutes = await Promise.resolve().then(() => (init_audit_routes(), audit_routes_exports));
+    if (auditRoutes.default) {
+      app2.use("/api/audit", authenticateToken4, requireRole(["admin", "manager"]), auditRoutes.default);
+    }
+  } catch (error) {
+    console.warn("Audit routes not available:", error.message);
+  }
+  try {
+    const securityRoutes = await Promise.resolve().then(() => (init_security_routes(), security_routes_exports));
+    if (securityRoutes.default) {
+      app2.use("/api/security", authenticateToken4, securityRoutes.default);
+    }
+  } catch (error) {
+    console.warn("Security routes not available:", error.message);
+  }
+  try {
+    const patchRoutes = await Promise.resolve().then(() => (init_patch_routes(), patch_routes_exports));
+    if (patchRoutes.default) {
+      app2.use("/api/patch", authenticateToken4, patchRoutes.default);
+    }
+  } catch (error) {
+    console.warn("Patch routes not available:", error.message);
   }
   const httpServer = createServer(app2);
   return httpServer;
@@ -16066,7 +17311,7 @@ async function createTicketTables() {
 init_db();
 init_ticket_schema();
 init_knowledge_routes();
-import { eq as eq12, desc as desc10 } from "drizzle-orm";
+import { eq as eq13, desc as desc11 } from "drizzle-orm";
 
 // server/websocket-service.ts
 import WebSocket from "ws";
@@ -16287,7 +17532,7 @@ app.use((req, res, next) => {
           status: req.query.status || "published"
         };
         console.log("KB API - Filters:", filters);
-        const articles = await db.select().from(knowledgeBase).where(eq12(knowledgeBase.status, filters.status)).orderBy(desc10(knowledgeBase.created_at));
+        const articles = await db.select().from(knowledgeBase).where(eq13(knowledgeBase.status, filters.status)).orderBy(desc11(knowledgeBase.created_at));
         console.log(`KB API - Found ${articles.length} articles in database`);
         let filteredArticles = articles;
         if (filters.search) {

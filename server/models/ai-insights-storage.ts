@@ -3,8 +3,13 @@ import { storage } from "./storage";
 export interface StoredAIInsight {
   id: string;
   device_id: string;
-  insight_type: 'performance' | 'security' | 'maintenance' | 'prediction' | 'optimization';
-  severity: 'low' | 'medium' | 'high' | 'critical' | 'info';
+  insight_type:
+    | "performance"
+    | "security"
+    | "maintenance"
+    | "prediction"
+    | "optimization";
+  severity: "low" | "medium" | "high" | "critical" | "info";
   title: string;
   description: string;
   recommendation: string;
@@ -15,27 +20,32 @@ export interface StoredAIInsight {
 }
 
 class AIInsightsStorage {
-  async storeInsight(insight: Omit<StoredAIInsight, 'id' | 'created_at'>): Promise<StoredAIInsight> {
+  async storeInsight(
+    insight: Omit<StoredAIInsight, "id" | "created_at">,
+  ): Promise<StoredAIInsight> {
     try {
       const { pool } = await import("./db");
 
-      const result = await pool.query(`
+      const result = await pool.query(
+        `
         INSERT INTO ai_insights (
           device_id, insight_type, severity, title, description, 
           recommendation, confidence, metadata, created_at, is_active
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), $9)
         RETURNING *
-      `, [
-        insight.device_id,
-        insight.insight_type,
-        insight.severity,
-        insight.title,
-        insight.description,
-        insight.recommendation,
-        insight.confidence,
-        JSON.stringify(insight.metadata),
-        insight.is_active
-      ]);
+      `,
+        [
+          insight.device_id,
+          insight.insight_type,
+          insight.severity,
+          insight.title,
+          insight.description,
+          insight.recommendation,
+          insight.confidence,
+          JSON.stringify(insight.metadata),
+          insight.is_active,
+        ],
+      );
 
       return result.rows[0];
     } catch (error) {
@@ -44,20 +54,29 @@ class AIInsightsStorage {
     }
   }
 
-  async getInsightsForDevice(deviceId: string, limit: number = 50): Promise<StoredAIInsight[]> {
+  async getInsightsForDevice(
+    deviceId: string,
+    limit: number = 50,
+  ): Promise<StoredAIInsight[]> {
     try {
       const { pool } = await import("./db");
 
-      const result = await pool.query(`
+      const result = await pool.query(
+        `
         SELECT * FROM ai_insights 
         WHERE device_id = $1 AND is_active = true
         ORDER BY created_at DESC 
         LIMIT $2
-      `, [deviceId, limit]);
+      `,
+        [deviceId, limit],
+      );
 
-      return result.rows.map(row => ({
+      return result.rows.map((row) => ({
         ...row,
-        metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata
+        metadata:
+          typeof row.metadata === "string"
+            ? JSON.parse(row.metadata)
+            : row.metadata,
       }));
     } catch (error) {
       console.error("Error fetching AI insights:", error);
@@ -95,7 +114,7 @@ class AIInsightsStorage {
 }
 
 export const aiInsightsStorage = new AIInsightsStorage();
-import { storage } from './storage';
+import { storage } from "./storage";
 
 export interface AIInsightRecord {
   device_id: string;
@@ -108,37 +127,3 @@ export interface AIInsightRecord {
   metadata: any;
   is_active: boolean;
 }
-
-class AIInsightsStorage {
-  async storeInsight(insight: AIInsightRecord): Promise<void> {
-    try {
-      // For now, just log the insight since we don't have AI insights table
-      console.log('Storing AI insight:', {
-        device_id: insight.device_id,
-        type: insight.insight_type,
-        severity: insight.severity,
-        title: insight.title
-      });
-
-      // In a real implementation, this would store in database
-      // await db.insert(aiInsights).values(insight);
-    } catch (error) {
-      console.error('Error storing AI insight:', error);
-      throw error;
-    }
-  }
-
-  async getInsightsForDevice(deviceId: string, limit: number = 20): Promise<any[]> {
-    try {
-      // For now, return empty array since we don't have insights table
-      // In real implementation, this would query the database
-      console.log(`Getting cached insights for device ${deviceId}`);
-      return [];
-    } catch (error) {
-      console.error('Error getting cached insights:', error);
-      return [];
-    }
-  }
-}
-
-export const aiInsightsStorage = new AIInsightsStorage();

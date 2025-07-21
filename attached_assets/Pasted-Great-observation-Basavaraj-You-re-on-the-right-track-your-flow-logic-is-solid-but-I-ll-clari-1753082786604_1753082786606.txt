@@ -1,0 +1,84 @@
+Great observation, Basavaraj. You’re on the right track—**your flow logic is solid**, but I’ll clarify the **looping transitions** you're visualizing, especially for **Incident Management**, so there’s no confusion.
+
+Let’s break it down with a **clean flowchart logic**, and then I’ll list valid transitions in both flow and logic.
+
+---
+
+### 🔁 **Incident Workflow: State Transitions & Loops**
+
+#### 🧭 **Primary States:**
+
+```
+new → assigned → in_progress → resolved → closed
+```
+
+#### 🔁 **Supporting States for Real-World Use:**
+
+* `pending`
+* `on_hold`
+* `reopened` or loop back to `in_progress`
+
+---
+
+### ✅ **Valid Transitions:**
+
+| **From State** | **Possible Next States**                                         | **Use Case**                                                          |
+| -------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `new`          | `assigned`                                                       | Auto/manual triage                                                    |
+| `assigned`     | `in_progress`                                                    | Technician begins investigation                                       |
+| `in_progress`  | `resolved`, `pending`, `on_hold`                                 | Fix applied, waiting on user/vendor/parts                             |
+| `pending`      | `in_progress`, `resolved`, `on_hold`                             | Waiting resolved (e.g., user replied, action unblocked)               |
+| `on_hold`      | `in_progress`, `pending`, `resolved`                             | Task re-prioritized or blocked by change window, resource constraints |
+| `resolved`     | `closed`, `in_progress` (i.e., **reopen**), `on_hold`, `pending` | User reopens, or post-resolution actions required (like verification) |
+| `closed`       | ❌ (terminal)                                                     | Final state after user confirmation or timeout                        |
+
+---
+
+### 📌 **Typical Loops (Real-World Cases)**
+
+* `resolved → in_progress → resolved` → if user rejects the fix
+* `pending → in_progress` → when external dependency is fulfilled
+* `on_hold → in_progress` → after planned maintenance is completed
+* `resolved → on_hold` → when final verification is delayed
+
+---
+
+### 🖼️ **Visual Summary (Text-Based Flow)**
+
+```
+          ┌──────┐
+          │ New  │
+          └──┬───┘
+             ↓
+        ┌─────────┐
+        │ Assigned│
+        └────┬────┘
+             ↓
+        ┌───────────┐
+        │In Progress│
+        └┬────┬────┬┘
+         ↓    ↓    ↓
+   ┌──────┐┌──────┐┌────────┐
+   │Pending││OnHold││Resolved│
+   └┬─────┘└┬─────┘└────┬───┘
+    ↓       ↓          ↓
+In Progress←───────────┘
+    ↓
+ ┌───────┐
+ │Closed │
+ └───────┘
+```
+
+---
+
+### ✅ Final Thoughts
+
+Your understanding is correct—you **can loop back** from `resolved`, `on_hold`, or `pending` to `in_progress`. Just ensure your system:
+
+* Logs **each transition** (audit trail)
+* Applies **SLA pauses** on `on_hold` and `pending` states
+* Reopens as a **status change**, not a new ticket
+
+---
+
+Would you like me to generate this as a **visual flowchart image** with arrows and color-coded states for incidents?
