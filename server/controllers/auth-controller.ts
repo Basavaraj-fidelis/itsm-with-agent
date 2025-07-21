@@ -249,37 +249,147 @@ export class AuthController {
 
   static async portalLogin(req: any, res: any) {
     try {
-      const { email } = req.body;
+      const { email, password } = req.body;
 
-      if (!email) {
-        return res.status(400).json({ error: "Email is required" });
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required" });
       }
 
-      // Check if user exists in database
-      const user = await storage.getUserByEmail(email);
+      console.log("Portal login attempt for:", email);
 
-      if (!user) {
-        return res.status(401).json({ error: "User not found" });
-      }
+      try {
+        // Try database first
+        const availableColumns = await DatabaseUtils.getTableColumns("users");
+        const columnNames = availableColumns.map(col => col.column_name);
 
-      // For end user portal, we don't need admin privileges
-      if (!user.is_active) {
-        return res.status(401).json({ error: "User account is inactive" });
-      }
+        let selectColumns = ["id", "email", "role"];
+        let optionalColumns = [
+          "password_hash",
+          "is_active",
+          "is_locked",
+          "first_name",
+          "last_name",
+          "username",
+          "name",
+          "phone",
+          "location"
+        ];
 
-      res.json({
-        message: "Portal login successful",
-        user: {
+        optionalColumns.forEach((col) => {
+          if (columnNames.includes(col)) {
+            selectColumns.push(col);
+          }
+        });
+
+        const query = DatabaseUtils.buildSelectQuery("users", columnNames, selectColumns) + " WHERE email = $1";
+        const result = await DatabaseUtils.executeQuery(query, [email.toLowerCase()]);
+
+        if (result.rows.length === 0) {
+          console.log("Portal user not found in database:", email);
+          throw new Error("User not found in database, trying file storage");
+        }
+
+        const user = result.rows[0];
+        console.log("Found portal user:", user.email, "Role:", user.role);
+
+        // Check if user is locked
+        if (user.is_locked) {
+          return res.status(401).json({ error: "Account is locked. Contact administrator." });
+        }
+
+        // Check if user is active
+        if (user.is_active === false) {
+          return res.status(401).json({ error: "User account is inactive" });
+        }
+
+        // Verify password if password_hash exists
+        if (user.password_hash) {
+          const isValidPassword = await bcrypt.compare(password, user.password_hash);
+          if (!isValidPassword) {
+            console.log("Invalid password for portal user:", email);
+            return res.status(401).json({ error: "Invalid credentials" });
+          }
+        } else {
+          // Check against demo passwords for end users
+          const validPasswords = [
+            "TempPass123!",
+            "TempPass456!",
+            "Admin123!",
+            "Tech123!",
+            "Manager123!",
+            "User123!"
+          ];
+          if (!validPasswords.includes(password)) {
+            return res.status(401).json({ error: "Invalid credentials" });
+          }
+        }
+
+        // Generate JWT token for portal users
+        const token = AuthUtils.generateToken({
+          userId: user.id,
           id: user.id,
           email: user.email,
-          first_name: user.first_name,
-          last_name: user.last_name,
           role: user.role
-        }
-      });
+        });
 
+        // Build user response without password
+        const { password_hash, ...userWithoutPassword } = user;
+        userWithoutPassword.name = UserUtils.buildDisplayName(user);
+
+        console.log("Portal login successful for:", email);
+        res.json({
+          message: "Portal login successful",
+          token,
+          user: userWithoutPassword
+        });
+
+      } catch (dbError) {
+        console.log("Database lookup failed for portal, trying file storage:", dbError.message);
+
+        // Fallback to file storage for demo users
+        try {
+          const demoUsers = await storage.getUsers({ search: email });
+          const user = demoUsers.find(
+            (u) => u.email.toLowerCase() === email.toLowerCase()
+          );
+
+          if (!user) {
+            return res.status(401).json({ error: "Invalid credentials" });
+          }
+
+          // Check demo passwords for end users
+          const validPasswords = [
+            "TempPass123!",
+            "TempPass456!",
+            "Admin123!",
+            "Tech123!",
+            "Manager123!",
+            "User123!"
+          ];
+          if (!validPasswords.includes(password)) {
+            return res.status(401).json({ error: "Invalid credentials" });
+          }
+
+          // Generate JWT token
+          const token = jwt.sign(
+            { userId: user.id, id: user.email, role: user.role },
+            JWT_SECRET,
+            { expiresIn: "24h" }
+          );
+
+          console.log("Portal file storage login successful for:", email);
+          res.json({
+            message: "Portal login successful",
+            token,
+            user: user
+          });
+        } catch (fileError) {
+          console.error("Portal file storage also failed:", fileError);
+          return res.status(401).json({ error: "Invalid credentials" });
+        }
+      }
     } catch (error) {
-      console.error("Error during portal login:", error);
+      console.error("Portal login error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   }
