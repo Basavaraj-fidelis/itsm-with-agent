@@ -1,22 +1,24 @@
-import { Router } from 'express';
-import { aiService } from './ai-service';
-import { aiInsightsStorage } from './ai-insights-storage';
+import { Router } from "express";
+import { aiService } from "../ai-service";
+import { aiInsightsStorage } from "../ai-insights-storage";
 
 const router = Router();
 
 // Generate and return AI insights for a device
-router.get('/insights/:deviceId', async (req, res) => {
+router.get("/insights/:deviceId", async (req, res) => {
   try {
     const { deviceId } = req.params;
     const { refresh } = req.query;
 
     if (!deviceId) {
-      return res.status(400).json({ success: false, error: 'Device ID is required' });
+      return res
+        .status(400)
+        .json({ success: false, error: "Device ID is required" });
     }
 
     // Set timeout to prevent long-running requests
-    const timeout = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Request timeout')), 5000)
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Request timeout")), 5000),
     );
 
     let insights = [];
@@ -24,8 +26,9 @@ router.get('/insights/:deviceId', async (req, res) => {
     try {
       const insightsPromise = (async () => {
         // Check if we should generate fresh insights or use cached ones
-        if (refresh === 'true') {
-          const generatedInsights = await aiService.generateDeviceInsights(deviceId);
+        if (refresh === "true") {
+          const generatedInsights =
+            await aiService.generateDeviceInsights(deviceId);
 
           // Store insights in database for future use (fire and forget)
           if (Array.isArray(generatedInsights)) {
@@ -41,10 +44,10 @@ router.get('/insights/:deviceId', async (req, res) => {
                     recommendation: insight.recommendation,
                     confidence: insight.confidence,
                     metadata: insight.metadata || {},
-                    is_active: true
+                    is_active: true,
                   });
                 } catch (storeError) {
-                  console.warn('Failed to store insight:', storeError.message);
+                  console.warn("Failed to store insight:", storeError.message);
                 }
               }
             });
@@ -53,14 +56,17 @@ router.get('/insights/:deviceId', async (req, res) => {
         } else {
           // Try cached insights first
           try {
-            const cachedInsights = await aiInsightsStorage.getInsightsForDevice(deviceId, 20);
+            const cachedInsights = await aiInsightsStorage.getInsightsForDevice(
+              deviceId,
+              20,
+            );
             if (cachedInsights && cachedInsights.length > 0) {
               return cachedInsights;
             }
           } catch (cacheError) {
-            console.warn('Failed to get cached insights:', cacheError.message);
+            console.warn("Failed to get cached insights:", cacheError.message);
           }
-          
+
           // Fallback to generating fresh insights
           return await aiService.generateDeviceInsights(deviceId);
         }
@@ -75,30 +81,30 @@ router.get('/insights/:deviceId', async (req, res) => {
 
       res.json({ success: true, insights });
     } catch (serviceError) {
-      console.warn('AI service timeout or error:', serviceError.message);
+      console.warn("AI service timeout or error:", serviceError.message);
       // Return empty insights array on service error/timeout
       res.json({ success: true, insights: [] });
     }
   } catch (error) {
-    console.error('Error in AI insights API:', error);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    console.error("Error in AI insights API:", error);
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
 // Get AI recommendations for a device
-router.get('/recommendations/:deviceId', async (req, res) => {
+router.get("/recommendations/:deviceId", async (req, res) => {
   try {
     const { deviceId } = req.params;
     const recommendations = await aiService.getDeviceRecommendations(deviceId);
     res.json({ success: true, recommendations });
   } catch (error) {
-    console.error('Error getting AI recommendations:', error);
+    console.error("Error getting AI recommendations:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
 // Batch process insights for multiple devices
-router.post('/insights/batch', async (req, res) => {
+router.post("/insights/batch", async (req, res) => {
   try {
     const { deviceIds } = req.body;
     const results = [];
@@ -114,7 +120,7 @@ router.post('/insights/batch', async (req, res) => {
 
     res.json({ success: true, results });
   } catch (error) {
-    console.error('Error in batch AI processing:', error);
+    console.error("Error in batch AI processing:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
