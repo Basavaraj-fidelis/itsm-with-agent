@@ -1,0 +1,289 @@
+client:536 WebSocket connection to 'wss://0.0.0.0:5174/?token=iaGy9Xw3ySXs' failed: 
+setupWebSocket @ client:536
+(anonymous) @ client:531
+client:560 [vite] server connection lost. Polling for restart...
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:749
+(anonymous) @ client:561
+chunk-RPCDYKBN.js?v=883baec0:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+end-user-portal.tsx:315 Attempting login with: jane.smith@company.com
+end-user-portal.tsx:330 Login response status: 200
+end-user-portal.tsx:360 Login error: SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+handleLogin @ end-user-portal.tsx:360
+await in handleLogin
+callCallback2 @ chunk-RPCDYKBN.js?v=883baec0:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=883baec0:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=883baec0:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=883baec0:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=883baec0:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=883baec0:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=883baec0:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=883baec0:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=883baec0:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=883baec0:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=883baec0:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=883baec0:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=883baec0:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=883baec0:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=883baec0:5449
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
+client:736  GET https://0.0.0.0:5174/ net::ERR_BLOCKED_BY_CLIENT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anonymous) @ client:561
