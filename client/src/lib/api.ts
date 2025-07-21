@@ -61,7 +61,7 @@ class ApiClient {
     const url = `${this.baseURL}${endpoint}`;
 
     // Get auth token from localStorage
-    const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+    const token = getAuthToken();
 
     const config: RequestInit = {
       headers: {
@@ -132,7 +132,7 @@ const getAuthHeaders = () => {
 };
 
 const getAuthToken = () => {
-  return localStorage.getItem('auth_token');
+  return localStorage.getItem('auth_token') || localStorage.getItem('token');
 }
 
 const clearAuthToken = () => {
