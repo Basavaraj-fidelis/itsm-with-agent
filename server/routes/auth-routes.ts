@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { AuthController } from "../controllers/auth-controller";
-import { authMiddleware } from "../middleware/auth-middleware";
+import { authenticateToken } from "../middleware/auth-middleware";
 
 const router = Router();
 
@@ -8,7 +8,7 @@ const router = Router();
 router.post("/login", AuthController.login);
 router.post("/signup", AuthController.signup);
 router.post("/logout", AuthController.logout);
-router.get("/verify", authMiddleware, AuthController.verifyToken);
+router.get("/verify", authenticateToken, AuthController.verifyToken);
 
 // Portal login route for end users with logging
 router.post("/portal-login", (req, res, next) => {
