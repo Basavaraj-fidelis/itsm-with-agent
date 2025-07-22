@@ -14,64 +14,8 @@ import { authRoutes } from "./routes/auth-routes";
 const JWT_SECRET =
   process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
-// Auth middleware
-const authenticateToken = async (req: any, res: any, next: any) => {
-  const authHeader = req.headers["authorization"];
-  const token = AuthUtils.extractTokenFromHeader(authHeader || "");
-
-  if (!token) {
-    return ResponseUtils.unauthorized(res, "Access token required");
-  }
-
-  try {
-    const decoded: any = AuthUtils.verifyToken(token);
-    console.log("Decoded token:", decoded);
-
-    // Try database authentication first
-    let user = null;
-    try {
-      user = await AuthUtils.getUserById(decoded.userId || decoded.id);
-    } catch (dbError) {
-      console.log("Database user lookup failed, trying file storage");
-    }
-
-    if (!user) {
-      try {
-        user = await storage.getUserById(decoded.userId || decoded.id);
-      } catch (fileError) {
-        console.error("Both database and file storage failed:", fileError);
-        return ResponseUtils.forbidden(res, "User not found");
-      }
-    }
-
-    if (!user) {
-      return ResponseUtils.forbidden(res, "User not found");
-    }
-
-    const statusCheck = AuthUtils.validateUserStatus(user);
-    if (!statusCheck.valid) {
-      return ResponseUtils.forbidden(res, statusCheck.message);
-    }
-
-    req.user = user;
-    next();
-  } catch (error) {
-    console.error("Token verification error:", error);
-    return ResponseUtils.forbidden(res, "Invalid token");
-  }
-};
-
-// Role check middleware
-const requireRole = (roles: string | string[]) => {
-  return (req: any, res: any, next: any) => {
-    const userRole = req.user?.role;
-    if (AuthUtils.hasRole(userRole, roles)) {
-      next();
-    } else {
-      ResponseUtils.forbidden(res, "Insufficient permissions");
-    }
-  };
-};
+// Import centralized middleware
+import { authenticateToken, requireRole } from "./middleware/auth-middleware";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const server = createServer(app);
