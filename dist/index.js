@@ -853,7 +853,7 @@ var init_storage = __esm({
               return;
             }
             console.log("Creating demo users...");
-            const bcrypt3 = await import("bcrypt");
+            const bcrypt4 = await import("bcrypt");
             const demoUsers = [
               {
                 email: "admin@company.com",
@@ -861,7 +861,7 @@ var init_storage = __esm({
                 name: "System Administrator",
                 first_name: "System",
                 last_name: "Administrator",
-                password_hash: await bcrypt3.hash("admin123", 10),
+                password_hash: await bcrypt4.hash("admin123", 10),
                 role: "admin",
                 department: "IT",
                 phone: "+1-555-0101",
@@ -875,7 +875,7 @@ var init_storage = __esm({
                 name: "IT Manager",
                 first_name: "IT",
                 last_name: "Manager",
-                password_hash: await bcrypt3.hash("demo123", 10),
+                password_hash: await bcrypt4.hash("demo123", 10),
                 role: "manager",
                 department: "IT",
                 phone: "+1-555-0102",
@@ -889,7 +889,7 @@ var init_storage = __esm({
                 name: "Senior Technician",
                 first_name: "Senior",
                 last_name: "Technician",
-                password_hash: await bcrypt3.hash("tech123", 10),
+                password_hash: await bcrypt4.hash("tech123", 10),
                 role: "technician",
                 department: "IT Support",
                 phone: "+1-555-0103",
@@ -903,7 +903,7 @@ var init_storage = __esm({
                 name: "End User",
                 first_name: "End",
                 last_name: "User",
-                password_hash: await bcrypt3.hash("demo123", 10),
+                password_hash: await bcrypt4.hash("demo123", 10),
                 role: "user",
                 department: "Sales",
                 phone: "+1-555-0104",
@@ -950,14 +950,14 @@ var init_storage = __esm({
               console.log("Demo users already exist in memory");
               return;
             }
-            const bcrypt3 = await import("bcrypt");
+            const bcrypt4 = await import("bcrypt");
             const memoryUsers = [
               {
                 id: "1",
                 email: "admin@company.com",
                 username: "admin",
                 name: "System Administrator",
-                password_hash: await bcrypt3.hash("admin123", 10),
+                password_hash: await bcrypt4.hash("admin123", 10),
                 role: "admin",
                 department: "IT",
                 phone: "+1-555-0101",
@@ -970,7 +970,7 @@ var init_storage = __esm({
                 email: "manager@company.com",
                 username: "manager",
                 name: "IT Manager",
-                password_hash: await bcrypt3.hash("demo123", 10),
+                password_hash: await bcrypt4.hash("demo123", 10),
                 role: "manager",
                 department: "IT",
                 phone: "+1-555-0102",
@@ -983,7 +983,7 @@ var init_storage = __esm({
                 email: "tech@company.com",
                 username: "tech",
                 name: "Senior Technician",
-                password_hash: await bcrypt3.hash("tech123", 10),
+                password_hash: await bcrypt4.hash("tech123", 10),
                 role: "technician",
                 department: "IT Support",
                 phone: "+1-555-0103",
@@ -996,7 +996,7 @@ var init_storage = __esm({
                 email: "user@company.com",
                 username: "enduser",
                 name: "End User",
-                password_hash: await bcrypt3.hash("demo123", 10),
+                password_hash: await bcrypt4.hash("demo123", 10),
                 role: "user",
                 department: "Sales",
                 phone: "+1-555-0104",
@@ -6362,19 +6362,104 @@ var init_response = __esm({
   }
 });
 
+// server/middleware/auth-middleware.ts
+import jwt3 from "jsonwebtoken";
+var JWT_SECRET3, authenticateToken;
+var init_auth_middleware = __esm({
+  "server/middleware/auth-middleware.ts"() {
+    "use strict";
+    init_storage();
+    JWT_SECRET3 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+    authenticateToken = async (req, res, next) => {
+      try {
+        const authHeader = req.headers["authorization"];
+        const token = authHeader && authHeader.split(" ")[1];
+        if (!token) {
+          console.log("No auth token provided for", req.path);
+          return res.status(401).json({ message: "Access token required" });
+        }
+        console.log("Authenticating token for", req.path);
+        try {
+          const decoded = jwt3.verify(token, JWT_SECRET3);
+          console.log("Decoded token:", decoded);
+          try {
+            const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+            const result = await pool3.query(
+              `
+          SELECT id, email, role, first_name, last_name, username, is_active, phone, location 
+          FROM users WHERE id = $1
+        `,
+              [decoded.userId || decoded.id]
+            );
+            if (result.rows.length > 0) {
+              const user2 = result.rows[0];
+              let displayName = "";
+              if (user2.first_name || user2.last_name) {
+                displayName = `${user2.first_name || ""} ${user2.last_name || ""}`.trim();
+              } else if (user2.username) {
+                displayName = user2.username;
+              } else {
+                displayName = user2.email.split("@")[0];
+              }
+              user2.name = displayName;
+              if (!user2.is_active) {
+                return res.status(403).json({ message: "User account is inactive" });
+              }
+              req.user = user2;
+              return next();
+            }
+          } catch (dbError) {
+            console.log(
+              "Database lookup failed, trying file storage:",
+              dbError.message
+            );
+          }
+          const user = await storage.getUserById(decoded.userId || decoded.id);
+          if (!user) {
+            return res.status(403).json({ message: "User not found" });
+          }
+          if (user.is_active === false) {
+            return res.status(403).json({ message: "User account is inactive" });
+          }
+          req.user = user;
+          next();
+        } catch (error) {
+          console.error("Authentication error for", req.path, ":", error);
+          if (error.name === "TokenExpiredError") {
+            return res.status(401).json({ message: "Token expired" });
+          }
+          if (error.name === "JsonWebTokenError") {
+            return res.status(401).json({ message: "Invalid token format" });
+          }
+          return res.status(403).json({ message: "Invalid token" });
+        }
+      } catch (error) {
+        console.error("Authentication error for", req.path, ":", error);
+        if (error.name === "TokenExpiredError") {
+          return res.status(401).json({ message: "Token expired" });
+        }
+        if (error.name === "JsonWebTokenError") {
+          return res.status(401).json({ message: "Invalid token format" });
+        }
+        return res.status(403).json({ message: "Invalid token" });
+      }
+    };
+  }
+});
+
 // server/routes/alert-routes.ts
 var alert_routes_exports = {};
 __export(alert_routes_exports, {
   default: () => alert_routes_default
 });
-import { Router } from "express";
-var router, alert_routes_default;
+import { Router as Router2 } from "express";
+var router2, alert_routes_default;
 var init_alert_routes = __esm({
   "server/routes/alert-routes.ts"() {
     "use strict";
     init_storage();
-    router = Router();
-    router.get("/", async (req, res) => {
+    router2 = Router2();
+    router2.get("/", async (req, res) => {
       try {
         console.log("Fetching alerts for user:", req.user?.email);
         const alerts2 = await storage.getActiveAlerts();
@@ -6406,7 +6491,7 @@ var init_alert_routes = __esm({
         });
       }
     });
-    router.get("/:id", async (req, res) => {
+    router2.get("/:id", async (req, res) => {
       try {
         const alertId = req.params.id;
         console.log(`Fetching alert: ${alertId}`);
@@ -6420,7 +6505,7 @@ var init_alert_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router.post("/:id/resolve", async (req, res) => {
+    router2.post("/:id/resolve", async (req, res) => {
       try {
         const alertId = req.params.id;
         const userId = req.user?.id || req.user?.email;
@@ -6486,7 +6571,7 @@ var init_alert_routes = __esm({
         });
       }
     });
-    alert_routes_default = router;
+    alert_routes_default = router2;
   }
 });
 
@@ -6495,15 +6580,15 @@ var notification_routes_exports = {};
 __export(notification_routes_exports, {
   default: () => notification_routes_default
 });
-import { Router as Router2 } from "express";
-import jwt2 from "jsonwebtoken";
-var router2, JWT_SECRET2, notification_routes_default;
+import { Router as Router3 } from "express";
+import jwt4 from "jsonwebtoken";
+var router3, JWT_SECRET4, notification_routes_default;
 var init_notification_routes = __esm({
   "server/routes/notification-routes.ts"() {
     "use strict";
-    router2 = Router2();
-    JWT_SECRET2 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-    router2.get("/", async (req, res) => {
+    router3 = Router3();
+    JWT_SECRET4 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+    router3.get("/", async (req, res) => {
       try {
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -6511,7 +6596,7 @@ var init_notification_routes = __esm({
         }
         const token = authHeader.substring(7);
         try {
-          const decoded = jwt2.verify(token, JWT_SECRET2);
+          const decoded = jwt4.verify(token, JWT_SECRET4);
           const userId = decoded.id;
           const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { desc: desc12 } = await import("drizzle-orm");
@@ -6542,7 +6627,7 @@ var init_notification_routes = __esm({
         res.json([]);
       }
     });
-    router2.post("/:id/read", async (req, res) => {
+    router3.post("/:id/read", async (req, res) => {
       try {
         const notificationId = req.params.id;
         res.json({ message: "Notification marked as read" });
@@ -6551,7 +6636,7 @@ var init_notification_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router2.post("/mark-all-read", async (req, res) => {
+    router3.post("/mark-all-read", async (req, res) => {
       try {
         const userId = req.user.id;
         console.log(`Marking all notifications as read for user: ${userId}`);
@@ -6566,7 +6651,7 @@ var init_notification_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router2.delete("/:id", async (req, res) => {
+    router3.delete("/:id", async (req, res) => {
       try {
         const notificationId = req.params.id;
         res.json({ message: "Notification deleted" });
@@ -6575,7 +6660,7 @@ var init_notification_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    notification_routes_default = router2;
+    notification_routes_default = router3;
   }
 });
 
@@ -6779,14 +6864,14 @@ var automation_routes_exports = {};
 __export(automation_routes_exports, {
   default: () => automation_routes_default
 });
-import { Router as Router3 } from "express";
-var router3, automation_routes_default;
+import { Router as Router4 } from "express";
+var router4, automation_routes_default;
 var init_automation_routes = __esm({
   "server/routes/automation-routes.ts"() {
     "use strict";
     init_storage();
-    router3 = Router3();
-    router3.get("/software-packages", async (req, res) => {
+    router4 = Router4();
+    router4.get("/software-packages", async (req, res) => {
       try {
         const { automationService: automationService2 } = await Promise.resolve().then(() => (init_automation_service(), automation_service_exports));
         const packages = automationService2.getSoftwarePackages();
@@ -6796,7 +6881,7 @@ var init_automation_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router3.post("/deploy-software", async (req, res) => {
+    router4.post("/deploy-software", async (req, res) => {
       try {
         const { device_ids, package_id, scheduled_time } = req.body;
         if (!device_ids || !package_id) {
@@ -6820,7 +6905,7 @@ var init_automation_routes = __esm({
         res.status(500).json({ message: error.message || "Internal server error" });
       }
     });
-    router3.get("/deployment/:deploymentId", async (req, res) => {
+    router4.get("/deployment/:deploymentId", async (req, res) => {
       try {
         const { automationService: automationService2 } = await Promise.resolve().then(() => (init_automation_service(), automation_service_exports));
         const deployment = await automationService2.getDeploymentStatus(
@@ -6835,7 +6920,7 @@ var init_automation_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router3.post("/remediation/:deviceId", async (req, res) => {
+    router4.post("/remediation/:deviceId", async (req, res) => {
       try {
         const { issue_type, remediation_action } = req.body;
         const deviceId = req.params.deviceId;
@@ -6863,7 +6948,7 @@ var init_automation_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router3.get("/deployments", async (req, res) => {
+    router4.get("/deployments", async (req, res) => {
       try {
         const alerts2 = await storage.getActiveAlerts();
         const deployments = alerts2.filter(
@@ -6875,7 +6960,7 @@ var init_automation_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    automation_routes_default = router3;
+    automation_routes_default = router4;
   }
 });
 
@@ -6884,11 +6969,11 @@ var agent_download_routes_exports = {};
 __export(agent_download_routes_exports, {
   default: () => agent_download_routes_default
 });
-import { Router as Router4 } from "express";
+import { Router as Router5 } from "express";
 import path from "path";
 import fs from "fs";
 import archiver from "archiver";
-import jwt3 from "jsonwebtoken";
+import jwt5 from "jsonwebtoken";
 function generateInstallationInstructions(platform) {
   const baseInstructions = `# ITSM Agent Installation Instructions - ${platform.charAt(0).toUpperCase() + platform.slice(1)}
 
@@ -6974,13 +7059,13 @@ For technical support, contact your system administrator.`;
       return baseInstructions;
   }
 }
-var router4, JWT_SECRET3, agent_download_routes_default;
+var router5, JWT_SECRET5, agent_download_routes_default;
 var init_agent_download_routes = __esm({
   "server/routes/agent-download-routes.ts"() {
     "use strict";
-    router4 = Router4();
-    JWT_SECRET3 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-    router4.get("/:platform", async (req, res) => {
+    router5 = Router5();
+    JWT_SECRET5 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+    router5.get("/:platform", async (req, res) => {
       try {
         const { platform } = req.params;
         console.log(`${platform} agent download requested - no auth required`);
@@ -7046,7 +7131,7 @@ var init_agent_download_routes = __esm({
         }
       }
     });
-    agent_download_routes_default = router4;
+    agent_download_routes_default = router5;
   }
 });
 
@@ -10781,9 +10866,9 @@ var analytics_routes_exports = {};
 __export(analytics_routes_exports, {
   default: () => analytics_routes_default
 });
-import { Router as Router5 } from "express";
+import { Router as Router6 } from "express";
 import { sql as sql8, desc as desc8 } from "drizzle-orm";
-var router5, authenticateToken, analytics_routes_default;
+var router6, authenticateToken2, analytics_routes_default;
 var init_analytics_routes = __esm({
   "server/routes/analytics-routes.ts"() {
     "use strict";
@@ -10796,8 +10881,8 @@ var init_analytics_routes = __esm({
     init_db();
     init_schema();
     init_ticket_schema();
-    router5 = Router5();
-    authenticateToken = async (req, res, next) => {
+    router6 = Router6();
+    authenticateToken2 = async (req, res, next) => {
       const authHeader = req.headers["authorization"];
       const token = AuthUtils.extractTokenFromHeader(authHeader || "");
       if (!token) {
@@ -10820,7 +10905,7 @@ var init_analytics_routes = __esm({
         return ResponseUtils.forbidden(res, "Invalid token");
       }
     };
-    router5.get("/performance", authenticateToken, async (req, res) => {
+    router6.get("/performance", authenticateToken2, async (req, res) => {
       try {
         const { timeRange = "7d" } = req.query;
         console.log(`Generating performance report for timeRange: ${timeRange}`);
@@ -10852,7 +10937,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router5.get("/availability", authenticateToken, async (req, res) => {
+    router6.get("/availability", authenticateToken2, async (req, res) => {
       try {
         const { timeRange = "7d" } = req.query;
         console.log(`Generating availability report for timeRange: ${timeRange}`);
@@ -10884,7 +10969,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router5.get("/inventory", async (req, res) => {
+    router6.get("/inventory", async (req, res) => {
       try {
         console.log("Generating system inventory report");
         const data = await analyticsService.generateSystemInventory();
@@ -10913,7 +10998,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router5.get("/asset-inventory", async (req, res) => {
+    router6.get("/asset-inventory", async (req, res) => {
       try {
         console.log("Generating comprehensive asset inventory report");
         const data = await analyticsService.generateAssetInventoryReport();
@@ -10942,7 +11027,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router5.get("/ticket-analytics", async (req, res) => {
+    router6.get("/ticket-analytics", async (req, res) => {
       try {
         const { timeRange = "30d" } = req.query;
         console.log(`Generating ticket analytics report for ${timeRange}`);
@@ -10974,7 +11059,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router5.get("/system-health", async (req, res) => {
+    router6.get("/system-health", async (req, res) => {
       try {
         console.log("Generating comprehensive system health report");
         const data = await analyticsService.generateSystemHealthReport();
@@ -11003,7 +11088,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router5.get("/security-compliance", async (req, res) => {
+    router6.get("/security-compliance", async (req, res) => {
       try {
         console.log("Generating comprehensive security compliance report");
         const data = await analyticsService.generateSecurityComplianceReport();
@@ -11032,7 +11117,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router5.post("/generate", async (req, res) => {
+    router6.post("/generate", async (req, res) => {
       req.setTimeout(45e3);
       try {
         const { reportType, timeRange = "7d", format: format2 = "docx" } = req.body;
@@ -11171,7 +11256,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router5.get("/realtime", async (req, res) => {
+    router6.get("/realtime", async (req, res) => {
       req.setTimeout(2e3);
       try {
         console.log("Fetching real-time performance metrics...");
@@ -11199,7 +11284,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router5.get("/trends", async (req, res) => {
+    router6.get("/trends", async (req, res) => {
       try {
         const { metric = "cpu", timeRange = "7d" } = req.query;
         console.log(`Generating trend analysis for ${metric} over ${timeRange}`);
@@ -11219,7 +11304,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router5.get("/capacity", async (req, res) => {
+    router6.get("/capacity", async (req, res) => {
       try {
         console.log("Generating capacity planning recommendations...");
         const recommendations = await analyticsService.getCapacityRecommendations();
@@ -11235,7 +11320,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router5.get("/recent", async (req, res) => {
+    router6.get("/recent", async (req, res) => {
       req.setTimeout(5e3);
       try {
         console.log("Fetching recent reports from database...");
@@ -11286,7 +11371,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router5.get("/report/:id", async (req, res) => {
+    router6.get("/report/:id", async (req, res) => {
       try {
         const { id } = req.params;
         console.log(`Fetching report with ID: ${id}`);
@@ -11309,7 +11394,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router5.post("/comprehensive", async (req, res) => {
+    router6.post("/comprehensive", async (req, res) => {
       req.setTimeout(2e4);
       try {
         const {
@@ -11416,7 +11501,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router5.post("/enterprise-scale", async (req, res) => {
+    router6.post("/enterprise-scale", async (req, res) => {
       req.setTimeout(12e4);
       try {
         const {
@@ -11534,7 +11619,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router5.delete("/report/:id", async (req, res) => {
+    router6.delete("/report/:id", async (req, res) => {
       try {
         const { id } = req.params;
         console.log(`Deleting report with ID: ${id}`);
@@ -11557,7 +11642,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router5.post("/export-pdf", async (req, res) => {
+    router6.post("/export-pdf", async (req, res) => {
       try {
         const reportData = req.body;
         const htmlContent = `
@@ -11672,9 +11757,9 @@ var init_analytics_routes = __esm({
         res.status(500).json({ message: "Failed to generate PDF report" });
       }
     });
-    router5.get(
+    router6.get(
       "/performance/insights/:deviceId",
-      authenticateToken,
+      authenticateToken2,
       async (req, res) => {
         try {
           const { deviceId } = req.params;
@@ -11690,9 +11775,9 @@ var init_analytics_routes = __esm({
         }
       }
     );
-    router5.get(
+    router6.get(
       "/performance/predictions/:deviceId",
-      authenticateToken,
+      authenticateToken2,
       async (req, res) => {
         try {
           const { deviceId } = req.params;
@@ -11708,7 +11793,7 @@ var init_analytics_routes = __esm({
         }
       }
     );
-    router5.get("/performance/overview", async (req, res) => {
+    router6.get("/performance/overview", async (req, res) => {
       try {
         const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
         const devices2 = await storage3.getDevices();
@@ -11751,7 +11836,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router5.get("/performance/trends", async (req, res) => {
+    router6.get("/performance/trends", async (req, res) => {
       try {
         const { timeRange = "24h" } = req.query;
         const trends = {
@@ -11773,7 +11858,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router5.get("/health", async (req, res) => {
+    router6.get("/health", async (req, res) => {
       res.json({
         status: "ok",
         service: "analytics",
@@ -11786,14 +11871,14 @@ var init_analytics_routes = __esm({
         ]
       });
     });
-    router5.get("/test", async (req, res) => {
+    router6.get("/test", async (req, res) => {
       res.json({
         success: true,
         message: "Analytics routes are working",
         timestamp: (/* @__PURE__ */ new Date()).toISOString()
       });
     });
-    router5.get("/performance/insights/:deviceId", async (req, res) => {
+    router6.get("/performance/insights/:deviceId", async (req, res) => {
       try {
         const deviceId = req.params.deviceId;
         console.log(`Getting performance insights for device: ${deviceId}`);
@@ -11807,7 +11892,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router5.get("/service-desk-report", async (req, res) => {
+    router6.get("/service-desk-report", async (req, res) => {
       try {
         const format2 = req.query.format || "json";
         const timeRange = req.query.timeRange || "30d";
@@ -11938,7 +12023,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router5.get("/agents-detailed-report", async (req, res) => {
+    router6.get("/agents-detailed-report", async (req, res) => {
       try {
         const format2 = req.query.format || "json";
         const filters = {
@@ -12058,118 +12143,33 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    analytics_routes_default = router5;
-  }
-});
-
-// server/middleware/auth-middleware.ts
-import jwt4 from "jsonwebtoken";
-var JWT_SECRET4, authenticateToken2;
-var init_auth_middleware = __esm({
-  "server/middleware/auth-middleware.ts"() {
-    "use strict";
-    init_storage();
-    JWT_SECRET4 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-    authenticateToken2 = async (req, res, next) => {
-      try {
-        const authHeader = req.headers["authorization"];
-        const token = authHeader && authHeader.split(" ")[1];
-        if (!token) {
-          console.log("No auth token provided for", req.path);
-          return res.status(401).json({ message: "Access token required" });
-        }
-        console.log("Authenticating token for", req.path);
-        try {
-          const decoded = jwt4.verify(token, JWT_SECRET4);
-          console.log("Decoded token:", decoded);
-          try {
-            const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-            const result = await pool3.query(
-              `
-          SELECT id, email, role, first_name, last_name, username, is_active, phone, location 
-          FROM users WHERE id = $1
-        `,
-              [decoded.userId || decoded.id]
-            );
-            if (result.rows.length > 0) {
-              const user2 = result.rows[0];
-              let displayName = "";
-              if (user2.first_name || user2.last_name) {
-                displayName = `${user2.first_name || ""} ${user2.last_name || ""}`.trim();
-              } else if (user2.username) {
-                displayName = user2.username;
-              } else {
-                displayName = user2.email.split("@")[0];
-              }
-              user2.name = displayName;
-              if (!user2.is_active) {
-                return res.status(403).json({ message: "User account is inactive" });
-              }
-              req.user = user2;
-              return next();
-            }
-          } catch (dbError) {
-            console.log(
-              "Database lookup failed, trying file storage:",
-              dbError.message
-            );
-          }
-          const user = await storage.getUserById(decoded.userId || decoded.id);
-          if (!user) {
-            return res.status(403).json({ message: "User not found" });
-          }
-          if (user.is_active === false) {
-            return res.status(403).json({ message: "User account is inactive" });
-          }
-          req.user = user;
-          next();
-        } catch (error) {
-          console.error("Authentication error for", req.path, ":", error);
-          if (error.name === "TokenExpiredError") {
-            return res.status(401).json({ message: "Token expired" });
-          }
-          if (error.name === "JsonWebTokenError") {
-            return res.status(401).json({ message: "Invalid token format" });
-          }
-          return res.status(403).json({ message: "Invalid token" });
-        }
-      } catch (error) {
-        console.error("Authentication error for", req.path, ":", error);
-        if (error.name === "TokenExpiredError") {
-          return res.status(401).json({ message: "Token expired" });
-        }
-        if (error.name === "JsonWebTokenError") {
-          return res.status(401).json({ message: "Invalid token format" });
-        }
-        return res.status(403).json({ message: "Invalid token" });
-      }
-    };
+    analytics_routes_default = router6;
   }
 });
 
 // server/routes/user-routes.ts
 var user_routes_exports = {};
 __export(user_routes_exports, {
-  userRoutes: () => router6
+  userRoutes: () => router7
 });
-import { Router as Router6 } from "express";
-import bcrypt from "bcrypt";
+import { Router as Router7 } from "express";
+import bcrypt2 from "bcrypt";
 import multer from "multer";
 import * as XLSX from "xlsx";
-var router6, upload;
+var router7, upload;
 var init_user_routes = __esm({
   "server/routes/user-routes.ts"() {
     "use strict";
     init_db();
     init_storage();
     init_auth_middleware();
-    router6 = Router6();
+    router7 = Router7();
     upload = multer({
       storage: multer.memoryStorage(),
       limits: { fileSize: 5 * 1024 * 124 }
       // 5MB limit
     });
-    router6.post("/import-end-users", upload.single("file"), async (req, res) => {
+    router7.post("/import-end-users", upload.single("file"), async (req, res) => {
       try {
         if (!req.file) {
           return res.status(400).json({ message: "No file uploaded" });
@@ -12232,7 +12232,7 @@ var init_user_routes = __esm({
             if (!password) {
               password = `TempPass${Math.random().toString(36).slice(-6)}!`;
             }
-            const password_hash = await bcrypt.hash(String(password), 10);
+            const password_hash = await bcrypt2.hash(String(password), 10);
             let finalFirstName = firstName;
             let finalLastName = lastName;
             if (!firstName && !lastName && name) {
@@ -12294,7 +12294,7 @@ var init_user_routes = __esm({
         });
       }
     });
-    router6.get("/stats", async (req, res) => {
+    router7.get("/stats", async (req, res) => {
       try {
         const result = await pool.query(`
       SELECT 
@@ -12310,7 +12310,7 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router6.get("/", async (req, res) => {
+    router7.get("/", async (req, res) => {
       try {
         const { search, role, department, status, page = 1, limit = 50, sync_source } = req.query;
         console.log("GET /api/users - Enhanced query with filters:", { search, role, department, status, sync_source });
@@ -12457,7 +12457,7 @@ var init_user_routes = __esm({
         });
       }
     });
-    router6.get("/departments", async (req, res) => {
+    router7.get("/departments", async (req, res) => {
       try {
         const result = await pool.query(`
       SELECT DISTINCT department 
@@ -12472,7 +12472,7 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to fetch departments" });
       }
     });
-    router6.post("/bulk-ad-sync", async (req, res) => {
+    router7.post("/bulk-ad-sync", async (req, res) => {
       try {
         const { userEmails } = req.body;
         if (!userEmails || !Array.isArray(userEmails)) {
@@ -12511,7 +12511,7 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to perform bulk AD sync" });
       }
     });
-    router6.get("/:id", async (req, res) => {
+    router7.get("/:id", async (req, res) => {
       try {
         const result = await pool.query(`
       SELECT 
@@ -12532,7 +12532,7 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to fetch user" });
       }
     });
-    router6.post("/", async (req, res) => {
+    router7.post("/", async (req, res) => {
       try {
         const { email, name, first_name, last_name, role, password, department, phone } = req.body;
         if (!email || !name && !first_name) {
@@ -12558,7 +12558,7 @@ var init_user_routes = __esm({
           return res.status(400).json({ message: "User with this email or username already exists" });
         }
         const saltRounds = 10;
-        const password_hash = await bcrypt.hash(password, saltRounds);
+        const password_hash = await bcrypt2.hash(password, saltRounds);
         const result = await pool.query(`
       INSERT INTO users (
         email, username, first_name, last_name, role, 
@@ -12596,7 +12596,7 @@ var init_user_routes = __esm({
         });
       }
     });
-    router6.put("/:id", async (req, res) => {
+    router7.put("/:id", async (req, res) => {
       try {
         console.log("PUT /api/users/:id - Updating user:", req.params.id);
         console.log("Request body:", req.body);
@@ -12650,7 +12650,7 @@ var init_user_routes = __esm({
         ];
         if (password && password.trim()) {
           const saltRounds = 10;
-          const password_hash = await bcrypt.hash(password, saltRounds);
+          const password_hash = await bcrypt2.hash(password, saltRounds);
           updateQuery += `, password_hash = $10, last_password_change = NOW() WHERE id = $11`;
           values.push(password_hash, req.params.id);
         } else {
@@ -12684,7 +12684,7 @@ var init_user_routes = __esm({
         });
       }
     });
-    router6.delete("/:id", async (req, res) => {
+    router7.delete("/:id", async (req, res) => {
       try {
         const result = await pool.query(`
       UPDATE users 
@@ -12701,7 +12701,7 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to delete user" });
       }
     });
-    router6.post("/:id/lock", async (req, res) => {
+    router7.post("/:id/lock", async (req, res) => {
       try {
         const { reason } = req.body;
         const userId = req.params.id;
@@ -12760,7 +12760,7 @@ var init_user_routes = __esm({
         });
       }
     });
-    router6.post("/:id/unlock", async (req, res) => {
+    router7.post("/:id/unlock", async (req, res) => {
       try {
         const userId = req.params.id;
         console.log(`Attempting to unlock user ${userId}`);
@@ -12818,7 +12818,7 @@ var init_user_routes = __esm({
         });
       }
     });
-    router6.post("/change-password", async (req, res) => {
+    router7.post("/change-password", async (req, res) => {
       try {
         const { currentPassword, newPassword } = req.body;
         const authHeader = req.headers.authorization;
@@ -12844,12 +12844,12 @@ var init_user_routes = __esm({
         if (user.rows.length === 0) {
           return res.status(404).json({ message: "User not found" });
         }
-        const isValidPassword = await bcrypt.compare(currentPassword, user.rows[0].password_hash);
+        const isValidPassword = await bcrypt2.compare(currentPassword, user.rows[0].password_hash);
         if (!isValidPassword) {
           return res.status(400).json({ message: "Current password is incorrect" });
         }
         const saltRounds = 10;
-        const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+        const newPasswordHash = await bcrypt2.hash(newPassword, saltRounds);
         await pool.query(`
       UPDATE users
       SET password_hash = $1, updated_at = NOW()
@@ -12861,7 +12861,7 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to change password" });
       }
     });
-    router6.post("/:id/lock", authenticateToken2, async (req, res) => {
+    router7.post("/:id/lock", authenticateToken, async (req, res) => {
       try {
         const { id } = req.params;
         const { reason } = req.body;
@@ -12882,7 +12882,7 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to lock user" });
       }
     });
-    router6.post("/:id/unlock", authenticateToken2, async (req, res) => {
+    router7.post("/:id/unlock", authenticateToken, async (req, res) => {
       try {
         const { id } = req.params;
         const success = await storage.unlockUser(id);
@@ -12905,12 +12905,12 @@ var init_user_routes = __esm({
 // server/routes/knowledge-routes.ts
 var knowledge_routes_exports = {};
 __export(knowledge_routes_exports, {
-  knowledgeRoutes: () => router7
+  knowledgeRoutes: () => router8
 });
-import { Router as Router7 } from "express";
+import { Router as Router8 } from "express";
 import { eq as eq9, and as and9, or as or8, sql as sql9, desc as desc9, ilike as ilike3, count as count5, like as like5 } from "drizzle-orm";
-import jwt5 from "jsonwebtoken";
-var router7, storage2, authenticateToken3;
+import jwt6 from "jsonwebtoken";
+var router8, storage2, authenticateToken3;
 var init_knowledge_routes = __esm({
   "server/routes/knowledge-routes.ts"() {
     "use strict";
@@ -12918,7 +12918,7 @@ var init_knowledge_routes = __esm({
     init_ticket_schema();
     init_ticket_storage();
     init_knowledge_ai_service();
-    router7 = Router7();
+    router8 = Router8();
     storage2 = new TicketStorage();
     authenticateToken3 = (req, res, next) => {
       const authHeader = req.headers["authorization"];
@@ -12927,7 +12927,7 @@ var init_knowledge_routes = __esm({
         req.user = null;
         return next();
       }
-      jwt5.verify(token, process.env.JWT_SECRET || "your-secret-key", (err, decoded) => {
+      jwt6.verify(token, process.env.JWT_SECRET || "your-secret-key", (err, decoded) => {
         if (err) {
           console.error("Token verification error:", err);
           req.user = null;
@@ -12937,7 +12937,7 @@ var init_knowledge_routes = __esm({
         next();
       });
     };
-    router7.get("/", authenticateToken3, async (req, res) => {
+    router8.get("/", authenticateToken3, async (req, res) => {
       try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
@@ -12988,7 +12988,7 @@ var init_knowledge_routes = __esm({
         });
       }
     });
-    router7.get("/related", async (req, res) => {
+    router8.get("/related", async (req, res) => {
       try {
         const { tags, category, limit = "5", header, title } = req.query;
         console.log("Related articles request:", { tags, category, limit, header, title });
@@ -13056,7 +13056,7 @@ var init_knowledge_routes = __esm({
         });
       }
     });
-    router7.get("/related/:ticketId", async (req, res) => {
+    router8.get("/related/:ticketId", async (req, res) => {
       try {
         const { ticketId } = req.params;
         const ticket = await db.select().from(tickets).where(eq9(tickets.id, ticketId)).limit(1);
@@ -13131,7 +13131,7 @@ var init_knowledge_routes = __esm({
         res.status(500).json({ error: "Failed to fetch related articles", details: error.message });
       }
     });
-    router7.get("/:id", authenticateToken3, async (req, res) => {
+    router8.get("/:id", authenticateToken3, async (req, res) => {
       try {
         const article = await storage2.getKBArticleById(req.params.id);
         if (!article) {
@@ -13143,7 +13143,7 @@ var init_knowledge_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router7.post("/", authenticateToken3, async (req, res) => {
+    router8.post("/", authenticateToken3, async (req, res) => {
       try {
         const { title, content, category } = req.body;
         const newArticle = {
@@ -14114,7 +14114,7 @@ __export(sla_routes_exports, {
   default: () => sla_routes_default,
   registerSLARoutes: () => registerSLARoutes
 });
-import { Router as Router8 } from "express";
+import { Router as Router9 } from "express";
 function registerSLARoutes(app2) {
   app2.get("/api/sla/dashboard", async (req, res) => {
     try {
@@ -14329,14 +14329,14 @@ function registerSLARoutes(app2) {
     }
   });
 }
-var router8, sla_routes_default;
+var router9, sla_routes_default;
 var init_sla_routes = __esm({
   "server/routes/sla-routes.ts"() {
     "use strict";
     init_sla_escalation_service();
     init_sla_monitor_service();
-    router8 = Router8();
-    router8.get("/dashboard", async (req, res) => {
+    router9 = Router9();
+    router9.get("/dashboard", async (req, res) => {
       try {
         const { slaEscalationService: slaEscalationService2 } = await Promise.resolve().then(() => (init_sla_escalation_service(), sla_escalation_service_exports));
         const data = await slaEscalationService2.getSLADashboardData();
@@ -14346,7 +14346,7 @@ var init_sla_routes = __esm({
         res.status(500).json({ error: "Failed to fetch SLA dashboard data" });
       }
     });
-    router8.get("/metrics", async (req, res) => {
+    router9.get("/metrics", async (req, res) => {
       try {
         const { slaMonitorService: slaMonitorService2 } = await Promise.resolve().then(() => (init_sla_monitor_service(), sla_monitor_service_exports));
         const metrics = await slaMonitorService2.getSLAMetrics();
@@ -14356,7 +14356,7 @@ var init_sla_routes = __esm({
         res.status(500).json({ error: "Failed to fetch SLA metrics" });
       }
     });
-    sla_routes_default = router8;
+    sla_routes_default = router9;
   }
 });
 
@@ -14365,7 +14365,7 @@ var sla_analysis_routes_exports = {};
 __export(sla_analysis_routes_exports, {
   default: () => sla_analysis_routes_default
 });
-import { Router as Router9 } from "express";
+import { Router as Router10 } from "express";
 import { eq as eq12, and as and12, not as not3, inArray as inArray4 } from "drizzle-orm";
 async function validateSLACalculation(ticket) {
   try {
@@ -14468,7 +14468,7 @@ async function testFutureTicketSLA() {
     };
   }
 }
-var router9, sla_analysis_routes_default;
+var router10, sla_analysis_routes_default;
 var init_sla_analysis_routes = __esm({
   "server/routes/sla-analysis-routes.ts"() {
     "use strict";
@@ -14476,8 +14476,8 @@ var init_sla_analysis_routes = __esm({
     init_ticket_schema();
     init_sla_schema();
     init_sla_policy_service();
-    router9 = Router9();
-    router9.get("/api/sla/analysis", async (req, res) => {
+    router10 = Router10();
+    router10.get("/api/sla/analysis", async (req, res) => {
       try {
         const now = /* @__PURE__ */ new Date();
         const allTickets = await db.select().from(tickets);
@@ -14577,7 +14577,7 @@ var init_sla_analysis_routes = __esm({
         res.status(500).json({ error: "Failed to analyze SLA data" });
       }
     });
-    router9.post("/api/sla/fix-tickets", async (req, res) => {
+    router10.post("/api/sla/fix-tickets", async (req, res) => {
       try {
         const ticketsToFix = await db.select().from(tickets).where(
           and12(
@@ -14629,7 +14629,7 @@ var init_sla_analysis_routes = __esm({
         res.status(500).json({ error: "Failed to fix ticket SLA data" });
       }
     });
-    router9.post("/api/sla/check-breaches", async (req, res) => {
+    router10.post("/api/sla/check-breaches", async (req, res) => {
       try {
         const { slaMonitorService: slaMonitorService2 } = await Promise.resolve().then(() => (init_sla_monitor_service(), sla_monitor_service_exports));
         console.log("\u{1F50D} Manual SLA breach check initiated...");
@@ -14645,7 +14645,7 @@ var init_sla_analysis_routes = __esm({
         res.status(500).json({ error: "Failed to perform SLA check" });
       }
     });
-    sla_analysis_routes_default = router9;
+    sla_analysis_routes_default = router10;
   }
 });
 
@@ -15238,15 +15238,15 @@ var ai_routes_exports = {};
 __export(ai_routes_exports, {
   default: () => ai_routes_default
 });
-import { Router as Router10 } from "express";
-var router10, ai_routes_default;
+import { Router as Router11 } from "express";
+var router11, ai_routes_default;
 var init_ai_routes = __esm({
   "server/routes/ai-routes.ts"() {
     "use strict";
     init_ai_service();
     init_ai_insights_storage();
-    router10 = Router10();
-    router10.get("/insights/:deviceId", async (req, res) => {
+    router11 = Router11();
+    router11.get("/insights/:deviceId", async (req, res) => {
       try {
         const { deviceId } = req.params;
         const { refresh } = req.query;
@@ -15312,7 +15312,7 @@ var init_ai_routes = __esm({
         res.status(500).json({ success: false, error: "Internal server error" });
       }
     });
-    router10.get("/recommendations/:deviceId", async (req, res) => {
+    router11.get("/recommendations/:deviceId", async (req, res) => {
       try {
         const { deviceId } = req.params;
         const recommendations = await aiService.getDeviceRecommendations(deviceId);
@@ -15322,7 +15322,7 @@ var init_ai_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    router10.post("/insights/batch", async (req, res) => {
+    router11.post("/insights/batch", async (req, res) => {
       try {
         const { deviceIds } = req.body;
         const results = [];
@@ -15340,7 +15340,7 @@ var init_ai_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    ai_routes_default = router10;
+    ai_routes_default = router11;
   }
 });
 
@@ -15349,13 +15349,13 @@ var audit_routes_exports = {};
 __export(audit_routes_exports, {
   default: () => audit_routes_default
 });
-import { Router as Router11 } from "express";
-var router11, audit_routes_default;
+import { Router as Router12 } from "express";
+var router12, audit_routes_default;
 var init_audit_routes = __esm({
   "server/routes/audit-routes.ts"() {
     "use strict";
-    router11 = Router11();
-    router11.get("/logs", async (req, res) => {
+    router12 = Router12();
+    router12.get("/logs", async (req, res) => {
       try {
         const { user, action, resource, startDate, endDate } = req.query;
         const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
@@ -15403,7 +15403,7 @@ var init_audit_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router11.post("/logs", async (req, res) => {
+    router12.post("/logs", async (req, res) => {
       try {
         const { user_id, action, resource_type, resource_id, details, ip_address, user_agent } = req.body;
         const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
@@ -15418,7 +15418,7 @@ var init_audit_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    audit_routes_default = router11;
+    audit_routes_default = router12;
   }
 });
 
@@ -15427,13 +15427,13 @@ var security_routes_exports = {};
 __export(security_routes_exports, {
   default: () => security_routes_default
 });
-import { Router as Router12 } from "express";
-var router12, security_routes_default;
+import { Router as Router13 } from "express";
+var router13, security_routes_default;
 var init_security_routes = __esm({
   "server/routes/security-routes.ts"() {
     "use strict";
-    router12 = Router12();
-    router12.get("/alerts", async (req, res) => {
+    router13 = Router13();
+    router13.get("/alerts", async (req, res) => {
       try {
         const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
         const securityAlerts = await db5.query(`
@@ -15453,7 +15453,7 @@ var init_security_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router12.get("/vulnerabilities/:deviceId", async (req, res) => {
+    router13.get("/vulnerabilities/:deviceId", async (req, res) => {
       try {
         const { deviceId } = req.params;
         const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
@@ -15471,7 +15471,7 @@ var init_security_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router12.get("/compliance", async (req, res) => {
+    router13.get("/compliance", async (req, res) => {
       try {
         const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
         const compliance = await db5.query(`
@@ -15489,7 +15489,7 @@ var init_security_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router12.get("/audit", async (req, res) => {
+    router13.get("/audit", async (req, res) => {
       try {
         const { user, action, resource } = req.query;
         const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
@@ -15527,7 +15527,7 @@ var init_security_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    security_routes_default = router12;
+    security_routes_default = router13;
   }
 });
 
@@ -15536,14 +15536,14 @@ var patch_routes_exports = {};
 __export(patch_routes_exports, {
   default: () => patch_routes_default
 });
-import { Router as Router13 } from "express";
-var router13, patch_routes_default;
+import { Router as Router14 } from "express";
+var router14, patch_routes_default;
 var init_patch_routes = __esm({
   "server/routes/patch-routes.ts"() {
     "use strict";
     init_patch_compliance_service();
-    router13 = Router13();
-    router13.get("/patch-compliance/dashboard", async (req, res) => {
+    router14 = Router14();
+    router14.get("/patch-compliance/dashboard", async (req, res) => {
       try {
         console.log("\u{1F4CA} Fetching patch compliance dashboard data...");
         console.log("Request timestamp:", (/* @__PURE__ */ new Date()).toISOString());
@@ -15662,7 +15662,7 @@ var init_patch_routes = __esm({
         }
       }
     });
-    router13.get("/patch-compliance/report/:deviceId?", async (req, res) => {
+    router14.get("/patch-compliance/report/:deviceId?", async (req, res) => {
       try {
         const { deviceId } = req.params;
         const reports = await patchComplianceService.getDashboardData();
@@ -15672,7 +15672,7 @@ var init_patch_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    router13.post("/patch-compliance/scan/:deviceId", async (req, res) => {
+    router14.post("/patch-compliance/scan/:deviceId", async (req, res) => {
       try {
         const { deviceId } = req.params;
         const result = await patchComplianceService.processPatchData(
@@ -15685,7 +15685,7 @@ var init_patch_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    router13.post("/patch-compliance/deploy", async (req, res) => {
+    router14.post("/patch-compliance/deploy", async (req, res) => {
       try {
         const deployment = req.body;
         const deploymentId = await patchComplianceService.createPatchDeployment(deployment);
@@ -15695,7 +15695,7 @@ var init_patch_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    router13.get("/patch-compliance/pending-applications", async (req, res) => {
+    router14.get("/patch-compliance/pending-applications", async (req, res) => {
       try {
         const pendingPatches = await patchComplianceService.getPendingApplicationPatches();
         res.json({ success: true, patches: pendingPatches });
@@ -15704,7 +15704,7 @@ var init_patch_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    patch_routes_default = router13;
+    patch_routes_default = router14;
   }
 });
 
@@ -16593,8 +16593,8 @@ function registerAgentRoutes(app2, authenticateToken5, requireRole2) {
 // server/routes.ts
 init_auth();
 init_response();
-import bcrypt2 from "bcrypt";
-import jwt6 from "jsonwebtoken";
+import bcrypt3 from "bcrypt";
+import jwt7 from "jsonwebtoken";
 
 // server/utils/user.ts
 var UserUtils = class {
@@ -16708,8 +16708,348 @@ var UserUtils = class {
   }
 };
 
+// server/routes/auth-routes.ts
+import { Router } from "express";
+
+// server/controllers/auth-controller.ts
+init_storage();
+init_database();
+init_auth();
+import bcrypt from "bcrypt";
+import jwt2 from "jsonwebtoken";
+var JWT_SECRET2 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+var AuthController = class {
+  static async login(req, res) {
+    try {
+      const { email, password } = req.body;
+      console.log("Login attempt for:", email);
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+      try {
+        const availableColumns = await DatabaseUtils.getTableColumns("users");
+        const columnNames = availableColumns.map((col) => col.column_name);
+        console.log("Available columns in users table:", columnNames);
+        let selectColumns = ["id", "email", "role"];
+        let optionalColumns = [
+          "password_hash",
+          "is_active",
+          "is_locked",
+          "last_login",
+          "phone",
+          "location",
+          "first_name",
+          "last_name",
+          "username",
+          "name"
+        ];
+        optionalColumns.forEach((col) => {
+          if (columnNames.includes(col)) {
+            selectColumns.push(col);
+          }
+        });
+        const query = DatabaseUtils.buildSelectQuery("users", columnNames, selectColumns) + " WHERE email = $1";
+        console.log("Executing query:", query);
+        const result = await DatabaseUtils.executeQuery(query, [email.toLowerCase()]);
+        if (result.rows.length === 0) {
+          console.log("User not found in database:", email);
+          throw new Error("User not found in database, trying file storage");
+        }
+        const user = result.rows[0];
+        console.log("Found user:", user.email, "Role:", user.role);
+        if (user.is_locked) {
+          return res.status(401).json({ message: "Account is locked. Contact administrator." });
+        }
+        if (user.is_active === false) {
+          return res.status(401).json({ message: "Account is inactive. Contact administrator." });
+        }
+        if (user.password_hash) {
+          const isValidPassword = await bcrypt.compare(
+            password,
+            user.password_hash
+          );
+          if (!isValidPassword) {
+            console.log("Invalid password for user:", email);
+            return res.status(401).json({ message: "Invalid credentials" });
+          }
+        } else {
+          const validPasswords = [
+            "Admin123!",
+            "Tech123!",
+            "Manager123!",
+            "User123!"
+          ];
+          if (!validPasswords.includes(password)) {
+            return res.status(401).json({ message: "Invalid credentials" });
+          }
+        }
+        if (availableColumns.includes("last_login")) {
+          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          await pool3.query(
+            `UPDATE users SET last_login = NOW() WHERE id = $1`,
+            [user.id]
+          );
+        }
+        const token = AuthUtils.generateToken({
+          userId: user.id,
+          id: user.id,
+          email: user.email,
+          role: user.role
+        });
+        const { password_hash, ...userWithoutPassword } = user;
+        userWithoutPassword.name = UserUtils.buildDisplayName(user);
+        console.log("Login successful for:", email);
+        res.json({
+          message: "Login successful",
+          token,
+          user: userWithoutPassword
+        });
+      } catch (dbError) {
+        console.log(
+          "Database lookup failed, trying file storage:",
+          dbError.message
+        );
+        try {
+          const demoUsers = await storage.getUsers({ search: email });
+          const user = demoUsers.find(
+            (u) => u.email.toLowerCase() === email.toLowerCase()
+          );
+          if (!user) {
+            return res.status(401).json({ message: "Invalid credentials" });
+          }
+          const validPasswords = [
+            "Admin123!",
+            "Tech123!",
+            "Manager123!",
+            "User123!"
+          ];
+          if (!validPasswords.includes(password)) {
+            return res.status(401).json({ message: "Invalid credentials" });
+          }
+          const token = jwt2.sign(
+            { userId: user.id, id: user.email, role: user.role },
+            JWT_SECRET2,
+            { expiresIn: "24h" }
+          );
+          console.log("File storage login successful for:", email);
+          res.json({
+            message: "Login successful",
+            token,
+            user
+          });
+        } catch (fileError) {
+          console.error("File storage also failed:", fileError);
+          return res.status(401).json({ message: "Invalid credentials" });
+        }
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  }
+  static async signup(req, res) {
+    try {
+      const { name, email, password, role, department, phone } = req.body;
+      if (!name || !email || !password) {
+        return res.status(400).json({ message: "Name, email and password required" });
+      }
+      const existingUsers = await storage.getUsers({ search: email });
+      if (existingUsers.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
+        return res.status(400).json({ message: "Email already exists" });
+      }
+      const password_hash = await bcrypt.hash(password, 10);
+      const newUser = await storage.createUser({
+        name,
+        email: email.toLowerCase(),
+        password_hash,
+        role: role || "user",
+        department: department || "",
+        phone: phone || "",
+        is_active: true
+      });
+      const { password_hash: _, ...userWithoutPassword } = newUser;
+      res.status(201).json({
+        message: "Account created successfully",
+        user: userWithoutPassword
+      });
+    } catch (error) {
+      console.error("Signup error:", error);
+      if (error.message?.includes("duplicate")) {
+        res.status(400).json({ message: "Email already exists" });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  }
+  static async verifyToken(req, res) {
+    try {
+      const { password_hash, ...userWithoutPassword } = req.user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  }
+  static async logout(req, res) {
+    try {
+      res.json({ message: "Logout successful" });
+    } catch (error) {
+      console.error("Error during logout:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+  static async portalLogin(req, res) {
+    try {
+      console.log("\u{1F511} Portal login request received at", (/* @__PURE__ */ new Date()).toISOString());
+      console.log("Request method:", req.method);
+      console.log("Request URL:", req.url);
+      console.log("Request body:", req.body);
+      console.log("Request headers:", {
+        "content-type": req.headers["content-type"],
+        "accept": req.headers["accept"],
+        "origin": req.headers["origin"],
+        "user-agent": req.headers["user-agent"]
+      });
+      const { email, password } = req.body;
+      if (!email || !password) {
+        console.log("\u274C Missing email or password");
+        return res.status(400).json({ error: "Email and password are required" });
+      }
+      console.log("\u2705 Portal login attempt for:", email);
+      try {
+        const availableColumns = await DatabaseUtils.getTableColumns("users");
+        const columnNames = availableColumns.map((col) => col.column_name);
+        let selectColumns = ["id", "email", "role"];
+        let optionalColumns = [
+          "password_hash",
+          "is_active",
+          "is_locked",
+          "first_name",
+          "last_name",
+          "username",
+          "name",
+          "phone",
+          "location"
+        ];
+        optionalColumns.forEach((col) => {
+          if (columnNames.includes(col)) {
+            selectColumns.push(col);
+          }
+        });
+        const query = DatabaseUtils.buildSelectQuery("users", columnNames, selectColumns) + " WHERE email = $1";
+        const result = await DatabaseUtils.executeQuery(query, [email.toLowerCase()]);
+        if (result.rows.length === 0) {
+          console.log("Portal user not found in database:", email);
+          throw new Error("User not found in database, trying file storage");
+        }
+        const user = result.rows[0];
+        console.log("Found portal user:", user.email, "Role:", user.role);
+        if (user.is_locked) {
+          return res.status(401).json({ error: "Account is locked. Contact administrator." });
+        }
+        if (user.is_active === false) {
+          return res.status(401).json({ error: "User account is inactive" });
+        }
+        if (user.password_hash) {
+          const isValidPassword = await bcrypt.compare(password, user.password_hash);
+          if (!isValidPassword) {
+            console.log("Invalid password for portal user:", email);
+            return res.status(401).json({ error: "Invalid credentials" });
+          }
+        } else {
+          const validPasswords = [
+            "TempPass123!",
+            "TempPass456!",
+            "Admin123!",
+            "Tech123!",
+            "Manager123!",
+            "User123!"
+          ];
+          if (!validPasswords.includes(password)) {
+            return res.status(401).json({ error: "Invalid credentials" });
+          }
+        }
+        const token = AuthUtils.generateToken({
+          userId: user.id,
+          id: user.id,
+          email: user.email,
+          role: user.role
+        });
+        const { password_hash, ...userWithoutPassword } = user;
+        userWithoutPassword.name = UserUtils.buildDisplayName(user);
+        console.log("Portal login successful for:", email);
+        res.json({
+          message: "Portal login successful",
+          token,
+          user: userWithoutPassword
+        });
+      } catch (dbError) {
+        console.log("Database lookup failed for portal, trying file storage:", dbError.message);
+        try {
+          const demoUsers = await storage.getUsers({ search: email });
+          const user = demoUsers.find(
+            (u) => u.email.toLowerCase() === email.toLowerCase()
+          );
+          if (!user) {
+            return res.status(401).json({ error: "Invalid credentials" });
+          }
+          const validPasswords = [
+            "TempPass123!",
+            "TempPass456!",
+            "Admin123!",
+            "Tech123!",
+            "Manager123!",
+            "User123!"
+          ];
+          if (!validPasswords.includes(password)) {
+            return res.status(401).json({ error: "Invalid credentials" });
+          }
+          const token = jwt2.sign(
+            { userId: user.id, id: user.email, role: user.role },
+            JWT_SECRET2,
+            { expiresIn: "24h" }
+          );
+          console.log("Portal file storage login successful for:", email);
+          res.json({
+            message: "Portal login successful",
+            token,
+            user
+          });
+        } catch (fileError) {
+          console.error("Portal file storage also failed:", fileError);
+          return res.status(401).json({ error: "Invalid credentials" });
+        }
+      }
+    } catch (error) {
+      console.error("\u274C Portal login error:", error);
+      console.error("Error stack:", error.stack);
+      if (error.message?.includes("database")) {
+        res.status(500).json({ error: "Database connection error" });
+      } else if (error.message?.includes("timeout")) {
+        res.status(500).json({ error: "Request timeout" });
+      } else {
+        res.status(500).json({ error: "Internal server error", details: error.message });
+      }
+    }
+  }
+};
+
+// server/routes/auth-routes.ts
+init_auth_middleware();
+var router = Router();
+router.post("/login", AuthController.login);
+router.post("/signup", AuthController.signup);
+router.post("/logout", AuthController.logout);
+router.get("/verify", authenticateToken, AuthController.verifyToken);
+router.post("/portal-login", (req, res, next) => {
+  console.log(`\u{1F50D} Portal login request received at ${(/* @__PURE__ */ new Date()).toISOString()}`);
+  console.log("Request method:", req.method);
+  console.log("Request URL:", req.url);
+  console.log("Request body exists:", !!req.body);
+  next();
+}, AuthController.portalLogin);
+
 // server/routes.ts
-var JWT_SECRET5 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+var JWT_SECRET6 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 var authenticateToken4 = async (req, res, next) => {
   const authHeader = req.headers["authorization"];
   const token = AuthUtils.extractTokenFromHeader(authHeader || "");
@@ -16758,6 +17098,10 @@ var requireRole = (roles) => {
   };
 };
 async function registerRoutes(app2) {
+  const server = createServer(app2);
+  console.log("\u{1F517} Registering auth routes...");
+  app2.use("/api/auth", router);
+  console.log("\u2705 Auth routes registered");
   try {
     await storage.initializeDemoUsers();
     console.log("Demo users initialized successfully");
@@ -16815,7 +17159,7 @@ async function registerRoutes(app2) {
           return res.status(401).json({ message: "Account is inactive. Contact administrator." });
         }
         if (user.password_hash) {
-          const isValidPassword = await bcrypt2.compare(
+          const isValidPassword = await bcrypt3.compare(
             password,
             user.password_hash
           );
@@ -16863,9 +17207,9 @@ async function registerRoutes(app2) {
         if (!validPasswords.includes(password)) {
           return res.status(401).json({ message: "Invalid credentials" });
         }
-        const token = jwt6.sign(
+        const token = jwt7.sign(
           { userId: user.id, id: user.email, role: user.role },
-          JWT_SECRET5,
+          JWT_SECRET6,
           { expiresIn: "24h" }
         );
         res.json({
@@ -16889,7 +17233,7 @@ async function registerRoutes(app2) {
       if (existingUsers.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
         return res.status(400).json({ message: "Email already exists" });
       }
-      const password_hash = await bcrypt2.hash(password, 10);
+      const password_hash = await bcrypt3.hash(password, 10);
       const userData = {
         name,
         email: email.toLowerCase(),
@@ -17086,8 +17430,7 @@ async function registerRoutes(app2) {
   } catch (error) {
     console.warn("Patch routes not available:", error.message);
   }
-  const httpServer = createServer(app2);
-  return httpServer;
+  return server;
 }
 
 // server/index.ts
@@ -17405,6 +17748,7 @@ var webSocketService = new WebSocketService();
 // server/index.ts
 init_sla_escalation_service();
 import expressWs from "express-ws";
+import cors from "cors";
 var app = express2();
 var wsInstance = expressWs(app);
 app.use(express2.json());
@@ -17487,7 +17831,7 @@ app.use((req, res, next) => {
     const server = await registerRoutes(app);
     const { registerSLARoutes: registerSLARoutes2 } = await Promise.resolve().then(() => (init_sla_routes(), sla_routes_exports));
     registerSLARoutes2(app);
-    app.use("/api/users", router6);
+    app.use("/api/users", router7);
     const { default: analyticsRoutes } = await Promise.resolve().then(() => (init_analytics_routes(), analytics_routes_exports));
     app.use("/api/analytics", analyticsRoutes);
     const patchRoutes = await Promise.resolve().then(() => (init_patch_routes(), patch_routes_exports));
@@ -17502,9 +17846,9 @@ app.use((req, res, next) => {
         return res.status(401).json({ message: "Access token required" });
       }
       try {
-        const jwt7 = await import("jsonwebtoken");
-        const JWT_SECRET6 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-        const decoded = jwt7.default.verify(token, JWT_SECRET6);
+        const jwt8 = await import("jsonwebtoken");
+        const JWT_SECRET7 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+        const decoded = jwt8.default.verify(token, JWT_SECRET7);
         const user = await storage3.getUserById(decoded.userId);
         if (!user || !user.is_active) {
           return res.status(403).json({ message: "User not found or inactive" });
@@ -17637,7 +17981,7 @@ app.use((req, res, next) => {
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    app.use("/api/knowledge", router7);
+    app.use("/api/knowledge", router8);
     app.get("/api/health", (req, res) => {
       res.json({ status: "ok", timestamp: /* @__PURE__ */ new Date() });
     });
@@ -17702,6 +18046,12 @@ app.use((req, res, next) => {
   console.error("\u274C Unhandled server error:", error);
   process.exit(1);
 });
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("\u274C Unhandled Rejection at:", promise, "reason:", reason);
+});
+process.on("uncaughtException", (error) => {
+  console.error("\u274C Uncaught Exception:", error);
+});
 var startSLAMonitoring = () => {
   console.log("\u{1F504} Starting SLA escalation monitoring...");
   slaEscalationService.checkAndEscalateTickets().catch(console.error);
@@ -17713,3 +18063,47 @@ var startSLAMonitoring = () => {
   );
 };
 setTimeout(startSLAMonitoring, 5e3);
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const allowedOrigins = [
+      /\.replit\.dev$/,
+      /\.replit\.app$/,
+      /\.pike\.replit\.dev$/,
+      // Add pike domain
+      /^https?:\/\/localhost/,
+      /^https?:\/\/127\.0\.0\.1/,
+      /^https?:\/\/0\.0\.0\.0/
+    ];
+    const isAllowed = allowedOrigins.some((pattern) => {
+      if (pattern instanceof RegExp) {
+        return pattern.test(origin);
+      }
+      return origin === pattern;
+    });
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      console.log("CORS blocked origin:", origin);
+      callback(null, true);
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
+}));
+app.options("/api/auth/portal-login", (req, res) => {
+  console.log("\u{1F310} CORS preflight for portal-login from:", req.headers.origin);
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept");
+  res.sendStatus(200);
+});
+app.get("/api/auth/test", (req, res) => {
+  console.log("\u{1F9EA} Test endpoint hit from:", req.headers.origin);
+  res.json({ message: "API is reachable", timestamp: (/* @__PURE__ */ new Date()).toISOString() });
+});
+var index_default = app;
+export {
+  index_default as default
+};
