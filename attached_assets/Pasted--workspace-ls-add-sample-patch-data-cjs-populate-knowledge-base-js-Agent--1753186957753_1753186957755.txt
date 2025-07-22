@@ -1,0 +1,802 @@
+/workspace$ ls
+add-sample-patch-data.cjs         populate-knowledge-base.js
+Agent                             postcss.config.js
+analyze-duplicates.js             pyproject.toml
+API-docs.md                       repair-patch-system.js
+attached_assets                   server
+check-kb-count.cjs                setup-patch-tables.js
+client                            shared
+components.json                   tailwind.config.ts
+create-patch-indexes.cjs          test_agent_connectivity.py
+create-user-template.cjs          test_agent_heartbeat.py
+debug-patch-queries.cjs           test_agent_reporting.py
+diagnose-patch-system.js          test_all_agents.py
+dist                              test_comprehensive_suite.py
+docs                              tests
+drizzle.config.ts                 tsconfig.json
+Logo_Fidelis.png                  update-ticket-tags.js
+node_modules                      user-import-template.csv
+optimize-for-scale.sql            user-import-template.xlsx
+package.json                      uv.lock
+package-lock.json                 vite.config.ts
+populate-complete-patch-data.cjs
+~/workspace$ mv analyze-duplicates.js analyze-duplicates.cjs
+~/workspace$ node analyze-duplicates.cjs
+🔍 Analyzing codebase for duplicate patterns...
+
+📊 DUPLICATE CODE ANALYSIS REPORT
+==================================================
+
+🔄 WITHIN-FILE DUPLICATES:
+
+📄 attached_assets/end-user-portal_1752836519119.tsx:
+  • errorHandling: 4 occurrences
+  • imports: 10 occurrences
+  • reactComponents: 4 occurrences
+
+📄 client/src/App.tsx:
+  • imports: 32 occurrences
+
+📄 client/src/components/agent-detail/agent-tabs.tsx:
+  • errorHandling: 5 occurrences
+  • imports: 13 occurrences
+  • reactComponents: 3 occurrences
+
+📄 client/src/components/agent-detail/ai-insights.tsx:
+  • errorHandling: 2 occurrences
+  • imports: 4 occurrences
+  • reactComponents: 3 occurrences
+
+📄 client/src/components/agent-detail/metric-card.tsx:
+  • imports: 3 occurrences
+
+📄 client/src/components/agents/agent-filters.tsx:
+  • imports: 3 occurrences
+
+📄 client/src/components/agents/agent-table.tsx:
+  • imports: 12 occurrences
+  • reactComponents: 2 occurrences
+
+📄 client/src/components/auth/protected-route.tsx:
+  • errorHandling: 2 occurrences
+  • imports: 4 occurrences
+
+📄 client/src/components/dashboard/metric-card.tsx:
+  • imports: 2 occurrences
+
+📄 client/src/components/dashboard/performance-chart.tsx:
+  • imports: 3 occurrences
+
+📄 client/src/components/dashboard/quick-actions.tsx:
+  • imports: 2 occurrences
+
+📄 client/src/components/layout/header.tsx:
+  • imports: 7 occurrences
+  • reactComponents: 2 occurrences
+
+📄 client/src/components/layout/service-desk-sidebar.tsx:
+  • imports: 3 occurrences
+
+📄 client/src/components/layout/settings-sidebar.tsx:
+  • imports: 4 occurrences
+
+📄 client/src/components/layout/sidebar.tsx:
+  • errorHandling: 2 occurrences
+  • imports: 10 occurrences
+
+📄 client/src/components/tickets/related-articles.tsx:
+  • imports: 4 occurrences
+
+📄 client/src/components/tickets/service-desk-workflows.tsx:
+  • imports: 7 occurrences
+  • reactComponents: 7 occurrences
+
+📄 client/src/components/tickets/sla-policy-manager.tsx:
+  • imports: 11 occurrences
+
+📄 client/src/components/tickets/workflow-manager.tsx:
+  • imports: 4 occurrences
+  • reactComponents: 4 occurrences
+
+📄 client/src/components/ui/accordion.tsx:
+  • imports: 4 occurrences
+
+📄 client/src/components/ui/agent-error-boundary.tsx:
+  • imports: 4 occurrences
+
+📄 client/src/components/ui/alert-dialog.tsx:
+  • imports: 4 occurrences
+
+📄 client/src/components/ui/alert.tsx:
+  • imports: 3 occurrences
+
+📄 client/src/components/ui/avatar.tsx:
+  • imports: 3 occurrences
+
+📄 client/src/components/ui/badge.tsx:
+  • imports: 3 occurrences
+
+📄 client/src/components/ui/breadcrumb.tsx:
+  • imports: 4 occurrences
+
+📄 client/src/components/ui/button.tsx:
+  • imports: 4 occurrences
+
+📄 client/src/components/ui/calendar.tsx:
+  • imports: 5 occurrences
+
+📄 client/src/components/ui/card.tsx:
+  • imports: 2 occurrences
+
+📄 client/src/components/ui/carousel.tsx:
+  • imports: 4 occurrences
+
+📄 client/src/components/ui/chart.tsx:
+  • imports: 3 occurrences
+
+📄 client/src/components/ui/checkbox.tsx:
+  • imports: 4 occurrences
+
+📄 client/src/components/ui/command.tsx:
+  • imports: 6 occurrences
+  • reactComponents: 2 occurrences
+
+📄 client/src/components/ui/context-menu.tsx:
+  • imports: 4 occurrences
+
+📄 client/src/components/ui/data-table.tsx:
+  • imports: 7 occurrences
+
+📄 client/src/components/ui/dialog.tsx:
+  • imports: 4 occurrences
+
+📄 client/src/components/ui/drawer.tsx:
+  • imports: 3 occurrences
+
+📄 client/src/components/ui/dropdown-menu.tsx:
+  • imports: 4 occurrences
+
+📄 client/src/components/ui/enhanced-error-boundary.tsx:
+  • imports: 4 occurrences
+
+📄 client/src/components/ui/error-boundary.tsx:
+  • imports: 4 occurrences
+
+📄 client/src/components/ui/error-fallback.tsx:
+  • imports: 3 occurrences
+
+📄 client/src/components/ui/form-builder.tsx:
+  • imports: 13 occurrences
+  • reactComponents: 2 occurrences
+
+📄 client/src/components/ui/form.tsx:
+  • imports: 5 occurrences
+
+📄 client/src/components/ui/hover-card.tsx:
+  • imports: 3 occurrences
+
+📄 client/src/components/ui/input-otp.tsx:
+  • imports: 4 occurrences
+
+📄 client/src/components/ui/input.tsx:
+  • imports: 2 occurrences
+
+📄 client/src/components/ui/label.tsx:
+  • imports: 4 occurrences
+
+📄 client/src/components/ui/loading-states.tsx:
+  • imports: 3 occurrences
+
+📄 client/src/components/ui/menubar.tsx:
+  • imports: 4 occurrences
+
+📄 client/src/components/ui/navigation-menu.tsx:
+  • imports: 5 occurrences
+
+📄 client/src/components/ui/pagination.tsx:
+  • imports: 4 occurrences
+
+📄 client/src/components/ui/popover.tsx:
+  • imports: 3 occurrences
+
+📄 client/src/components/ui/progress.tsx:
+  • imports: 3 occurrences
+
+📄 client/src/components/ui/radio-group.tsx:
+  • imports: 4 occurrences
+
+📄 client/src/components/ui/resizable.tsx:
+  • imports: 3 occurrences
+
+📄 client/src/components/ui/scroll-area.tsx:
+  • imports: 3 occurrences
+
+📄 client/src/components/ui/select.tsx:
+  • imports: 4 occurrences
+
+📄 client/src/components/ui/separator.tsx:
+  • imports: 3 occurrences
+
+📄 client/src/components/ui/sheet.tsx:
+  • imports: 5 occurrences
+
+📄 client/src/components/ui/sidebar.tsx:
+  • imports: 10 occurrences
+
+📄 client/src/components/ui/slider.tsx:
+  • imports: 3 occurrences
+
+📄 client/src/components/ui/switch.tsx:
+  • imports: 3 occurrences
+
+📄 client/src/components/ui/table.tsx:
+  • imports: 2 occurrences
+
+📄 client/src/components/ui/tabs.tsx:
+  • imports: 3 occurrences
+
+📄 client/src/components/ui/textarea.tsx:
+  • imports: 2 occurrences
+
+📄 client/src/components/ui/toast.tsx:
+  • imports: 5 occurrences
+
+📄 client/src/components/ui/toggle-group.tsx:
+  • imports: 5 occurrences
+
+📄 client/src/components/ui/toggle.tsx:
+  • imports: 4 occurrences
+
+📄 client/src/components/ui/tooltip.tsx:
+  • imports: 3 occurrences
+
+📄 client/src/components/ui/typography.tsx:
+  • imports: 2 occurrences
+
+📄 client/src/components/ui/virtualized-list.tsx:
+  • imports: 3 occurrences
+  • reactComponents: 2 occurrences
+
+📄 client/src/hooks/use-agents.ts:
+  • imports: 2 occurrences
+
+📄 client/src/hooks/use-alerts.ts:
+  • errorHandling: 2 occurrences
+
+📄 client/src/hooks/use-dashboard.ts:
+  • imports: 2 occurrences
+
+📄 client/src/hooks/use-keyboard-shortcuts.ts:
+  • imports: 2 occurrences
+
+📄 client/src/lib/agent-data-processor.ts:
+  • errorHandling: 5 occurrences
+  • reactComponents: 5 occurrences
+
+📄 client/src/lib/api.ts:
+  • errorHandling: 4 occurrences
+  • imports: 2 occurrences
+  • reactComponents: 3 occurrences
+
+📄 client/src/lib/utils.ts:
+  • imports: 2 occurrences
+
+📄 client/src/main.tsx:
+  • imports: 2 occurrences
+
+📄 client/src/pages/agent-detail.tsx:
+  • errorHandling: 4 occurrences
+  • imports: 15 occurrences
+
+📄 client/src/pages/agents.tsx:
+  • errorHandling: 2 occurrences
+  • imports: 7 occurrences
+
+📄 client/src/pages/alerts.tsx:
+  • imports: 16 occurrences
+
+📄 client/src/pages/automation-center.tsx:
+  • imports: 11 occurrences
+
+📄 client/src/pages/create-ticket.tsx:
+  • imports: 12 occurrences
+  • reactComponents: 2 occurrences
+
+📄 client/src/pages/dashboard.tsx:
+  • errorHandling: 4 occurrences
+  • imports: 12 occurrences
+  • reactComponents: 6 occurrences
+
+📄 client/src/pages/end-user-portal.tsx:
+  • errorHandling: 5 occurrences
+  • imports: 10 occurrences
+  • reactComponents: 4 occurrences
+
+📄 client/src/pages/itsm-comparison.tsx:
+  • imports: 5 occurrences
+
+📄 client/src/pages/knowledge-base.tsx:
+  • errorHandling: 2 occurrences
+  • imports: 15 occurrences
+  • reactComponents: 3 occurrences
+
+📄 client/src/pages/login.tsx:
+  • imports: 8 occurrences
+
+📄 client/src/pages/new-article.tsx:
+  • imports: 11 occurrences
+
+📄 client/src/pages/not-found.tsx:
+  • imports: 2 occurrences
+
+📄 client/src/pages/notifications.tsx:
+  • errorHandling: 4 occurrences
+  • imports: 6 occurrences
+  • reactComponents: 3 occurrences
+
+📄 client/src/pages/patch-compliance.tsx:
+  • imports: 14 occurrences
+  • reactComponents: 2 occurrences
+
+📄 client/src/pages/performance-analytics.tsx:
+  • imports: 12 occurrences
+
+📄 client/src/pages/profile.tsx:
+  • errorHandling: 2 occurrences
+  • imports: 11 occurrences
+  • reactComponents: 2 occurrences
+
+📄 client/src/pages/rdp.tsx:
+  • imports: 6 occurrences
+
+📄 client/src/pages/reports.tsx:
+  • errorHandling: 10 occurrences
+  • imports: 9 occurrences
+  • reactComponents: 7 occurrences
+
+📄 client/src/pages/security-dashboard.tsx:
+  • imports: 7 occurrences
+
+📄 client/src/pages/settings.tsx:
+  • errorHandling: 3 occurrences
+  • imports: 12 occurrences
+
+📄 client/src/pages/signup.tsx:
+  • imports: 9 occurrences
+  • reactComponents: 2 occurrences
+
+📄 client/src/pages/sla-analysis.tsx:
+  • errorHandling: 3 occurrences
+  • imports: 8 occurrences
+
+📄 client/src/pages/sla-management.tsx:
+  • errorHandling: 2 occurrences
+  • imports: 7 occurrences
+
+📄 client/src/pages/ssh.tsx:
+  • imports: 6 occurrences
+
+📄 client/src/pages/ticket-detail.tsx:
+  • errorHandling: 7 occurrences
+  • imports: 14 occurrences
+  • reactComponents: 3 occurrences
+
+📄 client/src/pages/tickets.tsx:
+  • errorHandling: 9 occurrences
+  • imports: 15 occurrences
+  • reactComponents: 20 occurrences
+
+📄 client/src/pages/users.tsx:
+  • errorHandling: 3 occurrences
+  • imports: 13 occurrences
+  • reactComponents: 3 occurrences
+
+📄 client/src/pages/vnc.tsx:
+  • errorHandling: 2 occurrences
+  • imports: 10 occurrences
+  • reactComponents: 2 occurrences
+
+📄 diagnose-patch-system.js:
+  • errorHandling: 4 occurrences
+
+📄 dist/index.js:
+  • dbQueries: 27 occurrences
+  • errorHandling: 267 occurrences
+  • imports: 70 occurrences
+  • reactComponents: 3 occurrences
+  • apiResponses: 413 occurrences
+
+📄 dist/public/assets/index-BanlD8YA.js:
+  • errorHandling: 118 occurrences
+  • reactComponents: 20 occurrences
+
+📄 populate-knowledge-base.js:
+  • dbQueries: 5 occurrences
+
+📄 repair-patch-system.js:
+  • dbQueries: 20 occurrences
+
+📄 server/agent-tunnel-service.ts:
+  • errorHandling: 2 occurrences
+  • imports: 2 occurrences
+
+📄 server/ai-workflow-integration.ts:
+  • errorHandling: 6 occurrences
+  • imports: 2 occurrences
+
+📄 server/alert-escalation-service.ts:
+  • dbQueries: 3 occurrences
+  • errorHandling: 2 occurrences
+
+📄 server/batch-processor.ts:
+  • errorHandling: 2 occurrences
+
+📄 server/controllers/auth-controller.ts:
+  • errorHandling: 5 occurrences
+  • imports: 7 occurrences
+  • apiResponses: 29 occurrences
+
+📄 server/controllers/device-controller.ts:
+  • errorHandling: 8 occurrences
+  • imports: 4 occurrences
+  • apiResponses: 11 occurrences
+
+📄 server/controllers/ticket-controller.ts:
+  • errorHandling: 5 occurrences
+  • imports: 2 occurrences
+  • apiResponses: 11 occurrences
+
+📄 server/controllers/user-controller.ts:
+  • errorHandling: 6 occurrences
+  • apiResponses: 8 occurrences
+
+📄 server/db.ts:
+  • imports: 4 occurrences
+
+📄 server/index.ts:
+  • errorHandling: 8 occurrences
+  • imports: 17 occurrences
+  • reactComponents: 2 occurrences
+  • apiResponses: 21 occurrences
+
+📄 server/middleware/auth-middleware.ts:
+  • imports: 2 occurrences
+  • apiResponses: 11 occurrences
+
+📄 server/migrations/add-missing-fields.js:
+  • dbQueries: 14 occurrences
+
+📄 server/migrations/add-related-articles-field.js:
+  • imports: 2 occurrences
+
+📄 server/migrations/create-advanced-monitoring-tables.js:
+  • dbQueries: 12 occurrences
+
+📄 server/migrations/create-advanced-monitoring-tables.ts:
+  • dbQueries: 12 occurrences
+
+📄 server/migrations/create-audit-tables.js:
+  • dbQueries: 10 occurrences
+
+📄 server/migrations/fix-first-response-tracking.js:
+  • imports: 4 occurrences
+
+📄 server/migrations/migrate-admin-tables.ts:
+  • imports: 3 occurrences
+
+📄 server/migrations/migrate-sla-fields.js:
+  • errorHandling: 2 occurrences
+
+📄 server/migrations/migrate-tickets.ts:
+  • imports: 3 occurrences
+
+📄 server/migrations/seed-users.js:
+  • dbQueries: 2 occurrences
+
+📄 server/migrations/update-all-tickets-sla.js:
+  • imports: 3 occurrences
+
+📄 server/models/ai-insights-storage.ts:
+  • dbQueries: 3 occurrences
+  • errorHandling: 3 occurrences
+  • imports: 2 occurrences
+
+📄 server/models/enhanced-storage.ts:
+  • errorHandling: 7 occurrences
+  • imports: 3 occurrences
+
+📄 server/models/reports-storage.ts:
+  • errorHandling: 5 occurrences
+  • imports: 2 occurrences
+
+📄 server/routes/agent-download-routes.ts:
+  • errorHandling: 2 occurrences
+  • imports: 5 occurrences
+  • apiResponses: 8 occurrences
+
+📄 server/routes/agent-routes.ts:
+  • errorHandling: 8 occurrences
+  • imports: 7 occurrences
+  • apiResponses: 22 occurrences
+
+📄 server/routes/ai-routes.ts:
+  • errorHandling: 4 occurrences
+  • imports: 3 occurrences
+  • expressRoutes: 3 occurrences
+  • apiResponses: 7 occurrences
+
+📄 server/routes/alert-routes.ts:
+  • errorHandling: 4 occurrences
+  • imports: 2 occurrences
+  • expressRoutes: 3 occurrences
+  • apiResponses: 12 occurrences
+
+📄 server/routes/analytics-routes.ts:
+  • errorHandling: 26 occurrences
+  • imports: 12 occurrences
+  • expressRoutes: 24 occurrences
+  • apiResponses: 72 occurrences
+
+📄 server/routes/audit-routes.ts:
+  • errorHandling: 2 occurrences
+  • imports: 2 occurrences
+  • expressRoutes: 2 occurrences
+  • apiResponses: 4 occurrences
+
+📄 server/routes/auth-routes.ts:
+  • imports: 3 occurrences
+
+📄 server/routes/automation-routes.ts:
+  • errorHandling: 5 occurrences
+  • imports: 2 occurrences
+  • expressRoutes: 5 occurrences
+  • apiResponses: 11 occurrences
+
+📄 server/routes/device-routes.ts:
+  • errorHandling: 9 occurrences
+  • imports: 2 occurrences
+  • apiResponses: 19 occurrences
+
+📄 server/routes/error-reporting-routes.ts:
+  • dbQueries: 3 occurrences
+  • errorHandling: 3 occurrences
+  • imports: 2 occurrences
+  • expressRoutes: 3 occurrences
+  • dbConnections: 3 occurrences
+  • apiResponses: 6 occurrences
+
+📄 server/routes/knowledge-routes.ts:
+  • errorHandling: 5 occurrences
+  • imports: 7 occurrences
+  • expressRoutes: 5 occurrences
+  • apiResponses: 14 occurrences
+
+📄 server/routes/notification-routes.ts:
+  • errorHandling: 4 occurrences
+  • imports: 2 occurrences
+  • expressRoutes: 4 occurrences
+  • apiResponses: 10 occurrences
+
+📄 server/routes/patch-routes.ts:
+  • errorHandling: 5 occurrences
+  • imports: 2 occurrences
+  • expressRoutes: 5 occurrences
+  • apiResponses: 11 occurrences
+
+📄 server/routes/security-routes.ts:
+  • errorHandling: 4 occurrences
+  • imports: 3 occurrences
+  • expressRoutes: 4 occurrences
+  • apiResponses: 8 occurrences
+
+📄 server/routes/sla-analysis-routes.ts:
+  • errorHandling: 5 occurrences
+  • imports: 6 occurrences
+  • expressRoutes: 3 occurrences
+  • apiResponses: 6 occurrences
+
+📄 server/routes/sla-routes.ts:
+  • errorHandling: 14 occurrences
+  • imports: 5 occurrences
+  • expressRoutes: 2 occurrences
+  • apiResponses: 29 occurrences
+
+📄 server/routes/ticket-routes.ts:
+  • errorHandling: 9 occurrences
+  • imports: 3 occurrences
+  • apiResponses: 27 occurrences
+
+📄 server/routes/user-routes.ts:
+  • dbQueries: 23 occurrences
+  • errorHandling: 16 occurrences
+  • imports: 9 occurrences
+  • expressRoutes: 14 occurrences
+  • apiResponses: 54 occurrences
+
+📄 server/routes.ts:
+  • errorHandling: 20 occurrences
+  • imports: 13 occurrences
+  • apiResponses: 18 occurrences
+
+📄 server/services/advanced-monitoring-service.ts:
+  • dbQueries: 2 occurrences
+  • errorHandling: 5 occurrences
+
+📄 server/services/ai-service.ts:
+  • errorHandling: 2 occurrences
+
+📄 server/services/analytics-service.ts:
+  • errorHandling: 23 occurrences
+  • imports: 6 occurrences
+
+📄 server/services/device-storage.ts:
+  • errorHandling: 2 occurrences
+  • imports: 3 occurrences
+
+📄 server/services/knowledge-ai-service.ts:
+  • errorHandling: 3 occurrences
+  • imports: 4 occurrences
+
+📄 server/services/patch-compliance-service.ts:
+  • errorHandling: 7 occurrences
+
+📄 server/services/performance-service.ts:
+  • errorHandling: 3 occurrences
+
+📄 server/services/sla-escalation-service.ts:
+  • errorHandling: 6 occurrences
+  • imports: 7 occurrences
+
+📄 server/services/sla-monitor-service.ts:
+  • errorHandling: 6 occurrences
+  • imports: 5 occurrences
+
+📄 server/services/sla-policy-service.ts:
+  • errorHandling: 2 occurrences
+  • imports: 4 occurrences
+
+📄 server/services/ticket-storage.ts:
+  • errorHandling: 7 occurrences
+  • imports: 5 occurrences
+
+📄 server/services/user-storage.ts:
+  • errorHandling: 3 occurrences
+  • imports: 3 occurrences
+
+📄 server/services/workflow-service.ts:
+  • errorHandling: 3 occurrences
+  • imports: 3 occurrences
+
+📄 server/storage.ts:
+  • dbQueries: 14 occurrences
+  • errorHandling: 16 occurrences
+  • imports: 8 occurrences
+
+📄 server/utils/alerts.ts:
+  • imports: 4 occurrences
+
+📄 server/utils/api-responses.ts:
+  • apiResponses: 8 occurrences
+
+📄 server/utils/auth.ts:
+  • errorHandling: 3 occurrences
+  • imports: 2 occurrences
+
+📄 server/utils/database-common.ts:
+  • errorHandling: 2 occurrences
+
+📄 server/utils/database.ts:
+  • dbQueries: 3 occurrences
+  • errorHandling: 4 occurrences
+
+📄 server/utils/error-handler.ts:
+  • imports: 2 occurrences
+
+📄 server/utils/response.ts:
+  • apiResponses: 9 occurrences
+
+📄 server/vite.ts:
+  • imports: 5 occurrences
+
+📄 server/websocket-service.ts:
+  • errorHandling: 3 occurrences
+  • imports: 2 occurrences
+
+📄 setup-patch-tables.js:
+  • dbQueries: 10 occurrences
+
+📄 shared/admin-schema.ts:
+  • imports: 3 occurrences
+
+📄 shared/schema.ts:
+  • imports: 3 occurrences
+
+📄 update-ticket-tags.js:
+  • dbQueries: 2 occurrences
+
+📄 vite.config.ts:
+  • imports: 4 occurrences
+
+🔗 CROSS-FILE DUPLICATES:
+
+1. Similar code found in 2 files:
+   📄 attached_assets/end-user-portal_1752836519119.tsx
+   📄 client/src/pages/end-user-portal.tsx
+   Code preview: const SERVICE_CATEGORIES = [
+  { id: 'hardware', name: 'Hardware Request', icon:...
+
+2. Similar code found in 2 files:
+   📄 attached_assets/end-user-portal_1752836519119.tsx
+   📄 client/src/pages/end-user-portal.tsx
+   Code preview: const INCIDENT_CATEGORIES = [
+  { id: 'hardware_issue', name: 'Hardware Issue', ...
+
+3. Similar code found in 2 files:
+   📄 attached_assets/end-user-portal_1752836519119.tsx
+   📄 client/src/pages/end-user-portal.tsx
+   Code preview: const PRIORITY_LEVELS = [
+  { value: 'low', label: 'Low', description: 'Non-urge...
+
+4. Similar code found in 2 files:
+   📄 attached_assets/end-user-portal_1752836519119.tsx
+   📄 client/src/pages/end-user-portal.tsx
+   Code preview: const getStatusColor = (status: string) => {
+  switch (status.toLowerCase()) {
+ ...
+
+5. Similar code found in 2 files:
+   📄 attached_assets/end-user-portal_1752836519119.tsx
+   📄 client/src/pages/end-user-portal.tsx
+   Code preview: const getPriorityColor = (priority: string) => {
+  switch (priority.toLowerCase(...
+
+6. Similar code found in 2 files:
+   📄 attached_assets/end-user-portal_1752836519119.tsx
+   📄 client/src/pages/end-user-portal.tsx
+   Code preview: const getDeviceStatusColor = (status: string) => {
+  switch (status.toLowerCase(...
+
+7. Similar code found in 2 files:
+   📄 attached_assets/end-user-portal_1752836519119.tsx
+   📄 client/src/pages/login.tsx
+   Code preview: const error = await response.json();
+        toast({
+          title: "Login fai...
+
+8. Similar code found in 2 files:
+   📄 attached_assets/end-user-portal_1752836519119.tsx
+   📄 client/src/pages/end-user-portal.tsx
+   Code preview: const handleLogout = () => {
+    localStorage.removeItem('end_user_token');
+    ...
+
+9. Similar code found in 2 files:
+   📄 attached_assets/end-user-portal_1752836519119.tsx
+   📄 client/src/pages/end-user-portal.tsx
+   Code preview: const categories = activeCreateTab === 'service_request' ? SERVICE_CATEGORIES : ...
+
+10. Similar code found in 2 files:
+   📄 attached_assets/end-user-portal_1752836519119.tsx
+   📄 client/src/pages/end-user-portal.tsx
+   Code preview: const handleCategorySelect = (categoryId: string) => {
+    setFormData(prev => (...
+
+... and 189 more duplicate patterns
+
+🎯 SPECIFIC DUPLICATE PATTERNS FOUND:
+❗ Authentication middleware defined in: server/middleware/auth-middleware.ts
+❗ Database connection pattern in: server/db.ts
+❗ ResponseUtils utility used in 8 files - consider centralizing
+❗ AuthUtils utility used in 5 files - consider centralizing
+❗ UserUtils utility used in 4 files - consider centralizing
+❗ DatabaseUtils utility used in 8 files - consider centralizing
+
+💡 RECOMMENDATIONS:
+1. Move authentication middleware to a single reusable module
+2. Centralize database connection logic
+3. Create shared utility functions for common operations
+4. Use consistent error handling patterns
+5. Consolidate similar API response structures
+
+✨ Analysis complete!
+~/workspace$ 
