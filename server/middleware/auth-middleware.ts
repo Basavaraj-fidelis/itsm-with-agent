@@ -16,73 +16,62 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
 
     console.log("Authenticating token for", req.path);
 
-  try {
-      const decoded: any = jwt.verify(token, JWT_SECRET);
-      console.log("Decoded token:", decoded);
+    const decoded: any = jwt.verify(token, JWT_SECRET);
+    console.log("Decoded token:", decoded);
 
-      // Try to get user from database first
-      try {
-        const { pool } = await import("../db");
-        const result = await pool.query(
-          `
-          SELECT id, email, role, first_name, last_name, username, is_active, phone, location 
-          FROM users WHERE id = $1
-        `,
-          [decoded.userId || decoded.id],
-        );
+    // Try to get user from database first
+    try {
+      const { pool } = await import("../db");
+      const result = await pool.query(
+        `
+        SELECT id, email, role, first_name, last_name, username, is_active, phone, location 
+        FROM users WHERE id = $1
+      `,
+        [decoded.userId || decoded.id],
+      );
 
-        if (result.rows.length > 0) {
-          const user = result.rows[0];
+      if (result.rows.length > 0) {
+        const user = result.rows[0];
 
-          // Build name from available fields
-          let displayName = "";
-          if (user.first_name || user.last_name) {
-            displayName =
-              `${user.first_name || ""} ${user.last_name || ""}`.trim();
-          } else if (user.username) {
-            displayName = user.username;
-          } else {
-            displayName = user.email.split("@")[0];
-          }
-
-          user.name = displayName;
-
-          if (!user.is_active) {
-            return res.status(403).json({ message: "User account is inactive" });
-          }
-
-          req.user = user;
-          return next();
+        // Build name from available fields
+        let displayName = "";
+        if (user.first_name || user.last_name) {
+          displayName =
+            `${user.first_name || ""} ${user.last_name || ""}`.trim();
+        } else if (user.username) {
+          displayName = user.username;
+        } else {
+          displayName = user.email.split("@")[0];
         }
-      } catch (dbError) {
-        console.log(
-          "Database lookup failed, trying file storage:",
-          dbError.message,
-        );
-      }
 
-      // Fallback to file storage
-      const user = await storage.getUserById(decoded.userId || decoded.id);
-      if (!user) {
-        return res.status(403).json({ message: "User not found" });
-      }
+        user.name = displayName;
 
-      if (user.is_active === false) {
-        return res.status(403).json({ message: "User account is inactive" });
-      }
+        if (!user.is_active) {
+          return res.status(403).json({ message: "User account is inactive" });
+        }
 
-      req.user = user;
-      next();
-    } catch (error) {
-      console.error("Authentication error for", req.path, ":", error);
-      if (error.name === 'TokenExpiredError') {
-        return res.status(401).json({ message: "Token expired" });
+        req.user = user;
+        return next();
       }
-      if (error.name === 'JsonWebTokenError') {
-        return res.status(401).json({ message: "Invalid token format" });
-      }
-      return res.status(403).json({ message: "Invalid token" });
+    } catch (dbError) {
+      console.log(
+        "Database lookup failed, trying file storage:",
+        dbError.message,
+      );
     }
+
+    // Fallback to file storage
+    const user = await storage.getUserById(decoded.userId || decoded.id);
+    if (!user) {
+      return res.status(403).json({ message: "User not found" });
+    }
+
+    if (user.is_active === false) {
+      return res.status(403).json({ message: "User account is inactive" });
+    }
+
+    req.user = user;
+    next();
   } catch (error) {
     console.error("Authentication error for", req.path, ":", error);
     if (error.name === 'TokenExpiredError') {
@@ -109,4 +98,3 @@ export const requireRole = (roles: string | string[]) => {
   };
 };
 
-export { authenticateToken, requireRole };
