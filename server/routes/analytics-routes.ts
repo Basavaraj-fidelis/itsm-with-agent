@@ -1054,7 +1054,6 @@ router.post("/export-pdf", async (req, res) => {
   }
 });
 
-```typescript
 // Performance analytics endpoints - require authentication for insights
 router.get(
   "/performance/insights/:deviceId",
@@ -1217,25 +1216,22 @@ router.get("/test", async (req, res) => {
 });
 
 // Get performance insights for a specific device
-router.get(
-  "/performance/insights/:deviceId",
-  async (req: any, res: any) => {
-    try {
-      const deviceId = req.params.deviceId;
-      console.log(`Getting performance insights for device: ${deviceId}`);
+router.get("/performance/insights/:deviceId", async (req: any, res: any) => {
+  try {
+    const deviceId = req.params.deviceId;
+    console.log(`Getting performance insights for device: ${deviceId}`);
 
-      const insights =
-        await performanceService.getApplicationPerformanceInsights(deviceId);
-      res.json(insights);
-    } catch (error: any) {
-      console.error("Error getting performance insights:", error);
-      res.status(500).json({
-        error: "Failed to get performance insights",
-        message: error.message,
-      });
-    }
-  },
-);
+    const insights =
+      await performanceService.getApplicationPerformanceInsights(deviceId);
+    res.json(insights);
+  } catch (error: any) {
+    console.error("Error getting performance insights:", error);
+    res.status(500).json({
+      error: "Failed to get performance insights",
+      message: error.message,
+    });
+  }
+});
 
 // Generate Service Desk comprehensive report
 router.get("/service-desk-report", async (req: any, res: any) => {
@@ -1251,7 +1247,10 @@ router.get("/service-desk-report", async (req: any, res: any) => {
       exclude_closed: req.query.exclude_closed === "true",
     };
 
-    console.log(`Generating Service Desk report in ${format} format with filters:`, filters);
+    console.log(
+      `Generating Service Desk report in ${format} format with filters:`,
+      filters,
+    );
 
     // Get tickets data
     const ticketsQuery = db
@@ -1264,7 +1263,9 @@ router.get("/service-desk-report", async (req: any, res: any) => {
 
     // Apply filters
     if (filters.type && filters.type !== "all") {
-      ticketsData = ticketsData.filter((ticket) => ticket.type === filters.type);
+      ticketsData = ticketsData.filter(
+        (ticket) => ticket.type === filters.type,
+      );
     }
     if (filters.status && filters.status !== "all") {
       ticketsData = ticketsData.filter(
@@ -1287,9 +1288,8 @@ router.get("/service-desk-report", async (req: any, res: any) => {
     }
 
     // Generate analytics
-    const analytics = await analyticsService.generateTicketAnalyticsReport(
-      timeRange,
-    );
+    const analytics =
+      await analyticsService.generateTicketAnalyticsReport(timeRange);
 
     const report = {
       generated_at: new Date().toISOString(),
@@ -1325,7 +1325,10 @@ router.get("/service-desk-report", async (req: any, res: any) => {
           "service-desk-tickets",
         );
 
-        if (!excelData || (Buffer.isBuffer(excelData) && excelData.length === 0)) {
+        if (
+          !excelData ||
+          (Buffer.isBuffer(excelData) && excelData.length === 0)
+        ) {
           throw new Error("Empty Excel file generated");
         }
 
