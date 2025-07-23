@@ -73,53 +73,6 @@ router.get('/compliance', async (req, res) => {
   }
 });
 
-// Get security overview for dashboard
-router.get('/overview', async (req, res) => {
-  try {
-    const { db } = await import('../db');
-    
-    // Get security metrics
-    const securityMetrics = await db.query(`
-      SELECT 
-        COUNT(DISTINCT CASE WHEN a.category = 'security' AND a.is_active = true THEN a.id END) as active_security_alerts,
-        COUNT(DISTINCT CASE WHEN a.category = 'vulnerability' AND a.is_active = true THEN a.id END) as active_vulnerabilities,
-        COUNT(DISTINCT d.id) as total_devices,
-        COUNT(DISTINCT CASE WHEN d.last_seen > NOW() - INTERVAL '5 minutes' THEN d.id END) as online_devices
-      FROM devices d
-      LEFT JOIN alerts a ON d.id = a.device_id
-    `);
-
-    // Get recent security events
-    const recentEvents = await db.query(`
-      SELECT 
-        a.id, a.category, a.severity, a.message, a.triggered_at,
-        d.hostname
-      FROM alerts a
-      JOIN devices d ON a.device_id = d.id
-      WHERE a.category IN ('security', 'vulnerability', 'malware', 'unauthorized_access')
-        AND a.triggered_at > NOW() - INTERVAL '24 hours'
-      ORDER BY a.triggered_at DESC
-      LIMIT 10
-    `);
-
-    const overview = {
-      metrics: securityMetrics.rows[0] || {
-        active_security_alerts: 0,
-        active_vulnerabilities: 0,
-        total_devices: 0,
-        online_devices: 0
-      },
-      recent_events: recentEvents.rows || [],
-      last_updated: new Date().toISOString()
-    };
-
-    res.json(overview);
-  } catch (error) {
-    console.error('Error fetching security overview:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-
 // Get audit logs
 router.get('/audit', async (req, res) => {
   try {

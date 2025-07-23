@@ -511,68 +511,9 @@ export function useProcessedAgentData(agent: any): ProcessedAgentData | null {
     return locationInfo;
   }, [agent?.latest_report]);
 
-  // Process network information
-  const networkInfo = useMemo(() => {
+  const processMetrics = (rawData: any) => {
     try {
-      console.log("=== PROCESSING NETWORK INFO ===");
-      console.log("Agent latest report:", !!agent?.latest_report);
-      console.log("Raw data exists:", !!agent?.latest_report?.raw_data);
-      console.log("Network exists:", !!agent?.latest_report?.raw_data?.network);
-
-      if (!agent?.latest_report?.raw_data?.network) {
-        console.log("No network data found, returning default values");
-        return {
-          publicIP: 'Unknown',
-          geographicLocation: 'Location not available',
-          allIPs: [],
-          primaryMAC: 'Unknown'
-        };
-      }
-
-      const network = agent.latest_report.raw_data.network;
-      console.log("Network data keys:", Object.keys(network));
-      console.log("Geographic location:", network.geographic_location);
-      console.log("Public IP:", network.public_ip);
-      console.log("==============================");
-
-      return {
-        publicIP: network.public_ip || 'Unknown',
-        geographicLocation: network.geographic_location || 'Location not available',
-        allIPs: network.all_ips || [],
-        primaryMAC: network.primary_mac || 'Unknown'
-      };
-    } catch (error) {
-      console.error("Error processing network info:", error);
-      return {
-        publicIP: 'Unknown',
-        geographicLocation: 'Location not available',
-        allIPs: [],
-        primaryMAC: 'Unknown'
-      };
-    }
-  }, [agent?.latest_report]);
-
-  // Process metrics with better error handling and multiple fallback sources
-  const metricsData = useMemo(() => {
-    try {
-      if (!agent?.latest_report?.raw_data) {
-        return {
-          cpu: 0,
-          memory: 0,
-          disk: 0,
-          network: 0,
-          reportTime: new Date().toISOString(),
-          dataQuality: {
-            hasCpu: false,
-            hasMemory: false,
-            hasDisk: false,
-            hasNetwork: false
-          }
-        };
-      }
-
-      const rawData = agent.latest_report.raw_data;
-
+      // Parse metrics with better error handling and multiple fallback sources
       const cpu = parseFloat(
         rawData?.system_health?.cpu_usage || 
         rawData?.hardware?.cpu_usage || 
@@ -594,11 +535,9 @@ export function useProcessedAgentData(agent: any): ProcessedAgentData | null {
         "0"
       );
 
-      const networkUsage = parseInt(
+      const network = parseInt(
         rawData?.network?.bytes_sent || 
         rawData?.network?.total_bytes || 
-        rawData?.network?.network_usage?.bytes_sent || 
-        rawData?.network?.network_usage?.total_bytes || 
         "0"
       );
 
@@ -611,13 +550,13 @@ export function useProcessedAgentData(agent: any): ProcessedAgentData | null {
         cpu: isNaN(cpu) ? 0 : Math.max(0, Math.min(100, cpu)),
         memory: isNaN(memory) ? 0 : Math.max(0, Math.min(100, memory)),
         disk: isNaN(disk) ? 0 : Math.max(0, Math.min(100, disk)),
-        network: isNaN(networkUsage) ? 0 : networkUsage,
+        network: isNaN(network) ? 0 : network,
         reportTime,
         dataQuality: {
           hasCpu: !isNaN(cpu) && cpu > 0,
           hasMemory: !isNaN(memory) && memory > 0,
           hasDisk: !isNaN(disk) && disk > 0,
-          hasNetwork: !isNaN(networkUsage) && networkUsage > 0
+          hasNetwork: !isNaN(network) && network > 0
         }
       };
     } catch (error) {
@@ -636,7 +575,7 @@ export function useProcessedAgentData(agent: any): ProcessedAgentData | null {
         }
       };
     }
-  }, [agent?.latest_report]);
+  };
 
   const processedData = useMemo(() => {
     if (!agent) {

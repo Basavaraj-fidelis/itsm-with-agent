@@ -113,47 +113,6 @@ class AIInsightsStorage {
   }
 }
 
-async getRecentInsights(limit: number = 50): Promise<any[]> {
-    try {
-      const { pool } = await import("../db");
-      const result = await pool.query(`
-        SELECT 
-          id, device_id, insight_type, severity, title, description, 
-          recommendation, confidence, metadata, created_at, is_active
-        FROM ai_insights
-        WHERE is_active = true
-        ORDER BY created_at DESC
-        LIMIT $1
-      `, [limit]);
-
-      return result.rows;
-    } catch (error) {
-      console.error("Error fetching recent insights:", error);
-      return [];
-    }
-  }
-
-  async getInsightsForDevice(deviceId: string, limit: number = 20): Promise<any[]> {
-    try {
-      const { pool } = await import("../db");
-      const result = await pool.query(`
-        SELECT 
-          id, device_id, insight_type, severity, title, description, 
-          recommendation, confidence, metadata, created_at, is_active
-        FROM ai_insights
-        WHERE device_id = $1 AND is_active = true
-        ORDER BY created_at DESC
-        LIMIT $2
-      `, [deviceId, limit]);
-
-      return result.rows;
-    } catch (error) {
-      console.error("Error fetching device insights:", error);
-      return [];
-    }
-  }
-}
-
 export const aiInsightsStorage = new AIInsightsStorage();
 import { storage } from "./storage";
 
