@@ -556,9 +556,11 @@ export function useProcessedAgentData(agent: any): ProcessedAgentData | null {
       "0"
     );
 
-    const network = parseInt(
+    const networkUsage = parseInt(
       rawData?.network?.bytes_sent || 
       rawData?.network?.total_bytes || 
+      rawData?.network?.network_usage?.bytes_sent || 
+      rawData?.network?.network_usage?.total_bytes || 
       "0"
     );
 
@@ -571,13 +573,13 @@ export function useProcessedAgentData(agent: any): ProcessedAgentData | null {
       cpu: isNaN(cpu) ? 0 : Math.max(0, Math.min(100, cpu)),
       memory: isNaN(memory) ? 0 : Math.max(0, Math.min(100, memory)),
       disk: isNaN(disk) ? 0 : Math.max(0, Math.min(100, disk)),
-      network: isNaN(network) ? 0 : network,
+      network: isNaN(networkUsage) ? 0 : networkUsage,
       reportTime,
       dataQuality: {
         hasCpu: !isNaN(cpu) && cpu > 0,
         hasMemory: !isNaN(memory) && memory > 0,
         hasDisk: !isNaN(disk) && disk > 0,
-        hasNetwork: !isNaN(network) && network > 0
+        hasNetwork: !isNaN(networkUsage) && networkUsage > 0
       }
     };
   } catch (error) {
