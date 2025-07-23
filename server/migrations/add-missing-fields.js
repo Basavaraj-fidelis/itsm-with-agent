@@ -5,7 +5,7 @@ const { Pool } = pkg;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL?.includes('localhost') ? false : { rejectUnauthorized: false }
+  ssl: process.env.DATABASE_URL?.includes('localhost') || process.env.DATABASE_URL?.includes('127.0.0.1') ? false : { rejectUnauthorized: false }
 });
 
 async function addMissingFields() {
@@ -23,7 +23,14 @@ async function addMissingFields() {
       ADD COLUMN IF NOT EXISTS emergency_contact_name VARCHAR(100),
       ADD COLUMN IF NOT EXISTS emergency_contact_phone VARCHAR(20),
       ADD COLUMN IF NOT EXISTS cost_center VARCHAR(50),
-      ADD COLUMN IF NOT EXISTS reporting_manager_email VARCHAR(255);
+      ADD COLUMN IF NOT EXISTS reporting_manager_email VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS vip_user BOOLEAN DEFAULT FALSE,
+      ADD COLUMN IF NOT EXISTS security_clearance VARCHAR(50),
+      ADD COLUMN IF NOT EXISTS business_unit VARCHAR(100),
+      ADD COLUMN IF NOT EXISTS primary_device_id UUID,
+      ADD COLUMN IF NOT EXISTS backup_contact_email VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS shift_schedule VARCHAR(100),
+      ADD COLUMN IF NOT EXISTS escalation_manager_id UUID;
     `);
 
     // Add missing ticket fields to existing tickets table

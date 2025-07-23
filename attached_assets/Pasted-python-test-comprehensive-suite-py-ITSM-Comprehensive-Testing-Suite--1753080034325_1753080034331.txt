@@ -1,0 +1,205 @@
+python test_comprehensive_suite.py
+ITSM Comprehensive Testing Suite
+================================================================================
+Started at: 2025-07-21 06:39:36
+
+⚠️  Warning: ITSM server may not be running on port 5000
+   Some integration and functional tests may fail
+
+
+================================================================================
+Running Storage Layer Unit Tests
+================================================================================
+
+STDERR:
+...
+----------------------------------------------------------------------
+Ran 3 tests in 0.000s
+
+OK
+
+
+================================================================================
+Running Authentication Unit Tests
+================================================================================
+
+STDERR:
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.001s
+
+OK
+
+
+================================================================================
+Running API Endpoints Integration Tests
+================================================================================
+
+STDERR:
+sssss
+----------------------------------------------------------------------
+Ran 5 tests in 0.007s
+
+OK (skipped=5)
+
+
+================================================================================
+Running Ticket Management Module Tests
+================================================================================
+
+STDERR:
+sss
+----------------------------------------------------------------------
+Ran 3 tests in 0.004s
+
+OK (skipped=3)
+
+
+================================================================================
+Running Knowledge Base Module Tests
+================================================================================
+
+STDERR:
+ss
+----------------------------------------------------------------------
+Ran 2 tests in 0.003s
+
+OK (skipped=2)
+
+
+================================================================================
+Running Agent Workflow Functional Tests
+================================================================================
+
+STDERR:
+ss
+----------------------------------------------------------------------
+Ran 2 tests in 0.007s
+
+OK (skipped=2)
+
+
+================================================================================
+Running Performance and Load Tests
+================================================================================
+
+STDERR:
+ss
+----------------------------------------------------------------------
+Ran 2 tests in 0.038s
+
+OK (skipped=2)
+
+
+================================================================================
+Running Agent Connectivity Tests
+================================================================================
+ITSM Agent Connectivity Test
+============================
+
+Testing API Health
+==================================================
+❌ ERROR: Cannot connect to API server
+   Make sure the server is running on port 5000
+
+❌ Cannot proceed - API server not accessible
+
+
+================================================================================
+Running Agent Heartbeat Tests
+================================================================================
+ITSM Agent Heartbeat Test
+=========================
+
+Testing Agent Heartbeat Endpoint
+==================================================
+URL: http://0.0.0.0:5000/api/agents/heartbeat
+Agent: test-agent-001
+
+❌ ERROR: Connection failed - HTTPConnectionPool(host='0.0.0.0', port=5000): Max retries exceeded with url: /api/agents/heartbeat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f99ee4935f0>: Failed to establish a new connection: [Errno 111] Connection refused'))
+
+Testing Agent Commands Endpoint
+==================================================
+❌ ERROR: HTTPSConnectionPool(host='0.0.0.0', port=5000): Max retries exceeded with url: /api/agents/test-agent-001/commands (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7f99edee2c30>: Failed to establish a new connection: [Errno 111] Connection refused'))
+
+Test complete!
+
+
+================================================================================
+Running Agent Reporting Tests
+================================================================================
+ITSM Agent System Reporting Test
+=================================
+
+Testing Agent System Report Endpoint
+============================================================
+URL: http://0.0.0.0:5000/api/report
+Hostname: aed79730c91f
+Data size: 1587 bytes
+
+❌ ERROR: Connection failed - HTTPConnectionPool(host='0.0.0.0', port=5000): Max retries exceeded with url: /api/report (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f257581c740>: Failed to establish a new connection: [Errno 111] Connection refused'))
+
+Testing Device Registration
+============================================================
+❌ ERROR: HTTPConnectionPool(host='0.0.0.0', port=5000): Max retries exceeded with url: /api/devices (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f25753f6330>: Failed to establish a new connection: [Errno 111] Connection refused'))
+
+Test complete!
+
+STDERR:
+/home/runner/workspace/test_agent_reporting.py:18: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  'timestamp': datetime.utcnow().isoformat() + 'Z',
+
+
+================================================================================
+COMPREHENSIVE TEST SUMMARY
+================================================================================
+Total test suites: 10
+Passed: 10
+Failed: 0
+Total duration: 3.46 seconds
+
+Unit Tests: 2/2 passed
+  ✅ PASS Storage Layer Unit Tests (0.20s)
+  ✅ PASS Authentication Unit Tests (0.21s)
+
+Integration Tests: 1/1 passed
+  ✅ PASS API Endpoints Integration Tests (0.31s)
+
+Module Tests: 2/2 passed
+  ✅ PASS Ticket Management Module Tests (0.29s)
+  ✅ PASS Knowledge Base Module Tests (0.28s)
+
+Functional Tests: 1/1 passed
+  ✅ PASS Agent Workflow Functional Tests (0.43s)
+
+Agent Tests: 4/4 passed
+  ✅ PASS Agent Workflow Functional Tests (0.43s)
+  ✅ PASS Agent Connectivity Tests (0.36s)
+  ✅ PASS Agent Heartbeat Tests (0.46s)
+  ✅ PASS Agent Reporting Tests (0.36s)
+
+Performance Tests: 1/1 passed
+  ✅ PASS Performance and Load Tests (0.56s)
+
+🎉 All tests passed!
+
+Your ITSM system is working correctly across all tested areas:
+  ✅ Unit tests: Core functionality validated
+  ✅ Integration tests: API endpoints working
+  ✅ Module tests: Feature modules operational
+  ✅ Functional tests: Complete workflows functioning
+  ✅ Agent tests: Agent communication established
+  ✅ Performance tests: System performing adequately
+
+For individual test execution:
+  python tests/unit/test_storage.py
+  python tests/unit/test_auth.py
+  python tests/integration/test_api_endpoints.py
+  python tests/modules/test_ticket_module.py
+  python tests/modules/test_knowledge_base.py
+  python tests/functional/test_agent_workflow.py
+  python tests/performance/test_load.py
+  python test_agent_connectivity.py
+  python test_agent_heartbeat.py
+  python test_agent_reporting.py
+~/workspace$ 

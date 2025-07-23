@@ -305,7 +305,7 @@ class PerformanceService {
 
   async getApplicationPerformanceInsights(deviceId: string) {
     try {
-      const { pool } = await import("./db");
+      const { pool } = await import("../db");
 
       // Get latest system report for the device
       const reportResult = await pool.query(

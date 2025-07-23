@@ -36,16 +36,24 @@ router.post("/import-end-users", upload.single('file'), async (req, res) => {
       const csvData = fileBuffer.toString('utf-8');
       users = await new Promise((resolve, reject) => {
         const results: any[] = [];
-        const stream = require('stream');
-        const readable = new stream.Readable();
-        readable.push(csvData);
-        readable.push(null);
-
-        readable
-          .pipe(csv())
-          .on('data', (data: any) => results.push(data))
-          .on('end', () => resolve(results))
-          .on('error', reject);
+        
+        // Create readable stream synchronously
+        const lines = csvData.split('\n');
+        const headers = lines[0].split(',').map(h => h.trim());
+        
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (line) {
+            const values = line.split(',').map(v => v.trim());
+            const record: any = {};
+            headers.forEach((header, index) => {
+              record[header] = values[index] || '';
+            });
+            results.push(record);
+          }
+        }
+        
+        resolve(results);
       });
     } else {
       return res.status(400).json({ message: "Unsupported file format. Please upload CSV or Excel files." });
@@ -57,12 +65,12 @@ router.post("/import-end-users", upload.single('file'), async (req, res) => {
     for (const userData of users) {
       try {
         // Normalize field names (handle different column naming conventions)
-        const email = (userData.email || userData.Email || userData.EMAIL || '').trim().toLowerCase();
-        const firstName = (userData.first_name || userData['First Name'] || userData.firstname || userData.FirstName || '').trim();
-        const lastName = (userData.last_name || userData['Last Name'] || userData.lastname || userData.LastName || '').trim();
-        const name = (userData.name || userData.Name || userData.NAME || `${firstName} ${lastName}`).trim();
-        const phone = (userData.phone || userData.Phone || userData.PHONE || '').trim();
-        const department = (userData.department || userData.Department || userData.DEPARTMENT || '').trim();
+        const email = String(userData.email || userData.Email || userData.EMAIL || '').trim().toLowerCase();
+        const firstName = String(userData.first_name || userData['First Name'] || userData.firstname || userData.FirstName || '').trim();
+        const lastName = String(userData.last_name || userData['Last Name'] || userData.lastname || userData.LastName || '').trim();
+        const name = String(userData.name || userData.Name || userData.NAME || `${firstName} ${lastName}`).trim();
+        const phone = String(userData.phone || userData.Phone || userData.PHONE || '').trim();
+        const department = String(userData.department || userData.Department || userData.DEPARTMENT || '').trim();
 
         if (!email || !name) {
           console.log(`Skipping user: missing email or name - ${JSON.stringify(userData)}`);
@@ -83,9 +91,15 @@ router.post("/import-end-users", upload.single('file'), async (req, res) => {
         // Generate username from email
         const username = email.split('@')[0];
 
-        // Generate temporary password
-        const tempPassword = `TempPass${Math.random().toString(36).slice(-6)}!`;
-        const password_hash = await bcrypt.hash(tempPassword, 10);
+        // Handle role - default to end_user for import, but allow override
+        const role = String(userData.role || userData.Role || userData.ROLE || 'end_user').toLowerCase();
+        
+        // Handle password - use provided password or generate temporary one
+        let password = userData.password || userData.Password || userData.PASSWORD;
+        if (!password) {
+          password = `TempPass${Math.random().toString(36).slice(-6)}!`;
+        }
+        const password_hash = await bcrypt.hash(String(password), 10);
 
         // Parse name into first and last name if needed
         let finalFirstName = firstName;
@@ -96,25 +110,30 @@ router.post("/import-end-users", upload.single('file'), async (req, res) => {
           finalLastName = nameParts.slice(1).join(' ') || '';
         }
 
-        // Insert new end user
+        // Handle job title and location
+        const jobTitle = String(userData.job_title || userData['Job Title'] || userData.jobTitle || userData.JobTitle || '').trim();
+        const location = String(userData.location || userData.Location || userData.LOCATION || '').trim();
+
+        // Insert new user
         await pool.query(`
           INSERT INTO users (
             email, username, first_name, last_name, role, 
-            password_hash, phone, department, location, is_active,
+            password_hash, phone, job_title, department, location, is_active,
             preferences, permissions, created_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
         `, [
           email,
           username,
           finalFirstName,
           finalLastName,
-          'end_user',
+          role,
           password_hash,
           phone || null,
+          jobTitle || null,
           department || null,
-          department || null,
+          location || department || null,
           true,
-          JSON.stringify({ temp_password: tempPassword }), // Store temp password in preferences for now
+          JSON.stringify({ temp_password: !userData.password ? password : undefined }), // Store temp password only if generated
           JSON.stringify([])
         ]);
 
@@ -134,15 +153,50 @@ router.post("/import-end-users", upload.single('file'), async (req, res) => {
 
   } catch (error: any) {
     console.error("Error importing end users:", error);
+    console.error("Error stack:", error.stack);
+    
+    // Provide more specific error messages
+    let errorMessage = "Failed to import end users";
+    if (error.message?.includes('duplicate')) {
+      errorMessage = "Duplicate entries found in import file";
+    } else if (error.message?.includes('validation')) {
+      errorMessage = "Invalid data format in import file";
+    } else if (error.message?.includes('database')) {
+      errorMessage = "Database error during import";
+    }
+    
     res.status(500).json({ 
-      message: "Failed to import end users",
-      error: error.message 
+      message: errorMessage,
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
 
-// Get all users with enhanced ITSM fields and AD sync status
-router.get("/", async (req, res) => {
+import { storage } from '../storage';
+import { DatabaseUtils } from '../utils/database';
+
+// Get user statistics
+router.get('/stats', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        COUNT(*) as total_users,
+        COUNT(CASE WHEN is_active = true THEN 1 END) as active_users,
+        COUNT(CASE WHEN is_locked = true THEN 1 END) as locked_users,
+		COUNT(CASE WHEN is_active = false THEN 1 END) as inactive_users
+      FROM users
+    `);
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching user stats:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Get all users with enhanced filtering
+router.get('/', async (req, res) => {
   try {
     const { search, role, department, status, page = 1, limit = 50, sync_source } = req.query;
 
@@ -817,6 +871,56 @@ router.post("/change-password", async (req, res) => {
   } catch (error: any) {
     console.error("Error changing password:", error);
     res.status(500).json({ message: "Failed to change password" });
+  }
+});
+
+// Add authMiddleware import
+import { authenticateToken as authMiddleware } from '../middleware/auth-middleware';
+
+// Lock user endpoint
+router.post('/:id/lock', authMiddleware, async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    if (!reason) {
+      return res.status(400).json({ message: 'Reason for locking is required' });
+    }
+
+    const success = await storage.lockUser(id, reason);
+    if (!success) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const user = await storage.getUserById(id);
+    res.json({ 
+      message: 'User locked successfully',
+      user: user
+    });
+  } catch (error) {
+    console.error('Error locking user:', error);
+    res.status(500).json({ message: 'Failed to lock user' });
+  }
+});
+
+// Unlock user endpoint
+router.post('/:id/unlock', authMiddleware, async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+
+    const success = await storage.unlockUser(id);
+    if (!success) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const user = await storage.getUserById(id);
+    res.json({ 
+      message: 'User unlocked successfully',
+      user: user
+    });
+  } catch (error) {
+    console.error('Error unlocking user:', error);
+    res.status(500).json({ message: 'Failed to unlock user' });
   }
 });
 

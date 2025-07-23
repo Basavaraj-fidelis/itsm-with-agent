@@ -8,11 +8,12 @@ import { db, sql } from "./db";
 import { knowledgeBase } from "@shared/ticket-schema";
 import { eq, desc } from "drizzle-orm";
 import { knowledgeRoutes } from "./routes/knowledge-routes";
-import { agentADSyncRoutes } from "./routes/agent-ad-sync-routes";
+// AD sync routes removed - no longer needed
 import { initAIService } from './services/ai-service';
 import { init as initSlaEscalationService } from './services/sla-escalation-service';
 import { webSocketService } from './websocket-service';
 import expressWs from "express-ws";
+import cors from 'cors';
 
 const app = express();
 const wsInstance = expressWs(app);
@@ -332,8 +333,7 @@ app.use((req, res, next) => {
     // Register knowledge base routes
     app.use("/api/knowledge", knowledgeRoutes);
 
-    // Register agent sync routes
-    app.use("/api/agent-sync", agentADSyncRoutes);
+    // Agent AD sync routes removed - no longer needed
 
     // Health check
     app.get("/api/health", (req, res) => {
@@ -444,6 +444,16 @@ app.use((req, res, next) => {
   process.exit(1);
 });
 
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+});
+
 // // Start the server
 // const PORT = process.env.PORT || 5000;
 // // Start the server
@@ -471,3 +481,56 @@ const startSLAMonitoring = () => {
 
 // Start SLA monitoring after a short delay to ensure everything is initialized
 setTimeout(startSLAMonitoring, 5000);
+
+// Enable CORS for all routes
+import cors from 'cors';
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    // Allow all Replit domains and localhost
+    const allowedOrigins = [
+      /\.replit\.dev$/,
+      /\.replit\.app$/,
+      /\.pike\.replit\.dev$/,  // Add pike domain
+      /^https?:\/\/localhost/,
+      /^https?:\/\/127\.0\.0\.1/,
+      /^https?:\/\/0\.0\.0\.0/
+    ];
+
+    const isAllowed = allowedOrigins.some(pattern => {
+      if (pattern instanceof RegExp) {
+        return pattern.test(origin);
+      }
+      return origin === pattern;
+    });
+
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(null, true); // Allow all for development
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+}));
+
+// Add specific CORS preflight handling for portal
+app.options('/api/auth/portal-login', (req, res) => {
+  console.log('🌐 CORS preflight for portal-login from:', req.headers.origin);
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+  res.sendStatus(200);
+});
+
+// Add a simple test endpoint to verify connectivity
+app.get('/api/auth/test', (req, res) => {
+  console.log('🧪 Test endpoint hit from:', req.headers.origin);
+  res.json({ message: 'API is reachable', timestamp: new Date().toISOString() });
+});
+
+export default app;

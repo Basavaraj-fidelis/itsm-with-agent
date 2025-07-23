@@ -44,6 +44,7 @@ import {
   XCircle
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useLocation } from "wouter";
 
 // Define alert thresholds
 const ALERT_THRESHOLDS = {
@@ -85,6 +86,7 @@ const getAlertColor = (alertLevel) => {
 };
 
 export default function Dashboard() {
+  const [location, setLocation] = useLocation();
   const { data: summary, isLoading: summaryLoading, error: summaryError } = useDashboardSummary();
   const { data: alerts, isLoading: alertsLoading, error: alertsError } = useAlerts();
   const { data: agents, isLoading: agentsLoading, error: agentsError } = useAgents();
@@ -105,6 +107,45 @@ export default function Dashboard() {
       }
     },
     refetchInterval: 30000, // Refetch every 30 seconds
+    retry: 1,
+    staleTime: 15000,
+  });
+
+  // Add AI insights and security overview data fetching
+  const { data: aiInsights } = useQuery({
+    queryKey: ["dashboard-ai-insights"],
+    queryFn: async () => {
+      try {
+        const response = await api.get("/api/ai-insights");
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
+      } catch (error) {
+        console.warn("Failed to fetch AI insights:", error);
+        return {};
+      }
+    },
+    refetchInterval: 60000,
+    retry: 1,
+    staleTime: 30000,
+  });
+
+  const { data: securityOverview } = useQuery({
+    queryKey: ["security-overview"],
+    queryFn: async () => {
+      try {
+        const response = await api.get("/api/security-overview");
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
+      } catch (error) {
+        console.warn("Failed to fetch security overview:", error);
+        return {};
+      }
+    },
+    refetchInterval: 30000,
     retry: 1,
     staleTime: 15000,
   });
@@ -229,6 +270,36 @@ export default function Dashboard() {
   const statusDistribution = getTicketStatusDistribution();
   const slaStatus = getSLAStatus();
   const assignmentDistribution = getAssignmentDistribution();
+
+  const { data: recentTickets, isLoading: recentTicketsLoading, error: recentTicketsError } = useQuery({
+    queryKey: ['recent-tickets'],
+    queryFn: async () => {
+      try {
+        const response = await api.get('/api/tickets?limit=5&page=1');
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        const result = await response.json();
+        
+        // Handle different response formats
+        const ticketsData = Array.isArray(result?.data) 
+          ? result.data 
+          : result?.data?.tickets || 
+            result?.tickets || 
+            (Array.isArray(result) ? result : []);
+            
+        console.log('Recent tickets fetched:', ticketsData.length, 'tickets');
+        return ticketsData.slice(0, 5);
+      } catch (error) {
+        console.warn('Failed to fetch recent tickets:', error);
+        return [];
+      }
+    },
+    refetchInterval: 30000,
+    retry: 2,
+    retryDelay: 1000,
+    staleTime: 5000
+  });
 
   // Debug authentication state
   React.useEffect(() => {
@@ -664,55 +735,110 @@ export default function Dashboard() {
                 </div>
               </div>
             </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Recent tickets data */}
-              {tickets.slice(0, 4).map((ticket) => (
-                <div
-                  key={ticket.id}
-                  className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800 ${
-                    ticket.priority === "critical"
-                      ? "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800"
-                      : ticket.priority === "high"
-                        ? "bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800"
-                        : ticket.priority === "medium"
-                          ? "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800"
-                          : "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800"
-                  }`}
-                >
-                  <div
-                    className={`w-2 h-2 rounded-full mt-2 ${
-                      ticket.type === "incident"
-                        ? "bg-red-500"
-                        : ticket.type === "problem"
-                          ? "bg-orange-500"
-                          : ticket.type === "change"
-                            ? "bg-blue-500"
-                            : "bg-green-500"
-                    }`}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className="font-mono text-xs text-neutral-600">
-                        {ticket.ticket_number || ticket.id}
-                      </span>
-                      <StatusBadge status={ticket.status} />
-                    </div>
-                    <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                      {ticket.title}
-                    </p>
-                    <p className="text-xs text-neutral-600">
-                      {ticket.requester_email}
-                    </p>
-                    <p className="text-xs text-neutral-500">
-                      {formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true })}
-                    </p>
-                  </div>
+            <CardContent className="p-0">
+              {recentTicketsLoading ? (
+                <div className="p-6 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-2 text-sm text-neutral-600">Loading tickets...</p>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              ) : recentTicketsError ? (
+                <div className="p-6 text-center">
+                  <div className="text-red-500 mb-2">⚠️</div>
+                  <p className="text-sm text-neutral-600">Unable to load recent tickets</p>
+                  <p className="text-xs text-neutral-400 mt-1">Check network connection</p>
+                </div>
+              ) : (recentTickets && recentTickets.length > 0) || (tickets && tickets.length > 0) ? (
+                <div className="space-y-4">
+                  {((recentTickets && recentTickets.length > 0) ? recentTickets : tickets.slice(0, 5))
+                    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                    .slice(0, 4)
+                    .map((ticket) => (
+                      <div
+                        key={ticket.id}
+                        className={`flex items-start space-x-3 p-4 rounded-xl border cursor-pointer hover:shadow-md transition-all duration-200 ${
+                          ticket.priority === "critical"
+                            ? "bg-gradient-to-r from-red-50 to-red-100 border-red-200 dark:from-red-900/20 dark:to-red-800/20 dark:border-red-700 hover:from-red-100 hover:to-red-150"
+                            : ticket.priority === "high"
+                              ? "bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200 dark:from-orange-900/20 dark:to-orange-800/20 dark:border-orange-700 hover:from-orange-100 hover:to-orange-150"
+                              : ticket.priority === "medium"
+                                ? "bg-gradient-to-r from-yellow-50 to-yellow-100 border-yellow-200 dark:from-yellow-900/20 dark:to-yellow-800/20 dark:border-yellow-700 hover:from-yellow-100 hover:to-yellow-150"
+                                : "bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200 dark:from-blue-900/20 dark:to-blue-800/20 dark:border-blue-700 hover:from-blue-100 hover:to-blue-150"
+                        }`}
+                        onClick={() => setLocation(`/tickets/${ticket.id}`)}
+                      >
+                        <div
+                          className={`w-3 h-3 rounded-full mt-2 shadow-sm ${
+                            ticket.type === "incident"
+                              ? "bg-red-500"
+                              : ticket.type === "problem"
+                                ? "bg-orange-500"
+                                : ticket.type === "change"
+                                  ? "bg-blue-500"
+                                  : "bg-green-500"
+                          }`}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <span className="font-mono text-xs text-gray-600 dark:text-gray-400 bg-white/60 dark:bg-gray-800/60 px-2 py-1 rounded">
+                              {ticket.ticket_number || ticket.id?.split('-')[0]}
+                            </span>
+                            <StatusBadge status={ticket.status} />
+                            {ticket.priority === "critical" && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200">
+                                <AlertTriangle className="w-3 h-3 mr-1" />
+                                Critical
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1 line-clamp-2">
+                            {ticket.title || "No title"}
+                          </p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                            <User className="w-3 h-3 inline mr-1" />
+                            {ticket.requester_email || "Unknown requester"}
+                          </p>
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs text-gray-500 dark:text-gray-500 flex items-center">
+                              <Clock className="w-3 h-3 mr-1" />
+                              {ticket.created_at 
+                                ? formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true })
+                                : "Unknown time"
+                              }
+                            </p>
+                            {ticket.assigned_to && (
+                              <p className="text-xs text-gray-500 dark:text-gray-500 flex items-center">
+                                <User className="w-3 h-3 mr-1" />
+                                {ticket.assigned_to}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center">
+                          <MoreVertical className="w-4 h-4 text-gray-400" />
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300 mb-2">
+                    No Tickets Found
+                  </h3>
+                  <p className="text-gray-500 dark:text-gray-400 mb-4">
+                    No tickets have been created yet
+                  </p>
+                  <button
+                    onClick={() => setLocation("/tickets")}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    <Plus className="w-4 h-4 inline mr-2" />
+                    Create First Ticket
+                  </button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
         {/* Recent Alerts */}
           <Card className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-xl border border-gray-200/60 dark:border-gray-700/60 rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-300">

@@ -9,63 +9,20 @@ import jwt from "jsonwebtoken";
 import { AuthUtils } from "./utils/auth";
 import { ResponseUtils } from "./utils/response";
 import { UserUtils } from "./utils/user";
+import { authRoutes } from "./routes/auth-routes";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+const JWT_SECRET =
+  process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
-// Auth middleware
-const authenticateToken = async (req: any, res: any, next: any) => {
-  const authHeader = req.headers["authorization"];
-  const token = AuthUtils.extractTokenFromHeader(authHeader || "");
-
-  if (!token) {
-    return ResponseUtils.unauthorized(res, "Access token required");
-  }
-
-  try {
-    const decoded: any = AuthUtils.verifyToken(token);
-    console.log("Decoded token:", decoded);
-
-    const user = await AuthUtils.getUserById(decoded.userId || decoded.id);
-    if (user) {
-      const statusCheck = AuthUtils.validateUserStatus(user);
-      if (!statusCheck.valid) {
-        return ResponseUtils.forbidden(res, statusCheck.message);
-      }
-      req.user = user;
-      return next();
-    }
-
-    const fileUser = await storage.getUserById(decoded.userId || decoded.id);
-    if (!fileUser) {
-      return ResponseUtils.forbidden(res, "User not found");
-    }
-
-    const statusCheck = AuthUtils.validateUserStatus(fileUser);
-    if (!statusCheck.valid) {
-      return ResponseUtils.forbidden(res, statusCheck.message);
-    }
-
-    req.user = fileUser;
-    next();
-  } catch (error) {
-    console.error("Token verification error:", error);
-    return ResponseUtils.forbidden(res, "Invalid token");
-  }
-};
-
-// Role check middleware
-const requireRole = (roles: string | string[]) => {
-  return (req: any, res: any, next: any) => {
-    const userRole = req.user?.role;
-    if (AuthUtils.hasRole(userRole, roles)) {
-      next();
-    } else {
-      ResponseUtils.forbidden(res, "Insufficient permissions");
-    }
-  };
-};
+// Import centralized middleware
+import { authenticateToken, requireRole } from "./middleware/auth-middleware";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  const server = createServer(app);
+
+  console.log("🔗 Registering auth routes...");
+  app.use("/api/auth", authRoutes);
+  console.log("✅ Auth routes registered");
   // Initialize demo users on startup
   try {
     await storage.initializeDemoUsers();
@@ -86,57 +43,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { email, password, useActiveDirectory } = req.body;
-      console.log("Login attempt for:", email, "AD:", useActiveDirectory);
+      const { email, password } = req.body;
+      console.log("Login attempt for:", email);
 
       if (!email || !password) {
-        return res.status(400).json({ message: "Email and password are required" });
-      }
-
-      // Active Directory Authentication
-      if (useActiveDirectory) {
-        try {
-          const { adService } = await import("./services/ad-service");
-          const username = email.includes("@") ? email.split("@")[0] : email;
-          console.log("Attempting AD authentication for:", username);
-          const adUser = await adService.authenticateUser(username, password);
-
-          if (adUser) {
-            const localUser = await adService.syncUserToDatabase(adUser);
-            const token = jwt.sign(
-              {
-                userId: localUser.id,
-                id: localUser.id,
-                email: localUser.email,
-                role: localUser.role,
-                authMethod: "ad",
-              },
-              JWT_SECRET,
-              { expiresIn: "24h" }
-            );
-
-            console.log("AD login successful for:", email);
-            res.json({
-              message: "Login successful",
-              token,
-              user: {
-                id: localUser.id,
-                email: localUser.email,
-                name: localUser.name,
-                role: localUser.role,
-                department: localUser.department,
-                authMethod: "ad",
-              },
-            });
-            return;
-          } else {
-            console.log("AD authentication failed for:", username);
-            return res.status(401).json({ message: "Invalid Active Directory credentials" });
-          }
-        } catch (adError) {
-          console.error("AD authentication error:", adError);
-          return res.status(500).json({ message: "Active Directory authentication failed" });
-        }
+        return res
+          .status(400)
+          .json({ message: "Email and password are required" });
       }
 
       // Database authentication fallback
@@ -147,8 +60,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         let selectColumns = ["id", "email", "role"];
         let optionalColumns = [
-          "password_hash", "is_active", "is_locked", "last_login",
-          "phone", "location", "first_name", "last_name", "username", "name",
+          "password_hash",
+          "is_active",
+          "is_locked",
+          "last_login",
+          "phone",
+          "location",
+          "first_name",
+          "last_name",
+          "username",
+          "name",
         ];
 
         optionalColumns.forEach((col) => {
@@ -157,8 +78,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         });
 
-        const query = DatabaseUtils.buildSelectQuery("users", columnNames, selectColumns) + " WHERE email = $1";
-        const result = await DatabaseUtils.executeQuery(query, [email.toLowerCase()]);
+        const query =
+          DatabaseUtils.buildSelectQuery("users", columnNames, selectColumns) +
+          " WHERE email = $1";
+        const result = await DatabaseUtils.executeQuery(query, [
+          email.toLowerCase(),
+        ]);
 
         if (result.rows.length === 0) {
           throw new Error("User not found in database, trying file storage");
@@ -167,20 +92,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const user = result.rows[0];
 
         if (user.is_locked) {
-          return res.status(401).json({ message: "Account is locked. Contact administrator." });
+          return res
+            .status(401)
+            .json({ message: "Account is locked. Contact administrator." });
         }
 
         if (user.is_active === false) {
-          return res.status(401).json({ message: "Account is inactive. Contact administrator." });
+          return res
+            .status(401)
+            .json({ message: "Account is inactive. Contact administrator." });
         }
 
         if (user.password_hash) {
-          const isValidPassword = await bcrypt.compare(password, user.password_hash);
+          const isValidPassword = await bcrypt.compare(
+            password,
+            user.password_hash,
+          );
           if (!isValidPassword) {
             return res.status(401).json({ message: "Invalid credentials" });
           }
         } else {
-          const validPasswords = ["Admin123!", "Tech123!", "Manager123!", "User123!"];
+          const validPasswords = [
+            "Admin123!",
+            "Tech123!",
+            "Manager123!",
+            "User123!",
+          ];
           if (!validPasswords.includes(password)) {
             return res.status(401).json({ message: "Invalid credentials" });
           }
@@ -204,13 +141,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (dbError) {
         // Fallback to file storage
         const demoUsers = await storage.getUsers({ search: email });
-        const user = demoUsers.find((u) => u.email.toLowerCase() === email.toLowerCase());
+        const user = demoUsers.find(
+          (u) => u.email.toLowerCase() === email.toLowerCase(),
+        );
 
         if (!user) {
           return res.status(401).json({ message: "Invalid credentials" });
         }
 
-        const validPasswords = ["Admin123!", "Tech123!", "Manager123!", "User123!"];
+        const validPasswords = [
+          "Admin123!",
+          "Tech123!",
+          "Manager123!",
+          "User123!",
+        ];
         if (!validPasswords.includes(password)) {
           return res.status(401).json({ message: "Invalid credentials" });
         }
@@ -218,7 +162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const token = jwt.sign(
           { userId: user.id, id: user.email, role: user.role },
           JWT_SECRET,
-          { expiresIn: "24h" }
+          { expiresIn: "24h" },
         );
 
         res.json({
@@ -238,11 +182,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { name, email, password, role, department, phone } = req.body;
 
       if (!name || !email || !password) {
-        return res.status(400).json({ message: "Name, email and password required" });
+        return res
+          .status(400)
+          .json({ message: "Name, email and password required" });
       }
 
       const existingUsers = await storage.getUsers({ search: email });
-      if (existingUsers.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
+      if (
+        existingUsers.some((u) => u.email.toLowerCase() === email.toLowerCase())
+      ) {
         return res.status(400).json({ message: "Email already exists" });
       }
 
@@ -261,7 +209,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(newUser);
     } catch (error) {
       console.error("Signup error:", error);
-      res.status(500).json({ message: "Failed to create user", error: error.message });
+      res
+        .status(500)
+        .json({ message: "Failed to create user", error: error.message });
     }
   });
 
@@ -286,7 +236,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Report data keys:", Object.keys(req.body));
 
       const data = req.body;
-      const hostname = data.hostname || data.system_info?.hostname || data.os_info?.hostname;
+      const hostname =
+        data.hostname || data.system_info?.hostname || data.os_info?.hostname;
 
       if (!hostname) {
         return res.status(400).json({ message: "Hostname is required" });
@@ -299,7 +250,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           hostname: hostname,
           assigned_user: data.current_user || null,
           os_name: data.os_info?.name || data.system_info?.platform || null,
-          os_version: data.os_info?.version || data.system_info?.release || null,
+          os_version:
+            data.os_info?.version || data.system_info?.release || null,
           ip_address: req.ip || null,
           status: "online",
           last_seen: new Date(),
@@ -361,7 +313,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   try {
     const notificationRoutes = await import("./routes/notification-routes");
     if (notificationRoutes.default) {
-      app.use("/api/notifications", authenticateToken, notificationRoutes.default);
+      app.use(
+        "/api/notifications",
+        authenticateToken,
+        notificationRoutes.default,
+      );
     }
   } catch (error) {
     console.warn("Notification routes not available:", error.message);
@@ -370,19 +326,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   try {
     const automationRoutes = await import("./routes/automation-routes");
     if (automationRoutes.default) {
-      app.use("/api/automation", authenticateToken, requireRole(["admin", "manager"]), automationRoutes.default);
+      app.use(
+        "/api/automation",
+        authenticateToken,
+        requireRole(["admin", "manager"]),
+        automationRoutes.default,
+      );
     }
   } catch (error) {
     console.warn("Automation routes not available:", error.message);
-  }
-
-  try {
-    const { adRoutes } = await import("./routes/ad-routes");
-    if (adRoutes) {
-      app.use("/api/ad", authenticateToken, requireRole(["admin"]), adRoutes);
-    }
-  } catch (error) {
-    console.warn("AD routes not available:", error.message);
   }
 
   try {
@@ -431,10 +383,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   try {
+    const slaAnalysisRoutes = await import("./routes/sla-analysis-routes");
+    if (slaAnalysisRoutes.default) {
+      app.use("/api/sla-analysis", authenticateToken, slaAnalysisRoutes.default);
+    }
   } catch (error) {
-    console.warn(" routes not available:", error.message);
+    console.warn("SLA analysis routes not available:", error.message);
   }
 
-  const httpServer = createServer(app);
-  return httpServer;
+  try {
+    const aiRoutes = await import("./routes/ai-routes");
+    if (aiRoutes.default) {
+      app.use("/api/ai", authenticateToken, aiRoutes.default);
+    }
+  } catch (error) {
+    console.warn("AI routes not available:", error.message);
+  }
+
+  try {
+    const auditRoutes = await import("./routes/audit-routes");
+    if (auditRoutes.default) {
+      app.use("/api/audit", authenticateToken, requireRole(["admin", "manager"]), auditRoutes.default);
+    }
+  } catch (error) {
+    console.warn("Audit routes not available:", error.message);
+  }
+
+  try {
+    const securityRoutes = await import("./routes/security-routes");
+    if (securityRoutes.default) {
+      app.use("/api/security", authenticateToken, securityRoutes.default);
+    }
+  } catch (error) {
+    console.warn("Security routes not available:", error.message);
+  }
+
+  try {
+    const patchRoutes = await import("./routes/patch-routes");
+    if (patchRoutes.default) {
+      app.use("/api/patch", authenticateToken, patchRoutes.default);
+    }
+  } catch (error) {
+    console.warn("Patch routes not available:", error.message);
+  }
+
+  return server;
 }

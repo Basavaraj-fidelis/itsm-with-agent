@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,6 +53,7 @@ interface UserTicket {
   created_at: string;
   updated_at: string;
   assigned_to?: string;
+  requester_email?: string;
 }
 
 interface UserDevice {
@@ -67,6 +67,7 @@ interface UserDevice {
   cpu_usage?: number;
   memory_usage?: number;
   disk_usage?: number;
+  assigned_user?: string;
 }
 
 const SERVICE_CATEGORIES = [
@@ -148,13 +149,41 @@ export default function EndUserPortal() {
 
   // Check if user is already authenticated
   React.useEffect(() => {
-    const token = localStorage.getItem('end_user_token');
-    const user = localStorage.getItem('end_user_info');
-    if (token && user) {
-      setIsAuthenticated(true);
-      setUserInfo(JSON.parse(user));
-      setFormData(prev => ({ ...prev, email: JSON.parse(user).email }));
-    }
+    const checkAuth = async () => {
+      const token = localStorage.getItem('end_user_token');
+      const user = localStorage.getItem('end_user_info');
+
+      if (token && user) {
+        try {
+          // Verify token is still valid
+          const response = await fetch('/api/auth/verify', {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (response.ok) {
+            const userData = JSON.parse(user);
+            setIsAuthenticated(true);
+            setUserInfo(userData);
+            setFormData(prev => ({ ...prev, email: userData.email }));
+            console.log('Auto-login successful for:', userData.email);
+          } else {
+            // Token invalid, clear storage
+            localStorage.removeItem('end_user_token');
+            localStorage.removeItem('end_user_info');
+            console.log('Token expired, requiring fresh login');
+          }
+        } catch (error) {
+          console.error('Token verification failed:', error);
+          localStorage.removeItem('end_user_token');
+          localStorage.removeItem('end_user_info');
+        }
+      }
+    };
+
+    checkAuth();
   }, []);
 
   // Load user tickets and devices when authenticated
@@ -169,28 +198,71 @@ export default function EndUserPortal() {
     setIsLoadingTickets(true);
     try {
       const token = localStorage.getItem('end_user_token');
+      if (!token) {
+        console.warn('No auth token available for loading tickets');
+        setUserTickets([]);
+        return;
+      }
+
+      console.log('Loading tickets for user:', userInfo?.email);
+
       const response = await fetch('/api/tickets?limit=1000', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
+        credentials: 'include',
       });
 
       if (response.ok) {
         const result = await response.json();
+        console.log('Tickets API response:', result);
+
+        // Handle different response formats
+        const ticketsData = Array.isArray(result?.data) 
+          ? result.data 
+          : result?.tickets || 
+            (Array.isArray(result) ? result : []);
+
         // Filter tickets by user email
-        const userTickets = result.data.filter((ticket: UserTicket) => 
-          ticket.requester_email?.toLowerCase() === userInfo.email.toLowerCase()
+        const userTickets = ticketsData.filter((ticket: UserTicket) => 
+          ticket.requester_email?.toLowerCase() === userInfo?.email?.toLowerCase()
         );
+
         setUserTickets(userTickets);
+        console.log('Loaded user tickets:', userTickets.length, 'of', ticketsData.length, 'total');
+      } else if (response.status === 401) {
+        // Token expired, logout user
+        handleLogout();
+        toast({
+          title: "Session expired",
+          description: "Please log in again to continue.",
+          variant: "destructive",
+        });
+      } else {
+        console.error('Failed to load tickets:', response.status, response.statusText);
+        toast({
+          title: "Error loading tickets",
+          description: "Unable to load your tickets. Please try again.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Error loading user tickets:', error);
-      toast({
-        title: "Error loading tickets",
-        description: "Unable to load your tickets",
-        variant: "destructive",
-      });
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        toast({
+          title: "Connection Error",
+          description: "Unable to connect to the server. Please check your connection.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error loading tickets",
+          description: "Unable to load your tickets. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoadingTickets(false);
     }
@@ -208,20 +280,28 @@ export default function EndUserPortal() {
       });
 
       if (response.ok) {
-        const devices = await response.json();
+        const result = await response.json();
+        // Handle different response formats
+        const devicesData = Array.isArray(result?.data) 
+          ? result.data 
+          : result?.devices || 
+            (Array.isArray(result) ? result : []);
+
         // Filter devices by user email (assigned_user field)
-        const userDevices = devices.filter((device: UserDevice) => 
+        const userDevices = devicesData.filter((device: UserDevice) => 
           device.assigned_user?.toLowerCase() === userInfo.email.toLowerCase()
         );
         setUserDevices(userDevices);
+        console.log('Loaded user devices:', userDevices.length);
+      } else {
+        console.error('Failed to load devices:', response.status, response.statusText);
+        // Don't show error for devices since they might not be assigned yet
+        setUserDevices([]);
       }
     } catch (error) {
       console.error('Error loading user devices:', error);
-      toast({
-        title: "Error loading devices",
-        description: "Unable to load your devices",
-        variant: "destructive",
-      });
+      // Don't show toast error for devices as it's not critical
+      setUserDevices([]);
     } finally {
       setIsLoadingDevices(false);
     }
@@ -232,39 +312,90 @@ export default function EndUserPortal() {
     setIsLoggingIn(true);
 
     try {
-      const response = await fetch('/api/auth/end-user-login', {
+      console.log('🔑 Attempting portal login with:', loginData.email);
+      
+      // Use the full URL for the request to ensure it goes to the right place
+      const apiUrl = `${window.location.protocol}//${window.location.hostname}:5000/api/auth/portal-login`;
+      console.log('🌐 Making request to:', apiUrl);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
-        body: JSON.stringify(loginData),
+        signal: controller.signal,
+        body: JSON.stringify({
+          email: loginData.email.trim(),
+          password: loginData.password
+        }),
       });
+
+      clearTimeout(timeoutId);
+
+      console.log('📡 Login response received');
+      console.log('📊 Response status:', response.status);
+      console.log('🔍 Response ok:', response.ok);
 
       if (response.ok) {
         const result = await response.json();
+        console.log('✅ Login successful:', result);
+
+        // Store authentication data
         localStorage.setItem('end_user_token', result.token);
         localStorage.setItem('end_user_info', JSON.stringify(result.user));
+
+        // Update state
         setIsAuthenticated(true);
         setUserInfo(result.user);
         setFormData(prev => ({ ...prev, email: result.user.email }));
+
         toast({
           title: "Login successful",
-          description: "Welcome to the IT Service Portal",
+          description: `Welcome ${result.user.first_name || result.user.name || result.user.email}!`,
         });
       } else {
-        const error = await response.json();
+        let errorMessage = 'Login failed';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || `Server error: ${response.status}`;
+        } catch {
+          errorMessage = `Server error: ${response.status} ${response.statusText}`;
+        }
+        
+        console.error('❌ Login failed:', response.status, errorMessage);
+
         toast({
-          title: "Login failed",
-          description: error.message || "Invalid email or password",
+          title: "Login failed", 
+          description: errorMessage,
           variant: "destructive",
         });
       }
     } catch (error) {
-      toast({
-        title: "Login failed",
-        description: "Unable to connect to the server",
-        variant: "destructive",
-      });
+      console.error('❌ Login error occurred:', error);
+
+      if (error.name === 'AbortError') {
+        toast({
+          title: "Request Timeout",
+          description: "The login request took too long. Please try again.",
+          variant: "destructive",
+        });
+      } else if (error.name === 'TypeError' && error.message?.includes('fetch')) {
+        toast({
+          title: "Connection Error",
+          description: "Unable to connect to the server. Please check your internet connection and try again.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Login Error",
+          description: `Network error: ${error.message || 'Please try again'}`,
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoggingIn(false);
     }
@@ -297,7 +428,7 @@ export default function EndUserPortal() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.category || !formData.email || !formData.subject || !formData.description) {
       toast({
         title: "Please fill in all required fields",
@@ -307,7 +438,7 @@ export default function EndUserPortal() {
     }
 
     setIsSubmitting(true);
-    
+
     try {
       const token = localStorage.getItem('end_user_token');
       const response = await fetch('/api/tickets', {
@@ -335,7 +466,7 @@ export default function EndUserPortal() {
           title: "Request submitted successfully!",
           description: `Your ${formData.type.replace('_', ' ')} has been created. Ticket #${result.ticket_number}`,
         });
-        
+
         // Reset form
         setFormData({
           type: activeCreateTab,
@@ -350,7 +481,7 @@ export default function EndUserPortal() {
 
         // Reload tickets to show the new one
         loadUserTickets();
-        
+
         // Switch to tickets tab
         setActiveTab('tickets');
       } else {
@@ -373,7 +504,7 @@ export default function EndUserPortal() {
       <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-blue-900 flex items-center justify-center p-4 relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%2523ffffff%22%20fill-opacity%3D%220.05%22%3E%3Ccircle%20cx%3D%227%22%20cy%3D%227%22%20r%3D%227%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20"></div>
-        
+
         <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center relative z-10">
           {/* Left Side - Branding */}
           <div className="hidden lg:block text-white space-y-8">
@@ -448,6 +579,17 @@ export default function EndUserPortal() {
                 <p className="text-sm text-slate-600 text-center">
                   Sign in to access your IT services
                 </p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
+                  <p className="text-xs text-blue-700 font-medium mb-2">Demo Credentials:</p>
+                  <div className="space-y-1 text-xs text-blue-600">
+                    <div><strong>End User:</strong> john.doe@company.com | TempPass123!</div>
+                    <div><strong>Admin Test:</strong> admin@company.com | Admin123!</div>
+                    <div><strong>Alt User:</strong> jane.smith@company.com | TempPass456!</div>
+                  </div>
+                  <div className="mt-2 text-xs text-blue-500">
+                    <div>⚠️ If login fails, check browser console for details</div>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 <form onSubmit={handleLogin} className="space-y-4">
@@ -509,7 +651,7 @@ export default function EndUserPortal() {
                       Need Assistance?
                     </p>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 gap-3">
                     <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
                       <Phone className="w-5 h-5 text-blue-600" />
@@ -518,7 +660,7 @@ export default function EndUserPortal() {
                         <p className="text-xs text-slate-600">+1 (555) 123-4567</p>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg border border-green-100">
                       <Mail className="w-5 h-5 text-green-600" />
                       <div>
@@ -528,7 +670,7 @@ export default function EndUserPortal() {
                         </a>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg border border-purple-100">
                       <Clock className="w-5 h-5 text-purple-600" />
                       <div>
@@ -658,8 +800,7 @@ export default function EndUserPortal() {
                     Loading your devices...
                   </div>
                 ) : userDevices.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Monitor className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                  <div className="text-center py-8">                    <Monitor className="w-12 h-12 mx-auto text-gray-400 mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No devices found</h3>
                     <p className="text-gray-600">No devices are currently assigned to your account.</p>
                   </div>
@@ -676,7 +817,7 @@ export default function EndUserPortal() {
                             {device.status}
                           </Badge>
                         </div>
-                        
+
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span className="text-gray-600">IP Address:</span>

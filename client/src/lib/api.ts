@@ -61,7 +61,7 @@ class ApiClient {
     const url = `${this.baseURL}${endpoint}`;
 
     // Get auth token from localStorage
-    const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+    const token = getAuthToken();
 
     const config: RequestInit = {
       headers: {
@@ -126,13 +126,13 @@ class ApiClient {
 // Create and export a singleton instance
 const apiClient = new ApiClient();
 
-function getAuthHeaders() {
-  const token = localStorage.getItem('auth_token');
-  return token ? { 'Authorization': `Bearer ${token}` } : {};
-}
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 const getAuthToken = () => {
-  return localStorage.getItem('auth_token');
+  return localStorage.getItem('auth_token') || localStorage.getItem('token');
 }
 
 const clearAuthToken = () => {
@@ -140,6 +140,19 @@ const clearAuthToken = () => {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://0.0.0.0:5000';
+
+// Global error handler for unhandled promise rejections
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled promise rejection:', event.reason);
+
+  // Prevent the default behavior (logging to console)
+  event.preventDefault();
+
+  // You can add custom error reporting here
+  if (event.reason?.message) {
+    console.error('Error details:', event.reason.message);
+  }
+});
 
 const makeRequest = async (url: string, options: RequestInit = {}): Promise<Response> => {
   const token = getAuthToken();
@@ -223,7 +236,7 @@ export const api = {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Performance overview API error:', response.status, errorText);
-        
+
         // Return fallback data instead of throwing
         return {
           totalDevices: 0,
@@ -272,6 +285,31 @@ export const api = {
     return data;
   },
 
+  // Security Dashboard
+  getSecurityOverview: async () => {
+    const response = await apiClient.get("/api/security/overview");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch security overview: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  getSecurityIncidents: async () => {
+    const response = await apiClient.get("/api/security/incidents");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch security incidents: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  getComplianceStatus: async () => {
+    const response = await apiClient.get("/api/security/compliance");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch compliance status: ${response.status}`);
+    }
+    return response.json();
+  },
+
   async getDevice(id: string): Promise<Device> {
     const response = await apiClient.get(`/api/devices/${id}`);
     return response.json();
@@ -294,7 +332,14 @@ export const api = {
   },
 
   // Auth
-  login: (credentials: { email: string; password: string }) => apiClient.post("/api/auth/login", credentials),
+  login: (credentials: { email: string; password: string }) => 
+    apiRequest('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    }).catch(error => {
+      console.error('Login API error:', error);
+      throw error;
+    }),
   register: (userData: any) => apiClient.post("/api/auth/register", userData),
   logout: () => apiClient.post("/api/auth/logout", {}),
   getProfile: () => apiClient.get("/api/auth/profile"),
@@ -307,9 +352,243 @@ export const api = {
   getAgents: () => apiClient.get("/api/agents"),
   getAgent: (id: string) => apiClient.get(`/api/agents/${id}`),
 
-  // Users
-  getUsers: async () => {
-    const response = await apiClient.get("/api/users");
+  // Users - Enhanced with full CRUD operations
+  getUsers: async (filters?: { role?: string; department?: string; status?: string; search?: string }) => {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value && value !== 'all') params.append(key, value);
+      });
+    }
+    const response = await apiClient.get(`/api/users?${params.toString()}`);
+    return response.json();
+  },
+
+  getUserStats: async () => {
+    const response = await apiClient.get("/api/users/stats");
+    return response.json();
+  },
+
+  createUser: async (userData: any) => {
+    const response = await apiClient.post("/api/users", userData);
+    return response.json();
+  },
+
+  updateUser: async (id: string, userData: any) => {
+    const response = await apiClient.put(`/api/users/${id}`, userData);
+    return response.json();
+  },
+
+  deleteUser: async (id: string) => {
+    const response = await apiClient.delete(`/api/users/${id}`);
+    return response.json();
+  },
+
+  lockUser: async (id: string, locked: boolean) => {
+    const response = await apiClient.post(`/api/users/${id}/lock`, { locked });
+    return response.json();
+  },
+
+  resetUserPassword: async (id: string, password: string) => {
+    const response = await apiClient.post(`/api/users/${id}/reset-password`, { password });
+    return response.json();
+  },
+
+  // Enhanced Analytics
+  getSystemAnalytics: async () => {
+    const response = await apiClient.get("/api/analytics/system");
+    return response.json();
+  },
+
+  getTicketAnalytics: async (timeRange: string = "30d") => {
+    const response = await apiClient.get(`/api/analytics/tickets?timeRange=${timeRange}`);
+    return response.json();
+  },
+
+  getUserAnalytics: async (timeRange: string = "30d") => {
+    const response = await apiClient.get(`/api/analytics/users?timeRange=${timeRange}`);
+    return response.json();
+  },
+
+  // Enhanced Security
+  getSecurityAlerts: async () => {
+    const response = await apiClient.get("/api/security/alerts");
+    return response.json();
+  },
+
+  getAuditLogs: async (filters?: { user?: string; action?: string; resource?: string }) => {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value);
+      });
+    }
+    const response = await apiClient.get(`/api/audit/logs?${params.toString()}`);
+    return response.json();
+  },
+
+  // Advanced Monitoring
+  getAdvancedMetrics: async (deviceId: string, timeRange: string = "24h") => {
+    const response = await apiClient.get(`/api/monitoring/advanced/${deviceId}?timeRange=${timeRange}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch advanced metrics: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  getPredictiveAnalysis: async (deviceId: string) => {
+    const response = await apiClient.get(`/api/analytics/predictive/${deviceId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch predictive analysis: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  getAnomalyDetection: async (deviceId?: string) => {
+    const endpoint = deviceId ? `/api/monitoring/anomalies/${deviceId}` : "/api/monitoring/anomalies";
+    const response = await apiClient.get(endpoint);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch anomaly detection: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  // Enhanced Knowledge Base
+  getKnowledgeBaseStats: async () => {
+    const response = await apiClient.get("/api/knowledge/stats");
+    return response.json();
+  },
+
+  searchKnowledgeBase: async (query: string, filters?: { category?: string; tags?: string[] }) => {
+    const params = new URLSearchParams({ q: query });
+    if (filters?.category) params.append('category', filters.category);
+    if (filters?.tags) params.append('tags', filters.tags.join(','));
+    const response = await apiClient.get(`/api/knowledge/search?${params.toString()}`);
+    return response.json();
+  },
+
+  // Enhanced Automation
+  getAutomationWorkflows: async () => {
+    const response = await apiClient.get("/api/automation/workflows");
+    return response.json();
+  },
+
+  createAutomationWorkflow: async (workflow: any) => {
+    const response = await apiClient.post("/api/automation/workflows", workflow);
+    return response.json();
+  },
+
+  executeAutomationWorkflow: async (id: string, parameters?: any) => {
+    const response = await apiClient.post(`/api/automation/workflows/${id}/execute`, parameters);
+    return response.json();
+  },
+
+  // Workflow Management
+  getWorkflows: async () => {
+    const response = await apiClient.get("/api/workflows");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch workflows: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  createWorkflow: async (workflow: any) => {
+    const response = await apiClient.post("/api/workflows", workflow);
+    if (!response.ok) {
+      throw new Error(`Failed to create workflow: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  updateWorkflow: async (id: string, workflow: any) => {
+    const response = await apiClient.put(`/api/workflows/${id}`, workflow);
+    if (!response.ok) {
+      throw new Error(`Failed to update workflow: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  executeWorkflow: async (id: string, parameters?: any) => {
+    const response = await apiClient.post(`/api/workflows/${id}/execute`, parameters);
+    if (!response.ok) {
+      throw new Error(`Failed to execute workflow: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  // Enhanced Reporting
+  generateReport: async (type: string, parameters: any) => {
+    const response = await apiClient.post(`/api/reports/generate/${type}`, parameters);
+    if (!response.ok) {
+      throw new Error(`Failed to generate report: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  getReportHistory: async () => {
+    const response = await apiClient.get("/api/reports/history");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch report history: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  downloadReport: async (reportId: string) => {
+    const response = await apiClient.get(`/api/reports/download/${reportId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to download report: ${response.status}`);
+    }
+    return response.blob();
+  },
+
+  // Enhanced Backend Integration
+  getSystemHealth: async () => {
+    const response = await apiClient.get("/api/system/health");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch system health: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  getAIInsights: async (deviceId?: string) => {
+    const endpoint = deviceId ? `/api/ai/insights/${deviceId}` : "/api/ai/insights";
+    const response = await apiClient.get(endpoint);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch AI insights: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  getAutomationStats: async () => {
+    const response = await apiClient.get("/api/automation/stats");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch automation stats: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  getComplianceReport: async () => {
+    const response = await apiClient.get("/api/compliance/report");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch compliance report: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  getDeviceAIInsights: async (deviceId: string) => {
+    const response = await apiClient.get(`/api/ai/insights/device/${deviceId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch device AI insights: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  // Advanced Analytics
+  getAdvancedDeviceAnalytics: async (deviceId: string) => {
+    const response = await apiClient.get(`/api/analytics/device/${deviceId}/advanced`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch advanced analytics: ${response.status}`);
+    }
     return response.json();
   },
 
@@ -357,10 +636,10 @@ class ApiError extends Error {
   }
 }
 
-export async function apiRequest<T>(
+const apiRequest = async <T>(
   endpoint: string,
   options: RequestInit = {}
-): Promise<T> {
+): Promise<T> => {
   try {
     console.log('API Request:', `${API_BASE}${endpoint}`);
 
@@ -379,33 +658,24 @@ export async function apiRequest<T>(
     console.log('API Response:', response.status, response.statusText);
 
     if (!response.ok) {
-      let errorMessage = `API Error: ${response.status} ${response.statusText}`;
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorMessage;
-      } catch {
-        const errorText = await response.text();
-        errorMessage = errorText || errorMessage;
+      if (response.status === 401) {
+        // Token expired or invalid - handle gracefully
+        localStorage.removeItem('auth_token');
+        window.location.href = '/login';
+        throw new Error('Authentication required');
       }
-      throw new ApiError(errorMessage, response.status, response.statusText);
+
+      if (response.status === 403) {
+        throw new Error('Access forbidden');
+      }
+
+      const errorText = await response.text();
+      throw new Error(`API Error: ${response.status} ${response.statusText}`);
     }
 
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-      return await response.json();
-    } else {
-      return await response.text() as unknown as T;
-    }
+    return response.json();
   } catch (error) {
-      console.error("API request failed:", error);
-      // Return a structured error response instead of throwing
-      if (error instanceof Error) {
-        return Promise.reject({
-          error: true,
-          message: error.message,
-          status: 'network_error'
-        });
-      }
-      throw error;
-    }
-}
+    console.error('API Request failed:', error);
+    throw error;
+  }
+};

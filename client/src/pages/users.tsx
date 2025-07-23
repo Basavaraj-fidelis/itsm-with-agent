@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
-import { api } from "@/lib/api";
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { EnhancedErrorBoundary } from '@/components/ui/enhanced-error-boundary';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { api } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Plus, 
@@ -70,6 +71,20 @@ interface ADSyncStatus {
   errors: string[];
 }
 
+// Helper function to get sync status icon
+function getSyncStatusIcon(user: UserInterface) {
+  if (user.ad_synced) {
+    return <Cloud className="w-4 h-4 text-blue-500" />;
+  } else {
+    return <Database className="w-4 h-4 text-gray-500" />;
+  }
+}
+
+// Helper function to get user source icon
+function getUserSourceIcon(user: UserInterface) {
+  return <Database className="w-4 h-4 text-gray-500" />;
+}
+
 export default function UsersPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -121,27 +136,27 @@ export default function UsersPage() {
   // Extract users array from response
   const users = usersResponse?.data || usersResponse || [];
 
-  // Fetch AD sync status
-  const { data: adSyncStatus } = useQuery({
-    queryKey: ["/api/ad/sync-status"],
-    queryFn: async () => {
-      try {
-        const response = await api.get("/api/ad/sync-status");
-        if (!response.ok) throw new Error("Failed to fetch AD sync status");
-        return await response.json();
-      } catch (error) {
-        return {
-          enabled: false,
-          last_sync: null,
-          sync_status: 'error',
-          total_users: 0,
-          synced_users: 0,
-          errors: []
-        };
-      }
-    },
-    refetchInterval: 30000,
-  });
+  // Fetch AD sync status - REMOVED
+  // const { data: adSyncStatus } = useQuery({
+  //   queryKey: ["/api/ad/sync-status"],
+  //   queryFn: async () => {
+  //     try {
+  //       const response = await api.get("/api/ad/sync-status");
+  //       if (!response.ok) throw new Error("Failed to fetch AD sync status");
+  //       return await response.json();
+  //     } catch (error) {
+  //       return {
+  //         enabled: false,
+  //         last_sync: null,
+  //         sync_status: 'error',
+  //         total_users: 0,
+  //         synced_users: 0,
+  //         errors: []
+  //       };
+  //     }
+  //   },
+  //   refetchInterval: 30000,
+  // });
 
   // Create user mutation
   const createUserMutation = useMutation({
@@ -298,29 +313,29 @@ export default function UsersPage() {
     }
   });
 
-  // AD Sync mutation
-  const adSyncMutation = useMutation({
-    mutationFn: async () => {
-      const response = await api.post("/api/ad/sync-users");
-      if (!response.ok) throw new Error("Failed to sync AD users");
-      return await response.json();
-    },
-    onSuccess: (data) => {
-      toast({ 
-        title: "Success", 
-        description: `AD sync completed. ${data.synced_count || 0} users synced.`
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/ad/sync-status"] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to sync AD users",
-        variant: "destructive",
-      });
-    },
-  });
+  // AD Sync mutation - REMOVED
+  // const adSyncMutation = useMutation({
+  //   mutationFn: async () => {
+  //     const response = await api.post("/api/ad/sync-users");
+  //     if (!response.ok) throw new Error("Failed to sync AD users");
+  //     return await response.json();
+  //   },
+  //   onSuccess: (data) => {
+  //     toast({ 
+  //       title: "Success", 
+  //       description: `AD sync completed. ${data.synced_count || 0} users synced.`
+  //     });
+  //     queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+  //     queryClient.invalidateQueries({ queryKey: ["/api/ad/sync-status"] });
+  //   },
+  //   onError: (error: any) => {
+  //     toast({
+  //       title: "Error",
+  //       description: error.message || "Failed to sync AD users",
+  //       variant: "destructive",
+  //     });
+  //   },
+  // });
 
   // Import end users mutation
   const importMutation = useMutation({
@@ -369,11 +384,9 @@ export default function UsersPage() {
       (statusFilter === "active" && user.is_active) ||
       (statusFilter === "inactive" && !user.is_active);
 
-    const matchesSyncSource = syncSourceFilter === "all" ||
-      (syncSourceFilter === "ad" && user.ad_synced) ||
-      (syncSourceFilter === "local" && !user.ad_synced);
+    // REMOVE ad_synced filter here
 
-    return matchesSearch && matchesRole && matchesDepartment && matchesStatus && matchesSyncSource;
+    return matchesSearch && matchesRole && matchesDepartment && matchesStatus; //&& matchesSyncSource;
   });
 
   // Get unique departments for filter
@@ -502,20 +515,28 @@ export default function UsersPage() {
     setBulkAction("");
   };
 
-  const getSyncStatusIcon = (user: UserInterface) => {
-    if (user.ad_synced) {
-      if (user.ad_last_sync) {
-        const lastSync = new Date(user.ad_last_sync);
-        const hoursSinceSync = (Date.now() - lastSync.getTime()) / (1000 * 60 * 60);
-        if (hoursSinceSync > 24) {
-          return <Clock className="w-4 h-4 text-yellow-500" title="Sync outdated" />;
-        }
-        return <CheckCircle className="w-4 h-4 text-green-500" title="AD Synced" />;
-      }
-      return <Cloud className="w-4 h-4 text-blue-500" title="AD User" />;
-    }
-    return <Database className="w-4 h-4 text-gray-500" title="Local User" />;
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Clear all filters function
+  const clearAllFilters = () => {
+    setFilters({
+      search: "",
+      role: "",
+      department: "",
+      status: "",
+      sync_source: ""
+    });
   };
+
+  // Get sync status icon function
+  const getSyncStatusIcon = (syncSource: string) => {
+    if (syncSource === 'ad') {
+      return <Users className="w-4 h-4 text-blue-500" title="Active Directory" />;
+    }
+    return <User className="w-4 h-4 text-gray-500" title="Local User" />;
+  };
+
 
   if (isLoading) {
     return (
@@ -547,26 +568,17 @@ export default function UsersPage() {
   }
 
   return (
+    <EnhancedErrorBoundary>
     <div className="p-6 space-y-6">
       {/* Header with Statistics */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">User Directory</h1>
-            <p className="text-gray-600">Manage system users and Active Directory integration</p>
+            <p className="text-gray-600">Manage system users and permissions</p>
           </div>
           <div className="flex items-center space-x-2">
-            {adSyncStatus?.enabled && (
-              <Button
-                onClick={() => adSyncMutation.mutate()}
-                disabled={adSyncMutation.isPending}
-                variant="outline"
-                size="sm"
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                {adSyncMutation.isPending ? "Syncing..." : "Sync AD"}
-              </Button>
-            )}
+
             <div>
               <input
                 type="file"
@@ -655,36 +667,7 @@ export default function UsersPage() {
           </Card>
         </div>
 
-        {/* AD Sync Status */}
-        {adSyncStatus?.enabled && (
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className={`w-3 h-3 rounded-full ${
-                    adSyncStatus.sync_status === 'success' ? 'bg-green-500' :
-                    adSyncStatus.sync_status === 'error' ? 'bg-red-500' : 'bg-yellow-500'
-                  }`} />
-                  <div>
-                    <p className="font-medium">Active Directory Sync Status</p>
-                    <p className="text-sm text-gray-600">
-                      Last sync: {adSyncStatus.last_sync ? 
-                        formatDistanceToNow(new Date(adSyncStatus.last_sync), { addSuffix: true }) : 
-                        'Never'
-                      }
-                    </p>
-                  </div>
-                </div>
-                <Badge variant={
-                  adSyncStatus.sync_status === 'success' ? 'default' :
-                  adSyncStatus.sync_status === 'error' ? 'destructive' : 'secondary'
-                }>
-                  {adSyncStatus.sync_status}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+
       </div>
 
       {/* Filters and Search */}
@@ -715,7 +698,8 @@ export default function UsersPage() {
               </SelectContent>
             </Select>
 
-            <Select value={syncSourceFilter} onValueChange={setSyncSourceFilter}>
+            {/* REMOVED AD Sync Source Filter */}
+            {/* <Select value={syncSourceFilter} onValueChange={setSyncSourceFilter}>
               <SelectTrigger className="w-32">
                 <SelectValue placeholder="Source" />
               </SelectTrigger>
@@ -724,7 +708,7 @@ export default function UsersPage() {
                 <SelectItem value="ad">AD Synced</SelectItem>
                 <SelectItem value="local">Local Only</SelectItem>
               </SelectContent>
-            </Select>
+            </Select> */}
 
             <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
               <SelectTrigger className="w-40">
@@ -898,9 +882,9 @@ export default function UsersPage() {
                     </td>
                     <td className="p-2">
                       <div className="flex items-center space-x-1">
-                        {getSyncStatusIcon(user)}
+                        {getUserSourceIcon(user)}
                         <span className="text-sm">
-                          {user.ad_synced ? 'AD' : 'Local'}
+                          Local
                         </span>
                       </div>
                     </td>
@@ -1120,7 +1104,7 @@ export default function UsersPage() {
             </Button>
             <Button 
               onClick={handleCreateUser}
-              disabled={createUserMutation.isPending || !newUser.first_name || !newUser.email || !newUser.password}
+              disabled={createUserMutation.isPending || !newUser.first_name || !newUser.email || !newUser.password || !newUser.role}
             >
               {createUserMutation.isPending ? "Creating..." : "Create User"}
             </Button>
@@ -1147,14 +1131,12 @@ export default function UsersPage() {
                   <h3 className="text-xl font-semibold">{selectedUser.name}</h3>
                   <p className="text-gray-600">{selectedUser.email}</p>
                   <div className="flex items-center space-x-2 mt-1">
-                    <Badge variant={selectedUser.is_active ? 'default' : 'secondary'}>
-                      {selectedUser.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
-                    {getSyncStatusIcon(selectedUser)}
-                    <span className="text-sm text-gray-600">
-                      {selectedUser.ad_synced ? 'AD Synced' : 'Local User'}
-                    </span>
-                  </div>
+                      <Badge variant={selectedUser.is_active ? 'default' : 'secondary'}>
+                        {selectedUser.is_active ? 'Active' : 'Inactive'}
+                      </Badge>
+                      {getUserSourceIcon(selectedUser)}
+                      <span className="text-sm text-gray-600">Local User</span>
+                    </div>
                 </div>
               </div>
 
@@ -1359,5 +1341,6 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </EnhancedErrorBoundary>
   );
 }

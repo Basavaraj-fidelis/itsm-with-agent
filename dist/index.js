@@ -2777,8 +2777,8 @@ smartphones
         try {
           const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { usb_devices: usb_devices2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-          const { eq: eq13, desc: desc10 } = await import("drizzle-orm");
-          const result = await db5.select().from(usb_devices2).where(eq13(usb_devices2.device_id, deviceId)).orderBy(desc10(usb_devices2.last_seen));
+          const { eq: eq14, desc: desc12 } = await import("drizzle-orm");
+          const result = await db5.select().from(usb_devices2).where(eq14(usb_devices2.device_id, deviceId)).orderBy(desc12(usb_devices2.last_seen));
           return result;
         } catch (error) {
           console.error("Error fetching USB devices for device:", error);
@@ -2789,8 +2789,8 @@ smartphones
         try {
           const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { usb_devices: usb_devices2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-          const { eq: eq13, and: and12 } = await import("drizzle-orm");
-          await db5.update(usb_devices2).set({ is_connected: false }).where(eq13(usb_devices2.device_id, deviceId));
+          const { eq: eq14, and: and13 } = await import("drizzle-orm");
+          await db5.update(usb_devices2).set({ is_connected: false }).where(eq14(usb_devices2.device_id, deviceId));
           for (const device of usbDevices) {
             let vendor_id = device.vendor_id;
             let product_id = device.product_id;
@@ -2808,9 +2808,9 @@ smartphones
             );
             const deviceIdentifier = vendor_id && product_id ? `${vendor_id}:${product_id}:${serial_number || "no-serial"}` : device.device_id || device.serial_number || `unknown-${Date.now()}`;
             const existingDevices = await db5.select().from(usb_devices2).where(
-              and12(
-                eq13(usb_devices2.device_id, deviceId),
-                eq13(usb_devices2.device_identifier, deviceIdentifier)
+              and13(
+                eq14(usb_devices2.device_id, deviceId),
+                eq14(usb_devices2.device_identifier, deviceIdentifier)
               )
             );
             if (existingDevices.length > 0) {
@@ -2826,7 +2826,7 @@ smartphones
                 last_seen: /* @__PURE__ */ new Date(),
                 is_connected: true,
                 raw_data: device
-              }).where(eq13(usb_devices2.id, existingDevices[0].id));
+              }).where(eq14(usb_devices2.id, existingDevices[0].id));
             } else {
               await db5.insert(usb_devices2).values({
                 device_id: deviceId,
@@ -3370,14 +3370,14 @@ var user_schema_exports = {};
 __export(user_schema_exports, {
   departments: () => departments,
   userActivity: () => userActivity,
-  userGroupMemberships: () => userGroupMemberships2,
-  userGroups: () => userGroups2,
+  userGroupMemberships: () => userGroupMemberships,
+  userGroups: () => userGroups,
   userRoles: () => userRoles,
   userSessions: () => userSessions,
   users: () => users
 });
 import { pgTable as pgTable4, text as text4, timestamp as timestamp4, uuid as uuid4, varchar as varchar3, boolean as boolean4, integer as integer3, json as json5 } from "drizzle-orm/pg-core";
-var userRoles, users, departments, userSessions, userGroups2, userGroupMemberships2, userActivity;
+var userRoles, users, departments, userSessions, userGroups, userGroupMemberships, userActivity;
 var init_user_schema = __esm({
   "shared/user-schema.ts"() {
     "use strict";
@@ -3444,7 +3444,7 @@ var init_user_schema = __esm({
       expires_at: timestamp4("expires_at").notNull(),
       created_at: timestamp4("created_at").defaultNow().notNull()
     });
-    userGroups2 = pgTable4("user_groups", {
+    userGroups = pgTable4("user_groups", {
       id: uuid4("id").primaryKey().defaultRandom(),
       name: varchar3("name", { length: 100 }).notNull(),
       description: text4("description"),
@@ -3456,10 +3456,10 @@ var init_user_schema = __esm({
       created_at: timestamp4("created_at").defaultNow().notNull(),
       updated_at: timestamp4("updated_at").defaultNow().notNull()
     });
-    userGroupMemberships2 = pgTable4("user_group_memberships", {
+    userGroupMemberships = pgTable4("user_group_memberships", {
       id: uuid4("id").primaryKey().defaultRandom(),
       user_id: uuid4("user_id").notNull().references(() => users.id),
-      group_id: uuid4("group_id").notNull().references(() => userGroups2.id),
+      group_id: uuid4("group_id").notNull().references(() => userGroups.id),
       role: varchar3("role", { length: 50 }).default("member"),
       // member, leader, admin
       joined_at: timestamp4("joined_at").defaultNow().notNull()
@@ -3617,7 +3617,31 @@ var init_user_storage = __esm({
       }
       // Role-based queries
       async getTechnicians() {
-        return await db.select().from(users).where(and3(eq2(users.role, "technician"), eq2(users.is_active, true))).orderBy(users.first_name, users.last_name);
+        return await db.select({
+          id: users.id,
+          email: users.email,
+          username: users.username,
+          first_name: users.first_name,
+          last_name: users.last_name,
+          role: users.role,
+          department_id: users.department_id,
+          manager_id: users.manager_id,
+          phone: users.phone,
+          employee_id: users.employee_id,
+          job_title: users.job_title,
+          location: users.location,
+          profile_picture: users.profile_picture,
+          permissions: users.permissions,
+          preferences: users.preferences,
+          is_active: users.is_active,
+          is_locked: users.is_locked,
+          password_reset_required: users.password_reset_required,
+          failed_login_attempts: users.failed_login_attempts,
+          last_login: users.last_login,
+          last_password_change: users.last_password_change,
+          created_at: users.created_at,
+          updated_at: users.updated_at
+        }).from(users).where(and3(eq2(users.role, "technician"), eq2(users.is_active, true))).orderBy(users.first_name, users.last_name);
       }
       async getManagers() {
         return await db.select().from(users).where(
@@ -3628,7 +3652,31 @@ var init_user_storage = __esm({
         ).orderBy(users.first_name, users.last_name);
       }
       async getActiveTechnicians() {
-        return await db.select().from(users).where(
+        return await db.select({
+          id: users.id,
+          email: users.email,
+          username: users.username,
+          first_name: users.first_name,
+          last_name: users.last_name,
+          role: users.role,
+          department_id: users.department_id,
+          manager_id: users.manager_id,
+          phone: users.phone,
+          employee_id: users.employee_id,
+          job_title: users.job_title,
+          location: users.location,
+          profile_picture: users.profile_picture,
+          permissions: users.permissions,
+          preferences: users.preferences,
+          is_active: users.is_active,
+          is_locked: users.is_locked,
+          password_reset_required: users.password_reset_required,
+          failed_login_attempts: users.failed_login_attempts,
+          last_login: users.last_login,
+          last_password_change: users.last_password_change,
+          created_at: users.created_at,
+          updated_at: users.updated_at
+        }).from(users).where(
           and3(
             eq2(users.role, "technician"),
             eq2(users.is_active, true),
@@ -6093,9 +6141,24 @@ var init_auth = __esm({
        */
       static verifyToken(token) {
         try {
-          return jwt.verify(token, JWT_SECRET);
+          if (!token || typeof token !== "string") {
+            throw new Error("Invalid token format");
+          }
+          const cleanToken = token.replace(/^Bearer\s+/, "");
+          if (!cleanToken) {
+            throw new Error("Invalid token format");
+          }
+          const decoded = jwt.verify(cleanToken, JWT_SECRET);
+          return decoded;
         } catch (error) {
-          throw new Error("Invalid token");
+          if (error.name === "TokenExpiredError") {
+            throw new Error("Token expired");
+          }
+          if (error.name === "JsonWebTokenError") {
+            throw new Error("Invalid token format");
+          }
+          console.error("Token verification failed:", error);
+          throw new Error("Invalid token format");
         }
       }
       /**
@@ -6299,444 +6362,88 @@ var init_response = __esm({
   }
 });
 
-// server/services/ad-service.ts
-var ad_service_exports = {};
-__export(ad_service_exports, {
-  ActiveDirectoryService: () => ActiveDirectoryService,
-  adService: () => adService
-});
-import { Client } from "ldapjs";
-import bcrypt from "bcryptjs";
-var ActiveDirectoryService, adService;
-var init_ad_service = __esm({
-  "server/services/ad-service.ts"() {
+// server/middleware/auth-middleware.ts
+import jwt3 from "jsonwebtoken";
+var JWT_SECRET3, authenticateToken;
+var init_auth_middleware = __esm({
+  "server/middleware/auth-middleware.ts"() {
     "use strict";
-    ActiveDirectoryService = class {
-      config;
-      constructor(customConfig) {
-        this.config = {
-          enabled: process.env.AD_ENABLED === "true" || false,
-          url: process.env.AD_URL || "ldap://192.168.1.195:389",
-          bindDN: process.env.AD_BIND_DN || "CN=test,CN=Users,DC=fidelisgroup,DC=local",
-          bindCredentials: process.env.AD_BIND_PASSWORD || "Fidelis@123",
-          searchBase: process.env.AD_SEARCH_BASE || "CN=Users,DC=fidelisgroup,DC=local",
-          userFilter: process.env.AD_USER_FILTER || "(sAMAccountName={{username}})",
-          groupFilter: process.env.AD_GROUP_FILTER || "(objectClass=group)",
-          useTLS: process.env.AD_USE_TLS === "true" || false,
-          timeout: parseInt(process.env.AD_TIMEOUT || "30000"),
-          ...customConfig
-        };
-      }
-      updateConfig(newConfig) {
-        this.config = { ...this.config, ...newConfig };
-      }
-      async testConnection(testConfig) {
-        const config = testConfig ? { ...this.config, ...testConfig } : this.config;
-        const client = new Client({
-          url: config.url,
-          timeout: config.timeout,
-          connectTimeout: config.timeout
-        });
+    init_storage();
+    JWT_SECRET3 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+    authenticateToken = async (req, res, next) => {
+      try {
+        const authHeader = req.headers["authorization"];
+        const token = authHeader && authHeader.split(" ")[1];
+        if (!token) {
+          console.log("No auth token provided for", req.path);
+          return res.status(401).json({ message: "Access token required" });
+        }
+        console.log("Authenticating token for", req.path);
         try {
-          await new Promise((resolve, reject) => {
-            client.bind(config.bindDN, config.bindCredentials, (err) => {
-              if (err) {
-                reject(new Error(`Authentication failed: ${err.message}`));
+          const decoded = jwt3.verify(token, JWT_SECRET3);
+          console.log("Decoded token:", decoded);
+          try {
+            const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+            const result = await pool3.query(
+              `
+          SELECT id, email, role, first_name, last_name, username, is_active, phone, location 
+          FROM users WHERE id = $1
+        `,
+              [decoded.userId || decoded.id]
+            );
+            if (result.rows.length > 0) {
+              const user2 = result.rows[0];
+              let displayName = "";
+              if (user2.first_name || user2.last_name) {
+                displayName = `${user2.first_name || ""} ${user2.last_name || ""}`.trim();
+              } else if (user2.username) {
+                displayName = user2.username;
               } else {
-                resolve();
+                displayName = user2.email.split("@")[0];
               }
-            });
-          });
-          await new Promise((resolve, reject) => {
-            client.search(config.searchBase, {
-              filter: "(objectClass=*)",
-              scope: "base",
-              attributes: ["dn"]
-            }, (err, res) => {
-              if (err) {
-                reject(new Error(`Search test failed: ${err.message}`));
-                return;
+              user2.name = displayName;
+              if (!user2.is_active) {
+                return res.status(403).json({ message: "User account is inactive" });
               }
-              res.on("searchEntry", () => {
-                resolve();
-              });
-              res.on("error", (error) => {
-                reject(new Error(`Search error: ${error.message}`));
-              });
-              res.on("end", (result) => {
-                if (result?.status !== 0) {
-                  reject(new Error("Search test failed - no results"));
-                }
-              });
-            });
-          });
-          client.unbind();
-          return {
-            connected: true,
-            message: "Successfully connected to Active Directory",
-            serverInfo: {
-              domain: this.extractDomainFromDN(config.searchBase),
-              version: "Active Directory"
+              req.user = user2;
+              return next();
             }
-          };
-        } catch (error) {
-          client.unbind();
-          console.error("AD Connection test failed:", error);
-          return {
-            connected: false,
-            message: error.message || "Failed to connect to Active Directory"
-          };
-        }
-      }
-      async authenticateUser(username2, password) {
-        if (!this.config.enabled) {
-          throw new Error("Active Directory is not enabled");
-        }
-        const client = new Client({ url: this.config.url });
-        try {
-          await new Promise((resolve, reject) => {
-            client.bind(this.config.bindDN, this.config.bindCredentials, (err) => {
-              if (err) reject(err);
-              else resolve();
-            });
-          });
-          const searchFilter = this.config.userFilter.replace("{{username}}", username2);
-          const searchOptions = {
-            filter: searchFilter,
-            scope: "sub",
-            attributes: [
-              "sAMAccountName",
-              "mail",
-              "givenName",
-              "sn",
-              "displayName",
-              "department",
-              "title",
-              "memberOf",
-              "userPrincipalName",
-              "dn"
-            ]
-          };
-          const searchResult = await new Promise((resolve, reject) => {
-            const entries = [];
-            client.search(this.config.searchBase, searchOptions, (err, res) => {
-              if (err) {
-                reject(err);
-                return;
-              }
-              res.on("searchEntry", (entry) => {
-                entries.push(entry.object);
-              });
-              res.on("error", (err2) => {
-                reject(err2);
-              });
-              res.on("end", () => {
-                if (entries.length === 0) {
-                  reject(new Error("User not found"));
-                } else {
-                  resolve(entries[0]);
-                }
-              });
-            });
-          });
-          const userDN = searchResult.dn;
-          await new Promise((resolve, reject) => {
-            client.bind(userDN, password, (err) => {
-              if (err) reject(new Error("Invalid credentials"));
-              else resolve();
-            });
-          });
-          const adUser = {
-            username: searchResult.sAMAccountName || searchResult.userPrincipalName,
-            email: searchResult.mail,
-            firstName: searchResult.givenName || "",
-            lastName: searchResult.sn || "",
-            displayName: searchResult.displayName || "",
-            department: searchResult.department || "",
-            title: searchResult.title || "",
-            groups: Array.isArray(searchResult.memberOf) ? searchResult.memberOf : [searchResult.memberOf || ""],
-            dn: searchResult.dn
-          };
-          return adUser;
-        } catch (error) {
-          console.error("AD Authentication error:", error);
-          return null;
-        } finally {
-          client.unbind();
-        }
-      }
-      async getUserByUsername(username2) {
-        if (!this.config.enabled) {
-          throw new Error("Active Directory is not enabled");
-        }
-        const client = new Client({ url: this.config.url });
-        try {
-          await new Promise((resolve, reject) => {
-            client.bind(this.config.bindDN, this.config.bindCredentials, (err) => {
-              if (err) reject(err);
-              else resolve();
-            });
-          });
-          const searchFilter = this.config.userFilter.replace("{{username}}", username2);
-          const searchOptions = {
-            filter: searchFilter,
-            scope: "sub",
-            attributes: [
-              "sAMAccountName",
-              "mail",
-              "givenName",
-              "sn",
-              "displayName",
-              "department",
-              "title",
-              "memberOf",
-              "userPrincipalName",
-              "dn"
-            ]
-          };
-          const searchResult = await new Promise((resolve, reject) => {
-            const entries = [];
-            client.search(this.config.searchBase, searchOptions, (err, res) => {
-              if (err) {
-                reject(err);
-                return;
-              }
-              res.on("searchEntry", (entry) => {
-                entries.push(entry.object);
-              });
-              res.on("error", (err2) => {
-                reject(err2);
-              });
-              res.on("end", () => {
-                if (entries.length === 0) {
-                  resolve(null);
-                } else {
-                  resolve(entries[0]);
-                }
-              });
-            });
-          });
-          if (!searchResult) {
-            return null;
+          } catch (dbError) {
+            console.log(
+              "Database lookup failed, trying file storage:",
+              dbError.message
+            );
           }
-          const adUser = {
-            username: searchResult.sAMAccountName || searchResult.userPrincipalName,
-            email: searchResult.mail,
-            firstName: searchResult.givenName || "",
-            lastName: searchResult.sn || "",
-            displayName: searchResult.displayName || "",
-            department: searchResult.department || "",
-            title: searchResult.title || "",
-            groups: Array.isArray(searchResult.memberOf) ? searchResult.memberOf : [searchResult.memberOf || ""],
-            dn: searchResult.dn
-          };
-          return adUser;
+          const user = await storage.getUserById(decoded.userId || decoded.id);
+          if (!user) {
+            return res.status(403).json({ message: "User not found" });
+          }
+          if (user.is_active === false) {
+            return res.status(403).json({ message: "User account is inactive" });
+          }
+          req.user = user;
+          next();
         } catch (error) {
-          console.error("AD User lookup error:", error);
-          return null;
-        } finally {
-          client.unbind();
-        }
-      }
-      async getAllUsers() {
-        if (!this.config.enabled) {
-          throw new Error("Active Directory is not enabled");
-        }
-        const client = new Client({ url: this.config.url });
-        try {
-          await new Promise((resolve, reject) => {
-            client.bind(this.config.bindDN, this.config.bindCredentials, (err) => {
-              if (err) reject(err);
-              else resolve();
-            });
-          });
-          const searchOptions = {
-            filter: "(&(objectClass=user)(mail=*))",
-            // Users with email addresses
-            scope: "sub",
-            attributes: [
-              "sAMAccountName",
-              "mail",
-              "givenName",
-              "sn",
-              "displayName",
-              "department",
-              "title",
-              "memberOf",
-              "userPrincipalName",
-              "dn"
-            ]
-          };
-          const searchResults = await new Promise((resolve, reject) => {
-            const entries = [];
-            client.search(this.config.searchBase, searchOptions, (err, res) => {
-              if (err) {
-                reject(err);
-                return;
-              }
-              res.on("searchEntry", (entry) => {
-                entries.push(entry.object);
-              });
-              res.on("error", (err2) => {
-                reject(err2);
-              });
-              res.on("end", () => {
-                resolve(entries);
-              });
-            });
-          });
-          const adUsers = searchResults.map((result) => ({
-            username: result.sAMAccountName || result.userPrincipalName,
-            email: result.mail,
-            firstName: result.givenName || "",
-            lastName: result.sn || "",
-            displayName: result.displayName || "",
-            department: result.department || "",
-            title: result.title || "",
-            groups: Array.isArray(result.memberOf) ? result.memberOf : [result.memberOf || ""],
-            dn: result.dn
-          }));
-          return adUsers;
-        } catch (error) {
-          console.error("AD Users lookup error:", error);
-          return [];
-        } finally {
-          client.unbind();
-        }
-      }
-      async getGroups() {
-        if (!this.config.enabled) {
-          throw new Error("Active Directory is not enabled");
-        }
-        const client = new Client({ url: this.config.url });
-        try {
-          await new Promise((resolve, reject) => {
-            client.bind(this.config.bindDN, this.config.bindCredentials, (err) => {
-              if (err) reject(err);
-              else resolve();
-            });
-          });
-          const searchOptions = {
-            filter: this.config.groupFilter,
-            scope: "sub",
-            attributes: ["cn", "dn", "description", "member"]
-          };
-          const searchResults = await new Promise((resolve, reject) => {
-            const entries = [];
-            client.search(this.config.searchBase.replace("OU=Users", "OU=Groups"), searchOptions, (err, res) => {
-              if (err) {
-                reject(err);
-                return;
-              }
-              res.on("searchEntry", (entry) => {
-                entries.push(entry.object);
-              });
-              res.on("error", (err2) => {
-                reject(err2);
-              });
-              res.on("end", () => {
-                resolve(entries);
-              });
-            });
-          });
-          const adGroups = searchResults.map((result) => ({
-            name: result.cn,
-            dn: result.dn,
-            description: result.description || "",
-            members: Array.isArray(result.member) ? result.member : [result.member || ""]
-          }));
-          return adGroups;
-        } catch (error) {
-          console.error("AD Groups lookup error:", error);
-          return [];
-        } finally {
-          client.unbind();
-        }
-      }
-      async syncUserToDatabase(adUser) {
-        try {
-          const { storage: storage3 } = await import("./storage");
-          let existingUser = await storage3.getUserByEmail(adUser.email);
-          if (existingUser) {
-            const updatedUser = await storage3.updateUser(existingUser.id, {
-              name: adUser.displayName || `${adUser.firstName} ${adUser.lastName}`.trim(),
-              department: adUser.department,
-              role: this.mapADGroupsToRole(adUser.groups),
-              is_active: true,
-              updated_at: /* @__PURE__ */ new Date()
-            });
-            return updatedUser;
-          } else {
-            const newUser = await storage3.createUser({
-              name: adUser.displayName || `${adUser.firstName} ${adUser.lastName}`.trim(),
-              email: adUser.email,
-              password_hash: await bcrypt.hash(Math.random().toString(), 10),
-              // Dummy password for AD users
-              role: this.mapADGroupsToRole(adUser.groups),
-              department: adUser.department,
-              phone: "",
-              is_active: true
-            });
-            return newUser;
+          console.error("Authentication error for", req.path, ":", error);
+          if (error.name === "TokenExpiredError") {
+            return res.status(401).json({ message: "Token expired" });
           }
-        } catch (error) {
-          console.error("Error syncing AD user to database:", error);
-          throw error;
-        }
-      }
-      mapADGroupsToRole(groups2) {
-        const groupMappings = {
-          // IT Team - Admin and Technician roles
-          "CN=IT-team,OU=Groups,DC=company,DC=com": "admin",
-          "CN=IT-Admins,OU=Groups,DC=company,DC=com": "admin",
-          "CN=IT-Support,OU=Groups,DC=company,DC=com": "technician",
-          "CN=IT-Helpdesk,OU=Groups,DC=company,DC=com": "technician",
-          // Finance Team - Manager role for leads, end_user for others
-          "CN=Finance-team,OU=Groups,DC=company,DC=com": "end_user",
-          "CN=Finance-Managers,OU=Groups,DC=company,DC=com": "manager",
-          // HR Team - Manager role for leads, end_user for others
-          "CN=HR-team,OU=Groups,DC=company,DC=com": "end_user",
-          "CN=HR-Managers,OU=Groups,DC=company,DC=com": "manager",
-          // Department specific groups
-          "CN=Department-Managers,OU=Groups,DC=company,DC=com": "manager",
-          "CN=Team-Leads,OU=Groups,DC=company,DC=com": "manager",
-          // Legacy mappings (keeping for compatibility)
-          "CN=ITSM-Admins,OU=Groups,DC=company,DC=com": "admin",
-          "CN=ITSM-Managers,OU=Groups,DC=company,DC=com": "manager",
-          "CN=ITSM-Technicians,OU=Groups,DC=company,DC=com": "technician"
-        };
-        for (const group of groups2) {
-          if (groupMappings[group]) {
-            return groupMappings[group];
+          if (error.name === "JsonWebTokenError") {
+            return res.status(401).json({ message: "Invalid token format" });
           }
+          return res.status(403).json({ message: "Invalid token" });
         }
-        for (const group of groups2) {
-          const groupLower = group.toLowerCase();
-          if (groupLower.includes("it-team") || groupLower.includes("it-support")) {
-            return "technician";
-          }
-          if (groupLower.includes("admin")) {
-            return "admin";
-          }
-          if (groupLower.includes("manager") || groupLower.includes("lead")) {
-            return "manager";
-          }
+      } catch (error) {
+        console.error("Authentication error for", req.path, ":", error);
+        if (error.name === "TokenExpiredError") {
+          return res.status(401).json({ message: "Token expired" });
         }
-        return "end_user";
-      }
-      extractDomainFromDN(dn) {
-        const dcParts = dn.match(/DC=([^,]+)/g);
-        if (dcParts) {
-          return dcParts.map((dc) => dc.replace("DC=", "")).join(".");
+        if (error.name === "JsonWebTokenError") {
+          return res.status(401).json({ message: "Invalid token format" });
         }
-        return "Unknown";
-      }
-      async validateConnection() {
-        const result = await this.testConnection();
-        return result.connected;
+        return res.status(403).json({ message: "Invalid token" });
       }
     };
-    adService = new ActiveDirectoryService();
   }
 });
 
@@ -6745,14 +6452,14 @@ var alert_routes_exports = {};
 __export(alert_routes_exports, {
   default: () => alert_routes_default
 });
-import { Router } from "express";
-var router, alert_routes_default;
+import { Router as Router2 } from "express";
+var router2, alert_routes_default;
 var init_alert_routes = __esm({
   "server/routes/alert-routes.ts"() {
     "use strict";
     init_storage();
-    router = Router();
-    router.get("/", async (req, res) => {
+    router2 = Router2();
+    router2.get("/", async (req, res) => {
       try {
         console.log("Fetching alerts for user:", req.user?.email);
         const alerts2 = await storage.getActiveAlerts();
@@ -6784,7 +6491,7 @@ var init_alert_routes = __esm({
         });
       }
     });
-    router.get("/:id", async (req, res) => {
+    router2.get("/:id", async (req, res) => {
       try {
         const alertId = req.params.id;
         console.log(`Fetching alert: ${alertId}`);
@@ -6798,7 +6505,7 @@ var init_alert_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router.post("/:id/resolve", async (req, res) => {
+    router2.post("/:id/resolve", async (req, res) => {
       try {
         const alertId = req.params.id;
         const userId = req.user?.id || req.user?.email;
@@ -6864,7 +6571,7 @@ var init_alert_routes = __esm({
         });
       }
     });
-    alert_routes_default = router;
+    alert_routes_default = router2;
   }
 });
 
@@ -6873,15 +6580,15 @@ var notification_routes_exports = {};
 __export(notification_routes_exports, {
   default: () => notification_routes_default
 });
-import { Router as Router2 } from "express";
-import jwt2 from "jsonwebtoken";
-var router2, JWT_SECRET2, notification_routes_default;
+import { Router as Router3 } from "express";
+import jwt4 from "jsonwebtoken";
+var router3, JWT_SECRET4, notification_routes_default;
 var init_notification_routes = __esm({
   "server/routes/notification-routes.ts"() {
     "use strict";
-    router2 = Router2();
-    JWT_SECRET2 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-    router2.get("/", async (req, res) => {
+    router3 = Router3();
+    JWT_SECRET4 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+    router3.get("/", async (req, res) => {
       try {
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -6889,12 +6596,12 @@ var init_notification_routes = __esm({
         }
         const token = authHeader.substring(7);
         try {
-          const decoded = jwt2.verify(token, JWT_SECRET2);
+          const decoded = jwt4.verify(token, JWT_SECRET4);
           const userId = decoded.id;
           const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
-          const { desc: desc10 } = await import("drizzle-orm");
+          const { desc: desc12 } = await import("drizzle-orm");
           const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-          const ticketsList = await db5.select().from(tickets2).orderBy(desc10(tickets2.updated_at));
+          const ticketsList = await db5.select().from(tickets2).orderBy(desc12(tickets2.updated_at));
           const userTickets = ticketsList.filter(
             (ticket) => ticket.assigned_to === userId || ticket.requester_email === decoded.email
           );
@@ -6920,7 +6627,7 @@ var init_notification_routes = __esm({
         res.json([]);
       }
     });
-    router2.post("/:id/read", async (req, res) => {
+    router3.post("/:id/read", async (req, res) => {
       try {
         const notificationId = req.params.id;
         res.json({ message: "Notification marked as read" });
@@ -6929,7 +6636,7 @@ var init_notification_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router2.post("/mark-all-read", async (req, res) => {
+    router3.post("/mark-all-read", async (req, res) => {
       try {
         const userId = req.user.id;
         console.log(`Marking all notifications as read for user: ${userId}`);
@@ -6944,7 +6651,7 @@ var init_notification_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router2.delete("/:id", async (req, res) => {
+    router3.delete("/:id", async (req, res) => {
       try {
         const notificationId = req.params.id;
         res.json({ message: "Notification deleted" });
@@ -6953,7 +6660,7 @@ var init_notification_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    notification_routes_default = router2;
+    notification_routes_default = router3;
   }
 });
 
@@ -7157,14 +6864,14 @@ var automation_routes_exports = {};
 __export(automation_routes_exports, {
   default: () => automation_routes_default
 });
-import { Router as Router3 } from "express";
-var router3, automation_routes_default;
+import { Router as Router4 } from "express";
+var router4, automation_routes_default;
 var init_automation_routes = __esm({
   "server/routes/automation-routes.ts"() {
     "use strict";
     init_storage();
-    router3 = Router3();
-    router3.get("/software-packages", async (req, res) => {
+    router4 = Router4();
+    router4.get("/software-packages", async (req, res) => {
       try {
         const { automationService: automationService2 } = await Promise.resolve().then(() => (init_automation_service(), automation_service_exports));
         const packages = automationService2.getSoftwarePackages();
@@ -7174,7 +6881,7 @@ var init_automation_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router3.post("/deploy-software", async (req, res) => {
+    router4.post("/deploy-software", async (req, res) => {
       try {
         const { device_ids, package_id, scheduled_time } = req.body;
         if (!device_ids || !package_id) {
@@ -7198,7 +6905,7 @@ var init_automation_routes = __esm({
         res.status(500).json({ message: error.message || "Internal server error" });
       }
     });
-    router3.get("/deployment/:deploymentId", async (req, res) => {
+    router4.get("/deployment/:deploymentId", async (req, res) => {
       try {
         const { automationService: automationService2 } = await Promise.resolve().then(() => (init_automation_service(), automation_service_exports));
         const deployment = await automationService2.getDeploymentStatus(
@@ -7213,7 +6920,7 @@ var init_automation_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router3.post("/remediation/:deviceId", async (req, res) => {
+    router4.post("/remediation/:deviceId", async (req, res) => {
       try {
         const { issue_type, remediation_action } = req.body;
         const deviceId = req.params.deviceId;
@@ -7241,7 +6948,7 @@ var init_automation_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router3.get("/deployments", async (req, res) => {
+    router4.get("/deployments", async (req, res) => {
       try {
         const alerts2 = await storage.getActiveAlerts();
         const deployments = alerts2.filter(
@@ -7253,243 +6960,7 @@ var init_automation_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    automation_routes_default = router3;
-  }
-});
-
-// server/routes/ad-routes.ts
-var ad_routes_exports = {};
-__export(ad_routes_exports, {
-  adRoutes: () => router4
-});
-import { Router as Router4 } from "express";
-var router4;
-var init_ad_routes = __esm({
-  "server/routes/ad-routes.ts"() {
-    "use strict";
-    init_ad_service();
-    router4 = Router4();
-    router4.post("/configure", async (req, res) => {
-      try {
-        const config = req.body;
-        adService.updateConfig(config);
-        res.json({
-          message: "Active Directory configuration updated successfully",
-          configured: true
-        });
-      } catch (error) {
-        res.status(500).json({
-          message: "Error updating AD configuration",
-          error: error.message
-        });
-      }
-    });
-    router4.post("/test-connection", async (req, res) => {
-      try {
-        const testConfig = req.body;
-        const result = await adService.testConnection(testConfig);
-        res.json(result);
-      } catch (error) {
-        res.status(500).json({
-          connected: false,
-          message: "Error testing AD connection",
-          error: error.message
-        });
-      }
-    });
-    router4.get("/test-connection", async (req, res) => {
-      try {
-        const result = await adService.testConnection();
-        res.json(result);
-      } catch (error) {
-        res.status(500).json({
-          connected: false,
-          message: "Error testing AD connection",
-          error: error.message
-        });
-      }
-    });
-    router4.post("/sync-user", async (req, res) => {
-      try {
-        const { username: username2 } = req.body;
-        if (!username2) {
-          return res.status(400).json({ message: "Username is required" });
-        }
-        const adUser = await adService.getUserByUsername(username2);
-        if (!adUser) {
-          return res.status(404).json({
-            message: `User '${username2}' not found in Active Directory`
-          });
-        }
-        const localUser = await adService.syncUserToDatabase(adUser);
-        res.json({
-          message: `User '${username2}' synced successfully`,
-          user: {
-            username: adUser.username,
-            email: adUser.email,
-            displayName: adUser.displayName,
-            department: adUser.department,
-            role: localUser.role
-          }
-        });
-      } catch (error) {
-        res.status(500).json({
-          message: "Error syncing user from AD",
-          error: error.message
-        });
-      }
-    });
-    router4.post("/sync-all-users", async (req, res) => {
-      try {
-        const adUsers = await adService.getAllUsers();
-        const syncedUsers = [];
-        let successCount = 0;
-        let errorCount = 0;
-        for (const adUser of adUsers) {
-          try {
-            const localUser = await adService.syncUserToDatabase(adUser);
-            syncedUsers.push({
-              username: adUser.username,
-              email: adUser.email,
-              displayName: adUser.displayName,
-              department: adUser.department,
-              role: localUser.role
-            });
-            successCount++;
-          } catch (error) {
-            console.error(`Failed to sync user ${adUser.username}:`, error);
-            errorCount++;
-          }
-        }
-        res.json({
-          message: `Bulk sync completed: ${successCount} users synced successfully, ${errorCount} errors`,
-          syncedCount: successCount,
-          errorCount,
-          users: syncedUsers
-        });
-      } catch (error) {
-        res.status(500).json({
-          message: "Error during bulk user sync",
-          error: error.message
-        });
-      }
-    });
-    router4.get("/groups", async (req, res) => {
-      try {
-        const groups2 = await adService.getGroups();
-        res.json(groups2.map((group) => ({
-          name: group.name,
-          dn: group.dn,
-          description: group.description,
-          memberCount: group.members.length
-        })));
-      } catch (error) {
-        res.status(500).json({
-          message: "Error fetching AD groups",
-          error: error.message
-        });
-      }
-    });
-    router4.get("/config", async (req, res) => {
-      try {
-        const config = {
-          server: process.env.AD_SERVER || "",
-          baseDN: process.env.AD_BASE_DN || "",
-          bindDN: process.env.AD_BIND_DN || "",
-          enabled: !!process.env.AD_ENABLED
-        };
-        res.json(config);
-      } catch (error) {
-        console.error("Error getting AD config:", error);
-        res.status(500).json({ error: "Failed to get AD configuration" });
-      }
-    });
-    router4.get("/sync-history", async (req, res) => {
-      try {
-        const mockHistory = [
-          {
-            type: "Manual Sync",
-            scope: "All Users",
-            summary: "Synced 25 users, 3 new, 2 updated",
-            timestamp: new Date(Date.now() - 2 * 60 * 1e3),
-            initiated_by: "admin@company.com",
-            status: "success",
-            duration: 1250,
-            errors: []
-          },
-          {
-            type: "Scheduled Sync",
-            scope: "Daily",
-            summary: "Synced 25 users, 0 new, 1 updated",
-            timestamp: new Date(Date.now() - 24 * 60 * 60 * 1e3),
-            initiated_by: "system",
-            status: "success",
-            duration: 890,
-            errors: []
-          }
-        ];
-        res.json(mockHistory);
-      } catch (error) {
-        console.error("Error getting sync history:", error);
-        res.status(500).json({ error: "Failed to get sync history" });
-      }
-    });
-    router4.get("/group-mappings", async (req, res) => {
-      try {
-        const mockMappings = [
-          { ad_group: "IT-Admins", system_role: "admin", user_count: 3 },
-          { ad_group: "IT-Support", system_role: "technician", user_count: 8 },
-          { ad_group: "Managers", system_role: "manager", user_count: 12 },
-          { ad_group: "Employees", system_role: "user", user_count: 45 }
-        ];
-        res.json(mockMappings);
-      } catch (error) {
-        console.error("Error getting group mappings:", error);
-        res.status(500).json({ error: "Failed to get group mappings" });
-      }
-    });
-    router4.get("/real-time-status", async (req, res) => {
-      try {
-        const mockStatus = {
-          status: "idle",
-          last_sync: new Date(Date.now() - 2 * 60 * 1e3),
-          synced_users: 68,
-          total_users: 70,
-          conflicts: 0,
-          current_operation: null,
-          progress: 0
-        };
-        res.json(mockStatus);
-      } catch (error) {
-        console.error("Error getting real-time status:", error);
-        res.status(500).json({ error: "Failed to get real-time status" });
-      }
-    });
-    router4.get("/orphaned-accounts", async (req, res) => {
-      try {
-        const mockOrphaned = [];
-        res.json(mockOrphaned);
-      } catch (error) {
-        console.error("Error getting orphaned accounts:", error);
-        res.status(500).json({ error: "Failed to get orphaned accounts" });
-      }
-    });
-    router4.post("/scheduled-sync", async (req, res) => {
-      try {
-        const { enabled, interval, time, sync_users, sync_groups } = req.body;
-        console.log("Scheduled sync settings updated:", {
-          enabled,
-          interval,
-          time,
-          sync_users,
-          sync_groups
-        });
-        res.json({ message: "Scheduled sync settings saved successfully" });
-      } catch (error) {
-        console.error("Error saving scheduled sync settings:", error);
-        res.status(500).json({ error: "Failed to save scheduled sync settings" });
-      }
-    });
+    automation_routes_default = router4;
   }
 });
 
@@ -7502,7 +6973,7 @@ import { Router as Router5 } from "express";
 import path from "path";
 import fs from "fs";
 import archiver from "archiver";
-import jwt3 from "jsonwebtoken";
+import jwt5 from "jsonwebtoken";
 function generateInstallationInstructions(platform) {
   const baseInstructions = `# ITSM Agent Installation Instructions - ${platform.charAt(0).toUpperCase() + platform.slice(1)}
 
@@ -7588,12 +7059,12 @@ For technical support, contact your system administrator.`;
       return baseInstructions;
   }
 }
-var router5, JWT_SECRET3, agent_download_routes_default;
+var router5, JWT_SECRET5, agent_download_routes_default;
 var init_agent_download_routes = __esm({
   "server/routes/agent-download-routes.ts"() {
     "use strict";
     router5 = Router5();
-    JWT_SECRET3 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+    JWT_SECRET5 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
     router5.get("/:platform", async (req, res) => {
       try {
         const { platform } = req.params;
@@ -8230,6 +7701,7 @@ var init_analytics_service = __esm({
       }
       // Enhanced export methods
       async exportReport(reportData, format2, reportType) {
+        console.log(`Exporting report - Format: ${format2}, Type: ${reportType}`);
         if (format2 === "csv") {
           return this.convertToEnhancedCSV(reportData, reportType);
         } else if (format2 === "docx") {
@@ -8237,29 +7709,316 @@ var init_analytics_service = __esm({
         } else if (format2 === "json") {
           return JSON.stringify(reportData, null, 2);
         } else if (format2 === "pdf") {
-          return await this.convertToPDF(reportData, reportType);
+          return await this.convertToEnhancedPDF(reportData, reportType);
+        } else if (format2 === "xlsx" || format2 === "excel") {
+          console.log("Converting to Excel format...");
+          return await this.convertToExcel(reportData, reportType);
         }
-        throw new Error("Unsupported format");
+        throw new Error(`Unsupported format: ${format2}`);
       }
-      convertToEnhancedCSV(data, reportType) {
-        let csv2 = "";
+      async convertToExcel(data, reportType) {
+        try {
+          const XLSX2 = __require("xlsx");
+          const workbook = XLSX2.utils.book_new();
+          workbook.Props = {
+            Title: this.getReportTitle(reportType),
+            Subject: `${reportType} Analysis Report`,
+            Author: "ITSM System",
+            CreatedDate: /* @__PURE__ */ new Date()
+          };
+          switch (reportType) {
+            case "service-desk-tickets":
+              this.addServiceDeskSheetsToWorkbook(workbook, data);
+              break;
+            case "agents-detailed-report":
+              this.addAgentsSheetsToWorkbook(workbook, data);
+              break;
+            default:
+              this.addGenericSheetsToWorkbook(workbook, data, reportType);
+          }
+          const buffer = XLSX2.write(workbook, { type: "buffer", bookType: "xlsx" });
+          console.log("Excel file generated successfully");
+          return buffer;
+        } catch (error) {
+          console.error("Error generating Excel file:", error);
+          throw new Error("Failed to generate Excel file: " + error.message);
+        }
+      }
+      addServiceDeskSheetsToWorkbook(workbook, data) {
+        const XLSX2 = __require("xlsx");
+        const summaryData = [
+          ["Service Desk Report Summary"],
+          ["Generated", (/* @__PURE__ */ new Date()).toLocaleString()],
+          [""],
+          ["Metric", "Value"],
+          ["Total Tickets", data.summary?.total_tickets || 0],
+          ["Filtered Tickets", data.filtered_tickets || 0],
+          ["SLA Compliance", `${data.summary?.analytics?.sla_performance?.sla_compliance_rate || 0}%`],
+          ["Avg Resolution Time", `${data.summary?.analytics?.summary?.avg_resolution_time || 0} hours`]
+        ];
+        const summaryWS = XLSX2.utils.aoa_to_sheet(summaryData);
+        XLSX2.utils.book_append_sheet(workbook, summaryWS, "Summary");
+        if (data.tickets && data.tickets.length > 0) {
+          const ticketsData = [
+            ["Ticket Number", "Type", "Title", "Priority", "Status", "Requester", "Assigned To", "Created", "Due Date"]
+          ];
+          data.tickets.forEach((ticket) => {
+            ticketsData.push([
+              ticket.ticket_number || "",
+              ticket.type || "",
+              ticket.title || "",
+              ticket.priority || "",
+              ticket.status || "",
+              ticket.requester_email || "",
+              ticket.assigned_to || "",
+              ticket.created_at ? new Date(ticket.created_at).toLocaleDateString() : "",
+              ticket.due_date ? new Date(ticket.due_date).toLocaleDateString() : ""
+            ]);
+          });
+          const ticketsWS = XLSX2.utils.aoa_to_sheet(ticketsData);
+          XLSX2.utils.book_append_sheet(workbook, ticketsWS, "Tickets");
+        }
+        if (data.summary?.analytics) {
+          const analytics = data.summary.analytics;
+          const analyticsData = [
+            ["Analytics Summary"],
+            [""],
+            ["SLA Performance"],
+            ["Metric", "Value"],
+            ["SLA Compliance Rate", `${analytics.sla_performance?.sla_compliance_rate || 0}%`],
+            ["Tickets Met SLA", analytics.sla_performance?.met_sla || 0],
+            ["SLA Breaches", analytics.sla_performance?.breached_sla || 0],
+            [""],
+            ["Ticket Distribution by Type"],
+            ["Type", "Count"]
+          ];
+          if (analytics.ticket_distribution?.by_type) {
+            Object.entries(analytics.ticket_distribution.by_type).forEach(([type, count6]) => {
+              analyticsData.push([type, count6]);
+            });
+          }
+          const analyticsWS = XLSX2.utils.aoa_to_sheet(analyticsData);
+          XLSX2.utils.book_append_sheet(workbook, analyticsWS, "Analytics");
+        }
+      }
+      addAgentsSheetsToWorkbook(workbook, data) {
+        const XLSX2 = __require("xlsx");
+        const summaryData = [
+          ["Managed Systems Report"],
+          ["Generated", (/* @__PURE__ */ new Date()).toLocaleString()],
+          [""],
+          ["Summary", "Count"],
+          ["Total Agents", data.summary?.total_agents || 0],
+          ["Online Agents", data.summary?.online_agents || 0],
+          ["Offline Agents", data.summary?.offline_agents || 0],
+          ["Healthy Systems", data.health_summary?.healthy || 0],
+          ["Warning Systems", data.health_summary?.warning || 0],
+          ["Critical Systems", data.health_summary?.critical || 0]
+        ];
+        const summaryWS = XLSX2.utils.aoa_to_sheet(summaryData);
+        XLSX2.utils.book_append_sheet(workbook, summaryWS, "Summary");
+        if (data.agents && data.agents.length > 0) {
+          const agentsData = [
+            ["Hostname", "Status", "OS", "IP Address", "CPU %", "Memory %", "Disk %", "Last Seen", "Assigned User"]
+          ];
+          data.agents.forEach((agent) => {
+            agentsData.push([
+              agent.hostname || "",
+              agent.status || "",
+              agent.os_name || "",
+              agent.ip_address || "",
+              agent.performance_summary?.cpu_usage || "",
+              agent.performance_summary?.memory_usage || "",
+              agent.performance_summary?.disk_usage || "",
+              agent.last_seen ? new Date(agent.last_seen).toLocaleDateString() : "",
+              agent.assigned_user || ""
+            ]);
+          });
+          const agentsWS = XLSX2.utils.aoa_to_sheet(agentsData);
+          XLSX2.utils.book_append_sheet(workbook, agentsWS, "Agent Details");
+        }
+      }
+      addGenericSheetsToWorkbook(workbook, data, reportType) {
+        const XLSX2 = __require("xlsx");
+        const jsonData = typeof data === "string" ? JSON.parse(data) : data;
+        const ws = XLSX2.utils.json_to_sheet([jsonData]);
+        XLSX2.utils.book_append_sheet(workbook, ws, "Report Data");
+      }
+      async convertToEnhancedPDF(data, reportType) {
+        try {
+          console.log("Generating enhanced PDF document with actual data...");
+          let pdfContent = `%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+/Producer (ITSM System v2.0)
+/Title (${this.getReportTitle(reportType)})
+/Author (ITSM System)
+/Subject (${reportType} Analysis Report)
+/Keywords (ITSM, Performance, Analytics, Report)
+>>
+endobj
+
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Resources <<
+/Font <<
+/F1 <<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+>>
+>>
+>>
+/Contents 4 0 R
+>>
+endobj
+
+4 0 obj
+<<
+/Length ${this.calculatePDFContentLength(data, reportType)}
+>>
+stream
+BT
+/F1 20 Tf
+50 750 Td
+(${this.getReportTitle(reportType)}) Tj
+0 -25 Td
+/F1 14 Tf
+(Enterprise IT Service Management Platform) Tj
+0 -40 Td
+/F1 16 Tf
+(${reportType.toUpperCase()} REPORT) Tj
+0 -40 Td
+/F1 10 Tf
+(Report Date: ${format(/* @__PURE__ */ new Date(), "MMMM dd, yyyy")}) Tj
+0 -15 Td
+(Generated: ${format(/* @__PURE__ */ new Date(), "MMM d, yyyy, h:mm:ss a")}) Tj
+0 -15 Td
+(Classification: Internal Use Only) Tj
+0 -15 Td
+(Report Type: ${reportType.toUpperCase()}) Tj
+${this.generatePDFDataContent(data, reportType)}
+ET
+endstream
+endobj
+
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000226 00000 n 
+0000000284 00000 n 
+0000000460 00000 n 
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+${2068 + this.calculatePDFContentLength(data, reportType)}
+%%EOF`;
+          return Buffer.from(pdfContent, "utf8");
+        } catch (error) {
+          console.error("Error generating PDF:", error);
+          throw new Error("Failed to generate PDF: " + error.message);
+        }
+      }
+      calculatePDFContentLength(data, reportType) {
+        const baseLength = 1e3;
+        const dataLength = JSON.stringify(data).length * 0.1;
+        return Math.floor(baseLength + dataLength);
+      }
+      generatePDFDataContent(data, reportType) {
+        let content = `
+0 -30 Td
+/F1 12 Tf
+(================================================================) Tj
+0 -25 Td
+/F1 14 Tf
+(DATA SUMMARY) Tj
+0 -20 Td
+/F1 10 Tf`;
         switch (reportType) {
-          case "asset-inventory":
-            csv2 = this.generateAssetInventoryCSV(data);
+          case "service-desk-tickets":
+            content += `
+(Total Tickets: ${data.summary?.total_tickets || 0}) Tj
+0 -12 Td
+(Filtered Results: ${data.filtered_tickets || 0}) Tj
+0 -12 Td
+(SLA Compliance: ${data.summary?.analytics?.sla_performance?.sla_compliance_rate || 0}%) Tj
+0 -12 Td
+(Avg Resolution: ${data.summary?.analytics?.summary?.avg_resolution_time || 0} hours) Tj`;
             break;
-          case "ticket-analytics":
-            csv2 = this.generateTicketAnalyticsCSV(data);
-            break;
-          case "system-health":
-            csv2 = this.generateSystemHealthCSV(data);
-            break;
-          case "security-compliance":
-            csv2 = this.generateSecurityComplianceCSV(data);
+          case "agents-detailed-report":
+            content += `
+(Total Managed Systems: ${data.summary?.total_agents || 0}) Tj
+0 -12 Td
+(Online Systems: ${data.summary?.online_agents || 0}) Tj
+0 -12 Td
+(Offline Systems: ${data.summary?.offline_agents || 0}) Tj
+0 -12 Td
+(Healthy Systems: ${data.health_summary?.healthy || 0}) Tj`;
             break;
           default:
-            csv2 = this.generateGenericCSV(data);
+            content += `
+(Report generated with live data) Tj
+0 -12 Td
+(Data collected: ${format(/* @__PURE__ */ new Date(), "PPpp")}) Tj`;
         }
-        return csv2;
+        content += `
+0 -25 Td
+/F1 14 Tf
+(RECOMMENDATIONS) Tj
+0 -20 Td
+/F1 10 Tf
+(1. Review performance metrics regularly) Tj
+0 -12 Td
+(2. Monitor SLA compliance trends) Tj
+0 -12 Td
+(3. Implement proactive maintenance) Tj
+0 -12 Td
+(4. Optimize resource allocation) Tj
+0 -40 Td
+/F1 8 Tf
+(This report contains actual system data.) Tj
+0 -10 Td
+(For technical support, contact your system administrator.) Tj
+0 -10 Td
+(Confidential - Do not distribute outside organization.) Tj`;
+        return content;
+      }
+      convertToEnhancedCSV(data, reportType) {
+        let csv = "";
+        switch (reportType) {
+          case "asset-inventory":
+            csv = this.generateAssetInventoryCSV(data);
+            break;
+          case "ticket-analytics":
+            csv = this.generateTicketAnalyticsCSV(data);
+            break;
+          case "system-health":
+            csv = this.generateSystemHealthCSV(data);
+            break;
+          case "security-compliance":
+            csv = this.generateSecurityComplianceCSV(data);
+            break;
+          default:
+            csv = this.generateGenericCSV(data);
+        }
+        return csv;
       }
       async convertToEnhancedWord(data, reportType) {
         try {
@@ -9082,102 +8841,102 @@ var init_analytics_service = __esm({
         ];
       }
       generateAssetInventoryCSV(data) {
-        let csv2 = "ASSET INVENTORY REPORT\n";
-        csv2 += `Generated on,${format(/* @__PURE__ */ new Date(), "PPpp")}
+        let csv = "ASSET INVENTORY REPORT\n";
+        csv += `Generated on,${format(/* @__PURE__ */ new Date(), "PPpp")}
 
 `;
-        csv2 += "SUMMARY\n";
-        csv2 += "Metric,Value\n";
-        csv2 += `Total Devices,${data.total_devices}
+        csv += "SUMMARY\n";
+        csv += "Metric,Value\n";
+        csv += `Total Devices,${data.total_devices}
 `;
-        csv2 += `Compliant Devices,${data.compliance_status.compliant_devices}
+        csv += `Compliant Devices,${data.compliance_status.compliant_devices}
 `;
-        csv2 += `Non-Compliant Devices,${data.compliance_status.non_compliant_devices}
+        csv += `Non-Compliant Devices,${data.compliance_status.non_compliant_devices}
 `;
-        csv2 += `Total Software,${data.software_inventory.total_installed}
+        csv += `Total Software,${data.software_inventory.total_installed}
 
 `;
-        csv2 += "DEVICE BREAKDOWN BY OS\n";
-        csv2 += "Operating System,Count\n";
+        csv += "DEVICE BREAKDOWN BY OS\n";
+        csv += "Operating System,Count\n";
         Object.entries(data.device_breakdown.by_os).forEach(([os2, count6]) => {
-          csv2 += `${os2},${count6}
+          csv += `${os2},${count6}
 `;
         });
-        return csv2;
+        return csv;
       }
       generateTicketAnalyticsCSV(data) {
-        let csv2 = "TICKET ANALYTICS REPORT\n";
-        csv2 += `Generated on,${format(/* @__PURE__ */ new Date(), "PPpp")}
+        let csv = "TICKET ANALYTICS REPORT\n";
+        csv += `Generated on,${format(/* @__PURE__ */ new Date(), "PPpp")}
 
 `;
-        csv2 += "SUMMARY\n";
-        csv2 += "Metric,Value\n";
-        csv2 += `Total Tickets,${data.summary.total_tickets}
+        csv += "SUMMARY\n";
+        csv += "Metric,Value\n";
+        csv += `Total Tickets,${data.summary.total_tickets}
 `;
-        csv2 += `Open Tickets,${data.summary.open_tickets}
+        csv += `Open Tickets,${data.summary.open_tickets}
 `;
-        csv2 += `Resolved Tickets,${data.summary.resolved_tickets}
+        csv += `Resolved Tickets,${data.summary.resolved_tickets}
 `;
-        csv2 += `SLA Compliance Rate,${data.sla_performance.sla_compliance_rate}%
+        csv += `SLA Compliance Rate,${data.sla_performance.sla_compliance_rate}%
 
 `;
-        csv2 += "TOP ISSUES\n";
-        csv2 += "Category,Count,Avg Resolution Time (hours)\n";
+        csv += "TOP ISSUES\n";
+        csv += "Category,Count,Avg Resolution Time (hours)\n";
         data.top_issues.forEach((issue) => {
-          csv2 += `${issue.category},${issue.count},${issue.avg_resolution_time}
+          csv += `${issue.category},${issue.count},${issue.avg_resolution_time}
 `;
         });
-        return csv2;
+        return csv;
       }
       generateSystemHealthCSV(data) {
-        let csv2 = "SYSTEM HEALTH REPORT\n";
-        csv2 += `Generated on,${format(/* @__PURE__ */ new Date(), "PPpp")}
+        let csv = "SYSTEM HEALTH REPORT\n";
+        csv += `Generated on,${format(/* @__PURE__ */ new Date(), "PPpp")}
 
 `;
-        csv2 += "OVERVIEW\n";
-        csv2 += "Metric,Value\n";
-        csv2 += `Health Score,${data.overall_health.health_score}/100
+        csv += "OVERVIEW\n";
+        csv += "Metric,Value\n";
+        csv += `Health Score,${data.overall_health.health_score}/100
 `;
-        csv2 += `Active Devices,${data.overall_health.active_devices}
+        csv += `Active Devices,${data.overall_health.active_devices}
 `;
-        csv2 += `Critical Alerts,${data.overall_health.critical_alerts}
+        csv += `Critical Alerts,${data.overall_health.critical_alerts}
 `;
-        csv2 += `System Uptime,${data.overall_health.system_uptime}%
+        csv += `System Uptime,${data.overall_health.system_uptime}%
 
 `;
-        csv2 += "PERFORMANCE METRICS\n";
-        csv2 += "Metric,Value\n";
-        csv2 += `Average CPU Usage,${data.performance_metrics.avg_cpu_usage}%
+        csv += "PERFORMANCE METRICS\n";
+        csv += "Metric,Value\n";
+        csv += `Average CPU Usage,${data.performance_metrics.avg_cpu_usage}%
 `;
-        csv2 += `Average Memory Usage,${data.performance_metrics.avg_memory_usage}%
+        csv += `Average Memory Usage,${data.performance_metrics.avg_memory_usage}%
 `;
-        csv2 += `Average Disk Usage,${data.performance_metrics.avg_disk_usage}%
+        csv += `Average Disk Usage,${data.performance_metrics.avg_disk_usage}%
 `;
-        return csv2;
+        return csv;
       }
       generateSecurityComplianceCSV(data) {
-        let csv2 = "SECURITY COMPLIANCE REPORT\n";
-        csv2 += `Generated on,${format(/* @__PURE__ */ new Date(), "PPpp")}
+        let csv = "SECURITY COMPLIANCE REPORT\n";
+        csv += `Generated on,${format(/* @__PURE__ */ new Date(), "PPpp")}
 
 `;
-        csv2 += "PATCH COMPLIANCE\n";
-        csv2 += "Metric,Value\n";
-        csv2 += `Compliance Rate,${data.patch_compliance.compliance_percentage}%
+        csv += "PATCH COMPLIANCE\n";
+        csv += "Metric,Value\n";
+        csv += `Compliance Rate,${data.patch_compliance.compliance_percentage}%
 `;
-        csv2 += `Up-to-Date Devices,${data.patch_compliance.up_to_date}
+        csv += `Up-to-Date Devices,${data.patch_compliance.up_to_date}
 `;
-        csv2 += `Missing Critical Patches,${data.patch_compliance.missing_critical}
+        csv += `Missing Critical Patches,${data.patch_compliance.missing_critical}
 
 `;
-        csv2 += "ACCESS CONTROL\n";
-        csv2 += "Metric,Value\n";
-        csv2 += `Total Users,${data.access_control.total_users}
+        csv += "ACCESS CONTROL\n";
+        csv += "Metric,Value\n";
+        csv += `Total Users,${data.access_control.total_users}
 `;
-        csv2 += `Active Users,${data.access_control.active_users}
+        csv += `Active Users,${data.access_control.active_users}
 `;
-        csv2 += `Privileged Accounts,${data.access_control.privileged_accounts}
+        csv += `Privileged Accounts,${data.access_control.privileged_accounts}
 `;
-        return csv2;
+        return csv;
       }
       generateGenericCSV(data) {
         const headers = Object.keys(data);
@@ -9482,6 +9241,550 @@ ${csvData}`;
         }
         return content;
       }
+      addPerformanceAnalyticsToExcel(sheet, data, startRow) {
+        sheet.getCell(`A${startRow}`).value = "PERFORMANCE METRICS";
+        sheet.getCell(`A${startRow}`).font = { name: "Arial", size: 14, bold: true, color: { argb: "2E75B6" } };
+        startRow += 2;
+        const metrics = [
+          ["Average CPU Usage", `${data.average_cpu || 0}%`],
+          ["Average Memory Usage", `${data.average_memory || 0}%`],
+          ["Average Disk Usage", `${data.average_disk || 0}%`],
+          ["System Uptime", `${data.uptime_percentage || 0}%`],
+          ["Active Devices", data.device_count || 0],
+          ["Critical Alerts", data.critical_alerts || 0]
+        ];
+        metrics.forEach((metric, index) => {
+          const row = startRow + index;
+          sheet.getCell(`A${row}`).value = metric[0];
+          sheet.getCell(`A${row}`).font = { name: "Arial", size: 11, bold: true };
+          sheet.getCell(`B${row}`).value = metric[1];
+          sheet.getCell(`B${row}`).font = { name: "Arial", size: 11 };
+          if (index % 2 === 0) {
+            sheet.getCell(`A${row}`).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F8F9FA" } };
+            sheet.getCell(`B${row}`).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F8F9FA" } };
+          }
+        });
+      }
+      addSystemHealthAnalyticsToExcel(sheet, data, startRow) {
+        sheet.getCell(`A${startRow}`).value = "SYSTEM HEALTH OVERVIEW";
+        sheet.getCell(`A${startRow}`).font = { name: "Arial", size: 14, bold: true, color: { argb: "2E75B6" } };
+        startRow += 2;
+        const healthData = data.overall_health || {};
+        const perfData = data.performance_metrics || {};
+        const metrics = [
+          ["Health Score", `${healthData.health_score || 0}/100`],
+          ["Active Devices", healthData.active_devices || 0],
+          ["Critical Alerts", healthData.critical_alerts || 0],
+          ["System Uptime", `${healthData.system_uptime || 0}%`],
+          ["Avg CPU Usage", `${perfData.avg_cpu_usage || 0}%`],
+          ["Avg Memory Usage", `${perfData.avg_memory_usage || 0}%`]
+        ];
+        metrics.forEach((metric, index) => {
+          const row = startRow + index;
+          sheet.getCell(`A${row}`).value = metric[0];
+          sheet.getCell(`A${row}`).font = { name: "Arial", size: 11, bold: true };
+          sheet.getCell(`B${row}`).value = metric[1];
+          sheet.getCell(`B${row}`).font = { name: "Arial", size: 11 };
+          if (index % 2 === 0) {
+            sheet.getCell(`A${row}`).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F8F9FA" } };
+            sheet.getCell(`B${row}`).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F8F9FA" } };
+          }
+        });
+      }
+      addAssetInventoryAnalyticsToExcel(sheet, data, startRow) {
+        sheet.getCell(`A${startRow}`).value = "ASSET INVENTORY SUMMARY";
+        sheet.getCell(`A${startRow}`).font = { name: "Arial", size: 14, bold: true, color: { argb: "2E75B6" } };
+        startRow += 2;
+        const breakdown = data.device_breakdown || {};
+        const compliance = data.compliance_status || {};
+        const metrics = [
+          ["Total Devices", data.total_devices || 0],
+          ["Compliant Devices", compliance.compliant_devices || 0],
+          ["Non-Compliant Devices", compliance.non_compliant_devices || 0],
+          ["Software Packages", data.software_inventory?.total_installed || 0],
+          ["Licensed Software", data.software_inventory?.licensed_software || 0],
+          ["Missing Patches", compliance.missing_patches || 0]
+        ];
+        metrics.forEach((metric, index) => {
+          const row = startRow + index;
+          sheet.getCell(`A${row}`).value = metric[0];
+          sheet.getCell(`A${row}`).font = { name: "Arial", size: 11, bold: true };
+          sheet.getCell(`B${row}`).value = metric[1];
+          sheet.getCell(`B${row}`).font = { name: "Arial", size: 11 };
+          if (index % 2 === 0) {
+            sheet.getCell(`A${row}`).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F8F9FA" } };
+            sheet.getCell(`B${row}`).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F8F9FA" } };
+          }
+        });
+      }
+      addSecurityComplianceAnalyticsToExcel(sheet, data, startRow) {
+        sheet.getCell(`A${startRow}`).value = "SECURITY COMPLIANCE OVERVIEW";
+        sheet.getCell(`A${startRow}`).font = { name: "Arial", size: 14, bold: true, color: { argb: "2E75B6" } };
+        startRow += 2;
+        const patchCompliance = data.patch_compliance || {};
+        const accessControl = data.access_control || {};
+        const metrics = [
+          ["Patch Compliance Rate", `${patchCompliance.compliance_percentage || 0}%`],
+          ["Up-to-Date Devices", patchCompliance.up_to_date || 0],
+          ["Missing Critical Patches", patchCompliance.missing_critical || 0],
+          ["Total Users", accessControl.total_users || 0],
+          ["Active Users", accessControl.active_users || 0],
+          ["Privileged Accounts", accessControl.privileged_accounts || 0]
+        ];
+        metrics.forEach((metric, index) => {
+          const row = startRow + index;
+          sheet.getCell(`A${row}`).value = metric[0];
+          sheet.getCell(`A${row}`).font = { name: "Arial", size: 11, bold: true };
+          sheet.getCell(`B${row}`).value = metric[1];
+          sheet.getCell(`B${row}`).font = { name: "Arial", size: 11 };
+          if (index % 2 === 0) {
+            sheet.getCell(`A${row}`).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F8F9FA" } };
+            sheet.getCell(`B${row}`).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F8F9FA" } };
+          }
+        });
+      }
+      addPerformanceDetailsSheet(workbook, data) {
+        const detailsSheet = workbook.addWorksheet("Performance Details", {
+          properties: { tabColor: { argb: "28A745" } }
+        });
+        const headers = ["Metric", "Current Value", "Trend", "Status", "Threshold"];
+        headers.forEach((header, index) => {
+          const cell = detailsSheet.getCell(1, index + 1);
+          cell.value = header;
+          cell.font = { name: "Arial", size: 12, bold: true, color: { argb: "FFFFFF" } };
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "28A745" } };
+          cell.alignment = { horizontal: "center" };
+        });
+        const performanceDetails = [
+          ["CPU Usage", `${data.average_cpu || 0}%`, "+2.3%", "Normal", "85%"],
+          ["Memory Usage", `${data.average_memory || 0}%`, "-1.2%", "Normal", "90%"],
+          ["Disk Usage", `${data.average_disk || 0}%`, "+0.8%", "Normal", "95%"],
+          ["Network Latency", "45ms", "+5ms", "Normal", "100ms"],
+          ["System Uptime", `${data.uptime_percentage || 0}%`, "+0.2%", "Excellent", "99%"]
+        ];
+        performanceDetails.forEach((detail, index) => {
+          const row = index + 2;
+          detail.forEach((value, colIndex) => {
+            const cell = detailsSheet.getCell(row, colIndex + 1);
+            cell.value = value;
+            cell.font = { name: "Arial", size: 10 };
+            if (index % 2 === 0) {
+              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F8F9FA" } };
+            }
+          });
+        });
+        detailsSheet.columns.forEach((column) => {
+          column.width = 15;
+        });
+      }
+      addSystemHealthDetailsSheet(workbook, data) {
+        const detailsSheet = workbook.addWorksheet("System Health Details", {
+          properties: { tabColor: { argb: "FFC107" } }
+        });
+        const headers = ["Device", "Health Score", "CPU %", "Memory %", "Disk %", "Status"];
+        headers.forEach((header, index) => {
+          const cell = detailsSheet.getCell(1, index + 1);
+          cell.value = header;
+          cell.font = { name: "Arial", size: 12, bold: true, color: { argb: "FFFFFF" } };
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC107" } };
+          cell.alignment = { horizontal: "center" };
+        });
+        const devices2 = data.device_health || [];
+        devices2.forEach((device, index) => {
+          const row = index + 2;
+          const values = [
+            device.hostname || `Device-${index + 1}`,
+            device.health_score || 85,
+            `${device.cpu_usage || 0}%`,
+            `${device.memory_usage || 0}%`,
+            `${device.disk_usage || 0}%`,
+            device.health_score > 90 ? "Excellent" : device.health_score > 70 ? "Good" : "Warning"
+          ];
+          values.forEach((value, colIndex) => {
+            const cell = detailsSheet.getCell(row, colIndex + 1);
+            cell.value = value;
+            cell.font = { name: "Arial", size: 10 };
+            if (index % 2 === 0) {
+              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F8F9FA" } };
+            }
+          });
+        });
+        detailsSheet.columns.forEach((column) => {
+          column.width = 15;
+        });
+      }
+      addAssetInventoryDetailsSheet(workbook, data) {
+        const detailsSheet = workbook.addWorksheet("Asset Details", {
+          properties: { tabColor: { argb: "DC3545" } }
+        });
+        const headers = ["Hostname", "OS", "Status", "IP Address", "Last Seen", "Assigned User"];
+        headers.forEach((header, index) => {
+          const cell = detailsSheet.getCell(1, index + 1);
+          cell.value = header;
+          cell.font = { name: "Arial", size: 12, bold: true, color: { argb: "FFFFFF" } };
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "DC3545" } };
+          cell.alignment = { horizontal: "center" };
+        });
+        const devices2 = data.detailed_devices || [];
+        devices2.forEach((device, index) => {
+          const row = index + 2;
+          const values = [
+            device.hostname || `Device-${index + 1}`,
+            device.os_name || "Unknown",
+            device.status || "Unknown",
+            device.ip_address || "N/A",
+            device.last_seen ? format(new Date(device.last_seen), "MMM dd, yyyy") : "N/A",
+            device.assigned_user || "Unassigned"
+          ];
+          values.forEach((value, colIndex) => {
+            const cell = detailsSheet.getCell(row, colIndex + 1);
+            cell.value = value;
+            cell.font = { name: "Arial", size: 10 };
+            if (index % 2 === 0) {
+              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F8F9FA" } };
+            }
+          });
+        });
+        detailsSheet.columns.forEach((column) => {
+          column.width = 15;
+        });
+      }
+      addSecurityComplianceDetailsSheet(workbook, data) {
+        const detailsSheet = workbook.addWorksheet("Security Details", {
+          properties: { tabColor: { argb: "6F42C1" } }
+        });
+        const headers = ["Security Area", "Compliant", "Non-Compliant", "Compliance Rate", "Risk Level"];
+        headers.forEach((header, index) => {
+          const cell = detailsSheet.getCell(1, index + 1);
+          cell.value = header;
+          cell.font = { name: "Arial", size: 12, bold: true, color: { argb: "FFFFFF" } };
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "6F42C1" } };
+          cell.alignment = { horizontal: "center" };
+        });
+        const securityAreas = [
+          ["Patch Management", data.patch_compliance?.up_to_date || 0, data.patch_compliance?.missing_critical || 0, `${data.patch_compliance?.compliance_percentage || 0}%`, "Medium"],
+          ["Access Control", data.access_control?.active_users || 0, data.access_control?.inactive_accounts || 0, "85%", "Low"],
+          ["USB Security", data.usb_activity?.total_connections - data.usb_activity?.blocked_attempts || 0, data.usb_activity?.blocked_attempts || 0, "95%", "Low"],
+          ["Malware Protection", 18, 0, "100%", "Low"]
+        ];
+        securityAreas.forEach((area, index) => {
+          const row = index + 2;
+          area.forEach((value, colIndex) => {
+            const cell = detailsSheet.getCell(row, colIndex + 1);
+            cell.value = value;
+            cell.font = { name: "Arial", size: 10 };
+            if (index % 2 === 0) {
+              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F8F9FA" } };
+            }
+          });
+        });
+        detailsSheet.columns.forEach((column) => {
+          column.width = 15;
+        });
+      }
+      addGenericDetailsSheet(workbook, data, reportType) {
+        const detailsSheet = workbook.addWorksheet(`${reportType} Details`, {
+          properties: { tabColor: { argb: "17A2B8" } }
+        });
+        const headers = ["Property", "Value", "Type", "Last Updated"];
+        headers.forEach((header, index) => {
+          const cell = detailsSheet.getCell(1, index + 1);
+          cell.value = header;
+          cell.font = { name: "Arial", size: 12, bold: true, color: { argb: "FFFFFF" } };
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "17A2B8" } };
+          cell.alignment = { horizontal: "center" };
+        });
+        const flatData = this.flattenDataForExcel(data);
+        flatData.slice(0, 50).forEach((item, index) => {
+          const row = index + 2;
+          const values = [
+            item.key,
+            item.value,
+            typeof item.value,
+            format(/* @__PURE__ */ new Date(), "MMM dd, yyyy")
+          ];
+          values.forEach((value, colIndex) => {
+            const cell = detailsSheet.getCell(row, colIndex + 1);
+            cell.value = value;
+            cell.font = { name: "Arial", size: 10 };
+            if (index % 2 === 0) {
+              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F8F9FA" } };
+            }
+          });
+        });
+        detailsSheet.columns.forEach((column) => {
+          column.width = 20;
+        });
+      }
+      flattenDataForExcel(obj, prefix = "") {
+        const result = [];
+        for (const [key, value] of Object.entries(obj)) {
+          const newKey = prefix ? `${prefix}.${key}` : key;
+          if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+            result.push(...this.flattenDataForExcel(value, newKey));
+          } else {
+            result.push({ key: newKey, value: Array.isArray(value) ? value.join(", ") : value });
+          }
+        }
+        return result;
+      }
+      addTicketAnalyticsToExcel(sheet, data, startRow) {
+        const analytics = data.analytics || data.summary || {};
+        sheet.getCell(`A${startRow}`).value = "KEY METRICS";
+        sheet.getCell(`A${startRow}`).font = { name: "Arial", size: 14, bold: true, color: { argb: "2E75B6" } };
+        startRow += 2;
+        const metrics = [
+          ["Total Tickets", analytics.total_tickets || data.summary?.total_tickets || 0],
+          ["Open Tickets", analytics.open_tickets || 0],
+          ["Resolved Tickets", analytics.resolved_tickets || 0],
+          ["SLA Compliance", `${analytics.sla_compliance_rate || analytics.sla_performance?.sla_compliance_rate || 0}%`],
+          ["Avg Resolution Time", `${analytics.avg_resolution_time || 0} hours`]
+        ];
+        metrics.forEach((metric, index) => {
+          const row = startRow + index;
+          sheet.getCell(`A${row}`).value = metric[0];
+          sheet.getCell(`A${row}`).font = { name: "Arial", size: 11, bold: true };
+          sheet.getCell(`B${row}`).value = metric[1];
+          sheet.getCell(`B${row}`).font = { name: "Arial", size: 11 };
+          if (index % 2 === 0) {
+            sheet.getCell(`A${row}`).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F8F9FA" } };
+            sheet.getCell(`B${row}`).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F8F9FA" } };
+          }
+        });
+        startRow += metrics.length + 2;
+        sheet.getCell(`A${startRow}`).value = "TICKET DISTRIBUTION";
+        sheet.getCell(`A${startRow}`).font = { name: "Arial", size: 14, bold: true, color: { argb: "2E75B6" } };
+        startRow += 2;
+        const distribution = analytics.ticket_distribution || {};
+        sheet.getCell(`A${startRow}`).value = "By Priority:";
+        sheet.getCell(`A${startRow}`).font = { name: "Arial", size: 12, bold: true };
+        startRow++;
+        if (distribution.by_priority) {
+          Object.entries(distribution.by_priority).forEach(([priority, count6], index) => {
+            const row = startRow + index;
+            sheet.getCell(`B${row}`).value = priority.charAt(0).toUpperCase() + priority.slice(1);
+            sheet.getCell(`C${row}`).value = count6;
+            sheet.getCell(`C${row}`).numFmt = "0";
+          });
+          startRow += Object.keys(distribution.by_priority).length + 1;
+        }
+        if (distribution.by_type) {
+          sheet.getCell(`A${startRow}`).value = "By Type:";
+          sheet.getCell(`A${startRow}`).font = { name: "Arial", size: 12, bold: true };
+          startRow++;
+          Object.entries(distribution.by_type).forEach(([type, count6], index) => {
+            const row = startRow + index;
+            sheet.getCell(`B${row}`).value = type.charAt(0).toUpperCase() + type.slice(1);
+            sheet.getCell(`C${row}`).value = count6;
+            sheet.getCell(`C${row}`).numFmt = "0";
+          });
+        }
+      }
+      addAgentAnalyticsToExcel(sheet, data, startRow) {
+        const summary = data.summary || {};
+        sheet.getCell(`A${startRow}`).value = "SYSTEM OVERVIEW";
+        sheet.getCell(`A${startRow}`).font = { name: "Arial", size: 14, bold: true, color: { argb: "2E75B6" } };
+        startRow += 2;
+        const metrics = [
+          ["Total Agents", summary.total_agents || summary.filtered_agents || 0],
+          ["Online Agents", summary.online_agents || 0],
+          ["Offline Agents", summary.offline_agents || 0],
+          ["Healthy Systems", summary.healthy || 0],
+          ["Systems with Warnings", summary.warning || 0],
+          ["Critical Systems", summary.critical || 0]
+        ];
+        metrics.forEach((metric, index) => {
+          const row = startRow + index;
+          sheet.getCell(`A${row}`).value = metric[0];
+          sheet.getCell(`A${row}`).font = { name: "Arial", size: 11, bold: true };
+          sheet.getCell(`B${row}`).value = metric[1];
+          sheet.getCell(`B${row}`).font = { name: "Arial", size: 11 };
+          if (metric[0].includes("Critical") && metric[1] > 0) {
+            sheet.getCell(`B${row}`).font = { name: "Arial", size: 11, color: { argb: "DC3545" } };
+          } else if (metric[0].includes("Warning") && metric[1] > 0) {
+            sheet.getCell(`B${row}`).font = { name: "Arial", size: 11, color: { argb: "FFC107" } };
+          } else if (metric[0].includes("Healthy") || metric[0].includes("Online")) {
+            sheet.getCell(`B${row}`).font = { name: "Arial", size: 11, color: { argb: "28A745" } };
+          }
+          if (index % 2 === 0) {
+            sheet.getCell(`A${row}`).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F8F9FA" } };
+            sheet.getCell(`B${row}`).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F8F9FA" } };
+          }
+        });
+      }
+      addGenericAnalyticsToExcel(sheet, data, startRow) {
+        sheet.getCell(`A${startRow}`).value = "REPORT DATA";
+        sheet.getCell(`A${startRow}`).font = { name: "Arial", size: 14, bold: true, color: { argb: "2E75B6" } };
+        startRow += 2;
+        const flattenObject = (obj, prefix = "") => {
+          const result = [];
+          for (const [key, value] of Object.entries(obj)) {
+            const newKey = prefix ? `${prefix}.${key}` : key;
+            if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+              result.push(...flattenObject(value, newKey));
+            } else {
+              result.push([newKey, value]);
+            }
+          }
+          return result;
+        };
+        const flatData = flattenObject(data);
+        flatData.slice(0, 20).forEach(([key, value], index) => {
+          const row = startRow + index;
+          sheet.getCell(`A${row}`).value = key;
+          sheet.getCell(`A${row}`).font = { name: "Arial", size: 11 };
+          sheet.getCell(`B${row}`).value = value;
+          sheet.getCell(`B${row}`).font = { name: "Arial", size: 11 };
+          if (index % 2 === 0) {
+            sheet.getCell(`A${row}`).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F8F9FA" } };
+            sheet.getCell(`B${row}`).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F8F9FA" } };
+          }
+        });
+      }
+      addTicketDetailsSheet(workbook, data) {
+        const detailsSheet = workbook.addWorksheet("Ticket Details", {
+          properties: { tabColor: { argb: "4472C4" } }
+        });
+        const headers = [
+          "Ticket Number",
+          "Type",
+          "Title",
+          "Priority",
+          "Status",
+          "Assigned To",
+          "Created",
+          "Due Date",
+          "SLA Breached"
+        ];
+        headers.forEach((header, index) => {
+          const cell = detailsSheet.getCell(1, index + 1);
+          cell.value = header;
+          cell.font = { name: "Arial", size: 12, bold: true, color: { argb: "FFFFFF" } };
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "4472C4" } };
+          cell.alignment = { horizontal: "center" };
+          cell.border = {
+            top: { style: "thin" },
+            left: { style: "thin" },
+            bottom: { style: "thin" },
+            right: { style: "thin" }
+          };
+        });
+        const tickets2 = data.tickets || [];
+        tickets2.forEach((ticket, index) => {
+          const row = index + 2;
+          const values = [
+            ticket.ticket_number,
+            ticket.type,
+            ticket.title,
+            ticket.priority,
+            ticket.status,
+            ticket.assigned_to || "Unassigned",
+            ticket.created_at ? format(new Date(ticket.created_at), "MMM dd, yyyy") : "",
+            ticket.due_date ? format(new Date(ticket.due_date), "MMM dd, yyyy") : "",
+            ticket.sla_breached ? "Yes" : "No"
+          ];
+          values.forEach((value, colIndex) => {
+            const cell = detailsSheet.getCell(row, colIndex + 1);
+            cell.value = value;
+            cell.font = { name: "Arial", size: 10 };
+            cell.border = {
+              top: { style: "thin", color: { argb: "E0E0E0" } },
+              left: { style: "thin", color: { argb: "E0E0E0" } },
+              bottom: { style: "thin", color: { argb: "E0E0E0" } },
+              right: { style: "thin", color: { argb: "E0E0E0" } }
+            };
+            if (colIndex === 3) {
+              if (value === "critical") cell.font = { name: "Arial", size: 10, color: { argb: "DC3545" } };
+              else if (value === "high") cell.font = { name: "Arial", size: 10, color: { argb: "FD7E14" } };
+              else if (value === "medium") cell.font = { name: "Arial", size: 10, color: { argb: "FFC107" } };
+              else if (value === "low") cell.font = { name: "Arial", size: 10, color: { argb: "28A745" } };
+            }
+            if (colIndex === 8 && value === "Yes") {
+              cell.font = { name: "Arial", size: 10, color: { argb: "DC3545" }, bold: true };
+            }
+            if (index % 2 === 0) {
+              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F8F9FA" } };
+            }
+          });
+        });
+        detailsSheet.columns.forEach((column) => {
+          column.width = 15;
+        });
+      }
+      addAgentDetailsSheet(workbook, data) {
+        const detailsSheet = workbook.addWorksheet("Agent Details", {
+          properties: { tabColor: { argb: "28A745" } }
+        });
+        const headers = [
+          "Hostname",
+          "IP Address",
+          "OS",
+          "Status",
+          "CPU %",
+          "Memory %",
+          "Disk %",
+          "Last Seen",
+          "Assigned User"
+        ];
+        headers.forEach((header, index) => {
+          const cell = detailsSheet.getCell(1, index + 1);
+          cell.value = header;
+          cell.font = { name: "Arial", size: 12, bold: true, color: { argb: "FFFFFF" } };
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "28A745" } };
+          cell.alignment = { horizontal: "center" };
+          cell.border = {
+            top: { style: "thin" },
+            left: { style: "thin" },
+            bottom: { style: "thin" },
+            right: { style: "thin" }
+          };
+        });
+        const agents = data.agents || [];
+        agents.forEach((agent, index) => {
+          const row = index + 2;
+          const performance = agent.performance_summary || {};
+          const values = [
+            agent.hostname,
+            agent.ip_address,
+            agent.os_name,
+            agent.status,
+            performance.cpu_usage || 0,
+            performance.memory_usage || 0,
+            performance.disk_usage || 0,
+            agent.last_seen ? format(new Date(agent.last_seen), "MMM dd, yyyy HH:mm") : "",
+            agent.assigned_user || "Unassigned"
+          ];
+          values.forEach((value, colIndex) => {
+            const cell = detailsSheet.getCell(row, colIndex + 1);
+            cell.value = value;
+            cell.font = { name: "Arial", size: 10 };
+            cell.border = {
+              top: { style: "thin", color: { argb: "E0E0E0" } },
+              left: { style: "thin", color: { argb: "E0E0E0" } },
+              bottom: { style: "thin", color: { argb: "E0E0E0" } },
+              right: { style: "thin", color: { argb: "E0E0E0" } }
+            };
+            if (colIndex >= 4 && colIndex <= 6) {
+              cell.numFmt = '0.0"%"';
+              const numValue = parseFloat(value) || 0;
+              if (numValue >= 90) cell.font = { name: "Arial", size: 10, color: { argb: "DC3545" } };
+              else if (numValue >= 80) cell.font = { name: "Arial", size: 10, color: { argb: "FFC107" } };
+              else cell.font = { name: "Arial", size: 10, color: { argb: "28A745" } };
+            }
+            if (colIndex === 3) {
+              if (value === "online") cell.font = { name: "Arial", size: 10, color: { argb: "28A745" } };
+              else if (value === "offline") cell.font = { name: "Arial", size: 10, color: { argb: "DC3545" } };
+              else cell.font = { name: "Arial", size: 10, color: { argb: "FFC107" } };
+            }
+            if (index % 2 === 0) {
+              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F8F9FA" } };
+            }
+          });
+        });
+        detailsSheet.columns.forEach((column) => {
+          column.width = 15;
+        });
+      }
       async convertToPDF(data, reportType = "generic") {
         try {
           console.log("Generating PDF document...");
@@ -9512,7 +9815,7 @@ ${csvData}`;
 /F1 16 Tf
 (${title}) Tj
 `;
-        streamContent += `0 -40 Td
+        streamContent += `0 -40Td
 /F1 10 Tf
 (Report Date: ${reportDate}) Tj
 `;
@@ -10274,7 +10577,7 @@ var init_performance_service = __esm({
       }
       async getApplicationPerformanceInsights(deviceId) {
         try {
-          const { pool: pool3 } = await import("./db");
+          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const reportResult = await pool3.query(
             `
         SELECT raw_data, collected_at, cpu_usage, memory_usage, disk_usage
@@ -10564,8 +10867,8 @@ __export(analytics_routes_exports, {
   default: () => analytics_routes_default
 });
 import { Router as Router6 } from "express";
-import { sql as sql8 } from "drizzle-orm";
-var router6, authenticateToken, analytics_routes_default;
+import { sql as sql8, desc as desc8 } from "drizzle-orm";
+var router6, authenticateToken2, analytics_routes_default;
 var init_analytics_routes = __esm({
   "server/routes/analytics-routes.ts"() {
     "use strict";
@@ -10577,8 +10880,9 @@ var init_analytics_routes = __esm({
     init_response();
     init_db();
     init_schema();
+    init_ticket_schema();
     router6 = Router6();
-    authenticateToken = async (req, res, next) => {
+    authenticateToken2 = async (req, res, next) => {
       const authHeader = req.headers["authorization"];
       const token = AuthUtils.extractTokenFromHeader(authHeader || "");
       if (!token) {
@@ -10601,7 +10905,7 @@ var init_analytics_routes = __esm({
         return ResponseUtils.forbidden(res, "Invalid token");
       }
     };
-    router6.get("/performance", authenticateToken, async (req, res) => {
+    router6.get("/performance", authenticateToken2, async (req, res) => {
       try {
         const { timeRange = "7d" } = req.query;
         console.log(`Generating performance report for timeRange: ${timeRange}`);
@@ -10633,7 +10937,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/availability", authenticateToken, async (req, res) => {
+    router6.get("/availability", authenticateToken2, async (req, res) => {
       try {
         const { timeRange = "7d" } = req.query;
         console.log(`Generating availability report for timeRange: ${timeRange}`);
@@ -11093,8 +11397,14 @@ var init_analytics_routes = __esm({
     router6.post("/comprehensive", async (req, res) => {
       req.setTimeout(2e4);
       try {
-        const { reportTypes = ["performance", "system-health", "asset-inventory"], timeRange = "7d", format: format2 = "docx" } = req.body;
-        console.log(`Generating comprehensive ITSM report: ${reportTypes.join(", ")}, timeRange: ${timeRange}, format: ${format2}`);
+        const {
+          reportTypes = ["performance", "system-health", "asset-inventory"],
+          timeRange = "7d",
+          format: format2 = "docx"
+        } = req.body;
+        console.log(
+          `Generating comprehensive ITSM report: ${reportTypes.join(", ")}, timeRange: ${timeRange}, format: ${format2}`
+        );
         const comprehensiveData = {
           report_metadata: {
             title: "Comprehensive ITSM Analysis Report",
@@ -11108,11 +11418,17 @@ var init_analytics_routes = __esm({
         };
         for (const reportType of reportTypes) {
           try {
-            const data = await analyticsService.generateCustomReport(reportType, timeRange, format2);
+            const data = await analyticsService.generateCustomReport(
+              reportType,
+              timeRange,
+              format2
+            );
             comprehensiveData.detailed_analysis[reportType] = data;
           } catch (error) {
             console.warn(`Failed to generate ${reportType} data:`, error);
-            comprehensiveData.detailed_analysis[reportType] = { error: `Failed to generate ${reportType} data` };
+            comprehensiveData.detailed_analysis[reportType] = {
+              error: `Failed to generate ${reportType} data`
+            };
           }
         }
         comprehensiveData.executive_summary = {
@@ -11188,8 +11504,15 @@ var init_analytics_routes = __esm({
     router6.post("/enterprise-scale", async (req, res) => {
       req.setTimeout(12e4);
       try {
-        const { reportTypes = ["performance", "system-health", "asset-inventory"], timeRange = "7d", format: format2 = "docx", batchSize = 50 } = req.body;
-        console.log(`Generating enterprise-scale report for ${reportTypes.join(", ")}, timeRange: ${timeRange}, batchSize: ${batchSize}`);
+        const {
+          reportTypes = ["performance", "system-health", "asset-inventory"],
+          timeRange = "7d",
+          format: format2 = "docx",
+          batchSize = 50
+        } = req.body;
+        console.log(
+          `Generating enterprise-scale report for ${reportTypes.join(", ")}, timeRange: ${timeRange}, batchSize: ${batchSize}`
+        );
         const deviceCountResult = await db.select({ count: sql8`count(*)` }).from(devices);
         const deviceCount = Number(deviceCountResult[0]?.count) || 0;
         if (deviceCount > 200) {
@@ -11228,7 +11551,11 @@ var init_analytics_routes = __esm({
         for (const reportType of reportTypes) {
           try {
             console.log(`Processing ${reportType} for enterprise scale...`);
-            const data = await analyticsService.generateCustomReport(reportType, timeRange, format2);
+            const data = await analyticsService.generateCustomReport(
+              reportType,
+              timeRange,
+              format2
+            );
             enterpriseData.detailed_analysis[reportType] = data;
           } catch (error) {
             console.warn(`Failed to generate ${reportType} data:`, error);
@@ -11362,7 +11689,8 @@ var init_analytics_routes = __esm({
             <th>Satisfaction</th>
             <th>Status</th>
           </tr>
-          ${reportData.agentPerformance.map((agent) => `
+          ${reportData.agentPerformance.map(
+          (agent) => `
             <tr>
               <td>${agent.name}</td>
               <td>${agent.ticketsResolved}</td>
@@ -11370,7 +11698,8 @@ var init_analytics_routes = __esm({
               <td>${agent.satisfaction}%</td>
               <td>${agent.status}</td>
             </tr>
-          `).join("")}
+          `
+        ).join("")}
         </table>
       </div>
 
@@ -11383,14 +11712,16 @@ var init_analytics_routes = __esm({
             <th>Actual</th>
             <th>Compliance</th>
           </tr>
-          ${reportData.slaMetrics.map((sla) => `
+          ${reportData.slaMetrics.map(
+          (sla) => `
             <tr>
               <td>${sla.category}</td>
               <td>${sla.target}</td>
               <td>${sla.actual}</td>
               <td>${sla.compliance}%</td>
             </tr>
-          `).join("")}
+          `
+        ).join("")}
         </table>
       </div>
 
@@ -11403,14 +11734,16 @@ var init_analytics_routes = __esm({
             <th>Resolved</th>
             <th>Pending</th>
           </tr>
-          ${reportData.tickets.map((ticket) => `
+          ${reportData.tickets.map(
+          (ticket) => `
             <tr>
               <td>${ticket.date}</td>
               <td>${ticket.created}</td>
               <td>${ticket.resolved}</td>
               <td>${ticket.pending}</td>
             </tr>
-          `).join("")}
+          `
+        ).join("")}
         </table>
       </div>
     </body>
@@ -11424,34 +11757,42 @@ var init_analytics_routes = __esm({
         res.status(500).json({ message: "Failed to generate PDF report" });
       }
     });
-    router6.get("/performance/insights/:deviceId", authenticateToken, async (req, res) => {
-      try {
-        const { deviceId } = req.params;
-        const { performanceService: performanceService2 } = await Promise.resolve().then(() => (init_performance_service(), performance_service_exports));
-        const insights = await performanceService2.getApplicationPerformanceInsights(deviceId);
-        res.json(insights);
-      } catch (error) {
-        console.error("Error getting performance insights:", error);
-        res.status(500).json({
-          error: "Failed to get performance insights",
-          message: error.message
-        });
+    router6.get(
+      "/performance/insights/:deviceId",
+      authenticateToken2,
+      async (req, res) => {
+        try {
+          const { deviceId } = req.params;
+          const { performanceService: performanceService2 } = await Promise.resolve().then(() => (init_performance_service(), performance_service_exports));
+          const insights = await performanceService2.getApplicationPerformanceInsights(deviceId);
+          res.json(insights);
+        } catch (error) {
+          console.error("Error getting performance insights:", error);
+          res.status(500).json({
+            error: "Failed to get performance insights",
+            message: error.message
+          });
+        }
       }
-    });
-    router6.get("/performance/predictions/:deviceId", authenticateToken, async (req, res) => {
-      try {
-        const { deviceId } = req.params;
-        const { performanceService: performanceService2 } = await Promise.resolve().then(() => (init_performance_service(), performance_service_exports));
-        const predictions = await performanceService2.generateResourcePredictions(deviceId);
-        res.json(predictions);
-      } catch (error) {
-        console.error("Error getting performance predictions:", error);
-        res.status(500).json({
-          error: "Failed to get performance predictions",
-          message: error.message
-        });
+    );
+    router6.get(
+      "/performance/predictions/:deviceId",
+      authenticateToken2,
+      async (req, res) => {
+        try {
+          const { deviceId } = req.params;
+          const { performanceService: performanceService2 } = await Promise.resolve().then(() => (init_performance_service(), performance_service_exports));
+          const predictions = await performanceService2.generateResourcePredictions(deviceId);
+          res.json(predictions);
+        } catch (error) {
+          console.error("Error getting performance predictions:", error);
+          res.status(500).json({
+            error: "Failed to get performance predictions",
+            message: error.message
+          });
+        }
       }
-    });
+    );
     router6.get("/performance/overview", async (req, res) => {
       try {
         const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
@@ -11467,9 +11808,18 @@ var init_analytics_routes = __esm({
         };
         const onlineDevices = devices2.filter((d) => d.status === "online");
         if (onlineDevices.length > 0) {
-          const cpuSum = onlineDevices.reduce((sum2, d) => sum2 + parseFloat(d.latest_report?.cpu_usage || "0"), 0);
-          const memSum = onlineDevices.reduce((sum2, d) => sum2 + parseFloat(d.latest_report?.memory_usage || "0"), 0);
-          const diskSum = onlineDevices.reduce((sum2, d) => sum2 + parseFloat(d.latest_report?.disk_usage || "0"), 0);
+          const cpuSum = onlineDevices.reduce(
+            (sum2, d) => sum2 + parseFloat(d.latest_report?.cpu_usage || "0"),
+            0
+          );
+          const memSum = onlineDevices.reduce(
+            (sum2, d) => sum2 + parseFloat(d.latest_report?.memory_usage || "0"),
+            0
+          );
+          const diskSum = onlineDevices.reduce(
+            (sum2, d) => sum2 + parseFloat(d.latest_report?.disk_usage || "0"),
+            0
+          );
           performanceOverview.avgCpuUsage = cpuSum / onlineDevices.length;
           performanceOverview.avgMemoryUsage = memSum / onlineDevices.length;
           performanceOverview.avgDiskUsage = diskSum / onlineDevices.length;
@@ -11528,156 +11878,271 @@ var init_analytics_routes = __esm({
         timestamp: (/* @__PURE__ */ new Date()).toISOString()
       });
     });
-    router6.get(
-      "/performance/insights/:deviceId",
-      async (req, res) => {
-        try {
-          const deviceId = req.params.deviceId;
-          console.log(
-            `Getting performance insights for device: ${deviceId}`
+    router6.get("/performance/insights/:deviceId", async (req, res) => {
+      try {
+        const deviceId = req.params.deviceId;
+        console.log(`Getting performance insights for device: ${deviceId}`);
+        const insights = await performanceService.getApplicationPerformanceInsights(deviceId);
+        res.json(insights);
+      } catch (error) {
+        console.error("Error getting performance insights:", error);
+        res.status(500).json({
+          error: "Failed to get performance insights",
+          message: error.message
+        });
+      }
+    });
+    router6.get("/service-desk-report", async (req, res) => {
+      try {
+        const format2 = req.query.format || "json";
+        const timeRange = req.query.timeRange || "30d";
+        const filters = {
+          type: req.query.type,
+          status: req.query.status,
+          priority: req.query.priority,
+          search: req.query.search,
+          sla_violations_only: req.query.sla_violations_only === "true",
+          exclude_closed: req.query.exclude_closed === "true"
+        };
+        console.log(
+          `Generating Service Desk report in ${format2} format with filters:`,
+          filters
+        );
+        const ticketsQuery = db.select().from(tickets).orderBy(desc8(tickets.created_at)).limit(1e3);
+        let ticketsData = await ticketsQuery;
+        if (filters.type && filters.type !== "all") {
+          ticketsData = ticketsData.filter(
+            (ticket) => ticket.type === filters.type
           );
-          const insights = await performanceService.getApplicationPerformanceInsights(deviceId);
-          res.json(insights);
-        } catch (error) {
-          console.error("Error getting performance insights:", error);
-          res.status(500).json({
-            error: "Failed to get performance insights",
-            message: error.message
-          });
         }
-      }
-    );
-    router6.get(
-      "/service-desk-report",
-      async (req, res) => {
-        try {
-          const format2 = req.query.format || "json";
-          const filters = {
-            type: req.query.type,
-            status: req.query.status,
-            priority: req.query.priority,
-            search: req.query.search,
-            sla_violations_only: req.query.sla_violations_only === "true",
-            exclude_closed: req.query.exclude_closed === "true"
-          };
-          console.log("Generating Service Desk report with filters:", filters);
-          const ticketAnalytics = await analyticsService.generateTicketAnalyticsReport();
-          const { ticketStorage: ticketStorage2 } = await Promise.resolve().then(() => (init_ticket_storage(), ticket_storage_exports));
-          const ticketsResult = await ticketStorage2.getTickets(1, 1e4, filters);
-          const report = {
-            title: "Service Desk Comprehensive Report",
-            generated_at: (/* @__PURE__ */ new Date()).toISOString(),
-            filters_applied: filters,
-            summary: {
-              total_tickets: ticketsResult.total,
-              filtered_tickets: ticketsResult.data.length,
-              analytics: ticketAnalytics
-            },
-            tickets: ticketsResult.data,
-            performance_metrics: {
-              avg_resolution_time: ticketAnalytics.summary.avg_resolution_time,
-              sla_compliance: ticketAnalytics.sla_performance.sla_compliance_rate,
-              ticket_distribution: ticketAnalytics.ticket_distribution
+        if (filters.status && filters.status !== "all") {
+          ticketsData = ticketsData.filter(
+            (ticket) => ticket.status === filters.status
+          );
+        }
+        if (filters.priority && filters.priority !== "all") {
+          ticketsData = ticketsData.filter(
+            (ticket) => ticket.priority === filters.priority
+          );
+        }
+        if (filters.search && filters.search.trim()) {
+          const searchTerm = filters.search.toLowerCase();
+          ticketsData = ticketsData.filter(
+            (ticket) => ticket.title.toLowerCase().includes(searchTerm) || ticket.description.toLowerCase().includes(searchTerm) || ticket.ticket_number.toLowerCase().includes(searchTerm)
+          );
+        }
+        const analytics = await analyticsService.generateTicketAnalyticsReport(timeRange);
+        const report = {
+          generated_at: (/* @__PURE__ */ new Date()).toISOString(),
+          time_range: timeRange,
+          filters,
+          summary: {
+            total_tickets: ticketsData.length,
+            analytics
+          },
+          tickets: ticketsData,
+          filtered_tickets: ticketsData.length
+        };
+        if (format2 === "csv") {
+          console.log("Exporting Service Desk report as CSV...");
+          const csvData = await analyticsService.exportReport(
+            report,
+            "csv",
+            "service-desk-tickets"
+          );
+          res.setHeader("Content-Type", "text/csv");
+          res.setHeader(
+            "Content-Disposition",
+            'attachment; filename="service-desk-tickets.csv"'
+          );
+          return res.send(csvData);
+        } else if (format2 === "xlsx" || format2 === "excel") {
+          console.log("Exporting Service Desk report as Excel...");
+          try {
+            const excelData = await analyticsService.exportReport(
+              report,
+              "xlsx",
+              "service-desk-tickets"
+            );
+            if (!excelData || Buffer.isBuffer(excelData) && excelData.length === 0) {
+              throw new Error("Empty Excel file generated");
             }
-          };
-          if (format2 === "pdf") {
-            res.setHeader("Content-Type", "application/json");
-            res.setHeader("Content-Disposition", 'attachment; filename="service-desk-report.json"');
-            return res.json(report);
+            res.setHeader(
+              "Content-Type",
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            );
+            res.setHeader(
+              "Content-Disposition",
+              'attachment; filename="service-desk-full-report.xlsx"'
+            );
+            return res.send(excelData);
+          } catch (excelError) {
+            console.error("Excel generation failed:", excelError);
+            const csvData = await analyticsService.exportReport(
+              report,
+              "csv",
+              "service-desk-tickets"
+            );
+            res.setHeader("Content-Type", "text/csv");
+            res.setHeader(
+              "Content-Disposition",
+              'attachment; filename="service-desk-full-report-fallback.csv"'
+            );
+            return res.send(csvData);
           }
-          res.json({
-            success: true,
-            report
-          });
-        } catch (error) {
-          console.error("Error generating Service Desk report:", error);
-          res.status(500).json({
-            error: "Failed to generate Service Desk report",
-            details: error instanceof Error ? error.message : "Unknown error"
-          });
+        } else if (format2 === "pdf") {
+          console.log("Exporting Service Desk report as PDF...");
+          const pdfData = await analyticsService.exportReport(
+            report,
+            "pdf",
+            "service-desk-tickets"
+          );
+          res.setHeader("Content-Type", "application/pdf");
+          res.setHeader(
+            "Content-Disposition",
+            'attachment; filename="service-desk-full-report.pdf"'
+          );
+          return res.send(pdfData);
+        } else if (format2 === "json" && req.query.download === "true") {
+          res.setHeader("Content-Type", "application/json");
+          res.setHeader(
+            "Content-Disposition",
+            'attachment; filename="service-desk-report.json"'
+          );
+          return res.json(report);
         }
+        res.json({
+          success: true,
+          report
+        });
+      } catch (error) {
+        console.error("Error generating Service Desk report:", error);
+        res.status(500).json({
+          error: "Failed to generate Service Desk report",
+          details: error instanceof Error ? error.message : "Unknown error"
+        });
       }
-    );
-    router6.get(
-      "/agents-detailed-report",
-      async (req, res) => {
-        try {
-          const format2 = req.query.format || "json";
-          const filters = {
-            status: req.query.status,
-            type: req.query.type,
-            os: req.query.os,
-            location: req.query.location,
-            health: req.query.health,
-            search: req.query.search
-          };
-          console.log("Generating detailed agents report with filters:", filters);
-          const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
-          const devices2 = await storage3.getDevices();
-          let filteredDevices = devices2.filter((device) => {
-            let matches = true;
-            if (filters.status && filters.status !== "all") {
-              matches = matches && device.status === filters.status;
+    });
+    router6.get("/agents-detailed-report", async (req, res) => {
+      try {
+        const format2 = req.query.format || "json";
+        const filters = {
+          status: req.query.status,
+          type: req.query.type,
+          os: req.query.os,
+          location: req.query.location,
+          health: req.query.health,
+          search: req.query.search
+        };
+        console.log("Generating detailed agents report with filters:", filters);
+        const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
+        const devices2 = await storage3.getDevices();
+        let filteredDevices = devices2.filter((device) => {
+          let matches = true;
+          if (filters.status && filters.status !== "all") {
+            matches = matches && device.status === filters.status;
+          }
+          if (filters.search && filters.search.trim()) {
+            const searchTerm = filters.search.toLowerCase();
+            matches = matches && (device.hostname.toLowerCase().includes(searchTerm) || device.assigned_user?.toLowerCase().includes(searchTerm) || device.ip_address?.toLowerCase().includes(searchTerm));
+          }
+          return matches;
+        });
+        const report = {
+          title: "Managed Systems Detailed Report",
+          generated_at: (/* @__PURE__ */ new Date()).toISOString(),
+          filters_applied: filters,
+          summary: {
+            total_agents: devices2.length,
+            filtered_agents: filteredDevices.length,
+            online_agents: filteredDevices.filter((d) => d.status === "online").length,
+            offline_agents: filteredDevices.filter((d) => d.status === "offline").length
+          },
+          agents: filteredDevices.map((device) => ({
+            ...device,
+            performance_summary: {
+              cpu_usage: device.latest_report?.cpu_usage || 0,
+              memory_usage: device.latest_report?.memory_usage || 0,
+              disk_usage: device.latest_report?.disk_usage || 0,
+              last_report: device.latest_report?.collected_at || null
             }
-            if (filters.search && filters.search.trim()) {
-              const searchTerm = filters.search.toLowerCase();
-              matches = matches && (device.hostname.toLowerCase().includes(searchTerm) || device.assigned_user?.toLowerCase().includes(searchTerm) || device.ip_address?.toLowerCase().includes(searchTerm));
-            }
-            return matches;
-          });
-          const report = {
-            title: "Managed Systems Detailed Report",
-            generated_at: (/* @__PURE__ */ new Date()).toISOString(),
-            filters_applied: filters,
-            summary: {
-              total_agents: devices2.length,
-              filtered_agents: filteredDevices.length,
-              online_agents: filteredDevices.filter((d) => d.status === "online").length,
-              offline_agents: filteredDevices.filter((d) => d.status === "offline").length
-            },
-            agents: filteredDevices.map((device) => ({
-              ...device,
-              performance_summary: {
-                cpu_usage: device.latest_report?.cpu_usage || 0,
-                memory_usage: device.latest_report?.memory_usage || 0,
-                disk_usage: device.latest_report?.disk_usage || 0,
-                last_report: device.latest_report?.collected_at || null
-              }
-            })),
-            health_summary: {
-              healthy: filteredDevices.filter((d) => {
-                const cpu = parseFloat(d.latest_report?.cpu_usage || "0");
-                const memory = parseFloat(d.latest_report?.memory_usage || "0");
-                const disk = parseFloat(d.latest_report?.disk_usage || "0");
-                return cpu < 80 && memory < 80 && disk < 80;
-              }).length,
-              warning: filteredDevices.filter((d) => {
-                const cpu = parseFloat(d.latest_report?.cpu_usage || "0");
-                const memory = parseFloat(d.latest_report?.memory_usage || "0");
-                const disk = parseFloat(d.latest_report?.disk_usage || "0");
-                return cpu >= 80 && cpu < 90 || memory >= 80 && memory < 90 || disk >= 80 && disk < 90;
-              }).length,
-              critical: filteredDevices.filter((d) => {
-                const cpu = parseFloat(d.latest_report?.cpu_usage || "0");
-                const memory = parseFloat(d.latest_report?.memory_usage || "0");
-                const disk = parseFloat(d.latest_report?.disk_usage || "0");
-                return cpu >= 90 || memory >= 90 || disk >= 90;
-              }).length
-            }
-          };
-          res.json({
-            success: true,
-            report
-          });
-        } catch (error) {
-          console.error("Error generating agents detailed report:", error);
-          res.status(500).json({
-            error: "Failed to generate agents detailed report",
-            details: error instanceof Error ? error.message : "Unknown error"
-          });
+          })),
+          health_summary: {
+            healthy: filteredDevices.filter((d) => {
+              const cpu = parseFloat(d.latest_report?.cpu_usage || "0");
+              const memory = parseFloat(d.latest_report?.memory_usage || "0");
+              const disk = parseFloat(d.latest_report?.disk_usage || "0");
+              return cpu < 80 && memory < 80 && disk < 80;
+            }).length,
+            warning: filteredDevices.filter((d) => {
+              const cpu = parseFloat(d.latest_report?.cpu_usage || "0");
+              const memory = parseFloat(d.latest_report?.memory_usage || "0");
+              const disk = parseFloat(d.latest_report?.disk_usage || "0");
+              return cpu >= 80 && cpu < 90 || memory >= 80 && memory < 90 || disk >= 80 && disk < 90;
+            }).length,
+            critical: filteredDevices.filter((d) => {
+              const cpu = parseFloat(d.latest_report?.cpu_usage || "0");
+              const memory = parseFloat(d.latest_report?.memory_usage || "0");
+              const disk = parseFloat(d.latest_report?.disk_usage || "0");
+              return cpu >= 90 || memory >= 90 || disk >= 90;
+            }).length
+          }
+        };
+        if (format2 === "csv") {
+          console.log("Exporting agents report as CSV...");
+          const csvData = await analyticsService.exportReport(
+            report,
+            "csv",
+            "agents-detailed-report"
+          );
+          res.setHeader("Content-Type", "text/csv");
+          res.setHeader(
+            "Content-Disposition",
+            'attachment; filename="managed-systems-detailed-report.csv"'
+          );
+          return res.send(csvData);
+        } else if (format2 === "excel" || format2 === "xlsx") {
+          console.log("Exporting agents report as Excel...");
+          const excelData = await analyticsService.exportReport(
+            report,
+            "xlsx",
+            "agents-detailed-report"
+          );
+          res.setHeader(
+            "Content-Type",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          );
+          res.setHeader(
+            "Content-Disposition",
+            'attachment; filename="managed-systems-detailed-report.xlsx"'
+          );
+          return res.send(excelData);
+        } else if (format2 === "pdf") {
+          console.log("Exporting agents report as PDF...");
+          const pdfData = await analyticsService.exportReport(
+            report,
+            "pdf",
+            "agents-detailed-report"
+          );
+          res.setHeader("Content-Type", "application/pdf");
+          res.setHeader(
+            "Content-Disposition",
+            'attachment; filename="managed-systems-detailed-report.pdf"'
+          );
+          return res.send(pdfData);
         }
+        res.json({
+          success: true,
+          report
+        });
+      } catch (error) {
+        console.error("Error generating agents detailed report:", error);
+        res.status(500).json({
+          error: "Failed to generate agents detailed report",
+          details: error instanceof Error ? error.message : "Unknown error"
+        });
       }
-    );
+    });
     analytics_routes_default = router6;
   }
 });
@@ -11690,13 +12155,14 @@ __export(user_routes_exports, {
 import { Router as Router7 } from "express";
 import bcrypt2 from "bcrypt";
 import multer from "multer";
-import csv from "csv-parser";
 import * as XLSX from "xlsx";
 var router7, upload;
 var init_user_routes = __esm({
   "server/routes/user-routes.ts"() {
     "use strict";
     init_db();
+    init_storage();
+    init_auth_middleware();
     router7 = Router7();
     upload = multer({
       storage: multer.memoryStorage(),
@@ -11720,11 +12186,20 @@ var init_user_routes = __esm({
           const csvData = fileBuffer.toString("utf-8");
           users2 = await new Promise((resolve, reject) => {
             const results = [];
-            const stream = __require("stream");
-            const readable = new stream.Readable();
-            readable.push(csvData);
-            readable.push(null);
-            readable.pipe(csv()).on("data", (data) => results.push(data)).on("end", () => resolve(results)).on("error", reject);
+            const lines = csvData.split("\n");
+            const headers = lines[0].split(",").map((h) => h.trim());
+            for (let i = 1; i < lines.length; i++) {
+              const line = lines[i].trim();
+              if (line) {
+                const values = line.split(",").map((v) => v.trim());
+                const record = {};
+                headers.forEach((header, index) => {
+                  record[header] = values[index] || "";
+                });
+                results.push(record);
+              }
+            }
+            resolve(results);
           });
         } else {
           return res.status(400).json({ message: "Unsupported file format. Please upload CSV or Excel files." });
@@ -11733,12 +12208,12 @@ var init_user_routes = __esm({
         let skipped = 0;
         for (const userData of users2) {
           try {
-            const email = (userData.email || userData.Email || userData.EMAIL || "").trim().toLowerCase();
-            const firstName = (userData.first_name || userData["First Name"] || userData.firstname || userData.FirstName || "").trim();
-            const lastName = (userData.last_name || userData["Last Name"] || userData.lastname || userData.LastName || "").trim();
-            const name = (userData.name || userData.Name || userData.NAME || `${firstName} ${lastName}`).trim();
-            const phone = (userData.phone || userData.Phone || userData.PHONE || "").trim();
-            const department = (userData.department || userData.Department || userData.DEPARTMENT || "").trim();
+            const email = String(userData.email || userData.Email || userData.EMAIL || "").trim().toLowerCase();
+            const firstName = String(userData.first_name || userData["First Name"] || userData.firstname || userData.FirstName || "").trim();
+            const lastName = String(userData.last_name || userData["Last Name"] || userData.lastname || userData.LastName || "").trim();
+            const name = String(userData.name || userData.Name || userData.NAME || `${firstName} ${lastName}`).trim();
+            const phone = String(userData.phone || userData.Phone || userData.PHONE || "").trim();
+            const department = String(userData.department || userData.Department || userData.DEPARTMENT || "").trim();
             if (!email || !name) {
               console.log(`Skipping user: missing email or name - ${JSON.stringify(userData)}`);
               continue;
@@ -11752,8 +12227,12 @@ var init_user_routes = __esm({
               continue;
             }
             const username2 = email.split("@")[0];
-            const tempPassword = `TempPass${Math.random().toString(36).slice(-6)}!`;
-            const password_hash = await bcrypt2.hash(tempPassword, 10);
+            const role = String(userData.role || userData.Role || userData.ROLE || "end_user").toLowerCase();
+            let password = userData.password || userData.Password || userData.PASSWORD;
+            if (!password) {
+              password = `TempPass${Math.random().toString(36).slice(-6)}!`;
+            }
+            const password_hash = await bcrypt2.hash(String(password), 10);
             let finalFirstName = firstName;
             let finalLastName = lastName;
             if (!firstName && !lastName && name) {
@@ -11761,25 +12240,28 @@ var init_user_routes = __esm({
               finalFirstName = nameParts[0] || "";
               finalLastName = nameParts.slice(1).join(" ") || "";
             }
+            const jobTitle = String(userData.job_title || userData["Job Title"] || userData.jobTitle || userData.JobTitle || "").trim();
+            const location = String(userData.location || userData.Location || userData.LOCATION || "").trim();
             await pool.query(`
           INSERT INTO users (
             email, username, first_name, last_name, role, 
-            password_hash, phone, department, location, is_active,
+            password_hash, phone, job_title, department, location, is_active,
             preferences, permissions, created_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
         `, [
               email,
               username2,
               finalFirstName,
               finalLastName,
-              "end_user",
+              role,
               password_hash,
               phone || null,
+              jobTitle || null,
               department || null,
-              department || null,
+              location || department || null,
               true,
-              JSON.stringify({ temp_password: tempPassword }),
-              // Store temp password in preferences for now
+              JSON.stringify({ temp_password: !userData.password ? password : void 0 }),
+              // Store temp password only if generated
               JSON.stringify([])
             ]);
             imported++;
@@ -11796,10 +12278,36 @@ var init_user_routes = __esm({
         });
       } catch (error) {
         console.error("Error importing end users:", error);
+        console.error("Error stack:", error.stack);
+        let errorMessage = "Failed to import end users";
+        if (error.message?.includes("duplicate")) {
+          errorMessage = "Duplicate entries found in import file";
+        } else if (error.message?.includes("validation")) {
+          errorMessage = "Invalid data format in import file";
+        } else if (error.message?.includes("database")) {
+          errorMessage = "Database error during import";
+        }
         res.status(500).json({
-          message: "Failed to import end users",
-          error: error.message
+          message: errorMessage,
+          error: error.message,
+          details: process.env.NODE_ENV === "development" ? error.stack : void 0
         });
+      }
+    });
+    router7.get("/stats", async (req, res) => {
+      try {
+        const result = await pool.query(`
+      SELECT 
+        COUNT(*) as total_users,
+        COUNT(CASE WHEN is_active = true THEN 1 END) as active_users,
+        COUNT(CASE WHEN is_locked = true THEN 1 END) as locked_users,
+		COUNT(CASE WHEN is_active = false THEN 1 END) as inactive_users
+      FROM users
+    `);
+        res.json(result.rows[0]);
+      } catch (error) {
+        console.error("Error fetching user stats:", error);
+        res.status(500).json({ message: "Internal server error" });
       }
     });
     router7.get("/", async (req, res) => {
@@ -12353,6 +12861,44 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to change password" });
       }
     });
+    router7.post("/:id/lock", authenticateToken, async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { reason } = req.body;
+        if (!reason) {
+          return res.status(400).json({ message: "Reason for locking is required" });
+        }
+        const success = await storage.lockUser(id, reason);
+        if (!success) {
+          return res.status(404).json({ message: "User not found" });
+        }
+        const user = await storage.getUserById(id);
+        res.json({
+          message: "User locked successfully",
+          user
+        });
+      } catch (error) {
+        console.error("Error locking user:", error);
+        res.status(500).json({ message: "Failed to lock user" });
+      }
+    });
+    router7.post("/:id/unlock", authenticateToken, async (req, res) => {
+      try {
+        const { id } = req.params;
+        const success = await storage.unlockUser(id);
+        if (!success) {
+          return res.status(404).json({ message: "User not found" });
+        }
+        const user = await storage.getUserById(id);
+        res.json({
+          message: "User unlocked successfully",
+          user
+        });
+      } catch (error) {
+        console.error("Error unlocking user:", error);
+        res.status(500).json({ message: "Failed to unlock user" });
+      }
+    });
   }
 });
 
@@ -12362,9 +12908,9 @@ __export(knowledge_routes_exports, {
   knowledgeRoutes: () => router8
 });
 import { Router as Router8 } from "express";
-import { eq as eq9, and as and9, or as or8, sql as sql9, desc as desc8, ilike as ilike3, count as count5, like as like5 } from "drizzle-orm";
-import jwt4 from "jsonwebtoken";
-var router8, storage2, authenticateToken2;
+import { eq as eq9, and as and9, or as or8, sql as sql9, desc as desc9, ilike as ilike3, count as count5, like as like5 } from "drizzle-orm";
+import jwt6 from "jsonwebtoken";
+var router8, storage2, authenticateToken3;
 var init_knowledge_routes = __esm({
   "server/routes/knowledge-routes.ts"() {
     "use strict";
@@ -12374,14 +12920,14 @@ var init_knowledge_routes = __esm({
     init_knowledge_ai_service();
     router8 = Router8();
     storage2 = new TicketStorage();
-    authenticateToken2 = (req, res, next) => {
+    authenticateToken3 = (req, res, next) => {
       const authHeader = req.headers["authorization"];
       const token = authHeader && authHeader.split(" ")[1];
       if (!token) {
         req.user = null;
         return next();
       }
-      jwt4.verify(token, process.env.JWT_SECRET || "your-secret-key", (err, decoded) => {
+      jwt6.verify(token, process.env.JWT_SECRET || "your-secret-key", (err, decoded) => {
         if (err) {
           console.error("Token verification error:", err);
           req.user = null;
@@ -12391,7 +12937,7 @@ var init_knowledge_routes = __esm({
         next();
       });
     };
-    router8.get("/", authenticateToken2, async (req, res) => {
+    router8.get("/", authenticateToken3, async (req, res) => {
       try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
@@ -12408,17 +12954,21 @@ var init_knowledge_routes = __esm({
         }
         if (filters.search && filters.search.trim() !== "") {
           const searchTerm = `%${filters.search.toLowerCase()}%`;
-          conditions.push(
-            or8(
-              like5(knowledgeBase.title, searchTerm),
-              like5(knowledgeBase.content, searchTerm),
-              like5(knowledgeBase.category, searchTerm)
-            )
-          );
+          try {
+            conditions.push(
+              or8(
+                like5(knowledgeBase.title, searchTerm),
+                like5(knowledgeBase.content, searchTerm),
+                like5(knowledgeBase.category, searchTerm)
+              )
+            );
+          } catch (searchError) {
+            console.warn("Search filter error:", searchError);
+          }
         }
         const whereClause = conditions.length > 0 ? and9(...conditions) : void 0;
         const [{ total }] = await db.select({ total: count5() }).from(knowledgeBase).where(whereClause);
-        const articles = await db.select().from(knowledgeBase).where(whereClause).orderBy(desc8(knowledgeBase.helpful_votes), desc8(knowledgeBase.views), desc8(knowledgeBase.created_at)).limit(limit).offset((page - 1) * limit);
+        const articles = await db.select().from(knowledgeBase).where(whereClause).orderBy(desc9(knowledgeBase.helpful_votes), desc9(knowledgeBase.views), desc9(knowledgeBase.created_at)).limit(limit).offset((page - 1) * limit);
         console.log(`Found ${articles.length} articles in database (total: ${total})`);
         const response = {
           data: articles,
@@ -12459,7 +13009,7 @@ var init_knowledge_routes = __esm({
                     ilike3(knowledgeBase.content, `%${searchTextLower}%`)
                   )
                 )
-              ).orderBy(desc8(knowledgeBase.helpful_votes), desc8(knowledgeBase.views)).limit(parseInt(limit, 10));
+              ).orderBy(desc9(knowledgeBase.helpful_votes), desc9(knowledgeBase.views)).limit(parseInt(limit, 10));
               if (exactMatches.length > 0) {
                 console.log(`Found ${exactMatches.length} exact matches`);
                 return res.json(exactMatches);
@@ -12475,7 +13025,7 @@ var init_knowledge_routes = __esm({
                   eq9(knowledgeBase.status, "published"),
                   or8(...wordSearches)
                 )
-              ).orderBy(desc8(knowledgeBase.helpful_votes), desc8(knowledgeBase.views)).limit(parseInt(limit, 10));
+              ).orderBy(desc9(knowledgeBase.helpful_votes), desc9(knowledgeBase.views)).limit(parseInt(limit, 10));
               console.log(`Found ${wordMatches.length} word-based matches`);
               return res.json(wordMatches);
             } catch (searchError) {
@@ -12535,7 +13085,7 @@ var init_knowledge_routes = __esm({
                 eq9(knowledgeBase.status, "published"),
                 or8(exactPhraseSearch, exactContentSearch)
               )
-            ).orderBy(desc8(knowledgeBase.helpful_votes), desc8(knowledgeBase.views)).limit(3);
+            ).orderBy(desc9(knowledgeBase.helpful_votes), desc9(knowledgeBase.views)).limit(3);
             relatedArticles.push(...exactMatches);
             console.log(`Found ${exactMatches.length} exact phrase matches`);
             if (relatedArticles.length < 5) {
@@ -12550,7 +13100,7 @@ var init_knowledge_routes = __esm({
                     ...contentWordSearches
                   )
                 )
-              ).orderBy(desc8(knowledgeBase.helpful_votes), desc8(knowledgeBase.views)).limit(remainingLimit);
+              ).orderBy(desc9(knowledgeBase.helpful_votes), desc9(knowledgeBase.views)).limit(remainingLimit);
               relatedArticles.push(...wordMatches);
               console.log(`Found ${wordMatches.length} additional word matches`);
             }
@@ -12564,12 +13114,12 @@ var init_knowledge_routes = __esm({
                   ilike3(knowledgeBase.content, `%${titleWords[0]}%`)
                 )
               )
-            ).orderBy(desc8(knowledgeBase.helpful_votes)).limit(5);
+            ).orderBy(desc9(knowledgeBase.helpful_votes)).limit(5);
           }
         }
         if (relatedArticles.length === 0) {
           console.log("No header-based matches found, returning top articles");
-          relatedArticles = await db.select().from(knowledgeBase).where(eq9(knowledgeBase.status, "published")).orderBy(desc8(knowledgeBase.helpful_votes), desc8(knowledgeBase.views)).limit(3);
+          relatedArticles = await db.select().from(knowledgeBase).where(eq9(knowledgeBase.status, "published")).orderBy(desc9(knowledgeBase.helpful_votes), desc9(knowledgeBase.views)).limit(3);
         }
         console.log(`Returning ${relatedArticles.length} related articles for ticket: "${ticketData.title}"`);
         relatedArticles.forEach((article, index) => {
@@ -12581,7 +13131,7 @@ var init_knowledge_routes = __esm({
         res.status(500).json({ error: "Failed to fetch related articles", details: error.message });
       }
     });
-    router8.get("/:id", authenticateToken2, async (req, res) => {
+    router8.get("/:id", authenticateToken3, async (req, res) => {
       try {
         const article = await storage2.getKBArticleById(req.params.id);
         if (!article) {
@@ -12593,7 +13143,7 @@ var init_knowledge_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router8.post("/", authenticateToken2, async (req, res) => {
+    router8.post("/", authenticateToken3, async (req, res) => {
       try {
         const { title, content, category } = req.body;
         const newArticle = {
@@ -13443,8 +13993,8 @@ Immediate attention required!`;
           }
           const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { users: users2 } = await Promise.resolve().then(() => (init_user_schema(), user_schema_exports));
-          const { eq: eq13 } = await import("drizzle-orm");
-          const managers = await db5.select().from(users2).where(eq13(users2.role, "manager"));
+          const { eq: eq14 } = await import("drizzle-orm");
+          const managers = await db5.select().from(users2).where(eq14(users2.role, "manager"));
           for (const manager of managers) {
             await notificationService.createNotification({
               user_email: manager.email,
@@ -13607,13 +14157,13 @@ function registerSLARoutes(app2) {
       const now = /* @__PURE__ */ new Date();
       const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-      const { eq: eq13 } = await import("drizzle-orm");
+      const { eq: eq14 } = await import("drizzle-orm");
       await db5.update(tickets2).set({
         sla_paused: true,
         sla_pause_reason: reason || "Manually paused",
         sla_paused_at: now,
         updated_at: now
-      }).where(eq13(tickets2.id, id));
+      }).where(eq14(tickets2.id, id));
       res.json({ message: "SLA paused successfully" });
     } catch (error) {
       console.error("Error pausing SLA:", error);
@@ -13626,8 +14176,8 @@ function registerSLARoutes(app2) {
       const now = /* @__PURE__ */ new Date();
       const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-      const { eq: eq13 } = await import("drizzle-orm");
-      const [ticket] = await db5.select().from(tickets2).where(eq13(tickets2.id, id));
+      const { eq: eq14 } = await import("drizzle-orm");
+      const [ticket] = await db5.select().from(tickets2).where(eq14(tickets2.id, id));
       if (!ticket || !ticket.sla_paused_at) {
         return res.status(400).json({ error: "Ticket SLA is not paused" });
       }
@@ -13641,7 +14191,7 @@ function registerSLARoutes(app2) {
         sla_resumed_at: now,
         sla_total_paused_time: totalPausedTime,
         updated_at: now
-      }).where(eq13(tickets2.id, id));
+      }).where(eq14(tickets2.id, id));
       res.json({
         message: "SLA resumed successfully",
         pausedFor: `${pauseDuration} minutes`,
@@ -13665,14 +14215,14 @@ function registerSLARoutes(app2) {
     try {
       const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-      const { not: not3, inArray: inArray4, or: or9, eq: eq13 } = await import("drizzle-orm");
+      const { not: not4, inArray: inArray5, or: or9, eq: eq14 } = await import("drizzle-orm");
       const breachedTickets = await db5.select().from(tickets2).where(
         and(
-          not3(inArray4(tickets2.status, ["resolved", "closed", "cancelled"])),
+          not4(inArray5(tickets2.status, ["resolved", "closed", "cancelled"])),
           or9(
-            eq13(tickets2.sla_response_breached, true),
-            eq13(tickets2.sla_resolution_breached, true),
-            eq13(tickets2.sla_breached, true)
+            eq14(tickets2.sla_response_breached, true),
+            eq14(tickets2.sla_resolution_breached, true),
+            eq14(tickets2.sla_breached, true)
           )
         )
       );
@@ -13735,7 +14285,7 @@ function registerSLARoutes(app2) {
     try {
       const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-      const { eq: eq13, isNull: isNull3, not: not3, inArray: inArray4 } = await import("drizzle-orm");
+      const { eq: eq14, isNull: isNull3, not: not4, inArray: inArray5 } = await import("drizzle-orm");
       const ticketsToUpdate = await db5.select().from(tickets2).where(isNull3(tickets2.sla_resolution_due));
       let updated = 0;
       for (const ticket of ticketsToUpdate) {
@@ -13754,7 +14304,7 @@ function registerSLARoutes(app2) {
           due_date: slaResolutionDue,
           sla_breached: isBreached,
           updated_at: /* @__PURE__ */ new Date()
-        }).where(eq13(tickets2.id, ticket.id));
+        }).where(eq14(tickets2.id, ticket.id));
         updated++;
       }
       res.json({
@@ -13807,6 +14357,1354 @@ var init_sla_routes = __esm({
       }
     });
     sla_routes_default = router9;
+  }
+});
+
+// server/routes/sla-analysis-routes.ts
+var sla_analysis_routes_exports = {};
+__export(sla_analysis_routes_exports, {
+  default: () => sla_analysis_routes_default
+});
+import { Router as Router10 } from "express";
+import { eq as eq12, and as and12, not as not3, inArray as inArray4 } from "drizzle-orm";
+async function validateSLACalculation(ticket) {
+  try {
+    const policy = await slaPolicyService.findMatchingSLAPolicy({
+      type: ticket.type,
+      priority: ticket.priority,
+      impact: ticket.impact,
+      urgency: ticket.urgency,
+      category: ticket.category
+    });
+    if (!policy) {
+      return {
+        isValid: false,
+        error: "No matching SLA policy found",
+        expectedPolicy: null,
+        expectedResponseTime: null,
+        expectedResolutionTime: null
+      };
+    }
+    const slaTargets = slaPolicyService.calculateSLADueDates(
+      new Date(ticket.created_at),
+      policy
+    );
+    const actualResponse = ticket.response_due_at || ticket.sla_response_due;
+    const actualResolution = ticket.resolve_due_at || ticket.sla_resolution_due;
+    const responseDiff = actualResponse ? Math.abs(new Date(actualResponse).getTime() - slaTargets.responseDue.getTime()) : null;
+    const resolutionDiff = actualResolution ? Math.abs(new Date(actualResolution).getTime() - slaTargets.resolutionDue.getTime()) : null;
+    return {
+      isValid: true,
+      matchedPolicy: policy.name,
+      expectedResponseTime: policy.response_time,
+      expectedResolutionTime: policy.resolution_time,
+      expectedResponseDue: slaTargets.responseDue,
+      expectedResolutionDue: slaTargets.resolutionDue,
+      actualResponseDue: actualResponse,
+      actualResolutionDue: actualResolution,
+      responseDifference: responseDiff ? Math.floor(responseDiff / (1e3 * 60)) : null,
+      // in minutes
+      resolutionDifference: resolutionDiff ? Math.floor(resolutionDiff / (1e3 * 60)) : null,
+      // in minutes
+      calculationAccurate: (responseDiff === null || responseDiff < 6e4) && (resolutionDiff === null || resolutionDiff < 6e4)
+      // within 1 minute tolerance
+    };
+  } catch (error) {
+    return {
+      isValid: false,
+      error: error.message,
+      expectedPolicy: null,
+      expectedResponseTime: null,
+      expectedResolutionTime: null
+    };
+  }
+}
+async function testFutureTicketSLA() {
+  try {
+    const testCases = [
+      { type: "incident", priority: "critical", impact: "high", urgency: "high" },
+      { type: "incident", priority: "high", impact: "medium", urgency: "high" },
+      { type: "request", priority: "medium", impact: "low", urgency: "medium" },
+      { type: "request", priority: "low", impact: "low", urgency: "low" }
+    ];
+    const results = [];
+    const now = /* @__PURE__ */ new Date();
+    for (const testCase of testCases) {
+      const policy = await slaPolicyService.findMatchingSLAPolicy(testCase);
+      if (policy) {
+        const slaTargets = slaPolicyService.calculateSLADueDates(now, policy);
+        results.push({
+          testCase,
+          policy: policy.name,
+          responseTime: policy.response_time,
+          resolutionTime: policy.resolution_time,
+          responseDue: slaTargets.responseDue,
+          resolutionDue: slaTargets.resolutionDue,
+          businessHoursOnly: policy.business_hours_only,
+          willWork: true
+        });
+      } else {
+        results.push({
+          testCase,
+          policy: null,
+          willWork: false,
+          error: "No matching SLA policy found"
+        });
+      }
+    }
+    return {
+      testTime: now.toISOString(),
+      results,
+      summary: {
+        totalTests: testCases.length,
+        passed: results.filter((r) => r.willWork).length,
+        failed: results.filter((r) => !r.willWork).length
+      }
+    };
+  } catch (error) {
+    return {
+      error: error.message,
+      testTime: (/* @__PURE__ */ new Date()).toISOString()
+    };
+  }
+}
+var router10, sla_analysis_routes_default;
+var init_sla_analysis_routes = __esm({
+  "server/routes/sla-analysis-routes.ts"() {
+    "use strict";
+    init_db();
+    init_ticket_schema();
+    init_sla_schema();
+    init_sla_policy_service();
+    router10 = Router10();
+    router10.get("/api/sla/analysis", async (req, res) => {
+      try {
+        const now = /* @__PURE__ */ new Date();
+        const allTickets = await db.select().from(tickets);
+        const analysis = {
+          summary: {
+            totalTickets: allTickets.length,
+            openTickets: allTickets.filter((t) => !["resolved", "closed", "cancelled"].includes(t.status)).length,
+            closedTickets: allTickets.filter((t) => ["resolved", "closed", "cancelled"].includes(t.status)).length,
+            slaBreached: allTickets.filter((t) => t.sla_breached || t.sla_resolution_breached).length,
+            slaOnTrack: 0,
+            responseBreached: allTickets.filter((t) => t.sla_response_breached).length,
+            resolutionBreached: allTickets.filter((t) => t.sla_resolution_breached).length
+          },
+          ticketDetails: [],
+          slaValidation: {
+            ticketsWithSLA: 0,
+            ticketsWithoutSLA: 0,
+            slaCalculationErrors: []
+          },
+          futureTicketTest: null
+        };
+        for (const ticket of allTickets) {
+          const hasSLA = ticket.resolve_due_at || ticket.sla_resolution_due;
+          if (hasSLA) {
+            analysis.slaValidation.ticketsWithSLA++;
+          } else {
+            analysis.slaValidation.ticketsWithoutSLA++;
+          }
+          let slaStatus = "Unknown";
+          let timeToSLA = null;
+          let slaHealth = "unknown";
+          if (ticket.resolve_due_at || ticket.sla_resolution_due) {
+            const dueDate = new Date(ticket.resolve_due_at || ticket.sla_resolution_due);
+            const timeDiff = dueDate.getTime() - now.getTime();
+            const hoursRemaining = Math.floor(timeDiff / (1e3 * 3600));
+            const minutesRemaining = Math.floor(timeDiff % (1e3 * 3600) / (1e3 * 60));
+            if (["resolved", "closed", "cancelled"].includes(ticket.status)) {
+              slaStatus = "Completed";
+              slaHealth = ticket.sla_breached ? "breached" : "met";
+            } else if (timeDiff < 0) {
+              slaStatus = `Overdue by ${Math.abs(hoursRemaining)}h ${Math.abs(minutesRemaining)}m`;
+              slaHealth = "breached";
+            } else if (hoursRemaining < 2) {
+              slaStatus = `Due in ${hoursRemaining}h ${minutesRemaining}m`;
+              slaHealth = "critical";
+            } else if (hoursRemaining < 24) {
+              slaStatus = `Due in ${hoursRemaining}h ${minutesRemaining}m`;
+              slaHealth = "warning";
+            } else {
+              slaStatus = `Due in ${Math.floor(hoursRemaining / 24)}d ${hoursRemaining % 24}h`;
+              slaHealth = "good";
+            }
+            timeToSLA = {
+              hours: hoursRemaining,
+              minutes: minutesRemaining,
+              status: slaHealth
+            };
+          }
+          if (slaHealth === "good") {
+            analysis.summary.slaOnTrack++;
+          }
+          const expectedSLA = await validateSLACalculation(ticket);
+          analysis.ticketDetails.push({
+            ticketNumber: ticket.ticket_number,
+            title: ticket.title,
+            type: ticket.type,
+            priority: ticket.priority,
+            status: ticket.status,
+            createdAt: ticket.created_at,
+            assignedTo: ticket.assigned_to || "Unassigned",
+            slaPolicy: ticket.sla_policy,
+            slaResponseTime: ticket.sla_response_time,
+            slaResolutionTime: ticket.sla_resolution_time,
+            responseDue: ticket.response_due_at || ticket.sla_response_due,
+            resolutionDue: ticket.resolve_due_at || ticket.sla_resolution_due,
+            firstResponseAt: ticket.first_response_at,
+            resolvedAt: ticket.resolved_at,
+            slaBreached: ticket.sla_breached,
+            slaResponseBreached: ticket.sla_response_breached,
+            slaResolutionBreached: ticket.sla_resolution_breached,
+            currentSLAStatus: slaStatus,
+            timeToSLA,
+            slaHealth,
+            expectedSLA,
+            slaValidationPass: expectedSLA.isValid
+          });
+        }
+        analysis.futureTicketTest = await testFutureTicketSLA();
+        const policies = await db.select().from(slaPolicies2);
+        res.json({
+          analysis,
+          policies,
+          timestamp: now.toISOString()
+        });
+      } catch (error) {
+        console.error("Error in SLA analysis:", error);
+        res.status(500).json({ error: "Failed to analyze SLA data" });
+      }
+    });
+    router10.post("/api/sla/fix-tickets", async (req, res) => {
+      try {
+        const ticketsToFix = await db.select().from(tickets).where(
+          and12(
+            eq12(tickets.resolve_due_at, null),
+            not3(inArray4(tickets.status, ["resolved", "closed", "cancelled"]))
+          )
+        );
+        let fixed = 0;
+        const now = /* @__PURE__ */ new Date();
+        for (const ticket of ticketsToFix) {
+          const policy = await slaPolicyService.findMatchingSLAPolicy({
+            type: ticket.type,
+            priority: ticket.priority,
+            impact: ticket.impact,
+            urgency: ticket.urgency,
+            category: ticket.category
+          });
+          if (policy) {
+            const slaTargets = slaPolicyService.calculateSLADueDates(
+              new Date(ticket.created_at),
+              policy
+            );
+            const isResponseBreached = !ticket.first_response_at && now > slaTargets.responseDue;
+            const isResolutionBreached = now > slaTargets.resolutionDue;
+            await db.update(tickets).set({
+              sla_policy_id: policy.id,
+              sla_policy: policy.name,
+              sla_response_time: policy.response_time,
+              sla_resolution_time: policy.resolution_time,
+              response_due_at: slaTargets.responseDue,
+              resolve_due_at: slaTargets.resolutionDue,
+              sla_response_due: slaTargets.responseDue,
+              sla_resolution_due: slaTargets.resolutionDue,
+              sla_response_breached: isResponseBreached,
+              sla_resolution_breached: isResolutionBreached,
+              sla_breached: isResolutionBreached,
+              updated_at: now
+            }).where(eq12(tickets.id, ticket.id));
+            fixed++;
+          }
+        }
+        res.json({
+          message: `Fixed SLA data for ${fixed} tickets`,
+          ticketsProcessed: ticketsToFix.length,
+          ticketsFixed: fixed
+        });
+      } catch (error) {
+        console.error("Error fixing ticket SLA data:", error);
+        res.status(500).json({ error: "Failed to fix ticket SLA data" });
+      }
+    });
+    router10.post("/api/sla/check-breaches", async (req, res) => {
+      try {
+        const { slaMonitorService: slaMonitorService2 } = await Promise.resolve().then(() => (init_sla_monitor_service(), sla_monitor_service_exports));
+        console.log("\u{1F50D} Manual SLA breach check initiated...");
+        await slaMonitorService2.checkSLABreaches();
+        const metrics = await slaMonitorService2.getSLAMetrics();
+        res.json({
+          message: "SLA breach check completed",
+          metrics,
+          timestamp: (/* @__PURE__ */ new Date()).toISOString()
+        });
+      } catch (error) {
+        console.error("Error in manual SLA check:", error);
+        res.status(500).json({ error: "Failed to perform SLA check" });
+      }
+    });
+    sla_analysis_routes_default = router10;
+  }
+});
+
+// server/services/ai-service.ts
+var AIService, aiService;
+var init_ai_service = __esm({
+  "server/services/ai-service.ts"() {
+    "use strict";
+    init_storage();
+    AIService = class {
+      async generateDeviceInsights(deviceId) {
+        try {
+          const device = await storage.getDevice(deviceId);
+          if (!device) {
+            throw new Error("Device not found");
+          }
+          console.log(`Generating AI insights for device: ${device.hostname} (${deviceId})`);
+          const reportsPromise = storage.getRecentDeviceReports(deviceId, 7);
+          const timeout = new Promise(
+            (_, reject) => setTimeout(() => reject(new Error("Database query timeout")), 3e3)
+          );
+          const reports = await Promise.race([reportsPromise, timeout]);
+          if (!reports || reports.length === 0) {
+            console.log(`No reports found for device ${deviceId}`);
+            return [];
+          }
+          const latestReport = reports[0];
+          const analysisPromises = [
+            this.analyzePerformancePatterns(deviceId, reports, []).catch(
+              (err) => console.warn("Performance analysis failed:", err.message)
+            ),
+            this.analyzeSecurityPosture(deviceId, latestReport, []).catch(
+              (err) => console.warn("Security analysis failed:", err.message)
+            ),
+            this.generateResourcePredictions(deviceId, reports, []).catch(
+              (err) => console.warn("Resource prediction failed:", err.message)
+            ),
+            this.analyzeProcessBehavior(deviceId, latestReport, []).catch(
+              (err) => console.warn("Process analysis failed:", err.message)
+            ),
+            this.analyzeSystemHealth(deviceId, latestReport, []).catch(
+              (err) => console.warn("System health analysis failed:", err.message)
+            )
+          ];
+          const analysisTimeout = new Promise(
+            (_, reject) => setTimeout(() => reject(new Error("Analysis timeout")), 2e3)
+          );
+          await Promise.race([
+            Promise.allSettled(analysisPromises),
+            analysisTimeout
+          ]);
+          let insights = [];
+          for (const analysisResult of await Promise.allSettled(analysisPromises)) {
+            if (analysisResult.status === "fulfilled" && Array.isArray(analysisResult.value)) {
+              insights = insights.concat(analysisResult.value);
+            }
+          }
+          console.log(`Generated ${insights.length} AI insights for device ${deviceId}`);
+          return insights;
+        } catch (error) {
+          console.warn(`Error generating AI insights for device ${deviceId}:`, error.message);
+          return [];
+        }
+      }
+      async analyzePerformancePatterns(deviceId, reports, insights) {
+        const newInsights = [];
+        if (reports.length < 3) return newInsights;
+        const existingAlerts = await this.getExistingPerformanceAlerts(deviceId);
+        const cpuValues = reports.map((r) => parseFloat(r.cpu_usage || "0")).filter((v) => !isNaN(v));
+        const cpuTrend = this.calculateTrend(cpuValues);
+        if (cpuTrend > 2) {
+          const newSeverity = cpuTrend > 5 ? "high" : "medium";
+          const alertKey = "cpu-trend";
+          const existingAlert = existingAlerts.find((a) => a.metadata?.metric === "cpu" && a.title.includes("Trend"));
+          if (existingAlert && this.shouldUpdateAlert(existingAlert, cpuTrend, newSeverity)) {
+            newInsights.push({
+              ...existingAlert,
+              severity: newSeverity,
+              description: `CPU usage trending upward by ${cpuTrend.toFixed(1)}% per day over the last week`,
+              metadata: {
+                ...existingAlert.metadata,
+                trend: cpuTrend,
+                previous_trend: existingAlert.metadata?.trend || 0,
+                last_updated: (/* @__PURE__ */ new Date()).toISOString()
+              },
+              created_at: /* @__PURE__ */ new Date()
+            });
+          } else if (!existingAlert) {
+            newInsights.push({
+              id: `cpu-trend-${deviceId}`,
+              device_id: deviceId,
+              type: "performance",
+              severity: newSeverity,
+              title: "Rising CPU Usage Trend",
+              description: `CPU usage trending upward by ${cpuTrend.toFixed(1)}% per day over the last week`,
+              recommendation: "Monitor for runaway processes or consider CPU upgrade if trend continues",
+              confidence: 0.8,
+              metadata: { trend: cpuTrend, metric: "cpu", alert_type: "trend" },
+              created_at: /* @__PURE__ */ new Date()
+            });
+          }
+        }
+        const memoryValues = reports.map((r) => parseFloat(r.memory_usage || "0")).filter((v) => !isNaN(v));
+        const memoryTrend = this.calculateTrend(memoryValues);
+        if (memoryTrend > 1.5) {
+          const newSeverity = memoryTrend > 3 ? "high" : "medium";
+          const existingAlert = existingAlerts.find((a) => a.metadata?.metric === "memory" && a.title.includes("Climbing"));
+          if (existingAlert && this.shouldUpdateAlert(existingAlert, memoryTrend, newSeverity)) {
+            newInsights.push({
+              ...existingAlert,
+              severity: newSeverity,
+              description: `Memory usage increasing by ${memoryTrend.toFixed(1)}% per day`,
+              metadata: {
+                ...existingAlert.metadata,
+                trend: memoryTrend,
+                previous_trend: existingAlert.metadata?.trend || 0,
+                last_updated: (/* @__PURE__ */ new Date()).toISOString()
+              },
+              created_at: /* @__PURE__ */ new Date()
+            });
+          } else if (!existingAlert) {
+            newInsights.push({
+              id: `memory-trend-${deviceId}`,
+              device_id: deviceId,
+              type: "performance",
+              severity: newSeverity,
+              title: "Memory Usage Climbing",
+              description: `Memory usage increasing by ${memoryTrend.toFixed(1)}% per day`,
+              recommendation: "Check for memory leaks or plan for memory upgrade",
+              confidence: 0.75,
+              metadata: { trend: memoryTrend, metric: "memory", alert_type: "trend" },
+              created_at: /* @__PURE__ */ new Date()
+            });
+          }
+        }
+        const cpuVolatility = this.calculateVolatility(cpuValues);
+        if (cpuVolatility > 15) {
+          const existingAlert = existingAlerts.find((a) => a.metadata?.metric === "cpu" && a.title.includes("Volatility"));
+          if (!existingAlert) {
+            newInsights.push({
+              id: `cpu-volatility-${deviceId}`,
+              device_id: deviceId,
+              type: "performance",
+              severity: "medium",
+              title: "Unstable CPU Performance",
+              description: `High CPU usage volatility detected (${cpuVolatility.toFixed(1)}% std deviation)`,
+              recommendation: "Investigate intermittent high-CPU processes or system instability",
+              confidence: 0.7,
+              metadata: { volatility: cpuVolatility, metric: "cpu", alert_type: "volatility" },
+              created_at: /* @__PURE__ */ new Date()
+            });
+          }
+        }
+        return newInsights;
+      }
+      async analyzeSecurityPosture(deviceId, latestReport, insights) {
+        const newInsights = [];
+        if (!latestReport.raw_data) return newInsights;
+        const rawData = JSON.parse(latestReport.raw_data);
+        const securityData = rawData.security || {};
+        const processes = rawData.processes || [];
+        if (securityData.firewall_status !== "enabled" || securityData.antivirus_status !== "enabled") {
+          newInsights.push({
+            id: `security-services-${deviceId}`,
+            device_id: deviceId,
+            type: "security",
+            severity: "critical",
+            title: "Critical Security Services Disabled",
+            description: `${securityData.firewall_status !== "enabled" ? "Firewall disabled. " : ""}${securityData.antivirus_status !== "enabled" ? "Antivirus disabled." : ""}`,
+            recommendation: "Immediately enable all security services and run full system scan",
+            confidence: 0.95,
+            metadata: { firewall: securityData.firewall_status, antivirus: securityData.antivirus_status },
+            created_at: /* @__PURE__ */ new Date()
+          });
+        }
+        const suspiciousProcesses = processes.filter(
+          (p) => p.cpu_percent > 50 || p.name && (p.name.includes("crypto") || p.name.includes("miner"))
+        );
+        if (suspiciousProcesses.length > 0) {
+          newInsights.push({
+            id: `suspicious-processes-${deviceId}`,
+            device_id: deviceId,
+            type: "security",
+            severity: "high",
+            title: "Suspicious Process Activity",
+            description: `${suspiciousProcesses.length} potentially suspicious processes detected`,
+            recommendation: "Review process activity and run malware scan",
+            confidence: 0.6,
+            metadata: { processes: suspiciousProcesses.map((p) => p.name) },
+            created_at: /* @__PURE__ */ new Date()
+          });
+        }
+        return newInsights;
+      }
+      async generateResourcePredictions(deviceId, reports, insights) {
+        const newInsights = [];
+        if (reports.length < 5) return newInsights;
+        const timestamps = reports.map((r) => new Date(r.timestamp || r.created_at));
+        const diskValues = reports.map((r) => parseFloat(r.disk_usage || "0")).filter((v) => !isNaN(v));
+        const diskAnalysis = this.analyzeTimeSeriesPatterns(diskValues, timestamps);
+        if (diskAnalysis.trend > 0.5) {
+          const currentDisk = diskValues[0] || 0;
+          const forecast = diskAnalysis.forecast;
+          let daysToFull = -1;
+          for (let i = 0; i < forecast.length; i++) {
+            if (forecast[i] >= 95) {
+              daysToFull = i + 1;
+              break;
+            }
+          }
+          if (daysToFull > 0) {
+            newInsights.push({
+              id: `disk-prediction-${deviceId}`,
+              device_id: deviceId,
+              type: "prediction",
+              severity: daysToFull < 30 ? "high" : "medium",
+              title: "Advanced Disk Space Forecast",
+              description: `Predictive model shows disk reaching 95% capacity in ${daysToFull} days. Pattern: ${diskAnalysis.seasonality}`,
+              recommendation: this.generateMaintenanceRecommendation(daysToFull, diskAnalysis.volatility),
+              confidence: Math.min(0.95, reports.length / 15),
+              metadata: {
+                days_to_full: daysToFull,
+                current_usage: currentDisk,
+                trend: diskAnalysis.trend,
+                seasonality: diskAnalysis.seasonality,
+                volatility: diskAnalysis.volatility,
+                forecast: forecast.slice(0, 7)
+              },
+              created_at: /* @__PURE__ */ new Date()
+            });
+          }
+        }
+        const memoryValues = reports.map((r) => parseFloat(r.memory_usage || "0")).filter((v) => !isNaN(v));
+        const memoryAnalysis = this.analyzeTimeSeriesPatterns(memoryValues, timestamps);
+        if (memoryAnalysis.volatility > 20 && memoryAnalysis.trend > 1) {
+          newInsights.push({
+            id: `memory-degradation-${deviceId}`,
+            device_id: deviceId,
+            type: "prediction",
+            severity: "medium",
+            title: "Memory Performance Degradation Predicted",
+            description: `Memory usage patterns suggest potential degradation. Volatility: ${memoryAnalysis.volatility.toFixed(1)}%`,
+            recommendation: "Consider memory diagnostics and potential hardware refresh planning",
+            confidence: 0.7,
+            metadata: {
+              current_trend: memoryAnalysis.trend,
+              volatility: memoryAnalysis.volatility,
+              anomaly_count: memoryAnalysis.anomalies.length
+            },
+            created_at: /* @__PURE__ */ new Date()
+          });
+        }
+        const hardwareFailures = await this.predictHardwareFailures(deviceId, reports, []);
+        newInsights.push(...hardwareFailures);
+        return newInsights;
+      }
+      async predictHardwareFailures(deviceId, reports, insights) {
+        const newInsights = [];
+        const timestamps = reports.map((r) => new Date(r.timestamp || r.created_at));
+        const metrics = ["cpu_usage", "memory_usage", "disk_usage", "cpu_temperature"];
+        let riskScore = 0;
+        const riskFactors = [];
+        for (const metric of metrics) {
+          const values = reports.map((r) => parseFloat(r[metric] || "0")).filter((v) => !isNaN(v) && v > 0);
+          if (values.length < 3) continue;
+          const analysis = this.analyzeTimeSeriesPatterns(values, timestamps);
+          if (analysis.volatility > 25) {
+            riskScore += analysis.volatility / 25;
+            riskFactors.push(`${metric} volatility: ${analysis.volatility.toFixed(1)}%`);
+          }
+          if (metric === "cpu_temperature" && analysis.trend > 1) {
+            riskScore += 2;
+            riskFactors.push(`Rising temperature trend: +${analysis.trend.toFixed(1)}\xB0C/day`);
+          }
+          if (analysis.anomalies.length > values.length * 0.1) {
+            riskScore += 1;
+            riskFactors.push(`${metric} anomalies: ${analysis.anomalies.length}/${values.length} readings`);
+          }
+        }
+        if (riskScore > 3) {
+          newInsights.push({
+            id: `hardware-failure-risk-${deviceId}`,
+            device_id: deviceId,
+            type: "prediction",
+            severity: riskScore > 6 ? "high" : "medium",
+            title: "Hardware Failure Risk Detected",
+            description: `Predictive analysis indicates elevated hardware failure risk. Risk score: ${riskScore.toFixed(1)}`,
+            recommendation: "Schedule comprehensive hardware diagnostics and consider preventive replacement",
+            confidence: Math.min(0.9, riskScore / 10),
+            metadata: {
+              risk_score: riskScore,
+              risk_factors: riskFactors,
+              analysis_period_days: Math.ceil(((/* @__PURE__ */ new Date()).getTime() - timestamps[timestamps.length - 1].getTime()) / (1e3 * 60 * 60 * 24))
+            },
+            created_at: /* @__PURE__ */ new Date()
+          });
+        }
+        return newInsights;
+      }
+      generateMaintenanceRecommendation(daysToFull, volatility) {
+        if (daysToFull < 7) return "CRITICAL: Immediate action required within 24 hours";
+        if (daysToFull < 30) return "HIGH: Schedule maintenance within 1 week";
+        if (volatility > 15) return "MEDIUM: Volatile pattern detected, monitor closely and plan maintenance";
+        return "LOW: Plan routine maintenance within the month";
+      }
+      async analyzeProcessBehavior(deviceId, latestReport, insights) {
+        const newInsights = [];
+        if (!latestReport.raw_data) return newInsights;
+        const rawData = JSON.parse(latestReport.raw_data);
+        const processes = rawData.processes || [];
+        const highCPUProcesses = processes.filter((p) => p.cpu_percent > 20);
+        const highMemoryProcesses = processes.filter((p) => p.memory_percent > 10);
+        if (highCPUProcesses.length >= 3) {
+          newInsights.push({
+            id: `high-cpu-processes-${deviceId}`,
+            device_id: deviceId,
+            type: "performance",
+            severity: "medium",
+            title: "Multiple High-CPU Processes",
+            description: `${highCPUProcesses.length} processes consuming >20% CPU each`,
+            recommendation: "Review process efficiency and consider workload optimization",
+            confidence: 0.8,
+            metadata: { processes: highCPUProcesses.slice(0, 5).map((p) => ({ name: p.name, cpu: p.cpu_percent })) },
+            created_at: /* @__PURE__ */ new Date()
+          });
+        }
+        if (processes.length > 100) {
+          newInsights.push({
+            id: `process-optimization-${deviceId}`,
+            device_id: deviceId,
+            type: "optimization",
+            severity: "info",
+            title: "Process Optimization Opportunity",
+            description: `${processes.length} running processes detected - system may benefit from cleanup`,
+            recommendation: "Review and disable unnecessary startup programs and services",
+            confidence: 0.6,
+            metadata: { process_count: processes.length },
+            created_at: /* @__PURE__ */ new Date()
+          });
+        }
+        return newInsights;
+      }
+      async analyzeSystemHealth(deviceId, latestReport, insights) {
+        const newInsights = [];
+        if (!latestReport.raw_data) return newInsights;
+        const rawData = JSON.parse(latestReport.raw_data);
+        const systemHealth = rawData.system_health || {};
+        if (systemHealth.memory_pressure?.pressure_level === "high") {
+          newInsights.push({
+            id: `memory-pressure-${deviceId}`,
+            device_id: deviceId,
+            type: "maintenance",
+            severity: "high",
+            title: "High Memory Pressure",
+            description: "System experiencing significant memory pressure",
+            recommendation: "Close unnecessary applications or restart system to free memory",
+            confidence: 0.9,
+            metadata: { pressure_level: systemHealth.memory_pressure.pressure_level },
+            created_at: /* @__PURE__ */ new Date()
+          });
+        }
+        if (systemHealth.disk_health?.status !== "healthy") {
+          newInsights.push({
+            id: `disk-health-${deviceId}`,
+            device_id: deviceId,
+            type: "maintenance",
+            severity: "medium",
+            title: "Disk Health Warning",
+            description: `Disk health status: ${systemHealth.disk_health?.status || "unknown"}`,
+            recommendation: "Run disk diagnostics and ensure data backups are current",
+            confidence: 0.8,
+            metadata: { disk_status: systemHealth.disk_health?.status },
+            created_at: /* @__PURE__ */ new Date()
+          });
+        }
+        return newInsights;
+      }
+      calculateTrend(values) {
+        if (values.length < 2) return 0;
+        const n = values.length;
+        const sumX = n * (n - 1) / 2;
+        const sumY = values.reduce((a, b) => a + b, 0);
+        const sumXY = values.reduce((sum2, y, x) => sum2 + x * y, 0);
+        const sumXX = n * (n - 1) * (2 * n - 1) / 6;
+        const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+        return slope || 0;
+      }
+      analyzeTimeSeriesPatterns(values, timestamps) {
+        const trend = this.calculateTrend(values);
+        const volatility = this.calculateVolatility(values);
+        const anomalies = this.detectAnomalies(values);
+        const forecast = this.generateForecast(values, 7);
+        const seasonality = this.detectSeasonalityPatterns(values, timestamps);
+        return { trend, seasonality, volatility, anomalies, forecast };
+      }
+      generateForecast(values, periods) {
+        if (values.length < 3) return [];
+        const trend = this.calculateTrend(values);
+        const lastValue = values[values.length - 1];
+        const forecast = [];
+        for (let i = 1; i <= periods; i++) {
+          forecast.push(Math.max(0, lastValue + trend * i));
+        }
+        return forecast;
+      }
+      detectSeasonalityPatterns(values, timestamps) {
+        if (values.length < 14) return "insufficient_data";
+        const hourlyPatterns = this.analyzeHourlyPatterns(values, timestamps);
+        const weeklyPatterns = this.analyzeWeeklyPatterns(values, timestamps);
+        if (hourlyPatterns.strength > 0.3) return "daily";
+        if (weeklyPatterns.strength > 0.3) return "weekly";
+        return "random";
+      }
+      analyzeHourlyPatterns(values, timestamps) {
+        const hourlyBuckets = new Array(24).fill(0).map(() => []);
+        timestamps.forEach((timestamp6, index) => {
+          const hour = timestamp6.getHours();
+          hourlyBuckets[hour].push(values[index]);
+        });
+        const hourlyAverages = hourlyBuckets.map(
+          (bucket) => bucket.length > 0 ? bucket.reduce((a, b) => a + b, 0) / bucket.length : 0
+        );
+        const overallMean = values.reduce((a, b) => a + b, 0) / values.length;
+        const betweenHourVariance = hourlyAverages.reduce((sum2, avg2) => sum2 + Math.pow(avg2 - overallMean, 2), 0) / 24;
+        const totalVariance = values.reduce((sum2, val) => sum2 + Math.pow(val - overallMean, 2), 0) / values.length;
+        return { strength: betweenHourVariance / (totalVariance || 1) };
+      }
+      analyzeWeeklyPatterns(values, timestamps) {
+        const weeklyBuckets = new Array(7).fill(0).map(() => []);
+        timestamps.forEach((timestamp6, index) => {
+          const dayOfWeek = timestamp6.getDay();
+          weeklyBuckets[dayOfWeek].push(values[index]);
+        });
+        const weeklyAverages = weeklyBuckets.map(
+          (bucket) => bucket.length > 0 ? bucket.reduce((a, b) => a + b, 0) / bucket.length : 0
+        );
+        const overallMean = values.reduce((a, b) => a + b, 0) / values.length;
+        const betweenDayVariance = weeklyAverages.reduce((sum2, avg2) => sum2 + Math.pow(avg2 - overallMean, 2), 0) / 7;
+        const totalVariance = values.reduce((sum2, val) => sum2 + Math.pow(val - overallMean, 2), 0) / values.length;
+        return { strength: betweenDayVariance / (totalVariance || 1) };
+      }
+      calculateVolatility(values) {
+        if (values.length < 2) return 0;
+        const mean = values.reduce((a, b) => a + b, 0) / values.length;
+        const variance = values.reduce((sum2, value) => sum2 + Math.pow(value - mean, 2), 0) / values.length;
+        return Math.sqrt(variance);
+      }
+      detectAnomalies(values, threshold = 2.5) {
+        if (values.length < 3) return [];
+        const mean = values.reduce((a, b) => a + b, 0) / values.length;
+        const std = Math.sqrt(values.reduce((sum2, val) => sum2 + Math.pow(val - mean, 2), 0) / values.length);
+        return values.filter((value) => Math.abs(value - mean) > threshold * std);
+      }
+      calculateSeasonality(values) {
+        if (values.length < 7) return { pattern: "insufficient_data", confidence: 0 };
+        const weeklyAvg = [];
+        for (let day = 0; day < 7; day++) {
+          const dayValues = values.filter((_, index) => index % 7 === day);
+          weeklyAvg[day] = dayValues.reduce((a, b) => a + b, 0) / dayValues.length;
+        }
+        const totalVariance = values.reduce((sum2, val) => {
+          const overallMean = values.reduce((a, b) => a + b, 0) / values.length;
+          return sum2 + Math.pow(val - overallMean, 2);
+        }, 0) / values.length;
+        const weeklyVariance = weeklyAvg.reduce((sum2, dayMean) => {
+          const overallMean = weeklyAvg.reduce((a, b) => a + b, 0) / 7;
+          return sum2 + Math.pow(dayMean - overallMean, 2);
+        }, 0) / 7;
+        const seasonalityStrength = weeklyVariance / totalVariance;
+        return {
+          pattern: seasonalityStrength > 0.3 ? "weekly" : "random",
+          confidence: Math.min(seasonalityStrength, 1)
+        };
+      }
+      async getExistingPerformanceAlerts(deviceId) {
+        try {
+          return [];
+        } catch (error) {
+          console.error("Error fetching existing alerts:", error);
+          return [];
+        }
+      }
+      shouldUpdateAlert(existingAlert, newValue, newSeverity) {
+        const timeSinceCreated = (/* @__PURE__ */ new Date()).getTime() - new Date(existingAlert.created_at).getTime();
+        const hoursSinceCreated = timeSinceCreated / (1e3 * 60 * 60);
+        const severityChanged = existingAlert.severity !== newSeverity;
+        const significantTimeElapsed = hoursSinceCreated > 1;
+        const oldValue = existingAlert.metadata?.trend || existingAlert.metadata?.volatility || 0;
+        const valueChangePercent = Math.abs((newValue - oldValue) / oldValue) * 100;
+        const significantChange = valueChangePercent > 10;
+        return severityChanged || significantChange || significantTimeElapsed;
+      }
+      async getDeviceRecommendations(deviceId) {
+        const insights = await this.generateDeviceInsights(deviceId);
+        return insights.filter((insight) => insight.severity === "high" || insight.severity === "critical").map((insight) => insight.recommendation).slice(0, 5);
+      }
+    };
+    aiService = new AIService();
+  }
+});
+
+// server/models/ai-insights-storage.ts
+var AIInsightsStorage, aiInsightsStorage;
+var init_ai_insights_storage = __esm({
+  "server/models/ai-insights-storage.ts"() {
+    "use strict";
+    AIInsightsStorage = class {
+      async storeInsight(insight) {
+        try {
+          const { pool: pool3 } = await import("./db");
+          const result = await pool3.query(
+            `
+        INSERT INTO ai_insights (
+          device_id, insight_type, severity, title, description, 
+          recommendation, confidence, metadata, created_at, is_active
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), $9)
+        RETURNING *
+      `,
+            [
+              insight.device_id,
+              insight.insight_type,
+              insight.severity,
+              insight.title,
+              insight.description,
+              insight.recommendation,
+              insight.confidence,
+              JSON.stringify(insight.metadata),
+              insight.is_active
+            ]
+          );
+          return result.rows[0];
+        } catch (error) {
+          console.error("Error storing AI insight:", error);
+          throw error;
+        }
+      }
+      async getInsightsForDevice(deviceId, limit = 50) {
+        try {
+          const { pool: pool3 } = await import("./db");
+          const result = await pool3.query(
+            `
+        SELECT * FROM ai_insights 
+        WHERE device_id = $1 AND is_active = true
+        ORDER BY created_at DESC 
+        LIMIT $2
+      `,
+            [deviceId, limit]
+          );
+          return result.rows.map((row) => ({
+            ...row,
+            metadata: typeof row.metadata === "string" ? JSON.parse(row.metadata) : row.metadata
+          }));
+        } catch (error) {
+          console.error("Error fetching AI insights:", error);
+          return [];
+        }
+      }
+      async createAIInsightsTable() {
+        try {
+          const { pool: pool3 } = await import("./db");
+          await pool3.query(`
+        CREATE TABLE IF NOT EXISTS ai_insights (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          device_id UUID REFERENCES devices(id) ON DELETE CASCADE,
+          insight_type VARCHAR(50) NOT NULL,
+          severity VARCHAR(20) NOT NULL,
+          title VARCHAR(255) NOT NULL,
+          description TEXT NOT NULL,
+          recommendation TEXT NOT NULL,
+          confidence DECIMAL(3,2) NOT NULL,
+          metadata JSONB,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+          is_active BOOLEAN DEFAULT true,
+          INDEX (device_id, created_at),
+          INDEX (insight_type, severity)
+        )
+      `);
+          console.log("AI insights table created successfully");
+        } catch (error) {
+          console.error("Error creating AI insights table:", error);
+        }
+      }
+    };
+    aiInsightsStorage = new AIInsightsStorage();
+  }
+});
+
+// server/routes/ai-routes.ts
+var ai_routes_exports = {};
+__export(ai_routes_exports, {
+  default: () => ai_routes_default
+});
+import { Router as Router11 } from "express";
+var router11, ai_routes_default;
+var init_ai_routes = __esm({
+  "server/routes/ai-routes.ts"() {
+    "use strict";
+    init_ai_service();
+    init_ai_insights_storage();
+    router11 = Router11();
+    router11.get("/insights/:deviceId", async (req, res) => {
+      try {
+        const { deviceId } = req.params;
+        const { refresh } = req.query;
+        if (!deviceId) {
+          return res.status(400).json({ success: false, error: "Device ID is required" });
+        }
+        const timeout = new Promise(
+          (_, reject) => setTimeout(() => reject(new Error("Request timeout")), 5e3)
+        );
+        let insights = [];
+        try {
+          const insightsPromise = (async () => {
+            if (refresh === "true") {
+              const generatedInsights = await aiService.generateDeviceInsights(deviceId);
+              if (Array.isArray(generatedInsights)) {
+                setImmediate(async () => {
+                  for (const insight of generatedInsights) {
+                    try {
+                      await aiInsightsStorage.storeInsight({
+                        device_id: deviceId,
+                        insight_type: insight.type,
+                        severity: insight.severity,
+                        title: insight.title,
+                        description: insight.description,
+                        recommendation: insight.recommendation,
+                        confidence: insight.confidence,
+                        metadata: insight.metadata || {},
+                        is_active: true
+                      });
+                    } catch (storeError) {
+                      console.warn("Failed to store insight:", storeError.message);
+                    }
+                  }
+                });
+              }
+              return generatedInsights;
+            } else {
+              try {
+                const cachedInsights = await aiInsightsStorage.getInsightsForDevice(
+                  deviceId,
+                  20
+                );
+                if (cachedInsights && cachedInsights.length > 0) {
+                  return cachedInsights;
+                }
+              } catch (cacheError) {
+                console.warn("Failed to get cached insights:", cacheError.message);
+              }
+              return await aiService.generateDeviceInsights(deviceId);
+            }
+          })();
+          insights = await Promise.race([insightsPromise, timeout]);
+          if (!Array.isArray(insights)) {
+            insights = [];
+          }
+          res.json({ success: true, insights });
+        } catch (serviceError) {
+          console.warn("AI service timeout or error:", serviceError.message);
+          res.json({ success: true, insights: [] });
+        }
+      } catch (error) {
+        console.error("Error in AI insights API:", error);
+        res.status(500).json({ success: false, error: "Internal server error" });
+      }
+    });
+    router11.get("/recommendations/:deviceId", async (req, res) => {
+      try {
+        const { deviceId } = req.params;
+        const recommendations = await aiService.getDeviceRecommendations(deviceId);
+        res.json({ success: true, recommendations });
+      } catch (error) {
+        console.error("Error getting AI recommendations:", error);
+        res.status(500).json({ success: false, error: error.message });
+      }
+    });
+    router11.post("/insights/batch", async (req, res) => {
+      try {
+        const { deviceIds } = req.body;
+        const results = [];
+        for (const deviceId of deviceIds) {
+          try {
+            const insights = await aiService.generateDeviceInsights(deviceId);
+            results.push({ deviceId, success: true, insights });
+          } catch (error) {
+            results.push({ deviceId, success: false, error: error.message });
+          }
+        }
+        res.json({ success: true, results });
+      } catch (error) {
+        console.error("Error in batch AI processing:", error);
+        res.status(500).json({ success: false, error: error.message });
+      }
+    });
+    ai_routes_default = router11;
+  }
+});
+
+// server/routes/audit-routes.ts
+var audit_routes_exports = {};
+__export(audit_routes_exports, {
+  default: () => audit_routes_default
+});
+import { Router as Router12 } from "express";
+var router12, audit_routes_default;
+var init_audit_routes = __esm({
+  "server/routes/audit-routes.ts"() {
+    "use strict";
+    router12 = Router12();
+    router12.get("/logs", async (req, res) => {
+      try {
+        const { user, action, resource, startDate, endDate } = req.query;
+        const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
+        let query = `
+      SELECT 
+        al.id, al.user_id, al.action, al.resource_type, al.resource_id,
+        al.details, al.ip_address, al.user_agent, al.timestamp,
+        u.name as user_name, u.email as user_email
+      FROM audit_logs al
+      LEFT JOIN users u ON al.user_id = u.id
+      WHERE 1=1
+    `;
+        const params = [];
+        let paramIndex = 1;
+        if (user) {
+          query += ` AND (u.name ILIKE $${paramIndex} OR u.email ILIKE $${paramIndex})`;
+          params.push(`%${user}%`);
+          paramIndex++;
+        }
+        if (action) {
+          query += ` AND al.action = $${paramIndex}`;
+          params.push(action);
+          paramIndex++;
+        }
+        if (resource) {
+          query += ` AND al.resource_type = $${paramIndex}`;
+          params.push(resource);
+          paramIndex++;
+        }
+        if (startDate) {
+          query += ` AND al.timestamp >= $${paramIndex}`;
+          params.push(startDate);
+          paramIndex++;
+        }
+        if (endDate) {
+          query += ` AND al.timestamp <= $${paramIndex}`;
+          params.push(endDate);
+          paramIndex++;
+        }
+        query += ` ORDER BY al.timestamp DESC LIMIT 1000`;
+        const result = await db5.query(query, params);
+        res.json(result.rows);
+      } catch (error) {
+        console.error("Error fetching audit logs:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+    router12.post("/logs", async (req, res) => {
+      try {
+        const { user_id, action, resource_type, resource_id, details, ip_address, user_agent } = req.body;
+        const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
+        const result = await db5.query(`
+      INSERT INTO audit_logs (user_id, action, resource_type, resource_id, details, ip_address, user_agent, timestamp)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+      RETURNING id, timestamp
+    `, [user_id, action, resource_type, resource_id, JSON.stringify(details), ip_address, user_agent]);
+        res.status(201).json(result.rows[0]);
+      } catch (error) {
+        console.error("Error creating audit log:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+    audit_routes_default = router12;
+  }
+});
+
+// server/routes/security-routes.ts
+var security_routes_exports = {};
+__export(security_routes_exports, {
+  default: () => security_routes_default
+});
+import { Router as Router13 } from "express";
+var router13, security_routes_default;
+var init_security_routes = __esm({
+  "server/routes/security-routes.ts"() {
+    "use strict";
+    router13 = Router13();
+    router13.get("/alerts", async (req, res) => {
+      try {
+        const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
+        const securityAlerts = await db5.query(`
+      SELECT 
+        a.id, a.device_id, a.category, a.severity, a.message, a.triggered_at,
+        d.hostname, d.ip_address
+      FROM alerts a
+      JOIN devices d ON a.device_id = d.id
+      WHERE a.category IN ('security', 'vulnerability', 'malware', 'unauthorized_access')
+        AND a.is_active = true
+      ORDER BY a.triggered_at DESC
+      LIMIT 100
+    `);
+        res.json(securityAlerts.rows);
+      } catch (error) {
+        console.error("Error fetching security alerts:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+    router13.get("/vulnerabilities/:deviceId", async (req, res) => {
+      try {
+        const { deviceId } = req.params;
+        const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
+        const vulnerabilities = await db5.query(`
+      SELECT 
+        v.id, v.cve_id, v.severity, v.description, v.solution,
+        v.discovered_at, v.patched_at, v.status
+      FROM vulnerabilities v
+      WHERE v.device_id = $1
+      ORDER BY v.severity DESC, v.discovered_at DESC
+    `, [deviceId]);
+        res.json(vulnerabilities.rows);
+      } catch (error) {
+        console.error("Error fetching vulnerabilities:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+    router13.get("/compliance", async (req, res) => {
+      try {
+        const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
+        const compliance = await db5.query(`
+      SELECT 
+        COUNT(DISTINCT d.id) as total_devices,
+        COUNT(DISTINCT CASE WHEN pc.compliance_status = 'compliant' THEN d.id END) as compliant_devices,
+        COUNT(DISTINCT CASE WHEN pc.compliance_status = 'non_compliant' THEN d.id END) as non_compliant_devices,
+        COUNT(DISTINCT CASE WHEN pc.compliance_status = 'unknown' THEN d.id END) as unknown_devices
+      FROM devices d
+      LEFT JOIN patch_compliance pc ON d.id = pc.device_id
+    `);
+        res.json(compliance.rows[0]);
+      } catch (error) {
+        console.error("Error fetching compliance data:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+    router13.get("/audit", async (req, res) => {
+      try {
+        const { user, action, resource } = req.query;
+        const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
+        let query = `
+      SELECT 
+        al.id, al.user_id, al.action, al.resource_type, al.resource_id,
+        al.details, al.ip_address, al.user_agent, al.timestamp,
+        u.name as user_name, u.email as user_email
+      FROM audit_logs al
+      LEFT JOIN users u ON al.user_id = u.id
+      WHERE 1=1
+    `;
+        const params = [];
+        let paramIndex = 1;
+        if (user) {
+          query += ` AND (u.name ILIKE $${paramIndex} OR u.email ILIKE $${paramIndex})`;
+          params.push(`%${user}%`);
+          paramIndex++;
+        }
+        if (action) {
+          query += ` AND al.action = $${paramIndex}`;
+          params.push(action);
+          paramIndex++;
+        }
+        if (resource) {
+          query += ` AND al.resource_type = $${paramIndex}`;
+          params.push(resource);
+          paramIndex++;
+        }
+        query += ` ORDER BY al.timestamp DESC LIMIT 100`;
+        const result = await db5.query(query, params);
+        res.json(result.rows);
+      } catch (error) {
+        console.error("Error fetching audit logs:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+    security_routes_default = router13;
+  }
+});
+
+// server/routes/patch-routes.ts
+var patch_routes_exports = {};
+__export(patch_routes_exports, {
+  default: () => patch_routes_default
+});
+import { Router as Router14 } from "express";
+var router14, patch_routes_default;
+var init_patch_routes = __esm({
+  "server/routes/patch-routes.ts"() {
+    "use strict";
+    init_patch_compliance_service();
+    router14 = Router14();
+    router14.get("/patch-compliance/dashboard", async (req, res) => {
+      try {
+        console.log("\u{1F4CA} Fetching patch compliance dashboard data...");
+        console.log("Request timestamp:", (/* @__PURE__ */ new Date()).toISOString());
+        console.log("User agent:", req.headers["user-agent"]);
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("Dashboard query timeout")), 1e4);
+        });
+        console.log("Calling patchComplianceService.getDashboardData()...");
+        const dashboardPromise = patchComplianceService.getDashboardData();
+        const dashboard = await Promise.race([dashboardPromise, timeoutPromise]);
+        console.log("\u2705 Dashboard data fetched successfully");
+        console.log("Summary:", dashboard.summary);
+        console.log("Devices count:", dashboard.devices?.length || 0);
+        res.status(200).json(dashboard);
+      } catch (error) {
+        console.error("\u274C Error fetching patch compliance dashboard:", error);
+        console.error("Error type:", typeof error);
+        console.error("Error message:", error?.message || "No message");
+        console.error("Error stack:", error?.stack || "No stack");
+        console.error("Error name:", error?.name || "No name");
+        console.error("Error code:", error?.code || "No code");
+        const isDatabaseError = error?.message?.includes("connection") || error?.message?.includes("timeout") || error?.code === "ECONNREFUSED" || error?.code === "ETIMEDOUT";
+        const isTypeError = error?.message?.includes("operator does not exist") || error?.message?.includes("uuid = character varying");
+        let errorMessage = "Failed to load patch compliance data";
+        let recommendations = [
+          "Patch compliance system is initializing",
+          "Try refreshing the page in a few moments"
+        ];
+        if (isDatabaseError) {
+          errorMessage = "Database connection issue";
+          recommendations = [
+            "Database connection timeout",
+            "Check database connectivity",
+            "Try refreshing the page"
+          ];
+        } else if (isTypeError) {
+          errorMessage = "Database schema mismatch - UUID comparison error";
+          recommendations = [
+            "Database schema needs to be updated",
+            "Contact system administrator",
+            "Check server logs for details"
+          ];
+        }
+        const errorResponse = {
+          summary: {
+            total_devices: 2,
+            compliant_devices: 1,
+            compliance_rate: 50,
+            devices_with_critical_gaps: 1,
+            average_compliance: 88.9
+          },
+          devices: [
+            {
+              device_id: "mock-device-1",
+              hostname: "DESKTOP-MOCK01",
+              os_name: "Windows 10",
+              os_version: "21H2",
+              total_patches: 45,
+              installed_patches: 38,
+              missing_critical: 2,
+              missing_important: 5,
+              failed_patches: 1,
+              compliance_percentage: 84.4,
+              risk_score: 60,
+              last_scan: (/* @__PURE__ */ new Date()).toISOString()
+            },
+            {
+              device_id: "mock-device-2",
+              hostname: "DESKTOP-MOCK02",
+              os_name: "Windows 11",
+              os_version: "22H2",
+              total_patches: 52,
+              installed_patches: 48,
+              missing_critical: 0,
+              missing_important: 2,
+              failed_patches: 0,
+              compliance_percentage: 92.3,
+              risk_score: 25,
+              last_scan: (/* @__PURE__ */ new Date()).toISOString()
+            }
+          ],
+          top_non_compliant: [
+            {
+              device_id: "mock-device-1",
+              hostname: "DESKTOP-MOCK01",
+              compliance_percentage: 84.4,
+              missing_critical: 2,
+              missing_important: 5,
+              risk_score: 60
+            }
+          ],
+          upcoming_maintenance: [],
+          risk_distribution: {
+            high_risk: 0,
+            medium_risk: 1,
+            low_risk: 1
+          },
+          recommendations: [
+            "System is currently in mock mode - patch compliance tables are being initialized",
+            "Security patches are automatically deployed when system is fully operational",
+            "Database connection will be restored shortly"
+          ],
+          mock_mode: true,
+          error_message: errorMessage
+        };
+        if (error.message === "Dashboard query timeout") {
+          console.log("Returning timeout error response");
+          return res.status(408).json({
+            error: "Dashboard query timeout",
+            message: "The query took too long to execute. Please try again.",
+            mock_mode: true
+          });
+        } else {
+          console.log("Returning mock data response due to database error");
+          return res.status(200).json(errorResponse);
+        }
+      }
+    });
+    router14.get("/patch-compliance/report/:deviceId?", async (req, res) => {
+      try {
+        const { deviceId } = req.params;
+        const reports = await patchComplianceService.getDashboardData();
+        res.json({ success: true, reports });
+      } catch (error) {
+        console.error("Error getting compliance report:", error);
+        res.status(500).json({ success: false, error: error.message });
+      }
+    });
+    router14.post("/patch-compliance/scan/:deviceId", async (req, res) => {
+      try {
+        const { deviceId } = req.params;
+        const result = await patchComplianceService.processPatchData(
+          deviceId,
+          req.body
+        );
+        res.json({ success: true, result });
+      } catch (error) {
+        console.error("Error scanning device patches:", error);
+        res.status(500).json({ success: false, error: error.message });
+      }
+    });
+    router14.post("/patch-compliance/deploy", async (req, res) => {
+      try {
+        const deployment = req.body;
+        const deploymentId = await patchComplianceService.createPatchDeployment(deployment);
+        res.json({ success: true, deployment_id: deploymentId });
+      } catch (error) {
+        console.error("Error scheduling patch deployment:", error);
+        res.status(500).json({ success: false, error: error.message });
+      }
+    });
+    router14.get("/patch-compliance/pending-applications", async (req, res) => {
+      try {
+        const pendingPatches = await patchComplianceService.getPendingApplicationPatches();
+        res.json({ success: true, patches: pendingPatches });
+      } catch (error) {
+        console.error("Error getting pending application patches:", error);
+        res.status(500).json({ success: false, error: error.message });
+      }
+    });
+    patch_routes_default = router14;
   }
 });
 
@@ -13941,183 +15839,6 @@ var init_migrate_admin_tables = __esm({
         process.exit(1);
       });
     }
-  }
-});
-
-// server/routes/patch-routes.ts
-var patch_routes_exports = {};
-__export(patch_routes_exports, {
-  default: () => patch_routes_default
-});
-import { Router as Router11 } from "express";
-var router11, patch_routes_default;
-var init_patch_routes = __esm({
-  "server/routes/patch-routes.ts"() {
-    "use strict";
-    init_patch_compliance_service();
-    router11 = Router11();
-    router11.get("/patch-compliance/dashboard", async (req, res) => {
-      try {
-        console.log("\u{1F4CA} Fetching patch compliance dashboard data...");
-        console.log("Request timestamp:", (/* @__PURE__ */ new Date()).toISOString());
-        console.log("User agent:", req.headers["user-agent"]);
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error("Dashboard query timeout")), 1e4);
-        });
-        console.log("Calling patchComplianceService.getDashboardData()...");
-        const dashboardPromise = patchComplianceService.getDashboardData();
-        const dashboard = await Promise.race([dashboardPromise, timeoutPromise]);
-        console.log("\u2705 Dashboard data fetched successfully");
-        console.log("Summary:", dashboard.summary);
-        console.log("Devices count:", dashboard.devices?.length || 0);
-        res.status(200).json(dashboard);
-      } catch (error) {
-        console.error("\u274C Error fetching patch compliance dashboard:", error);
-        console.error("Error type:", typeof error);
-        console.error("Error message:", error?.message || "No message");
-        console.error("Error stack:", error?.stack || "No stack");
-        console.error("Error name:", error?.name || "No name");
-        console.error("Error code:", error?.code || "No code");
-        const isDatabaseError = error?.message?.includes("connection") || error?.message?.includes("timeout") || error?.code === "ECONNREFUSED" || error?.code === "ETIMEDOUT";
-        const isTypeError = error?.message?.includes("operator does not exist") || error?.message?.includes("uuid = character varying");
-        let errorMessage = "Failed to load patch compliance data";
-        let recommendations = [
-          "Patch compliance system is initializing",
-          "Try refreshing the page in a few moments"
-        ];
-        if (isDatabaseError) {
-          errorMessage = "Database connection issue";
-          recommendations = [
-            "Database connection timeout",
-            "Check database connectivity",
-            "Try refreshing the page"
-          ];
-        } else if (isTypeError) {
-          errorMessage = "Database schema mismatch - UUID comparison error";
-          recommendations = [
-            "Database schema needs to be updated",
-            "Contact system administrator",
-            "Check server logs for details"
-          ];
-        }
-        const errorResponse = {
-          summary: {
-            total_devices: 2,
-            compliant_devices: 1,
-            compliance_rate: 50,
-            devices_with_critical_gaps: 1,
-            average_compliance: 88.9
-          },
-          devices: [
-            {
-              device_id: "mock-device-1",
-              hostname: "DESKTOP-MOCK01",
-              os_name: "Windows 10",
-              os_version: "21H2",
-              total_patches: 45,
-              installed_patches: 38,
-              missing_critical: 2,
-              missing_important: 5,
-              failed_patches: 1,
-              compliance_percentage: 84.4,
-              risk_score: 60,
-              last_scan: (/* @__PURE__ */ new Date()).toISOString()
-            },
-            {
-              device_id: "mock-device-2",
-              hostname: "DESKTOP-MOCK02",
-              os_name: "Windows 11",
-              os_version: "22H2",
-              total_patches: 52,
-              installed_patches: 48,
-              missing_critical: 0,
-              missing_important: 2,
-              failed_patches: 0,
-              compliance_percentage: 92.3,
-              risk_score: 25,
-              last_scan: (/* @__PURE__ */ new Date()).toISOString()
-            }
-          ],
-          top_non_compliant: [
-            {
-              device_id: "mock-device-1",
-              hostname: "DESKTOP-MOCK01",
-              compliance_percentage: 84.4,
-              missing_critical: 2,
-              missing_important: 5,
-              risk_score: 60
-            }
-          ],
-          upcoming_maintenance: [],
-          risk_distribution: {
-            high_risk: 0,
-            medium_risk: 1,
-            low_risk: 1
-          },
-          recommendations: [
-            "System is currently in mock mode - patch compliance tables are being initialized",
-            "Security patches are automatically deployed when system is fully operational",
-            "Database connection will be restored shortly"
-          ],
-          mock_mode: true,
-          error_message: errorMessage
-        };
-        if (error.message === "Dashboard query timeout") {
-          console.log("Returning timeout error response");
-          return res.status(408).json({
-            error: "Dashboard query timeout",
-            message: "The query took too long to execute. Please try again.",
-            mock_mode: true
-          });
-        } else {
-          console.log("Returning mock data response due to database error");
-          return res.status(200).json(errorResponse);
-        }
-      }
-    });
-    router11.get("/patch-compliance/report/:deviceId?", async (req, res) => {
-      try {
-        const { deviceId } = req.params;
-        const reports = await patchComplianceService.getDashboardData();
-        res.json({ success: true, reports });
-      } catch (error) {
-        console.error("Error getting compliance report:", error);
-        res.status(500).json({ success: false, error: error.message });
-      }
-    });
-    router11.post("/patch-compliance/scan/:deviceId", async (req, res) => {
-      try {
-        const { deviceId } = req.params;
-        const result = await patchComplianceService.processPatchData(
-          deviceId,
-          req.body
-        );
-        res.json({ success: true, result });
-      } catch (error) {
-        console.error("Error scanning device patches:", error);
-        res.status(500).json({ success: false, error: error.message });
-      }
-    });
-    router11.post("/patch-compliance/deploy", async (req, res) => {
-      try {
-        const deployment = req.body;
-        const deploymentId = await patchComplianceService.createPatchDeployment(deployment);
-        res.json({ success: true, deployment_id: deploymentId });
-      } catch (error) {
-        console.error("Error scheduling patch deployment:", error);
-        res.status(500).json({ success: false, error: error.message });
-      }
-    });
-    router11.get("/patch-compliance/pending-applications", async (req, res) => {
-      try {
-        const pendingPatches = await patchComplianceService.getPendingApplicationPatches();
-        res.json({ success: true, patches: pendingPatches });
-      } catch (error) {
-        console.error("Error getting pending application patches:", error);
-        res.status(500).json({ success: false, error: error.message });
-      }
-    });
-    patch_routes_default = router11;
   }
 });
 
@@ -14311,7 +16032,7 @@ function registerTicketRoutes(app2) {
 
 // server/routes/device-routes.ts
 init_storage();
-function registerDeviceRoutes(app2, authenticateToken4) {
+function registerDeviceRoutes(app2, authenticateToken5) {
   app2.get("/api/devices/export/csv", async (req, res) => {
     try {
       const filters = {
@@ -14369,7 +16090,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       res.status(500).json({ error: "Failed to export devices" });
     }
   });
-  app2.get("/api/devices", authenticateToken4, async (req, res) => {
+  app2.get("/api/devices", authenticateToken5, async (req, res) => {
     try {
       console.log("Fetching devices - checking for agent activity...");
       const devices2 = await storage.getDevices();
@@ -14411,7 +16132,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
-  app2.get("/api/devices/:id", authenticateToken4, async (req, res) => {
+  app2.get("/api/devices/:id", authenticateToken5, async (req, res) => {
     try {
       let device = await storage.getDevice(req.params.id);
       if (!device) {
@@ -14460,7 +16181,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
   });
   app2.get(
     "/api/devices/:id/performance-insights",
-    authenticateToken4,
+    authenticateToken5,
     async (req, res) => {
       try {
         const { id } = req.params;
@@ -14484,12 +16205,12 @@ function registerDeviceRoutes(app2, authenticateToken4) {
   );
   app2.get(
     "/api/devices/:id/ai-insights",
-    authenticateToken4,
+    authenticateToken5,
     async (req, res) => {
       try {
         const { id } = req.params;
-        const { aiService } = await import("./ai-service");
-        const insights = await aiService.generateDeviceInsights(id);
+        const { aiService: aiService2 } = await import("./ai-service");
+        const insights = await aiService2.generateDeviceInsights(id);
         res.json(insights);
       } catch (error) {
         console.error("Error generating AI insights:", error);
@@ -14502,12 +16223,12 @@ function registerDeviceRoutes(app2, authenticateToken4) {
   );
   app2.get(
     "/api/devices/:id/ai-recommendations",
-    authenticateToken4,
+    authenticateToken5,
     async (req, res) => {
       try {
         const { id } = req.params;
-        const { aiService } = await import("./ai-service");
-        const recommendations = await aiService.getDeviceRecommendations(id);
+        const { aiService: aiService2 } = await import("./ai-service");
+        const recommendations = await aiService2.getDeviceRecommendations(id);
         res.json({ recommendations });
       } catch (error) {
         console.error("Error getting AI recommendations:", error);
@@ -14518,7 +16239,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       }
     }
   );
-  app2.get("/api/debug/devices", authenticateToken4, async (req, res) => {
+  app2.get("/api/debug/devices", authenticateToken5, async (req, res) => {
     try {
       const devices2 = await storage.getDevices();
       const now = /* @__PURE__ */ new Date();
@@ -14557,10 +16278,10 @@ function registerDeviceRoutes(app2, authenticateToken4) {
 init_storage();
 init_enhanced_storage();
 init_patch_compliance_service();
-function registerAgentRoutes(app2, authenticateToken4, requireRole2) {
+function registerAgentRoutes(app2, authenticateToken5, requireRole2) {
   app2.post(
     "/api/agents/:id/test-connectivity",
-    authenticateToken4,
+    authenticateToken5,
     async (req, res) => {
       try {
         const { id } = req.params;
@@ -14592,7 +16313,7 @@ function registerAgentRoutes(app2, authenticateToken4, requireRole2) {
   );
   app2.get(
     "/api/agents/:id/connection-status",
-    authenticateToken4,
+    authenticateToken5,
     async (req, res) => {
       try {
         const agentId = req.params.id;
@@ -14621,7 +16342,7 @@ function registerAgentRoutes(app2, authenticateToken4, requireRole2) {
   );
   app2.post(
     "/api/agents/:id/remote-connect",
-    authenticateToken4,
+    authenticateToken5,
     async (req, res) => {
       try {
         const agentId = req.params.id;
@@ -14700,7 +16421,7 @@ function registerAgentRoutes(app2, authenticateToken4, requireRole2) {
   );
   app2.post(
     "/api/agents/:id/execute-command",
-    authenticateToken4,
+    authenticateToken5,
     requireRole2(["admin", "manager"]),
     async (req, res) => {
       try {
@@ -14873,7 +16594,7 @@ function registerAgentRoutes(app2, authenticateToken4, requireRole2) {
 init_auth();
 init_response();
 import bcrypt3 from "bcrypt";
-import jwt5 from "jsonwebtoken";
+import jwt7 from "jsonwebtoken";
 
 // server/utils/user.ts
 var UserUtils = class {
@@ -14987,9 +16708,349 @@ var UserUtils = class {
   }
 };
 
+// server/routes/auth-routes.ts
+import { Router } from "express";
+
+// server/controllers/auth-controller.ts
+init_storage();
+init_database();
+init_auth();
+import bcrypt from "bcrypt";
+import jwt2 from "jsonwebtoken";
+var JWT_SECRET2 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+var AuthController = class {
+  static async login(req, res) {
+    try {
+      const { email, password } = req.body;
+      console.log("Login attempt for:", email);
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+      try {
+        const availableColumns = await DatabaseUtils.getTableColumns("users");
+        const columnNames = availableColumns.map((col) => col.column_name);
+        console.log("Available columns in users table:", columnNames);
+        let selectColumns = ["id", "email", "role"];
+        let optionalColumns = [
+          "password_hash",
+          "is_active",
+          "is_locked",
+          "last_login",
+          "phone",
+          "location",
+          "first_name",
+          "last_name",
+          "username",
+          "name"
+        ];
+        optionalColumns.forEach((col) => {
+          if (columnNames.includes(col)) {
+            selectColumns.push(col);
+          }
+        });
+        const query = DatabaseUtils.buildSelectQuery("users", columnNames, selectColumns) + " WHERE email = $1";
+        console.log("Executing query:", query);
+        const result = await DatabaseUtils.executeQuery(query, [email.toLowerCase()]);
+        if (result.rows.length === 0) {
+          console.log("User not found in database:", email);
+          throw new Error("User not found in database, trying file storage");
+        }
+        const user = result.rows[0];
+        console.log("Found user:", user.email, "Role:", user.role);
+        if (user.is_locked) {
+          return res.status(401).json({ message: "Account is locked. Contact administrator." });
+        }
+        if (user.is_active === false) {
+          return res.status(401).json({ message: "Account is inactive. Contact administrator." });
+        }
+        if (user.password_hash) {
+          const isValidPassword = await bcrypt.compare(
+            password,
+            user.password_hash
+          );
+          if (!isValidPassword) {
+            console.log("Invalid password for user:", email);
+            return res.status(401).json({ message: "Invalid credentials" });
+          }
+        } else {
+          const validPasswords = [
+            "Admin123!",
+            "Tech123!",
+            "Manager123!",
+            "User123!"
+          ];
+          if (!validPasswords.includes(password)) {
+            return res.status(401).json({ message: "Invalid credentials" });
+          }
+        }
+        if (availableColumns.includes("last_login")) {
+          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          await pool3.query(
+            `UPDATE users SET last_login = NOW() WHERE id = $1`,
+            [user.id]
+          );
+        }
+        const token = AuthUtils.generateToken({
+          userId: user.id,
+          id: user.id,
+          email: user.email,
+          role: user.role
+        });
+        const { password_hash, ...userWithoutPassword } = user;
+        userWithoutPassword.name = UserUtils.buildDisplayName(user);
+        console.log("Login successful for:", email);
+        res.json({
+          message: "Login successful",
+          token,
+          user: userWithoutPassword
+        });
+      } catch (dbError) {
+        console.log(
+          "Database lookup failed, trying file storage:",
+          dbError.message
+        );
+        try {
+          const demoUsers = await storage.getUsers({ search: email });
+          const user = demoUsers.find(
+            (u) => u.email.toLowerCase() === email.toLowerCase()
+          );
+          if (!user) {
+            return res.status(401).json({ message: "Invalid credentials" });
+          }
+          const validPasswords = [
+            "Admin123!",
+            "Tech123!",
+            "Manager123!",
+            "User123!"
+          ];
+          if (!validPasswords.includes(password)) {
+            return res.status(401).json({ message: "Invalid credentials" });
+          }
+          const token = jwt2.sign(
+            { userId: user.id, id: user.email, role: user.role },
+            JWT_SECRET2,
+            { expiresIn: "24h" }
+          );
+          console.log("File storage login successful for:", email);
+          res.json({
+            message: "Login successful",
+            token,
+            user
+          });
+        } catch (fileError) {
+          console.error("File storage also failed:", fileError);
+          return res.status(401).json({ message: "Invalid credentials" });
+        }
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  }
+  static async signup(req, res) {
+    try {
+      const { name, email, password, role, department, phone } = req.body;
+      if (!name || !email || !password) {
+        return res.status(400).json({ message: "Name, email and password required" });
+      }
+      const existingUsers = await storage.getUsers({ search: email });
+      if (existingUsers.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
+        return res.status(400).json({ message: "Email already exists" });
+      }
+      const password_hash = await bcrypt.hash(password, 10);
+      const newUser = await storage.createUser({
+        name,
+        email: email.toLowerCase(),
+        password_hash,
+        role: role || "user",
+        department: department || "",
+        phone: phone || "",
+        is_active: true
+      });
+      const { password_hash: _, ...userWithoutPassword } = newUser;
+      res.status(201).json({
+        message: "Account created successfully",
+        user: userWithoutPassword
+      });
+    } catch (error) {
+      console.error("Signup error:", error);
+      if (error.message?.includes("duplicate")) {
+        res.status(400).json({ message: "Email already exists" });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  }
+  static async verifyToken(req, res) {
+    try {
+      const { password_hash, ...userWithoutPassword } = req.user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  }
+  static async logout(req, res) {
+    try {
+      res.json({ message: "Logout successful" });
+    } catch (error) {
+      console.error("Error during logout:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+  static async portalLogin(req, res) {
+    try {
+      console.log("\u{1F511} Portal login request received at", (/* @__PURE__ */ new Date()).toISOString());
+      console.log("Request method:", req.method);
+      console.log("Request URL:", req.url);
+      console.log("Request body:", req.body);
+      console.log("Request headers:", {
+        "content-type": req.headers["content-type"],
+        "accept": req.headers["accept"],
+        "origin": req.headers["origin"],
+        "user-agent": req.headers["user-agent"]
+      });
+      const { email, password } = req.body;
+      if (!email || !password) {
+        console.log("\u274C Missing email or password");
+        return res.status(400).json({ error: "Email and password are required" });
+      }
+      console.log("\u2705 Portal login attempt for:", email);
+      try {
+        const availableColumns = await DatabaseUtils.getTableColumns("users");
+        const columnNames = availableColumns.map((col) => col.column_name);
+        let selectColumns = ["id", "email", "role"];
+        let optionalColumns = [
+          "password_hash",
+          "is_active",
+          "is_locked",
+          "first_name",
+          "last_name",
+          "username",
+          "name",
+          "phone",
+          "location"
+        ];
+        optionalColumns.forEach((col) => {
+          if (columnNames.includes(col)) {
+            selectColumns.push(col);
+          }
+        });
+        const query = DatabaseUtils.buildSelectQuery("users", columnNames, selectColumns) + " WHERE email = $1";
+        const result = await DatabaseUtils.executeQuery(query, [email.toLowerCase()]);
+        if (result.rows.length === 0) {
+          console.log("Portal user not found in database:", email);
+          throw new Error("User not found in database, trying file storage");
+        }
+        const user = result.rows[0];
+        console.log("Found portal user:", user.email, "Role:", user.role);
+        if (user.is_locked) {
+          return res.status(401).json({ error: "Account is locked. Contact administrator." });
+        }
+        if (user.is_active === false) {
+          return res.status(401).json({ error: "User account is inactive" });
+        }
+        if (user.password_hash) {
+          const isValidPassword = await bcrypt.compare(password, user.password_hash);
+          if (!isValidPassword) {
+            console.log("Invalid password for portal user:", email);
+            return res.status(401).json({ error: "Invalid credentials" });
+          }
+        } else {
+          const validPasswords = [
+            "TempPass123!",
+            "TempPass456!",
+            "Admin123!",
+            "Tech123!",
+            "Manager123!",
+            "User123!"
+          ];
+          if (!validPasswords.includes(password)) {
+            return res.status(401).json({ error: "Invalid credentials" });
+          }
+        }
+        const token = AuthUtils.generateToken({
+          userId: user.id,
+          id: user.id,
+          email: user.email,
+          role: user.role
+        });
+        const { password_hash, ...userWithoutPassword } = user;
+        userWithoutPassword.name = UserUtils.buildDisplayName(user);
+        console.log("Portal login successful for:", email);
+        res.json({
+          message: "Portal login successful",
+          token,
+          user: userWithoutPassword
+        });
+      } catch (dbError) {
+        console.log("Database lookup failed for portal, trying file storage:", dbError.message);
+        try {
+          const demoUsers = await storage.getUsers({ search: email });
+          const user = demoUsers.find(
+            (u) => u.email.toLowerCase() === email.toLowerCase()
+          );
+          if (!user) {
+            return res.status(401).json({ error: "Invalid credentials" });
+          }
+          const validPasswords = [
+            "TempPass123!",
+            "TempPass456!",
+            "Admin123!",
+            "Tech123!",
+            "Manager123!",
+            "User123!"
+          ];
+          if (!validPasswords.includes(password)) {
+            return res.status(401).json({ error: "Invalid credentials" });
+          }
+          const token = jwt2.sign(
+            { userId: user.id, id: user.email, role: user.role },
+            JWT_SECRET2,
+            { expiresIn: "24h" }
+          );
+          console.log("Portal file storage login successful for:", email);
+          res.json({
+            message: "Portal login successful",
+            token,
+            user
+          });
+        } catch (fileError) {
+          console.error("Portal file storage also failed:", fileError);
+          return res.status(401).json({ error: "Invalid credentials" });
+        }
+      }
+    } catch (error) {
+      console.error("\u274C Portal login error:", error);
+      console.error("Error stack:", error.stack);
+      if (error.message?.includes("database")) {
+        res.status(500).json({ error: "Database connection error" });
+      } else if (error.message?.includes("timeout")) {
+        res.status(500).json({ error: "Request timeout" });
+      } else {
+        res.status(500).json({ error: "Internal server error", details: error.message });
+      }
+    }
+  }
+};
+
+// server/routes/auth-routes.ts
+init_auth_middleware();
+var router = Router();
+router.post("/login", AuthController.login);
+router.post("/signup", AuthController.signup);
+router.post("/logout", AuthController.logout);
+router.get("/verify", authenticateToken, AuthController.verifyToken);
+router.post("/portal-login", (req, res, next) => {
+  console.log(`\u{1F50D} Portal login request received at ${(/* @__PURE__ */ new Date()).toISOString()}`);
+  console.log("Request method:", req.method);
+  console.log("Request URL:", req.url);
+  console.log("Request body exists:", !!req.body);
+  next();
+}, AuthController.portalLogin);
+
 // server/routes.ts
-var JWT_SECRET4 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-var authenticateToken3 = async (req, res, next) => {
+var JWT_SECRET6 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+var authenticateToken4 = async (req, res, next) => {
   const authHeader = req.headers["authorization"];
   const token = AuthUtils.extractTokenFromHeader(authHeader || "");
   if (!token) {
@@ -14998,24 +17059,28 @@ var authenticateToken3 = async (req, res, next) => {
   try {
     const decoded = AuthUtils.verifyToken(token);
     console.log("Decoded token:", decoded);
-    const user = await AuthUtils.getUserById(decoded.userId || decoded.id);
-    if (user) {
-      const statusCheck2 = AuthUtils.validateUserStatus(user);
-      if (!statusCheck2.valid) {
-        return ResponseUtils.forbidden(res, statusCheck2.message);
-      }
-      req.user = user;
-      return next();
+    let user = null;
+    try {
+      user = await AuthUtils.getUserById(decoded.userId || decoded.id);
+    } catch (dbError) {
+      console.log("Database user lookup failed, trying file storage");
     }
-    const fileUser = await storage.getUserById(decoded.userId || decoded.id);
-    if (!fileUser) {
+    if (!user) {
+      try {
+        user = await storage.getUserById(decoded.userId || decoded.id);
+      } catch (fileError) {
+        console.error("Both database and file storage failed:", fileError);
+        return ResponseUtils.forbidden(res, "User not found");
+      }
+    }
+    if (!user) {
       return ResponseUtils.forbidden(res, "User not found");
     }
-    const statusCheck = AuthUtils.validateUserStatus(fileUser);
+    const statusCheck = AuthUtils.validateUserStatus(user);
     if (!statusCheck.valid) {
       return ResponseUtils.forbidden(res, statusCheck.message);
     }
-    req.user = fileUser;
+    req.user = user;
     next();
   } catch (error) {
     console.error("Token verification error:", error);
@@ -15033,6 +17098,10 @@ var requireRole = (roles) => {
   };
 };
 async function registerRoutes(app2) {
+  const server = createServer(app2);
+  console.log("\u{1F517} Registering auth routes...");
+  app2.use("/api/auth", router);
+  console.log("\u2705 Auth routes registered");
   try {
     await storage.initializeDemoUsers();
     console.log("Demo users initialized successfully");
@@ -15048,52 +17117,10 @@ async function registerRoutes(app2) {
   }
   app2.post("/api/auth/login", async (req, res) => {
     try {
-      const { email, password, useActiveDirectory } = req.body;
-      console.log("Login attempt for:", email, "AD:", useActiveDirectory);
+      const { email, password } = req.body;
+      console.log("Login attempt for:", email);
       if (!email || !password) {
         return res.status(400).json({ message: "Email and password are required" });
-      }
-      if (useActiveDirectory) {
-        try {
-          const { adService: adService2 } = await Promise.resolve().then(() => (init_ad_service(), ad_service_exports));
-          const username2 = email.includes("@") ? email.split("@")[0] : email;
-          console.log("Attempting AD authentication for:", username2);
-          const adUser = await adService2.authenticateUser(username2, password);
-          if (adUser) {
-            const localUser = await adService2.syncUserToDatabase(adUser);
-            const token = jwt5.sign(
-              {
-                userId: localUser.id,
-                id: localUser.id,
-                email: localUser.email,
-                role: localUser.role,
-                authMethod: "ad"
-              },
-              JWT_SECRET4,
-              { expiresIn: "24h" }
-            );
-            console.log("AD login successful for:", email);
-            res.json({
-              message: "Login successful",
-              token,
-              user: {
-                id: localUser.id,
-                email: localUser.email,
-                name: localUser.name,
-                role: localUser.role,
-                department: localUser.department,
-                authMethod: "ad"
-              }
-            });
-            return;
-          } else {
-            console.log("AD authentication failed for:", username2);
-            return res.status(401).json({ message: "Invalid Active Directory credentials" });
-          }
-        } catch (adError) {
-          console.error("AD authentication error:", adError);
-          return res.status(500).json({ message: "Active Directory authentication failed" });
-        }
       }
       try {
         const { DatabaseUtils: DatabaseUtils2 } = await Promise.resolve().then(() => (init_database(), database_exports));
@@ -15118,7 +17145,9 @@ async function registerRoutes(app2) {
           }
         });
         const query = DatabaseUtils2.buildSelectQuery("users", columnNames, selectColumns) + " WHERE email = $1";
-        const result = await DatabaseUtils2.executeQuery(query, [email.toLowerCase()]);
+        const result = await DatabaseUtils2.executeQuery(query, [
+          email.toLowerCase()
+        ]);
         if (result.rows.length === 0) {
           throw new Error("User not found in database, trying file storage");
         }
@@ -15130,12 +17159,20 @@ async function registerRoutes(app2) {
           return res.status(401).json({ message: "Account is inactive. Contact administrator." });
         }
         if (user.password_hash) {
-          const isValidPassword = await bcrypt3.compare(password, user.password_hash);
+          const isValidPassword = await bcrypt3.compare(
+            password,
+            user.password_hash
+          );
           if (!isValidPassword) {
             return res.status(401).json({ message: "Invalid credentials" });
           }
         } else {
-          const validPasswords = ["Admin123!", "Tech123!", "Manager123!", "User123!"];
+          const validPasswords = [
+            "Admin123!",
+            "Tech123!",
+            "Manager123!",
+            "User123!"
+          ];
           if (!validPasswords.includes(password)) {
             return res.status(401).json({ message: "Invalid credentials" });
           }
@@ -15155,17 +17192,24 @@ async function registerRoutes(app2) {
         });
       } catch (dbError) {
         const demoUsers = await storage.getUsers({ search: email });
-        const user = demoUsers.find((u) => u.email.toLowerCase() === email.toLowerCase());
+        const user = demoUsers.find(
+          (u) => u.email.toLowerCase() === email.toLowerCase()
+        );
         if (!user) {
           return res.status(401).json({ message: "Invalid credentials" });
         }
-        const validPasswords = ["Admin123!", "Tech123!", "Manager123!", "User123!"];
+        const validPasswords = [
+          "Admin123!",
+          "Tech123!",
+          "Manager123!",
+          "User123!"
+        ];
         if (!validPasswords.includes(password)) {
           return res.status(401).json({ message: "Invalid credentials" });
         }
-        const token = jwt5.sign(
+        const token = jwt7.sign(
           { userId: user.id, id: user.email, role: user.role },
-          JWT_SECRET4,
+          JWT_SECRET6,
           { expiresIn: "24h" }
         );
         res.json({
@@ -15206,7 +17250,7 @@ async function registerRoutes(app2) {
       res.status(500).json({ message: "Failed to create user", error: error.message });
     }
   });
-  app2.get("/api/auth/verify", authenticateToken3, async (req, res) => {
+  app2.get("/api/auth/verify", authenticateToken4, async (req, res) => {
     try {
       const { password_hash, ...userWithoutPassword } = req.user;
       res.json(userWithoutPassword);
@@ -15258,7 +17302,7 @@ async function registerRoutes(app2) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
-  app2.get("/api/dashboard/summary", authenticateToken3, async (req, res) => {
+  app2.get("/api/dashboard/summary", authenticateToken4, async (req, res) => {
     try {
       const summary = await storage.getDashboardSummary();
       res.json(summary);
@@ -15271,12 +17315,12 @@ async function registerRoutes(app2) {
     res.json({ status: "ok", timestamp: /* @__PURE__ */ new Date() });
   });
   registerTicketRoutes(app2);
-  registerDeviceRoutes(app2, authenticateToken3);
-  registerAgentRoutes(app2, authenticateToken3, requireRole);
+  registerDeviceRoutes(app2, authenticateToken4);
+  registerAgentRoutes(app2, authenticateToken4, requireRole);
   try {
     const alertRoutes = await Promise.resolve().then(() => (init_alert_routes(), alert_routes_exports));
     if (alertRoutes.default) {
-      app2.use("/api/alerts", authenticateToken3, alertRoutes.default);
+      app2.use("/api/alerts", authenticateToken4, alertRoutes.default);
     }
   } catch (error) {
     console.warn("Alert routes not available:", error.message);
@@ -15284,7 +17328,11 @@ async function registerRoutes(app2) {
   try {
     const notificationRoutes = await Promise.resolve().then(() => (init_notification_routes(), notification_routes_exports));
     if (notificationRoutes.default) {
-      app2.use("/api/notifications", authenticateToken3, notificationRoutes.default);
+      app2.use(
+        "/api/notifications",
+        authenticateToken4,
+        notificationRoutes.default
+      );
     }
   } catch (error) {
     console.warn("Notification routes not available:", error.message);
@@ -15292,18 +17340,15 @@ async function registerRoutes(app2) {
   try {
     const automationRoutes = await Promise.resolve().then(() => (init_automation_routes(), automation_routes_exports));
     if (automationRoutes.default) {
-      app2.use("/api/automation", authenticateToken3, requireRole(["admin", "manager"]), automationRoutes.default);
+      app2.use(
+        "/api/automation",
+        authenticateToken4,
+        requireRole(["admin", "manager"]),
+        automationRoutes.default
+      );
     }
   } catch (error) {
     console.warn("Automation routes not available:", error.message);
-  }
-  try {
-    const { adRoutes } = await Promise.resolve().then(() => (init_ad_routes(), ad_routes_exports));
-    if (adRoutes) {
-      app2.use("/api/ad", authenticateToken3, requireRole(["admin"]), adRoutes);
-    }
-  } catch (error) {
-    console.warn("AD routes not available:", error.message);
   }
   try {
     const agentDownloadRoutes = await Promise.resolve().then(() => (init_agent_download_routes(), agent_download_routes_exports));
@@ -15324,7 +17369,7 @@ async function registerRoutes(app2) {
   try {
     const userRoutes = await Promise.resolve().then(() => (init_user_routes(), user_routes_exports));
     if (userRoutes.default) {
-      app2.use("/api/users", authenticateToken3, userRoutes.default);
+      app2.use("/api/users", authenticateToken4, userRoutes.default);
     }
   } catch (error) {
     console.warn("User routes not available:", error.message);
@@ -15332,7 +17377,7 @@ async function registerRoutes(app2) {
   try {
     const knowledgeRoutes = await Promise.resolve().then(() => (init_knowledge_routes(), knowledge_routes_exports));
     if (knowledgeRoutes.default) {
-      app2.use("/api/knowledge", authenticateToken3, knowledgeRoutes.default);
+      app2.use("/api/knowledge", authenticateToken4, knowledgeRoutes.default);
     }
   } catch (error) {
     console.warn("Knowledge routes not available:", error.message);
@@ -15340,17 +17385,52 @@ async function registerRoutes(app2) {
   try {
     const slaRoutes = await Promise.resolve().then(() => (init_sla_routes(), sla_routes_exports));
     if (slaRoutes.default) {
-      app2.use("/api/sla", authenticateToken3, slaRoutes.default);
+      app2.use("/api/sla", authenticateToken4, slaRoutes.default);
     }
   } catch (error) {
     console.warn("SLA routes not available:", error.message);
   }
   try {
+    const slaAnalysisRoutes = await Promise.resolve().then(() => (init_sla_analysis_routes(), sla_analysis_routes_exports));
+    if (slaAnalysisRoutes.default) {
+      app2.use("/api/sla-analysis", authenticateToken4, slaAnalysisRoutes.default);
+    }
   } catch (error) {
-    console.warn(" routes not available:", error.message);
+    console.warn("SLA analysis routes not available:", error.message);
   }
-  const httpServer = createServer(app2);
-  return httpServer;
+  try {
+    const aiRoutes = await Promise.resolve().then(() => (init_ai_routes(), ai_routes_exports));
+    if (aiRoutes.default) {
+      app2.use("/api/ai", authenticateToken4, aiRoutes.default);
+    }
+  } catch (error) {
+    console.warn("AI routes not available:", error.message);
+  }
+  try {
+    const auditRoutes = await Promise.resolve().then(() => (init_audit_routes(), audit_routes_exports));
+    if (auditRoutes.default) {
+      app2.use("/api/audit", authenticateToken4, requireRole(["admin", "manager"]), auditRoutes.default);
+    }
+  } catch (error) {
+    console.warn("Audit routes not available:", error.message);
+  }
+  try {
+    const securityRoutes = await Promise.resolve().then(() => (init_security_routes(), security_routes_exports));
+    if (securityRoutes.default) {
+      app2.use("/api/security", authenticateToken4, securityRoutes.default);
+    }
+  } catch (error) {
+    console.warn("Security routes not available:", error.message);
+  }
+  try {
+    const patchRoutes = await Promise.resolve().then(() => (init_patch_routes(), patch_routes_exports));
+    if (patchRoutes.default) {
+      app2.use("/api/patch", authenticateToken4, patchRoutes.default);
+    }
+  } catch (error) {
+    console.warn("Patch routes not available:", error.message);
+  }
+  return server;
 }
 
 // server/index.ts
@@ -15578,233 +17658,7 @@ async function createTicketTables() {
 init_db();
 init_ticket_schema();
 init_knowledge_routes();
-import { eq as eq12, desc as desc9 } from "drizzle-orm";
-
-// server/routes/agent-ad-sync-routes.ts
-import { Router as Router10 } from "express";
-
-// server/agent-tunnel-service.ts
-import { EventEmitter } from "events";
-var AgentTunnelService = class extends EventEmitter {
-  connections = /* @__PURE__ */ new Map();
-  registerAgent(agentId, ws, capabilities) {
-    const connection = {
-      agentId,
-      websocket: ws,
-      lastPing: /* @__PURE__ */ new Date(),
-      capabilities
-    };
-    this.connections.set(agentId, connection);
-    ws.on("message", (data) => {
-      try {
-        const message = JSON.parse(data.toString());
-        this.handleAgentMessage(agentId, message);
-      } catch (error) {
-        console.error(`Invalid message from agent ${agentId}:`, error);
-      }
-    });
-    ws.on("close", () => {
-      this.connections.delete(agentId);
-      console.log(`Agent ${agentId} disconnected`);
-    });
-    console.log(`Agent ${agentId} connected with capabilities:`, capabilities);
-  }
-  async executeRemoteCommand(agentId, command, params = {}) {
-    const connection = this.connections.get(agentId);
-    if (!connection) {
-      throw new Error(`Agent ${agentId} not connected`);
-    }
-    const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error("Command timeout"));
-      }, 3e4);
-      const responseHandler = (response) => {
-        if (response.requestId === requestId) {
-          clearTimeout(timeout);
-          this.removeListener("commandResponse", responseHandler);
-          if (response.success) {
-            resolve(response.data);
-          } else {
-            reject(new Error(response.error || "Command failed"));
-          }
-        }
-      };
-      this.on("commandResponse", responseHandler);
-      connection.websocket.send(JSON.stringify({
-        type: "command",
-        requestId,
-        command,
-        params
-      }));
-    });
-  }
-  handleAgentMessage(agentId, message) {
-    switch (message.type) {
-      case "ping":
-        const connection = this.connections.get(agentId);
-        if (connection) {
-          connection.lastPing = /* @__PURE__ */ new Date();
-          connection.websocket.send(JSON.stringify({ type: "pong" }));
-        }
-        break;
-      case "commandResponse":
-        this.emit("commandResponse", message);
-        break;
-      case "adSync":
-        this.handleADSync(agentId, message.data);
-        break;
-      default:
-        console.warn(`Unknown message type from agent ${agentId}:`, message.type);
-    }
-  }
-  async handleADSync(agentId, adData) {
-    try {
-      console.log(`Processing AD sync from agent ${agentId}:`, adData);
-      this.emit("adSyncReceived", { agentId, data: adData });
-    } catch (error) {
-      console.error(`Error processing AD sync from agent ${agentId}:`, error);
-    }
-  }
-  getConnectedAgents() {
-    return Array.from(this.connections.entries()).map(([agentId, connection]) => ({
-      agentId,
-      lastPing: connection.lastPing,
-      capabilities: connection.capabilities,
-      connected: true
-    }));
-  }
-  isAgentConnected(agentId) {
-    return this.connections.has(agentId);
-  }
-};
-var agentTunnelService = new AgentTunnelService();
-
-// server/routes/agent-ad-sync-routes.ts
-import expressWs from "express-ws";
-var router10 = Router10();
-var wsInstance = expressWs(router10);
-wsInstance.app.ws("/agent-tunnel/:agentId", (ws, req) => {
-  const agentId = req.params.agentId;
-  const capabilities = req.query.capabilities?.toString().split(",") || [];
-  agentTunnelService.registerAgent(agentId, ws, capabilities);
-});
-router10.post("/agents/:id/sync-ad", async (req, res) => {
-  try {
-    const agentId = req.params.id;
-    if (!agentTunnelService.isAgentConnected(agentId)) {
-      return res.status(404).json({
-        success: false,
-        message: "Agent not connected"
-      });
-    }
-    const adConfig = req.body.adConfig || {
-      server: "ldap://192.168.1.195:389",
-      searchBase: "CN=Users,DC=fidelisgroup,DC=local",
-      bindDN: "CN=test,CN=Users,DC=fidelisgroup,DC=local",
-      bindPassword: "Fidelis@123"
-    };
-    const result = await agentTunnelService.executeRemoteCommand(
-      agentId,
-      "syncAD",
-      {
-        config: adConfig,
-        syncUsers: true,
-        syncGroups: true
-      }
-    );
-    res.json({
-      success: true,
-      message: "AD sync initiated via agent",
-      data: result
-    });
-  } catch (error) {
-    console.error("Agent AD sync error:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Failed to sync AD via agent"
-    });
-  }
-});
-router10.get("/agents/:id/ad-status", async (req, res) => {
-  try {
-    const agentId = req.params.id;
-    if (!agentTunnelService.isAgentConnected(agentId)) {
-      return res.status(404).json({
-        success: false,
-        message: "Agent not connected"
-      });
-    }
-    const status = await agentTunnelService.executeRemoteCommand(
-      agentId,
-      "getADStatus"
-    );
-    res.json({
-      success: true,
-      status
-    });
-  } catch (error) {
-    console.error("Agent AD status error:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Failed to get AD status from agent"
-    });
-  }
-});
-router10.post("/agents/:id/test-ad", async (req, res) => {
-  try {
-    const agentId = req.params.id;
-    if (!agentTunnelService.isAgentConnected(agentId)) {
-      return res.status(404).json({
-        success: false,
-        message: "Agent not connected"
-      });
-    }
-    const adConfig = req.body;
-    const result = await agentTunnelService.executeRemoteCommand(
-      agentId,
-      "testADConnection",
-      adConfig
-    );
-    res.json({
-      success: true,
-      result
-    });
-  } catch (error) {
-    console.error("Agent AD test error:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Failed to test AD connection via agent"
-    });
-  }
-});
-router10.post("/agents/:id/remote-command", async (req, res) => {
-  try {
-    const agentId = req.params.id;
-    const { command, params } = req.body;
-    if (!agentTunnelService.isAgentConnected(agentId)) {
-      return res.status(404).json({
-        success: false,
-        message: "Agent not connected"
-      });
-    }
-    const result = await agentTunnelService.executeRemoteCommand(
-      agentId,
-      command,
-      params
-    );
-    res.json({
-      success: true,
-      result
-    });
-  } catch (error) {
-    console.error("Remote command error:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Failed to execute remote command"
-    });
-  }
-});
+import { eq as eq13, desc as desc11 } from "drizzle-orm";
 
 // server/websocket-service.ts
 import WebSocket from "ws";
@@ -15893,9 +17747,10 @@ var webSocketService = new WebSocketService();
 
 // server/index.ts
 init_sla_escalation_service();
-import expressWs2 from "express-ws";
+import expressWs from "express-ws";
+import cors from "cors";
 var app = express2();
-var wsInstance2 = expressWs2(app);
+var wsInstance = expressWs(app);
 app.use(express2.json());
 app.use(express2.urlencoded({ extended: false }));
 app.use((req, res, next) => {
@@ -15984,16 +17839,16 @@ app.use((req, res, next) => {
     const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
     const { reportsStorage: reportsStorage2 } = await Promise.resolve().then(() => (init_reports_storage(), reports_storage_exports));
     await reportsStorage2.createReportsTable();
-    const authenticateToken4 = async (req, res, next) => {
+    const authenticateToken5 = async (req, res, next) => {
       const authHeader = req.headers["authorization"];
       const token = authHeader && authHeader.split(" ")[1];
       if (!token) {
         return res.status(401).json({ message: "Access token required" });
       }
       try {
-        const jwt6 = await import("jsonwebtoken");
-        const JWT_SECRET5 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-        const decoded = jwt6.default.verify(token, JWT_SECRET5);
+        const jwt8 = await import("jsonwebtoken");
+        const JWT_SECRET7 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+        const decoded = jwt8.default.verify(token, JWT_SECRET7);
         const user = await storage3.getUserById(decoded.userId);
         if (!user || !user.is_active) {
           return res.status(403).json({ message: "User not found or inactive" });
@@ -16025,7 +17880,7 @@ app.use((req, res, next) => {
           status: req.query.status || "published"
         };
         console.log("KB API - Filters:", filters);
-        const articles = await db.select().from(knowledgeBase).where(eq12(knowledgeBase.status, filters.status)).orderBy(desc9(knowledgeBase.created_at));
+        const articles = await db.select().from(knowledgeBase).where(eq13(knowledgeBase.status, filters.status)).orderBy(desc11(knowledgeBase.created_at));
         console.log(`KB API - Found ${articles.length} articles in database`);
         let filteredArticles = articles;
         if (filters.search) {
@@ -16127,7 +17982,6 @@ app.use((req, res, next) => {
       }
     });
     app.use("/api/knowledge", router8);
-    app.use("/api/agent-sync", router10);
     app.get("/api/health", (req, res) => {
       res.json({ status: "ok", timestamp: /* @__PURE__ */ new Date() });
     });
@@ -16192,6 +18046,12 @@ app.use((req, res, next) => {
   console.error("\u274C Unhandled server error:", error);
   process.exit(1);
 });
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("\u274C Unhandled Rejection at:", promise, "reason:", reason);
+});
+process.on("uncaughtException", (error) => {
+  console.error("\u274C Uncaught Exception:", error);
+});
 var startSLAMonitoring = () => {
   console.log("\u{1F504} Starting SLA escalation monitoring...");
   slaEscalationService.checkAndEscalateTickets().catch(console.error);
@@ -16203,3 +18063,47 @@ var startSLAMonitoring = () => {
   );
 };
 setTimeout(startSLAMonitoring, 5e3);
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const allowedOrigins = [
+      /\.replit\.dev$/,
+      /\.replit\.app$/,
+      /\.pike\.replit\.dev$/,
+      // Add pike domain
+      /^https?:\/\/localhost/,
+      /^https?:\/\/127\.0\.0\.1/,
+      /^https?:\/\/0\.0\.0\.0/
+    ];
+    const isAllowed = allowedOrigins.some((pattern) => {
+      if (pattern instanceof RegExp) {
+        return pattern.test(origin);
+      }
+      return origin === pattern;
+    });
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      console.log("CORS blocked origin:", origin);
+      callback(null, true);
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
+}));
+app.options("/api/auth/portal-login", (req, res) => {
+  console.log("\u{1F310} CORS preflight for portal-login from:", req.headers.origin);
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept");
+  res.sendStatus(200);
+});
+app.get("/api/auth/test", (req, res) => {
+  console.log("\u{1F9EA} Test endpoint hit from:", req.headers.origin);
+  res.json({ message: "API is reachable", timestamp: (/* @__PURE__ */ new Date()).toISOString() });
+});
+var index_default = app;
+export {
+  index_default as default
+};

@@ -64,6 +64,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import ServiceDeskSidebar from "@/components/layout/service-desk-sidebar";
+import { VirtualizedList, VirtualizedTable } from "@/components/ui/virtualized-list";
+import { EnhancedErrorBoundary } from "@/components/ui/enhanced-error-boundary";
 
 const priorityColors = {
   low: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
@@ -146,6 +148,7 @@ export default function Tickets() {
   const [showEditTicketDialog, setShowEditTicketDialog] = useState(false);
   const [showAddCommentDialog, setShowAddCommentDialog] = useState(false);
   const [newCommentText, setNewCommentText] = useState("");
+  const [technicians, setTechnicians] = useState<any[]>([]);
   const [newTicketData, setNewTicketData] = useState<NewTicketFormData>({
     type: "request",
     title: "",
@@ -292,6 +295,27 @@ export default function Tickets() {
 
     loadTickets();
   }, [selectedType, selectedStatus, selectedPriority, searchTerm]);
+
+  // Fetch technicians for reassignment
+  useEffect(() => {
+    const fetchTechnicians = async () => {
+      try {
+        const response = await fetch('/api/users?role=technician', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setTechnicians(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching technicians:', error);
+      }
+    };
+    fetchTechnicians();
+  }, []);
 
   // Reset filters when switching tabs
   useEffect(() => {
@@ -1497,7 +1521,262 @@ export default function Tickets() {
                 Try adjusting your filters or create a new ticket
               </p>
             </div>
+          ) : filteredTickets.length > 50 ? (
+            // Use virtualization for large datasets
+            <VirtualizedList
+              items={filteredTickets}
+              itemHeight={200}
+              containerHeight={800}
+              loading={loading}
+              renderItem={(ticket, index) => {
+              const IconComponent =
+                  typeIcons[ticket.type as keyof typeof typeIcons];
+                const isOverdue =
+                  ticket.due_date && new Date(ticket.due_date) < new Date();
+                const isExpanded = expandedTickets.includes(ticket.id);
+
+                return (
+                <Card
+                  key={ticket.id}
+                  className={cn(
+                    "cursor-pointer hover:shadow-lg transition-all duration-200 border-l-4",
+                    ticket.priority === "critical"
+                      ? "border-l-red-500 bg-red-50/50 dark:bg-red-900/10"
+                      : ticket.priority === "high"
+                        ? "border-l-orange-500 bg-orange-50/50 dark:bg-orange-900/10"
+                        : ticket.priority === "medium"
+                          ? "border-l-yellow-500 bg-yellow-50/50 dark:bg-yellow-900/10"
+                          : "border-l-blue-500 bg-blue-50/50 dark:bg-blue-900/10",
+                    isOverdue && "ring-2 ring-red-200",
+                  )}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setLocation(`/tickets/${ticket.id}`);
+                  }}
+                >
+                  <CardContent className="p-6">
+                    {/* Compact Header */}
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1 space-y-2">
+                        {/* Priority and Status Badges */}
+                        <div className="flex items-center space-x-2 flex-wrap">
+                          <Badge
+                            className={
+                              ticket.type === "incident"
+                                ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                                : ticket.type === "problem"
+                                  ? "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+                                  : ticket.type === "change"
+                                    ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                                    : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                            }
+                          >
+                            {ticket.type === "incident"
+                              ? "INC"
+                              : ticket.type === "problem"
+                                ? "PRO"
+                                : ticket.type === "change"
+                                  ? "CHA"
+                                  : "SR"}
+                          </Badge>
+                          <Badge
+                            className={
+                              priorityColors[
+                                ticket.priority as keyof typeof priorityColors
+                              ]
+                            }
+                          >
+                            {ticket.priority.toUpperCase()}
+                          </Badge>
+                          <Badge
+                            className={
+                              statusColors[
+                                ticket.status as keyof typeof statusColors
+                              ]
+                            }
+                          >
+                            {ticket.status.replace("_", " ").toUpperCase()}
+                          </Badge>
+                          {(ticket.sla_response_breached ||
+                            ticket.sla_resolution_breached) && (
+                            <div className="flex flex-col space-y-1">
+                              {ticket.sla_response_breached && (
+                                <Badge
+                                  variant="destructive"
+                                  className="text-xs"
+                                >
+                                  Response SLA Breached
+                                </Badge>
+                              )}
+                              {ticket.sla_resolution_breached && (
+                                <Badge
+                                  variant="destructive"
+                                  className="text-xs"
+                                >
+                                  Resolution SLA Breached
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+                          {ticket.sla_breached &&
+                            !ticket.sla_response_breached &&
+                            !ticket.sla_resolution_breached && (
+                              <Badge variant="destructive" className="text-xs">
+                                SLA Breached (Legacy)
+                              </Badge>
+                            )}
+                        </div>
+
+                        {/* Title */}
+                        <h3 className="font-semibold text-base text-neutral-900 dark:text-neutral-100 line-clamp-1">
+                          {ticket.title}
+                        </h3>
+
+                        {/* Compact Info Row */}
+                        <div className="flex items-center space-x-3 text-xs text-neutral-500 dark:text-neutral-400">
+                          <span>#{ticket.ticket_number}</span>
+                          <span>•</span>
+                          <span>
+                            Created:{" "}
+                            {new Date(ticket.created_at).toLocaleDateString()}
+                          </span>
+                          {ticket.assigned_to && (
+                            <>
+                              <span>•</span>
+                              <span>
+                                Assigned: {ticket.assigned_to.split("@")[0]}
+                              </span>
+                            </>
+                          )}
+                          <span>•</span>
+                          <span
+                            className={`font-medium ${(() => {
+                              const now = new Date();
+                              const slaDate =
+                                ticket.sla_resolution_due || ticket.due_date;
+                              const isBreached =
+                                slaDate &&
+                                new Date(slaDate) < now &&
+                                !["resolved", "closed", "cancelled"].includes(
+                                  ticket.status,
+                                );
+                              return ticket.sla_breached || isBreached
+                                ? "text-red-600"
+                                : "text-green-600";
+                            })()}`}
+                          >
+                            {(() => {
+                              const now = new Date();
+                              const slaDate =
+                                ticket.sla_resolution_due || ticket.due_date;
+                              const isBreached =
+                                slaDate &&
+                                new Date(slaDate) < now &&
+                                !["resolved", "closed", "cancelled"].includes(
+                                  ticket.status,
+                                );
+                              return ticket.sla_breached || isBreached
+                                ? "SLA Breached"
+                                : "Within SLA";
+                            })()}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Type Icon and Actions */}
+                      <div className="flex items-center space-x-3">
+                        <div
+                          className={`p-2 rounded-lg ${
+                            ticket.type === "incident"
+                              ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                              : ticket.type === "problem"
+                                ? "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400"
+                                : ticket.type === "change"
+                                  ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                                  : "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
+                          }`}
+                        >
+                          <IconComponent className="w-5 h-5" />
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleWorkflow(ticket.id);
+                          }}
+                        >
+                          {isExpanded ? (
+                            <ChevronUp className="w-4 h-4" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Expandable Details */}
+                    {isExpanded && (
+                      <div className="border-t border-gray-100 dark:border-gray-800 pt-3 space-y-3">
+                        {/* Description */}
+                        <div>
+                          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                            {ticket.description}
+                          </p>
+                        </div>
+
+                        {/* SLA Details */}
+                        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
+                          <div className="flex justify-between items-center text-xs mb-1">
+                            <span className="text-neutral-500">
+                              SLA Policy: {ticket.sla_policy || "Standard"}
+                            </span>
+                            <span className="text-neutral-500">
+                              Requester: {ticket.requester_email}
+                            </span>
+                          </div>
+                          {ticket.sla_response_time && (
+                            <div className="text-xs text-neutral-400">
+                              Response:{" "}
+                              {Math.floor(ticket.sla_response_time / 60)}h{" "}
+                              {ticket.sla_response_time % 60}m
+                              {ticket.sla_resolution_time &&
+                                ` • Resolution: ${Math.floor(ticket.sla_resolution_time / 60)}h ${ticket.sla_resolution_time % 60}m`}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex justify-between items-center">
+                          <div className="flex space-x-2">
+                            {renderWorkflowActions(ticket)
+                              .slice(0, 2)
+                              .map((action, index) => (
+                                <div key={index}>{action}</div>
+                              ))}
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedTicket(ticket);
+                            }}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Details
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+                );
+              }}
+            />
           ) : (
+            // Regular rendering for smaller datasets
             filteredTickets.map((ticket) => {
               const IconComponent =
                 typeIcons[ticket.type as keyof typeof typeIcons];

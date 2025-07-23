@@ -16,7 +16,6 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
 
     console.log("Authenticating token for", req.path);
 
-  try {
     const decoded: any = jwt.verify(token, JWT_SECRET);
     console.log("Decoded token:", decoded);
 
@@ -74,10 +73,6 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
     req.user = user;
     next();
   } catch (error) {
-      console.error("Database user lookup failed:", error);
-      return null;
-    }
-  } catch (error) {
     console.error("Authentication error for", req.path, ":", error);
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({ message: "Token expired" });
@@ -102,3 +97,4 @@ export const requireRole = (roles: string | string[]) => {
     }
   };
 };
+

@@ -1,0 +1,85 @@
+~/workspace$ python test_all_agents.py           # Run all tests with summary
+ITSM Agent Test Suite
+============================================================
+Started at: 2025-07-21 06:02:22
+
+
+============================================================
+Running API Connectivity Test
+============================================================
+
+STDERR:
+Traceback (most recent call last):
+  File "/home/runner/workspace/test_agent_connectivity.py", line 8, in <module>
+    import requests
+ModuleNotFoundError: No module named 'requests'
+
+
+============================================================
+Running Agent Heartbeat Test
+============================================================
+
+STDERR:
+Traceback (most recent call last):
+  File "/home/runner/workspace/test_agent_heartbeat.py", line 8, in <module>
+    import requests
+ModuleNotFoundError: No module named 'requests'
+
+
+============================================================
+Running Agent Reporting Test
+============================================================
+
+STDERR:
+Traceback (most recent call last):
+  File "/home/runner/workspace/test_agent_reporting.py", line 8, in <module>
+    import requests
+ModuleNotFoundError: No module named 'requests'
+
+
+============================================================
+TEST SUMMARY
+============================================================
+Total tests: 3
+Passed: 0
+Failed: 3
+Total duration: 0.15 seconds
+
+❌ FAIL API Connectivity Test (0.08s)
+      Error: Traceback (most recent call last):
+  File "/home/runner/workspace/test_agent_connectivity.py", line 
+❌ FAIL Agent Heartbeat Test (0.03s)
+      Error: Traceback (most recent call last):
+  File "/home/runner/workspace/test_agent_heartbeat.py", line 8, 
+❌ FAIL Agent Reporting Test (0.04s)
+      Error: Traceback (most recent call last):
+  File "/home/runner/workspace/test_agent_reporting.py", line 8, 
+
+⚠️  3 test(s) failed.
+
+Please check the detailed output above and:
+  1. Ensure the ITSM server is running on port 5000
+  2. Check that the authentication token is correct
+  3. Verify network connectivity
+  4. Review any error messages for specific issues
+
+For more detailed testing, run individual test files:
+  python test_agent_connectivity.py
+  python test_agent_heartbeat.py
+  python test_agent_reporting.py
+~/workspace$ python test_agent_connectivity.py
+Traceback (most recent call last):
+  File "/home/runner/workspace/test_agent_connectivity.py", line 8, in <module>
+    import requests
+ModuleNotFoundError: No module named 'requests'
+~/workspace$ python test_agent_heartbeat.py
+Traceback (most recent call last):
+  File "/home/runner/workspace/test_agent_heartbeat.py", line 8, in <module>
+    import requests
+ModuleNotFoundError: No module named 'requests'
+~/workspace$ python test_agent_reporting.py
+Traceback (most recent call last):
+  File "/home/runner/workspace/test_agent_reporting.py", line 8, in <module>
+    import requests
+ModuleNotFoundError: No module named 'requests'
+~/workspace$ 
