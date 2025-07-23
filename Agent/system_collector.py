@@ -46,9 +46,9 @@ class SystemCollector:
             self.os_collector = None
             self.logger.warning(f"Unsupported OS: {platform.system()}")
 
-    
 
-            
+
+
 
     def test_ad_connection(self, config):
         """Test AD connection from agent's network"""
@@ -140,13 +140,55 @@ class SystemCollector:
             return {}
 
     def _get_network_info(self):
-        """Get network interface information"""
+        """Get network information including IP addresses and geographic location"""
         try:
+            network_info = {
+                'interfaces': [],
+                'public_ip': None,
+                'hostname': socket.gethostname(),
+                'domain': None,
+                'geographic_location': None
+            }
+
+            # Get public IP and geographic location
+            try:
+                import urllib.request
+                import json
+
+                # Get public IP
+                with urllib.request.urlopen('https://httpbin.org/ip', timeout=5) as response:
+                    data = json.loads(response.read().decode())
+                    network_info['public_ip'] = data.get('origin', '').split(',')[0].strip()
+
+                # Get geographic location using public IP
+                if network_info['public_ip'] and network_info['public_ip'] != "Unknown":
+                    try:
+                        geo_url = f"http://ip-api.com/json/{network_info['public_ip']}"
+                        with urllib.request.urlopen(geo_url, timeout=5) as geo_response:
+                            geo_data = json.loads(geo_response.read().decode())
+                            if geo_data.get('status') == 'success':
+                                network_info['geographic_location'] = {
+                                    'country': geo_data.get('country', 'Unknown'),
+                                    'region': geo_data.get('regionName', 'Unknown'),
+                                    'city': geo_data.get('city', 'Unknown'),
+                                    'latitude': geo_data.get('lat'),
+                                    'longitude': geo_data.get('lon'),
+                                    'timezone': geo_data.get('timezone'),
+                                    'isp': geo_data.get('isp', 'Unknown')
+                                }
+                            else:
+                                network_info['geographic_location'] = "Location lookup failed"
+                    except Exception as geo_e:
+                        self.logger.warning(f"Could not get geographic location: {geo_e}")
+                        network_info['geographic_location'] = "Location not available"
+
+            except Exception as e:
+                self.logger.warning(f"Could not get public IP: {e}")
+                network_info['public_ip'] = "Unknown"
+                network_info['geographic_location'] = "Location not available"
+
             import socket
             interfaces = []
-
-            # Get public IP
-            public_ip = self._get_public_ip()
 
             # List of keywords to filter out virtual adapters by name
             virtual_keywords = ['vEthernet', 'VMware', 'Virtual', 'Loopback', 'Hyper-V']
@@ -202,10 +244,11 @@ class SystemCollector:
             primary_mac = macs[0] if macs else "unknown"
 
             return {
-                'public_ip': public_ip,
+                'public_ip': network_info['public_ip'],
                 'primary_mac': primary_mac,
                 'interfaces': interfaces,
-                'io_counters': self._get_network_io_counters()
+                'io_counters': self._get_network_io_counters(),
+                'geographic_location': network_info['geographic_location']
             }
 
         except Exception as e:
@@ -643,7 +686,7 @@ class SystemCollector:
                 $UpdateSession = New-Object -ComObject Microsoft.Update.Session
                 $UpdateSearcher = $UpdateSession.CreateUpdateSearcher()
                 $SearchResult = $UpdateSearcher.Search("IsInstalled=0 and Type='Software'")
-                
+
                 $Updates = @()
                 foreach ($Update in $SearchResult.Updates) {
                     $Updates += @{
@@ -656,13 +699,13 @@ class SystemCollector:
                         RebootRequired = $Update.RebootRequired
                     }
                 }
-                
+
                 $Updates | ConvertTo-Json -Depth 3
                 '''
-                
+
                 result = subprocess.run(["powershell", "-Command", ps_command], 
                                       capture_output=True, text=True, timeout=60)
-                
+
                 if result.returncode == 0 and result.stdout.strip():
                     try:
                         available_updates = json.loads(result.stdout.strip())
@@ -671,7 +714,7 @@ class SystemCollector:
                         update_info['available_updates'] = available_updates or []
                     except json.JSONDecodeError:
                         pass
-                        
+
             except Exception as e:
                 self.logger.warning(f"Failed to get available Windows updates: {e}")
 
@@ -682,7 +725,7 @@ class SystemCollector:
                 $UpdateSearcher = $UpdateSession.CreateUpdateSearcher()
                 $HistoryCount = $UpdateSearcher.GetTotalHistoryCount()
                 $UpdateHistory = $UpdateSearcher.QueryHistory(0, [Math]::Min($HistoryCount, 50))
-                
+
                 $InstalledUpdates = @()
                 foreach ($Update in $UpdateHistory) {
                     if ($Update.ResultCode -eq 2) {  # Successfully installed
@@ -694,13 +737,13 @@ class SystemCollector:
                         }
                     }
                 }
-                
+
                 $InstalledUpdates | ConvertTo-Json -Depth 3
                 '''
-                
+
                 result = subprocess.run(["powershell", "-Command", ps_command], 
                                       capture_output=True, text=True, timeout=60)
-                
+
                 if result.returncode == 0 and result.stdout.strip():
                     try:
                         installed_updates = json.loads(result.stdout.strip())
@@ -709,7 +752,7 @@ class SystemCollector:
                         update_info['installed_updates'] = installed_updates or []
                     except json.JSONDecodeError:
                         pass
-                        
+
             except Exception as e:
                 self.logger.warning(f"Failed to get installed Windows updates: {e}")
 
@@ -720,13 +763,13 @@ class SystemCollector:
                 $AutoUpdate = New-Object -ComObject Microsoft.Update.AutoUpdate
                 $AutoUpdate.Results.LastSearchSuccessDate.ToString("yyyy-MM-dd HH:mm:ss")
                 '''
-                
+
                 result = subprocess.run(["powershell", "-Command", ps_command], 
                                       capture_output=True, text=True, timeout=30)
-                
+
                 if result.returncode == 0 and result.stdout.strip():
                     update_info['last_search_date'] = result.stdout.strip()
-                    
+
             except Exception as e:
                 self.logger.warning(f"Failed to get last search date: {e}")
 
@@ -736,18 +779,18 @@ class SystemCollector:
                 $AUSettings = (New-Object -ComObject Microsoft.Update.AutoUpdate).Settings
                 $AUSettings.NotificationLevel -ne 1
                 '''
-                
+
                 result = subprocess.run(["powershell", "-Command", ps_command], 
                                       capture_output=True, text=True, timeout=30)
-                
+
                 if result.returncode == 0:
                     update_info['automatic_updates_enabled'] = "True" in result.stdout
-                    
+
             except Exception as e:
                 self.logger.warning(f"Failed to check automatic updates: {e}")
 
             return update_info
-            
+
         except Exception as e:
             self.logger.error(f"Error getting Windows updates: {e}")
             return None

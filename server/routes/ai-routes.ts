@@ -125,4 +125,33 @@ router.post("/insights/batch", async (req, res) => {
   }
 });
 
+// Get AI insights summary for dashboard
+router.get("/insights", async (req, res) => {
+  try {
+    // Get recent insights from storage
+    const insights = await aiInsightsStorage.getRecentInsights(20);
+
+    // Aggregate insights by type and severity
+    const summary = {
+      total_insights: insights.length,
+      critical_insights: insights.filter(i => i.severity === 'critical').length,
+      high_insights: insights.filter(i => i.severity === 'high').length,
+      by_type: {
+        performance: insights.filter(i => i.insight_type === 'performance').length,
+        security: insights.filter(i => i.insight_type === 'security').length,
+        prediction: insights.filter(i => i.insight_type === 'prediction').length,
+        maintenance: insights.filter(i => i.insight_type === 'maintenance').length,
+        optimization: insights.filter(i => i.insight_type === 'optimization').length
+      },
+      recent_insights: insights.slice(0, 5),
+      last_updated: new Date().toISOString()
+    };
+
+    res.json(summary);
+  } catch (error) {
+    console.error("Error fetching AI insights summary:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch AI insights" });
+  }
+});
+
 export default router;
