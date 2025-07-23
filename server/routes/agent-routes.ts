@@ -295,11 +295,15 @@ export function registerAgentRoutes(
   app.post("/api/heartbeat", async (req, res) => {
     try {
       console.log("Agent heartbeat received:", req.body);
-      console.log("=== NETWORK DATA DEBUG ===");
-      console.log("Network section:", JSON.stringify(req.body.network, null, 2));
-      console.log("Geographic location:", req.body.network?.geographic_location);
+      console.log("=== DETAILED NETWORK DATA DEBUG ===");
+      console.log("Full Network section:", JSON.stringify(req.body.network, null, 2));
+      console.log("Geographic location type:", typeof req.body.network?.geographic_location);
+      console.log("Geographic location value:", req.body.network?.geographic_location);
       console.log("Public IP:", req.body.network?.public_ip);
-      console.log("========================");
+      console.log("Network interfaces count:", req.body.network?.interfaces?.length);
+      console.log("Primary MAC:", req.body.network?.primary_mac);
+      console.log("Raw data keys:", Object.keys(req.body));
+      console.log("================================");
       const { hostname, systemInfo } = req.body;
 
       if (!hostname) {
@@ -333,6 +337,11 @@ export function registerAgentRoutes(
 
       // Store system info if provided
       if (systemInfo) {
+        console.log("=== STORING DEVICE REPORT ===");
+        console.log("Device ID:", device.id);
+        console.log("Raw data contains network:", !!req.body.network);
+        console.log("Raw data network keys:", req.body.network ? Object.keys(req.body.network) : "none");
+        
         await storage.createDeviceReport({
           device_id: device.id,
           cpu_usage: systemInfo.cpu_usage?.toString() || null,
@@ -341,6 +350,9 @@ export function registerAgentRoutes(
           network_io: null,
           raw_data: JSON.stringify(req.body),
         });
+        
+        console.log("Device report stored successfully");
+        console.log("============================");
       }
 
       // Process USB devices

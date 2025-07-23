@@ -511,71 +511,92 @@ export function useProcessedAgentData(agent: any): ProcessedAgentData | null {
     return locationInfo;
   }, [agent?.latest_report]);
 
-  const processMetrics = (rawData: any) => {
-    try {
-      // Parse metrics with better error handling and multiple fallback sources
-      const cpu = parseFloat(
-        rawData?.system_health?.cpu_usage || 
-        rawData?.hardware?.cpu_usage || 
-        rawData?.extracted_system_health?.cpu_usage || 
-        "0"
-      );
+  // Process network information
+  const networkInfo = useMemo(() => {
+    console.log("=== PROCESSING NETWORK INFO ===");
+    console.log("Agent latest report:", !!agent?.latest_report);
+    console.log("Raw data exists:", !!agent?.latest_report?.raw_data);
+    console.log("Network exists:", !!agent?.latest_report?.raw_data?.network);
 
-      const memory = parseFloat(
-        rawData?.system_health?.memory_usage || 
-        rawData?.hardware?.memory_usage || 
-        rawData?.extracted_system_health?.memory_usage || 
-        "0"
-      );
-
-      const disk = parseFloat(
-        rawData?.storage?.[0]?.usage_percent || 
-        rawData?.system_health?.disk_usage ||
-        rawData?.hardware?.disk_usage ||
-        "0"
-      );
-
-      const network = parseInt(
-        rawData?.network?.bytes_sent || 
-        rawData?.network?.total_bytes || 
-        "0"
-      );
-
-      const reportTime = rawData?.timestamp || 
-                        rawData?.processed_at || 
-                        rawData?.collected_at || 
-                        new Date().toISOString();
-
+    if (!agent?.latest_report?.raw_data?.network) {
+      console.log("No network data found, returning default values");
       return {
-        cpu: isNaN(cpu) ? 0 : Math.max(0, Math.min(100, cpu)),
-        memory: isNaN(memory) ? 0 : Math.max(0, Math.min(100, memory)),
-        disk: isNaN(disk) ? 0 : Math.max(0, Math.min(100, disk)),
-        network: isNaN(network) ? 0 : network,
-        reportTime,
-        dataQuality: {
-          hasCpu: !isNaN(cpu) && cpu > 0,
-          hasMemory: !isNaN(memory) && memory > 0,
-          hasDisk: !isNaN(disk) && disk > 0,
-          hasNetwork: !isNaN(network) && network > 0
-        }
-      };
-    } catch (error) {
-      console.error("Error processing metrics:", error);
-      return {
-        cpu: 0,
-        memory: 0,
-        disk: 0,
-        network: 0,
-        reportTime: new Date().toISOString(),
-        dataQuality: {
-          hasCpu: false,
-          hasMemory: false,
-          hasDisk: false,
-          hasNetwork: false
-        }
+        publicIP: 'Unknown',
+        geographicLocation: 'Location not available',
+        allIPs: [],
+        primaryMAC: 'Unknown'
       };
     }
-  };
+
+    const network = agent.latest_report.raw_data.network;
+    console.log("Network data keys:", Object.keys(network));
+    console.log("Geographic location:", network.geographic_location);
+    console.log("Public IP:", network.public_ip);
+    console.log("==============================");
+
+    // Process metrics with better error handling and multiple fallback sources
+    const cpu = parseFloat(
+      rawData?.system_health?.cpu_usage || 
+      rawData?.hardware?.cpu_usage || 
+      rawData?.extracted_system_health?.cpu_usage || 
+      "0"
+    );
+
+    const memory = parseFloat(
+      rawData?.system_health?.memory_usage || 
+      rawData?.hardware?.memory_usage || 
+      rawData?.extracted_system_health?.memory_usage || 
+      "0"
+    );
+
+    const disk = parseFloat(
+      rawData?.storage?.[0]?.usage_percent || 
+      rawData?.system_health?.disk_usage ||
+      rawData?.hardware?.disk_usage ||
+      "0"
+    );
+
+    const network = parseInt(
+      rawData?.network?.bytes_sent || 
+      rawData?.network?.total_bytes || 
+      "0"
+    );
+
+    const reportTime = rawData?.timestamp || 
+                      rawData?.processed_at || 
+                      rawData?.collected_at || 
+                      new Date().toISOString();
+
+    return {
+      cpu: isNaN(cpu) ? 0 : Math.max(0, Math.min(100, cpu)),
+      memory: isNaN(memory) ? 0 : Math.max(0, Math.min(100, memory)),
+      disk: isNaN(disk) ? 0 : Math.max(0, Math.min(100, disk)),
+      network: isNaN(network) ? 0 : network,
+      reportTime,
+      dataQuality: {
+        hasCpu: !isNaN(cpu) && cpu > 0,
+        hasMemory: !isNaN(memory) && memory > 0,
+        hasDisk: !isNaN(disk) && disk > 0,
+        hasNetwork: !isNaN(network) && network > 0
+      }
+    };
+  } catch (error) {
+    console.error("Error processing metrics:", error);
+    return {
+      cpu: 0,
+      memory: 0,
+      disk: 0,
+      network: 0,
+      reportTime: new Date().toISOString(),
+      dataQuality: {
+        hasCpu: false,
+        hasMemory: false,
+        hasDisk: false,
+        hasNetwork: false
+      }
+    };
+  }
+};
 
   const processedData = useMemo(() => {
     if (!agent) {
