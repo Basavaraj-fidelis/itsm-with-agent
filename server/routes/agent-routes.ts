@@ -295,6 +295,11 @@ export function registerAgentRoutes(
   app.post("/api/heartbeat", async (req, res) => {
     try {
       console.log("Agent heartbeat received:", req.body);
+      console.log("=== NETWORK DATA DEBUG ===");
+      console.log("Network section:", JSON.stringify(req.body.network, null, 2));
+      console.log("Geographic location:", req.body.network?.geographic_location);
+      console.log("Public IP:", req.body.network?.public_ip);
+      console.log("========================");
       const { hostname, systemInfo } = req.body;
 
       if (!hostname) {
@@ -358,6 +363,11 @@ export function registerAgentRoutes(
       console.log(`=== AGENT REPORT PROCESSED SUCCESSFULLY ===`);
       console.log(`Device ID: ${device.id}`);
       console.log(`Device Status: ${device.status}`);
+      console.log("=== NETWORK/LOCATION DEBUG ===");
+      console.log("Network data:", JSON.stringify(reportData.network, null, 2));
+      console.log("Geographic location:", reportData.network?.geographic_location);
+      console.log("Public IP:", reportData.network?.public_ip);
+      console.log("==============================");
       console.log(`===============================================`);
 
       res.json({ message: "Report saved successfully" });
