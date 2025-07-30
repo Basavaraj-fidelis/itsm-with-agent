@@ -196,30 +196,12 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
           : null,
       };
 
-      console.log(`=== INDIVIDUAL DEVICE DATA FOR ID: ${req.params.id} ===`);
-      if (deviceWithReport) {
-        console.log("Device Found:", deviceWithReport.hostname);
-        console.log("Device Record:", {
-          id: deviceWithReport.id,
-          hostname: deviceWithReport.hostname,
-          status: deviceWithReport.status,
-          ip_address: deviceWithReport.ip_address,
-          os_name: deviceWithReport.os_name,
-          last_seen: deviceWithReport.last_seen,
-          assigned_user: deviceWithReport.assigned_user,
-          latest_report: deviceWithReport.latest_report,
-          created_at: deviceWithReport.created_at
-        });
-
-        if (deviceWithReport.latest_report) {
-          console.log("Latest Report Data:", deviceWithReport.latest_report);
-        } else {
-          console.log("No latest report data");
-        }
-      } else {
-        console.log("Device not found");
-      }
-      console.log("=== END INDIVIDUAL DEVICE DATA ===\n");
+      const deviceId = req.params.id;
+      console.log("=== INDIVIDUAL DEVICE DATA FOR ID:", deviceId, "===");
+      console.log("Device Found:", deviceWithReport.hostname);
+      console.log("Device Record:", JSON.stringify(deviceWithReport, null, 2));
+      console.log("Latest Report Raw Data (Full Detail):", JSON.stringify(deviceWithReport.latest_report?.raw_data, null, 2));
+      console.log("=== END INDIVIDUAL DEVICE DATA ===");
 
 
       res.json(deviceWithReport);

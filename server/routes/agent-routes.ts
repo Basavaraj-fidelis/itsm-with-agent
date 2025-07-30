@@ -326,9 +326,47 @@ export function registerAgentRoutes(
 
       const reportData = req.body;
 
-      // Log complete system data being received
-      console.log("COMPLETE SYSTEM REPORT DATA:");
-      console.log(JSON.stringify(reportData, null, 2));
+      // Log complete system data being received with detailed breakdown
+      console.log("=== COMPLETE SYSTEM REPORT RECEIVED ===");
+      console.log("Timestamp:", reportData.timestamp);
+      console.log("Hostname:", reportData.hostname);
+      
+      console.log("\n=== OS INFORMATION ===");
+      console.log(JSON.stringify(reportData.os_info, null, 2));
+      
+      console.log("\n=== NETWORK INFORMATION ===");
+      console.log(JSON.stringify(reportData.network, null, 2));
+      
+      console.log("\n=== HARDWARE INFORMATION ===");
+      console.log(JSON.stringify(reportData.hardware, null, 2));
+      
+      console.log("\n=== STORAGE INFORMATION ===");
+      console.log(JSON.stringify(reportData.storage, null, 2));
+      
+      console.log("\n=== SOFTWARE (First 5 items) ===");
+      console.log(JSON.stringify(reportData.software?.slice(0, 5), null, 2));
+      console.log(`Total Software Count: ${reportData.software?.length || 0}`);
+      
+      console.log("\n=== PROCESSES (First 5 items) ===");
+      console.log(JSON.stringify(reportData.processes?.slice(0, 5), null, 2));
+      console.log(`Total Processes Count: ${reportData.processes?.length || 0}`);
+      
+      console.log("\n=== USB DEVICES ===");
+      console.log(JSON.stringify(reportData.usb_devices, null, 2));
+      
+      console.log("\n=== VIRTUALIZATION INFO ===");
+      console.log(JSON.stringify(reportData.virtualization, null, 2));
+      
+      console.log("\n=== SYSTEM HEALTH ===");
+      console.log(JSON.stringify(reportData.system_health, null, 2));
+      
+      console.log("\n=== SECURITY INFO ===");
+      console.log(JSON.stringify(reportData.security, null, 2));
+      
+      console.log("\n=== ACTIVE PORTS ===");
+      console.log(JSON.stringify(reportData.active_ports, null, 2));
+      
+      console.log("=== END COMPLETE SYSTEM REPORT ===\n");
 
       // Store system info if provided
       if (systemInfo) {
