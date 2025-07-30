@@ -213,7 +213,32 @@ export class AgentDataProcessor {
       agent.ip_address || rawData.ip_address || "Not Available";
 
     const publicIP = rawData.extracted_public_ip || rawData.network?.public_ip || agent.network?.public_ip || rawData.public_ip || "Unknown";
-    const locationData = rawData.extracted_location_data || null;
+    
+    // Enhanced location data extraction
+    let locationData = null;
+    if (rawData.extracted_location_data) {
+      try {
+        locationData = typeof rawData.extracted_location_data === 'string'
+          ? JSON.parse(rawData.extracted_location_data)
+          : rawData.extracted_location_data;
+      } catch (error) {
+        console.warn('Failed to parse extracted_location_data:', error);
+      }
+    }
+    
+    // Fallback to network location data
+    if (!locationData && rawData.network) {
+      locationData = {
+        city: rawData.network.geo_details?.city,
+        country: rawData.network.geo_details?.country,
+        region: rawData.network.geo_details?.region,
+        loc: rawData.network.coordinates,
+        ip: publicIP,
+        location: rawData.network.location || rawData.network.geo_location,
+        isp: rawData.network.isp,
+        timezone: rawData.network.geo_details?.timezone
+      };
+    }
 
     return {
       primaryIP,

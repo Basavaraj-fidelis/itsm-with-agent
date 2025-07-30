@@ -248,21 +248,98 @@ class SystemCollector:
             except:
                 pass
 
-            # Try to get public IP with multiple methods
+            # Enhanced public IP and geolocation collection
             try:
                 import requests
-                for url in ['https://api.ipify.org?format=json', 'https://httpbin.org/ip', 'https://api.myip.com']:
+                
+                # Get public IP with multiple fallback services
+                public_ip = None
+                ip_services = [
+                    'https://api.ipify.org?format=json',
+                    'https://httpbin.org/ip',
+                    'https://api.myip.com',
+                    'https://ipapi.co/json/',
+                    'https://api.ip.sb/jsonip'
+                ]
+                
+                for url in ip_services:
                     try:
-                        response = requests.get(url, timeout=5)
+                        response = requests.get(url, timeout=10)
                         if response.status_code == 200:
                             data = response.json()
-                            network_info['public_ip'] = data.get('ip') or data.get('origin')
-                            if network_info['public_ip']:
+                            public_ip = data.get('ip') or data.get('origin') or data.get('query')
+                            if public_ip:
+                                network_info['public_ip'] = public_ip
                                 break
-                    except:
+                    except Exception as e:
+                        self.logger.debug(f"Failed to get IP from {url}: {e}")
                         continue
-            except:
-                pass
+                
+                # Get enhanced geolocation data
+                if public_ip:
+                    geo_services = [
+                        f'https://ipapi.co/{public_ip}/json/',
+                        f'https://api.ipgeolocation.io/ipgeo?apiKey=free&ip={public_ip}',
+                        f'http://ip-api.com/json/{public_ip}',
+                        f'https://ipinfo.io/{public_ip}/json'
+                    ]
+                    
+                    for geo_url in geo_services:
+                        try:
+                            geo_response = requests.get(geo_url, timeout=10)
+                            if geo_response.status_code == 200:
+                                geo_data = geo_response.json()
+                                
+                                # Extract location information
+                                location_parts = []
+                                city = geo_data.get('city') or geo_data.get('cityName')
+                                region = geo_data.get('region') or geo_data.get('region_name') or geo_data.get('stateProv')
+                                country = geo_data.get('country') or geo_data.get('country_name') or geo_data.get('countryName')
+                                
+                                if city:
+                                    location_parts.append(city)
+                                if region and region != city:
+                                    location_parts.append(region)
+                                if country:
+                                    location_parts.append(country)
+                                
+                                if location_parts:
+                                    network_info['location'] = ', '.join(location_parts)
+                                    network_info['geo_location'] = ', '.join(location_parts)
+                                
+                                # Additional geo data
+                                network_info['isp'] = geo_data.get('isp') or geo_data.get('org') or geo_data.get('as')
+                                network_info['timezone'] = geo_data.get('timezone') or geo_data.get('timeZone')
+                                network_info['coordinates'] = f"{geo_data.get('lat', geo_data.get('latitude', ''))},{geo_data.get('lon', geo_data.get('longitude', ''))}" if geo_data.get('lat') or geo_data.get('latitude') else None
+                                
+                                # Store detailed geo data for reporting
+                                network_info['geo_details'] = {
+                                    'city': city,
+                                    'region': region,
+                                    'country': country,
+                                    'country_code': geo_data.get('country_code') or geo_data.get('countryCode'),
+                                    'postal_code': geo_data.get('postal') or geo_data.get('zip'),
+                                    'latitude': geo_data.get('lat') or geo_data.get('latitude'),
+                                    'longitude': geo_data.get('lon') or geo_data.get('longitude'),
+                                    'isp': geo_data.get('isp') or geo_data.get('org'),
+                                    'timezone': geo_data.get('timezone') or geo_data.get('timeZone')
+                                }
+                                
+                                self.logger.info(f"Successfully collected geolocation: {network_info.get('location')}")
+                                break
+                                
+                        except Exception as e:
+                            self.logger.debug(f"Failed to get geolocation from {geo_url}: {e}")
+                            continue
+                
+                # Fallback location if geo services fail
+                if not network_info.get('location') and public_ip:
+                    network_info['location'] = f"IP: {public_ip} (Location lookup failed)"
+                    
+            except Exception as e:
+                self.logger.warning(f"Error collecting public IP and geolocation: {e}")
+                network_info['public_ip'] = "Unable to determine"
+                network_info['location'] = "Location detection failed"
 
             # Get DNS servers with enhanced detection
             try:

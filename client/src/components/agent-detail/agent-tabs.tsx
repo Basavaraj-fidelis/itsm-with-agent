@@ -1128,9 +1128,25 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                               <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2 flex items-center gap-2">
                                 <Globe className="w-4 h-4" />
-                                Public IP
+                                Public IP Address
                               </h4>
-                              <p className="text-blue-900 dark:text-blue-100 font-mono">{publicIP}</p>
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <p className="text-blue-900 dark:text-blue-100 font-mono text-lg">{publicIP}</p>
+                                  {publicIP !== "Unknown" && publicIP !== "Unable to determine" && (
+                                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                  )}
+                                </div>
+                                {publicIP === "Unknown" || publicIP === "Unable to determine" ? (
+                                  <p className="text-xs text-blue-600 dark:text-blue-400">
+                                    ⚠️ Unable to detect public IP - check internet connectivity
+                                  </p>
+                                ) : (
+                                  <p className="text-xs text-blue-600 dark:text-blue-400">
+                                    ✅ Public IP successfully detected
+                                  </p>
+                                )}
+                              </div>
                             </div>
 
                             <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
@@ -1263,19 +1279,93 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             </div>
                           )}
 
-                          {/* Geographic Location */}
-                          <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
-                            <h4 className="font-medium text-indigo-800 dark:text-indigo-200 mb-2">
-                              Geographic Location
-                            </h4>
-                            <p className="text-indigo-900 dark:text-indigo-100">
-                              {networkInfo.location || networkInfo.geo_location || 'Location not available'}
-                            </p>
-                            {networkInfo.isp && (
-                              <p className="text-sm text-indigo-700 dark:text-indigo-300 mt-1">
-                                ISP: {networkInfo.isp}
-                              </p>
-                            )}
+                          {/* Enhanced Geographic Location */}
+                          <div className="space-y-4">
+                            <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                              <h4 className="font-medium text-indigo-800 dark:text-indigo-200 mb-3 flex items-center gap-2">
+                                <Globe className="w-4 h-4" />
+                                Geographic Location
+                              </h4>
+                              
+                              {(() => {
+                                const location = networkInfo.location || networkInfo.geo_location;
+                                const geoDetails = networkInfo.geo_details;
+                                
+                                if (!location && !geoDetails) {
+                                  return (
+                                    <div className="text-center py-3">
+                                      <p className="text-indigo-700 dark:text-indigo-300">Location not available</p>
+                                      <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
+                                        Enable internet access for geolocation
+                                      </p>
+                                    </div>
+                                  );
+                                }
+                                
+                                return (
+                                  <div className="space-y-3">
+                                    {location && (
+                                      <div className="text-indigo-900 dark:text-indigo-100 font-medium">
+                                        📍 {location}
+                                      </div>
+                                    )}
+                                    
+                                    {geoDetails && (
+                                      <div className="grid grid-cols-2 gap-3 text-sm">
+                                        {geoDetails.city && (
+                                          <div>
+                                            <span className="text-indigo-600 dark:text-indigo-400">City:</span>
+                                            <span className="ml-2 text-indigo-800 dark:text-indigo-200">{geoDetails.city}</span>
+                                          </div>
+                                        )}
+                                        {geoDetails.region && (
+                                          <div>
+                                            <span className="text-indigo-600 dark:text-indigo-400">Region:</span>
+                                            <span className="ml-2 text-indigo-800 dark:text-indigo-200">{geoDetails.region}</span>
+                                          </div>
+                                        )}
+                                        {geoDetails.country && (
+                                          <div>
+                                            <span className="text-indigo-600 dark:text-indigo-400">Country:</span>
+                                            <span className="ml-2 text-indigo-800 dark:text-indigo-200">
+                                              {geoDetails.country}
+                                              {geoDetails.country_code && ` (${geoDetails.country_code})`}
+                                            </span>
+                                          </div>
+                                        )}
+                                        {geoDetails.postal_code && (
+                                          <div>
+                                            <span className="text-indigo-600 dark:text-indigo-400">Postal:</span>
+                                            <span className="ml-2 text-indigo-800 dark:text-indigo-200">{geoDetails.postal_code}</span>
+                                          </div>
+                                        )}
+                                        {(geoDetails.latitude && geoDetails.longitude) && (
+                                          <div className="col-span-2">
+                                            <span className="text-indigo-600 dark:text-indigo-400">Coordinates:</span>
+                                            <span className="ml-2 text-indigo-800 dark:text-indigo-200 font-mono text-xs">
+                                              {parseFloat(geoDetails.latitude).toFixed(4)}, {parseFloat(geoDetails.longitude).toFixed(4)}
+                                            </span>
+                                          </div>
+                                        )}
+                                        {geoDetails.timezone && (
+                                          <div className="col-span-2">
+                                            <span className="text-indigo-600 dark:text-indigo-400">Timezone:</span>
+                                            <span className="ml-2 text-indigo-800 dark:text-indigo-200">{geoDetails.timezone}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                    
+                                    {networkInfo.isp && (
+                                      <div className="pt-2 border-t border-indigo-200 dark:border-indigo-700">
+                                        <span className="text-indigo-600 dark:text-indigo-400 text-sm">ISP/Organization:</span>
+                                        <p className="text-indigo-800 dark:text-indigo-200 font-medium">{networkInfo.isp}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+                            </div>
                           </div>
                         </div>
                       );
