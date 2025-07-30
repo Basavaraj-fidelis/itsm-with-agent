@@ -1224,7 +1224,7 @@ router.get("/device/:deviceId/advanced", async (req: any, res: any) => {
     // Get device information
     const { storage } = await import("../storage");
     const device = await storage.getDevice(deviceId);
-    
+
     if (!device) {
       return res.status(404).json({
         error: "Device not found"
@@ -1233,7 +1233,7 @@ router.get("/device/:deviceId/advanced", async (req: any, res: any) => {
 
     // Get recent reports for analytics
     const reports = await storage.getDeviceReports(deviceId, 24);
-    
+
     // Calculate advanced metrics
     const advancedMetrics = {
       performance_trends: {
@@ -1465,7 +1465,7 @@ router.get("/service-desk-report", async (req: any, res: any) => {
   }
 });
 
-// Generate detailed agents report
+// This route retrieves detailed agent data, applies filters, and logs comprehensive details to the console for debugging and monitoring.
 router.get("/agents-detailed-report", async (req: any, res: any) => {
   try {
     const format = (req.query.format as string) || "json";

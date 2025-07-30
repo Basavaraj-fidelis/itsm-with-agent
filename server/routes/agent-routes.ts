@@ -326,6 +326,10 @@ export function registerAgentRoutes(
 
       const reportData = req.body;
 
+      // Log complete system data being received
+      console.log("COMPLETE SYSTEM REPORT DATA:");
+      console.log(JSON.stringify(reportData, null, 2));
+
       // Store system info if provided
       if (systemInfo) {
         await storage.createDeviceReport({

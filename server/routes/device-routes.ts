@@ -40,14 +40,14 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
       // Generate CSV
       const headers = [
         "Hostname",
-        "IP Address", 
+        "IP Address",
         "Status",
         "OS Name",
         "OS Version",
         "Assigned User",
         "Last Seen",
         "CPU Usage",
-        "Memory Usage", 
+        "Memory Usage",
         "Disk Usage"
       ];
 
@@ -134,6 +134,32 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
         }),
       );
 
+      console.log("=== DEVICES ENDPOINT - ALL AGENT DATA ===");
+      console.log(`Retrieved ${devicesWithReports.length} devices from database`);
+
+      devicesWithReports.forEach((device, index) => {
+        console.log(`\n--- Device ${index + 1}: ${device.hostname} ---`);
+        console.log("Device Record:", {
+          id: device.id,
+          hostname: device.hostname,
+          status: device.status,
+          ip_address: device.ip_address,
+          os_name: device.os_name,
+          last_seen: device.last_seen,
+          assigned_user: device.assigned_user,
+          latest_report: device.latest_report,
+          created_at: device.created_at
+        });
+
+        if (device.latest_report) {
+          console.log("Latest Report Data:", device.latest_report);
+        } else {
+          console.log("No latest report data");
+        }
+      });
+      console.log("=== END DEVICES DATA DUMP ===\n");
+
+
       res.json(devicesWithReports);
     } catch (error) {
       console.error("Error fetching devices:", error);
@@ -170,6 +196,32 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
           : null,
       };
 
+      console.log(`=== INDIVIDUAL DEVICE DATA FOR ID: ${req.params.id} ===`);
+      if (deviceWithReport) {
+        console.log("Device Found:", deviceWithReport.hostname);
+        console.log("Device Record:", {
+          id: deviceWithReport.id,
+          hostname: deviceWithReport.hostname,
+          status: deviceWithReport.status,
+          ip_address: deviceWithReport.ip_address,
+          os_name: deviceWithReport.os_name,
+          last_seen: deviceWithReport.last_seen,
+          assigned_user: deviceWithReport.assigned_user,
+          latest_report: deviceWithReport.latest_report,
+          created_at: deviceWithReport.created_at
+        });
+
+        if (deviceWithReport.latest_report) {
+          console.log("Latest Report Data:", deviceWithReport.latest_report);
+        } else {
+          console.log("No latest report data");
+        }
+      } else {
+        console.log("Device not found");
+      }
+      console.log("=== END INDIVIDUAL DEVICE DATA ===\n");
+
+
       res.json(deviceWithReport);
     } catch (error) {
       console.error("Error fetching device:", error);
@@ -181,6 +233,7 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
   app.get("/api/devices/:id/reports", async (req, res) => {
     try {
       const reports = await storage.getDeviceReports(req.params.id);
+      console.log(`Device reports for device id ${req.params.id}:`, reports); // Added logging
       res.json(reports);
     } catch (error) {
       console.error("Error fetching device reports:", error);
@@ -211,6 +264,7 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
         const { performanceService } = await import("./performance-service");
         const insights =
           await performanceService.getApplicationPerformanceInsights(id);
+          console.log(`Performance Insights for device ${id}:`, insights);
         res.json(insights);
       } catch (error) {
         console.error("Error fetching performance insights:", error);
@@ -237,6 +291,7 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
         const { id } = req.params;
         const { aiService } = await import("./ai-service");
         const insights = await aiService.generateDeviceInsights(id);
+        console.log(`AI insights for device ${id}:`, insights);
         res.json(insights);
       } catch (error) {
         console.error("Error generating AI insights:", error);
@@ -257,6 +312,7 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
         const { id } = req.params;
         const { aiService } = await import("./ai-service");
         const recommendations = await aiService.getDeviceRecommendations(id);
+        console.log(`AI recommendations for device ${id}:`, recommendations);
         res.json({ recommendations });
       } catch (error) {
         console.error("Error getting AI recommendations:", error);
@@ -292,6 +348,11 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
           created_at: device.created_at,
         };
       });
+
+      console.log("=== DEBUG DEVICES ENDPOINT ===");
+      console.log(`Total devices: ${devices.length}`);
+      console.log("Device Details:", deviceDetails);
+      console.log("=== END DEBUG DEVICES ENDPOINT ===");
 
       res.json({
         total_devices: devices.length,
