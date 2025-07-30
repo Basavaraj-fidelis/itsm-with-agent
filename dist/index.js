@@ -6250,121 +6250,9 @@ var init_auth = __esm({
   }
 });
 
-// server/utils/response.ts
-var ResponseUtils;
-var init_response = __esm({
-  "server/utils/response.ts"() {
-    "use strict";
-    ResponseUtils = class {
-      /**
-       * Send success response
-       */
-      static success(res, data, message, statusCode = 200) {
-        return res.status(statusCode).json({
-          success: true,
-          message: message || "Operation successful",
-          data
-        });
-      }
-      /**
-       * Send error response
-       */
-      static error(res, message, statusCode = 500, error) {
-        console.error("API Error:", message, error);
-        return res.status(statusCode).json({
-          success: false,
-          message,
-          error: process.env.NODE_ENV === "development" ? error : void 0
-        });
-      }
-      /**
-       * Send validation error
-       */
-      static validationError(res, message, errors) {
-        return res.status(400).json({
-          success: false,
-          message,
-          errors
-        });
-      }
-      /**
-       * Send unauthorized error
-       */
-      static unauthorized(res, message = "Unauthorized access") {
-        return res.status(401).json({
-          success: false,
-          message
-        });
-      }
-      /**
-       * Send forbidden error
-       */
-      static forbidden(res, message = "Insufficient permissions") {
-        return res.status(403).json({
-          success: false,
-          message
-        });
-      }
-      /**
-       * Send not found error
-       */
-      static notFound(res, message = "Resource not found") {
-        return res.status(404).json({
-          success: false,
-          message
-        });
-      }
-      /**
-       * Send internal server error
-       */
-      static internalError(res, message = "Internal server error", error) {
-        console.error("Internal Server Error:", message, error);
-        return res.status(500).json({
-          success: false,
-          message,
-          error: process.env.NODE_ENV === "development" ? error?.message : void 0
-        });
-      }
-      /**
-       * Send paginated response
-       */
-      static paginated(res, data, total, page, limit) {
-        return res.json({
-          success: true,
-          data,
-          pagination: {
-            total,
-            page,
-            limit,
-            totalPages: Math.ceil(total / limit),
-            hasNext: page < Math.ceil(total / limit),
-            hasPrev: page > 1
-          }
-        });
-      }
-      /**
-       * Handle async route errors
-       */
-      static asyncHandler(fn) {
-        return (req, res, next) => {
-          Promise.resolve(fn(req, res, next)).catch(next);
-        };
-      }
-      /**
-       * Send file download response
-       */
-      static download(res, data, filename, contentType = "application/octet-stream") {
-        res.setHeader("Content-Type", contentType);
-        res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-        return res.send(data);
-      }
-    };
-  }
-});
-
 // server/middleware/auth-middleware.ts
 import jwt3 from "jsonwebtoken";
-var JWT_SECRET3, authenticateToken;
+var JWT_SECRET3, authenticateToken, requireRole;
 var init_auth_middleware = __esm({
   "server/middleware/auth-middleware.ts"() {
     "use strict";
@@ -6379,60 +6267,49 @@ var init_auth_middleware = __esm({
           return res.status(401).json({ message: "Access token required" });
         }
         console.log("Authenticating token for", req.path);
+        const decoded = jwt3.verify(token, JWT_SECRET3);
+        console.log("Decoded token:", decoded);
         try {
-          const decoded = jwt3.verify(token, JWT_SECRET3);
-          console.log("Decoded token:", decoded);
-          try {
-            const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-            const result = await pool3.query(
-              `
-          SELECT id, email, role, first_name, last_name, username, is_active, phone, location 
-          FROM users WHERE id = $1
-        `,
-              [decoded.userId || decoded.id]
-            );
-            if (result.rows.length > 0) {
-              const user2 = result.rows[0];
-              let displayName = "";
-              if (user2.first_name || user2.last_name) {
-                displayName = `${user2.first_name || ""} ${user2.last_name || ""}`.trim();
-              } else if (user2.username) {
-                displayName = user2.username;
-              } else {
-                displayName = user2.email.split("@")[0];
-              }
-              user2.name = displayName;
-              if (!user2.is_active) {
-                return res.status(403).json({ message: "User account is inactive" });
-              }
-              req.user = user2;
-              return next();
+          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const result = await pool3.query(
+            `
+        SELECT id, email, role, first_name, last_name, username, is_active, phone, location 
+        FROM users WHERE id = $1
+      `,
+            [decoded.userId || decoded.id]
+          );
+          if (result.rows.length > 0) {
+            const user2 = result.rows[0];
+            let displayName = "";
+            if (user2.first_name || user2.last_name) {
+              displayName = `${user2.first_name || ""} ${user2.last_name || ""}`.trim();
+            } else if (user2.username) {
+              displayName = user2.username;
+            } else {
+              displayName = user2.email.split("@")[0];
             }
-          } catch (dbError) {
-            console.log(
-              "Database lookup failed, trying file storage:",
-              dbError.message
-            );
+            user2.name = displayName;
+            if (!user2.is_active) {
+              return res.status(403).json({ message: "User account is inactive" });
+            }
+            req.user = user2;
+            return next();
           }
-          const user = await storage.getUserById(decoded.userId || decoded.id);
-          if (!user) {
-            return res.status(403).json({ message: "User not found" });
-          }
-          if (user.is_active === false) {
-            return res.status(403).json({ message: "User account is inactive" });
-          }
-          req.user = user;
-          next();
-        } catch (error) {
-          console.error("Authentication error for", req.path, ":", error);
-          if (error.name === "TokenExpiredError") {
-            return res.status(401).json({ message: "Token expired" });
-          }
-          if (error.name === "JsonWebTokenError") {
-            return res.status(401).json({ message: "Invalid token format" });
-          }
-          return res.status(403).json({ message: "Invalid token" });
+        } catch (dbError) {
+          console.log(
+            "Database lookup failed, trying file storage:",
+            dbError.message
+          );
         }
+        const user = await storage.getUserById(decoded.userId || decoded.id);
+        if (!user) {
+          return res.status(403).json({ message: "User not found" });
+        }
+        if (user.is_active === false) {
+          return res.status(403).json({ message: "User account is inactive" });
+        }
+        req.user = user;
+        next();
       } catch (error) {
         console.error("Authentication error for", req.path, ":", error);
         if (error.name === "TokenExpiredError") {
@@ -6443,6 +6320,17 @@ var init_auth_middleware = __esm({
         }
         return res.status(403).json({ message: "Invalid token" });
       }
+    };
+    requireRole = (roles) => {
+      return (req, res, next) => {
+        const userRole = req.user?.role;
+        const allowedRoles = Array.isArray(roles) ? roles : [roles];
+        if (userRole === "admin" || allowedRoles.includes(userRole)) {
+          next();
+        } else {
+          res.status(403).json({ message: "Insufficient permissions" });
+        }
+      };
     };
   }
 });
@@ -10858,6 +10746,118 @@ var init_reports_storage = __esm({
       }
     };
     reportsStorage = new ReportsStorage();
+  }
+});
+
+// server/utils/response.ts
+var ResponseUtils;
+var init_response = __esm({
+  "server/utils/response.ts"() {
+    "use strict";
+    ResponseUtils = class {
+      /**
+       * Send success response
+       */
+      static success(res, data, message, statusCode = 200) {
+        return res.status(statusCode).json({
+          success: true,
+          message: message || "Operation successful",
+          data
+        });
+      }
+      /**
+       * Send error response
+       */
+      static error(res, message, statusCode = 500, error) {
+        console.error("API Error:", message, error);
+        return res.status(statusCode).json({
+          success: false,
+          message,
+          error: process.env.NODE_ENV === "development" ? error : void 0
+        });
+      }
+      /**
+       * Send validation error
+       */
+      static validationError(res, message, errors) {
+        return res.status(400).json({
+          success: false,
+          message,
+          errors
+        });
+      }
+      /**
+       * Send unauthorized error
+       */
+      static unauthorized(res, message = "Unauthorized access") {
+        return res.status(401).json({
+          success: false,
+          message
+        });
+      }
+      /**
+       * Send forbidden error
+       */
+      static forbidden(res, message = "Insufficient permissions") {
+        return res.status(403).json({
+          success: false,
+          message
+        });
+      }
+      /**
+       * Send not found error
+       */
+      static notFound(res, message = "Resource not found") {
+        return res.status(404).json({
+          success: false,
+          message
+        });
+      }
+      /**
+       * Send internal server error
+       */
+      static internalError(res, message = "Internal server error", error) {
+        console.error("Internal Server Error:", message, error);
+        return res.status(500).json({
+          success: false,
+          message,
+          error: process.env.NODE_ENV === "development" ? error?.message : void 0
+        });
+      }
+      /**
+       * Send paginated response
+       */
+      static paginated(res, data, total, page, limit) {
+        return res.json({
+          success: true,
+          data,
+          pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+            hasNext: page < Math.ceil(total / limit),
+            hasPrev: page > 1
+          }
+        });
+      }
+      /**
+       * Handle async route errors
+       */
+      static asyncHandler(fn) {
+        return (req, res, next) => {
+          Promise.resolve(fn(req, res, next)).catch(next);
+        };
+      }
+      /**
+       * Send file download response
+       */
+      static download(res, data, filename, contentType = "application/octet-stream") {
+        res.setHeader("Content-Type", contentType);
+        res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+        return res.send(data);
+      }
+    };
   }
 });
 
@@ -16032,7 +16032,7 @@ function registerTicketRoutes(app2) {
 
 // server/routes/device-routes.ts
 init_storage();
-function registerDeviceRoutes(app2, authenticateToken5) {
+function registerDeviceRoutes(app2, authenticateToken4) {
   app2.get("/api/devices/export/csv", async (req, res) => {
     try {
       const filters = {
@@ -16090,7 +16090,7 @@ function registerDeviceRoutes(app2, authenticateToken5) {
       res.status(500).json({ error: "Failed to export devices" });
     }
   });
-  app2.get("/api/devices", authenticateToken5, async (req, res) => {
+  app2.get("/api/devices", authenticateToken4, async (req, res) => {
     try {
       console.log("Fetching devices - checking for agent activity...");
       const devices2 = await storage.getDevices();
@@ -16132,7 +16132,7 @@ function registerDeviceRoutes(app2, authenticateToken5) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
-  app2.get("/api/devices/:id", authenticateToken5, async (req, res) => {
+  app2.get("/api/devices/:id", authenticateToken4, async (req, res) => {
     try {
       let device = await storage.getDevice(req.params.id);
       if (!device) {
@@ -16181,7 +16181,7 @@ function registerDeviceRoutes(app2, authenticateToken5) {
   });
   app2.get(
     "/api/devices/:id/performance-insights",
-    authenticateToken5,
+    authenticateToken4,
     async (req, res) => {
       try {
         const { id } = req.params;
@@ -16205,7 +16205,7 @@ function registerDeviceRoutes(app2, authenticateToken5) {
   );
   app2.get(
     "/api/devices/:id/ai-insights",
-    authenticateToken5,
+    authenticateToken4,
     async (req, res) => {
       try {
         const { id } = req.params;
@@ -16223,7 +16223,7 @@ function registerDeviceRoutes(app2, authenticateToken5) {
   );
   app2.get(
     "/api/devices/:id/ai-recommendations",
-    authenticateToken5,
+    authenticateToken4,
     async (req, res) => {
       try {
         const { id } = req.params;
@@ -16239,7 +16239,7 @@ function registerDeviceRoutes(app2, authenticateToken5) {
       }
     }
   );
-  app2.get("/api/debug/devices", authenticateToken5, async (req, res) => {
+  app2.get("/api/debug/devices", authenticateToken4, async (req, res) => {
     try {
       const devices2 = await storage.getDevices();
       const now = /* @__PURE__ */ new Date();
@@ -16278,10 +16278,10 @@ function registerDeviceRoutes(app2, authenticateToken5) {
 init_storage();
 init_enhanced_storage();
 init_patch_compliance_service();
-function registerAgentRoutes(app2, authenticateToken5, requireRole2) {
+function registerAgentRoutes(app2, authenticateToken4, requireRole2) {
   app2.post(
     "/api/agents/:id/test-connectivity",
-    authenticateToken5,
+    authenticateToken4,
     async (req, res) => {
       try {
         const { id } = req.params;
@@ -16313,7 +16313,7 @@ function registerAgentRoutes(app2, authenticateToken5, requireRole2) {
   );
   app2.get(
     "/api/agents/:id/connection-status",
-    authenticateToken5,
+    authenticateToken4,
     async (req, res) => {
       try {
         const agentId = req.params.id;
@@ -16342,7 +16342,7 @@ function registerAgentRoutes(app2, authenticateToken5, requireRole2) {
   );
   app2.post(
     "/api/agents/:id/remote-connect",
-    authenticateToken5,
+    authenticateToken4,
     async (req, res) => {
       try {
         const agentId = req.params.id;
@@ -16421,7 +16421,7 @@ function registerAgentRoutes(app2, authenticateToken5, requireRole2) {
   );
   app2.post(
     "/api/agents/:id/execute-command",
-    authenticateToken5,
+    authenticateToken4,
     requireRole2(["admin", "manager"]),
     async (req, res) => {
       try {
@@ -16592,7 +16592,6 @@ function registerAgentRoutes(app2, authenticateToken5, requireRole2) {
 
 // server/routes.ts
 init_auth();
-init_response();
 import bcrypt3 from "bcrypt";
 import jwt7 from "jsonwebtoken";
 
@@ -17049,54 +17048,8 @@ router.post("/portal-login", (req, res, next) => {
 }, AuthController.portalLogin);
 
 // server/routes.ts
+init_auth_middleware();
 var JWT_SECRET6 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-var authenticateToken4 = async (req, res, next) => {
-  const authHeader = req.headers["authorization"];
-  const token = AuthUtils.extractTokenFromHeader(authHeader || "");
-  if (!token) {
-    return ResponseUtils.unauthorized(res, "Access token required");
-  }
-  try {
-    const decoded = AuthUtils.verifyToken(token);
-    console.log("Decoded token:", decoded);
-    let user = null;
-    try {
-      user = await AuthUtils.getUserById(decoded.userId || decoded.id);
-    } catch (dbError) {
-      console.log("Database user lookup failed, trying file storage");
-    }
-    if (!user) {
-      try {
-        user = await storage.getUserById(decoded.userId || decoded.id);
-      } catch (fileError) {
-        console.error("Both database and file storage failed:", fileError);
-        return ResponseUtils.forbidden(res, "User not found");
-      }
-    }
-    if (!user) {
-      return ResponseUtils.forbidden(res, "User not found");
-    }
-    const statusCheck = AuthUtils.validateUserStatus(user);
-    if (!statusCheck.valid) {
-      return ResponseUtils.forbidden(res, statusCheck.message);
-    }
-    req.user = user;
-    next();
-  } catch (error) {
-    console.error("Token verification error:", error);
-    return ResponseUtils.forbidden(res, "Invalid token");
-  }
-};
-var requireRole = (roles) => {
-  return (req, res, next) => {
-    const userRole = req.user?.role;
-    if (AuthUtils.hasRole(userRole, roles)) {
-      next();
-    } else {
-      ResponseUtils.forbidden(res, "Insufficient permissions");
-    }
-  };
-};
 async function registerRoutes(app2) {
   const server = createServer(app2);
   console.log("\u{1F517} Registering auth routes...");
@@ -17250,7 +17203,7 @@ async function registerRoutes(app2) {
       res.status(500).json({ message: "Failed to create user", error: error.message });
     }
   });
-  app2.get("/api/auth/verify", authenticateToken4, async (req, res) => {
+  app2.get("/api/auth/verify", authenticateToken, async (req, res) => {
     try {
       const { password_hash, ...userWithoutPassword } = req.user;
       res.json(userWithoutPassword);
@@ -17302,7 +17255,7 @@ async function registerRoutes(app2) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
-  app2.get("/api/dashboard/summary", authenticateToken4, async (req, res) => {
+  app2.get("/api/dashboard/summary", authenticateToken, async (req, res) => {
     try {
       const summary = await storage.getDashboardSummary();
       res.json(summary);
@@ -17315,12 +17268,12 @@ async function registerRoutes(app2) {
     res.json({ status: "ok", timestamp: /* @__PURE__ */ new Date() });
   });
   registerTicketRoutes(app2);
-  registerDeviceRoutes(app2, authenticateToken4);
-  registerAgentRoutes(app2, authenticateToken4, requireRole);
+  registerDeviceRoutes(app2, authenticateToken);
+  registerAgentRoutes(app2, authenticateToken, requireRole);
   try {
     const alertRoutes = await Promise.resolve().then(() => (init_alert_routes(), alert_routes_exports));
     if (alertRoutes.default) {
-      app2.use("/api/alerts", authenticateToken4, alertRoutes.default);
+      app2.use("/api/alerts", authenticateToken, alertRoutes.default);
     }
   } catch (error) {
     console.warn("Alert routes not available:", error.message);
@@ -17330,7 +17283,7 @@ async function registerRoutes(app2) {
     if (notificationRoutes.default) {
       app2.use(
         "/api/notifications",
-        authenticateToken4,
+        authenticateToken,
         notificationRoutes.default
       );
     }
@@ -17342,7 +17295,7 @@ async function registerRoutes(app2) {
     if (automationRoutes.default) {
       app2.use(
         "/api/automation",
-        authenticateToken4,
+        authenticateToken,
         requireRole(["admin", "manager"]),
         automationRoutes.default
       );
@@ -17369,7 +17322,7 @@ async function registerRoutes(app2) {
   try {
     const userRoutes = await Promise.resolve().then(() => (init_user_routes(), user_routes_exports));
     if (userRoutes.default) {
-      app2.use("/api/users", authenticateToken4, userRoutes.default);
+      app2.use("/api/users", authenticateToken, userRoutes.default);
     }
   } catch (error) {
     console.warn("User routes not available:", error.message);
@@ -17377,7 +17330,7 @@ async function registerRoutes(app2) {
   try {
     const knowledgeRoutes = await Promise.resolve().then(() => (init_knowledge_routes(), knowledge_routes_exports));
     if (knowledgeRoutes.default) {
-      app2.use("/api/knowledge", authenticateToken4, knowledgeRoutes.default);
+      app2.use("/api/knowledge", authenticateToken, knowledgeRoutes.default);
     }
   } catch (error) {
     console.warn("Knowledge routes not available:", error.message);
@@ -17385,7 +17338,7 @@ async function registerRoutes(app2) {
   try {
     const slaRoutes = await Promise.resolve().then(() => (init_sla_routes(), sla_routes_exports));
     if (slaRoutes.default) {
-      app2.use("/api/sla", authenticateToken4, slaRoutes.default);
+      app2.use("/api/sla", authenticateToken, slaRoutes.default);
     }
   } catch (error) {
     console.warn("SLA routes not available:", error.message);
@@ -17393,7 +17346,7 @@ async function registerRoutes(app2) {
   try {
     const slaAnalysisRoutes = await Promise.resolve().then(() => (init_sla_analysis_routes(), sla_analysis_routes_exports));
     if (slaAnalysisRoutes.default) {
-      app2.use("/api/sla-analysis", authenticateToken4, slaAnalysisRoutes.default);
+      app2.use("/api/sla-analysis", authenticateToken, slaAnalysisRoutes.default);
     }
   } catch (error) {
     console.warn("SLA analysis routes not available:", error.message);
@@ -17401,7 +17354,7 @@ async function registerRoutes(app2) {
   try {
     const aiRoutes = await Promise.resolve().then(() => (init_ai_routes(), ai_routes_exports));
     if (aiRoutes.default) {
-      app2.use("/api/ai", authenticateToken4, aiRoutes.default);
+      app2.use("/api/ai", authenticateToken, aiRoutes.default);
     }
   } catch (error) {
     console.warn("AI routes not available:", error.message);
@@ -17409,7 +17362,7 @@ async function registerRoutes(app2) {
   try {
     const auditRoutes = await Promise.resolve().then(() => (init_audit_routes(), audit_routes_exports));
     if (auditRoutes.default) {
-      app2.use("/api/audit", authenticateToken4, requireRole(["admin", "manager"]), auditRoutes.default);
+      app2.use("/api/audit", authenticateToken, requireRole(["admin", "manager"]), auditRoutes.default);
     }
   } catch (error) {
     console.warn("Audit routes not available:", error.message);
@@ -17417,7 +17370,7 @@ async function registerRoutes(app2) {
   try {
     const securityRoutes = await Promise.resolve().then(() => (init_security_routes(), security_routes_exports));
     if (securityRoutes.default) {
-      app2.use("/api/security", authenticateToken4, securityRoutes.default);
+      app2.use("/api/security", authenticateToken, securityRoutes.default);
     }
   } catch (error) {
     console.warn("Security routes not available:", error.message);
@@ -17425,7 +17378,7 @@ async function registerRoutes(app2) {
   try {
     const patchRoutes = await Promise.resolve().then(() => (init_patch_routes(), patch_routes_exports));
     if (patchRoutes.default) {
-      app2.use("/api/patch", authenticateToken4, patchRoutes.default);
+      app2.use("/api/patch", authenticateToken, patchRoutes.default);
     }
   } catch (error) {
     console.warn("Patch routes not available:", error.message);
@@ -17839,7 +17792,7 @@ app.use((req, res, next) => {
     const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
     const { reportsStorage: reportsStorage2 } = await Promise.resolve().then(() => (init_reports_storage(), reports_storage_exports));
     await reportsStorage2.createReportsTable();
-    const authenticateToken5 = async (req, res, next) => {
+    const authenticateToken4 = async (req, res, next) => {
       const authHeader = req.headers["authorization"];
       const token = authHeader && authHeader.split(" ")[1];
       if (!token) {
