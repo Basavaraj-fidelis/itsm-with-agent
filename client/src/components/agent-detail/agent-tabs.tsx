@@ -622,7 +622,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
               </Card>
             )}
 
-            
+
 
             {/* Terminal Data Display */}
             <Card className="col-span-2">
@@ -1032,382 +1032,266 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
         {/* Network Tab */}
         <TabsContent value="network" className="space-y-4">
           <SafeDataRenderer>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Network className="h-5 w-5" />
-                  Network Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {/* Key Network Information */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Globe className="h-4 w-4 text-blue-600" />
-                        <h4 className="font-medium text-blue-900">Public IP</h4>
-                      </div>
-                      <p className="text-lg font-mono text-blue-800">
-                        {networkInfo.publicIP}
-                      </p>
-                    </div>
-
-                    <div className="p-4 border rounded-lg bg-green-50 border-green-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Network className="h-4 w-4 text-green-600" />
-                        <h4 className="font-medium text-green-900">
-                          Ethernet IP
-                        </h4>
-                      </div>
-                      <p className="text-lg font-mono text-green-800">
-                        {networkInfo.ethernetIP !== "Not Available"
-                          ? networkInfo.ethernetIP
-                          : "192.168.1.17"}
-                      </p>
-                    </div>
-
-                    <div className="p-4 border rounded-lg bg-purple-50 border-purple-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Wifi className="h-4 w-4 text-purple-600" />
-                        <h4 className="font-medium text-purple-900">
-                          Wi-Fi IP
-                        </h4>
-                      </div>
-                      <p className="text-lg font-mono text-purple-800">
-                        {networkInfo.wifiIP !== "Not Available"
-                          ? networkInfo.wifiIP
-                          : "Not Connected"}
-                      </p>
-                    </div>
-
-                    {/* Location Information Card */}
-                    <div className="p-4 border rounded-lg bg-orange-50 border-orange-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Globe className="h-4 w-4 text-orange-600" />
-                        <h4 className="font-medium text-orange-900">
-                          Geographic Location
-                        </h4>
-                      </div>
-                      {networkInfo.locationData ? (
-                        <div className="space-y-1">
-                          <p className="text-lg font-mono text-orange-800">
-                            {networkInfo.locationData.city},{" "}
-                            {networkInfo.locationData.region}
-                          </p>
-                          <p className="text-sm text-orange-700">
-                            {networkInfo.locationData.country} •{" "}
-                            {networkInfo.locationData.timezone}
-                          </p>
-                          {networkInfo.locationData.organization && (
-                            <p className="text-xs text-orange-600">
-                              ISP: {networkInfo.locationData.organization}
+              {/* Network Information Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Network className="w-5 h-5 text-blue-600" />
+                    Network Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {(() => {
+                    try {
+                      const rawData = agent?.latest_report?.raw_data;
+                      if (!rawData) {
+                        return (
+                          <div className="text-center py-6 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-800">
+                            <Network className="w-8 h-8 mx-auto mb-2 text-gray-600" />
+                            <p className="text-sm text-gray-800 dark:text-gray-200">
+                              No network data available
                             </p>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="text-lg text-orange-800">
-                          Location not available
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                          </div>
+                        );
+                      }
 
-                  {/* All IP Addresses */}
-                  <div className="p-4 border rounded-lg bg-yellow-50 border-yellow-200">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Network className="h-4 w-4 text-yellow-600" />
-                      <h4 className="font-medium text-yellow-900">
-                        All IP Addresses from Agent Data
-                      </h4>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {networkInfo.allIPs.length > 0 ? (
-                        networkInfo.allIPs.map((ip, index) => (
-                          <span
-                            key={index}
-                            className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm font-mono"
-                          >
-                            {ip}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="text-yellow-800">
-                          No IP addresses found
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                      const parsedData = typeof rawData === "string" ? JSON.parse(rawData) : rawData;
 
-                  <Separator />
+                      // Enhanced network data extraction
+                      const networkInfo = parsedData?.network_info || parsedData?.network || {};
+                      const systemInfo = parsedData?.system_info || {};
+                      const networkInterfaces = parsedData?.network_interfaces || networkInfo?.interfaces || [];
+                      const networkStats = parsedData?.network_stats || {};
+                      const routingTable = parsedData?.routing_table || [];
+                      const dnsServers = parsedData?.dns_servers || networkInfo?.dns || [];
 
-                  {/* Detailed Location Information */}
-                  {networkInfo.locationData && (
-                    <div>
-                      <h4 className="font-medium mb-3">
-                        Geographic Location Details
-                      </h4>
-                      <div className="p-4 border rounded-lg bg-gradient-to-r from-orange-50 to-red-50 border-orange-200">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <h5 className="font-medium text-orange-900 mb-2">
-                              Location Information
-                            </h5>
-                            <div className="space-y-2 text-sm">
-                              {networkInfo.locationData ? (
-                                <>
-                                  <div className="flex justify-between">
-                                    <span className="text-orange-700">
-                                      City:
-                                    </span>
-                                    <span className="font-medium">
-                                      {networkInfo.locationData.city ||
-                                        "Unknown"}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-orange-700">
-                                      Region:
-                                    </span>
-                                    <span className="font-medium">
-                                      {networkInfo.locationData.region ||
-                                        "Unknown"}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-orange-700">
-                                      Country:
-                                    </span>
-                                    <span className="font-medium">
-                                      {networkInfo.locationData.country ||
-                                        "Unknown"}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-orange-700">
-                                      Postal Code:
-                                    </span>
-                                    <span className="font-medium">
-                                      {networkInfo.locationData.postal ||
-                                        "Unknown"}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-orange-700">
-                                      Coordinates:
-                                    </span>
-                                    <span className="font-medium">
-                                      {networkInfo.locationData.loc ||
-                                        "Unknown"}
-                                    </span>
-                                  </div>
-                                </>
-                              ) : (
-                                <div className="text-yellow-700 text-sm">
-                                  Location data is being fetched for IP:{" "}
-                                  {networkInfo.publicIP}
-                                </div>
-                              )}
+                      // Extract comprehensive network data
+                      const publicIP = networkInfo.public_ip || systemInfo.public_ip || "Unknown";
+                      const hostname = systemInfo.hostname || agent?.hostname || "Unknown";
+                      const domain = networkInfo.domain || systemInfo.domain || "Not Set";
+                      const gateway = networkInfo.gateway || networkInfo.default_gateway || "Unknown";
+
+                      // Extract all network interfaces with details
+                      const allInterfaces = [];
+
+                      // Process network interfaces from various data sources
+                      if (Array.isArray(networkInterfaces)) {
+                        networkInterfaces.forEach(interface => {
+                          allInterfaces.push({
+                            name: interface.name || interface.interface,
+                            type: interface.type || 'Unknown',
+                            ip: interface.ip || interface.ip_address,
+                            mac: interface.mac || interface.mac_address,
+                            status: interface.status || interface.state || 'Unknown',
+                            speed: interface.speed,
+                            bytes_sent: interface.bytes_sent,
+                            bytes_recv: interface.bytes_recv
+                          });
+                        });
+                      }
+
+                      // Extract from Windows-style network data
+                      if (parsedData?.network_adapters) {
+                        Object.entries(parsedData.network_adapters).forEach(([name, adapter]) => {
+                          if (adapter && typeof adapter === 'object') {
+                            allInterfaces.push({
+                              name: name,
+                              type: adapter.type || 'Adapter',
+                              ip: adapter.ip_address || adapter.ip,
+                              mac: adapter.mac_address || adapter.mac,
+                              status: adapter.status || adapter.operational_status || 'Unknown',
+                              speed: adapter.speed || adapter.link_speed,
+                              description: adapter.description
+                            });
+                          }
+                        });
+                      }
+
+                      // Extract Wi-Fi specific information
+                      const wifiInfo = networkInfo.wifi || parsedData?.wifi_info || {};
+                      const isWifiConnected = wifiInfo.connected || wifiInfo.status === 'connected';
+
+                      // Get all IP addresses
+                      const allIPs = [
+                        ...new Set([
+                          ...(networkInfo.all_ips || []),
+                          ...(parsedData?.ip_addresses || []),
+                          ...allInterfaces.map(i => i.ip).filter(Boolean),
+                          agent?.ip_address
+                        ].filter(Boolean))
+                      ];
+
+                      return (
+                        <div className="space-y-6">
+                          {/* Main Network Information Grid */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                              <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2 flex items-center gap-2">
+                                <Globe className="w-4 h-4" />
+                                Public IP
+                              </h4>
+                              <p className="text-blue-900 dark:text-blue-100 font-mono">{publicIP}</p>
+                            </div>
+
+                            <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                              <h4 className="font-medium text-green-800 dark:text-green-200 mb-2 flex items-center gap-2">
+                                <Network className="w-4 h-4" />
+                                Primary IP
+                              </h4>
+                              <p className="text-green-900 dark:text-green-100 font-mono">
+                                {agent?.ip_address || allIPs[0] || 'Unknown'}
+                              </p>
+                            </div>
+
+                            <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                              <h4 className="font-medium text-purple-800 dark:text-purple-200 mb-2 flex items-center gap-2">
+                                <Wifi className="w-4 h-4" />
+                                Wi-Fi Status
+                              </h4>
+                              <p className="text-purple-900 dark:text-purple-100">
+                                {isWifiConnected ? `Connected - ${wifiInfo.ssid || 'Active'}` : 'Not Connected'}
+                              </p>
                             </div>
                           </div>
-                          {networkInfo.locationData && (
-                            <div>
-                              <h5 className="font-medium text-orange-900 mb-2">
-                                Network Information
-                              </h5>
+
+                          {/* System Network Details */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-800">
+                              <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-3">System Details</h4>
                               <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
-                                  <span className="text-orange-700">
-                                    ISP/Organization:
-                                  </span>
-                                  <span className="font-medium">
-                                    {networkInfo.locationData.org || "Unknown"}
-                                  </span>
+                                  <span className="text-gray-600 dark:text-gray-400">Hostname:</span>
+                                  <span className="font-mono">{hostname}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-orange-700">
-                                    Timezone:
-                                  </span>
-                                  <span className="font-medium">
-                                    {networkInfo.locationData.timezone ||
-                                      "Unknown"}
-                                  </span>
+                                  <span className="text-gray-600 dark:text-gray-400">Domain:</span>
+                                  <span className="font-mono">{domain}</span>
                                 </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600 dark:text-gray-400">Gateway:</span>
+                                  <span className="font-mono">{gateway}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                              <h4 className="font-medium text-orange-800 dark:text-orange-200 mb-3">DNS Servers</h4>
+                              <div className="space-y-1">
+                                {dnsServers.length > 0 ? (
+                                  dnsServers.map((dns, index) => (
+                                    <div key={index} className="text-sm font-mono text-orange-900 dark:text-orange-100">
+                                      {dns}
+                                    </div>
+                                  ))
+                                ) : (
+                                  <p className="text-sm text-orange-700 dark:text-orange-300">No DNS servers found</p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Active Network Interfaces */}
+                          {allInterfaces.length > 0 && (
+                            <div className="space-y-3">
+                              <h4 className="font-medium text-gray-800 dark:text-gray-200">Active Network Interfaces</h4>
+                              <div className="grid gap-3">
+                                {allInterfaces.slice(0, 6).map((interface, index) => (
+                                  <div key={index} className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                                    <div className="flex justify-between items-start mb-2">
+                                      <div>
+                                        <h5 className="font-medium text-gray-900 dark:text-gray-100">
+                                          {interface.name} ({interface.type})
+                                        </h5>
+                                        {interface.description && (
+                                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                            {interface.description}
+                                          </p>
+                                        )}
+                                      </div>
+                                      <Badge variant={interface.status === 'Up' || interface.status === 'connected' ? 'default' : 'secondary'}>
+                                        {interface.status}
+                                      </Badge>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                      <div>
+                                        <span className="text-gray-600 dark:text-gray-400">IP Address:</span>
+                                        <span className="ml-2 font-mono">{interface.ip || 'N/A'}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-gray-600 dark:text-gray-400">MAC:</span>
+                                        <span className="ml-2 font-mono text-xs">{interface.mac || 'N/A'}</span>
+                                      </div>
+                                      {interface.speed && (
+                                        <div>
+                                          <span className="text-gray-600 dark:text-gray-400">Speed:</span>
+                                          <span className="ml-2">{interface.speed}</span>
+                                        </div>
+                                      )}
+                                      {(interface.bytes_sent || interface.bytes_recv) && (
+                                        <div>
+                                          <span className="text-gray-600 dark:text-gray-400">Traffic:</span>
+                                          <span className="ml-2 text-xs">
+                                            ↑{interface.bytes_sent || '0'} ↓{interface.bytes_recv || '0'}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                              {allInterfaces.length > 6 && (
+                                <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                                  Showing 6 of {allInterfaces.length} interfaces
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* All IP Addresses */}
+                          {allIPs.length > 0 && (
+                            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                              <h4 className="font-medium text-yellow-800 dark:text-yellow-200 mb-3">
+                                All Detected IP Addresses ({allIPs.length})
+                              </h4>
+                              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                                {allIPs.map((ip, index) => (
+                                  <span key={index} className="text-sm font-mono text-yellow-900 dark:text-yellow-100 bg-yellow-100 dark:bg-yellow-800/30 px-3 py-1 rounded">
+                                    {ip}
+                                  </span>
+                                ))}
                               </div>
                             </div>
                           )}
+
+                          {/* Geographic Location */}
+                          <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                            <h4 className="font-medium text-indigo-800 dark:text-indigo-200 mb-2">
+                              Geographic Location
+                            </h4>
+                            <p className="text-indigo-900 dark:text-indigo-100">
+                              {networkInfo.location || networkInfo.geo_location || 'Location not available'}
+                            </p>
+                            {networkInfo.isp && (
+                              <p className="text-sm text-indigo-700 dark:text-indigo-300 mt-1">
+                                ISP: {networkInfo.isp}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <Separator />
-
-                  {/* Active Network Interfaces */}
-                  <div>
-                    <h4 className="font-medium mb-3">
-                      Active Network Interfaces
-                    </h4>
-                    <div className="space-y-3">
-                      {networkInfo.interfaces.map(
-                        (iface: any, index: number) => {
-                          const isEthernet =
-                            iface.name?.toLowerCase().includes("eth") ||
-                            iface.name?.toLowerCase().includes("ethernet") ||
-                            iface.name?.toLowerCase().includes("enet");
-                          const isWiFi =
-                            iface.name?.toLowerCase().includes("wifi") ||
-                            iface.name?.toLowerCase().includes("wlan") ||
-                            iface.name?.toLowerCase().includes("wireless");
-
-                          return (
-                            <div
-                              key={index}
-                              className={`border rounded-lg p-4 ${
-                                isEthernet
-                                  ? "bg-green-50 border-green-200"
-                                  : isWiFi
-                                    ? "bg-purple-50 border-purple-200"
-                                    : "bg-white"
-                              }`}
-                            >
-                              <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-2">
-                                  {isEthernet && (
-                                    <Network className="h-4 w-4 text-green-600" />
-                                  )}
-                                  {isWiFi && (
-                                    <Wifi className="h-4 w-4 text-purple-600" />
-                                  )}
-                                  <span className="font-medium">
-                                    {iface.name}
-                                  </span>
-                                </div>
-                                <div className="flex gap-2">
-                                  {iface.stats?.is_up ? (
-                                    <Badge
-                                      variant="default"
-                                      className="bg-green-100 text-green-800"
-                                    >
-                                      Active
-                                    </Badge>
-                                  ) : (
-                                    <Badge
-                                      variant="secondary"
-                                      className="bg-red-100 text-red-800"
-                                    >
-                                      Inactive
-                                    </Badge>
-                                  )}
-                                  {isEthernet && (
-                                    <Badge
-                                      variant="outline"
-                                      className="border-green-300 text-green-700"
-                                    >
-                                      Ethernet
-                                    </Badge>
-                                  )}
-                                  {isWiFi && (
-                                    <Badge
-                                      variant="outline"
-                                      className="border-purple-300 text-purple-700"
-                                    >
-                                      Wi-Fi
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Interface Statistics */}
-                              {iface.stats && (
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3 text-sm">
-                                  <div>
-                                    <span className="text-muted-foreground">
-                                      Speed:{" "}
-                                    </span>
-                                    <span>
-                                      {iface.stats.speed > 0
-                                        ? `${iface.stats.speed} Mbps`
-                                        : "N/A"}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-muted-foreground">
-                                      MTU:{" "}
-                                    </span>
-                                    <span>{iface.stats.mtu || "N/A"}</span>
-                                  </div>
-                                  <div>
-                                    <span className="text-muted-foreground">
-                                      Duplex:{" "}
-                                    </span>
-                                    <span>{iface.stats.duplex || "N/A"}</span>
-                                  </div>
-                                  <div>
-                                    <span className="text-muted-foreground">
-                                      Status:{" "}
-                                    </span>
-                                    <span>
-                                      {iface.stats.is_up ? "Up" : "Down"}
-                                    </span>
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* IP Addresses */}
-                              <div className="space-y-2">
-                                {iface.addresses?.map(
-                                  (addr: any, addrIndex: number) => (
-                                    <div
-                                      key={addrIndex}
-                                      className="flex items-center justify-between text-sm"
-                                    >
-                                      <div className="flex items-center gap-2">
-                                        <Badge
-                                          variant="outline"
-                                          className="text-xs"
-                                        >
-                                          {addr.family === "AF_INET"
-                                            ? "IPv4"
-                                            : addr.family === "AF_INET6"
-                                              ? "IPv6"
-                                              : addr.family}
-                                        </Badge>
-                                        <span className="font-mono">
-                                          {addr.address}
-                                        </span>
-                                      </div>
-                                      {addr.netmask && (
-                                        <span className="text-muted-foreground font-mono">
-                                          Mask: {addr.netmask}
-                                        </span>
-                                      )}
-                                    </div>
-                                  ),
-                                )}
-                                {/* MAC Address */}
-                                {iface.mac && (
-                                  <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">
-                                      MAC Address:
-                                    </span>
-                                    <span className="font-mono">
-                                      {iface.mac !== "00:00:00:00:00:00"
-                                        ? iface.mac
-                                        : "N/A"}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        },
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                      );
+                    } catch (error) {
+                      console.error("Error parsing network data:", error);
+                      return (
+                        <div className="text-center py-6 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                          <p className="text-sm text-red-800 dark:text-red-200">
+                            Error parsing network data: {error.message}
+                          </p>
+                        </div>
+                      );
+                    }
+                  })()}
+                </CardContent>
+              </Card>
           </SafeDataRenderer>
         </TabsContent>
 

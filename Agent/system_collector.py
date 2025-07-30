@@ -46,9 +46,9 @@ class SystemCollector:
             self.os_collector = None
             self.logger.warning(f"Unsupported OS: {platform.system()}")
 
-    
 
-            
+
+
 
     def test_ad_connection(self, config):
         """Test AD connection from agent's network"""
@@ -140,77 +140,253 @@ class SystemCollector:
             return {}
 
     def _get_network_info(self):
-        """Get network interface information"""
+        """Get comprehensive network information"""
         try:
-            import socket
-            interfaces = []
-
-            # Get public IP
-            public_ip = self._get_public_ip()
-
-            # List of keywords to filter out virtual adapters by name
-            virtual_keywords = ['vEthernet', 'VMware', 'Virtual', 'Loopback', 'Hyper-V']
-
-            # Collect interface info
-            for interface_name, addresses in psutil.net_if_addrs().items():
-                # Skip virtual adapters by name
-                if any(keyword.lower() in interface_name.lower() for keyword in virtual_keywords):
-                    continue
-
-                interface_info = {
-                    'name': interface_name,
-                    'addresses': []
-                }
-
-                for addr in addresses:
-                    addr_info = {
-                        'family': addr.family.name if hasattr(addr.family, 'name') else str(addr.family),
-                        'address': addr.address,
-                        'netmask': addr.netmask,
-                        'broadcast': addr.broadcast
-                    }
-
-                    # Capture MAC address
-                    if addr.family == getattr(psutil, 'AF_LINK', 17):  # 17 is AF_LINK fallback
-                        interface_info['mac_address'] = addr.address
-
-                    interface_info['addresses'].append(addr_info)
-
-                # Interface stats
-                try:
-                    stats = psutil.net_if_stats()[interface_name]
-                    # Skip interfaces that are down or have 0 speed (optional)
-                    if not stats.isup or stats.speed == 0:
-                        continue
-
-                    interface_info['stats'] = {
-                        'is_up': stats.isup,
-                        'duplex': stats.duplex.name if hasattr(stats.duplex, 'name') else str(stats.duplex),
-                        'speed': stats.speed,
-                        'mtu': stats.mtu
-                    }
-                except Exception:
-                    continue
-
-                interfaces.append(interface_info)
-
-            # Get first non-null, non-zero MAC address from filtered interfaces
-            macs = [
-                iface.get('mac_address') for iface in interfaces
-                if 'mac_address' in iface and iface.get('mac_address') not in [None, '', '00:00:00:00:00:00']
-            ]
-            primary_mac = macs[0] if macs else "unknown"
-
-            return {
-                'public_ip': public_ip,
-                'primary_mac': primary_mac,
-                'interfaces': interfaces,
-                'io_counters': self._get_network_io_counters()
+            network_info = {
+                'interfaces': [],
+                'network_adapters': {},
+                'public_ip': None,
+                'dns_servers': [],
+                'routing_table': [],
+                'network_stats': {},
+                'wifi_info': {},
+                'all_ips': [],
+                'hostname': platform.node(),
+                'domain': None,
+                'gateway': None
             }
 
+            # Get network interfaces with enhanced data
+            net_if_addrs = psutil.net_if_addrs()
+            net_if_stats = psutil.net_if_stats()
+            net_io_counters = psutil.net_io_counters(pernic=True)
+
+            for interface_name, interface_addresses in net_if_addrs.items():
+                interface_stats = net_if_stats.get(interface_name, {})
+                interface_io = net_io_counters.get(interface_name, {})
+
+                interface_data = {
+                    'name': interface_name,
+                    'type': 'Unknown',
+                    'addresses': [],
+                    'ip': None,
+                    'mac': None,
+                    'status': 'Up' if (hasattr(interface_stats, 'isup') and interface_stats.isup) else 'Down',
+                    'speed': interface_stats.speed if hasattr(interface_stats, 'speed') else 0,
+                    'mtu': interface_stats.mtu if hasattr(interface_stats, 'mtu') else 0,
+                    'bytes_sent': interface_io.bytes_sent if hasattr(interface_io, 'bytes_sent') else 0,
+                    'bytes_recv': interface_io.bytes_recv if hasattr(interface_io, 'bytes_recv') else 0,
+                    'packets_sent': interface_io.packets_sent if hasattr(interface_io, 'packets_sent') else 0,
+                    'packets_recv': interface_io.packets_recv if hasattr(interface_io, 'packets_recv') else 0
+                }
+
+                # Determine interface type based on name
+                name_lower = interface_name.lower()
+                if 'wi-fi' in name_lower or 'wireless' in name_lower or 'wlan' in name_lower:
+                    interface_data['type'] = 'Wi-Fi'
+                elif 'ethernet' in name_lower or 'eth' in name_lower or 'en' in name_lower:
+                    interface_data['type'] = 'Ethernet'
+                elif 'loopback' in name_lower or 'lo' in name_lower:
+                    interface_data['type'] = 'Loopback'
+                elif 'vpn' in name_lower or 'tap' in name_lower or 'tun' in name_lower:
+                    interface_data['type'] = 'VPN'
+
+                for addr in interface_addresses:
+                    addr_info = {
+                        'family': str(addr.family),
+                        'address': addr.address,
+                        'netmask': getattr(addr, 'netmask', None),
+                        'broadcast': getattr(addr, 'broadcast', None)
+                    }
+                    interface_data['addresses'].append(addr_info)
+
+                    # Extract primary IP and MAC
+                    if addr.family == 2:  # IPv4
+                        if not interface_data['ip'] and addr.address != '127.0.0.1':
+                            interface_data['ip'] = addr.address
+                            network_info['all_ips'].append(addr.address)
+                    elif hasattr(addr, 'address') and ':' not in addr.address and len(addr.address) == 17:
+                        interface_data['mac'] = addr.address
+
+                network_info['interfaces'].append(interface_data)
+
+                # Add to network adapters with enhanced info
+                if interface_data['ip'] or interface_data['mac']:
+                    network_info['network_adapters'][interface_name] = {
+                        'type': interface_data['type'],
+                        'ip_address': interface_data['ip'],
+                        'mac_address': interface_data['mac'],
+                        'status': interface_data['status'],
+                        'speed': f"{interface_data['speed']} Mbps" if interface_data['speed'] > 0 else "Unknown",
+                        'bytes_sent': self._format_bytes(interface_data['bytes_sent']),
+                        'bytes_recv': self._format_bytes(interface_data['bytes_recv']),
+                        'operational_status': interface_data['status']
+                    }
+
+            # Get default gateway
+            try:
+                import subprocess
+                if platform.system() == "Windows":
+                    result = subprocess.run(['route', 'print', '0.0.0.0'], 
+                                          capture_output=True, text=True, timeout=10)
+                    for line in result.stdout.split('\n'):
+                        if '0.0.0.0' in line and 'Gateway' not in line:
+                            parts = line.split()
+                            if len(parts) >= 3:
+                                network_info['gateway'] = parts[2]
+                                break
+                else:  # Linux/Mac
+                    result = subprocess.run(['ip', 'route', 'show', 'default'], 
+                                          capture_output=True, text=True, timeout=10)
+                    if result.returncode == 0:
+                        for line in result.stdout.split('\n'):
+                            if 'default via' in line:
+                                parts = line.split()
+                                if len(parts) >= 3:
+                                    network_info['gateway'] = parts[2]
+                                    break
+            except:
+                pass
+
+            # Try to get public IP with multiple methods
+            try:
+                import requests
+                for url in ['https://api.ipify.org?format=json', 'https://httpbin.org/ip', 'https://api.myip.com']:
+                    try:
+                        response = requests.get(url, timeout=5)
+                        if response.status_code == 200:
+                            data = response.json()
+                            network_info['public_ip'] = data.get('ip') or data.get('origin')
+                            if network_info['public_ip']:
+                                break
+                    except:
+                        continue
+            except:
+                pass
+
+            # Get DNS servers with enhanced detection
+            try:
+                if platform.system() == "Windows":
+                    import subprocess
+                    result = subprocess.run(['nslookup', 'google.com'], 
+                                          capture_output=True, text=True, timeout=10)
+                    lines = result.stdout.split('\n')
+                    for line in lines:
+                        if 'Server:' in line:
+                            dns_ip = line.split(':')[-1].strip()
+                            if dns_ip and dns_ip not in network_info['dns_servers']:
+                                network_info['dns_servers'].append(dns_ip)
+                        elif line.strip() and '.' in line and 'Address:' in line:
+                            dns_ip = line.split(':')[-1].strip()
+                            if dns_ip and dns_ip not in network_info['dns_servers']:
+                                network_info['dns_servers'].append(dns_ip)
+                else:  # Linux/Mac
+                    try:
+                        with open('/etc/resolv.conf', 'r') as f:
+                            for line in f:
+                                if line.startswith('nameserver'):
+                                    dns_ip = line.split()[1]
+                                    if dns_ip not in network_info['dns_servers']:
+                                        network_info['dns_servers'].append(dns_ip)
+                    except:
+                        pass
+
+                    # Also try systemd-resolve
+                    try:
+                        import subprocess
+                        result = subprocess.run(['systemd-resolve', '--status'], 
+                                              capture_output=True, text=True, timeout=10)
+                        for line in result.stdout.split('\n'):
+                            if 'DNS Servers:' in line:
+                                dns_ip = line.split(':')[-1].strip()
+                                if dns_ip and dns_ip not in network_info['dns_servers']:
+                                    network_info['dns_servers'].append(dns_ip)
+                    except:
+                        pass
+            except Exception as e:
+                self.logger.debug(f"DNS detection error: {e}")
+
+            # Get Wi-Fi information
+            try:
+                if platform.system() == "Windows":
+                    import subprocess
+                    result = subprocess.run(['netsh', 'wlan', 'show', 'profiles'], 
+                                          capture_output=True, text=True, timeout=10)
+                    if result.returncode == 0:
+                        connected_result = subprocess.run(['netsh', 'wlan', 'show', 'interfaces'], 
+                                                        capture_output=True, text=True, timeout=10)
+                        if 'connected' in connected_result.stdout.lower():
+                            network_info['wifi_info'] = {
+                                'connected': True,
+                                'status': 'connected'
+                            }
+                            # Extract SSID if available
+                            for line in connected_result.stdout.split('\n'):
+                                if 'SSID' in line and ':' in line:
+                                    network_info['wifi_info']['ssid'] = line.split(':')[-1].strip()
+                                    break
+                        else:
+                            network_info['wifi_info'] = {'connected': False, 'status': 'disconnected'}
+                else:  # Linux
+                    try:
+                        import subprocess
+                        result = subprocess.run(['iwconfig'], capture_output=True, text=True, timeout=10)
+                        if 'ESSID:' in result.stdout:
+                            network_info['wifi_info'] = {'connected': True, 'status': 'connected'}
+                            # Extract SSID
+                            for line in result.stdout.split('\n'):
+                                if 'ESSID:' in line:
+                                    ssid = line.split('ESSID:')[-1].split()[0].strip('"')
+                                    if ssid != 'off/any':
+                                        network_info['wifi_info']['ssid'] = ssid
+                                    break
+                        else:
+                            network_info['wifi_info'] = {'connected': False, 'status': 'disconnected'}
+                    except:
+                        network_info['wifi_info'] = {'connected': False, 'status': 'unknown'}
+            except:
+                network_info['wifi_info'] = {'connected': False, 'status': 'unknown'}
+
+            # Get network statistics
+            try:
+                net_io = psutil.net_io_counters()
+                network_info['network_stats'] = {
+                    'bytes_sent': self._format_bytes(net_io.bytes_sent),
+                    'bytes_recv': self._format_bytes(net_io.bytes_recv),
+                    'packets_sent': net_io.packets_sent,
+                    'packets_recv': net_io.packets_recv,
+                    'errin': net_io.errin,
+                    'errout': net_io.errout,
+                    'dropin': net_io.dropin,
+                    'dropout': net_io.dropout
+                }
+            except Exception as e:
+                self.logger.debug(f"Network stats error: {e}")
+
+            # Try to get domain information
+            try:
+                import socket
+                fqdn = socket.getfqdn()
+                if '.' in fqdn:
+                    network_info['domain'] = fqdn.split('.', 1)[1]
+            except:
+                pass
+
+            return network_info
         except Exception as e:
-            self.logger.error(f"Error getting network info: {e}", exc_info=True)
+            self.logger.error(f"Error getting network info: {e}")
             return {}
+
+    def _format_bytes(self, bytes_value):
+        """Format bytes to human readable format"""
+        try:
+            for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+                if bytes_value < 1024.0:
+                    return f"{bytes_value:.1f} {unit}"
+                bytes_value /= 1024.0
+            return f"{bytes_value:.1f} PB"
+        except:
+            return "0 B"
 
     def _get_public_ip(self):
         """Get public IP address"""
@@ -643,7 +819,7 @@ class SystemCollector:
                 $UpdateSession = New-Object -ComObject Microsoft.Update.Session
                 $UpdateSearcher = $UpdateSession.CreateUpdateSearcher()
                 $SearchResult = $UpdateSearcher.Search("IsInstalled=0 and Type='Software'")
-                
+
                 $Updates = @()
                 foreach ($Update in $SearchResult.Updates) {
                     $Updates += @{
@@ -656,13 +832,13 @@ class SystemCollector:
                         RebootRequired = $Update.RebootRequired
                     }
                 }
-                
+
                 $Updates | ConvertTo-Json -Depth 3
                 '''
-                
+
                 result = subprocess.run(["powershell", "-Command", ps_command], 
                                       capture_output=True, text=True, timeout=60)
-                
+
                 if result.returncode == 0 and result.stdout.strip():
                     try:
                         available_updates = json.loads(result.stdout.strip())
@@ -670,8 +846,9 @@ class SystemCollector:
                             available_updates = [available_updates]
                         update_info['available_updates'] = available_updates or []
                     except json.JSONDecodeError:
-                        pass
-                        
+                        ```text
+pass
+
             except Exception as e:
                 self.logger.warning(f"Failed to get available Windows updates: {e}")
 
@@ -682,7 +859,7 @@ class SystemCollector:
                 $UpdateSearcher = $UpdateSession.CreateUpdateSearcher()
                 $HistoryCount = $UpdateSearcher.GetTotalHistoryCount()
                 $UpdateHistory = $UpdateSearcher.QueryHistory(0, [Math]::Min($HistoryCount, 50))
-                
+
                 $InstalledUpdates = @()
                 foreach ($Update in $UpdateHistory) {
                     if ($Update.ResultCode -eq 2) {  # Successfully installed
@@ -694,13 +871,13 @@ class SystemCollector:
                         }
                     }
                 }
-                
+
                 $InstalledUpdates | ConvertTo-Json -Depth 3
                 '''
-                
+
                 result = subprocess.run(["powershell", "-Command", ps_command], 
                                       capture_output=True, text=True, timeout=60)
-                
+
                 if result.returncode == 0 and result.stdout.strip():
                     try:
                         installed_updates = json.loads(result.stdout.strip())
@@ -709,7 +886,7 @@ class SystemCollector:
                         update_info['installed_updates'] = installed_updates or []
                     except json.JSONDecodeError:
                         pass
-                        
+
             except Exception as e:
                 self.logger.warning(f"Failed to get installed Windows updates: {e}")
 
@@ -720,13 +897,13 @@ class SystemCollector:
                 $AutoUpdate = New-Object -ComObject Microsoft.Update.AutoUpdate
                 $AutoUpdate.Results.LastSearchSuccessDate.ToString("yyyy-MM-dd HH:mm:ss")
                 '''
-                
+
                 result = subprocess.run(["powershell", "-Command", ps_command], 
                                       capture_output=True, text=True, timeout=30)
-                
+
                 if result.returncode == 0 and result.stdout.strip():
                     update_info['last_search_date'] = result.stdout.strip()
-                    
+
             except Exception as e:
                 self.logger.warning(f"Failed to get last search date: {e}")
 
@@ -736,18 +913,18 @@ class SystemCollector:
                 $AUSettings = (New-Object -ComObject Microsoft.Update.AutoUpdate).Settings
                 $AUSettings.NotificationLevel -ne 1
                 '''
-                
+
                 result = subprocess.run(["powershell", "-Command", ps_command], 
                                       capture_output=True, text=True, timeout=30)
-                
+
                 if result.returncode == 0:
                     update_info['automatic_updates_enabled'] = "True" in result.stdout
-                    
+
             except Exception as e:
                 self.logger.warning(f"Failed to check automatic updates: {e}")
 
             return update_info
-            
+
         except Exception as e:
             self.logger.error(f"Error getting Windows updates: {e}")
             return None
