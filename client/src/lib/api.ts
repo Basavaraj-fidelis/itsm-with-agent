@@ -121,6 +121,26 @@ class ApiClient {
   async delete(url: string): Promise<Response> {
     return this.request(url, { method: 'DELETE' });
   }
+
+  async getDeviceAIInsights(deviceId: string): Promise<any> {
+    try {
+      const response = await this.request(`/devices/${deviceId}/ai-insights`);
+      return response.insights || [];
+    } catch (error) {
+      console.error('Error fetching AI insights:', error);
+      return [];
+    }
+  }
+
+  async getAdvancedDeviceAnalytics(deviceId: string): Promise<any> {
+    try {
+      const response = await this.request(`/analytics/device/${deviceId}/advanced`);
+      return response;
+    } catch (error) {
+      console.error('Error fetching advanced device analytics:', error);
+      throw error;
+    }
+  }
 }
 
 // Create and export a singleton instance
