@@ -1076,16 +1076,16 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
 
                       // Process network interfaces from various data sources
                       if (Array.isArray(networkInterfaces)) {
-                        networkInterfaces.forEach(interface => {
+                        networkInterfaces.forEach(networkInterface => {
                           allInterfaces.push({
-                            name: interface.name || interface.interface,
-                            type: interface.type || 'Unknown',
-                            ip: interface.ip || interface.ip_address,
-                            mac: interface.mac || interface.mac_address,
-                            status: interface.status || interface.state || 'Unknown',
-                            speed: interface.speed,
-                            bytes_sent: interface.bytes_sent,
-                            bytes_recv: interface.bytes_recv
+                            name: networkInterface.name || networkInterface.interface,
+                            type: networkInterface.type || 'Unknown',
+                            ip: networkInterface.ip || networkInterface.ip_address,
+                            mac: networkInterface.mac || networkInterface.mac_address,
+                            status: networkInterface.status || networkInterface.state || 'Unknown',
+                            speed: networkInterface.speed,
+                            bytes_sent: networkInterface.bytes_sent,
+                            bytes_recv: networkInterface.bytes_recv
                           });
                         });
                       }
@@ -1116,7 +1116,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                         ...new Set([
                           ...(networkInfo.all_ips || []),
                           ...(parsedData?.ip_addresses || []),
-                          ...allInterfaces.map(i => i.ip).filter(Boolean),
+                          ...allInterfaces.map(iface => iface.ip).filter(Boolean),
                           agent?.ip_address
                         ].filter(Boolean))
                       ];
@@ -1195,43 +1195,43 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             <div className="space-y-3">
                               <h4 className="font-medium text-gray-800 dark:text-gray-200">Active Network Interfaces</h4>
                               <div className="grid gap-3">
-                                {allInterfaces.slice(0, 6).map((interface, index) => (
+                                {allInterfaces.slice(0, 6).map((networkInterface, index) => (
                                   <div key={index} className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                                     <div className="flex justify-between items-start mb-2">
                                       <div>
                                         <h5 className="font-medium text-gray-900 dark:text-gray-100">
-                                          {interface.name} ({interface.type})
+                                          {networkInterface.name} ({networkInterface.type})
                                         </h5>
-                                        {interface.description && (
+                                        {networkInterface.description && (
                                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                            {interface.description}
+                                            {networkInterface.description}
                                           </p>
                                         )}
                                       </div>
-                                      <Badge variant={interface.status === 'Up' || interface.status === 'connected' ? 'default' : 'secondary'}>
-                                        {interface.status}
+                                      <Badge variant={networkInterface.status === 'Up' || networkInterface.status === 'connected' ? 'default' : 'secondary'}>
+                                        {networkInterface.status}
                                       </Badge>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4 text-sm">
                                       <div>
                                         <span className="text-gray-600 dark:text-gray-400">IP Address:</span>
-                                        <span className="ml-2 font-mono">{interface.ip || 'N/A'}</span>
+                                        <span className="ml-2 font-mono">{networkInterface.ip || 'N/A'}</span>
                                       </div>
                                       <div>
                                         <span className="text-gray-600 dark:text-gray-400">MAC:</span>
-                                        <span className="ml-2 font-mono text-xs">{interface.mac || 'N/A'}</span>
+                                        <span className="ml-2 font-mono text-xs">{networkInterface.mac || 'N/A'}</span>
                                       </div>
-                                      {interface.speed && (
+                                      {networkInterface.speed && (
                                         <div>
                                           <span className="text-gray-600 dark:text-gray-400">Speed:</span>
-                                          <span className="ml-2">{interface.speed}</span>
+                                          <span className="ml-2">{networkInterface.speed}</span>
                                         </div>
                                       )}
-                                      {(interface.bytes_sent || interface.bytes_recv) && (
+                                      {(networkInterface.bytes_sent || networkInterface.bytes_recv) && (
                                         <div>
                                           <span className="text-gray-600 dark:text-gray-400">Traffic:</span>
                                           <span className="ml-2 text-xs">
-                                            ↑{interface.bytes_sent || '0'} ↓{interface.bytes_recv || '0'}
+                                            ↑{networkInterface.bytes_sent || '0'} ↓{networkInterface.bytes_recv || '0'}
                                           </span>
                                         </div>
                                       )}
