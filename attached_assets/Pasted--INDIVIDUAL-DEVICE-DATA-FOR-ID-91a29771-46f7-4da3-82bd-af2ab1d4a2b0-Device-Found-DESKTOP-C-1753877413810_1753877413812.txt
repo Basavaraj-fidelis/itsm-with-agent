@@ -1,0 +1,233 @@
+=== INDIVIDUAL DEVICE DATA FOR ID: 91a29771-46f7-4da3-82bd-af2ab1d4a2b0 ===
+Device Found: DESKTOP-CMM8H3C
+Device Record: {
+  id: '91a29771-46f7-4da3-82bd-af2ab1d4a2b0',
+  hostname: 'DESKTOP-CMM8H3C',
+  status: 'online',
+  ip_address: '192.168.1.80',
+  os_name: 'Windows',
+  last_seen: 2025-07-30T12:08:29.740Z,
+  assigned_user: 'basav',
+  latest_report: {
+    cpu_usage: null,
+    memory_usage: null,
+    disk_usage: null,
+    network_io: null,
+    collected_at: 2025-07-30T12:08:29.836Z,
+    raw_data: {
+      timestamp: '2025-07-30T12:08:19.256176Z',
+      hostname: 'DESKTOP-CMM8H3C',
+      os_info: [Object],
+      network: [Object],
+      hardware: [Object],
+      storage: [Object],
+      software: [Array],
+      processes: [Array],
+      usb_devices: [],
+      virtualization: [Object],
+      system_health: [Object],
+      security: [Object],
+      assigned_user: 'DESKTOP-CMM8H3C$'
+    }
+  },
+  created_at: 2025-06-10T08:34:07.271Z
+}
+Latest Report Data: {
+  cpu_usage: null,
+  memory_usage: null,
+  disk_usage: null,
+  network_io: null,
+  collected_at: 2025-07-30T12:08:29.836Z,
+  raw_data: {
+    timestamp: '2025-07-30T12:08:19.256176Z',
+    hostname: 'DESKTOP-CMM8H3C',
+    os_info: {
+      name: 'Windows',
+      version: '10.0.26100',
+      release: '10',
+      architecture: '64bit',
+      machine: 'AMD64',
+      processor: 'AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD',
+      platform_string: 'Windows-10-10.0.26100',
+      boot_time: '2025-07-28T09:38:07.285622',
+      uptime_seconds: 201612,
+      build_number: '26100',
+      display_version: '24H2',
+      product_name: 'Windows 10 Home Single Language',
+      last_update: '7/28/2025'
+    },
+    network: {
+      public_ip: '139.167.219.110',
+      interfaces: [Array],
+      io_counters: [Object]
+    },
+    hardware: { cpu: [Object], memory: [Object], system: [Object] },
+    storage: { disks: [Array], smart_data: [] },
+    software: [
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object]
+    ],
+    processes: [
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object]
+    ],
+    usb_devices: [],
+    virtualization: { is_virtual: false, hypervisor: 'unknown', detection_methods: [] },
+    system_health: {
+      cpu_temperature: null,
+      disk_health: [Object],
+      memory_pressure: [Object],
+      system_load: null
+    },
+    security: {
+      firewall_status: 'enabled',
+      antivirus_status: 'enabled',
+      last_scan: 'QuickScanStartTime    FullScanStartTime\n' +
+        '------------------    -----------------\n' +
+        '7/28/2025 10:59:52 AM'
+    },
+    assigned_user: 'DESKTOP-CMM8H3C$'
+  }
+}
+=== END INDIVIDUAL DEVICE DATA ===
+
+12:09:17 PM [express] GET /api/devices/91a29771-46f7-4da3-82bd-af2ab1d4a2b0 200 in 203ms :: {"id":"91…
+Authenticating token for /
+Decoded token: {
+  userId: 'e33b16c2-ba02-4a88-bec3-2055cc6e1e32',
+  id: 'e33b16c2-ba02-4a88-bec3-2055cc6e1e32',
+  email: 'admin@company.com',
+  role: 'admin',
+  iat: 1753874785,
+  exp: 1753961185
+}
+12:09:24 PM [express] GET /api/notifications 304 in 194ms :: []
+Authenticating token for /api/devices/91a29771-46f7-4da3-82bd-af2ab1d4a2b0
+Decoded token: {
+  userId: 'e33b16c2-ba02-4a88-bec3-2055cc6e1e32',
+  id: 'e33b16c2-ba02-4a88-bec3-2055cc6e1e32',
+  email: 'admin@company.com',
+  role: 'admin',
+  iat: 1753874785,
+  exp: 1753961185
+}
+=== INDIVIDUAL DEVICE DATA FOR ID: 91a29771-46f7-4da3-82bd-af2ab1d4a2b0 ===
+Device Found: DESKTOP-CMM8H3C
+Device Record: {
+  id: '91a29771-46f7-4da3-82bd-af2ab1d4a2b0',
+  hostname: 'DESKTOP-CMM8H3C',
+  status: 'online',
+  ip_address: '192.168.1.80',
+  os_name: 'Windows',
+  last_seen: 2025-07-30T12:08:29.740Z,
+  assigned_user: 'basav',
+  latest_report: {
+    cpu_usage: null,
+    memory_usage: null,
+    disk_usage: null,
+    network_io: null,
+    collected_at: 2025-07-30T12:08:29.836Z,
+    raw_data: {
+      timestamp: '2025-07-30T12:08:19.256176Z',
+      hostname: 'DESKTOP-CMM8H3C',
+      os_info: [Object],
+      network: [Object],
+      hardware: [Object],
+      storage: [Object],
+      software: [Array],
+      processes: [Array],
+      usb_devices: [],
+      virtualization: [Object],
+      system_health: [Object],
+      security: [Object],
+      assigned_user: 'DESKTOP-CMM8H3C$'
+    }
+  },
+  created_at: 2025-06-10T08:34:07.271Z
+}
+Latest Report Data: {
+  cpu_usage: null,
+  memory_usage: null,
+  disk_usage: null,
+  network_io: null,
+  collected_at: 2025-07-30T12:08:29.836Z,
+  raw_data: {
+    timestamp: '2025-07-30T12:08:19.256176Z',
+    hostname: 'DESKTOP-CMM8H3C',
+    os_info: {
+      name: 'Windows',
+      version: '10.0.26100',
+      release: '10',
+      architecture: '64bit',
+      machine: 'AMD64',
+      processor: 'AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD',
+      platform_string: 'Windows-10-10.0.26100',
+      boot_time: '2025-07-28T09:38:07.285622',
+      uptime_seconds: 201612,
+      build_number: '26100',
+      display_version: '24H2',
+      product_name: 'Windows 10 Home Single Language',
+      last_update: '7/28/2025'
+    },
+    network: {
+      public_ip: '139.167.219.110',
+      interfaces: [Array],
+      io_counters: [Object]
+    },
+    hardware: { cpu: [Object], memory: [Object], system: [Object] },
+    storage: { disks: [Array], smart_data: [] },
+    software: [
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object]
+    ],
+    processes: [
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object]
+    ],
+    usb_devices: [],
+    virtualization: { is_virtual: false, hypervisor: 'unknown', detection_methods: [] },
+    system_health: {
+      cpu_temperature: null,
+      disk_health: [Object],
+      memory_pressure: [Object],
+      system_load: null
+    },
+    security: {
+      firewall_status: 'enabled',
+      antivirus_status: 'enabled',
+      last_scan: 'QuickScanStartTime    FullScanStartTime\n' +
+        '------------------    -----------------\n' +
+        '7/28/2025 10:59:52 AM'
+    },
+    assigned_user: 'DESKTOP-CMM8H3C$'
+  }
+}
+=== END INDIVIDUAL DEVICE DATA ===
