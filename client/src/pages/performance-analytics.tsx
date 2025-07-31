@@ -240,27 +240,37 @@ function PerformanceAnalyticsContent() {
   }
 
   // Calculate comprehensive metrics with better error handling
-  const onlineDevices = useMemo(() => 
-    devices?.filter((d: any) => d.status === "online") || [], [devices]);
-  const offlineDevices = useMemo(() => 
-    devices?.filter((d: any) => d.status === "offline") || [], [devices]);
+  const onlineDevices = useMemo(() => {
+    if (!devices) return [];
+    return devices.filter((d: any) => d.status === "online");
+  }, [devices]);
+  
+  const offlineDevices = useMemo(() => {
+    if (!devices) return [];
+    return devices.filter((d: any) => d.status === "offline");
+  }, [devices]);
 
   // Filter devices with actual performance data
-  const devicesWithData = useMemo(() => onlineDevices.filter(
-    (d: any) =>
-      d.latest_report &&
-      (d.latest_report.cpu_usage !== null ||
-        d.latest_report.memory_usage !== null ||
-        d.latest_report.disk_usage !== null),
-  ), [onlineDevices]);
+  const devicesWithData = useMemo(() => {
+    if (!onlineDevices || onlineDevices.length === 0) return [];
+    return onlineDevices.filter(
+      (d: any) =>
+        d.latest_report &&
+        (d.latest_report.cpu_usage !== null ||
+          d.latest_report.memory_usage !== null ||
+          d.latest_report.disk_usage !== null),
+    );
+  }, [onlineDevices]);
 
-  const criticalDevices =
-    devicesWithData.filter(
+  const criticalDevices = useMemo(() => {
+    if (!devicesWithData || devicesWithData.length === 0) return [];
+    return devicesWithData.filter(
       (d: any) =>
         parseFloat(d.latest_report?.cpu_usage || "0") > 90 ||
         parseFloat(d.latest_report?.memory_usage || "0") > 90 ||
         parseFloat(d.latest_report?.disk_usage || "0") > 95,
-    ) || [];
+    );
+  }, [devicesWithData]);
 
   const avgMetrics = {
     cpu:
@@ -616,19 +626,22 @@ function PerformanceAnalyticsContent() {
           {/* Top Consumers */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {["CPU", "Memory", "Disk"].map((metric) => {
-              const sortedDevices = useMemo(() => [...onlineDevices]
-                .filter(device => device.latest_report) // Only devices with data
-                .sort((a, b) => {
-                  const key =
-                    metric.toLowerCase() === "disk"
-                      ? "disk_usage"
-                      : `${metric.toLowerCase()}_usage`;
-                  return (
-                    parseFloat(b.latest_report?.[key] || "0") -
-                    parseFloat(a.latest_report?.[key] || "0")
-                  );
-                })
-                .slice(0, onlineDevices.length > 50 ? 10 : 5), [onlineDevices, metric]); // Show more for large deployments
+              const sortedDevices = useMemo(() => {
+                if (!onlineDevices || onlineDevices.length === 0) return [];
+                return [...onlineDevices]
+                  .filter(device => device.latest_report) // Only devices with data
+                  .sort((a, b) => {
+                    const key =
+                      metric.toLowerCase() === "disk"
+                        ? "disk_usage"
+                        : `${metric.toLowerCase()}_usage`;
+                    return (
+                      parseFloat(b.latest_report?.[key] || "0") -
+                      parseFloat(a.latest_report?.[key] || "0")
+                    );
+                  })
+                  .slice(0, onlineDevices.length > 50 ? 10 : 5); // Show more for large deployments
+              }, [onlineDevices, metric]);
 
               return (
                 <ChartCard key={metric} title={`Top ${metric} Consumers`}>
