@@ -1,54 +1,76 @@
 // Alert threshold configuration
 export const ALERT_THRESHOLDS = {
-  CPU: {
-    CRITICAL: 95,
-    HIGH: 85,
-    WARNING: 70,
-    INFO: 50
+  CRITICAL: {
+    cpu_usage: 90,
+    cpu: 90,
+    memory_usage: 95,
+    memory: 95,
+    disk_usage: 98,
+    disk: 98,
+    response_time: 5000,
+    error_rate: 0.1,
   },
-  MEMORY: {
-    CRITICAL: 95,
-    HIGH: 85,
-    WARNING: 70,
-    INFO: 50
+  WARNING: {
+    cpu_usage: 80,
+    cpu: 80,
+    memory_usage: 85,
+    memory: 85,
+    disk_usage: 90,
+    disk: 90,
+    response_time: 3000,
+    error_rate: 0.05,
   },
-  DISK: {
-    CRITICAL: 95,
-    HIGH: 85,
-    WARNING: 70,
-    INFO: 50
+  INFO: {
+    cpu_usage: 70,
+    cpu: 70,
+    memory_usage: 75,
+    memory: 75,
+    disk_usage: 80,
+    disk: 80,
+    response_time: 2000,
+    error_rate: 0.02,
   },
-  NETWORK: {
-    CRITICAL: 95,
-    HIGH: 85,
-    WARNING: 70,
-    INFO: 50
-  }
-} as const;
+};
 
 export type AlertThreshold = typeof ALERT_THRESHOLDS;
 export type AlertLevel = 'CRITICAL' | 'HIGH' | 'WARNING' | 'INFO';
 export type AlertCategory = keyof typeof ALERT_THRESHOLDS;
 
 // Helper functions for alert level determination
-export function getAlertLevel(value: number, category: AlertCategory): AlertLevel {
-  const thresholds = ALERT_THRESHOLDS[category];
+export function getAlertLevel(category: string, value: number): AlertLevel {
+  const thresholds = ALERT_THRESHOLDS;
 
-  // Handle invalid category gracefully
-  if (!thresholds) {
+  // Normalize category names
+  const normalizedCategory = category.toLowerCase().replace('_usage', '');
+  const categoryKey = normalizedCategory === 'cpu' ? 'cpu' : 
+                     normalizedCategory === 'memory' ? 'memory' :
+                     normalizedCategory === 'disk' ? 'disk' :
+                     category; // fallback to original
+
+  // Check if we have thresholds for this category
+  if (!thresholds.CRITICAL[categoryKey] && !thresholds.CRITICAL[category]) {
     console.warn(`Invalid alert category: ${category}. Using default INFO level.`);
-    return 'INFO';
+    return "INFO";
   }
 
-  if (value >= thresholds.CRITICAL) {
-    return 'CRITICAL';
-  } else if (value >= thresholds.HIGH) {
-    return 'HIGH';
-  } else if (value >= thresholds.WARNING) {
-    return 'WARNING';
-  } else {
-    return 'INFO';
+  // Use the categoryKey if it exists, otherwise fall back to original category
+  const criticalThreshold = thresholds.CRITICAL[categoryKey] || thresholds.CRITICAL[category];
+  const warningThreshold = thresholds.WARNING[categoryKey] || thresholds.WARNING[category];
+  const infoThreshold = thresholds.INFO[categoryKey] || thresholds.INFO[category];
+
+  if (criticalThreshold && value >= criticalThreshold) {
+    return "CRITICAL";
   }
+
+  if (warningThreshold && value >= warningThreshold) {
+    return "WARNING";
+  }
+
+  if (infoThreshold && value >= infoThreshold) {
+    return "INFO";
+  }
+
+  return "INFO";
 }
 
 export function getAlertColor(level: AlertLevel): string {

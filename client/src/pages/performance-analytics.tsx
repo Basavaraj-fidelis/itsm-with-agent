@@ -127,6 +127,14 @@ export default function PerformanceAnalytics() {
     retry: 1
   });
 
+  const { data: advancedAnalytics, isError: advancedError } = useQuery({
+    queryKey: ["advanced-analytics", selectedDevice],
+    queryFn: () => api.getAdvancedDeviceAnalytics(selectedDevice),
+    enabled: !!selectedDevice,
+    retry: 1,
+    refetchInterval: autoRefresh && selectedDevice ? refreshInterval : false
+  });
+
   const { data: overviewData, isLoading: overviewLoading, error: overviewError } = useQuery({
     queryKey: ["performance", "overview"],
     queryFn: () => api.getPerformanceOverview(),
@@ -604,6 +612,67 @@ export default function PerformanceAnalytics() {
                           </div>
                         </CardContent>
                       </Card>
+                    </div>
+                  )}
+
+                  {/* Advanced Analytics */}
+                  {advancedAnalytics && (
+                    <div className="mt-6">
+                      <h3 className="text-lg font-semibold mb-4">Advanced Analytics</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="text-sm">System Health</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-3">
+                              <div className="flex justify-between">
+                                <span>Uptime</span>
+                                <span className="font-medium">{advancedAnalytics.system_health.uptime_percentage.toFixed(1)}%</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Avg Response Time</span>
+                                <span className="font-medium">{advancedAnalytics.system_health.avg_response_time.toFixed(1)}ms</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Availability Score</span>
+                                <span className="font-medium">{advancedAnalytics.system_health.availability_score.toFixed(1)}%</span>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="text-sm">Security Status</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-3">
+                              <div className="flex justify-between">
+                                <span>Security Score</span>
+                                <span className="font-medium">{advancedAnalytics.security_metrics.security_score}/100</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Vulnerabilities</span>
+                                <span className="font-medium">{advancedAnalytics.security_metrics.vulnerabilities_count}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Compliance</span>
+                                <Badge variant={advancedAnalytics.security_metrics.compliance_status === 'Compliant' ? 'default' : 'destructive'}>
+                                  {advancedAnalytics.security_metrics.compliance_status}
+                                </Badge>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
+                  )}
+
+                  {(advancedError || insightsError) && (
+                    <div className="flex items-center gap-2 text-yellow-600 mt-4 p-3 bg-yellow-50 rounded-lg">
+                      <AlertTriangle className="w-4 h-4" />
+                      <span>Some performance data may be unavailable. Displaying available metrics.</span>
                     </div>
                   )}
                 </div>
