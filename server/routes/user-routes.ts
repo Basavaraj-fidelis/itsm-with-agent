@@ -218,6 +218,7 @@ router.get('/', async (req, res) => {
         COALESCE(preferences, '{}')->>'ad_last_sync' as last_ad_sync,
         COALESCE(preferences, '{}')->>'ad_groups' as ad_groups
       FROM users
+      WHERE is_active = true
     `;
 
     const conditions: string[] = [];
@@ -263,7 +264,7 @@ router.get('/', async (req, res) => {
     }
 
     if (conditions.length > 0) {
-      query += ` WHERE ${conditions.join(' AND ')}`;
+      query += ` AND ${conditions.join(' AND ')}`;
     }
 
     query += ` ORDER BY created_at DESC`;
@@ -281,23 +282,24 @@ router.get('/', async (req, res) => {
 
     const result = await pool.query(query, params);
 
-    let countQuery = `SELECT COUNT(*) as total FROM users`;
+    let countQuery = `SELECT COUNT(*) as total FROM users WHERE is_active = true`;
     if (conditions.length > 0) {
-      countQuery += ` WHERE ${conditions.join(' AND ')}`;
+      countQuery += ` AND ${conditions.join(' AND ')}`;
     }
 
     const countResult = await pool.query(countQuery, params.slice(0, -2));
     const total = parseInt(countResult.rows[0]?.total || 0);
 
-    // Get user statistics with proper null handling
+    // Get user statistics with proper null handling (only active users)
     const statsQuery = `
       SELECT 
         COUNT(*) as total_users,
-        COUNT(CASE WHEN COALESCE(is_active, true) = true AND COALESCE(is_locked, false) = false THEN 1 END) as active_users,
-        COUNT(CASE WHEN COALESCE(is_active, true) = false OR COALESCE(is_locked, false) = true THEN 1 END) as inactive_users,
+        COUNT(CASE WHEN COALESCE(is_locked, false) = false THEN 1 END) as active_users,
+        COUNT(CASE WHEN COALESCE(is_locked, false) = true THEN 1 END) as inactive_users,
         COUNT(CASE WHEN COALESCE(preferences, '{}')->>'ad_synced' = 'true' THEN 1 END) as ad_synced_users,
         COUNT(CASE WHEN COALESCE(preferences, '{}')->>'ad_synced' IS NULL OR COALESCE(preferences, '{}')->>'ad_synced' = 'false' THEN 1 END) as local_users
       FROM users
+      WHERE is_active = true
     `;
 
     const statsResult = await pool.query(statsQuery);
@@ -651,16 +653,44 @@ router.delete("/:id", async (req, res) => {
   try {
     const result = await pool.query(`
       UPDATE users 
-      SET is_active = false, updated_at = NOW() 
-      WHERE id = $1 
-      RETURNING id
+      SET is_active = false, is_locked = true, updated_at = NOW() 
+      WHERE id = $1 AND is_active = true
+      RETURNING id, email, first_name, last_name
     `, [req.params.id]);
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "User not found or already deleted" });
     }
 
-    res.json({ message: "User deleted successfully" });
+    const deletedUser = result.rows[0];
+    
+    // Log the deletion in audit trail
+    try {
+      await pool.query(`
+        INSERT INTO audit_logs (user_id, action, table_name, record_id, new_values, ip_address)
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, [
+        req.params.id, 
+        'user_deleted', 
+        'users', 
+        req.params.id, 
+        JSON.stringify({ is_active: false, is_locked: true, deleted_at: new Date().toISOString() }),
+        req.ip || req.connection.remoteAddress
+      ]);
+    } catch (auditError) {
+      console.log("Audit log failed but user deletion succeeded:", auditError);
+    }
+
+    console.log("User soft-deleted successfully:", { 
+      id: deletedUser.id, 
+      email: deletedUser.email,
+      name: `${deletedUser.first_name || ''} ${deletedUser.last_name || ''}`.trim()
+    });
+
+    res.json({ 
+      message: "User deleted successfully",
+      user: deletedUser
+    });
   } catch (error: any) {
     console.error("Error deleting user:", error);
     res.status(500).json({ message: "Failed to delete user" });

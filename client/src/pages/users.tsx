@@ -185,7 +185,7 @@ export default function UsersPage() {
         },
         body: JSON.stringify(userData)
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to create user");
@@ -228,7 +228,7 @@ export default function UsersPage() {
         },
         body: JSON.stringify({ first_name, last_name, ...userData })
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to update user");
@@ -260,7 +260,7 @@ export default function UsersPage() {
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to delete user");
@@ -395,7 +395,7 @@ export default function UsersPage() {
         },
         body: formData
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to import end users");
@@ -912,8 +912,7 @@ export default function UsersPage() {
                         <Building className="w-4 h-4 text-gray-400" />
                         <span className="text-sm">{user.department || '-'}</span>
                       </div>
-                    </td>
-                    <td className="p-2">
+                    </td><td className="p-2">
                       <div className="flex flex-col space-y-1">
                         <Badge variant={user.is_active ? 'default' : 'secondary'}>
                           {user.is_active ? 'Active' : 'Inactive'}
