@@ -1,0 +1,40 @@
+Uncaught TypeError: Cannot read properties of undefined (reading 'uptime_percentage')
+    at PerformanceAnalytics (performance-analytics.tsx:631:96)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=883baec0:11548:26)
+    at updateFunctionComponent (chunk-RPCDYKBN.js?v=883baec0:14582:28)
+    at beginWork (chunk-RPCDYKBN.js?v=883baec0:15924:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=883baec0:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=883baec0:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=883baec0:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=883baec0:19765:15)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=883baec0:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=883baec0:19137:13)
+chunk-RPCDYKBN.js?v=883baec0:14032 The above error occurred in the <PerformanceAnalytics> component:
+
+    at PerformanceAnalytics (https://6480775e-f190-4143-949d-dd1b9078c859-00-272r4r77aagao.sisko.replit.dev/src/pages/performance-analytics.tsx:142:47)
+    at main
+    at div
+    at div
+    at AuthenticatedLayout (https://6480775e-f190-4143-949d-dd1b9078c859-00-272r4r77aagao.sisko.replit.dev/src/App.tsx:57:32)
+    at ProtectedRoute (https://6480775e-f190-4143-949d-dd1b9078c859-00-272r4r77aagao.sisko.replit.dev/src/components/auth/protected-route.tsx:76:3)
+    at Route (https://6480775e-f190-4143-949d-dd1b9078c859-00-272r4r77aagao.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=883baec0:206:16)
+    at Switch (https://6480775e-f190-4143-949d-dd1b9078c859-00-272r4r77aagao.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=883baec0:262:17)
+    at Router (https://6480775e-f190-4143-949d-dd1b9078c859-00-272r4r77aagao.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=883baec0:161:17)
+    at AuthProvider (https://6480775e-f190-4143-949d-dd1b9078c859-00-272r4r77aagao.sisko.replit.dev/src/components/auth/protected-route.tsx:36:32)
+    at QueryClientProvider (https://6480775e-f190-4143-949d-dd1b9078c859-00-272r4r77aagao.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=883baec0:2933:3)
+    at App (https://6480775e-f190-4143-949d-dd1b9078c859-00-272r4r77aagao.sisko.replit.dev/src/App.tsx:89:49)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-RPCDYKBN.js?v=883baec0:14032
+chunk-RPCDYKBN.js?v=883baec0:9129 Uncaught TypeError: Cannot read properties of undefined (reading 'uptime_percentage')
+    at PerformanceAnalytics (performance-analytics.tsx:631:96)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=883baec0:11548:26)
+    at updateFunctionComponent (chunk-RPCDYKBN.js?v=883baec0:14582:28)
+    at beginWork (chunk-RPCDYKBN.js?v=883baec0:15924:22)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=883baec0:19753:22)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=883baec0:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=883baec0:19137:13)
+    at renderRootSync (chunk-RPCDYKBN.js?v=883baec0:19116:15)
+    at recoverFromConcurrentError (chunk-RPCDYKBN.js?v=883baec0:18736:28)
+    at performSyncWorkOnRoot (chunk-RPCDYKBN.js?v=883baec0:18879:28)
