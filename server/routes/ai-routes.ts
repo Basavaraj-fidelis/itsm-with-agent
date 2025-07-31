@@ -125,4 +125,55 @@ router.post("/insights/batch", async (req, res) => {
   }
 });
 
+// Get AI insights for a device
+router.get('/insights/device/:deviceId', async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+
+    console.log(`Fetching AI insights for device: ${deviceId}`);
+
+    // Check if device exists first
+    // const deviceCheck = await pool.query(
+    //   'SELECT id FROM agents WHERE id = $1',
+    //   [deviceId]
+    // );
+
+    // if (deviceCheck.rows.length === 0) {
+    //   console.log(`Device ${deviceId} not found in agents table`);
+    //   return res.status(404).json({ 
+    //     message: 'Device not found',
+    //     deviceId 
+    //   });
+    // }
+
+    const insights = await aiInsightsStorage.getDeviceInsights(deviceId);
+
+    if (!insights) {
+      console.log(`No AI insights found for device: ${deviceId}`);
+      // Return a default structure instead of 404
+      return res.json({
+        device_id: deviceId,
+        insights: [],
+        recommendations: [],
+        risk_score: 0,
+        last_updated: new Date().toISOString(),
+        metadata: {
+          message: 'No insights available yet. AI analysis will be generated as data becomes available.'
+        }
+      });
+    }
+
+    console.log(`Successfully retrieved AI insights for device: ${deviceId}`);
+    res.json(insights);
+  } catch (error) {
+    console.error('Error fetching device AI insights:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      message: 'Failed to fetch device AI insights',
+      error: error.message,
+      deviceId: req.params.deviceId
+    });
+  }
+});
+
 export default router;

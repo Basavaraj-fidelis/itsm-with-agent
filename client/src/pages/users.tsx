@@ -105,7 +105,7 @@ export default function UsersPage() {
     email: "",
     first_name: "",
     last_name: "",
-    role: "user",
+    role: "end_user",
     password: "",
     department: "",
     phone: "",
@@ -418,13 +418,8 @@ export default function UsersPage() {
     },
   });
 
-  // Filter users based on all criteria, excluding end_user role
+  // Filter users based on all criteria
   const filteredUsers = users.filter((user: UserInterface) => {
-    // Exclude end users from User Directory
-    if (user.role === 'end_user') {
-      return false;
-    }
-
     const matchesSearch = !searchTerm || 
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -436,9 +431,7 @@ export default function UsersPage() {
       (statusFilter === "active" && user.is_active) ||
       (statusFilter === "inactive" && !user.is_active);
 
-    // REMOVE ad_synced filter here
-
-    return matchesSearch && matchesRole && matchesDepartment && matchesStatus; //&& matchesSyncSource;
+    return matchesSearch && matchesRole && matchesDepartment && matchesStatus;
   });
 
   // Get unique departments for filter
@@ -746,6 +739,7 @@ export default function UsersPage() {
                 <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="manager">Manager</SelectItem>
                 <SelectItem value="technician">Technician</SelectItem>
+                <SelectItem value="end_user">End User</SelectItem>
               </SelectContent>
             </Select>
 
@@ -1078,6 +1072,7 @@ export default function UsersPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="end_user">End User</SelectItem>
                   <SelectItem value="technician">Technician</SelectItem>
                   <SelectItem value="manager">Manager</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
@@ -1301,13 +1296,14 @@ export default function UsersPage() {
                 <div>
                   <Label htmlFor="edit-role">Role</Label>
                   <Select 
-                    value={selectedUser.role || 'user'} 
+                    value={selectedUser.role || 'end_user'} 
                     onValueChange={(value) => setSelectedUser({ ...selectedUser, role: value })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="end_user">End User</SelectItem>
                       <SelectItem value="technician">Technician</SelectItem>
                       <SelectItem value="manager">Manager</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
