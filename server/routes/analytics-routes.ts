@@ -1220,16 +1220,8 @@ router.get("/device/:deviceId/advanced", async (req: any, res: any) => {
   try {
     const deviceId = req.params.deviceId;
     console.log(`Getting advanced analytics for device: ${deviceId}`);
-    
-    // Log the full device data to console for debugging
-    if (device?.latest_report?.raw_data) {
-      console.log("=== FULL DEVICE DATA FOR ANALYTICS ===");
-      console.log("Network Data:", JSON.stringify(device.latest_report.raw_data.network, null, 2));
-      console.log("Hardware Data:", JSON.stringify(device.latest_report.raw_data.hardware, null, 2));
-      console.log("=== END DEVICE DATA ===");
-    }
 
-    // Get device information
+    // Get device information first
     const { storage } = await import("../storage");
     const device = await storage.getDevice(deviceId);
 
