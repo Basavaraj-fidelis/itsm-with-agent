@@ -126,7 +126,39 @@ export class AgentDataProcessor {
   static extractNetworkInfo(agent: any, rawData: any): ProcessedAgentData['networkInfo'] & { locationData?: any } {
     const interfaces = rawData.network?.interfaces || agent.network?.interfaces || [];
 
+    // Log network data for debugging
+    console.log('Network data extraction:', {
+      hasRawNetworkData: !!rawData.network,
+      interfacesCount: interfaces.length,
+      networkKeys: Object.keys(rawData.network || {}),
+      rawNetworkData: rawData.network
+    });
+
     const getEthernetIP = (): string => {
+      // If interfaces array is empty, try to get IP from other sources
+      if (!interfaces || interfaces.length === 0) {
+        // Try to get from network adapters or other network data
+        if (rawData.network?.network_adapters) {
+          const adapters = Object.values(rawData.network.network_adapters);
+          for (const adapter of adapters) {
+            if (adapter && typeof adapter === 'object' && adapter.ip_addresses) {
+              for (const ip of adapter.ip_addresses) {
+                if (ip && !ip.startsWith("127.") && !ip.startsWith("169.254.") && ip !== "0.0.0.0") {
+                  return ip;
+                }
+              }
+            }
+          }
+        }
+        
+        // Fallback to agent IP address
+        if (agent.ip_address && !agent.ip_address.startsWith("127.")) {
+          return agent.ip_address;
+        }
+        
+        return "Not Available";
+      }
+
       for (const iface of interfaces) {
         const name = iface.name?.toLowerCase() || "";
         if ((name.includes("eth") || name.includes("ethernet") || name.includes("enet") || 
@@ -212,10 +244,27 @@ export class AgentDataProcessor {
       allIPs.length > 0 ? allIPs[0] : 
       agent.ip_address || rawData.ip_address || "Not Available";
 
-    const publicIP = rawData.extracted_public_ip || rawData.network?.public_ip || agent.network?.public_ip || rawData.public_ip || "Unknown";
+    // Enhanced public IP extraction with multiple sources
+    const publicIP = rawData.extracted_public_ip || 
+                    rawData.network?.public_ip || 
+                    rawData.network?.external_ip ||
+                    rawData.public_ip || 
+                    agent.network?.public_ip || 
+                    agent.latest_report?.public_ip ||
+                    "Unknown";
+
+    console.log('Public IP extraction:', {
+      extracted_public_ip: rawData.extracted_public_ip,
+      network_public_ip: rawData.network?.public_ip,
+      network_external_ip: rawData.network?.external_ip,
+      raw_public_ip: rawData.public_ip,
+      final_public_ip: publicIP
+    });
 
     // Enhanced location data extraction
     let locationData = null;
+    
+    // Try multiple sources for location data
     if (rawData.extracted_location_data) {
       try {
         locationData = typeof rawData.extracted_location_data === 'string'
@@ -226,19 +275,45 @@ export class AgentDataProcessor {
       }
     }
 
+    // Check database location columns from latest_report
+    if (!locationData && agent.latest_report) {
+      const report = agent.latest_report;
+      if (report.location_city || report.location_country || report.location_region) {
+        locationData = {
+          city: report.location_city,
+          country: report.location_country,
+          region: report.location_region,
+          loc: report.location_coordinates,
+          ip: publicIP,
+          isp: report.location_isp,
+          timezone: report.location_timezone
+        };
+      }
+    }
+
     // Fallback to network location data
     if (!locationData && rawData.network) {
       locationData = {
-        city: rawData.network.geo_details?.city,
-        country: rawData.network.geo_details?.country,
-        region: rawData.network.geo_details?.region,
-        loc: rawData.network.coordinates,
+        city: rawData.network.geo_details?.city || rawData.network.city,
+        country: rawData.network.geo_details?.country || rawData.network.country,
+        region: rawData.network.geo_details?.region || rawData.network.region,
+        loc: rawData.network.coordinates || rawData.network.loc,
         ip: publicIP,
         location: rawData.network.location || rawData.network.geo_location,
         isp: rawData.network.isp,
-        timezone: rawData.network.geo_details?.timezone
+        timezone: rawData.network.geo_details?.timezone || rawData.network.timezone
       };
     }
+
+    console.log('Location data extraction:', {
+      hasLocationData: !!locationData,
+      locationSources: {
+        extracted_location_data: !!rawData.extracted_location_data,
+        database_columns: !!(agent.latest_report?.location_city),
+        network_geo: !!(rawData.network?.geo_details || rawData.network?.city)
+      },
+      finalLocationData: locationData
+    });
 
     return {
       primaryIP,
@@ -322,11 +397,70 @@ export class AgentDataProcessor {
   }
 
   static extractMetrics(agent: any): ProcessedAgentData['metrics'] {
+    // Try to get metrics from the latest report first
+    let cpuUsage = 0;
+    let memoryUsage = 0;
+    let diskUsage = 0;
+    let networkIO = 0;
+
+    // Check if we have direct metrics in latest_report
+    if (agent.latest_report?.cpu_usage) {
+      cpuUsage = parseFloat(agent.latest_report.cpu_usage);
+    }
+    if (agent.latest_report?.memory_usage) {
+      memoryUsage = parseFloat(agent.latest_report.memory_usage);
+    }
+    if (agent.latest_report?.disk_usage) {
+      diskUsage = parseFloat(agent.latest_report.disk_usage);
+    }
+    if (agent.latest_report?.network_io) {
+      networkIO = parseInt(agent.latest_report.network_io);
+    }
+
+    // If no direct metrics, try to extract from raw_data
+    if (cpuUsage === 0 && memoryUsage === 0 && diskUsage === 0) {
+      try {
+        const rawData = agent.latest_report?.raw_data;
+        if (rawData) {
+          const parsedData = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+
+          // Extract CPU usage from hardware.cpu.usage_percent
+          if (parsedData.hardware?.cpu?.usage_percent) {
+            cpuUsage = parseFloat(parsedData.hardware.cpu.usage_percent);
+          }
+
+          // Extract memory usage from hardware.memory.percentage
+          if (parsedData.hardware?.memory?.percentage) {
+            memoryUsage = parseFloat(parsedData.hardware.memory.percentage);
+          }
+
+          // Extract disk usage from storage.disks (primary disk)
+          if (parsedData.storage?.disks && Array.isArray(parsedData.storage.disks)) {
+            const primaryDisk = parsedData.storage.disks.find(disk => 
+              disk.device === 'C:\\' || disk.mountpoint === 'C:\\'
+            ) || parsedData.storage.disks[0];
+            
+            if (primaryDisk?.percent) {
+              diskUsage = parseFloat(primaryDisk.percent);
+            }
+          }
+
+          // Extract network I/O from network stats
+          if (parsedData.network?.io_counters) {
+            const ioCounters = parsedData.network.io_counters;
+            networkIO = parseInt(ioCounters.bytes_sent || ioCounters.bytes_recv || '0');
+          }
+        }
+      } catch (error) {
+        console.error('Error extracting metrics from raw_data:', error);
+      }
+    }
+
     return {
-      cpuUsage: agent.latest_report?.cpu_usage ? parseFloat(agent.latest_report.cpu_usage) : 0,
-      memoryUsage: agent.latest_report?.memory_usage ? parseFloat(agent.latest_report.memory_usage) : 0,
-      diskUsage: agent.latest_report?.disk_usage ? Math.round(parseFloat(agent.latest_report.disk_usage)) : 0,
-      networkIO: agent.latest_report?.network_io ? parseInt(agent.latest_report.network_io) : 0
+      cpuUsage: Math.max(0, Math.min(100, cpuUsage)),
+      memoryUsage: Math.max(0, Math.min(100, memoryUsage)),
+      diskUsage: Math.max(0, Math.min(100, diskUsage)),
+      networkIO: Math.max(0, networkIO)
     };
   }
 
@@ -644,10 +778,56 @@ export function useProcessedAgentData(agent: any): ProcessedAgentData | null {
     }
 
     // Parse metrics with validation and logging
-    const cpuUsage = parseFloat(latestReport.cpu_usage || '0');
-    const memoryUsage = parseFloat(latestReport.memory_usage || '0');
-    const diskUsage = parseFloat(latestReport.disk_usage || '0');
-    const networkIO = parseFloat(latestReport.network_io || '0');
+    let cpuUsage = parseFloat(latestReport.cpu_usage || '0');
+    let memoryUsage = parseFloat(latestReport.memory_usage || '0');
+    let diskUsage = parseFloat(latestReport.disk_usage || '0');
+    let networkIO = parseFloat(latestReport.network_io || '0');
+
+    // If metrics are 0 or null, try to extract from raw_data
+    if (cpuUsage === 0 && memoryUsage === 0 && diskUsage === 0) {
+      try {
+        const rawData = latestReport.raw_data;
+        if (rawData) {
+          const parsedData = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+
+          // Extract CPU usage
+          if (parsedData.hardware?.cpu?.usage_percent) {
+            cpuUsage = parseFloat(parsedData.hardware.cpu.usage_percent);
+          }
+
+          // Extract memory usage
+          if (parsedData.hardware?.memory?.percentage) {
+            memoryUsage = parseFloat(parsedData.hardware.memory.percentage);
+          }
+
+          // Extract disk usage
+          if (parsedData.storage?.disks && Array.isArray(parsedData.storage.disks)) {
+            const primaryDisk = parsedData.storage.disks.find(disk => 
+              disk.device === 'C:\\' || disk.mountpoint === 'C:\\'
+            ) || parsedData.storage.disks[0];
+            
+            if (primaryDisk?.percent) {
+              diskUsage = parseFloat(primaryDisk.percent);
+            }
+          }
+
+          // Extract network I/O
+          if (parsedData.network?.io_counters) {
+            const ioCounters = parsedData.network.io_counters;
+            networkIO = parseInt(ioCounters.bytes_sent || ioCounters.bytes_recv || '0');
+          }
+
+          console.log('Extracted metrics from raw_data:', {
+            cpu: cpuUsage,
+            memory: memoryUsage,
+            disk: diskUsage,
+            network: networkIO
+          });
+        }
+      } catch (error) {
+        console.error('Error extracting metrics from raw_data in useProcessedAgentData:', error);
+      }
+    }
 
     console.log('Parsed metrics for', agent.hostname, {
       cpu: cpuUsage,

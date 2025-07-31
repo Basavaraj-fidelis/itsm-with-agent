@@ -378,20 +378,24 @@ export function registerAgentRoutes(
         console.log("⚠️  WARNING: Empty network data received from agent!");
       }
       
-      // Extract metrics from the collected data
+      // Extract metrics from the collected data with multiple fallback sources
       let cpuUsage = null;
       let memoryUsage = null;
       let diskUsage = null;
       let networkIO = null;
 
-      // Extract CPU usage from hardware.cpu.usage_percent
+      // Extract CPU usage from multiple possible sources
       if (reportData.hardware?.cpu?.usage_percent) {
         cpuUsage = reportData.hardware.cpu.usage_percent.toString();
+      } else if (reportData.system_health?.cpu_usage) {
+        cpuUsage = reportData.system_health.cpu_usage.toString();
       }
 
-      // Extract memory usage from hardware.memory.percentage
+      // Extract memory usage from multiple possible sources
       if (reportData.hardware?.memory?.percentage) {
         memoryUsage = reportData.hardware.memory.percentage.toString();
+      } else if (reportData.system_health?.memory_usage) {
+        memoryUsage = reportData.system_health.memory_usage.toString();
       }
 
       // Extract disk usage from storage.disks (use primary disk)
@@ -404,12 +408,25 @@ export function registerAgentRoutes(
         if (primaryDisk?.percent) {
           diskUsage = primaryDisk.percent.toString();
         }
+      } else if (reportData.system_health?.disk_usage) {
+        diskUsage = reportData.system_health.disk_usage.toString();
       }
 
-      // Extract network I/O from network stats
+      // Extract network I/O from network stats with multiple sources
       if (reportData.network?.io_counters?.bytes_sent) {
         networkIO = reportData.network.io_counters.bytes_sent.toString();
+      } else if (reportData.network?.io_counters?.bytes_recv) {
+        networkIO = reportData.network.io_counters.bytes_recv.toString();
+      } else if (reportData.network?.total_bytes) {
+        networkIO = reportData.network.total_bytes.toString();
       }
+
+      // Log what we found for debugging
+      console.log("=== METRICS EXTRACTION RESULTS ===");
+      console.log("CPU Usage:", cpuUsage, "- Source:", reportData.hardware?.cpu?.usage_percent ? "hardware.cpu.usage_percent" : reportData.system_health?.cpu_usage ? "system_health.cpu_usage" : "none");
+      console.log("Memory Usage:", memoryUsage, "- Source:", reportData.hardware?.memory?.percentage ? "hardware.memory.percentage" : reportData.system_health?.memory_usage ? "system_health.memory_usage" : "none");
+      console.log("Disk Usage:", diskUsage, "- Source:", reportData.storage?.disks?.length > 0 ? "storage.disks" : reportData.system_health?.disk_usage ? "system_health.disk_usage" : "none");
+      console.log("Network I/O:", networkIO, "- Source:", reportData.network?.io_counters ? "network.io_counters" : reportData.network?.total_bytes ? "network.total_bytes" : "none");
 
       console.log("=== EXTRACTED METRICS ===");
       console.log("CPU Usage:", cpuUsage);
