@@ -1,4 +1,3 @@
-
 """
 Windows System Information Collector
 Windows-specific system information gathering
@@ -16,10 +15,10 @@ import re
 
 class WindowsCollector:
     """Windows-specific system information collector"""
-    
+
     def __init__(self):
         self.logger = logging.getLogger('WindowsCollector')
-    
+
     def get_os_info(self):
         """Get Windows-specific OS information"""
         try:
@@ -98,16 +97,16 @@ class WindowsCollector:
             except Exception as e:
                 self.logger.warning(f"Failed to collect full patch list: {e}")
 
-            return info</old_str>
+            return info
         except Exception as e:
             self.logger.error(f"Error getting Windows OS info: {e}")
             return {}
-    
+
     def get_hardware_info(self):
         """Get Windows-specific hardware information"""
         try:
             info = {}
-            
+
             # Method 1: WMI computersystem with better parsing
             try:
                 # Try CSV format first as it's more reliable
@@ -115,7 +114,7 @@ class WindowsCollector:
                     'wmic', 'computersystem', 'get', 
                     'Manufacturer,Model', '/format:csv'
                 ], capture_output=True, text=True, timeout=60, shell=True)
-                
+
                 if result.returncode == 0 and result.stdout.strip():
                     lines = [line.strip() for line in result.stdout.strip().split('\n') if line.strip() and ',' in line]
                     for line in lines[1:]:  # Skip header
@@ -129,7 +128,7 @@ class WindowsCollector:
                                 if model and model.lower() not in ['n/a', '', 'null']:
                                     info['model'] = model
                                 break
-                
+
                 # Alternative method using registry if WMI fails
                 if not info:
                     try:
@@ -152,13 +151,13 @@ class WindowsCollector:
                         self.logger.warning(f"Registry BIOS query failed: {e}")
             except Exception as e:
                 self.logger.warning(f"WMI computersystem query failed: {e}")
-            
+
             # Method 2: WMI BIOS for serial
             try:
                 result = subprocess.run([
                     'wmic', 'bios', 'get', 'SerialNumber', '/format:csv'
                 ], capture_output=True, text=True, timeout=60)
-                
+
                 if result.returncode == 0:
                     lines = [line for line in result.stdout.strip().split('\n') if line.strip()]
                     if len(lines) > 1:
@@ -170,7 +169,7 @@ class WindowsCollector:
                                     break
             except Exception as e:
                 self.logger.warning(f"WMI BIOS query failed: {e}")
-            
+
             # Get CPU model from registry
             try:
                 import winreg
@@ -179,12 +178,12 @@ class WindowsCollector:
                     info['cpu_model'] = winreg.QueryValueEx(key, "ProcessorNameString")[0]
             except Exception:
                 pass
-            
+
             return info
         except Exception as e:
             self.logger.error(f"Error getting Windows hardware info: {e}")
             return {}
-    
+
     def get_usb_devices(self):
         """Get USB devices on Windows"""
         try:
@@ -212,7 +211,7 @@ class WindowsCollector:
         except Exception as e:
             self.logger.error(f"Error getting Windows USB devices: {e}")
             return []
-    
+
     def get_security_info(self):
         """Get Windows security information"""
         try:
@@ -305,7 +304,7 @@ class WindowsCollector:
         except Exception as e:
             self.logger.error(f"Error collecting Windows security info: {e}")
             return {}
-    
+
     def get_software_info(self):
         """Get installed software on Windows"""
         try:
@@ -314,7 +313,7 @@ class WindowsCollector:
             result = subprocess.run([
                 'wmic', 'product', 'get', 'Name,Version,Vendor', '/format:csv'
             ], capture_output=True, text=True, timeout=60)
-            
+
             if result.returncode == 0:
                 lines = result.stdout.strip().split('\n')[1:]  # Skip header
                 for line in lines:
@@ -326,13 +325,13 @@ class WindowsCollector:
                                 'version': parts[3].strip(),
                                 'vendor': parts[2].strip()
                             })
-            
+
             # Limit to top 50 packages to avoid overwhelming the API
             return software[:50]
         except Exception as e:
             self.logger.error(f"Error getting Windows software info: {e}")
             return []
-    
+
     def get_virtualization_info(self):
         """Detect if running in a virtual machine on Windows"""
         try:
@@ -341,12 +340,12 @@ class WindowsCollector:
                 'hypervisor': 'unknown',
                 'detection_methods': []
             }
-            
+
             # Check WMI for VM detection
             result = subprocess.run([
                 'wmic', 'computersystem', 'get', 'Model,Manufacturer', '/format:csv'
             ], capture_output=True, text=True, timeout=30)
-            
+
             if result.returncode == 0:
                 content = result.stdout.lower()
                 if 'vmware' in content:
@@ -361,7 +360,7 @@ class WindowsCollector:
                     vm_info['is_virtual'] = True
                     vm_info['hypervisor'] = 'hyper-v'
                     vm_info['detection_methods'].append('wmi_hyperv')
-            
+
             return vm_info
         except Exception as e:
             self.logger.error(f"Error detecting Windows virtualization: {e}")
