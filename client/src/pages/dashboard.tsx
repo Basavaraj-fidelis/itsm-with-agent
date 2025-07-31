@@ -432,7 +432,7 @@ export default function Dashboard() {
                   <div className="text-xs text-gray-500 dark:text-gray-400">
                     {summary?.online_devices || 0} of {summary?.total_devices || 0} online
                     <span className="block mt-1 text-blue-600 dark:text-blue-400">
-                      Thresholds: CPU/Memory/Disk {ALERT_THRESHOLDS.cpu.CRITICAL}%+ Critical
+                      Thresholds: CPU/Memory/Disk {ALERT_THRESHOLDS.CPU.CRITICAL}%+ Critical
                     </span>
                   </div>
                 </div>
