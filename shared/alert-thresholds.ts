@@ -106,9 +106,6 @@ export const getAlertLevelSafe = (value: number, category: string): AlertLevel =
   }
 };
 
-// Ensure all exports are properly available
-export { ALERT_THRESHOLDS, getAlertLevel, getAlertColor, getAlertLevelSafe };
-
 // Default export for compatibility
 export default {
   ALERT_THRESHOLDS,
