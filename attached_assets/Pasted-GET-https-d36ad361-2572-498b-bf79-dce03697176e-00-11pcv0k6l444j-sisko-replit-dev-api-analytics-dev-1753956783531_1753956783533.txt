@@ -1,0 +1,67 @@
+GET https://d36ad361-2572-498b-bf79-dce03697176e-00-11pcv0k6l444j.sisko.replit.dev/api/analytics/device/91a29771-46f7-4da3-82bd-af2ab1d4a2b0/advanced 500 (Internal Server Error)
+request @ api.ts:78
+get @ api.ts:104
+getAdvancedDeviceAnalytics @ api.ts:608
+queryFn @ agent-detail.tsx:58
+fetchFn @ @tanstack_react-query.js?v=883baec0:881
+run @ @tanstack_react-query.js?v=883baec0:513
+(anonymous) @ @tanstack_react-query.js?v=883baec0:538
+Promise.then
+(anonymous) @ @tanstack_react-query.js?v=883baec0:534
+Promise.catch
+run @ @tanstack_react-query.js?v=883baec0:517
+start @ @tanstack_react-query.js?v=883baec0:555
+fetch @ @tanstack_react-query.js?v=883baec0:969
+executeFetch_fn @ @tanstack_react-query.js?v=883baec0:2279
+onSubscribe @ @tanstack_react-query.js?v=883baec0:1983
+subscribe @ @tanstack_react-query.js?v=883baec0:24
+(anonymous) @ @tanstack_react-query.js?v=883baec0:3146
+subscribeToStore @ chunk-RPCDYKBN.js?v=883baec0:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=883baec0:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=883baec0:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=883baec0:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=883baec0:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=883baec0:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=883baec0:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=883baec0:19447
+commitRootImpl @ chunk-RPCDYKBN.js?v=883baec0:19416
+commitRoot @ chunk-RPCDYKBN.js?v=883baec0:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=883baec0:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=883baec0:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=883baec0:18627
+setTimeout
+defaultScheduler @ @tanstack_react-query.js?v=883baec0:565
+flush @ @tanstack_react-query.js?v=883baec0:589
+batch @ @tanstack_react-query.js?v=883baec0:607
+dispatch_fn @ @tanstack_react-query.js?v=883baec0:1040
+setData @ @tanstack_react-query.js?v=883baec0:718
+onSuccess @ @tanstack_react-query.js?v=883baec0:940
+resolve @ @tanstack_react-query.js?v=883baec0:475
+Promise.then
+run @ @tanstack_react-query.js?v=883baec0:517
+start @ @tanstack_react-query.js?v=883baec0:555
+fetch @ @tanstack_react-query.js?v=883baec0:969
+executeFetch_fn @ @tanstack_react-query.js?v=883baec0:2279
+onSubscribe @ @tanstack_react-query.js?v=883baec0:1983
+subscribe @ @tanstack_react-query.js?v=883baec0:24
+(anonymous) @ @tanstack_react-query.js?v=883baec0:3146
+subscribeToStore @ chunk-RPCDYKBN.js?v=883baec0:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=883baec0:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=883baec0:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=883baec0:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=883baec0:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=883baec0:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=883baec0:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=883baec0:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=883baec0:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=883baec0:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=883baec0:19432
+commitRoot @ chunk-RPCDYKBN.js?v=883baec0:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=883baec0:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=883baec0:18718
+workLoop @ chunk-RPCDYKBN.js?v=883baec0:197
+flushWork @ chunk-RPCDYKBN.js?v=883baec0:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=883baec0:384
+api.ts:80 API Response: 500 Internal Server Error
+api.ts:75 API Request: /api/ai/insights/device/91a29771-46f7-4da3-82bd-af2ab1d4a2b0 {headers: {…}, method: 'GET'}
+api.ts:78  GET https://d36ad361-2572-498b-bf79-dce03697176e-00-11pcv0k6l444j.sisko.replit.dev/api/ai/insights/device/91a29771-46f7-4da3-82bd-af2ab1d4a2b0 500 (Internal Server Error)
