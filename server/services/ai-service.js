@@ -76,4 +76,4 @@ class AIService {
 
 const aiService = new AIService();
 
-module.exports = { aiService };
+export { aiService };
