@@ -285,8 +285,8 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
 
   // Function to provide OS-specific color schemes
   const getOSColorScheme = () => {
-    if (isWindows) return "bg-blue-50 dark:bg-blue-900/20";
-    if (isMacOS) return "bg-purple-50 dark:bg-purple-900/20";
+    if (isWindows) return "bg-blue-5 dark:bg-blue-900/20";
+    if (isMacOS) return "bg-purple-5 dark:bg-purple-900/20";
     if (isLinux) return "bg-green-50 dark:bg-green-900/20";
     return "bg-neutral-50 dark:bg-neutral-800";
   };
@@ -952,6 +952,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                       )}
                                   </div>
                                   {device.vendor_id && device.product_id && (
+                                    ```text
                                     <div className="text-neutral-600 dark:text-neutral-400 text-sm mb-1">
                                       <span className="font-medium">VID:</span>{" "}
                                       {device.vendor_id} |
@@ -1170,98 +1171,9 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             </div>
                           </div>
 
-                          {/* System Network Details */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-800">
-                              <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-3">System Details</h4>
-                              <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                  <span className="text-gray-600 dark:text-gray-400">Hostname:</span>
-                                  <span className="font-mono">{hostname}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-gray-600 dark:text-gray-400">Domain:</span>
-                                  <span className="font-mono">{domain}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-gray-600 dark:text-gray-400">Gateway:</span>
-                                  <span className="font-mono">{gateway}</span>
-                                </div>
-                              </div>
-                            </div>
+                          
 
-                            <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                              <h4 className="font-medium text-orange-800 dark:text-orange-200 mb-3">DNS Servers</h4>
-                              <div className="space-y-1">
-                                {dnsServers.length > 0 ? (
-                                  dnsServers.map((dns, index) => (
-                                    <div key={index} className="text-sm font-mono text-orange-900 dark:text-orange-100">
-                                      {dns}
-                                    </div>
-                                  ))
-                                ) : (
-                                  <p className="text-sm text-orange-700 dark:text-orange-300">No DNS servers found</p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Active Network Interfaces */}
-                          {allInterfaces.length > 0 && (
-                            <div className="space-y-3">
-                              <h4 className="font-medium text-gray-800 dark:text-gray-200">Active Network Interfaces</h4>
-                              <div className="grid gap-3">
-                                {allInterfaces.slice(0, 6).map((networkInterface, index) => (
-                                  <div key={index} className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                                    <div className="flex justify-between items-start mb-2">
-                                      <div>
-                                        <h5 className="font-medium text-gray-900 dark:text-gray-100">
-                                          {networkInterface.name} ({networkInterface.type})
-                                        </h5>
-                                        {networkInterface.description && (
-                                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                            {networkInterface.description}
-                                          </p>
-                                        )}
-                                      </div>
-                                      <Badge variant={networkInterface.status === 'Up' || networkInterface.status === 'connected' ? 'default' : 'secondary'}>
-                                        {networkInterface.status}
-                                      </Badge>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4 text-sm">
-                                      <div>
-                                        <span className="text-gray-600 dark:text-gray-400">IP Address:</span>
-                                        <span className="ml-2 font-mono">{networkInterface.ip || 'N/A'}</span>
-                                      </div>
-                                      <div>
-                                        <span className="text-gray-600 dark:text-gray-400">MAC:</span>
-                                        <span className="ml-2 font-mono text-xs">{networkInterface.mac || 'N/A'}</span>
-                                      </div>
-                                      {networkInterface.speed && (
-                                        <div>
-                                          <span className="text-gray-600 dark:text-gray-400">Speed:</span>
-                                          <span className="ml-2">{networkInterface.speed}</span>
-                                        </div>
-                                      )}
-                                      {(networkInterface.bytes_sent || networkInterface.bytes_recv) && (
-                                        <div>
-                                          <span className="text-gray-600 dark:text-gray-400">Traffic:</span>
-                                          <span className="ml-2 text-xs">
-                                            ↑{networkInterface.bytes_sent || '0'} ↓{networkInterface.bytes_recv || '0'}
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                              {allInterfaces.length > 6 && (
-                                <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                                  Showing 6 of {allInterfaces.length} interfaces
-                                </p>
-                              )}
-                            </div>
-                          )}
+                          {/* Hidden: Active Network Interfaces, System Details, and DNS Servers sections */}
 
                           {/* All IP Addresses */}
                           {allIPs.length > 0 && (
@@ -1286,11 +1198,11 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                 <Globe className="w-4 h-4" />
                                 Geographic Location
                               </h4>
-                              
+
                               {(() => {
                                 const location = networkInfo.location || networkInfo.geo_location;
                                 const geoDetails = networkInfo.geo_details;
-                                
+
                                 if (!location && !geoDetails) {
                                   return (
                                     <div className="text-center py-3">
@@ -1301,7 +1213,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                     </div>
                                   );
                                 }
-                                
+
                                 return (
                                   <div className="space-y-3">
                                     {location && (
@@ -1309,7 +1221,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                         📍 {location}
                                       </div>
                                     )}
-                                    
+
                                     {geoDetails && (
                                       <div className="grid grid-cols-2 gap-3 text-sm">
                                         {geoDetails.city && (
@@ -1355,7 +1267,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                         )}
                                       </div>
                                     )}
-                                    
+
                                     {networkInfo.isp && (
                                       <div className="pt-2 border-t border-indigo-200 dark:border-indigo-700">
                                         <span className="text-indigo-600 dark:text-indigo-400 text-sm">ISP/Organization:</span>
@@ -2031,9 +1943,6 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                           <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-red-600" />
                           <p className="text-sm text-red-800 dark:text-red-200">
                             Error parsing patch data
-                          </p>
-                          <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                            {error.message}
                           </p>
                         </div>
                       );
