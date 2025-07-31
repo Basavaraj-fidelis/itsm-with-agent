@@ -1,5 +1,6 @@
 
 import { Router } from 'express';
+import { authenticateToken } from '../middleware/auth-middleware.js';
 import { storage } from '../storage';
 import { DatabaseUtils } from '../utils/database';
 
@@ -120,14 +121,8 @@ router.get('/audit', async (req, res) => {
   }
 });
 
-export default router;
-import { Router } from 'express';
-import { authenticateToken } from '../middleware/auth-middleware.js';
-
-const router = Router();
-
 // Security overview endpoint for dashboard
-router.get('/api/security-overview', authenticateToken, async (req, res) => {
+router.get('/overview', async (req, res) => {
   try {
     // Mock security overview data - replace with actual security service calls
     const securityOverview = {

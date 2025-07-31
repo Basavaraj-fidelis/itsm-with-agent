@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { aiService } from "../services/ai-service.js";
 import { aiInsightsStorage } from "../models/ai-insights-storage.js";
+import { authenticateToken } from "../middleware/auth-middleware.js";
 
 const router = Router();
 
@@ -132,20 +133,6 @@ router.get('/insights/device/:deviceId', async (req, res) => {
 
     console.log(`Fetching AI insights for device: ${deviceId}`);
 
-    // Check if device exists first
-    // const deviceCheck = await pool.query(
-    //   'SELECT id FROM agents WHERE id = $1',
-    //   [deviceId]
-    // );
-
-    // if (deviceCheck.rows.length === 0) {
-    //   console.log(`Device ${deviceId} not found in agents table`);
-    //   return res.status(404).json({ 
-    //     message: 'Device not found',
-    //     deviceId 
-    //   });
-    // }
-
     const insights = await aiInsightsStorage.getDeviceInsights(deviceId);
 
     if (!insights) {
@@ -211,4 +198,3 @@ router.get('/api/ai/insights', authenticateToken, async (req, res) => {
 });
 
 export default router;
-```export default router;

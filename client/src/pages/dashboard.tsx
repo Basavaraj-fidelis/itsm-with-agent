@@ -8,7 +8,7 @@ import { useDashboardSummary, useAlerts } from "@/hooks/use-dashboard";
 import { useAgents } from "@/hooks/use-agents";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { ALERT_THRESHOLDS, getAlertLevel, getAlertColor } from "../../../shared/alert-thresholds";
+import { ALERT_THRESHOLDS, getAlertLevel, getAlertColor } from "@shared/alert-thresholds";
 import { 
   Plus, 
   Users, 
