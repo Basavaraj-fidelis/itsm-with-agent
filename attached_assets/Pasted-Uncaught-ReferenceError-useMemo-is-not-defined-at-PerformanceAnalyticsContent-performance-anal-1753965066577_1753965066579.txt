@@ -1,0 +1,42 @@
+Uncaught ReferenceError: useMemo is not defined
+    at PerformanceAnalyticsContent (performance-analytics.tsx:243:25)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=883baec0:11548:26)
+    at updateFunctionComponent (chunk-RPCDYKBN.js?v=883baec0:14582:28)
+    at beginWork (chunk-RPCDYKBN.js?v=883baec0:15924:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=883baec0:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=883baec0:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=883baec0:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=883baec0:19765:15)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=883baec0:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=883baec0:19137:13)
+chunk-RPCDYKBN.js?v=883baec0:14032 The above error occurred in the <PerformanceAnalyticsContent> component:
+
+    at PerformanceAnalyticsContent (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/src/pages/performance-analytics.tsx:175:47)
+    at div
+    at PerformanceAnalytics
+    at main
+    at div
+    at div
+    at AuthenticatedLayout (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/src/App.tsx:58:32)
+    at ProtectedRoute (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/src/components/auth/protected-route.tsx:76:3)
+    at Route (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=883baec0:206:16)
+    at Switch (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=883baec0:262:17)
+    at Router (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=883baec0:161:17)
+    at AuthProvider (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/src/components/auth/protected-route.tsx:36:32)
+    at QueryClientProvider (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=883baec0:2933:3)
+    at App (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/src/App.tsx:90:49)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-RPCDYKBN.js?v=883baec0:14032
+chunk-RPCDYKBN.js?v=883baec0:9129 Uncaught ReferenceError: useMemo is not defined
+    at PerformanceAnalyticsContent (performance-analytics.tsx:243:25)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=883baec0:11548:26)
+    at updateFunctionComponent (chunk-RPCDYKBN.js?v=883baec0:14582:28)
+    at beginWork (chunk-RPCDYKBN.js?v=883baec0:15924:22)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=883baec0:19753:22)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=883baec0:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=883baec0:19137:13)
+    at renderRootSync (chunk-RPCDYKBN.js?v=883baec0:19116:15)
+    at recoverFromConcurrentError (chunk-RPCDYKBN.js?v=883baec0:18736:28)
+    at performSyncWorkOnRoot (chunk-RPCDYKBN.js?v=883baec0:18879:28)
