@@ -153,60 +153,88 @@ class SystemCollector:
                 'all_ips': [],
                 'hostname': platform.node(),
                 'domain': None,
-                'gateway': None
+                'gateway': None,
+                'io_counters': {}
             }
 
             # Get network interfaces with enhanced data
-            net_if_addrs = psutil.net_if_addrs()
-            net_if_stats = psutil.net_if_stats()
-            net_io_counters = psutil.net_io_counters(pernic=True)
+            try:
+                net_if_addrs = psutil.net_if_addrs()
+                net_if_stats = psutil.net_if_stats()
+                net_io_counters = psutil.net_io_counters(pernic=True)
+            except Exception as e:
+                self.logger.error(f"Failed to get network interface data: {e}")
+                net_if_addrs = {}
+                net_if_stats = {}
+                net_io_counters = {}
 
             for interface_name, interface_addresses in net_if_addrs.items():
-                interface_stats = net_if_stats.get(interface_name, {})
-                interface_io = net_io_counters.get(interface_name, {})
+                try:
+                    interface_stats = net_if_stats.get(interface_name)
+                    interface_io = net_io_counters.get(interface_name)
 
-                interface_data = {
-                    'name': interface_name,
-                    'type': 'Unknown',
-                    'addresses': [],
-                    'ip': None,
-                    'mac': None,
-                    'status': 'Up' if (hasattr(interface_stats, 'isup') and interface_stats.isup) else 'Down',
-                    'speed': interface_stats.speed if hasattr(interface_stats, 'speed') else 0,
-                    'mtu': interface_stats.mtu if hasattr(interface_stats, 'mtu') else 0,
-                    'bytes_sent': interface_io.bytes_sent if hasattr(interface_io, 'bytes_sent') else 0,
-                    'bytes_recv': interface_io.bytes_recv if hasattr(interface_io, 'bytes_recv') else 0,
-                    'packets_sent': interface_io.packets_sent if hasattr(interface_io, 'packets_sent') else 0,
-                    'packets_recv': interface_io.packets_recv if hasattr(interface_io, 'packets_recv') else 0
-                }
+                    interface_data = {
+                        'name': interface_name,
+                        'type': 'Unknown',
+                        'addresses': [],
+                        'ip': None,
+                        'mac': None,
+                        'status': 'Down',
+                        'speed': 0,
+                        'mtu': 0,
+                        'bytes_sent': 0,
+                        'bytes_recv': 0,
+                        'packets_sent': 0,
+                        'packets_recv': 0
+                    }
+
+                    # Set interface stats safely
+                    if interface_stats:
+                        interface_data['status'] = 'Up' if interface_stats.isup else 'Down'
+                        interface_data['speed'] = getattr(interface_stats, 'speed', 0)
+                        interface_data['mtu'] = getattr(interface_stats, 'mtu', 0)
+
+                    # Set interface I/O stats safely
+                    if interface_io:
+                        interface_data['bytes_sent'] = getattr(interface_io, 'bytes_sent', 0)
+                        interface_data['bytes_recv'] = getattr(interface_io, 'bytes_recv', 0)
+                        interface_data['packets_sent'] = getattr(interface_io, 'packets_sent', 0)
+                        interface_data['packets_recv'] = getattr(interface_io, 'packets_recv', 0)
 
                 # Determine interface type based on name
-                name_lower = interface_name.lower()
-                if 'wi-fi' in name_lower or 'wireless' in name_lower or 'wlan' in name_lower:
-                    interface_data['type'] = 'Wi-Fi'
-                elif 'ethernet' in name_lower or 'eth' in name_lower or 'en' in name_lower:
-                    interface_data['type'] = 'Ethernet'
-                elif 'loopback' in name_lower or 'lo' in name_lower:
-                    interface_data['type'] = 'Loopback'
-                elif 'vpn' in name_lower or 'tap' in name_lower or 'tun' in name_lower:
-                    interface_data['type'] = 'VPN'
+                    name_lower = interface_name.lower()
+                    if 'wi-fi' in name_lower or 'wireless' in name_lower or 'wlan' in name_lower:
+                        interface_data['type'] = 'Wi-Fi'
+                    elif 'ethernet' in name_lower or 'eth' in name_lower or 'en' in name_lower:
+                        interface_data['type'] = 'Ethernet'
+                    elif 'loopback' in name_lower or 'lo' in name_lower:
+                        interface_data['type'] = 'Loopback'
+                    elif 'vpn' in name_lower or 'tap' in name_lower or 'tun' in name_lower:
+                        interface_data['type'] = 'VPN'
 
-                for addr in interface_addresses:
-                    addr_info = {
-                        'family': str(addr.family),
-                        'address': addr.address,
-                        'netmask': getattr(addr, 'netmask', None),
-                        'broadcast': getattr(addr, 'broadcast', None)
-                    }
-                    interface_data['addresses'].append(addr_info)
+                    # Process addresses safely
+                    for addr in interface_addresses:
+                        try:
+                            addr_info = {
+                                'family': str(getattr(addr, 'family', 'unknown')),
+                                'address': getattr(addr, 'address', ''),
+                                'netmask': getattr(addr, 'netmask', None),
+                                'broadcast': getattr(addr, 'broadcast', None)
+                            }
+                            interface_data['addresses'].append(addr_info)
 
-                    # Extract primary IP and MAC
-                    if addr.family == 2:  # IPv4
-                        if not interface_data['ip'] and addr.address != '127.0.0.1':
-                            interface_data['ip'] = addr.address
-                            network_info['all_ips'].append(addr.address)
-                    elif hasattr(addr, 'address') and ':' not in addr.address and len(addr.address) == 17:
-                        interface_data['mac'] = addr.address
+                            # Extract primary IP and MAC
+                            if hasattr(addr, 'family') and addr.family == 2:  # IPv4
+                                if not interface_data['ip'] and addr.address != '127.0.0.1':
+                                    interface_data['ip'] = addr.address
+                                    if addr.address not in network_info['all_ips']:
+                                        network_info['all_ips'].append(addr.address)
+                            elif (hasattr(addr, 'address') and addr.address and 
+                                  ':' not in addr.address and len(addr.address) == 17):
+                                interface_data['mac'] = addr.address
+                        except Exception as e:
+                            self.logger.debug(f"Error processing address for {interface_name}: {e}")
+                            continue
 
                 network_info['interfaces'].append(interface_data)
 
@@ -437,8 +465,21 @@ class SystemCollector:
                     'dropin': net_io.dropin,
                     'dropout': net_io.dropout
                 }
+                
+                # Also store raw I/O counters for metrics extraction
+                network_info['io_counters'] = {
+                    'bytes_sent': net_io.bytes_sent,
+                    'bytes_recv': net_io.bytes_recv,
+                    'packets_sent': net_io.packets_sent,
+                    'packets_recv': net_io.packets_recv,
+                    'errin': net_io.errin,
+                    'errout': net_io.errout,
+                    'dropin': net_io.dropin,
+                    'dropout': net_io.dropout
+                }
             except Exception as e:
                 self.logger.debug(f"Network stats error: {e}")
+                network_info['io_counters'] = {}
 
             # Try to get domain information
             try:
@@ -449,10 +490,30 @@ class SystemCollector:
             except:
                 pass
 
+            # Log collected network info for debugging
+            self.logger.info(f"Collected {len(network_info['interfaces'])} network interfaces")
+            self.logger.info(f"Public IP: {network_info.get('public_ip', 'Not collected')}")
+            self.logger.info(f"All IPs: {network_info.get('all_ips', [])}")
+            
             return network_info
+            
         except Exception as e:
             self.logger.error(f"Error getting network info: {e}")
-            return {}
+            # Return basic structure even on error
+            return {
+                'interfaces': [],
+                'network_adapters': {},
+                'public_ip': "Error collecting",
+                'dns_servers': [],
+                'network_stats': {},
+                'wifi_info': {},
+                'all_ips': [],
+                'hostname': platform.node(),
+                'domain': None,
+                'gateway': None,
+                'io_counters': {},
+                'error': str(e)
+            }
 
     def _format_bytes(self, bytes_value):
         """Format bytes to human readable format"""

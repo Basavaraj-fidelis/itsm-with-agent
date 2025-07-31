@@ -378,17 +378,54 @@ export function registerAgentRoutes(
         console.log("⚠️  WARNING: Empty network data received from agent!");
       }
       
-      // Store system info if provided
-      if (systemInfo) {
-        await storage.createDeviceReport({
-          device_id: device.id,
-          cpu_usage: systemInfo.cpu_usage?.toString() || null,
-          memory_usage: systemInfo.memory_usage?.toString() || null,
-          disk_usage: systemInfo.disk_usage?.toString() || null,
-          network_io: null,
-          raw_data: JSON.stringify(req.body),
-        });
+      // Extract metrics from the collected data
+      let cpuUsage = null;
+      let memoryUsage = null;
+      let diskUsage = null;
+      let networkIO = null;
+
+      // Extract CPU usage from hardware.cpu.usage_percent
+      if (reportData.hardware?.cpu?.usage_percent) {
+        cpuUsage = reportData.hardware.cpu.usage_percent.toString();
       }
+
+      // Extract memory usage from hardware.memory.percentage
+      if (reportData.hardware?.memory?.percentage) {
+        memoryUsage = reportData.hardware.memory.percentage.toString();
+      }
+
+      // Extract disk usage from storage.disks (use primary disk)
+      if (reportData.storage?.disks && reportData.storage.disks.length > 0) {
+        // Find C: drive or first disk
+        const primaryDisk = reportData.storage.disks.find(disk => 
+          disk.device === 'C:\\' || disk.mountpoint === 'C:\\'
+        ) || reportData.storage.disks[0];
+        
+        if (primaryDisk?.percent) {
+          diskUsage = primaryDisk.percent.toString();
+        }
+      }
+
+      // Extract network I/O from network stats
+      if (reportData.network?.io_counters?.bytes_sent) {
+        networkIO = reportData.network.io_counters.bytes_sent.toString();
+      }
+
+      console.log("=== EXTRACTED METRICS ===");
+      console.log("CPU Usage:", cpuUsage);
+      console.log("Memory Usage:", memoryUsage);
+      console.log("Disk Usage:", diskUsage);
+      console.log("Network I/O:", networkIO);
+
+      // Store system info with extracted metrics
+      await storage.createDeviceReport({
+        device_id: device.id,
+        cpu_usage: cpuUsage,
+        memory_usage: memoryUsage,
+        disk_usage: diskUsage,
+        network_io: networkIO,
+        raw_data: JSON.stringify(req.body),
+      });
 
       // Process USB devices
       if (reportData.usb_devices && Array.isArray(reportData.usb_devices)) {
