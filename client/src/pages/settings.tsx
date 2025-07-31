@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 import { ALERT_THRESHOLDS } from "@shared/alert-thresholds";
 import { useLocation } from "wouter";
 import SettingsSidebar from "@/components/layout/settings-sidebar";
+import { cn } from "@/lib/utils";
 import {
   TrendingUp,
   AlertTriangle,
@@ -44,8 +46,8 @@ import {
 } from "lucide-react";
 
 export default function Settings() {
-  const { toast } = useToast();
   const [location] = useLocation();
+  const { toast } = useToast();
   const [darkMode, setDarkMode] = useState(() => {
     return (
       localStorage.getItem("darkMode") === "true" ||
@@ -923,7 +925,7 @@ export default function Settings() {
                 <Info className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
                 <div>
                   <h4 className="font-medium text-yellow-900 dark:text-yellow-100">
-                    InstallationNotes
+                    Installation Notes
                   </h4>
                   <ul className="text-sm text-yellow-700 dark:text-yellow-300 mt-1 space-y-1">
                     <li>
@@ -997,7 +999,8 @@ export default function Settings() {
           <div className="flex justify-end pt-4 border-t border-neutral-200 dark:border-neutral-700">
             <Button
               onClick={saveSettings}
-              className="flex items-center space-x-2"variant={hasChanges ? "default" : "outline"}
+              className="flex items-center space-x-2"
+              variant={hasChanges ? "default" : "outline"}
             >
               <Save className="w-4 h-4" />              <span>{hasChanges ? "Save Changes" : "Settings Saved"}</span>
             </Button>
