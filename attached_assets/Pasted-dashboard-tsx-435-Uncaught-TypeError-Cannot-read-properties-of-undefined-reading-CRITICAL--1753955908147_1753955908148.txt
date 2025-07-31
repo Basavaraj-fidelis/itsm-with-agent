@@ -1,0 +1,23 @@
+dashboard.tsx:435 Uncaught TypeError: Cannot read properties of undefined (reading 'CRITICAL')
+    at Dashboard (dashboard.tsx:435:73)
+dashboard.tsx:435 Uncaught TypeError: Cannot read properties of undefined (reading 'CRITICAL')
+    at Dashboard (dashboard.tsx:435:73)
+chunk-RPCDYKBN.js?v=883baec0:14032 The above error occurred in the <Dashboard> component:
+
+    at Dashboard (https://d36ad361-2572-498b-bf79-dce03697176e-00-11pcv0k6l444j.sisko.replit.dev/src/pages/dashboard.tsx:61:35)
+    at main
+    at div
+    at div
+    at AuthenticatedLayout (https://d36ad361-2572-498b-bf79-dce03697176e-00-11pcv0k6l444j.sisko.replit.dev/src/App.tsx:57:32)
+    at ProtectedRoute (https://d36ad361-2572-498b-bf79-dce03697176e-00-11pcv0k6l444j.sisko.replit.dev/src/components/auth/protected-route.tsx:76:3)
+    at Route (https://d36ad361-2572-498b-bf79-dce03697176e-00-11pcv0k6l444j.sisko.replit.…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=883baec0:206:16)
+    at Switch (https://d36ad361-2572-498b-bf79-dce03697176e-00-11pcv0k6l444j.sisko.replit.…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=883baec0:262:17)
+    at Router (https://d36ad361-2572-498b-bf79-dce03697176e-00-11pcv0k6l444j.sisko.replit.…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=883baec0:161:17)
+    at AuthProvider (https://d36ad361-2572-498b-bf79-dce03697176e-00-11pcv0k6l444j.sisko.replit.dev/src/components/auth/protected-route.tsx:36:32)
+    at QueryClientProvider (https://d36ad361-2572-498b-bf79-dce03697176e-00-11pcv0k6l444j.sisko.replit.…rkspace/node_modules/.vite/deps/@tanstack_react-query.js?v=883baec0:2933:3)
+    at App (https://d36ad361-2572-498b-bf79-dce03697176e-00-11pcv0k6l444j.sisko.replit.dev/src/App.tsx:89:49)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+chunk-RPCDYKBN.js?v=883baec0:9129 Uncaught TypeError: Cannot read properties of undefined (reading 'CRITICAL')
+    at Dashboard (dashboard.tsx:435:73)
