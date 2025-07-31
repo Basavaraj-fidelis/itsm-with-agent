@@ -984,8 +984,7 @@ class SystemCollector:
                             available_updates = [available_updates]
                         update_info['available_updates'] = available_updates or []
                     except json.JSONDecodeError:
-                        ```text
-pass
+                        pass
 
             except Exception as e:
                 self.logger.warning(f"Failed to get available Windows updates: {e}")
