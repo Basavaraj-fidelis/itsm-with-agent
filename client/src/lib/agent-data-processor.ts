@@ -213,7 +213,7 @@ export class AgentDataProcessor {
       agent.ip_address || rawData.ip_address || "Not Available";
 
     const publicIP = rawData.extracted_public_ip || rawData.network?.public_ip || agent.network?.public_ip || rawData.public_ip || "Unknown";
-    
+
     // Enhanced location data extraction
     let locationData = null;
     if (rawData.extracted_location_data) {
@@ -225,7 +225,7 @@ export class AgentDataProcessor {
         console.warn('Failed to parse extracted_location_data:', error);
       }
     }
-    
+
     // Fallback to network location data
     if (!locationData && rawData.network) {
       locationData = {

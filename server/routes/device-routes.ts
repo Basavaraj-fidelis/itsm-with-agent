@@ -199,8 +199,36 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
       const deviceId = req.params.id;
       console.log("=== INDIVIDUAL DEVICE DATA FOR ID:", deviceId, "===");
       console.log("Device Found:", deviceWithReport.hostname);
-      console.log("Device Record:", JSON.stringify(deviceWithReport, null, 2));
-      console.log("Latest Report Raw Data (Full Detail):", JSON.stringify(deviceWithReport.latest_report?.raw_data, null, 2));
+      
+      // Parse and display network data specifically
+      if (deviceWithReport.latest_report?.raw_data) {
+        let parsedData;
+        try {
+          parsedData = typeof deviceWithReport.latest_report.raw_data === 'string' 
+            ? JSON.parse(deviceWithReport.latest_report.raw_data)
+            : deviceWithReport.latest_report.raw_data;
+          
+          console.log("=== NETWORK DATA ANALYSIS ===");
+          console.log("Network Data Keys:", Object.keys(parsedData.network || {}));
+          console.log("Network Interfaces Count:", parsedData.network?.interfaces?.length || 0);
+          console.log("Public IP:", parsedData.network?.public_ip || "Not found");
+          console.log("Network Adapters:", Object.keys(parsedData.network?.network_adapters || {}));
+          
+          if (parsedData.network?.interfaces) {
+            console.log("First Interface Example:", JSON.stringify(parsedData.network.interfaces[0], null, 2));
+          }
+          
+          console.log("=== FULL NETWORK DATA ===");
+          console.log(JSON.stringify(parsedData.network, null, 2));
+          
+        } catch (e) {
+          console.log("Error parsing raw_data:", e);
+          console.log("Raw data type:", typeof deviceWithReport.latest_report.raw_data);
+        }
+      }
+      
+      console.log("=== FULL DEVICE RECORD ===");
+      console.log(JSON.stringify(deviceWithReport, null, 2));
       console.log("=== END INDIVIDUAL DEVICE DATA ===");
 
 

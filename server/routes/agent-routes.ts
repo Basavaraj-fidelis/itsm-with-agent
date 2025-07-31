@@ -368,6 +368,16 @@ export function registerAgentRoutes(
       
       console.log("=== END COMPLETE SYSTEM REPORT ===\n");
 
+      // Verify network data before storing
+      console.log("=== NETWORK DATA VERIFICATION BEFORE STORAGE ===");
+      console.log("Network interfaces count:", reportData.network?.interfaces?.length || 0);
+      console.log("Network public IP:", reportData.network?.public_ip || "Not provided");
+      console.log("Network adapters count:", Object.keys(reportData.network?.network_adapters || {}).length);
+      
+      if (!reportData.network || Object.keys(reportData.network).length === 0) {
+        console.log("⚠️  WARNING: Empty network data received from agent!");
+      }
+      
       // Store system info if provided
       if (systemInfo) {
         await storage.createDeviceReport({
