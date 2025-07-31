@@ -1,0 +1,63 @@
+ Server accessible at http://0.0.0.0:5000
+WebSocket service initialized
+⚠️  Could not pause SLA for ticket CHA-2025-0001, field may not exist yet
+⚠️  Could not pause SLA for ticket INC-2025-005, field may not exist yet
+✅ SLA Check Complete: No new breaches detected
+11:37:58 AM [vite] Pre-transform error: Transform failed with 4 errors:
+11:37:58 AM [vite] Pre-transform error: Transform failed with 4 errors:
+11:37:58 AM [vite] Pre-transform error: Transform failed with 4 errors:
+11:37:58 AM [vite] Pre-transform error: Transform failed with 4 errors:
+/home/runner/workspace/shared/alert-thresholds.ts:110:9: ERROR: Multiple exports with the same name "ALERT_THRESHOLDS"
+/home/runner/workspace/shared/alert-thresholds.ts:110:27: ERROR: Multiple exports with the same name "getAlertLevel"
+/home/runner/workspace/shared/alert-thresholds.ts:110:42: ERROR: Multiple exports with the same name "getAlertColor"
+/home/runner/workspace/shared/alert-thresholds.ts:110:57: ERROR: Multiple exports with the same name "getAlertLevelSafe" (x4)
+11:37:59 AM [vite] Internal server error: Transform failed with 4 errors:
+/home/runner/workspace/shared/alert-thresholds.ts:110:9: ERROR: Multiple exports with the same name "ALERT_THRESHOLDS"
+/home/runner/workspace/shared/alert-thresholds.ts:110:27: ERROR: Multiple exports with the same name "getAlertLevel"
+/home/runner/workspace/shared/alert-thresholds.ts:110:42: ERROR: Multiple exports with the same name "getAlertColor"
+/home/runner/workspace/shared/alert-thresholds.ts:110:57: ERROR: Multiple exports with the same name "getAlertLevelSafe"
+  Plugin: vite:esbuild
+  File: /home/runner/workspace/shared/alert-thresholds.ts:110:9
+  
+  Multiple exports with the same name "ALERT_THRESHOLDS"
+  108|  
+  109|  // Ensure all exports are properly available
+  110|  export { ALERT_THRESHOLDS, getAlertLevel, getAlertColor, getAlertLevelSafe };
+     |           ^
+  111|  
+  112|  // Default export for compatibility
+  
+  Multiple exports with the same name "getAlertLevel"
+  108|  
+  109|  // Ensure all exports are properly available
+  110|  export { ALERT_THRESHOLDS, getAlertLevel, getAlertColor, getAlertLevelSafe };
+     |                             ^
+  111|  
+  112|  // Default export for compatibility
+  
+  Multiple exports with the same name "getAlertColor"
+  108|  
+  109|  // Ensure all exports are properly available
+  110|  export { ALERT_THRESHOLDS, getAlertLevel, getAlertColor, getAlertLevelSafe };
+     |                                            ^
+  111|  
+  112|  // Default export for compatibility
+  
+  Multiple exports with the same name "getAlertLevelSafe"
+  108|  
+  109|  // Ensure all exports are properly available
+  110|  export { ALERT_THRESHOLDS, getAlertLevel, getAlertColor, getAlertLevelSafe };
+     |                                                           ^
+  111|  
+  112|  // Default export for compatibility
+  
+      at failureErrorWithLog (/home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:1472:15)
+      at /home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:755:50
+      at responseCallbacks.<computed> (/home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:622:9)
+      at handleIncomingPacket (/home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:677:12)
+      at Socket.readFromStdout (/home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:600:7)
+      at Socket.emit (node:events:524:28)
+      at addChunk (node:internal/streams/readable:561:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+      at Readable.push (node:internal/streams/readable:392:5)
+      at Pipe.onStreamRead (node:internal/stream_base_commons:191:23)
