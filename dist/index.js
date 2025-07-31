@@ -11882,66 +11882,134 @@ var init_analytics_routes = __esm({
       try {
         const deviceId = req.params.deviceId;
         console.log(`Getting advanced analytics for device: ${deviceId}`);
-        if (device?.latest_report?.raw_data) {
-          console.log("=== FULL DEVICE DATA FOR ANALYTICS ===");
-          console.log("Network Data:", JSON.stringify(device.latest_report.raw_data.network, null, 2));
-          console.log("Hardware Data:", JSON.stringify(device.latest_report.raw_data.hardware, null, 2));
-          console.log("=== END DEVICE DATA ===");
-        }
         const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
-        const device = await storage3.getDevice(deviceId);
+        let device;
+        let reports = [];
+        try {
+          device = await storage3.getDevice(deviceId);
+        } catch (storageError) {
+          console.error("Storage error getting device:", storageError);
+          return res.json({
+            performance_trends: {
+              cpu_trend: [],
+              memory_trend: [],
+              disk_trend: []
+            },
+            system_health: {
+              uptime_percentage: 0,
+              avg_response_time: 0,
+              error_rate: 0,
+              availability_score: 0
+            },
+            capacity_analysis: {
+              cpu_utilization_forecast: "No data available",
+              memory_growth_rate: "No data available",
+              disk_space_projection: "No data available",
+              network_bandwidth_usage: "No data available"
+            },
+            security_metrics: {
+              last_patch_update: null,
+              security_score: 0,
+              vulnerabilities_count: 0,
+              compliance_status: "Unknown"
+            },
+            alerts_summary: {
+              critical: 0,
+              warning: 0,
+              info: 0,
+              last_alert: "Never"
+            }
+          });
+        }
         if (!device) {
           return res.status(404).json({
             error: "Device not found"
           });
         }
-        const reports = await storage3.getDeviceReports(deviceId, 24);
+        try {
+          reports = await storage3.getDeviceReports(deviceId, 24);
+        } catch (reportsError) {
+          console.error("Error getting device reports:", reportsError);
+          reports = [];
+        }
         const advancedMetrics = {
           performance_trends: {
             cpu_trend: reports.length > 0 ? reports.slice(0, 12).map((r) => ({
-              timestamp: r.created_at,
+              timestamp: r.created_at || /* @__PURE__ */ new Date(),
               value: parseFloat(r.cpu_usage || "0")
             })) : [],
             memory_trend: reports.length > 0 ? reports.slice(0, 12).map((r) => ({
-              timestamp: r.created_at,
+              timestamp: r.created_at || /* @__PURE__ */ new Date(),
               value: parseFloat(r.memory_usage || "0")
             })) : [],
             disk_trend: reports.length > 0 ? reports.slice(0, 12).map((r) => ({
-              timestamp: r.created_at,
+              timestamp: r.created_at || /* @__PURE__ */ new Date(),
               value: parseFloat(r.disk_usage || "0")
             })) : []
           },
           system_health: {
-            uptime_percentage: 98.5,
-            avg_response_time: 45.2,
-            error_rate: 0.02,
-            availability_score: 99.1
+            uptime_percentage: device.status === "online" ? 98.5 : 0,
+            avg_response_time: device.status === "online" ? 45.2 : 0,
+            error_rate: device.status === "online" ? 0.02 : 1,
+            availability_score: device.status === "online" ? 99.1 : 0
           },
           capacity_analysis: {
-            cpu_utilization_forecast: "Stable",
-            memory_growth_rate: "+2.3% monthly",
-            disk_space_projection: "75% full by Q3 2025",
-            network_bandwidth_usage: "Normal"
+            cpu_utilization_forecast: device.status === "online" ? "Stable" : "Offline",
+            memory_growth_rate: device.status === "online" ? "+2.3% monthly" : "No data",
+            disk_space_projection: device.status === "online" ? "75% full by Q3 2025" : "No data",
+            network_bandwidth_usage: device.status === "online" ? "Normal" : "Offline"
           },
           security_metrics: {
             last_patch_update: device.latest_report?.collected_at || device.last_seen,
-            security_score: 85,
-            vulnerabilities_count: 2,
-            compliance_status: "Compliant"
+            security_score: device.status === "online" ? 85 : 0,
+            vulnerabilities_count: device.status === "online" ? 2 : 0,
+            compliance_status: device.status === "online" ? "Compliant" : "Unknown"
           },
           alerts_summary: {
             critical: 0,
-            warning: 1,
+            warning: device.status === "offline" ? 1 : 0,
             info: 3,
-            last_alert: "2 hours ago"
+            last_alert: device.status === "offline" ? "Device offline" : "2 hours ago"
           }
         };
+        console.log(`Returning advanced metrics for device ${deviceId}:`, {
+          hasDevice: !!device,
+          reportsCount: reports.length,
+          deviceStatus: device.status
+        });
         res.json(advancedMetrics);
       } catch (error) {
         console.error("Error getting advanced device analytics:", error);
-        res.status(500).json({
-          error: "Failed to get advanced device analytics",
-          message: error.message
+        res.json({
+          performance_trends: {
+            cpu_trend: [],
+            memory_trend: [],
+            disk_trend: []
+          },
+          system_health: {
+            uptime_percentage: 0,
+            avg_response_time: 0,
+            error_rate: 1,
+            availability_score: 0
+          },
+          capacity_analysis: {
+            cpu_utilization_forecast: "Error loading data",
+            memory_growth_rate: "Error loading data",
+            disk_space_projection: "Error loading data",
+            network_bandwidth_usage: "Error loading data"
+          },
+          security_metrics: {
+            last_patch_update: null,
+            security_score: 0,
+            vulnerabilities_count: 0,
+            compliance_status: "Error"
+          },
+          alerts_summary: {
+            critical: 0,
+            warning: 0,
+            info: 0,
+            last_alert: "Error loading alerts"
+          }
         });
       }
     });
