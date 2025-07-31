@@ -8,7 +8,35 @@ import { useDashboardSummary, useAlerts } from "@/hooks/use-dashboard";
 import { useAgents } from "@/hooks/use-agents";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { ALERT_THRESHOLDS, getAlertLevel, getAlertColor } from "@shared/alert-thresholds";
+import { ALERT_THRESHOLDS, getAlertLevel, getAlertColor } from '@shared/alert-thresholds';
+
+// Fallback alert thresholds in case import fails
+const FALLBACK_ALERT_THRESHOLDS = {
+  CRITICAL: {
+    cpu_usage: 90,
+    memory_usage: 95,
+    disk_usage: 98,
+    response_time: 5000,
+    error_rate: 0.1,
+  },
+  WARNING: {
+    cpu_usage: 80,
+    memory_usage: 85,
+    disk_usage: 90,
+    response_time: 3000,
+    error_rate: 0.05,
+  },
+  INFO: {
+    cpu_usage: 70,
+    memory_usage: 75,
+    disk_usage: 80,
+    response_time: 2000,
+    error_rate: 0.02,
+  },
+};
+
+// Safe access to alert thresholds
+const safeAlertThresholds = ALERT_THRESHOLDS || FALLBACK_ALERT_THRESHOLDS;
 import { 
   Plus, 
   Users, 
@@ -437,7 +465,7 @@ export default function Dashboard() {
                   <div className="text-xs text-gray-500 dark:text-gray-400">
                     {summary?.online_devices || 0} of {summary?.total_devices || 0} online
                     <span className="block mt-1 text-blue-600 dark:text-blue-400">
-                      Thresholds: CPU/Memory/Disk {ALERT_THRESHOLDS.CPU.CRITICAL}%+ Critical
+                      Thresholds: CPU/Memory/Disk {safeAlertThresholds.CRITICAL.cpu_usage}%+ Critical
                     </span>
                   </div>
                 </div>
@@ -606,8 +634,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="p-6">
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 rounded-2xl border border-red-200/50 dark:border-red-700/50 hover:shadow-md transition-all duration-200">
-                  <div className="flex items-center space-x-3">
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 rounded-2xl border border-red-200/50 dark:border-red-700/50 hover:shadow-md transition-all duration-200">                  <div className="flex items-center space-x-3">
                     <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
                     <div>
                       <p className="text-sm font-semibold text-red-800 dark:text-red-200">SLA Breached</p>

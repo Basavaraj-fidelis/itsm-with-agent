@@ -39,6 +39,16 @@ import { api } from "@/lib/api";
 import { formatDistanceToNow, format, subDays, subHours } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { XCircle } from "lucide-react";
+import { ALERT_THRESHOLDS } from '@shared/alert-thresholds';
+
+// Fallback alert thresholds
+const FALLBACK_ALERT_THRESHOLDS = {
+  CRITICAL: { uptime_percentage: 95 },
+  WARNING: { uptime_percentage: 98 },
+  INFO: { uptime_percentage: 99 }
+};
+
+const safeAlertThresholds = ALERT_THRESHOLDS || FALLBACK_ALERT_THRESHOLDS;
 
 interface MetricCardProps {
   title: string;

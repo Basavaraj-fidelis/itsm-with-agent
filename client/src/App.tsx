@@ -30,7 +30,8 @@ import PatchCompliancePage from "@/pages/patch-compliance";
 import PerformanceAnalytics from "./pages/performance-analytics";
 import SLAAnalysis from "./pages/sla-analysis";
 import SLAManagement from "./pages/sla-management";
-
+import { ErrorBoundary } from './components/ui/error-boundary';
+import { DashboardErrorBoundary } from './components/ui/dashboard-error-boundary';
 
 
 // Layout
@@ -102,7 +103,9 @@ export default function App() {
             <Route path="/dashboard">
               <ProtectedRoute>
                 <AuthenticatedLayout>
-                  <Dashboard />
+                  <DashboardErrorBoundary>
+                    <Dashboard />
+                  </DashboardErrorBoundary>
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>
