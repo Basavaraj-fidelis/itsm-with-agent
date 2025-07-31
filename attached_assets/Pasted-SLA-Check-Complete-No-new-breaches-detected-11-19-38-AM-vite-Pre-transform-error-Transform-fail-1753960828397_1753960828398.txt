@@ -1,0 +1,75 @@
+SLA Check Complete: No new breaches detected
+11:19:38 AM [vite] Pre-transform error: Transform failed with 4 errors:
+/home/runner/workspace/shared/alert-thresholds.ts:110:9: ERROR: Multiple exports with the same name "ALERT_THRESHOLDS"
+/home/runner/workspace/shared/alert-thresholds.ts:110:27: ERROR: Multiple exports with the same name "getAlertLevel"
+/home/runner/workspace/shared/alert-thresholds.ts:110:42: ERROR: Multiple exports with the same name "getAlertColor"
+/home/runner/workspace/shared/alert-thresholds.ts:110:57: ERROR: Multiple exports with the same name "getAlertLevelSafe"
+11:19:38 AM [vite] Pre-transform error: Transform failed with 4 errors:
+11:19:38 AM [vite] Pre-transform error: Transform failed with 4 errors:
+11:19:38 AM [vite] warning: Duplicate key "getPerformanceInsights" in object literal
+624|  
+11:19:38 AM [vite] warning: Duplicate key "getPerformancePredictions" in object literal
+641|    },
+11:19:38 AM [vite] warning: Duplicate key "getPerformanceOverview" in object literal
+650|    },
+11:19:38 AM [vite] warning: Duplicate key "getAdvancedDeviceAnalytics" in object literal
+667|    },
+668|  
+669|    async getAdvancedDeviceAnalytics(deviceId: string) {
+   |          ^
+670|      try {
+671|        return await apiClient.get(`/api/analytics/device/${deviceId}/advanced`);
+
+  Plugin: vite:esbuild
+  File: /home/runner/workspace/client/src/lib/api.ts
+11:19:39 AM [vite] Internal server error: Transform failed with 4 errors:
+/home/runner/workspace/shared/alert-thresholds.ts:110:9: ERROR: Multiple exports with the same name "ALERT_THRESHOLDS"
+/home/runner/workspace/shared/alert-thresholds.ts:110:27: ERROR: Multiple exports with the same name "getAlertLevel"
+/home/runner/workspace/shared/alert-thresholds.ts:110:42: ERROR: Multiple exports with the same name "getAlertColor"
+/home/runner/workspace/shared/alert-thresholds.ts:110:57: ERROR: Multiple exports with the same name "getAlertLevelSafe"
+  Plugin: vite:esbuild
+  File: /home/runner/workspace/shared/alert-thresholds.ts:110:9
+  
+  Multiple exports with the same name "ALERT_THRESHOLDS"
+  108|  
+  109|  // Ensure all exports are available
+  110|  export { ALERT_THRESHOLDS, getAlertLevel, getAlertColor, getAlertLevelSafe };
+     |           ^
+  111|  
+  112|  // Default export for compatibility
+  
+  Multiple exports with the same name "getAlertLevel"
+  108|  
+  109|  // Ensure all exports are available
+  110|  export { ALERT_THRESHOLDS, getAlertLevel, getAlertColor, getAlertLevelSafe };
+     |                             ^
+  111|  
+  112|  // Default export for compatibility
+  
+  Multiple exports with the same name "getAlertColor"
+  108|  
+  109|  // Ensure all exports are available
+  110|  export { ALERT_THRESHOLDS, getAlertLevel, getAlertColor, getAlertLevelSafe };
+     |                                            ^
+  111|  
+  112|  // Default export for compatibility
+  
+  Multiple exports with the same name "getAlertLevelSafe"
+  108|  
+  109|  // Ensure all exports are available
+  110|  export { ALERT_THRESHOLDS, getAlertLevel, getAlertColor, getAlertLevelSafe };
+     |                                                           ^
+  111|  
+  112|  // Default export for compatibility
+  
+      at failureErrorWithLog (/home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:1472:15)
+      at /home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:755:50
+      at responseCallbacks.<computed> (/home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:622:9)
+      at handleIncomingPacket (/home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:677:12)
+      at Socket.readFromStdout (/home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:600:7)
+      at Socket.emit (node:events:524:28)
+      at addChunk (node:internal/streams/readable:561:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+      at Readable.push (node:internal/streams/readable:392:5)
+      at Pipe.onStreamRead (node:internal/stream_base_commons:191:23)
+=== AGENT REPORT RECEIVED ===
