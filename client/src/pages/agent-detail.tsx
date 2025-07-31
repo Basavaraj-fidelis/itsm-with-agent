@@ -425,9 +425,9 @@ export default function AgentDetail() {
     }
   };
 
-  const cpuAlertLevel = getAlertLevel(cpuUsage, ALERT_THRESHOLDS.cpu);
-  const memoryAlertLevel = getAlertLevel(memoryUsage, ALERT_THRESHOLDS.memory);
-  const diskAlertLevel = getAlertLevel(diskUsage, ALERT_THRESHOLDS.disk);
+  const cpuAlertLevel = getAlertLevel(cpuUsage, 'cpu');
+  const memoryAlertLevel = getAlertLevel(memoryUsage, 'memory');
+  const diskAlertLevel = getAlertLevel(diskUsage, 'disk');
 
   return (
     <AgentErrorBoundary

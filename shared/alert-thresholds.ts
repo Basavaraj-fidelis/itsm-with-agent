@@ -1,30 +1,30 @@
 
 export const ALERT_THRESHOLDS = {
-  CPU: {
+  cpu: {
     INFO: 80,
     WARNING: 85,
     HIGH: 88,
     CRITICAL: 92,
   },
-  MEMORY: {
+  memory: {
     INFO: 80,
     WARNING: 85,
     HIGH: 88,
     CRITICAL: 92,
   },
-  DISK: {
+  disk: {
     INFO: 80,
     WARNING: 85,
     HIGH: 88,
     CRITICAL: 92,
   },
-  NETWORK: {
+  network: {
     INFO: 80,
     WARNING: 85,
     HIGH: 88,
     CRITICAL: 92,
   },
-  TEMPERATURE: {
+  temperature: {
     INFO: 80,
     WARNING: 85,
     HIGH: 88,
@@ -36,6 +36,11 @@ export type AlertLevel = 'info' | 'warning' | 'high' | 'critical';
 
 export function getAlertLevel(value: number, type: keyof typeof ALERT_THRESHOLDS): AlertLevel {
   const thresholds = ALERT_THRESHOLDS[type];
+  
+  if (!thresholds) {
+    console.warn(`Unknown alert threshold type: ${type}`);
+    return 'info';
+  }
   
   if (value >= thresholds.CRITICAL) {
     return 'critical';    // 92%+
