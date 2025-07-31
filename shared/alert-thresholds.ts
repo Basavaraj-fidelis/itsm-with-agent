@@ -1,70 +1,34 @@
-
+// Alert threshold configuration
 export const ALERT_THRESHOLDS = {
-  cpu: {
-    INFO: 80,
-    WARNING: 85,
-    HIGH: 88,
-    CRITICAL: 92,
+  CPU: {
+    CRITICAL: 95,
+    HIGH: 85,
+    WARNING: 70,
+    INFO: 50
   },
-  memory: {
-    INFO: 80,
-    WARNING: 85,
-    HIGH: 88,
-    CRITICAL: 92,
+  MEMORY: {
+    CRITICAL: 95,
+    HIGH: 85,
+    WARNING: 70,
+    INFO: 50
   },
-  disk: {
-    INFO: 80,
-    WARNING: 85,
-    HIGH: 88,
-    CRITICAL: 92,
+  DISK: {
+    CRITICAL: 95,
+    HIGH: 85,
+    WARNING: 70,
+    INFO: 50
   },
-  network: {
-    INFO: 80,
-    WARNING: 85,
-    HIGH: 88,
-    CRITICAL: 92,
-  },
-  temperature: {
-    INFO: 80,
-    WARNING: 85,
-    HIGH: 88,
-    CRITICAL: 92,
-  },
+  NETWORK: {
+    CRITICAL: 95,
+    HIGH: 85,
+    WARNING: 70,
+    INFO: 50
+  }
 } as const;
 
-export type AlertLevel = 'info' | 'warning' | 'high' | 'critical';
+export type AlertThreshold = typeof ALERT_THRESHOLDS;
+export type AlertLevel = 'CRITICAL' | 'HIGH' | 'WARNING' | 'INFO';
+export type AlertCategory = keyof typeof ALERT_THRESHOLDS;
 
-export function getAlertLevel(value: number, type: keyof typeof ALERT_THRESHOLDS): AlertLevel {
-  const thresholds = ALERT_THRESHOLDS[type];
-  
-  if (!thresholds) {
-    console.warn(`Unknown alert threshold type: ${type}`);
-    return 'info';
-  }
-  
-  if (value >= thresholds.CRITICAL) {
-    return 'critical';    // 92%+
-  } else if (value >= thresholds.HIGH) {
-    return 'high';        // 88-91%
-  } else if (value >= thresholds.WARNING) {
-    return 'warning';     // 85-87%
-  } else if (value >= thresholds.INFO) {
-    return 'info';        // 80-84%
-  } else {
-    return 'info';        // <80% (default to info)
-  }
-}
-
-export function getAlertColor(level: AlertLevel): string {
-  switch (level) {
-    case 'critical':
-      return 'red';
-    case 'high':
-      return 'orange';
-    case 'warning':
-      return 'yellow';
-    case 'info':
-    default:
-      return 'green';
-  }
-}
+// Default export for compatibility
+export default ALERT_THRESHOLDS;

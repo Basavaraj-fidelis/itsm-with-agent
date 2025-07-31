@@ -251,28 +251,28 @@ export default function Settings() {
                   <div>
                     <span className="font-medium">CPU Usage:</span>
                     <div className="mt-1 space-y-1">
-                      <div>Critical: {ALERT_THRESHOLDS.CPU.CRITICAL}%+</div>
-                      <div>High: {ALERT_THRESHOLDS.CPU.HIGH}%+</div>
-                      <div>Warning: {ALERT_THRESHOLDS.CPU.WARNING}%+</div>
-                      <div>Info: {ALERT_THRESHOLDS.CPU.INFO}%+</div>
+                      <div>Critical: {ALERT_THRESHOLDS?.CPU?.CRITICAL || 95}%+</div>
+                      <div>High: {ALERT_THRESHOLDS?.CPU?.HIGH || 85}%+</div>
+                      <div>Warning: {ALERT_THRESHOLDS?.CPU?.WARNING || 70}%+</div>
+                      <div>Info: {ALERT_THRESHOLDS?.CPU?.INFO || 50}%+</div>
                     </div>
                   </div>
                   <div>
                     <span className="font-medium">Memory Usage:</span>
                     <div className="mt-1 space-y-1">
-                      <div>Critical: {ALERT_THRESHOLDS.MEMORY.CRITICAL}%+</div>
-                      <div>High: {ALERT_THRESHOLDS.MEMORY.HIGH}%+</div>
-                      <div>Warning: {ALERT_THRESHOLDS.MEMORY.WARNING}%+</div>
-                      <div>Info: {ALERT_THRESHOLDS.MEMORY.INFO}%+</div>
+                      <div>Critical: {ALERT_THRESHOLDS?.MEMORY?.CRITICAL || 95}%+</div>
+                      <div>High: {ALERT_THRESHOLDS?.MEMORY?.HIGH || 85}%+</div>
+                      <div>Warning: {ALERT_THRESHOLDS?.MEMORY?.WARNING || 70}%+</div>
+                      <div>Info: {ALERT_THRESHOLDS?.MEMORY?.INFO || 50}%+</div>
                     </div>
                   </div>
                   <div>
                     <span className="font-medium">Disk Usage:</span>
                     <div className="mt-1 space-y-1">
-                      <div>Critical: {ALERT_THRESHOLDS.DISK.CRITICAL}%+</div>
-                      <div>High: {ALERT_THRESHOLDS.DISK.HIGH}%+</div>
-                      <div>Warning: {ALERT_THRESHOLDS.DISK.WARNING}%+</div>
-                      <div>Info: {ALERT_THRESHOLDS.DISK.INFO}%+</div>
+                      <div>Critical: {ALERT_THRESHOLDS?.DISK?.CRITICAL || 95}%+</div>
+                      <div>High: {ALERT_THRESHOLDS?.DISK?.HIGH || 85}%+</div>
+                      <div>Warning: {ALERT_THRESHOLDS?.DISK?.WARNING || 70}%+</div>
+                      <div>Info: {ALERT_THRESHOLDS?.DISK?.INFO || 50}%+</div>
                     </div>
                   </div>
                 </div>
