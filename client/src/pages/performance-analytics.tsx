@@ -96,7 +96,7 @@ function ChartCard({ title, children, actions }: ChartCardProps) {
   );
 }
 
-export default function PerformanceAnalytics() {
+function PerformanceAnalyticsContent() {
   const [selectedDevice, setSelectedDevice] = useState("");
   const [timeRange, setTimeRange] = useState("24h");
   const [refreshInterval, setRefreshInterval] = useState(30000); // 30 seconds
@@ -616,7 +616,7 @@ export default function PerformanceAnalytics() {
                   )}
 
                   {/* Advanced Analytics */}
-                  {advancedAnalytics && (
+                  {advancedAnalytics && advancedAnalytics.system_health && (
                     <div className="mt-6">
                       <h3 className="text-lg font-semibold mb-4">Advanced Analytics</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -628,15 +628,15 @@ export default function PerformanceAnalytics() {
                             <div className="space-y-3">
                               <div className="flex justify-between">
                                 <span>Uptime</span>
-                                <span className="font-medium">{advancedAnalytics.system_health.uptime_percentage.toFixed(1)}%</span>
+                                <span className="font-medium">{(advancedAnalytics.system_health?.uptime_percentage || 0).toFixed(1)}%</span>
                               </div>
                               <div className="flex justify-between">
                                 <span>Avg Response Time</span>
-                                <span className="font-medium">{advancedAnalytics.system_health.avg_response_time.toFixed(1)}ms</span>
+                                <span className="font-medium">{(advancedAnalytics.system_health?.avg_response_time || 0).toFixed(1)}ms</span>
                               </div>
                               <div className="flex justify-between">
                                 <span>Availability Score</span>
-                                <span className="font-medium">{advancedAnalytics.system_health.availability_score.toFixed(1)}%</span>
+                                <span className="font-medium">{(advancedAnalytics.system_health?.availability_score || 0).toFixed(1)}%</span>
                               </div>
                             </div>
                           </CardContent>
@@ -650,16 +650,16 @@ export default function PerformanceAnalytics() {
                             <div className="space-y-3">
                               <div className="flex justify-between">
                                 <span>Security Score</span>
-                                <span className="font-medium">{advancedAnalytics.security_metrics.security_score}/100</span>
+                                <span className="font-medium">{advancedAnalytics.security_metrics?.security_score || 0}/100</span>
                               </div>
                               <div className="flex justify-between">
                                 <span>Vulnerabilities</span>
-                                <span className="font-medium">{advancedAnalytics.security_metrics.vulnerabilities_count}</span>
+                                <span className="font-medium">{advancedAnalytics.security_metrics?.vulnerabilities_count || 0}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span>Compliance</span>
-                                <Badge variant={advancedAnalytics.security_metrics.compliance_status === 'Compliant' ? 'default' : 'destructive'}>
-                                  {advancedAnalytics.security_metrics.compliance_status}
+                                <Badge variant={(advancedAnalytics.security_metrics?.compliance_status || 'Unknown') === 'Compliant' ? 'default' : 'destructive'}>
+                                  {advancedAnalytics.security_metrics?.compliance_status || 'Unknown'}
                                 </Badge>
                               </div>
                             </div>
@@ -868,6 +868,14 @@ export default function PerformanceAnalytics() {
           </Card>
         </div>
       )}
+    </div>
+  );
+}
+
+export default function PerformanceAnalytics() {
+  return (
+    <div>
+      <PerformanceAnalyticsContent />
     </div>
   );
 }

@@ -263,14 +263,14 @@ export default function Dashboard() {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         const result = await response.json();
-        
+
         // Handle different response formats
         const ticketsData = Array.isArray(result?.data) 
           ? result.data 
           : result?.data?.tickets || 
             result?.tickets || 
             (Array.isArray(result) ? result : []);
-            
+
         console.log('Recent tickets fetched:', ticketsData.length, 'tickets');
         return ticketsData.slice(0, 5);
       } catch (error) {
@@ -743,7 +743,7 @@ export default function Dashboard() {
                       const cpuLevel = ticket.cpu_usage ? getAlertLevel(ticket.cpu_usage, 'CPU') : 'info';
                       const memoryLevel = ticket.memory_usage ? getAlertLevel(ticket.memory_usage, 'MEMORY') : 'info';
                       const diskLevel = ticket.disk_usage ? getAlertLevel(ticket.disk_usage, 'DISK') : 'info';
-                      
+
                       return (
                       <div
                         key={ticket.id}
