@@ -217,22 +217,62 @@ export class AgentDataProcessor {
       if (rawData.hardware?.primary_mac) return rawData.hardware.primary_mac;
       if (rawData.system_info?.primary_mac) return rawData.system_info.primary_mac;
 
-      const macAddresses = [];
-      for (const iface of interfaces) {
-        if (iface.addresses && Array.isArray(iface.addresses)) {
-          for (const addr of iface.addresses) {
-            if ((addr.family?.includes("AF_LINK") || addr.family?.includes("AF_PACKET")) && 
-                addr.address && addr.address !== "00:00:00:00:00:00") {
-              macAddresses.push(`${iface.name}: ${addr.address}`);
+      // Find the MAC address of the interface that has the primary IP
+      const primaryIPToFind = primaryIP !== "Not Available" ? primaryIP : null;
+      
+      if (primaryIPToFind) {
+        for (const iface of interfaces) {
+          // Check if this interface has the primary IP
+          const hasTargetIP = iface.addresses?.some(addr => 
+            addr.family === "AF_INET" && addr.address === primaryIPToFind
+          );
+          
+          if (hasTargetIP) {
+            // Return MAC from this interface
+            if (iface.mac && iface.mac !== "00:00:00:00:00:00") {
+              return iface.mac;
+            }
+            // Look for MAC in addresses array
+            for (const addr of iface.addresses || []) {
+              if ((addr.family?.includes("AF_LINK") || addr.family?.includes("AF_PACKET")) && 
+                  addr.address && addr.address !== "00:00:00:00:00:00") {
+                return addr.address;
+              }
             }
           }
         }
-        if (iface.mac && iface.mac !== "00:00:00:00:00:00") {
-          macAddresses.push(`${iface.name}: ${iface.mac}`);
+      }
+
+      // Fallback: Find the first active, non-virtual interface MAC
+      for (const iface of interfaces) {
+        const name = iface.name?.toLowerCase() || "";
+        const isVirtual = name.includes("virtual") || name.includes("veth") || 
+          name.includes("docker") || name.includes("vmware") || name.includes("loopback") ||
+          name.includes("lo");
+
+        if (!isVirtual && iface.stats?.is_up !== false) {
+          // Check if interface has a real IP (not loopback or link-local)
+          const hasRealIP = iface.addresses?.some(addr => 
+            addr.family === "AF_INET" && addr.address && 
+            !addr.address.startsWith("127.") && !addr.address.startsWith("169.254.") && 
+            addr.address !== "0.0.0.0"
+          );
+
+          if (hasRealIP) {
+            if (iface.mac && iface.mac !== "00:00:00:00:00:00") {
+              return iface.mac;
+            }
+            for (const addr of iface.addresses || []) {
+              if ((addr.family?.includes("AF_LINK") || addr.family?.includes("AF_PACKET")) && 
+                  addr.address && addr.address !== "00:00:00:00:00:00") {
+                return addr.address;
+              }
+            }
+          }
         }
       }
 
-      return macAddresses.length > 0 ? macAddresses.join(", ") : "Not available";
+      return "Not available";
     };
 
     const ethernetIP = getEthernetIP();

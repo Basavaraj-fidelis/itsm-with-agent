@@ -1782,6 +1782,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                             className="p-3 border rounded-lg bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border-orange-200 dark:border-orange-800"
                                           >
                                             <div className="flex justify-between items-start mb-2">
+                                              ```text
                                               <div className="text-sm font-medium text-orange-800 dark:text-orange-200">
                                                 {update.Title || update.title}
                                               </div>
@@ -2143,7 +2144,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       if (Object.keys(security).length === 0) {
                         return (
                           <div className="text-center py-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                            <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
+                          <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
                             <p className="text-sm text-yellow-800 dark:text-yellow-200">
                               No security information available
                             </p>
