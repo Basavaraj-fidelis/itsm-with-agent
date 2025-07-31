@@ -252,6 +252,9 @@ export default function PerformanceAnalytics() {
 
   const healthScore = getHealthScore();
 
+  // Filter devices for selection
+  const filteredDevices = devices?.filter(device => device.status === 'online');
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -489,17 +492,19 @@ export default function PerformanceAnalytics() {
                     } />
                   </SelectTrigger>
                   <SelectContent>
-                    {devices?.map((device: any) => (
+                    {filteredDevices?.map((device: any) => (
                       <SelectItem key={device.id} value={device.id}>
                         <div className="flex items-center gap-2">
                           <div className={`w-2 h-2 rounded-full ${
                             device.status === 'online' ? 'bg-green-500' : 'bg-red-500'
                           }`} />
                           {device.hostname} ({device.ip_address})
+                          <Badge variant="outline" className="ml-auto">
+                            CPU: {device.latest_report?.cpu_usage || 0}%
+                          </Badge>
                         </div>
                       </SelectItem>
-                    ))}
-                  </SelectContent>
+                    ))}</SelectContent>
                 </Select>
               </div>
 
