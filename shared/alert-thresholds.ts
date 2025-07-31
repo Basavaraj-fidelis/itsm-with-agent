@@ -34,6 +34,12 @@ export type AlertCategory = keyof typeof ALERT_THRESHOLDS;
 export function getAlertLevel(value: number, category: AlertCategory): AlertLevel {
   const thresholds = ALERT_THRESHOLDS[category];
   
+  // Handle invalid category gracefully
+  if (!thresholds) {
+    console.warn(`Invalid alert category: ${category}. Using default INFO level.`);
+    return 'INFO';
+  }
+  
   if (value >= thresholds.CRITICAL) {
     return 'CRITICAL';
   } else if (value >= thresholds.HIGH) {
@@ -57,6 +63,20 @@ export function getAlertColor(level: AlertLevel): string {
     default:
       return 'green';
   }
+}
+
+// Safe wrapper function that validates category before calling getAlertLevel
+export function getAlertLevelSafe(value: number, category: string): AlertLevel {
+  // Validate category and convert to uppercase
+  const validCategories = ['CPU', 'MEMORY', 'DISK', 'NETWORK'];
+  const upperCategory = category?.toString().toUpperCase();
+  
+  if (!validCategories.includes(upperCategory)) {
+    console.warn(`Invalid alert category: "${category}". Valid categories are: ${validCategories.join(', ')}`);
+    return 'INFO';
+  }
+  
+  return getAlertLevel(value, upperCategory as AlertCategory);
 }
 
 // Default export for compatibility
