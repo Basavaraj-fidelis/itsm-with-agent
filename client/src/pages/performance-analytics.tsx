@@ -240,20 +240,21 @@ function PerformanceAnalyticsContent() {
   }
 
   // Calculate comprehensive metrics with better error handling
+  // ALWAYS call useMemo hooks to maintain hook order consistency
   const onlineDevices = useMemo(() => {
-    if (!devices) return [];
-    return devices.filter((d: any) => d.status === "online");
+    const deviceList = devices || [];
+    return deviceList.filter((d: any) => d.status === "online");
   }, [devices]);
   
   const offlineDevices = useMemo(() => {
-    if (!devices) return [];
-    return devices.filter((d: any) => d.status === "offline");
+    const deviceList = devices || [];
+    return deviceList.filter((d: any) => d.status === "offline");
   }, [devices]);
 
   // Filter devices with actual performance data
   const devicesWithData = useMemo(() => {
-    if (!onlineDevices || onlineDevices.length === 0) return [];
-    return onlineDevices.filter(
+    const onlineList = onlineDevices || [];
+    return onlineList.filter(
       (d: any) =>
         d.latest_report &&
         (d.latest_report.cpu_usage !== null ||
@@ -263,8 +264,8 @@ function PerformanceAnalyticsContent() {
   }, [onlineDevices]);
 
   const criticalDevices = useMemo(() => {
-    if (!devicesWithData || devicesWithData.length === 0) return [];
-    return devicesWithData.filter(
+    const dataDevices = devicesWithData || [];
+    return dataDevices.filter(
       (d: any) =>
         parseFloat(d.latest_report?.cpu_usage || "0") > 90 ||
         parseFloat(d.latest_report?.memory_usage || "0") > 90 ||
@@ -273,9 +274,11 @@ function PerformanceAnalyticsContent() {
   }, [devicesWithData]);
 
   // Pre-calculate sorted devices for each metric at component level
+  // ALWAYS call useMemo hooks to maintain hook order consistency
   const sortedCpuDevices = useMemo(() => {
-    if (!onlineDevices || onlineDevices.length === 0) return [];
-    return [...onlineDevices]
+    const devices = onlineDevices || [];
+    if (devices.length === 0) return [];
+    return [...devices]
       .filter(device => device.latest_report)
       .sort((a, b) => {
         return (
@@ -283,12 +286,13 @@ function PerformanceAnalyticsContent() {
           parseFloat(a.latest_report?.cpu_usage || "0")
         );
       })
-      .slice(0, onlineDevices.length > 50 ? 10 : 5);
+      .slice(0, devices.length > 50 ? 10 : 5);
   }, [onlineDevices]);
 
   const sortedMemoryDevices = useMemo(() => {
-    if (!onlineDevices || onlineDevices.length === 0) return [];
-    return [...onlineDevices]
+    const devices = onlineDevices || [];
+    if (devices.length === 0) return [];
+    return [...devices]
       .filter(device => device.latest_report)
       .sort((a, b) => {
         return (
@@ -296,12 +300,13 @@ function PerformanceAnalyticsContent() {
           parseFloat(a.latest_report?.memory_usage || "0")
         );
       })
-      .slice(0, onlineDevices.length > 50 ? 10 : 5);
+      .slice(0, devices.length > 50 ? 10 : 5);
   }, [onlineDevices]);
 
   const sortedDiskDevices = useMemo(() => {
-    if (!onlineDevices || onlineDevices.length === 0) return [];
-    return [...onlineDevices]
+    const devices = onlineDevices || [];
+    if (devices.length === 0) return [];
+    return [...devices]
       .filter(device => device.latest_report)
       .sort((a, b) => {
         return (
@@ -309,7 +314,7 @@ function PerformanceAnalyticsContent() {
           parseFloat(a.latest_report?.disk_usage || "0")
         );
       })
-      .slice(0, onlineDevices.length > 50 ? 10 : 5);
+      .slice(0, devices.length > 50 ? 10 : 5);
   }, [onlineDevices]);
 
   const avgMetrics = {
