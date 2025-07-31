@@ -14811,7 +14811,6 @@ var init_ai_service = __esm({
       }
     };
     aiService = new AIService();
-    module.exports = { aiService };
   }
 });
 
@@ -14929,7 +14928,7 @@ var init_ai_routes = __esm({
         try {
           const insightsPromise = (async () => {
             if (refresh === "true") {
-              const generatedInsights = await (void 0).generateDeviceInsights(deviceId);
+              const generatedInsights = await aiService.generateDeviceInsights(deviceId);
               if (Array.isArray(generatedInsights)) {
                 setImmediate(async () => {
                   for (const insight of generatedInsights) {
@@ -14964,7 +14963,7 @@ var init_ai_routes = __esm({
               } catch (cacheError) {
                 console.warn("Failed to get cached insights:", cacheError.message);
               }
-              return await (void 0).generateDeviceInsights(deviceId);
+              return await aiService.generateDeviceInsights(deviceId);
             }
           })();
           insights = await Promise.race([insightsPromise, timeout]);
@@ -14984,7 +14983,7 @@ var init_ai_routes = __esm({
     router11.get("/recommendations/:deviceId", async (req, res) => {
       try {
         const { deviceId } = req.params;
-        const recommendations = await (void 0).getDeviceRecommendations(deviceId);
+        const recommendations = await aiService.getDeviceRecommendations(deviceId);
         res.json({ success: true, recommendations });
       } catch (error) {
         console.error("Error getting AI recommendations:", error);
@@ -14997,7 +14996,7 @@ var init_ai_routes = __esm({
         const results = [];
         for (const deviceId of deviceIds) {
           try {
-            const insights = await (void 0).generateDeviceInsights(deviceId);
+            const insights = await aiService.generateDeviceInsights(deviceId);
             results.push({ deviceId, success: true, insights });
           } catch (error) {
             results.push({ deviceId, success: false, error: error.message });
@@ -16013,8 +16012,8 @@ function registerDeviceRoutes(app2, authenticateToken4) {
     async (req, res) => {
       try {
         const { id } = req.params;
-        const { aiService: aiService3 } = await import("./ai-service");
-        const insights = await aiService3.generateDeviceInsights(id);
+        const { aiService: aiService2 } = await import("./ai-service");
+        const insights = await aiService2.generateDeviceInsights(id);
         console.log(`AI insights for device ${id}:`, insights);
         res.json(insights);
       } catch (error) {
@@ -16032,8 +16031,8 @@ function registerDeviceRoutes(app2, authenticateToken4) {
     async (req, res) => {
       try {
         const { id } = req.params;
-        const { aiService: aiService3 } = await import("./ai-service");
-        const recommendations = await aiService3.getDeviceRecommendations(id);
+        const { aiService: aiService2 } = await import("./ai-service");
+        const recommendations = await aiService2.getDeviceRecommendations(id);
         console.log(`AI recommendations for device ${id}:`, recommendations);
         res.json({ recommendations });
       } catch (error) {
