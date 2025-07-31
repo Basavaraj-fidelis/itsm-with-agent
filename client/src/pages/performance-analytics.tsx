@@ -239,20 +239,20 @@ function PerformanceAnalyticsContent() {
     );
   }
 
-  // Calculate comprehensive metrics
-  const onlineDevices =
-    devices?.filter((d: any) => d.status === "online") || [];
-  const offlineDevices =
-    devices?.filter((d: any) => d.status === "offline") || [];
+  // Calculate comprehensive metrics with better error handling
+  const onlineDevices = useMemo(() => 
+    devices?.filter((d: any) => d.status === "online") || [], [devices]);
+  const offlineDevices = useMemo(() => 
+    devices?.filter((d: any) => d.status === "offline") || [], [devices]);
 
   // Filter devices with actual performance data
-  const devicesWithData = onlineDevices.filter(
+  const devicesWithData = useMemo(() => onlineDevices.filter(
     (d: any) =>
       d.latest_report &&
       (d.latest_report.cpu_usage !== null ||
         d.latest_report.memory_usage !== null ||
         d.latest_report.disk_usage !== null),
-  );
+  ), [onlineDevices]);
 
   const criticalDevices =
     devicesWithData.filter(
@@ -371,6 +371,11 @@ function PerformanceAnalyticsContent() {
           </h1>
           <p className="text-muted-foreground">
             Comprehensive system performance monitoring and capacity planning
+            {devices && devices.length > 0 && (
+              <span className="ml-2 text-sm">
+                • Monitoring {devices.length} devices ({onlineDevices.length} online)
+              </span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -611,7 +616,8 @@ function PerformanceAnalyticsContent() {
           {/* Top Consumers */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {["CPU", "Memory", "Disk"].map((metric) => {
-              const sortedDevices = [...onlineDevices]
+              const sortedDevices = useMemo(() => [...onlineDevices]
+                .filter(device => device.latest_report) // Only devices with data
                 .sort((a, b) => {
                   const key =
                     metric.toLowerCase() === "disk"
@@ -622,7 +628,7 @@ function PerformanceAnalyticsContent() {
                     parseFloat(a.latest_report?.[key] || "0")
                   );
                 })
-                .slice(0, 5);
+                .slice(0, onlineDevices.length > 50 ? 10 : 5), [onlineDevices, metric]); // Show more for large deployments
 
               return (
                 <ChartCard key={metric} title={`Top ${metric} Consumers`}>
