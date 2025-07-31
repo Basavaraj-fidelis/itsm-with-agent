@@ -1,0 +1,185 @@
+Warning: React has detected a change in the order of Hooks called by PerformanceAnalyticsContent. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://reactjs.org/link/rules-of-hooks
+
+   Previous render            Next render
+   ------------------------------------------------------
+1. useState                   useState
+2. useState                   useState
+3. useState                   useState
+4. useState                   useState
+5. useContext                 useContext
+6. useContext                 useContext
+7. useContext                 useContext
+8. useEffect                  useEffect
+9. useState                   useState
+10. useCallback               useCallback
+11. useSyncExternalStore      useSyncExternalStore
+12. useEffect                 useEffect
+13. useContext                useContext
+14. useContext                useContext
+15. useContext                useContext
+16. useEffect                 useEffect
+17. useState                  useState
+18. useCallback               useCallback
+19. useSyncExternalStore      useSyncExternalStore
+20. useEffect                 useEffect
+21. useContext                useContext
+22. useContext                useContext
+23. useContext                useContext
+24. useEffect                 useEffect
+25. useState                  useState
+26. useCallback               useCallback
+27. useSyncExternalStore      useSyncExternalStore
+28. useEffect                 useEffect
+29. useContext                useContext
+30. useContext                useContext
+31. useContext                useContext
+32. useEffect                 useEffect
+33. useState                  useState
+34. useCallback               useCallback
+35. useSyncExternalStore      useSyncExternalStore
+36. useEffect                 useEffect
+37. useContext                useContext
+38. useContext                useContext
+39. useContext                useContext
+40. useEffect                 useEffect
+41. useState                  useState
+42. useCallback               useCallback
+43. useSyncExternalStore      useSyncExternalStore
+44. useEffect                 useEffect
+45. useEffect                 useEffect
+46. undefined                 useMemo
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    at PerformanceAnalyticsContent (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/src/pages/performance-analytics.tsx:174:47)
+    at div
+    at PerformanceAnalytics
+    at main
+    at div
+    at div
+    at AuthenticatedLayout (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/src/App.tsx:58:32)
+    at ProtectedRoute (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/src/components/auth/protected-route.tsx:76:3)
+    at Route (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=883baec0:206:16)
+    at Switch (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=883baec0:262:17)
+    at Router (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=883baec0:161:17)
+    at AuthProvider (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/src/components/auth/protected-route.tsx:36:32)
+    at QueryClientProvider (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=883baec0:2933:3)
+    at App (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/src/App.tsx:90:49)
+printWarning @ chunk-RPCDYKBN.js?v=883baec0:521
+error @ chunk-RPCDYKBN.js?v=883baec0:505
+warnOnHookMismatchInDev @ chunk-RPCDYKBN.js?v=883baec0:11495
+updateHookTypesDev @ chunk-RPCDYKBN.js?v=883baec0:11465
+useMemo @ chunk-RPCDYKBN.js?v=883baec0:12722
+useMemo @ chunk-QCHXOAYK.js?v=883baec0:1094
+PerformanceAnalyticsContent @ performance-analytics.tsx:243
+renderWithHooks @ chunk-RPCDYKBN.js?v=883baec0:11548
+updateFunctionComponent @ chunk-RPCDYKBN.js?v=883baec0:14582
+beginWork @ chunk-RPCDYKBN.js?v=883baec0:15924
+beginWork$1 @ chunk-RPCDYKBN.js?v=883baec0:19753
+performUnitOfWork @ chunk-RPCDYKBN.js?v=883baec0:19198
+workLoopSync @ chunk-RPCDYKBN.js?v=883baec0:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=883baec0:19116
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=883baec0:18874
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=883baec0:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=883baec0:18627
+chunk-RPCDYKBN.js?v=883baec0:11678 Uncaught Error: Rendered more hooks than during the previous render.
+    at updateWorkInProgressHook (chunk-RPCDYKBN.js?v=883baec0:11678:21)
+    at updateMemo (chunk-RPCDYKBN.js?v=883baec0:12199:22)
+    at Object.useMemo (chunk-RPCDYKBN.js?v=883baec0:12726:24)
+    at useMemo (chunk-QCHXOAYK.js?v=883baec0:1094:29)
+    at PerformanceAnalyticsContent (performance-analytics.tsx:243:25)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=883baec0:11548:26)
+    at updateFunctionComponent (chunk-RPCDYKBN.js?v=883baec0:14582:28)
+    at beginWork (chunk-RPCDYKBN.js?v=883baec0:15924:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=883baec0:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=883baec0:3699:24)
+updateWorkInProgressHook @ chunk-RPCDYKBN.js?v=883baec0:11678
+updateMemo @ chunk-RPCDYKBN.js?v=883baec0:12199
+useMemo @ chunk-RPCDYKBN.js?v=883baec0:12726
+useMemo @ chunk-QCHXOAYK.js?v=883baec0:1094
+PerformanceAnalyticsContent @ performance-analytics.tsx:243
+renderWithHooks @ chunk-RPCDYKBN.js?v=883baec0:11548
+updateFunctionComponent @ chunk-RPCDYKBN.js?v=883baec0:14582
+beginWork @ chunk-RPCDYKBN.js?v=883baec0:15924
+callCallback2 @ chunk-RPCDYKBN.js?v=883baec0:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=883baec0:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=883baec0:3733
+beginWork$1 @ chunk-RPCDYKBN.js?v=883baec0:19765
+performUnitOfWork @ chunk-RPCDYKBN.js?v=883baec0:19198
+workLoopSync @ chunk-RPCDYKBN.js?v=883baec0:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=883baec0:19116
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=883baec0:18874
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=883baec0:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=883baec0:18627
+chunk-RPCDYKBN.js?v=883baec0:11678 Uncaught Error: Rendered more hooks than during the previous render.
+    at updateWorkInProgressHook (chunk-RPCDYKBN.js?v=883baec0:11678:21)
+    at updateMemo (chunk-RPCDYKBN.js?v=883baec0:12199:22)
+    at Object.useMemo (chunk-RPCDYKBN.js?v=883baec0:12726:24)
+    at useMemo (chunk-QCHXOAYK.js?v=883baec0:1094:29)
+    at PerformanceAnalyticsContent (performance-analytics.tsx:243:25)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=883baec0:11548:26)
+    at updateFunctionComponent (chunk-RPCDYKBN.js?v=883baec0:14582:28)
+    at beginWork (chunk-RPCDYKBN.js?v=883baec0:15924:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=883baec0:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=883baec0:3699:24)
+updateWorkInProgressHook @ chunk-RPCDYKBN.js?v=883baec0:11678
+updateMemo @ chunk-RPCDYKBN.js?v=883baec0:12199
+useMemo @ chunk-RPCDYKBN.js?v=883baec0:12726
+useMemo @ chunk-QCHXOAYK.js?v=883baec0:1094
+PerformanceAnalyticsContent @ performance-analytics.tsx:243
+renderWithHooks @ chunk-RPCDYKBN.js?v=883baec0:11548
+updateFunctionComponent @ chunk-RPCDYKBN.js?v=883baec0:14582
+beginWork @ chunk-RPCDYKBN.js?v=883baec0:15924
+callCallback2 @ chunk-RPCDYKBN.js?v=883baec0:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=883baec0:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=883baec0:3733
+beginWork$1 @ chunk-RPCDYKBN.js?v=883baec0:19765
+performUnitOfWork @ chunk-RPCDYKBN.js?v=883baec0:19198
+workLoopSync @ chunk-RPCDYKBN.js?v=883baec0:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=883baec0:19116
+recoverFromConcurrentError @ chunk-RPCDYKBN.js?v=883baec0:18736
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=883baec0:18879
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=883baec0:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=883baec0:18627
+chunk-RPCDYKBN.js?v=883baec0:14032 The above error occurred in the <PerformanceAnalyticsContent> component:
+
+    at PerformanceAnalyticsContent (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/src/pages/performance-analytics.tsx:174:47)
+    at div
+    at PerformanceAnalytics
+    at main
+    at div
+    at div
+    at AuthenticatedLayout (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/src/App.tsx:58:32)
+    at ProtectedRoute (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/src/components/auth/protected-route.tsx:76:3)
+    at Route (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=883baec0:206:16)
+    at Switch (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=883baec0:262:17)
+    at Router (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=883baec0:161:17)
+    at AuthProvider (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/src/components/auth/protected-route.tsx:36:32)
+    at QueryClientProvider (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=883baec0:2933:3)
+    at App (https://b373a2fb-a8e1-42af-8d5e-f347aef6f155-00-2wof3q7nwgo4h.pike.replit.dev/src/App.tsx:90:49)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-RPCDYKBN.js?v=883baec0:14032
+update.callback @ chunk-RPCDYKBN.js?v=883baec0:14052
+callCallback @ chunk-RPCDYKBN.js?v=883baec0:11248
+commitUpdateQueue @ chunk-RPCDYKBN.js?v=883baec0:11265
+commitLayoutEffectOnFiber @ chunk-RPCDYKBN.js?v=883baec0:17093
+commitLayoutMountEffects_complete @ chunk-RPCDYKBN.js?v=883baec0:17980
+commitLayoutEffects_begin @ chunk-RPCDYKBN.js?v=883baec0:17969
+commitLayoutEffects @ chunk-RPCDYKBN.js?v=883baec0:17920
+commitRootImpl @ chunk-RPCDYKBN.js?v=883baec0:19353
+commitRoot @ chunk-RPCDYKBN.js?v=883baec0:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=883baec0:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=883baec0:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=883baec0:18627
+chunk-RPCDYKBN.js?v=883baec0:11678 Uncaught Error: Rendered more hooks than during the previous render.
+    at updateWorkInProgressHook (chunk-RPCDYKBN.js?v=883baec0:11678:21)
+    at updateMemo (chunk-RPCDYKBN.js?v=883baec0:12199:22)
+    at Object.useMemo (chunk-RPCDYKBN.js?v=883baec0:12726:24)
+    at useMemo (chunk-QCHXOAYK.js?v=883baec0:1094:29)
+    at PerformanceAnalyticsContent (performance-analytics.tsx:243:25)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=883baec0:11548:26)
+    at updateFunctionComponent (chunk-RPCDYKBN.js?v=883baec0:14582:28)
+    at beginWork (chunk-RPCDYKBN.js?v=883baec0:15924:22)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=883baec0:19753:22)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=883baec0:19198:20)
