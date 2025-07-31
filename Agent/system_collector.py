@@ -236,6 +236,25 @@ class SystemCollector:
                             self.logger.debug(f"Error processing address for {interface_name}: {e}")
                             continue
 
+                    network_info['interfaces'].append(interface_data)
+
+                    # Add to network adapters with enhanced info
+                    if interface_data['ip'] or interface_data['mac']:
+                        network_info['network_adapters'][interface_name] = {
+                            'type': interface_data['type'],
+                            'ip_address': interface_data['ip'],
+                            'mac_address': interface_data['mac'],
+                            'status': interface_data['status'],
+                            'speed': f"{interface_data['speed']} Mbps" if interface_data['speed'] > 0 else "Unknown",
+                            'bytes_sent': self._format_bytes(interface_data['bytes_sent']),
+                            'bytes_recv': self._format_bytes(interface_data['bytes_recv']),
+                            'operational_status': interface_data['status']
+                        }
+
+                except Exception as e:
+                    self.logger.debug(f"Error processing interface {interface_name}: {e}")
+                    continue
+
                 network_info['interfaces'].append(interface_data)
 
                 # Add to network adapters with enhanced info
