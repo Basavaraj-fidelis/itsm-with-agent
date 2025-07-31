@@ -8,7 +8,7 @@ import { useDashboardSummary, useAlerts } from "@/hooks/use-dashboard";
 import { useAgents } from "@/hooks/use-agents";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { ALERT_THRESHOLDS, getAlertLevel, getAlertColor } from "@shared/alert-thresholds";
+import { ALERT_THRESHOLDS, getAlertLevel, getAlertColor } from "../../../shared/alert-thresholds";
 import { 
   Plus, 
   Users, 
@@ -120,7 +120,12 @@ export default function Dashboard() {
         return await response.json();
       } catch (error) {
         console.warn("Failed to fetch security overview:", error);
-        return {};
+        return {
+          threatLevel: 'unknown',
+          activeThreats: 0,
+          vulnerabilities: { critical: 0, high: 0, medium: 0, low: 0 },
+          complianceScore: 0
+        };
       }
     },
     refetchInterval: 30000,

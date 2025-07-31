@@ -121,3 +121,40 @@ router.get('/audit', async (req, res) => {
 });
 
 export default router;
+import { Router } from 'express';
+import { authenticateToken } from '../middleware/auth-middleware.js';
+
+const router = Router();
+
+// Security overview endpoint for dashboard
+router.get('/api/security-overview', authenticateToken, async (req, res) => {
+  try {
+    // Mock security overview data - replace with actual security service calls
+    const securityOverview = {
+      threatLevel: 'low',
+      activeThreats: 0,
+      vulnerabilities: {
+        critical: 0,
+        high: 2,
+        medium: 5,
+        low: 8
+      },
+      lastScan: new Date().toISOString(),
+      complianceScore: 92,
+      securityAlerts: 0,
+      firewallStatus: 'active',
+      antivirusStatus: 'active',
+      patchCompliance: 85
+    };
+
+    res.json(securityOverview);
+  } catch (error) {
+    console.error('Error fetching security overview:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch security overview',
+      message: error.message 
+    });
+  }
+});
+
+export default router;

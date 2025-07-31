@@ -176,4 +176,39 @@ router.get('/insights/device/:deviceId', async (req, res) => {
   }
 });
 
+// AI-powered insights and recommendations
+router.get('/api/ai-insights', authenticateToken, async (req, res) => {
+  try {
+    // Mock AI insights data for dashboard
+    const insights = {
+      systemHealth: 'good',
+      recommendations: [
+        'Consider updating 3 devices with pending security patches',
+        'Monitor disk usage on SRV-DATABASE (85% full)',
+        'Review failed login attempts from IP 192.168.1.100'
+      ],
+      predictiveAlerts: [],
+      performanceTrends: {
+        cpu: 'stable',
+        memory: 'increasing',
+        disk: 'stable'
+      },
+      lastUpdated: new Date().toISOString()
+    };
+
+    res.json(insights);
+  } catch (error) {
+    console.error('Error fetching AI insights:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch AI insights',
+      message: error.message 
+    });
+  }
+});
+
+router.get('/api/ai/insights', authenticateToken, async (req, res) => {
+
+});
+
 export default router;
+```export default router;
