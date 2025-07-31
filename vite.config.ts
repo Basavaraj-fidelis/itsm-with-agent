@@ -37,7 +37,7 @@ export default defineConfig(async () => {
       allowedHosts: [
         /\.replit\.dev$/,
         /\.sisko\.replit\.dev$/,
-        "2217a5cb-422b-4bb8-ad3d-930cedbbce2e-00-2howdh0xtqdtb.sisko.replit.dev",
+        "d36ad361-2572-498b-bf79-dce03697176e-00-11pcv0k6l444j.sisko.replit.dev",
       ],
       proxy: {
         "/api": {
