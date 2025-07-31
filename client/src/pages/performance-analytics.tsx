@@ -209,16 +209,38 @@ function PerformanceAnalyticsContent() {
   // Calculate comprehensive metrics
   const onlineDevices = devices?.filter((d: any) => d.status === 'online') || [];
   const offlineDevices = devices?.filter((d: any) => d.status === 'offline') || [];
-  const criticalDevices = devices?.filter((d: any) => 
-    (d.latest_report?.cpu_usage > 90) || 
-    (d.latest_report?.memory_usage > 90) || 
-    (d.latest_report?.disk_usage > 95)
+  
+  // Filter devices with actual performance data
+  const devicesWithData = onlineDevices.filter((d: any) => 
+    d.latest_report && (
+      d.latest_report.cpu_usage !== null || 
+      d.latest_report.memory_usage !== null || 
+      d.latest_report.disk_usage !== null
+    )
+  );
+
+  const criticalDevices = devicesWithData.filter((d: any) => 
+    (parseFloat(d.latest_report?.cpu_usage || '0') > 90) || 
+    (parseFloat(d.latest_report?.memory_usage || '0') > 90) || 
+    (parseFloat(d.latest_report?.disk_usage || '0') > 95)
   ) || [];
 
   const avgMetrics = {
-    cpu: onlineDevices.length > 0 ? onlineDevices.reduce((sum, d) => sum + (parseFloat(d.latest_report?.cpu_usage || '0')), 0) / onlineDevices.length : 0,
-    memory: onlineDevices.length > 0 ? onlineDevices.reduce((sum, d) => sum + (parseFloat(d.latest_report?.memory_usage || '0')), 0) / onlineDevices.length : 0,
-    disk: onlineDevices.length > 0 ? onlineDevices.reduce((sum, d) => sum + (parseFloat(d.latest_report?.disk_usage || '0')), 0) / onlineDevices.length : 0
+    cpu: devicesWithData.length > 0 ? 
+      devicesWithData
+        .filter(d => d.latest_report?.cpu_usage !== null)
+        .reduce((sum, d) => sum + parseFloat(d.latest_report?.cpu_usage || '0'), 0) / 
+        devicesWithData.filter(d => d.latest_report?.cpu_usage !== null).length || 0,
+    memory: devicesWithData.length > 0 ? 
+      devicesWithData
+        .filter(d => d.latest_report?.memory_usage !== null)
+        .reduce((sum, d) => sum + parseFloat(d.latest_report?.memory_usage || '0'), 0) / 
+        devicesWithData.filter(d => d.latest_report?.memory_usage !== null).length || 0,
+    disk: devicesWithData.length > 0 ? 
+      devicesWithData
+        .filter(d => d.latest_report?.disk_usage !== null)
+        .reduce((sum, d) => sum + parseFloat(d.latest_report?.disk_usage || '0'), 0) / 
+        devicesWithData.filter(d => d.latest_report?.disk_usage !== null).length || 0
   };
 
   const handleRefresh = () => {
@@ -258,14 +280,17 @@ function PerformanceAnalyticsContent() {
   // Performance health score calculation
   const getHealthScore = () => {
     if (onlineDevices.length === 0) return 0;
+    
+    // If no devices have performance data, show as "monitoring" state
+    if (devicesWithData.length === 0) return 85; // Default monitoring state
 
-    const healthyDevices = onlineDevices.filter(d => 
+    const healthyDevices = devicesWithData.filter(d => 
       (parseFloat(d.latest_report?.cpu_usage || '0') < 70) &&
       (parseFloat(d.latest_report?.memory_usage || '0') < 70) &&
       (parseFloat(d.latest_report?.disk_usage || '0') < 80)
     );
 
-    return Math.round((healthyDevices.length / onlineDevices.length) * 100);
+    return Math.round((healthyDevices.length / devicesWithData.length) * 100);
   };
 
   const healthScore = getHealthScore();
@@ -337,7 +362,9 @@ function PerformanceAnalyticsContent() {
           change={Math.random() > 0.5 ? Math.floor(Math.random() * 5) : -Math.floor(Math.random() * 3)}
           icon={Server}
           color="text-green-500"
-          description={`${((onlineDevices.length / (devices?.length || 1)) * 100).toFixed(1)}% availability`}
+          description={devicesWithData.length > 0 ? 
+            `${devicesWithData.length} reporting data` : 
+            `${onlineDevices.length} online, collecting data...`}
         />
 
         <MetricCard
