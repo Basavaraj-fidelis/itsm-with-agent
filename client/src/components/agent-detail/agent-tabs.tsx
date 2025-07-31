@@ -291,8 +291,8 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
     return "bg-neutral-50 dark:bg-neutral-800";
   };
 
-   // Windows Updates data
-   const windowsUpdates = processedData?.windows_updates || null;
+  // Windows Updates data
+  const windowsUpdates = processedData?.windows_updates || null;
 
   return (
     <AgentErrorBoundary>
@@ -622,8 +622,6 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
               </Card>
             )}
 
-
-
             {/* Terminal Data Display */}
             <Card className="col-span-2">
               <CardHeader>
@@ -952,7 +950,6 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                       )}
                                   </div>
                                   {device.vendor_id && device.product_id && (
-                                    ```text
                                     <div className="text-neutral-600 dark:text-neutral-400 text-sm mb-1">
                                       <span className="font-medium">VID:</span>{" "}
                                       {device.vendor_id} |
@@ -1033,267 +1030,345 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
         {/* Network Tab */}
         <TabsContent value="network" className="space-y-4">
           <SafeDataRenderer>
-              {/* Network Information Card */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Network className="w-5 h-5 text-blue-600" />
-                    Network Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {(() => {
-                    try {
-                      const rawData = agent?.latest_report?.raw_data;
-                      if (!rawData) {
-                        return (
-                          <div className="text-center py-6 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-800">
-                            <Network className="w-8 h-8 mx-auto mb-2 text-gray-600" />
-                            <p className="text-sm text-gray-800 dark:text-gray-200">
-                              No network data available
-                            </p>
-                          </div>
-                        );
-                      }
-
-                      const parsedData = typeof rawData === "string" ? JSON.parse(rawData) : rawData;
-
-                      // Enhanced network data extraction
-                      const networkInfo = parsedData?.network_info || parsedData?.network || {};
-                      const systemInfo = parsedData?.system_info || {};
-                      const networkInterfaces = parsedData?.network_interfaces || networkInfo?.interfaces || [];
-                      const networkStats = parsedData?.network_stats || {};
-                      const routingTable = parsedData?.routing_table || [];
-                      const dnsServers = parsedData?.dns_servers || networkInfo?.dns || [];
-
-                      // Extract comprehensive network data
-                      const publicIP = networkInfo.public_ip || systemInfo.public_ip || "Unknown";
-                      const hostname = systemInfo.hostname || agent?.hostname || "Unknown";
-                      const domain = networkInfo.domain || systemInfo.domain || "Not Set";
-                      const gateway = networkInfo.gateway || networkInfo.default_gateway || "Unknown";
-
-                      // Extract all network interfaces with details
-                      const allInterfaces = [];
-
-                      // Process network interfaces from various data sources
-                      if (Array.isArray(networkInterfaces)) {
-                        networkInterfaces.forEach(networkInterface => {
-                          allInterfaces.push({
-                            name: networkInterface.name || networkInterface.interface,
-                            type: networkInterface.type || 'Unknown',
-                            ip: networkInterface.ip || networkInterface.ip_address,
-                            mac: networkInterface.mac || networkInterface.mac_address,
-                            status: networkInterface.status || networkInterface.state || 'Unknown',
-                            speed: networkInterface.speed,
-                            bytes_sent: networkInterface.bytes_sent,
-                            bytes_recv: networkInterface.bytes_recv
-                          });
-                        });
-                      }
-
-                      // Extract from Windows-style network data
-                      if (parsedData?.network_adapters) {
-                        Object.entries(parsedData.network_adapters).forEach(([name, adapter]) => {
-                          if (adapter && typeof adapter === 'object') {
-                            allInterfaces.push({
-                              name: name,
-                              type: adapter.type || 'Adapter',
-                              ip: adapter.ip_address || adapter.ip,
-                              mac: adapter.mac_address || adapter.mac,
-                              status: adapter.status || adapter.operational_status || 'Unknown',
-                              speed: adapter.speed || adapter.link_speed,
-                              description: adapter.description
-                            });
-                          }
-                        });
-                      }
-
-                      // Extract Wi-Fi specific information
-                      const wifiInfo = networkInfo.wifi || parsedData?.wifi_info || {};
-                      const isWifiConnected = wifiInfo.connected || wifiInfo.status === 'connected';
-
-                      // Get all IP addresses
-                      const allIPs = [
-                        ...new Set([
-                          ...(networkInfo.all_ips || []),
-                          ...(parsedData?.ip_addresses || []),
-                          ...allInterfaces.map(iface => iface.ip).filter(Boolean),
-                          agent?.ip_address
-                        ].filter(Boolean))
-                      ];
-
+            {/* Network Information Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Network className="w-5 h-5 text-blue-600" />
+                  Network Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  try {
+                    const rawData = agent?.latest_report?.raw_data;
+                    if (!rawData) {
                       return (
-                        <div className="space-y-6">
-                          {/* Main Network Information Grid */}
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                              <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2 flex items-center gap-2">
-                                <Globe className="w-4 h-4" />
-                                Public IP Address
-                              </h4>
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <p className="text-blue-900 dark:text-blue-100 font-mono text-lg">{publicIP}</p>
-                                  {publicIP !== "Unknown" && publicIP !== "Unable to determine" && (
-                                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                  )}
-                                </div>
-                                {publicIP === "Unknown" || publicIP === "Unable to determine" ? (
-                                  <p className="text-xs text-blue-600 dark:text-blue-400">
-                                    ⚠️ Unable to detect public IP - check internet connectivity
-                                  </p>
-                                ) : (
-                                  <p className="text-xs text-blue-600 dark:text-blue-400">
-                                    ✅ Public IP successfully detected
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                              <h4 className="font-medium text-green-800 dark:text-green-200 mb-2 flex items-center gap-2">
-                                <Network className="w-4 h-4" />
-                                Primary IP
-                              </h4>
-                              <p className="text-green-900 dark:text-green-100 font-mono">
-                                {agent?.ip_address || allIPs[0] || 'Unknown'}
-                              </p>
-                            </div>
-
-                            <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                              <h4 className="font-medium text-purple-800 dark:text-purple-200 mb-2 flex items-center gap-2">
-                                <Wifi className="w-4 h-4" />
-                                Wi-Fi Status
-                              </h4>
-                              <p className="text-purple-900 dark:text-purple-100">
-                                {isWifiConnected ? `Connected - ${wifiInfo.ssid || 'Active'}` : 'Not Connected'}
-                              </p>
-                            </div>
-                          </div>
-
-                          
-
-                          {/* Hidden: Active Network Interfaces, System Details, and DNS Servers sections */}
-
-                          {/* All IP Addresses */}
-                          {allIPs.length > 0 && (
-                            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                              <h4 className="font-medium text-yellow-800 dark:text-yellow-200 mb-3">
-                                All Detected IP Addresses ({allIPs.length})
-                              </h4>
-                              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                                {allIPs.map((ip, index) => (
-                                  <span key={index} className="text-sm font-mono text-yellow-900 dark:text-yellow-100 bg-yellow-100 dark:bg-yellow-800/30 px-3 py-1 rounded">
-                                    {ip}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Enhanced Geographic Location */}
-                          <div className="space-y-4">
-                            <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
-                              <h4 className="font-medium text-indigo-800 dark:text-indigo-200 mb-3 flex items-center gap-2">
-                                <Globe className="w-4 h-4" />
-                                Geographic Location
-                              </h4>
-
-                              {(() => {
-                                const location = networkInfo.location || networkInfo.geo_location;
-                                const geoDetails = networkInfo.geo_details;
-
-                                if (!location && !geoDetails) {
-                                  return (
-                                    <div className="text-center py-3">
-                                      <p className="text-indigo-700 dark:text-indigo-300">Location not available</p>
-                                      <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
-                                        Enable internet access for geolocation
-                                      </p>
-                                    </div>
-                                  );
-                                }
-
-                                return (
-                                  <div className="space-y-3">
-                                    {location && (
-                                      <div className="text-indigo-900 dark:text-indigo-100 font-medium">
-                                        📍 {location}
-                                      </div>
-                                    )}
-
-                                    {geoDetails && (
-                                      <div className="grid grid-cols-2 gap-3 text-sm">
-                                        {geoDetails.city && (
-                                          <div>
-                                            <span className="text-indigo-600 dark:text-indigo-400">City:</span>
-                                            <span className="ml-2 text-indigo-800 dark:text-indigo-200">{geoDetails.city}</span>
-                                          </div>
-                                        )}
-                                        {geoDetails.region && (
-                                          <div>
-                                            <span className="text-indigo-600 dark:text-indigo-400">Region:</span>
-                                            <span className="ml-2 text-indigo-800 dark:text-indigo-200">{geoDetails.region}</span>
-                                          </div>
-                                        )}
-                                        {geoDetails.country && (
-                                          <div>
-                                            <span className="text-indigo-600 dark:text-indigo-400">Country:</span>
-                                            <span className="ml-2 text-indigo-800 dark:text-indigo-200">
-                                              {geoDetails.country}
-                                              {geoDetails.country_code && ` (${geoDetails.country_code})`}
-                                            </span>
-                                          </div>
-                                        )}
-                                        {geoDetails.postal_code && (
-                                          <div>
-                                            <span className="text-indigo-600 dark:text-indigo-400">Postal:</span>
-                                            <span className="ml-2 text-indigo-800 dark:text-indigo-200">{geoDetails.postal_code}</span>
-                                          </div>
-                                        )}
-                                        {(geoDetails.latitude && geoDetails.longitude) && (
-                                          <div className="col-span-2">
-                                            <span className="text-indigo-600 dark:text-indigo-400">Coordinates:</span>
-                                            <span className="ml-2 text-indigo-800 dark:text-indigo-200 font-mono text-xs">
-                                              {parseFloat(geoDetails.latitude).toFixed(4)}, {parseFloat(geoDetails.longitude).toFixed(4)}
-                                            </span>
-                                          </div>
-                                        )}
-                                        {geoDetails.timezone && (
-                                          <div className="col-span-2">
-                                            <span className="text-indigo-600 dark:text-indigo-400">Timezone:</span>
-                                            <span className="ml-2 text-indigo-800 dark:text-indigo-200">{geoDetails.timezone}</span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-
-                                    {networkInfo.isp && (
-                                      <div className="pt-2 border-t border-indigo-200 dark:border-indigo-700">
-                                        <span className="text-indigo-600 dark:text-indigo-400 text-sm">ISP/Organization:</span>
-                                        <p className="text-indigo-800 dark:text-indigo-200 font-medium">{networkInfo.isp}</p>
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })()}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    } catch (error) {
-                      console.error("Error parsing network data:", error);
-                      return (
-                        <div className="text-center py-6 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
-                          <p className="text-sm text-red-800 dark:text-red-200">
-                            Error parsing network data: {error.message}
+                        <div className="text-center py-6 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-800">
+                          <Network className="w-8 h-8 mx-auto mb-2 text-gray-600" />
+                          <p className="text-sm text-gray-800 dark:text-gray-200">
+                            No network data available
                           </p>
                         </div>
                       );
                     }
-                  })()}
-                </CardContent>
-              </Card>
+
+                    const parsedData =
+                      typeof rawData === "string"
+                        ? JSON.parse(rawData)
+                        : rawData;
+
+                    // Enhanced network data extraction
+                    const networkInfo =
+                      parsedData?.network_info || parsedData?.network || {};
+                    const systemInfo = parsedData?.system_info || {};
+                    const networkInterfaces =
+                      parsedData?.network_interfaces ||
+                      networkInfo?.interfaces ||
+                      [];
+                    const networkStats = parsedData?.network_stats || {};
+                    const routingTable = parsedData?.routing_table || [];
+                    const dnsServers =
+                      parsedData?.dns_servers || networkInfo?.dns || [];
+
+                    // Extract comprehensive network data
+                    const publicIP =
+                      networkInfo.public_ip ||
+                      systemInfo.public_ip ||
+                      "Unknown";
+                    const hostname =
+                      systemInfo.hostname || agent?.hostname || "Unknown";
+                    const domain =
+                      networkInfo.domain || systemInfo.domain || "Not Set";
+                    const gateway =
+                      networkInfo.gateway ||
+                      networkInfo.default_gateway ||
+                      "Unknown";
+
+                    // Extract all network interfaces with details
+                    const allInterfaces = [];
+
+                    // Process network interfaces from various data sources
+                    if (Array.isArray(networkInterfaces)) {
+                      networkInterfaces.forEach((networkInterface) => {
+                        allInterfaces.push({
+                          name:
+                            networkInterface.name || networkInterface.interface,
+                          type: networkInterface.type || "Unknown",
+                          ip:
+                            networkInterface.ip || networkInterface.ip_address,
+                          mac:
+                            networkInterface.mac ||
+                            networkInterface.mac_address,
+                          status:
+                            networkInterface.status ||
+                            networkInterface.state ||
+                            "Unknown",
+                          speed: networkInterface.speed,
+                          bytes_sent: networkInterface.bytes_sent,
+                          bytes_recv: networkInterface.bytes_recv,
+                        });
+                      });
+                    }
+
+                    // Extract from Windows-style network data
+                    if (parsedData?.network_adapters) {
+                      Object.entries(parsedData.network_adapters).forEach(
+                        ([name, adapter]) => {
+                          if (adapter && typeof adapter === "object") {
+                            allInterfaces.push({
+                              name: name,
+                              type: adapter.type || "Adapter",
+                              ip: adapter.ip_address || adapter.ip,
+                              mac: adapter.mac_address || adapter.mac,
+                              status:
+                                adapter.status ||
+                                adapter.operational_status ||
+                                "Unknown",
+                              speed: adapter.speed || adapter.link_speed,
+                              description: adapter.description,
+                            });
+                          }
+                        },
+                      );
+                    }
+
+                    // Extract Wi-Fi specific information
+                    const wifiInfo =
+                      networkInfo.wifi || parsedData?.wifi_info || {};
+                    const isWifiConnected =
+                      wifiInfo.connected || wifiInfo.status === "connected";
+
+                    // Get all IP addresses
+                    const allIPs = [
+                      ...new Set(
+                        [
+                          ...(networkInfo.all_ips || []),
+                          ...(parsedData?.ip_addresses || []),
+                          ...allInterfaces
+                            .map((iface) => iface.ip)
+                            .filter(Boolean),
+                          agent?.ip_address,
+                        ].filter(Boolean),
+                      ),
+                    ];
+
+                    return (
+                      <div className="space-y-6">
+                        {/* Main Network Information Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2 flex items-center gap-2">
+                              <Globe className="w-4 h-4" />
+                              Public IP Address
+                            </h4>
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <p className="text-blue-900 dark:text-blue-100 font-mono text-lg">
+                                  {publicIP}
+                                </p>
+                                {publicIP !== "Unknown" &&
+                                  publicIP !== "Unable to determine" && (
+                                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                  )}
+                              </div>
+                              {publicIP === "Unknown" ||
+                              publicIP === "Unable to determine" ? (
+                                <p className="text-xs text-blue-600 dark:text-blue-400">
+                                  ⚠️ Unable to detect public IP - check internet
+                                  connectivity
+                                </p>
+                              ) : (
+                                <p className="text-xs text-blue-600 dark:text-blue-400">
+                                  ✅ Public IP successfully detected
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                            <h4 className="font-medium text-green-800 dark:text-green-200 mb-2 flex items-center gap-2">
+                              <Network className="w-4 h-4" />
+                              Primary IP
+                            </h4>
+                            <p className="text-green-900 dark:text-green-100 font-mono">
+                              {agent?.ip_address || allIPs[0] || "Unknown"}
+                            </p>
+                          </div>
+
+                          <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                            <h4 className="font-medium text-purple-800 dark:text-purple-200 mb-2 flex items-center gap-2">
+                              <Wifi className="w-4 h-4" />
+                              Wi-Fi Status
+                            </h4>
+                            <p className="text-purple-900 dark:text-purple-100">
+                              {isWifiConnected
+                                ? `Connected - ${wifiInfo.ssid || "Active"}`
+                                : "Not Connected"}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Hidden: Active Network Interfaces, System Details, and DNS Servers sections */}
+
+                        {/* All IP Addresses */}
+                        {allIPs.length > 0 && (
+                          <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                            <h4 className="font-medium text-yellow-800 dark:text-yellow-200 mb-3">
+                              All Detected IP Addresses ({allIPs.length})
+                            </h4>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                              {allIPs.map((ip, index) => (
+                                <span
+                                  key={index}
+                                  className="text-sm font-mono text-yellow-900 dark:text-yellow-100 bg-yellow-100 dark:bg-yellow-800/30 px-3 py-1 rounded"
+                                >
+                                  {ip}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Enhanced Geographic Location */}
+                        <div className="space-y-4">
+                          <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                            <h4 className="font-medium text-indigo-800 dark:text-indigo-200 mb-3 flex items-center gap-2">
+                              <Globe className="w-4 h-4" />
+                              Geographic Location
+                            </h4>
+
+                            {(() => {
+                              const location =
+                                networkInfo.location ||
+                                networkInfo.geo_location;
+                              const geoDetails = networkInfo.geo_details;
+
+                              if (!location && !geoDetails) {
+                                return (
+                                  <div className="text-center py-3">
+                                    <p className="text-indigo-700 dark:text-indigo-300">
+                                      Location not available
+                                    </p>
+                                    <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
+                                      Enable internet access for geolocation
+                                    </p>
+                                  </div>
+                                );
+                              }
+
+                              return (
+                                <div className="space-y-3">
+                                  {location && (
+                                    <div className="text-indigo-900 dark:text-indigo-100 font-medium">
+                                      📍 {location}
+                                    </div>
+                                  )}
+
+                                  {geoDetails && (
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                      {geoDetails.city && (
+                                        <div>
+                                          <span className="text-indigo-600 dark:text-indigo-400">
+                                            City:
+                                          </span>
+                                          <span className="ml-2 text-indigo-800 dark:text-indigo-200">
+                                            {geoDetails.city}
+                                          </span>
+                                        </div>
+                                      )}
+                                      {geoDetails.region && (
+                                        <div>
+                                          <span className="text-indigo-600 dark:text-indigo-400">
+                                            Region:
+                                          </span>
+                                          <span className="ml-2 text-indigo-800 dark:text-indigo-200">
+                                            {geoDetails.region}
+                                          </span>
+                                        </div>
+                                      )}
+                                      {geoDetails.country && (
+                                        <div>
+                                          <span className="text-indigo-600 dark:text-indigo-400">
+                                            Country:
+                                          </span>
+                                          <span className="ml-2 text-indigo-800 dark:text-indigo-200">
+                                            {geoDetails.country}
+                                            {geoDetails.country_code &&
+                                              ` (${geoDetails.country_code})`}
+                                          </span>
+                                        </div>
+                                      )}
+                                      {geoDetails.postal_code && (
+                                        <div>
+                                          <span className="text-indigo-600 dark:text-indigo-400">
+                                            Postal:
+                                          </span>
+                                          <span className="ml-2 text-indigo-800 dark:text-indigo-200">
+                                            {geoDetails.postal_code}
+                                          </span>
+                                        </div>
+                                      )}
+                                      {geoDetails.latitude &&
+                                        geoDetails.longitude && (
+                                          <div className="col-span-2">
+                                            <span className="text-indigo-600 dark:text-indigo-400">
+                                              Coordinates:
+                                            </span>
+                                            <span className="ml-2 text-indigo-800 dark:text-indigo-200 font-mono text-xs">
+                                              {parseFloat(
+                                                geoDetails.latitude,
+                                              ).toFixed(4)}
+                                              ,{" "}
+                                              {parseFloat(
+                                                geoDetails.longitude,
+                                              ).toFixed(4)}
+                                            </span>
+                                          </div>
+                                        )}
+                                      {geoDetails.timezone && (
+                                        <div className="col-span-2">
+                                          <span className="text-indigo-600 dark:text-indigo-400">
+                                            Timezone:
+                                          </span>
+                                          <span className="ml-2 text-indigo-800 dark:text-indigo-200">
+                                            {geoDetails.timezone}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {networkInfo.isp && (
+                                    <div className="pt-2 border-t border-indigo-200 dark:border-indigo-700">
+                                      <span className="text-indigo-600 dark:text-indigo-400 text-sm">
+                                        ISP/Organization:
+                                      </span>
+                                      <p className="text-indigo-800 dark:text-indigo-200 font-medium">
+                                        {networkInfo.isp}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  } catch (error) {
+                    console.error("Error parsing network data:", error);
+                    return (
+                      <div className="text-center py-6 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                        <p className="text-sm text-red-800 dark:text-red-200">
+                          Error parsing network data: {error.message}
+                        </p>
+                      </div>
+                    );
+                  }
+                })()}
+              </CardContent>
+            </Card>
           </SafeDataRenderer>
         </TabsContent>
 
@@ -1622,7 +1697,10 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                         );
                       }
 
-                      const parsedData = typeof rawData === "string" ? JSON.parse(rawData) : rawData;
+                      const parsedData =
+                        typeof rawData === "string"
+                          ? JSON.parse(rawData)
+                          : rawData;
 
                       // Get OS name from multiple possible locations
                       const osName = (
@@ -1635,7 +1713,8 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       // Get patch data from correct locations
                       const patches = parsedData?.patches || [];
                       const legacyPatches = parsedData?.os_info?.patches || [];
-                      const patchSummary = parsedData?.os_info?.patch_summary || null;
+                      const patchSummary =
+                        parsedData?.os_info?.patch_summary || null;
                       const lastUpdate = parsedData?.os_info?.last_update;
 
                       console.log("Updates Tab Debug:", {
@@ -1663,12 +1742,20 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                   </span>
                                 </div>
                                 <div className="text-sm text-blue-700 dark:text-blue-300">
-                                  {typeof lastUpdate === "object" && lastUpdate.DateTime
+                                  {typeof lastUpdate === "object" &&
+                                  lastUpdate.DateTime
                                     ? lastUpdate.DateTime
                                     : typeof lastUpdate === "string"
                                       ? lastUpdate
                                       : lastUpdate?.value
-                                        ? new Date(parseInt(lastUpdate.value.replace(/\/Date\((\d+)\)\//, "$1"))).toLocaleDateString()
+                                        ? new Date(
+                                            parseInt(
+                                              lastUpdate.value.replace(
+                                                /\/Date\((\d+)\)\//,
+                                                "$1",
+                                              ),
+                                            ),
+                                          ).toLocaleDateString()
                                         : "Unknown"}
                                 </div>
                               </div>
@@ -1678,60 +1765,77 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             {windowsUpdates ? (
                               <div className="space-y-4">
                                 {/* Available Updates */}
-                                {windowsUpdates.available_updates && windowsUpdates.available_updates.length > 0 ? (
+                                {windowsUpdates.available_updates &&
+                                windowsUpdates.available_updates.length > 0 ? (
                                   <div>
                                     <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
                                       <Download className="w-4 h-4 text-orange-600" />
-                                      Available Windows Updates ({windowsUpdates.available_updates.length})
+                                      Available Windows Updates (
+                                      {windowsUpdates.available_updates.length})
                                     </h4>
                                     <div className="space-y-2 max-h-64 overflow-y-auto">
-                                      {windowsUpdates.available_updates.slice(0, 10).map((update, index) => (
-                                        <div
-                                          key={index}
-                                          className="p-3 border rounded-lg bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border-orange-200 dark:border-orange-800"
-                                        >
-                                          <div className="flex justify-between items-start mb-2">
-                                            <div className="text-sm font-medium text-orange-800 dark:text-orange-200">
-                                              {update.Title || update.title}
+                                      {windowsUpdates.available_updates
+                                        .slice(0, 10)
+                                        .map((update, index) => (
+                                          <div
+                                            key={index}
+                                            className="p-3 border rounded-lg bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border-orange-200 dark:border-orange-800"
+                                          >
+                                            <div className="flex justify-between items-start mb-2">
+                                              <div className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                                                {update.Title || update.title}
+                                              </div>
+                                              {update.Severity && (
+                                                <Badge
+                                                  variant={
+                                                    update.Severity ===
+                                                    "Critical"
+                                                      ? "destructive"
+                                                      : "secondary"
+                                                  }
+                                                >
+                                                  {update.Severity}
+                                                </Badge>
+                                              )}
                                             </div>
-                                            {update.Severity && (
-                                              <Badge variant={update.Severity === 'Critical' ? 'destructive' : 'secondary'}>
-                                                {update.Severity}
-                                              </Badge>
+                                            {update.KBArticleIDs && (
+                                              <div className="text-xs text-orange-600 dark:text-orange-400">
+                                                KB: {update.KBArticleIDs}
+                                              </div>
                                             )}
                                           </div>
-                                          {update.KBArticleIDs && (
-                                            <div className="text-xs text-orange-600 dark:text-orange-400">
-                                              KB: {update.KBArticleIDs}
-                                            </div>
-                                          )}
-                                        </div>
-                                      ))}
+                                        ))}
                                     </div>
                                   </div>
                                 ) : null}
 
                                 {/* Installed Updates */}
-                                {windowsUpdates.installed_updates && windowsUpdates.installed_updates.length > 0 ? (
+                                {windowsUpdates.installed_updates &&
+                                windowsUpdates.installed_updates.length > 0 ? (
                                   <div>
                                     <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
                                       <Shield className="w-4 h-4 text-green-600" />
-                                      Recently Installed Windows Updates ({windowsUpdates.installed_updates.length})
+                                      Recently Installed Windows Updates (
+                                      {windowsUpdates.installed_updates.length})
                                     </h4>
                                     <div className="space-y-2 max-h-64 overflow-y-auto">
-                                      {windowsUpdates.installed_updates.slice(0, 15).map((update, index) => (
-                                        <div
-                                          key={index}
-                                          className="flex justify-between items-center py-3 px-4 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-800"
-                                        >
-                                          <span className="text-sm font-medium text-green-800 dark:text-green-200">
-                                            {update.Title || update.title}
-                                          </span>
-                                          <span className="text-xs text-green-600 dark:text-green-400">
-                                            {update.Date || update.install_date || "Unknown date"}
-                                          </span>
-                                        </div>
-                                      ))}
+                                      {windowsUpdates.installed_updates
+                                        .slice(0, 15)
+                                        .map((update, index) => (
+                                          <div
+                                            key={index}
+                                            className="flex justify-between items-center py-3 px-4 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-800"
+                                          >
+                                            <span className="text-sm font-medium text-green-800 dark:text-green-200">
+                                              {update.Title || update.title}
+                                            </span>
+                                            <span className="text-xs text-green-600 dark:text-green-400">
+                                              {update.Date ||
+                                                update.install_date ||
+                                                "Unknown date"}
+                                            </span>
+                                          </div>
+                                        ))}
                                     </div>
                                   </div>
                                 ) : null}
@@ -1751,11 +1855,15 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                   </div>
                                 )}
                               </div>
-                            ) : (patches && patches.length > 0) || (legacyPatches && legacyPatches.length > 0) ? (
+                            ) : (patches && patches.length > 0) ||
+                              (legacyPatches && legacyPatches.length > 0) ? (
                               <div>
                                 <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
                                   <Shield className="w-4 h-4 text-green-600" />
-                                  Installed Windows Patches ({(patches.length || 0) + (legacyPatches.length || 0)})
+                                  Installed Windows Patches (
+                                  {(patches.length || 0) +
+                                    (legacyPatches.length || 0)}
+                                  )
                                 </h4>
                                 <div className="space-y-2 max-h-64 overflow-y-auto">
                                   {/* Display patches from patches array */}
@@ -1765,38 +1873,64 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                       className="flex justify-between items-center py-3 px-4 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-800"
                                     >
                                       <span className="text-sm font-medium font-mono text-green-800 dark:text-green-200">
-                                        {patch.id || patch.HotFixID || `KB${patch.id}`}
+                                        {patch.id ||
+                                          patch.HotFixID ||
+                                          `KB${patch.id}`}
                                       </span>
                                       <span className="text-xs text-green-600 dark:text-green-400">
-                                        {patch.installed_on?.DateTime || 
-                                         patch.installed_on || 
-                                         patch.InstalledOn || 
-                                         (patch.installed_on?.value && new Date(parseInt(patch.installed_on.value.replace(/\/Date\((\d+)\)\//, "$1"))).toLocaleDateString()) ||
-                                         "Unknown date"}
+                                        {patch.installed_on?.DateTime ||
+                                          patch.installed_on ||
+                                          patch.InstalledOn ||
+                                          (patch.installed_on?.value &&
+                                            new Date(
+                                              parseInt(
+                                                patch.installed_on.value.replace(
+                                                  /\/Date\((\d+)\)\//,
+                                                  "$1",
+                                                ),
+                                              ),
+                                            ).toLocaleDateString()) ||
+                                          "Unknown date"}
                                       </span>
                                     </div>
                                   ))}
 
                                   {/* Display legacy patches from os_info.patches */}
-                                  {legacyPatches.slice(0, Math.max(0, 15 - patches.length)).map((patch, index) => (
-                                    <div
-                                      key={`legacy-${index}`}
-                                      className="flex justify-between items-center py-3 px-4 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-800"
-                                    >
-                                      <span className="text-sm font-medium font-mono text-green-800 dark:text-green-200">
-                                        {patch.id || `KB${patch.id}`}
-                                      </span>
-                                      <span className="text-xs text-green-600 dark:text-green-400">
-                                        {patch.installed_on?.DateTime || 
-                                         (patch.installed_on?.value && new Date(parseInt(patch.installed_on.value.replace(/\/Date\((\d+)\)\//, "$1"))).toLocaleDateString()) ||
-                                         "Unknown date"}
-                                      </span>
-                                    </div>
-                                  ))}
+                                  {legacyPatches
+                                    .slice(0, Math.max(0, 15 - patches.length))
+                                    .map((patch, index) => (
+                                      <div
+                                        key={`legacy-${index}`}
+                                        className="flex justify-between items-center py-3 px-4 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-800"
+                                      >
+                                        <span className="text-sm font-medium font-mono text-green-800 dark:text-green-200">
+                                          {patch.id || `KB${patch.id}`}
+                                        </span>
+                                        <span className="text-xs text-green-600 dark:text-green-400">
+                                          {patch.installed_on?.DateTime ||
+                                            (patch.installed_on?.value &&
+                                              new Date(
+                                                parseInt(
+                                                  patch.installed_on.value.replace(
+                                                    /\/Date\((\d+)\)\//,
+                                                    "$1",
+                                                  ),
+                                                ),
+                                              ).toLocaleDateString()) ||
+                                            "Unknown date"}
+                                        </span>
+                                      </div>
+                                    ))}
 
-                                  {((patches.length || 0) + (legacyPatches.length || 0)) > 15 && (
+                                  {(patches.length || 0) +
+                                    (legacyPatches.length || 0) >
+                                    15 && (
                                     <div className="text-xs text-neutral-500 pt-2 text-center">
-                                      ...and {((patches.length || 0) + (legacyPatches.length || 0)) - 15} more patches
+                                      ...and{" "}
+                                      {(patches.length || 0) +
+                                        (legacyPatches.length || 0) -
+                                        15}{" "}
+                                      more patches
                                     </div>
                                   )}
                                 </div>
@@ -1817,7 +1951,13 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       }
 
                       // Linux patches
-                      if (osName.includes("linux") || osName.includes("ubuntu") || osName.includes("debian") || osName.includes("centos") || osName.includes("rhel")) {
+                      if (
+                        osName.includes("linux") ||
+                        osName.includes("ubuntu") ||
+                        osName.includes("debian") ||
+                        osName.includes("centos") ||
+                        osName.includes("rhel")
+                      ) {
                         return (
                           <div className="space-y-4">
                             {/* Package Summary */}
@@ -1826,11 +1966,13 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                 <div className="flex items-center gap-2 mb-2">
                                   <Package className="w-4 h-4 text-blue-600" />
                                   <span className="font-medium text-sm text-blue-800 dark:text-blue-200">
-                                    Package Summary ({patchSummary.system_type || "Linux"})
+                                    Package Summary (
+                                    {patchSummary.system_type || "Linux"})
                                   </span>
                                 </div>
                                 <div className="text-sm text-blue-700 dark:text-blue-300">
-                                  Total Installed: {patchSummary.total_installed || 0} packages
+                                  Total Installed:{" "}
+                                  {patchSummary.total_installed || 0} packages
                                 </div>
                                 {patchSummary.last_update_date && (
                                   <div className="text-xs text-green-600 dark:text-green-400 mt-1">
@@ -1841,31 +1983,36 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             )}
 
                             {/* Linux Recent Updates */}
-                            {patchSummary && patchSummary.recent_patches && patchSummary.recent_patches.length > 0 ? (
+                            {patchSummary &&
+                            patchSummary.recent_patches &&
+                            patchSummary.recent_patches.length > 0 ? (
                               <div>
                                 <h4 className="font-medium mb-3 text-sm flex items-center gap-2">
                                   <Package className="w-4 h-4 text-green-600" />
-                                  Recent System Updates ({patchSummary.recent_patches.length})
+                                  Recent System Updates (
+                                  {patchSummary.recent_patches.length})
                                 </h4>
                                 <div className="space-y-2 max-h-64 overflow-y-auto">
-                                  {patchSummary.recent_patches.map((patch, index) => (
-                                    <div
-                                      key={index}
-                                      className="p-3 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-800"
-                                    >
-                                      <div className="flex justify-between items-start mb-2">
-                                        <div className="text-sm font-medium text-green-800 dark:text-green-200">
-                                          {patch.action || "System Update"}
+                                  {patchSummary.recent_patches.map(
+                                    (patch, index) => (
+                                      <div
+                                        key={index}
+                                        className="p-3 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-800"
+                                      >
+                                        <div className="flex justify-between items-start mb-2">
+                                          <div className="text-sm font-medium text-green-800 dark:text-green-200">
+                                            {patch.action || "System Update"}
+                                          </div>
+                                          <div className="text-xs text-green-600 dark:text-green-400">
+                                            {patch.date}
+                                          </div>
                                         </div>
-                                        <div className="text-xs text-green-600 dark:text-green-400">
-                                          {patch.date}
+                                        <div className="text-xs text-green-700 dark:text-green-300 break-all">
+                                          {patch.package || "System update"}
                                         </div>
                                       </div>
-                                      <div className="text-xs text-green-700 dark:text-green-300 break-all">
-                                        {patch.package || "System update"}
-                                      </div>
-                                    </div>
-                                  ))}
+                                    ),
+                                  )}
                                 </div>
                               </div>
                             ) : (
@@ -1884,7 +2031,10 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       }
 
                       // macOS patches
-                      if (osName.includes("darwin") || osName.includes("macos")) {
+                      if (
+                        osName.includes("darwin") ||
+                        osName.includes("macos")
+                      ) {
                         return (
                           <div className="space-y-4">
                             {patches && patches.length > 0 ? (
@@ -1932,7 +2082,9 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             Patch information not available
                           </p>
                           <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                            OS: {osName || "Unknown"} | Patches: {patches.length} | Summary: {patchSummary ? "Yes" : "No"}
+                            OS: {osName || "Unknown"} | Patches:{" "}
+                            {patches.length} | Summary:{" "}
+                            {patchSummary ? "Yes" : "No"}
                           </p>
                         </div>
                       );
@@ -1975,7 +2127,10 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                         );
                       }
 
-                      const parsedData = typeof rawData === "string" ? JSON.parse(rawData) : rawData;
+                      const parsedData =
+                        typeof rawData === "string"
+                          ? JSON.parse(rawData)
+                          : rawData;
                       const security = parsedData?.security || {};
 
                       console.log("Security Debug:", {
@@ -2003,15 +2158,19 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             <div className="p-4 border rounded-lg">
                               <div className="flex items-center gap-2 mb-2">
                                 <Shield className="w-4 h-4 text-blue-600" />
-                                <span className="font-medium text-sm">Firewall</span>
+                                <span className="font-medium text-sm">
+                                  Firewall
+                                </span>
                               </div>
-                              <div className={`text-sm capitalize ${
-                                security.firewall_status === "enabled"
-                                  ? "text-green-600"
-                                  : security.firewall_status === "disabled"
-                                    ? "text-red-600"
-                                    : "text-yellow-600"
-                              }`}>
+                              <div
+                                className={`text-sm capitalize ${
+                                  security.firewall_status === "enabled"
+                                    ? "text-green-600"
+                                    : security.firewall_status === "disabled"
+                                      ? "text-red-600"
+                                      : "text-yellow-600"
+                                }`}
+                              >
                                 {security.firewall_status}
                               </div>
                             </div>
@@ -2022,15 +2181,19 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             <div className="p-4 border rounded-lg">
                               <div className="flex items-center gap-2 mb-2">
                                 <Shield className="w-4 h-4 text-purple-600" />
-                                <span className="font-medium text-sm">Antivirus</span>
+                                <span className="font-medium text-sm">
+                                  Antivirus
+                                </span>
                               </div>
-                              <div className={`text-sm capitalize ${
-                                security.antivirus_status === "enabled"
-                                  ? "text-green-600"
-                                  : security.antivirus_status === "disabled"
-                                    ? "text-red-600"
-                                    : "text-yellow-600"
-                              }`}>
+                              <div
+                                className={`text-sm capitalize ${
+                                  security.antivirus_status === "enabled"
+                                    ? "text-green-600"
+                                    : security.antivirus_status === "disabled"
+                                      ? "text-red-600"
+                                      : "text-yellow-600"
+                                }`}
+                              >
                                 {security.antivirus_status}
                               </div>
                             </div>
@@ -2041,7 +2204,9 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             <div className="p-4 border rounded-lg">
                               <div className="flex items-center gap-2 mb-2">
                                 <Clock className="w-4 h-4 text-blue-600" />
-                                <span className="font-medium text-sm">Last Scan</span>
+                                <span className="font-medium text-sm">
+                                  Last Scan
+                                </span>
                               </div>
                               <div className="text-sm text-gray-600 dark:text-gray-400">
                                 {security.last_scan}
@@ -2054,7 +2219,9 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             <div className="p-4 border rounded-lg">
                               <div className="flex items-center gap-2 mb-2">
                                 <Download className="w-4 h-4 text-green-600" />
-                                <span className="font-medium text-sm">Last Update Check</span>
+                                <span className="font-medium text-sm">
+                                  Last Update Check
+                                </span>
                               </div>
                               <div className="text-sm text-gray-600 dark:text-gray-400">
                                 {security.last_update_check}
@@ -2067,7 +2234,9 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             <div className="p-4 border rounded-lg md:col-span-2">
                               <div className="flex items-center gap-2 mb-2">
                                 <Settings className="w-4 h-4 text-orange-600" />
-                                <span className="font-medium text-sm">Automatic Updates</span>
+                                <span className="font-medium text-sm">
+                                  Automatic Updates
+                                </span>
                               </div>
                               <div className="text-sm text-gray-600 dark:text-gray-400">
                                 {security.automatic_updates}
@@ -2115,7 +2284,10 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                         );
                       }
 
-                      const parsedData = typeof rawData === "string" ? JSON.parse(rawData) : rawData;
+                      const parsedData =
+                        typeof rawData === "string"
+                          ? JSON.parse(rawData)
+                          : rawData;
                       const activePorts = parsedData?.active_ports || [];
 
                       console.log("Active Ports Debug:", {
@@ -2156,7 +2328,8 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                             ))}
                             {activePorts.length > 20 && (
                               <div className="text-xs text-gray-500 pt-2 text-center">
-                                ...and {activePorts.length - 20} more connections
+                                ...and {activePorts.length - 20} more
+                                connections
                               </div>
                             )}
                           </div>
