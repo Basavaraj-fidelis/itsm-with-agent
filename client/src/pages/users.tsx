@@ -36,7 +36,8 @@ import {
   Clock,
   AlertTriangle,
   Lock,
-  Unlock
+  Unlock,
+  User
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -117,20 +118,35 @@ export default function UsersPage() {
 
   // Fetch users
   const { data: usersResponse, isLoading, error, refetch } = useQuery({
-    queryKey: ["/api/users", { search: searchTerm, role: roleFilter }],
+    queryKey: ["users", { search: searchTerm, role: roleFilter }],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (searchTerm) params.append("search", searchTerm);
-      if (roleFilter !== "all") params.append("role", roleFilter);
+      try {
+        const params = new URLSearchParams();
+        if (searchTerm) params.append("search", searchTerm);
+        if (roleFilter !== "all") params.append("role", roleFilter);
 
-      const response = await api.get(`/api/users?${params}`);
-      if (!response.ok) throw new Error("Failed to fetch users");
-      return await response.json();
+        const response = await fetch(`/api/users?${params}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('Failed to fetch users:', error);
+        throw error;
+      }
     },
-    refetchInterval: 120000, // Reduced from 30 seconds to 2 minutes
-    onError: (error) => {
-      console.error('Failed to load users:', error);
-    }
+    refetchInterval: 120000,
+    retry: 3,
+    retryDelay: 1000
   });
 
   // Extract users array from response
@@ -161,8 +177,19 @@ export default function UsersPage() {
   // Create user mutation
   const createUserMutation = useMutation({
     mutationFn: async (userData: typeof newUser) => {
-      const response = await api.post("/api/users", userData);
-      if (!response.ok) throw new Error("Failed to create user");
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(userData)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create user");
+      }
       return await response.json();
     },
     onSuccess: () => {
@@ -193,8 +220,19 @@ export default function UsersPage() {
   // Update user mutation
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, first_name, last_name, ...userData }: any) => {
-      const response = await api.put(`/api/users/${id}`, { first_name, last_name, ...userData });
-      if (!response.ok) throw new Error("Failed to update user");
+      const response = await fetch(`/api/users/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ first_name, last_name, ...userData })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update user");
+      }
       return await response.json();
     },
     onSuccess: () => {
@@ -215,8 +253,18 @@ export default function UsersPage() {
   // Delete user mutation
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const response = await api.delete(`/api/users/${userId}`);
-      if (!response.ok) throw new Error("Failed to delete user");
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to delete user");
+      }
       return await response.json();
     },
     onSuccess: () => {
@@ -347,7 +395,11 @@ export default function UsersPage() {
         },
         body: formData
       });
-      if (!response.ok) throw new Error("Failed to import end users");
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to import end users");
+      }
       return await response.json();
     },
     onSuccess: (data) => {
@@ -499,16 +551,18 @@ export default function UsersPage() {
         });
         break;
       case "export":
-        // Export to CSV functionality
-        const csv = users.map((u: UserInterface) => 
-          `${u.name},${u.email},${u.role},${u.department},${u.is_active ? 'Active' : 'Inactive'},${u.ad_synced ? 'AD' : 'Local'}`
+        // Export selected users to CSV functionality
+        const selectedUserData = users.filter((u: UserInterface) => selectedUsers.includes(u.id));
+        const csv = selectedUserData.map((u: UserInterface) => 
+          `"${u.name}","${u.email}","${u.role}","${u.department || 'N/A'}","${u.is_active ? 'Active' : 'Inactive'}","Local","${u.phone || ''}","${u.job_title || ''}"`
         ).join('\n');
-        const blob = new Blob([`Name,Email,Role,Department,Status,Source\n${csv}`], { type: 'text/csv' });
+        const blob = new Blob([`"Name","Email","Role","Department","Status","Source","Phone","Job Title"\n${csv}`], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'users.csv';
+        a.download = `selected-users-${new Date().toISOString().split('T')[0]}.csv`;
         a.click();
+        URL.revokeObjectURL(url);
         break;
     }
     setSelectedUsers([]);
@@ -520,31 +574,26 @@ export default function UsersPage() {
 
   // Clear all filters function
   const clearAllFilters = () => {
-    setFilters({
-      search: "",
-      role: "",
-      department: "",
-      status: "",
-      sync_source: ""
-    });
+    setSearchTerm("");
+    setRoleFilter("all");
+    setDepartmentFilter("all");
+    setStatusFilter("all");
+    setSyncSourceFilter("all");
   };
 
-  // Get sync status icon function
-  const getSyncStatusIcon = (syncSource: string) => {
-    if (syncSource === 'ad') {
-      return <Users className="w-4 h-4 text-blue-500" title="Active Directory" />;
-    }
-    return <User className="w-4 h-4 text-gray-500" title="Local User" />;
+  // Get user source icon function (all users are local now)
+  const getUserSourceIcon = (user: UserInterface) => {
+    return <Database className="w-4 h-4 text-gray-500" title="Local User" />;
   };
 
 
   if (isLoading) {
     return (
       <div className="p-6 space-y-6">
-        <div className="h-8 bg-gray-200 rounded w-48 animate-pulse" />
+        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-48 animate-pulse" />
         <div className="space-y-4">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-16 bg-gray-200 rounded animate-pulse" />
+            <div key={i} className="h-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
           ))}
         </div>
       </div>
@@ -557,10 +606,12 @@ export default function UsersPage() {
         <div className="text-center py-12">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-red-600 mb-2">Error Loading Users</h3>
-          <p className="text-gray-600 mb-4">Failed to load user data. Please try again.</p>
-          <Button onClick={() => refetch()} variant="outline">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Retry
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            {error instanceof Error ? error.message : 'Failed to load user data. Please try again.'}
+          </p>
+          <Button onClick={() => refetch()} variant="outline" disabled={isLoading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? 'Retrying...' : 'Retry'}
           </Button>
         </div>
       </div>
