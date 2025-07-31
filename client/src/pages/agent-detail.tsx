@@ -45,18 +45,40 @@ export default function AgentDetail() {
     queryKey: ["device", id],
     queryFn: () => api.getDevice(id!),
     enabled: !!id,
+    retry: 1,
+    onError: (error) => {
+      console.warn("Device data fetch failed:", error);
+    }
   });
 
   const { data: aiInsights } = useQuery({
     queryKey: ["aiInsights", id],
-    queryFn: () => api.getDeviceAIInsights(id!),
+    queryFn: async () => {
+      try {
+        return await api.getDeviceAIInsights(id!);
+      } catch (error) {
+        console.warn("AI insights fetch failed:", error);
+        return null;
+      }
+    },
     enabled: !!id,
+    retry: false,
+    staleTime: 300000, // 5 minutes
   });
 
   const { data: advancedMetrics } = useQuery({
     queryKey: ["advancedMetrics", id],
-    queryFn: () => api.getAdvancedDeviceAnalytics(id!),
+    queryFn: async () => {
+      try {
+        return await api.getAdvancedDeviceAnalytics(id!);
+      } catch (error) {
+        console.warn("Advanced metrics fetch failed:", error);
+        return null;
+      }
+    },
     enabled: !!id,
+    retry: false,
+    staleTime: 300000, // 5 minutes
   });
 
   // Auto-refresh effect - must be called at top level
