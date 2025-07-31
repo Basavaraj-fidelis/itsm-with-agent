@@ -8,6 +8,7 @@ import { useDashboardSummary, useAlerts } from "@/hooks/use-dashboard";
 import { useAgents } from "@/hooks/use-agents";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { ALERT_THRESHOLDS, getAlertLevel, getAlertColor } from "@shared/alert-thresholds";
 import { 
   Plus, 
   Users, 
@@ -46,42 +47,19 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { useLocation } from "wouter";
 
-// Define alert thresholds
-const ALERT_THRESHOLDS = {
-  CPU: {
-    WARNING: 60,
-    CRITICAL: 80,
-  },
-  MEMORY: {
-    WARNING: 70,
-    CRITICAL: 85,
-  },
-  DISK: {
-    WARNING: 75,
-    CRITICAL: 90,
-  },
-};
-
-// Helper function to get alert level based on usage and type
-const getAlertLevel = (usage, type) => {
-  if (usage > ALERT_THRESHOLDS[type].CRITICAL) {
-    return "CRITICAL";
-  } else if (usage > ALERT_THRESHOLDS[type].WARNING) {
-    return "WARNING";
-  } else {
-    return "NORMAL";
-  }
-};
-
-// Helper function to get color based on alert level
-const getAlertColor = (alertLevel) => {
-  switch (alertLevel) {
-    case "CRITICAL":
-      return "red";
-    case "WARNING":
-      return "orange";
+// Helper function to get alert level display text
+const getAlertLevelDisplay = (level) => {
+  switch (level) {
+    case "critical":
+      return "CRITICAL";
+    case "high":
+      return "HIGH";
+    case "warning":
+      return "WARNING";
+    case "info":
+      return "INFO";
     default:
-      return "green";
+      return "NORMAL";
   }
 };
 
@@ -453,6 +431,9 @@ export default function Dashboard() {
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
                     {summary?.online_devices || 0} of {summary?.total_devices || 0} online
+                    <span className="block mt-1 text-blue-600 dark:text-blue-400">
+                      Thresholds: CPU/Memory/Disk {ALERT_THRESHOLDS.CPU.CRITICAL}%+ Critical
+                    </span>
                   </div>
                 </div>
               </div>
@@ -488,8 +469,8 @@ export default function Dashboard() {
           />
 
           <MetricCard
-            title="Alerts"
-            value={alerts?.length || 0}
+            title="Active Alerts"
+            value={alerts?.filter(alert => !alert.resolved).length || 0}
             icon={AlertTriangle}
             change={{
               value: alerts?.filter(alert => {
@@ -752,7 +733,13 @@ export default function Dashboard() {
                   {((recentTickets && recentTickets.length > 0) ? recentTickets : tickets.slice(0, 5))
                     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                     .slice(0, 4)
-                    .map((ticket) => (
+                    .map((ticket) => {
+                      // Get alert levels for system metrics if available
+                      const cpuLevel = ticket.cpu_usage ? getAlertLevel(ticket.cpu_usage, 'CPU') : 'info';
+                      const memoryLevel = ticket.memory_usage ? getAlertLevel(ticket.memory_usage, 'MEMORY') : 'info';
+                      const diskLevel = ticket.disk_usage ? getAlertLevel(ticket.disk_usage, 'DISK') : 'info';
+                      
+                      return (
                       <div
                         key={ticket.id}
                         className={`flex items-start space-x-3 p-4 rounded-xl border cursor-pointer hover:shadow-md transition-all duration-200 ${
@@ -817,7 +804,8 @@ export default function Dashboard() {
                           <MoreVertical className="w-4 h-4 text-gray-400" />
                         </div>
                       </div>
-                    ))}
+                    );
+                    })}
                 </div>
               ) : (
                 <div className="text-center py-8">

@@ -54,7 +54,7 @@ export default function Agents() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      
+
       if (statusFilter && statusFilter !== "all") params.append("status", statusFilter);
       if (typeFilter && typeFilter !== "all") params.append("type", typeFilter);
       if (searchTerm && searchTerm.trim()) params.append("search", searchTerm.trim());
@@ -72,7 +72,7 @@ export default function Agents() {
         a.download = `managed-systems-${new Date().toISOString().split('T')[0]}.csv`;
         a.click();
         URL.revokeObjectURL(url);
-        
+
         console.log("CSV export completed successfully");
       } else {
         const errorText = await response.text();
@@ -91,7 +91,7 @@ export default function Agents() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      
+
       if (statusFilter && statusFilter !== "all") params.append("status", statusFilter);
       if (typeFilter && typeFilter !== "all") params.append("type", typeFilter);
       if (searchTerm && searchTerm.trim()) params.append("search", searchTerm.trim());
@@ -103,18 +103,18 @@ export default function Agents() {
 
       if (response.ok) {
         const blob = await response.blob();
-        
+
         if (blob.size === 0) {
           throw new Error("Empty file received from server");
         }
-        
+
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
         a.download = `managed-systems-detailed-report-${new Date().toISOString().split('T')[0]}.xlsx`;
         a.click();
         URL.revokeObjectURL(url);
-        
+
         console.log("Detailed report download completed successfully");
       } else {
         const errorText = await response.text();

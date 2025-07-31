@@ -1,27 +1,13 @@
-import { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Progress } from "@/components/ui/progress";
-import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "@/hooks/use-toast";
+import { ALERT_THRESHOLDS } from "@shared/alert-thresholds";
 import { useLocation } from "wouter";
 import SettingsSidebar from "@/components/layout/settings-sidebar";
 import {
@@ -256,58 +242,44 @@ export default function Settings() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="cpu-threshold">CPU Alert Threshold (%)</Label>
-              <Input
-                id="cpu-threshold"
-                type="number"
-                min="50"
-                max="100"
-                value={settings.cpuThreshold}
-                onChange={(e) =>
-                  updateSetting("cpuThreshold", parseInt(e.target.value))
-                }
-              />
-              <p className="text-xs text-muted-foreground">
-                Alert when CPU usage exceeds this threshold
-              </p>
+          <div className="space-y-4">
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Standardized Alert Thresholds</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">CPU Usage:</span>
+                    <div className="mt-1 space-y-1">
+                      <div>Critical: {ALERT_THRESHOLDS.CPU.CRITICAL}%+</div>
+                      <div>High: {ALERT_THRESHOLDS.CPU.HIGH}%+</div>
+                      <div>Warning: {ALERT_THRESHOLDS.CPU.WARNING}%+</div>
+                      <div>Info: {ALERT_THRESHOLDS.CPU.INFO}%+</div>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="font-medium">Memory Usage:</span>
+                    <div className="mt-1 space-y-1">
+                      <div>Critical: {ALERT_THRESHOLDS.MEMORY.CRITICAL}%+</div>
+                      <div>High: {ALERT_THRESHOLDS.MEMORY.HIGH}%+</div>
+                      <div>Warning: {ALERT_THRESHOLDS.MEMORY.WARNING}%+</div>
+                      <div>Info: {ALERT_THRESHOLDS.MEMORY.INFO}%+</div>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="font-medium">Disk Usage:</span>
+                    <div className="mt-1 space-y-1">
+                      <div>Critical: {ALERT_THRESHOLDS.DISK.CRITICAL}%+</div>
+                      <div>High: {ALERT_THRESHOLDS.DISK.HIGH}%+</div>
+                      <div>Warning: {ALERT_THRESHOLDS.DISK.WARNING}%+</div>
+                      <div>Info: {ALERT_THRESHOLDS.DISK.INFO}%+</div>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-3">
+                  These standardized thresholds are used across all System Alerts and agent monitoring views.
+                  Critical alerts automatically trigger ticket creation options.
+                </p>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="memory-threshold">
-                Memory Alert Threshold (%)
-              </Label>
-              <Input
-                id="memory-threshold"
-                type="number"
-                min="50"
-                max="100"
-                value={settings.memoryThreshold}
-                onChange={(e) =>
-                  updateSetting("memoryThreshold", parseInt(e.target.value))
-                }
-              />
-              <p className="text-xs text-muted-foreground">
-                Alert when memory usage exceeds this threshold
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="disk-threshold">Disk Alert Threshold (%)</Label>
-              <Input
-                id="disk-threshold"
-                type="number"
-                min="50"
-                max="100"
-                value={settings.diskThreshold}
-                onChange={(e) =>
-                  updateSetting("diskThreshold", parseInt(e.target.value))
-                }
-              />
-              <p className="text-xs text-muted-foreground">
-                Alert when disk usage exceeds this threshold
-              </p>
-            </div>
-          </div>
 
           <div className="space-y-2">
             <Label htmlFor="collection-interval">
@@ -1025,8 +997,7 @@ export default function Settings() {
           <div className="flex justify-end pt-4 border-t border-neutral-200 dark:border-neutral-700">
             <Button
               onClick={saveSettings}
-              className="flex items-center space-x-2"
-              variant={hasChanges ? "default" : "outline"}
+              className="flex items-center space-x-2"variant={hasChanges ? "default" : "outline"}
             >
               <Save className="w-4 h-4" />              <span>{hasChanges ? "Save Changes" : "Settings Saved"}</span>
             </Button>

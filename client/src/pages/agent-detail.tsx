@@ -24,6 +24,7 @@ import {
   HardDrive,
   Network,
 } from "lucide-react";
+import { ALERT_THRESHOLDS, getAlertLevel, getAlertColor } from "@shared/alert-thresholds";
 
 export default function AgentDetail() {
   const { id } = useParams();
@@ -424,6 +425,10 @@ export default function AgentDetail() {
     }
   };
 
+  const cpuAlertLevel = getAlertLevel(cpuUsage, ALERT_THRESHOLDS.cpu);
+  const memoryAlertLevel = getAlertLevel(memoryUsage, ALERT_THRESHOLDS.memory);
+  const diskAlertLevel = getAlertLevel(diskUsage, ALERT_THRESHOLDS.disk);
+
   return (
     <AgentErrorBoundary
       fallbackTitle="Agent Detail Error"
@@ -554,7 +559,7 @@ export default function AgentDetail() {
             value={`${Math.round(cpuUsage)}%`}
             icon={Cpu}
             progress={cpuUsage}
-            color={cpuUsage >= 90 ? "red" : cpuUsage >= 70 ? "yellow" : "green"}
+            color={getAlertColor(cpuAlertLevel)}
           />
 
           <MetricCard
@@ -562,9 +567,7 @@ export default function AgentDetail() {
             value={`${Math.round(memoryUsage)}%`}
             icon={MemoryStick}
             progress={memoryUsage}
-            color={
-              memoryUsage >= 90 ? "red" : memoryUsage >= 70 ? "yellow" : "green"
-            }
+            color={getAlertColor(memoryAlertLevel)}
           />
 
           <MetricCard
@@ -572,9 +575,7 @@ export default function AgentDetail() {
             value={`${diskUsage}%`}
             icon={HardDrive}
             progress={diskUsage}
-            color={
-              diskUsage >= 90 ? "red" : diskUsage >= 70 ? "yellow" : "green"
-            }
+            color={getAlertColor(diskAlertLevel)}
           />
 
           <MetricCard
