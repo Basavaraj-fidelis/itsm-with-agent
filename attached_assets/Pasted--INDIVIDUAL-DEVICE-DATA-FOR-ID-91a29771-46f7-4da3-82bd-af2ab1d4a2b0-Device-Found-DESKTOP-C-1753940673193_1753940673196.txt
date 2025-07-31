@@ -1,0 +1,1136 @@
+=== INDIVIDUAL DEVICE DATA FOR ID: 91a29771-46f7-4da3-82bd-af2ab1d4a2b0 ===
+Device Found: DESKTOP-CMM8H3C
+=== NETWORK DATA ANALYSIS ===
+Network Data Keys: []
+Network Interfaces Count: 0
+Public IP: Not found
+Network Adapters: []
+=== FULL NETWORK DATA ===
+{}
+=== FULL DEVICE RECORD ===
+{
+  "id": "91a29771-46f7-4da3-82bd-af2ab1d4a2b0",
+  "hostname": "DESKTOP-CMM8H3C",
+  "assigned_user": "basav",
+  "os_name": "Windows",
+  "os_version": "10.0.26100",
+  "ip_address": "192.168.1.80",
+  "status": "online",
+  "last_seen": "2025-07-31T05:42:43.640Z",
+  "created_at": "2025-06-10T08:34:07.271Z",
+  "updated_at": "2025-07-31T05:42:43.640Z",
+  "latest_report": {
+    "cpu_usage": null,
+    "memory_usage": null,
+    "disk_usage": null,
+    "network_io": null,
+    "collected_at": "2025-07-31T05:42:44.146Z",
+    "raw_data": {
+      "timestamp": "2025-07-31T05:42:02.779571Z",
+      "hostname": "DESKTOP-CMM8H3C",
+      "os_info": {
+        "name": "Windows",
+        "version": "10.0.26100",
+        "release": "10",
+        "architecture": "64bit",
+        "machine": "AMD64",
+        "processor": "AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD",
+        "platform_string": "Windows-10-10.0.26100",
+        "boot_time": "2025-07-28T09:38:07.671592",
+        "uptime_seconds": 264835,
+        "build_number": "26100",
+        "display_version": "24H2",
+        "product_name": "Windows 10 Home Single Language",
+        "last_update": {
+          "value": "/Date(1753641000000)/",
+          "DateTime": "Monday, July 28, 2025 12:00:00 AM"
+        },
+        "patches": [
+          {
+            "id": "KB5056579",
+            "installed_on": {
+              "value": "/Date(1747161000000)/",
+              "DateTime": "Wednesday, May 14, 2025 12:00:00 AM"
+            }
+          },
+          {
+            "id": "KB5062660",
+            "installed_on": {
+              "value": "/Date(1753641000000)/",
+              "DateTime": "Monday, July 28, 2025 12:00:00 AM"
+            }
+          },
+          {
+            "id": "KB5064485",
+            "installed_on": {
+              "value": "/Date(1753209000000)/",
+              "DateTime": "Wednesday, July 23, 2025 12:00:00 AM"
+            }
+          }
+        ]
+      },
+      "network": {},
+      "hardware": {
+        "cpu": {
+          "physical_cores": 6,
+          "logical_cores": 12,
+          "current_freq": 2630,
+          "max_freq": 3301,
+          "usage_percent": 14.6,
+          "load_average": null
+        },
+        "memory": {
+          "total": 7887355904,
+          "available": 939995136,
+          "used": 6947360768,
+          "percentage": 88.1,
+          "swap_total": 24696061952,
+          "swap_used": 3546914816,
+          "swap_percentage": 14.4
+        },
+        "system": {
+          "manufacturer": "HP",
+          "model": "Victus by HP Laptop 16-e0xxx",
+          "serial_number": "5CD22576S5",
+          "cpu_model": "AMD Ryzen 5 5600H with Radeon Graphics         "
+        }
+      },
+      "storage": {
+        "disks": [
+          {
+            "device": "C:\\",
+            "mountpoint": "C:\\",
+            "filesystem": "NTFS",
+            "total": 418537259008,
+            "used": 270075158528,
+            "free": 148462100480,
+            "percent": 64.53,
+            "usage": {
+              "total": 418537259008,
+              "used": 270075158528,
+              "free": 148462100480,
+              "percentage": 64.53
+            }
+          },
+          {
+            "device": "E:\\",
+            "mountpoint": "E:\\",
+            "filesystem": "NTFS",
+            "total": 92678385664,
+            "used": 25336893440,
+            "free": 67341492224,
+            "percent": 27.34,
+            "usage": {
+              "total": 92678385664,
+              "used": 25336893440,
+              "free": 67341492224,
+              "percentage": 27.34
+            }
+          }
+        ],
+        "smart_data": []
+      },
+      "software": [
+        {
+          "name": "Office 16 Click-to-Run Extensibility Component",
+          "version": "16.0.18925.20184",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "Office 16 Click-to-Run Extensibility Component 64-bit Registration",
+          "version": "16.0.18925.20184",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "Office 16 Click-to-Run Licensing Component",
+          "version": "16.0.18925.20184",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "MySQL Workbench 8.0 CE",
+          "version": "8.0.36",
+          "vendor": "Oracle Corporation"
+        },
+        {
+          "name": "Microsoft ASP.NET Core 7.0.10 Shared Framework (x86)",
+          "version": "7.0.10.23364",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "Microsoft Visual C++ 2010  x86 Redistributable - 10.0.40219",
+          "version": "10.0.40219",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "Microsoft .NET Runtime - 6.0.33 (x64)",
+          "version": "48.132.18378",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "Microsoft Visual C++ 2022 X86 Additional Runtime - 14.42.34433",
+          "version": "14.42.34433",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "Fresco Logic USB Display Driver",
+          "version": "2.1.34054.0",
+          "vendor": "Fresco Logic"
+        },
+        {
+          "name": "usbipd-win",
+          "version": "2.3.0",
+          "vendor": "Frans van Dorsselaer"
+        },
+        {
+          "name": "Microsoft .NET Host FX Resolver - 7.0.20 (x86)",
+          "version": "56.80.15184",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "Microsoft ASP.NET Core 7.0.10 Shared Framework (x64)",
+          "version": "7.0.10.23364",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "Microsoft Visual C++ 2013 x64 Minimum Runtime - 12.0.40664",
+          "version": "12.0.40664",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "Python Launcher",
+          "version": "3.10.7581.0",
+          "vendor": "Python Software Foundation"
+        },
+        {
+          "name": "ProjectWise Prerequisite Runtimes V8i (SELECTseries 4)",
+          "version": "Incorporated",
+          "vendor": "Bentley Systems"
+        },
+        {
+          "name": "Microsoft .NET Host FX Resolver - 6.0.33 (x64)",
+          "version": "48.132.18378",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "Java 8 Update 391 (64-bit)",
+          "version": "8.0.3910.13",
+          "vendor": "Oracle Corporation"
+        },
+        {
+          "name": "Microsoft Visual C++ 2019 X64 Additional Runtime - 14.28.29325",
+          "version": "14.28.29325",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "Microsoft Visual C++ 2019 X64 Minimum Runtime - 14.28.29325",
+          "version": "14.28.29325",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "Go Programming Language amd64 go1.24.1",
+          "version": "1.24.1",
+          "vendor": "https://go.dev"
+        },
+        {
+          "name": "TightVNC",
+          "version": "2.8.85.0",
+          "vendor": "GlavSoft LLC."
+        },
+        {
+          "name": "Duplicati",
+          "version": "2.1.0.5",
+          "vendor": "Duplicati Team"
+        },
+        {
+          "name": "Microsoft ASP.NET Core 7.0.10 Hosting Bundle Options",
+          "version": "7.0.10.23364",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "KRYSTAL DMS 2022 - Community Edition",
+          "version": "16.0",
+          "vendor": "Primeleaf Consulting [P] Ltd"
+        },
+        {
+          "name": "Update for Windows 10 for x64-based Systems (KB5001716)",
+          "version": "8.93.0.0",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "Microsoft .NET Runtime - 7.0.20 (x64)",
+          "version": "56.80.15184",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "Microsoft Visual C++ 2022 X86 Minimum Runtime - 14.42.34433",
+          "version": "14.42.34433",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "Microsoft Visual C++ 2013 x64 Additional Runtime - 12.0.40664",
+          "version": "12.0.40664",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "Bentley DGN Navigator Control 2.0 x64",
+          "version": "Incorporated",
+          "vendor": "Bentley Systems"
+        },
+        {
+          "name": "Microsoft .NET Host - 7.0.20 (x86)",
+          "version": "56.80.15184",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "Microsoft .NET Host - 7.0.20 (x64)",
+          "version": "56.80.15184",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "Windows Subsystem for Linux",
+          "version": "2.5.9.0",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "Microsoft .NET Host - 6.0.33 (x64)",
+          "version": "48.132.18378",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "Microsoft .NET Runtime - 7.0.20 (x86)",
+          "version": "56.80.15184",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "Microsoft Visual C++ 2008 Redistributable - x86 9.0.30729.17",
+          "version": "9.0.30729",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "Google Chrome",
+          "version": "138.0.7204.169",
+          "vendor": "Google LLC"
+        },
+        {
+          "name": "Node.js",
+          "version": "22.12.0",
+          "vendor": "Node.js Foundation"
+        },
+        {
+          "name": "Microsoft Update Health Tools",
+          "version": "5.72.0.0",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "Windows Subsystem for Linux Update",
+          "version": "5.10.16",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "Java Auto Updater",
+          "version": "2.8.391.13",
+          "vendor": "Oracle Corporation"
+        },
+        {
+          "name": "Microsoft .NET Host FX Resolver - 7.0.20 (x64)",
+          "version": "56.80.15184",
+          "vendor": "Microsoft Corporation"
+        },
+        {
+          "name": "PuTTY release 0.79 (64-bit)",
+          "version": "0.79.0.0",
+          "vendor": "Simon Tatham"
+        }
+      ],
+      "processes": [
+        {
+          "pid": 0,
+          "name": "System Idle Process",
+          "username": "NT AUTHORITY\\SYSTEM",
+          "cpu_percent": 1044.6,
+          "memory_percent": 0.00010386243628039534,
+          "create_time": null
+        },
+        {
+          "pid": 8924,
+          "name": "brave.exe",
+          "username": "DESKTOP-CMM8H3C\\basav",
+          "cpu_percent": 53.6,
+          "memory_percent": 2.0619809474746886,
+          "create_time": "2025-07-28T09:51:01.988048"
+        },
+        {
+          "pid": 24448,
+          "name": "brave.exe",
+          "username": "DESKTOP-CMM8H3C\\basav",
+          "cpu_percent": 29.1,
+          "memory_percent": 6.689623727165843,
+          "create_time": "2025-07-30T15:25:36.980627"
+        },
+        {
+          "pid": 1904,
+          "name": "dwm.exe",
+          "username": "Window Manager\\DWM-1",
+          "cpu_percent": 16.9,
+          "memory_percent": 3.881443106234654,
+          "create_time": "2025-07-28T09:38:20.381282"
+        },
+        {
+          "pid": 4,
+          "name": "System",
+          "username": "NT AUTHORITY\\SYSTEM",
+          "cpu_percent": 9.6,
+          "memory_percent": 0.034014947881829474,
+          "create_time": "2025-07-28T09:38:12.206404"
+        },
+        {
+          "pid": 15284,
+          "name": "chrome.exe",
+          "username": "DESKTOP-CMM8H3C\\basav",
+          "cpu_percent": 5.6,
+          "memory_percent": 6.953382384099907,
+          "create_time": "2025-07-28T12:46:39.955090"
+        },
+        {
+          "pid": 17724,
+          "name": "Duplicati.GUI.TrayIcon.exe",
+          "username": "DESKTOP-CMM8H3C\\basav",
+          "cpu_percent": 2.9,
+          "memory_percent": 0.34072072221783695,
+          "create_time": "2025-07-28T09:53:12.424494"
+        },
+        {
+          "pid": 5308,
+          "name": "Sysmon64.exe",
+          "username": "NT AUTHORITY\\SYSTEM",
+          "cpu_percent": 2.3,
+          "memory_percent": 0.33827995496524765,
+          "create_time": "2025-07-28T09:38:22.207532"
+        },
+        {
+          "pid": 8628,
+          "name": "brave.exe",
+          "username": "DESKTOP-CMM8H3C\\basav",
+          "cpu_percent": 2.1,
+          "memory_percent": 1.8937757319185886,
+          "create_time": "2025-07-28T09:51:00.436956"
+        },
+        {
+          "pid": 10372,
+          "name": "chrome.exe",
+          "username": "DESKTOP-CMM8H3C\\basav",
+          "cpu_percent": 1.7,
+          "memory_percent": 0.9884588060805225,
+          "create_time": "2025-07-28T09:53:46.349774"
+        },
+        {
+          "pid": 3500,
+          "name": "MemCompression",
+          "username": "NT AUTHORITY\\SYSTEM",
+          "cpu_percent": 1.6,
+          "memory_percent": 0.6100360194929021,
+          "create_time": "2025-07-28T09:38:20.938401"
+        },
+        {
+          "pid": 5392,
+          "name": "MsMpEng.exe",
+          "username": "NT AUTHORITY\\SYSTEM",
+          "cpu_percent": 1.5,
+          "memory_percent": 2.288816508311072,
+          "create_time": "2025-07-28T09:38:22.240940"
+        },
+        {
+          "pid": 14024,
+          "name": "svchost.exe",
+          "username": "NT AUTHORITY\\SYSTEM",
+          "cpu_percent": 1.5,
+          "memory_percent": 0.45512519578069244,
+          "create_time": "2025-07-30T17:49:07.321208"
+        },
+        {
+          "pid": 4660,
+          "name": "WmiPrvSE.exe",
+          "username": "NT AUTHORITY\\SYSTEM",
+          "cpu_percent": 1.2,
+          "memory_percent": 0.4436483965717087,
+          "create_time": "2025-07-28T09:38:21.681426"
+        },
+        {
+          "pid": 25740,
+          "name": "brave.exe",
+          "username": "DESKTOP-CMM8H3C\\basav",
+          "cpu_percent": 0.8,
+          "memory_percent": 1.8737302817164723,
+          "create_time": "2025-07-30T16:55:56.659465"
+        },
+        {
+          "pid": 30172,
+          "name": "chrome.exe",
+          "username": "DESKTOP-CMM8H3C\\basav",
+          "cpu_percent": 0.8,
+          "memory_percent": 1.453087414780871,
+          "create_time": "2025-07-30T11:00:10.573891"
+        },
+        {
+          "pid": 1356,
+          "name": "csrss.exe",
+          "username": "NT AUTHORITY\\SYSTEM",
+          "cpu_percent": 0.7,
+          "memory_percent": 0.02606947150637923,
+          "create_time": "2025-07-28T09:38:19.847712"
+        },
+        {
+          "pid": 1936,
+          "name": "explorer.exe",
+          "username": "DESKTOP-CMM8H3C\\basav",
+          "cpu_percent": 0.6,
+          "memory_percent": 1.8587221596739552,
+          "create_time": "2025-07-28T09:50:37.389597"
+        },
+        {
+          "pid": 6640,
+          "name": "brave.exe",
+          "username": "DESKTOP-CMM8H3C\\basav",
+          "cpu_percent": 0.6,
+          "memory_percent": 0.34871812981142736,
+          "create_time": "2025-07-28T09:51:01.991780"
+        },
+        {
+          "pid": 28928,
+          "name": "chrome.exe",
+          "username": "DESKTOP-CMM8H3C\\basav",
+          "cpu_percent": 0.6,
+          "memory_percent": 4.321092799009567,
+          "create_time": "2025-07-30T11:00:26.809228"
+        }
+      ],
+      "usb_devices": [
+        {
+          "description": "USB Composite Device",
+          "device_id": "USB\\VID_0408&PID_5425\\0001"
+        },
+        {
+          "description": "USB Composite Device",
+          "device_id": "USB\\VID_18D1&PID_4EE8\\A92F9983"
+        },
+        {
+          "description": "USB Mass Storage Device",
+          "device_id": "USB\\VID_346D&PID_5678\\0525151317421634830"
+        }
+      ],
+      "virtualization": {
+        "is_virtual": false,
+        "hypervisor": "unknown",
+        "detection_methods": []
+      },
+      "system_health": {
+        "cpu_temperature": null,
+        "disk_health": {
+          "status": "healthy",
+          "note": "Basic disk health check - see storage section for SMART data"
+        },
+        "memory_pressure": {
+          "pressure_level": "medium",
+          "usage_percent": 88.4
+        },
+        "system_load": null
+      },
+      "security": {
+        "firewall_status": "enabled",
+        "antivirus_status": "enabled",
+        "last_scan": "2025-07-28 10:59:52 / N/A",
+        "last_update_check": "Thursday, July 31, 2025 5:36:14 AM",
+        "automatic_updates": "Managed by policy or unknown"
+      },
+      "assigned_user": "DESKTOP-CMM8H3C$",
+      "active_ports": [
+        {
+          "LocalPort": 12617,
+          "RemotePort": 443
+        },
+        {
+          "LocalPort": 8200,
+          "RemotePort": 50593
+        },
+        {
+          "LocalPort": 12620,
+          "RemotePort": 443
+        },
+        {
+          "LocalPort": 12299,
+          "RemotePort": 7680
+        },
+        {
+          "LocalPort": 12615,
+          "RemotePort": 443
+        },
+        {
+          "LocalPort": 50593,
+          "RemotePort": 8200
+        },
+        {
+          "LocalPort": 31788,
+          "RemotePort": 443
+        },
+        {
+          "LocalPort": 12287,
+          "RemotePort": 7680
+        },
+        {
+          "LocalPort": 12514,
+          "RemotePort": 443
+        },
+        {
+          "LocalPort": 31874,
+          "RemotePort": 443
+        },
+        {
+          "LocalPort": 49673,
+          "RemotePort": 49672
+        },
+        {
+          "LocalPort": 32060,
+          "RemotePort": 5228
+        },
+        {
+          "LocalPort": 12286,
+          "RemotePort": 7680
+        },
+        {
+          "LocalPort": 12298,
+          "RemotePort": 7680
+        },
+        {
+          "LocalPort": 31902,
+          "RemotePort": 443
+        },
+        {
+          "LocalPort": 31836,
+          "RemotePort": 443
+        },
+        {
+          "LocalPort": 11980,
+          "RemotePort": 443
+        },
+        {
+          "LocalPort": 32045,
+          "RemotePort": 443
+        },
+        {
+          "LocalPort": 49675,
+          "RemotePort": 49676
+        },
+        {
+          "LocalPort": 11982,
+          "RemotePort": 443
+        },
+        {
+          "LocalPort": 49676,
+          "RemotePort": 49675
+        },
+        {
+          "LocalPort": 12616,
+          "RemotePort": 443
+        },
+        {
+          "LocalPort": 12293,
+          "RemotePort": 7680
+        },
+        {
+          "LocalPort": 12289,
+          "RemotePort": 7680
+        },
+        {
+          "LocalPort": 49672,
+          "RemotePort": 49673
+        },
+        {
+          "LocalPort": 31987,
+          "RemotePort": 443
+        },
+        {
+          "LocalPort": 12283,
+          "RemotePort": 7680
+        },
+        {
+          "LocalPort": 32062,
+          "RemotePort": 443
+        },
+        {
+          "LocalPort": 32058,
+          "RemotePort": 443
+        },
+        {
+          "LocalPort": 31931,
+          "RemotePort": 443
+        },
+        {
+          "LocalPort": 32059,
+          "RemotePort": 443
+        },
+        {
+          "LocalPort": 31761,
+          "RemotePort": 443
+        },
+        {
+          "LocalPort": 12515,
+          "RemotePort": 443
+        }
+      ],
+      "windows_updates": {
+        "available_updates": [],
+        "installed_updates": [
+          {
+            "Date": "2025-07-31 05:31:20",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.433.189.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "Windows Defender"
+          },
+          {
+            "Date": "2025-07-30 05:26:49",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.433.165.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "Windows Defender"
+          },
+          {
+            "Date": "2025-07-29 04:51:42",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.433.130.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-28 04:19:15",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.433.110.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "Windows Defender"
+          },
+          {
+            "Date": "2025-07-28 04:19:15",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.433.110.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-25 05:13:35",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.433.54.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-24 07:25:29",
+            "Title": "Update for Microsoft Defender Antivirus antimalware platform - KB4052623 (Version 4.18.25060.7) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-24 05:24:04",
+            "Title": "Update for Microsoft Defender Antivirus antimalware platform - KB4052623 (Version 4.18.25060.7) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "Windows Defender"
+          },
+          {
+            "Date": "2025-07-24 05:23:43",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.433.28.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-23 06:15:23",
+            "Title": "2025-07 Cumulative Update Preview for Windows 11 Version 24H2 for x64-based Systems (KB5062660) (26100.4770)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-23 05:20:06",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.433.4.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-22 05:05:02",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.814.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "Windows Defender"
+          },
+          {
+            "Date": "2025-07-22 04:29:17",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.813.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-21 05:21:02",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.778.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "Windows Defender"
+          },
+          {
+            "Date": "2025-07-21 05:08:18",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.776.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-18 04:55:15",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.705.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-16 06:23:00",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.655.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-15 18:55:45",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.649.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "Windows Defender"
+          },
+          {
+            "Date": "2025-07-15 18:21:30",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.641.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-15 06:20:29",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.631.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-14 18:18:12",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.622.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-14 06:17:07",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.609.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-11 05:17:04",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.544.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "Windows Defender"
+          },
+          {
+            "Date": "2025-07-09 05:30:33",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.489.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-08 17:23:54",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.476.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-08 05:22:03",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.464.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-08 05:07:29",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.452.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-07 05:06:44",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.442.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "Windows Defender"
+          },
+          {
+            "Date": "2025-07-05 09:32:06",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.419.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-04 16:04:38",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.404.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "Windows Defender"
+          },
+          {
+            "Date": "2025-07-04 07:27:48",
+            "Title": "HP Inc. - SoftwareComponent - 1.79.4265.0",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-04 06:09:22",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.393.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-03 18:18:59",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.379.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-03 05:05:40",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.365.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-02 12:17:56",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.348.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "Windows Defender"
+          },
+          {
+            "Date": "2025-07-02 05:49:33",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.342.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-01 17:49:55",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.331.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-07-01 05:47:19",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.321.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-06-30 12:11:22",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.306.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "Windows Defender"
+          },
+          {
+            "Date": "2025-06-30 05:34:58",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.299.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-06-30 05:16:12",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.289.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-06-29 04:37:52",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.289.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "Windows Defender"
+          },
+          {
+            "Date": "2025-06-27 05:09:28",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.250.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-06-26 09:49:40",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.232.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "Windows Defender"
+          },
+          {
+            "Date": "2025-06-25 08:11:41",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.206.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          },
+          {
+            "Date": "2025-06-25 06:34:53",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.208.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "Windows Defender"
+          },
+          {
+            "Date": "2025-06-24 05:59:04",
+            "Title": "Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.431.183.0) - Current Channel (Broad)",
+            "ResultCode": 2,
+            "ClientApplicationID": "MoUpdateOrchestrator"
+          }
+        ],
+        "last_search_date": "2025-07-31 05:36:14",
+        "automatic_updates_enabled": true
+      }
+    }
+  }
+}
+=== END INDIVIDUAL DEVICE DATA ===
+5:42:50 AM [express] GET /api/devices/91a29771-46f7-4da3-82bd-af2ab1d4a2b0 304 in 673ms :: {"id":"91…
+Authenticating token for /insights/device/91a29771-46f7-4da3-82bd-af2ab1d4a2b0
+Decoded token: {
+  userId: 'e33b16c2-ba02-4a88-bec3-2055cc6e1e32',
+  id: 'e33b16c2-ba02-4a88-bec3-2055cc6e1e32',
+  email: 'admin@company.com',
+  role: 'admin',
+  iat: 1753874785,
+  exp: 1753961185
+}
+Authenticating token for /api/devices/91a29771-46f7-4da3-82bd-af2ab1d4a2b0
+Decoded token: {
+  userId: 'e33b16c2-ba02-4a88-bec3-2055cc6e1e32',
+  id: 'e33b16c2-ba02-4a88-bec3-2055cc6e1e32',
+  email: 'admin@company.com',
+  role: 'admin',
+  iat: 1753874785,
+  exp: 1753961185
+}
+Authenticating token for /insights/device/91a29771-46f7-4da3-82bd-af2ab1d4a2b0
+Decoded token: {
+  userId: 'e33b16c2-ba02-4a88-bec3-2055cc6e1e32',
+  id: 'e33b16c2-ba02-4a88-bec3-2055cc6e1e32',
+  email: 'admin@company.com',
+  role: 'admin',
+  iat: 1753874785,
+  exp: 1753961185
+}
+Fetching USB devices for device: 91a29771-46f7-4da3-82bd-af2ab1d4a2b0
+Authenticating token for /insights/device/91a29771-46f7-4da3-82bd-af2ab1d4a2b0
+Decoded token: {
+  userId: 'e33b16c2-ba02-4a88-bec3-2055cc6e1e32',
+  id: 'e33b16c2-ba02-4a88-bec3-2055cc6e1e32',
+  email: 'admin@company.com',
+  role: 'admin',
+  iat: 1753874785,
+  exp: 1753961185
+}
+Authenticating token for /insights/device/91a29771-46f7-4da3-82bd-af2ab1d4a2b0
+Decoded token: {
+  userId: 'e33b16c2-ba02-4a88-bec3-2055cc6e1e32',
+  id: 'e33b16c2-ba02-4a88-bec3-2055cc6e1e32',
+  email: 'admin@company.com',
+  role: 'admin',
+  iat: 1753874785,
+  exp: 1753961185
+}
+Found 3 USB devices: [
+  {
+    id: 'c0695319-22c2-4c61-b7b4-4abc42f7ed85',
+    device_id: '91a29771-46f7-4da3-82bd-af2ab1d4a2b0',
+    device_identifier: '346D:5678:0525151317421634830',
+    description: 'USB Mass Storage Device',
+    vendor_id: '346D',
+    product_id: '5678',
+    manufacturer: null,
+    serial_number: '0525151317421634830',
+    device_class: null,
+    location: null,
+    speed: null,
+    first_seen: 2025-06-10T08:34:08.002Z,
+    last_seen: 2025-07-03T11:08:17.058Z,
+    is_connected: true,
+    raw_data: {
+      description: 'USB Mass Storage Device',
+      device_id: 'USB\\VID_346D&PID_5678\\0525151317421634830'
+    }
+  },
+  {
+    id: '941ddf33-75c6-49d4-854b-3add929ff0da',
+    device_id: '91a29771-46f7-4da3-82bd-af2ab1d4a2b0',
+    device_identifier: '18D1:4EE8:A92F9983',
+    description: 'USB Composite Device',
+    vendor_id: '18D1',
+    product_id: '4EE8',
+    manufacturer: null,
+    serial_number: 'A92F9983',
+    device_class: null,
+    location: null,
+    speed: null,
+    first_seen: 2025-06-29T04:36:55.363Z,
+    last_seen: 2025-07-03T11:08:16.932Z,
+    is_connected: true,
+    raw_data: {
+      description: 'USB Composite Device',
+      device_id: 'USB\\VID_18D1&PID_4EE8\\A92F9983'
+    }
+  },
+  {
+    id: '92652d24-a435-418f-9196-e0ef0e948727',
+    device_id: '91a29771-46f7-4da3-82bd-af2ab1d4a2b0',
+    device_identifier: '0408:5425:0001',
+    description: 'USB Composite Device',
+    vendor_id: '0408',
+    product_id: '5425',
+    manufacturer: null,
+    serial_number: '0001',
+    device_class: null,
+    location: null,
+    speed: null,
+    first_seen: 2025-06-10T08:34:07.876Z,
+    last_seen: 2025-07-03T11:08:16.801Z,
+    is_connected: true,
+    raw_data: {
+      description: 'USB Composite Device',
+      device_id: 'USB\\VID_0408&PID_5425\\0001'
+    }
+  }
+]
+5:42:50 AM [express] GET /api/devices/91a29771-46f7-4da3-82bd-af2ab1d4a2b0/usb-devices 304 in 69ms :…
+Authenticating token for /insights/device/91a29771-46f7-4da3-82bd-af2ab1d4a2b0
+Decoded token: {
+  userId: 'e33b16c2-ba02-4a88-bec3-2055cc6e1e32',
+  id: 'e33b16c2-ba02-4a88-bec3-2055cc6e1e32',
+  email: 'admin@company.com',
+  role: 'admin',
+  iat: 1753874785,
+  exp: 1753961185
+}
+Authenticating token for /insights/device/91a29771-46f7-4da3-82bd-af2ab1d4a2b0
+Decoded token: {
+  userId: 'e33b16c2-ba02-4a88-bec3-2055cc6e1e32',
+  id: 'e33b16c2-ba02-4a88-bec3-2055cc6e1e32',
+  email: 'admin@company.com',
+  role: 'admin',
+  iat: 1753874785,
+  exp: 1753961185
+}
+Authenticating token for /insights/device/91a29771-46f7-4da3-82bd-af2ab1d4a2b0
+Decoded token: {
+  userId: 'e33b16c2-ba02-4a88-bec3-2055cc6e1e32',
+  id: 'e33b16c2-ba02-4a88-bec3-2055cc6e1e32',
+  email: 'admin@company.com',
+  role: 'admin',
+  iat: 1753874785,
+  exp: 1753961185
+}
+Authenticating token for /insights/device/91a29771-46f7-4da3-82bd-af2ab1d4a2b0
+Decoded token: {
+  userId: 'e33b16c2-ba02-4a88-bec3-2055cc6e1e32',
+  id: 'e33b16c2-ba02-4a88-bec3-2055cc6e1e32',
+  email: 'admin@company.com',
+  role: 'admin',
+  iat: 1753874785,
+  exp: 1753961185
+}
+Authenticating token for /insights/device/91a29771-46f7-4da3-82bd-af2ab1d4a2b0
+Decoded token: {
+  userId: 'e33b16c2-ba02-4a88-bec3-2055cc6e1e32',
+  id: 'e33b16c2-ba02-4a88-bec3-2055cc6e1e32',
+  email: 'admin@company.com',
+  role: 'admin',
+  iat: 1753874785,
+  exp: 1753961185
+}
+=== INDIVIDUAL DEVICE DATA FOR ID: 91a29771-46f7-4da3-82bd-af2ab1d4a2b0 ===
+Device Found: DESKTOP-CMM8H3C
+=== NETWORK DATA ANALYSIS ===
+Network Data Keys: []
+Network Interfaces Count: 0
+Public IP: Not found
+Network Adapters: []
+=== FULL NETWORK DATA ===
+{}
