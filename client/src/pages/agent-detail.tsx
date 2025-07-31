@@ -24,7 +24,7 @@ import {
   HardDrive,
   Network,
 } from "lucide-react";
-import { ALERT_THRESHOLDS, getAlertLevel, getAlertColor } from "@shared/alert-thresholds";
+import { ALERT_THRESHOLDS, getAlertLevelSafe, getAlertColor } from "@shared/alert-thresholds";
 
 export default function AgentDetail() {
   const { id } = useParams();
@@ -64,6 +64,8 @@ export default function AgentDetail() {
     enabled: !!id,
     retry: false,
     staleTime: 300000, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const { data: advancedMetrics } = useQuery({
@@ -79,6 +81,8 @@ export default function AgentDetail() {
     enabled: !!id,
     retry: false,
     staleTime: 300000, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   // Auto-refresh effect - must be called at top level
@@ -447,9 +451,9 @@ export default function AgentDetail() {
     }
   };
 
-  const cpuAlertLevel = getAlertLevel(cpuUsage, 'cpu');
-  const memoryAlertLevel = getAlertLevel(memoryUsage, 'memory');
-  const diskAlertLevel = getAlertLevel(diskUsage, 'disk');
+  const cpuAlertLevel = getAlertLevelSafe(cpuUsage, 'cpu');
+  const memoryAlertLevel = getAlertLevelSafe(memoryUsage, 'memory');
+  const diskAlertLevel = getAlertLevelSafe(diskUsage, 'disk');
 
   return (
     <AgentErrorBoundary
