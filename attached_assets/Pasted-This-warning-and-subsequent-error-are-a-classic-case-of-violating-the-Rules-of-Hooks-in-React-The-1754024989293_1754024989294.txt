@@ -1,0 +1,259 @@
+This warning and subsequent error are a classic case of violating the "Rules of Hooks" in React. The error message `Warning: React has detected a change in the order of Hooks called by PerformanceAnalyticsContent` is the key indicator.
+
+The stack trace points to `performance-analytics.tsx:244`, which is where the first `useMemo` call for `onlineDevices` is located:
+
+```jsx
+// Line 244 in your code
+  // ALWAYS call useMemo hooks to maintain hook order consistency
+  const onlineDevices = useMemo(() => {
+    const deviceList = devices || [];
+    return deviceList.filter((d: any) => d.status === "online");
+  }, [devices]);
+```
+
+The error message also shows that on the "Previous render", there was an `undefined` hook at line 46 in the list, but on the "Next render", there was a `useMemo` hook. This strongly suggests that a conditional render path is skipping the `useMemo` calls on some renders but not others.
+
+Looking at your code, the problem is in the conditional returns for loading and error states. You have blocks like this:
+
+```jsx
+// Incorrect conditional returns
+if (devicesLoading) {
+  return (
+    // ... loading UI
+  );
+}
+
+if (devicesError) {
+  return (
+    // ... error UI
+  );
+}
+
+// ... other conditional returns
+// This is the problem. These return statements prevent hooks below them from being called.
+// For example, if devicesLoading is true, none of the useMemo hooks below are called.
+
+// ... all your useMemo and other hooks are here
+const onlineDevices = useMemo(() => { /* ... */ }, [devices]);
+const offlineDevices = useMemo(() => { /* ... */ }, [devices]);
+// ... etc.
+```
+
+When `devicesLoading` is `true`, React renders the loading UI and returns early. The `useMemo` calls that come after this conditional `return` statement are never reached. Then, when `devicesLoading` becomes `false` and the component re-renders, the `return` statement is skipped, and React now encounters the `useMemo` calls for the first time.
+
+React sees this as a change in the number of hooks being called between renders, which is a strict violation of the rules. Hooks must be called in the exact same order on every render.
+
+### How to Fix It
+
+The solution is to move all of your hook calls to the top level of your component, before any conditional return statements. The order of hooks must be static and unchanging.
+
+Here's a refactored version of your `PerformanceAnalyticsContent` component to correct this issue:
+
+```jsx
+function PerformanceAnalyticsContent() {
+  const [selectedDevice, setSelectedDevice] = useState("");
+  const [timeRange, setTimeRange] = useState("24h");
+  const [refreshInterval, setRefreshInterval] = useState(30000);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+
+  // All useQuery, useEffect, and useMemo hooks MUST be declared here,
+  // before any conditional 'if' statements that return JSX.
+
+  const {
+    data: devices,
+    isLoading: devicesLoading,
+    isError: devicesError,
+    refetch: refetchDevices,
+  } = useQuery({
+    queryKey: ["devices"],
+    queryFn: () => api.getDevices(),
+    retry: 1,
+    refetchOnWindowFocus: false,
+    refetchInterval: autoRefresh ? refreshInterval : false,
+    staleTime: 30000,
+    cacheTime: 300000,
+  });
+
+  const {
+    data: insights,
+    isError: insightsError,
+    refetch: refetchInsights,
+  } = useQuery({
+    queryKey: ["performance-insights", selectedDevice],
+    queryFn: () => api.getPerformanceInsights(selectedDevice),
+    enabled: !!selectedDevice,
+    retry: 1,
+    refetchInterval: autoRefresh && selectedDevice ? refreshInterval : false,
+  });
+
+  const { data: predictions, isError: predictionsError } = useQuery({
+    queryKey: ["performance-predictions", selectedDevice],
+    queryFn: () => api.getPerformancePredictions(selectedDevice),
+    enabled: !!selectedDevice,
+    retry: 1,
+  });
+
+  const { data: advancedAnalytics, isError: advancedError } = useQuery({
+    queryKey: ["advanced-analytics", selectedDevice],
+    queryFn: () => api.getAdvancedDeviceAnalytics(selectedDevice),
+    enabled: !!selectedDevice,
+    retry: 1,
+    refetchInterval: autoRefresh && selectedDevice ? refreshInterval : false,
+  });
+
+  const {
+    data: overviewData,
+    isLoading: overviewLoading,
+    error: overviewError,
+  } = useQuery({
+    queryKey: ["performance", "overview"],
+    queryFn: () => api.getPerformanceOverview(),
+    retry: 1,
+    retryDelay: 1000,
+  });
+
+  // Set first device as default when devices load
+  // This useEffect depends on 'devices' and 'selectedDevice', so it should be after the useQuery.
+  useEffect(() => {
+    if (devices && devices.length > 0 && !selectedDevice) {
+      setSelectedDevice(devices[0].id);
+    }
+  }, [devices, selectedDevice]);
+
+  // All useMemo hooks must also be here, before any conditional returns.
+  const onlineDevices = useMemo(() => {
+    const deviceList = devices || [];
+    return deviceList.filter((d: any) => d.status === "online");
+  }, [devices]);
+
+  const offlineDevices = useMemo(() => {
+    const deviceList = devices || [];
+    return deviceList.filter((d: any) => d.status === "offline");
+  }, [devices]);
+
+  const devicesWithData = useMemo(() => {
+    const onlineList = onlineDevices || [];
+    return onlineList.filter(
+      (d: any) =>
+        d.latest_report &&
+        (d.latest_report.cpu_usage !== null ||
+          d.latest_report.memory_usage !== null ||
+          d.latest_report.disk_usage !== null),
+    );
+  }, [onlineDevices]);
+
+  const criticalDevices = useMemo(() => {
+    const dataDevices = devicesWithData || [];
+    return dataDevices.filter(
+      (d: any) =>
+        parseFloat(d.latest_report?.cpu_usage || "0") > 90 ||
+        parseFloat(d.latest_report?.memory_usage || "0") > 90 ||
+        parseFloat(d.latest_report?.disk_usage || "0") > 95,
+    );
+  }, [devicesWithData]);
+
+  const sortedCpuDevices = useMemo(() => {
+    const deviceList = onlineDevices || [];
+    return [...deviceList]
+      .filter(device => device.latest_report)
+      .sort((a, b) => {
+        return (
+          parseFloat(b.latest_report?.cpu_usage || "0") -
+          parseFloat(a.latest_report?.cpu_usage || "0")
+        );
+      })
+      .slice(0, deviceList.length > 50 ? 10 : 5);
+  }, [onlineDevices]);
+
+  const sortedMemoryDevices = useMemo(() => {
+    const deviceList = onlineDevices || [];
+    return [...deviceList]
+      .filter(device => device.latest_report)
+      .sort((a, b) => {
+        return (
+          parseFloat(b.latest_report?.memory_usage || "0") -
+          parseFloat(a.latest_report?.memory_usage || "0")
+        );
+      })
+      .slice(0, deviceList.length > 50 ? 10 : 5);
+  }, [onlineDevices]);
+
+  const sortedDiskDevices = useMemo(() => {
+    const deviceList = onlineDevices || [];
+    return [...deviceList]
+      .filter(device => device.latest_report)
+      .sort((a, b) => {
+        return (
+          parseFloat(b.latest_report?.disk_usage || "0") -
+          parseFloat(a.latest_report?.disk_usage || "0")
+        );
+      })
+      .slice(0, deviceList.length > 50 ? 10 : 5);
+  }, [onlineDevices]);
+
+  const avgMetrics = useMemo(() => {
+    const dataDevices = devicesWithData || [];
+    // ... (rest of avgMetrics calculation)
+  }, [devicesWithData]);
+
+  // Now, all conditional rendering happens AFTER all hooks have been called.
+  // This ensures the order of hooks is consistent across every render.
+
+  // Handle loading states
+  if (devicesLoading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <RefreshCw className="w-8 h-8 animate-spin" />
+          <span className="ml-2">Loading performance data...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (devicesError) {
+    return (
+      <div className="p-6 space-y-6">
+        <Alert variant="destructive">
+          <XCircle className="h-4 w-4" />
+          <AlertTitle>Error Loading Data</AlertTitle>
+          <AlertDescription>
+            Failed to load device data. Please refresh the page and try again.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (overviewLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (overviewError) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <h3 className="text-red-800 font-medium">
+            Error Loading Performance Analytics
+          </h3>
+          <p className="text-red-600 text-sm mt-1">
+            Unable to load performance data. Please try again later.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Rest of your component's JSX
+  // ...
+  return (
+    // ...
+  );
+}
+```
+
+By moving all the `useQuery`, `useEffect`, and `useMemo` calls to the top of the component function, they will be called on every render, regardless of whether the component is loading, in an error state, or fully rendered. This fixes the hook order problem and resolves the React warning and error.
