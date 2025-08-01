@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -130,6 +131,9 @@ function PerformanceAnalyticsContent() {
   const [refreshInterval, setRefreshInterval] = useState(30000); // 30 seconds
   const [autoRefresh, setAutoRefresh] = useState(true);
 
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
+  // This ensures consistent hook order across all renders
+
   const {
     data: devices,
     isLoading: devicesLoading,
@@ -189,55 +193,6 @@ function PerformanceAnalyticsContent() {
       setSelectedDevice(devices[0].id);
     }
   }, [devices, selectedDevice]);
-
-  // Handle loading states
-  if (devicesLoading) {
-    return (
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-center h-64">
-          <RefreshCw className="w-8 h-8 animate-spin" />
-          <span className="ml-2">Loading performance data...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (devicesError) {
-    return (
-      <div className="p-6 space-y-6">
-        <Alert variant="destructive">
-          <XCircle className="h-4 w-4" />
-          <AlertTitle>Error Loading Data</AlertTitle>
-          <AlertDescription>
-            Failed to load device data. Please refresh the page and try again.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  if (overviewLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (overviewError) {
-    return (
-      <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <h3 className="text-red-800 font-medium">
-            Error Loading Performance Analytics
-          </h3>
-          <p className="text-red-600 text-sm mt-1">
-            Unable to load performance data. Please try again later.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   // Calculate comprehensive metrics with better error handling
   // ALWAYS call useMemo hooks to maintain hook order consistency
@@ -357,6 +312,58 @@ function PerformanceAnalyticsContent() {
           : 0,
     };
   }, [devicesWithData]);
+
+  // ALL CONDITIONAL RETURNS MUST COME AFTER ALL HOOKS
+  // This ensures hooks are called in the same order every render
+
+  // Handle loading states
+  if (devicesLoading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <RefreshCw className="w-8 h-8 animate-spin" />
+          <span className="ml-2">Loading performance data...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (devicesError) {
+    return (
+      <div className="p-6 space-y-6">
+        <Alert variant="destructive">
+          <XCircle className="h-4 w-4" />
+          <AlertTitle>Error Loading Data</AlertTitle>
+          <AlertDescription>
+            Failed to load device data. Please refresh the page and try again.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (overviewLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (overviewError) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <h3 className="text-red-800 font-medium">
+            Error Loading Performance Analytics
+          </h3>
+          <p className="text-red-600 text-sm mt-1">
+            Unable to load performance data. Please try again later.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const handleRefresh = () => {
     refetchDevices();
