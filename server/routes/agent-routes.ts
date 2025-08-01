@@ -167,33 +167,46 @@ export function registerAgentRoutes(
         const connectionInfo = {
           hostname: device.hostname,
           ip_address: device.ip_address,
-          port: port,
+          port,
           connection_type,
-          instructions:
-            instructions[connection_type] ||
-            "Ensure remote access is enabled on the target machine",
-          teamviewer_id:
-            connection_type === "teamviewer" ? device.teamviewer_id : undefined,
+          instructions: instructions[connection_type] || "Ensure remote access is enabled on the target machine",
+          teamviewer_id: connection_type === "teamviewer" ? device.teamviewer_id : undefined,
           is_private_ip: isPrivateIP,
         };
 
-        // Add tunnel guidance for private IPs
         if (isPrivateIP) {
           connectionInfo.tunnel_required = true;
+          connectionInfo.reverse_tunnel_command = `ssh -R 5901:localhost:${port} itsm-user@0.0.0.0`;
+          connectionInfo.tunnel_instructions = [
+            {
+              step: 1,
+              title: "Setup Reverse SSH Tunnel from Agent",
+              description: "Run this command on the Windows endpoint to create a reverse tunnel",
+              command: `ssh -R 5901:localhost:${port} itsm-user@0.0.0.0`,
+              notes: "This creates a tunnel from the remote machine back to this server"
+            },
+            {
+              step: 2,
+              title: "Connect via Tunnel",
+              description: "Once tunnel is established, connect to localhost:5901",
+              local_connection: "localhost:5901",
+              notes: "The remote VNC server will be accessible via the reverse tunnel"
+            }
+          ];
           connectionInfo.tunnel_suggestions = [
             {
-              method: "ssh_tunnel",
-              command: `ssh -L ${port}:${device.ip_address}:${port} ${jump_host || "your_jump_host"}`,
-              description: "Create SSH tunnel via jump host",
+              method: "reverse_ssh_tunnel",
+              command: `ssh -R 5901:localhost:${port} itsm-user@0.0.0.0`,
+              description: "Create reverse SSH tunnel from Windows endpoint to this server",
             },
             {
               method: "vpn",
-              description:
-                "Connect to company VPN first, then access private IP directly",
+              description: "Connect to company VPN first, then access private IP directly",
             },
             {
-              method: "reverse_proxy",
-              description: "Deploy reverse proxy on public server",
+              method: "ssh_tunnel",
+              command: `ssh -L ${port}:${device.ip_address}:${port} ${jump_host || "your_jump_host"}`,
+              description: "Create SSH tunnel via jump host (alternative method)",
             },
           ];
         }
@@ -330,42 +343,42 @@ export function registerAgentRoutes(
       console.log("=== COMPLETE SYSTEM REPORT RECEIVED ===");
       console.log("Timestamp:", reportData.timestamp);
       console.log("Hostname:", reportData.hostname);
-      
+
       console.log("\n=== OS INFORMATION ===");
       console.log(JSON.stringify(reportData.os_info, null, 2));
-      
+
       console.log("\n=== NETWORK INFORMATION ===");
       console.log(JSON.stringify(reportData.network, null, 2));
-      
+
       console.log("\n=== HARDWARE INFORMATION ===");
       console.log(JSON.stringify(reportData.hardware, null, 2));
-      
+
       console.log("\n=== STORAGE INFORMATION ===");
       console.log(JSON.stringify(reportData.storage, null, 2));
-      
+
       console.log("\n=== SOFTWARE (First 5 items) ===");
       console.log(JSON.stringify(reportData.software?.slice(0, 5), null, 2));
       console.log(`Total Software Count: ${reportData.software?.length || 0}`);
-      
+
       console.log("\n=== PROCESSES (First 5 items) ===");
       console.log(JSON.stringify(reportData.processes?.slice(0, 5), null, 2));
       console.log(`Total Processes Count: ${reportData.processes?.length || 0}`);
-      
+
       console.log("\n=== USB DEVICES ===");
       console.log(JSON.stringify(reportData.usb_devices, null, 2));
-      
+
       console.log("\n=== VIRTUALIZATION INFO ===");
       console.log(JSON.stringify(reportData.virtualization, null, 2));
-      
+
       console.log("\n=== SYSTEM HEALTH ===");
       console.log(JSON.stringify(reportData.system_health, null, 2));
-      
+
       console.log("\n=== SECURITY INFO ===");
       console.log(JSON.stringify(reportData.security, null, 2));
-      
+
       console.log("\n=== ACTIVE PORTS ===");
       console.log(JSON.stringify(reportData.active_ports, null, 2));
-      
+
       console.log("=== END COMPLETE SYSTEM REPORT ===\n");
 
       // Verify network data before storing
@@ -373,11 +386,11 @@ export function registerAgentRoutes(
       console.log("Network interfaces count:", reportData.network?.interfaces?.length || 0);
       console.log("Network public IP:", reportData.network?.public_ip || "Not provided");
       console.log("Network adapters count:", Object.keys(reportData.network?.network_adapters || {}).length);
-      
+
       if (!reportData.network || Object.keys(reportData.network).length === 0) {
         console.log("⚠️  WARNING: Empty network data received from agent!");
       }
-      
+
       // Extract metrics from the collected data with multiple fallback sources
       let cpuUsage = null;
       let memoryUsage = null;
@@ -404,7 +417,7 @@ export function registerAgentRoutes(
         const primaryDisk = reportData.storage.disks.find(disk => 
           disk.device === 'C:\\' || disk.mountpoint === 'C:\\'
         ) || reportData.storage.disks[0];
-        
+
         if (primaryDisk?.percent) {
           diskUsage = primaryDisk.percent.toString();
         }

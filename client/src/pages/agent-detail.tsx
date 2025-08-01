@@ -239,17 +239,44 @@ export default function AgentDetail() {
             } catch (vncError) {
               console.warn('Could not start VNC server:', vncError);
             }
+
+            // Check if this is a private IP that needs reverse tunnel
+            if (connection_info.is_private_ip && connection_info.reverse_tunnel_command) {
+              // Show reverse tunnel instructions
+              const tunnelInstructions = `
+                REVERSE TUNNEL REQUIRED FOR PRIVATE IP
+                
+                1. On the Windows endpoint (${agent.hostname}), run:
+                   ${connection_info.reverse_tunnel_command}
+                
+                2. Keep the SSH connection alive during your VNC session
+                
+                3. Once tunnel is established, VNC will be accessible via the tunnel
+              `;
+              
+              if (confirm(`This endpoint has a private IP address and requires a reverse SSH tunnel.\n\n${tunnelInstructions}\n\nWould you like to continue and open the VNC client?`)) {
+                // Use localhost:5901 for reverse tunnel connection
+                const vncUrl = `/vnc?host=localhost&port=5901&vncport=5901&deviceName=${encodeURIComponent(agent.hostname)}&reversetunnel=true&timestamp=${Date.now()}`;
+                window.open(
+                  vncUrl,
+                  "_blank",
+                  "width=1400,height=900,scrollbars=yes,resizable=yes",
+                );
+              }
+            } else {
+              // Direct connection for public IPs
+              const vncUrl = `/vnc?host=${encodeURIComponent(connection_info.ip_address || agent.hostname)}&port=6080&vncport=5900&deviceName=${encodeURIComponent(agent.hostname)}&timestamp=${Date.now()}`;
+              window.open(
+                vncUrl,
+                "_blank",
+                "width=1400,height=900,scrollbars=yes,resizable=yes",
+              );
+            }
             
-            const vncUrl = `/vnc?host=${encodeURIComponent(connection_info.ip_address || agent.hostname)}&port=6080&vncport=5900&deviceName=${encodeURIComponent(agent.hostname)}&timestamp=${Date.now()}`;
-            window.open(
-              vncUrl,
-              "_blank",
-              "width=1400,height=900,scrollbars=yes,resizable=yes",
-            );
             await logConnectionAttempt(
               connectionType,
               true,
-              `VNC connection to ${connection_info.ip_address}:6080`,
+              `VNC connection to ${connection_info.ip_address}:${connection_info.is_private_ip ? '5901 (reverse tunnel)' : '6080'}`,
             );
             break;
 

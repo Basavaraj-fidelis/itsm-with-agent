@@ -141,8 +141,10 @@ class VNCServer {
       await this.startWebsockify();
 
       console.log('✅ VNC server fully operational!');
-      console.log(`📱 noVNC web interface: http://localhost:${this.websockifyPort}/vnc.html`);
-      console.log(`🔗 VNC direct connection: localhost:${this.vncPort}`);
+      console.log(`📱 noVNC web interface: http://0.0.0.0:${this.websockifyPort}/vnc.html`);
+      console.log(`🔗 VNC direct connection: 0.0.0.0:${this.vncPort}`);
+      console.log(`🔄 Reverse tunnel endpoint: 0.0.0.0:5901 (for private networks)`);
+      console.log(`💡 For private IP endpoints, run: ssh -R 5901:localhost:${this.vncPort} itsm-user@0.0.0.0`);
 
       return true;
     } catch (error) {
