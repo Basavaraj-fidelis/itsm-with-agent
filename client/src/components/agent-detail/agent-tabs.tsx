@@ -865,18 +865,12 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       value={systemInfo.manufacturer}
                     />
                     <Stat label="Model" value={systemInfo.model} />
-                    <div className="flex justify-between">
-                      <span className="text-neutral-600">MAC Address:</span>
-                      <span className="font-medium font-mono text-xs">
-                        {networkInfo.macAddresses}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-neutral-600">Serial Number:</span>
-                      <span className="font-medium font-mono text-xs">
-                        {systemInfo.serialNumber}
-                      </span>
-                    </div>
+                    <Stat
+                      label="Serial Number"
+                      value={systemInfo.serialNumber}
+                    />
+                    {/* Display MAC Address */}
+                    <Stat label="MAC Address" value={networkInfo.macAddresses} />
                   </div>
                 </CardContent>
               </Card>
@@ -955,8 +949,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                       {device.vendor_id} |
                                       <span className="font-medium ml-2">
                                         PID:
-                                      </span>{" "}
-                                      {device.product_id}
+                                      </span>{"                                      {device.product_id}
                                     </div>
                                   )}
                                   {device.manufacturer && (
@@ -1790,7 +1783,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                                 <Badge
                                                   variant={
                                                     update.Severity ===
-                                                    "Critical"
+                                                                                   "Critical"
                                                       ? "destructive"
                                                       : "secondary"
                                                   }
