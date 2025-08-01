@@ -522,6 +522,8 @@ app.get('/api/auth/test', (req, res) => {
     app.get("/api/dashboard/summary", authenticateToken, async (req, res) => {
   try {
     console.log("Fetching dashboard summary for user:", req.user?.email);
+    // Import storage after it's available
+    const { storage } = await import("./storage");
     const summary = await storage.getDashboardSummary();
     console.log("Dashboard summary:", summary);
     res.json(summary);
