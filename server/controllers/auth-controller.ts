@@ -94,7 +94,13 @@ export class AuthController {
             "User123!",
           ];
           if (!validPasswords.includes(password)) {
-            return res.status(401).json({ message: "Invalid credentials" });
+            console.log("No password hash found and password not in valid list for:", email);
+            // For admin user, allow login with Admin123! even without hash
+            if (user.role === 'admin' && password === 'Admin123!') {
+              console.log("Allowing admin login with default password");
+            } else {
+              return res.status(401).json({ message: "Invalid credentials" });
+            }
           }
         }
 

@@ -340,7 +340,7 @@ app.use((req, res, next) => {
       try {
         // Test database connection
         await db.execute(sql`SELECT 1`);
-        
+
         res.json({ 
           status: "ok", 
           timestamp: new Date(),
@@ -550,4 +550,27 @@ app.get('/api/auth/test', (req, res) => {
   res.json({ message: 'API is reachable', timestamp: new Date().toISOString() });
 });
 
+// Dashboard summary endpoint
+app.get("/api/dashboard/summary", authenticateToken, async (req, res) => {
+  try {
+    console.log("Fetching dashboard summary for user:", req.user?.email);
+    const summary = await storage.getDashboardSummary();
+    console.log("Dashboard summary:", summary);
+    res.json(summary);
+  } catch (error) {
+    console.error("Dashboard summary error:", error);
+    res.status(500).json({ 
+      message: "Internal server error",
+      error: error.message 
+    });
+  }
+});
+
+// Alert routes 
+const alertRoutes = express.Router();
+
+alertRoutes.get('/', (req, res) => {
+  res.json({ message: 'Alerts endpoint' });
+});
+app.use("/api/alerts", authenticateToken, alertRoutes);
 export default app;
