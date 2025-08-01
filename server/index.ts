@@ -145,9 +145,7 @@ app.use((req, res, next) => {
     await reportsStorage.createReportsTable();
 
     // Auth middleware - define properly in scope
-    let authenticateToken: any;
-    
-    authenticateToken = async (req: any, res: any, next: any) => {
+    const authenticateToken = async (req: any, res: any, next: any) => {
       const authHeader = req.headers["authorization"];
       const token = authHeader && authHeader.split(" ")[1];
 
@@ -553,7 +551,7 @@ app.get('/api/auth/test', (req, res) => {
 });
 
 // Dashboard summary endpoint
-app.get("/api/dashboard/summary", authenticateToken, async (req, res) => {
+    app.get("/api/dashboard/summary", authenticateToken, async (req, res) => {
   try {
     console.log("Fetching dashboard summary for user:", req.user?.email);
     const summary = await storage.getDashboardSummary();
@@ -569,10 +567,10 @@ app.get("/api/dashboard/summary", authenticateToken, async (req, res) => {
 });
 
 // Alert routes 
-const alertRoutes = express.Router();
+    const alertRoutes = express.Router();
 
-alertRoutes.get('/', (req, res) => {
-  res.json({ message: 'Alerts endpoint' });
-});
-app.use("/api/alerts", authenticateToken, alertRoutes);
+    alertRoutes.get('/', (req, res) => {
+      res.json({ message: 'Alerts endpoint' });
+    });
+    app.use("/api/alerts", authenticateToken, alertRoutes);
 export default app;
