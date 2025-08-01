@@ -949,7 +949,8 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                       {device.vendor_id} |
                                       <span className="font-medium ml-2">
                                         PID:
-                                      </span>{"                                      {device.product_id}
+                                      </span>{" "}
+                                      {device.product_id}
                                     </div>
                                   )}
                                   {device.manufacturer && (
