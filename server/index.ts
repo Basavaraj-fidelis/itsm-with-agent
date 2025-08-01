@@ -134,6 +134,9 @@ app.use((req, res, next) => {
     // Register enhanced user routes
     app.use("/api/users", userRoutes);
 
+    // Register VNC routes
+    registerVNCRoutes(app, authenticateToken);
+
     // Register analytics routes
     const { default: analyticsRoutes } = await import("./routes/analytics-routes");
     app.use("/api/analytics", analyticsRoutes);

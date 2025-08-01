@@ -1,6 +1,6 @@
 
-const { spawn } = require('child_process');
-const path = require('path');
+import { spawn } from 'child_process';
+import path from 'path';
 
 class VNCServer {
   constructor() {
@@ -82,10 +82,10 @@ class VNCServer {
 }
 
 // Export for use in other modules
-module.exports = VNCServer;
+export default VNCServer;
 
 // If run directly, start the server
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   const vncServer = new VNCServer();
   
   vncServer.startVNCServer().then(success => {

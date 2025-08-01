@@ -1,6 +1,6 @@
 
 import type { Express } from "express";
-const VNCServer = require('../vnc-setup.js');
+import VNCServer from '../vnc-setup.js';
 
 let vncServerInstance: any = null;
 
