@@ -144,7 +144,9 @@ app.use((req, res, next) => {
     const { reportsStorage } = await import("./models/reports-storage");
     await reportsStorage.createReportsTable();
 
-    // Define auth middleware after storage is available
+    // Auth middleware - define properly in scope
+    let authenticateToken: any;
+    
     authenticateToken = async (req: any, res: any, next: any) => {
       const authHeader = req.headers["authorization"];
       const token = authHeader && authHeader.split(" ")[1];
@@ -172,9 +174,6 @@ app.use((req, res, next) => {
         return res.status(403).json({ message: "Invalid token" });
       }
     };
-
-    // Auth middleware
-    let authenticateToken: any;
 
     // Role check middleware
     const requireRole = (roles: string | string[]) => {
