@@ -155,29 +155,12 @@ export default function AgentDetail() {
 
   const handleRemoteConnect = async (connectionType: string) => {
     if (!agent) {
-      alert("Agent data not available. Please refresh the page.");
+      console.error("Agent data not available");
       return;
     }
 
     if (agent.status !== "online") {
-      alert(
-        `Cannot connect: Agent is ${agent?.status || "offline"}. Only online agents support remote connections.`,
-      );
-      return;
-    }
-
-    // Check if we have recent data
-    const lastReportTime = agent.latest_report?.collected_at;
-    if (lastReportTime) {
-      const reportAge = Math.floor(
-        (Date.now() - new Date(lastReportTime).getTime()) / (1000 * 60),
-      );
-      if (reportAge > 15) {
-        const proceed = confirm(
-          `Warning: Agent last reported ${reportAge} minutes ago. Connection may not work properly. Continue anyway?`,
-        );
-        if (!proceed) return;
-      }
+      console.warn(`Agent is ${agent?.status || "offline"}, attempting connection anyway`);
     }
 
     // Log connection attempt for audit trail
@@ -214,9 +197,7 @@ export default function AgentDetail() {
         teamviewer: 5938,
       };
 
-      // Show connecting status
-      const connectingMessage = `Initiating ${connectionType.toUpperCase()} connection to ${agent.hostname}...`;
-      console.log(connectingMessage);
+      console.log(`Initiating ${connectionType.toUpperCase()} connection to ${agent.hostname}...`);
 
       const response = await fetch(`/api/agents/${agent.id}/remote-connect`, {
         method: "POST",
@@ -238,47 +219,19 @@ export default function AgentDetail() {
       if (result.success) {
         const { connection_info } = result;
 
-        // Enhanced private IP handling
-        if (connection_info.is_private_ip && connection_info.tunnel_required) {
-          const tunnelMethods = connection_info.tunnel_suggestions
-            ?.map(
-              (s) =>
-                `• ${s.method.toUpperCase()}: ${s.description}${s.command ? `\n  Command: ${s.command}` : ""}`,
-            )
-            .join("\n");
-
-          const proceed = confirm(
-            `🔒 NETWORK SECURITY NOTICE\n\n` +
-              `Target: ${connection_info.ip_address} (Private Network)\n` +
-              `Agent: ${agent.hostname}\n\n` +
-              `This agent is on a private network. You'll need secure tunnel access:\n\n${tunnelMethods}\n\n` +
-              `⚠️  Ensure you have proper authorization before proceeding.\n\n` +
-              `Continue with connection attempt?`,
-          );
-
-          if (!proceed) {
-            await logConnectionAttempt(
-              connectionType,
-              false,
-              "User cancelled due to private IP",
-            );
-            return;
-          }
-        }
-
-        // Enhanced connection handling with better UX
+        // Direct connection without popups
         switch (connectionType) {
           case "vnc":
             const vncUrl = `/vnc?host=${encodeURIComponent(connection_info.ip_address || agent.hostname)}&port=6080&vncport=5900&deviceName=${encodeURIComponent(agent.hostname)}&timestamp=${Date.now()}`;
             window.open(
               vncUrl,
               "_blank",
-              "width=1200,height=800,scrollbars=yes,resizable=yes",
+              "width=1400,height=900,scrollbars=yes,resizable=yes",
             );
             await logConnectionAttempt(
               connectionType,
               true,
-              `VNC connection to ${connection_info.ip_address}`,
+              `VNC connection to ${connection_info.ip_address}:6080`,
             );
             break;
 
@@ -311,34 +264,25 @@ export default function AgentDetail() {
             break;
 
           case "teamviewer":
-            const tvInfo = `TeamViewer Connection Details:\n\nHost: ${connection_info.hostname}\nTeamViewer ID: ${connection_info.teamviewer_id || "Contact end user for ID"}\nIP Address: ${connection_info.ip_address}`;
-            alert(tvInfo);
+            const tvUrl = `https://start.teamviewer.com/device/${connection_info.teamviewer_id || 'contact-user'}`;
+            window.open(tvUrl, "_blank");
             await logConnectionAttempt(
               connectionType,
               true,
-              "TeamViewer info displayed",
+              "TeamViewer connection opened",
             );
             break;
         }
 
-        // Show success notification
-        console.log(
-          `✅ ${connectionType.toUpperCase()} connection initiated successfully`,
-        );
+        console.log(`✅ ${connectionType.toUpperCase()} connection initiated successfully`);
       } else {
         await logConnectionAttempt(connectionType, false, result.message);
-        alert(
-          `Connection Failed\n\n${result.message}\n\nPlease check agent connectivity and try again.`,
-        );
+        console.error(`Connection Failed: ${result.message}`);
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       console.error("Remote connection error:", error);
       await logConnectionAttempt(connectionType, false, errorMessage);
-      alert(
-        `Connection Error\n\n${errorMessage}\n\nPlease check your network connection and agent status.`,
-      );
     }
   };
 
