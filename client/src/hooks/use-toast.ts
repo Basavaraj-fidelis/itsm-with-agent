@@ -189,3 +189,6 @@ function useToast() {
 }
 
 export { useToast, toast }
+
+// Re-export types for convenience
+export type { ToastProps, ToastActionElement } from "@/components/ui/toast"
