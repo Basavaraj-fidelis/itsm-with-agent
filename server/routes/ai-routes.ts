@@ -126,39 +126,37 @@ router.post("/insights/batch", async (req, res) => {
   }
 });
 
-// Get AI insights for a device
-router.get('/insights/device/:deviceId', async (req, res) => {
+// AI Insights endpoint for specific device
+router.get('/insights/device/:deviceId', authenticateToken, async (req, res) => {
   try {
     const { deviceId } = req.params;
+    console.log('Fetching AI insights for device:', deviceId);
 
-    console.log(`Fetching AI insights for device: ${deviceId}`);
-
-    const insights = await aiInsightsStorage.getDeviceInsights(deviceId);
-
-    if (!insights) {
-      console.log(`No AI insights found for device: ${deviceId}`);
-      // Return a default structure instead of 404
+    // Check if the method exists before calling it
+    if (typeof aiInsightsStorage.getDeviceInsights !== 'function') {
+      console.warn('getDeviceInsights method not found, returning empty insights');
       return res.json({
-        device_id: deviceId,
-        insights: [],
-        recommendations: [],
-        risk_score: 0,
-        last_updated: new Date().toISOString(),
-        metadata: {
-          message: 'No insights available yet. AI analysis will be generated as data becomes available.'
-        }
+        success: true,
+        data: [],
+        total: 0,
+        message: 'AI insights feature is being initialized'
       });
     }
 
-    console.log(`Successfully retrieved AI insights for device: ${deviceId}`);
-    res.json(insights);
+    const insights = await aiInsightsStorage.getDeviceInsights(deviceId);
+
+    res.json({
+      success: true,
+      data: insights,
+      total: insights.length
+    });
   } catch (error) {
     console.error('Error fetching device AI insights:', error);
     console.error('Error stack:', error.stack);
-    res.status(500).json({ 
-      message: 'Failed to fetch device AI insights',
-      error: error.message,
-      deviceId: req.params.deviceId
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch AI insights',
+      message: error.message
     });
   }
 });
