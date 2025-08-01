@@ -335,9 +335,26 @@ app.use((req, res, next) => {
 
     // Agent AD sync routes removed - no longer needed
 
-    // Health check
-    app.get("/api/health", (req, res) => {
-      res.json({ status: "ok", timestamp: new Date() });
+    // Enhanced health check
+    app.get("/api/health", async (req, res) => {
+      try {
+        // Test database connection
+        await db.execute(sql`SELECT 1`);
+        
+        res.json({ 
+          status: "ok", 
+          timestamp: new Date(),
+          database: "connected",
+          server: "running"
+        });
+      } catch (error) {
+        res.status(500).json({ 
+          status: "error", 
+          timestamp: new Date(),
+          database: "disconnected",
+          error: error.message
+        });
+      }
     });
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

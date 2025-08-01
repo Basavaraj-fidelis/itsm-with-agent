@@ -1,12 +1,12 @@
 import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { PerformanceChart } from "@/components/dashboard/performance-chart";
 import { QuickActions } from "@/components/dashboard/quick-actions";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useDashboardSummary, useAlerts } from "@/hooks/use-dashboard";
 import { useAgents } from "@/hooks/use-agents";
-import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { ALERT_THRESHOLDS, getAlertLevel, getAlertColor } from '@shared/alert-thresholds';
 

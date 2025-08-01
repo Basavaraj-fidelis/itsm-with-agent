@@ -14,6 +14,12 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
       return res.status(401).json({ message: "Access token required" });
     }
 
+    // Check if token is properly formatted
+    if (token === "undefined" || token === "null" || token.length < 10) {
+      console.log("Malformed token detected for", req.path);
+      return res.status(401).json({ message: "Invalid token format" });
+    }
+
     console.log("Authenticating token for", req.path);
 
     const decoded: any = jwt.verify(token, JWT_SECRET);

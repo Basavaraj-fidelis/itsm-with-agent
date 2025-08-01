@@ -1,4 +1,3 @@
-
 const fs = require('fs');
 const path = require('path');
 
@@ -17,13 +16,13 @@ class FrontendDiagnostics {
     this.checkHooks();
     this.checkAPIConnections();
     this.checkErrorHandling();
-    
+
     this.generateReport();
   }
 
   checkStructure() {
     console.log('📁 Checking project structure...');
-    
+
     const requiredDirs = ['components', 'pages', 'hooks', 'lib'];
     const requiredFiles = ['App.tsx', 'main.tsx'];
 
@@ -44,9 +43,9 @@ class FrontendDiagnostics {
 
   checkImports() {
     console.log('📦 Checking imports...');
-    
+
     const componentFiles = this.getAllTsxFiles();
-    
+
     componentFiles.forEach(file => {
       const content = fs.readFileSync(file, 'utf8');
       const fileName = path.basename(file);
@@ -77,9 +76,9 @@ class FrontendDiagnostics {
 
   checkHooks() {
     console.log('🎣 Checking React hooks usage...');
-    
+
     const componentFiles = this.getAllTsxFiles();
-    
+
     componentFiles.forEach(file => {
       const content = fs.readFileSync(file, 'utf8');
       const fileName = path.basename(file);
@@ -87,16 +86,16 @@ class FrontendDiagnostics {
       // Check for hooks called conditionally
       const lines = content.split('\n');
       let inConditional = false;
-      
+
       lines.forEach((line, index) => {
         if (line.includes('if (') || line.includes('if(')) {
           inConditional = true;
         }
-        
+
         if (inConditional && (line.includes('useState') || line.includes('useEffect'))) {
           this.issues.push(`${fileName}:${index + 1}: Hook called conditionally`);
         }
-        
+
         if (line.includes('}')) {
           inConditional = false;
         }
@@ -106,11 +105,11 @@ class FrontendDiagnostics {
 
   checkAPIConnections() {
     console.log('🔌 Checking API connections...');
-    
+
     const apiFile = path.join(this.clientPath, 'lib', 'api.ts');
     if (fs.existsSync(apiFile)) {
       const content = fs.readFileSync(apiFile, 'utf8');
-      
+
       // Check for hardcoded localhost
       if (content.includes('localhost') && !content.includes('0.0.0.0')) {
         this.warnings.push('API: Using localhost instead of 0.0.0.0');
@@ -127,9 +126,9 @@ class FrontendDiagnostics {
 
   checkErrorHandling() {
     console.log('🛡️ Checking error handling...');
-    
+
     const componentFiles = this.getAllTsxFiles();
-    
+
     componentFiles.forEach(file => {
       const content = fs.readFileSync(file, 'utf8');
       const fileName = path.basename(file);
@@ -148,16 +147,16 @@ class FrontendDiagnostics {
 
   getAllTsxFiles() {
     const files = [];
-    
+
     function traverse(dir) {
       if (!fs.existsSync(dir)) return;
-      
+
       const items = fs.readdirSync(dir);
-      
+
       items.forEach(item => {
         const fullPath = path.join(dir, item);
         const stat = fs.statSync(fullPath);
-        
+
         if (stat.isDirectory()) {
           traverse(fullPath);
         } else if (item.endsWith('.tsx') || item.endsWith('.ts')) {
@@ -165,7 +164,7 @@ class FrontendDiagnostics {
         }
       });
     }
-    
+
     traverse(this.clientPath);
     return files;
   }
@@ -174,7 +173,7 @@ class FrontendDiagnostics {
     // Simple regex to find potentially undefined variables
     const matches = content.match(/\b[A-Z][a-zA-Z0-9]*\b/g) || [];
     const definedVars = content.match(/(?:const|let|var|function|class|import.*)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/g) || [];
-    
+
     return matches.filter(match => 
       !definedVars.some(def => def.includes(match)) && 
       !['React', 'Component', 'Fragment'].includes(match)
