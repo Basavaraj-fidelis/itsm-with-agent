@@ -179,21 +179,33 @@ var init_db = __esm({
     DATABASE_URL = process.env.DATABASE_URL?.trim();
     if (!DATABASE_URL) {
       console.error("\u274C DATABASE_URL is not set in environment variables");
-      console.log("\u{1F4CB} Available environment variables:", Object.keys(process.env).filter((key) => key.includes("DATABASE")));
+      console.log(
+        "\u{1F4CB} Available environment variables:",
+        Object.keys(process.env).filter((key) => key.includes("DATABASE"))
+      );
       throw new Error(
         "DATABASE_URL must be set. Please provision a PostgreSQL database in Replit."
       );
     }
     if (!DATABASE_URL.startsWith("postgres://") && !DATABASE_URL.startsWith("postgresql://")) {
-      console.error("\u274C Invalid DATABASE_URL format. Expected postgres:// or postgresql://");
+      console.error(
+        "\u274C Invalid DATABASE_URL format. Expected postgres:// or postgresql://"
+      );
       console.error("\u{1F4CB} Current DATABASE_URL:", DATABASE_URL);
       throw new Error("DATABASE_URL must be a valid PostgreSQL connection string");
     }
-    urlParts = DATABASE_URL.match(/postgres(?:ql)?:\/\/([^:]+):([^@]+)@([^:/]+):(\d+)\/([^?]+)/);
+    urlParts = DATABASE_URL.match(
+      /postgres(?:ql)?:\/\/([^:]+):([^@]+)@([^:/]+):(\d+)\/([^?]+)/
+    );
     if (!urlParts) {
       console.error("\u274C DATABASE_URL is malformed");
-      console.error("\u{1F4CB} Expected format: postgres://username:password@hostname:port/database");
-      console.error("\u{1F4CB} Current DATABASE_URL:", DATABASE_URL.replace(/:[^:@]*@/, ":***@"));
+      console.error(
+        "\u{1F4CB} Expected format: postgres://username:password@hostname:port/database"
+      );
+      console.error(
+        "\u{1F4CB} Current DATABASE_URL:",
+        DATABASE_URL.replace(/:[^:@]*@/, ":***@")
+      );
       throw new Error("DATABASE_URL is malformed");
     }
     [, username, , hostname, port, database] = urlParts;
@@ -202,7 +214,10 @@ var init_db = __esm({
     console.log("  Port:", port);
     console.log("  Database:", database);
     console.log("  Username:", username);
-    console.log("\u{1F517} Using database URL:", DATABASE_URL.replace(/:[^:@]*@/, ":***@"));
+    console.log(
+      "\u{1F517} Using database URL:",
+      DATABASE_URL.replace(/:[^:@]*@/, ":***@")
+    );
     pool = new Pool({
       connectionString: DATABASE_URL,
       ssl: DATABASE_URL.includes("aivencloud.com") ? {
@@ -15127,33 +15142,32 @@ var init_ai_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    router11.get("/insights/device/:deviceId", async (req, res) => {
+    router11.get("/insights/device/:deviceId", authenticateToken2, async (req, res) => {
       try {
         const { deviceId } = req.params;
-        console.log(`Fetching AI insights for device: ${deviceId}`);
-        const insights = await aiInsightsStorage.getDeviceInsights(deviceId);
-        if (!insights) {
-          console.log(`No AI insights found for device: ${deviceId}`);
+        console.log("Fetching AI insights for device:", deviceId);
+        if (typeof aiInsightsStorage.getDeviceInsights !== "function") {
+          console.warn("getDeviceInsights method not found, returning empty insights");
           return res.json({
-            device_id: deviceId,
-            insights: [],
-            recommendations: [],
-            risk_score: 0,
-            last_updated: (/* @__PURE__ */ new Date()).toISOString(),
-            metadata: {
-              message: "No insights available yet. AI analysis will be generated as data becomes available."
-            }
+            success: true,
+            data: [],
+            total: 0,
+            message: "AI insights feature is being initialized"
           });
         }
-        console.log(`Successfully retrieved AI insights for device: ${deviceId}`);
-        res.json(insights);
+        const insights = await aiInsightsStorage.getDeviceInsights(deviceId);
+        res.json({
+          success: true,
+          data: insights,
+          total: insights.length
+        });
       } catch (error) {
         console.error("Error fetching device AI insights:", error);
         console.error("Error stack:", error.stack);
         res.status(500).json({
-          message: "Failed to fetch device AI insights",
-          error: error.message,
-          deviceId: req.params.deviceId
+          success: false,
+          error: "Failed to fetch AI insights",
+          message: error.message
         });
       }
     });
@@ -17852,8 +17866,7 @@ app.use((req, res, next) => {
     const { storage: storage4 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
     const { reportsStorage: reportsStorage2 } = await Promise.resolve().then(() => (init_reports_storage(), reports_storage_exports));
     await reportsStorage2.createReportsTable();
-    let authenticateToken5;
-    authenticateToken5 = async (req, res, next) => {
+    const authenticateToken5 = async (req, res, next) => {
       const authHeader = req.headers["authorization"];
       const token = authHeader && authHeader.split(" ")[1];
       if (!token) {
