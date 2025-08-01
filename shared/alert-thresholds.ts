@@ -40,23 +40,41 @@ export type AlertCategory = keyof typeof ALERT_THRESHOLDS;
 export function getAlertLevel(category: string, value: number): AlertLevel {
   const thresholds = ALERT_THRESHOLDS;
 
-  // Normalize category names
+  // Normalize category names to match ALERT_THRESHOLDS keys
   const normalizedCategory = category.toLowerCase().replace('_usage', '');
-  const categoryKey = normalizedCategory === 'cpu' ? 'cpu' : 
-                     normalizedCategory === 'memory' ? 'memory' :
-                     normalizedCategory === 'disk' ? 'disk' :
-                     category; // fallback to original
+  let categoryKey: string;
+  
+  // Map categories to the correct threshold keys
+  switch (normalizedCategory) {
+    case 'cpu':
+      categoryKey = 'cpu_usage';
+      break;
+    case 'memory':
+      categoryKey = 'memory_usage';
+      break;
+    case 'disk':
+      categoryKey = 'disk_usage';
+      break;
+    case 'response_time':
+      categoryKey = 'response_time';
+      break;
+    case 'error_rate':
+      categoryKey = 'error_rate';
+      break;
+    default:
+      categoryKey = category;
+  }
 
   // Check if we have thresholds for this category
-  if (!thresholds.CRITICAL[categoryKey] && !thresholds.CRITICAL[category]) {
+  if (!thresholds.CRITICAL[categoryKey]) {
     console.warn(`Invalid alert category: ${category}. Using default INFO level.`);
     return "INFO";
   }
 
-  // Use the categoryKey if it exists, otherwise fall back to original category
-  const criticalThreshold = thresholds.CRITICAL[categoryKey] || thresholds.CRITICAL[category];
-  const warningThreshold = thresholds.WARNING[categoryKey] || thresholds.WARNING[category];
-  const infoThreshold = thresholds.INFO[categoryKey] || thresholds.INFO[category];
+  // Get thresholds for the category
+  const criticalThreshold = thresholds.CRITICAL[categoryKey];
+  const warningThreshold = thresholds.WARNING[categoryKey];
+  const infoThreshold = thresholds.INFO[categoryKey];
 
   if (criticalThreshold && value >= criticalThreshold) {
     return "CRITICAL";
@@ -90,16 +108,7 @@ export function getAlertColor(level: AlertLevel): string {
 // Safe wrapper for getAlertLevel that handles case sensitivity and errors
 export const getAlertLevelSafe = (value: number, category: string): AlertLevel => {
   try {
-    // Convert category to uppercase to match ALERT_THRESHOLDS keys
-    const upperCategory = category.toUpperCase() as keyof typeof ALERT_THRESHOLDS;
-
-    // Check if category exists in thresholds
-    if (!ALERT_THRESHOLDS[upperCategory]) {
-      console.warn(`Invalid alert category: ${category}. Using default INFO level.`);
-      return 'INFO';
-    }
-
-    return getAlertLevel(value, upperCategory);
+    return getAlertLevel(category, value);
   } catch (error) {
     console.error(`Error calculating alert level for ${category}:`, error);
     return 'INFO';
