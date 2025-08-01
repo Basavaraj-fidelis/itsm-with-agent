@@ -183,7 +183,7 @@ export function registerAgentRoutes(
               step: 1,
               title: "Setup Reverse SSH Tunnel from Agent",
               description: "Run this command on the Windows endpoint to create a reverse tunnel",
-              command: `ssh -R 5901:localhost:${port} itsm-user@${serverHost}`,
+              command: `ssh -R 5901:localhost:${port} -p 2222 itsm-user@${serverHost}`,
               notes: "This creates a tunnel from the remote machine back to this server"
             },
             {
@@ -197,7 +197,7 @@ export function registerAgentRoutes(
           connectionInfo.tunnel_suggestions = [
             {
               method: "reverse_ssh_tunnel",
-              command: `ssh -R 5901:localhost:${port} itsm-user@${serverHost}`,
+              command: `ssh -R 5901:localhost:${port} -p 2222 itsm-user@${serverHost}`,
               description: "Create reverse SSH tunnel from Windows endpoint to this server",
             },
             {

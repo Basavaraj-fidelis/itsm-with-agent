@@ -352,6 +352,17 @@ app.use((req, res, next) => {
     const { slaMonitorService } = await import("./services/sla-monitor-service");
     slaMonitorService.start(5); // Check every 5 minutes
 
+    // Start SSH server for reverse tunnels
+    try {
+      const ITSMSSHServer = require('./ssh-server.js');
+      const sshServer = new ITSMSSHServer(2222);
+      await sshServer.start();
+      console.log('🔐 SSH Server started for reverse tunnels');
+    } catch (error) {
+      console.log('⚠️  SSH Server failed to start:', error.message);
+      console.log('💡 Reverse tunnels may not work without SSH server');
+    }
+
     const serv = app.listen(PORT, "0.0.0.0", () => {
       log(`serving on port ${PORT}`);
       console.log(`🌐 Server accessible at http://0.0.0.0:${PORT}`);
