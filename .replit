@@ -3,7 +3,7 @@ run = "npm run dev"
 
 [nix]
 channel = "stable-25_05"
-packages = ["lsof", "openssh", "vim"]
+packages = ["lsof", "openssh", "vim", "x11vnc", "python312Packages.xvfbwrapper", "novnc", "python313Packages.websockify"]
 
 [deployment]
 run = ["sh", "-c", "npm run dev"]
@@ -23,3 +23,12 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
+
+[[workflows.workflow]]
+name = "Start VNC Server"
+author = 45837077
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node server/vnc-setup.js"
