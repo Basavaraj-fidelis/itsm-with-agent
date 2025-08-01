@@ -276,9 +276,8 @@ function PerformanceAnalyticsContent() {
   // Pre-calculate sorted devices for each metric at component level
   // ALWAYS call useMemo hooks to maintain hook order consistency
   const sortedCpuDevices = useMemo(() => {
-    const devices = onlineDevices || [];
-    if (devices.length === 0) return [];
-    return [...devices]
+    const deviceList = onlineDevices || [];
+    return [...deviceList]
       .filter(device => device.latest_report)
       .sort((a, b) => {
         return (
@@ -286,13 +285,12 @@ function PerformanceAnalyticsContent() {
           parseFloat(a.latest_report?.cpu_usage || "0")
         );
       })
-      .slice(0, devices.length > 50 ? 10 : 5);
+      .slice(0, deviceList.length > 50 ? 10 : 5);
   }, [onlineDevices]);
 
   const sortedMemoryDevices = useMemo(() => {
-    const devices = onlineDevices || [];
-    if (devices.length === 0) return [];
-    return [...devices]
+    const deviceList = onlineDevices || [];
+    return [...deviceList]
       .filter(device => device.latest_report)
       .sort((a, b) => {
         return (
@@ -300,13 +298,12 @@ function PerformanceAnalyticsContent() {
           parseFloat(a.latest_report?.memory_usage || "0")
         );
       })
-      .slice(0, devices.length > 50 ? 10 : 5);
+      .slice(0, deviceList.length > 50 ? 10 : 5);
   }, [onlineDevices]);
 
   const sortedDiskDevices = useMemo(() => {
-    const devices = onlineDevices || [];
-    if (devices.length === 0) return [];
-    return [...devices]
+    const deviceList = onlineDevices || [];
+    return [...deviceList]
       .filter(device => device.latest_report)
       .sort((a, b) => {
         return (
@@ -314,47 +311,52 @@ function PerformanceAnalyticsContent() {
           parseFloat(a.latest_report?.disk_usage || "0")
         );
       })
-      .slice(0, devices.length > 50 ? 10 : 5);
+      .slice(0, deviceList.length > 50 ? 10 : 5);
   }, [onlineDevices]);
 
-  const avgMetrics = {
-    cpu:
-      devicesWithData.length > 0
-        ? devicesWithData
-            .filter((d) => d.latest_report?.cpu_usage !== null)
-            .reduce(
-              (sum, d) => sum + parseFloat(d.latest_report?.cpu_usage || "0"),
-              0,
-            ) /
-          (devicesWithData.filter((d) => d.latest_report?.cpu_usage !== null)
-            .length || 1)
-        : 0,
+  // Calculate average metrics using useMemo to maintain consistent hook ordering
+  const avgMetrics = useMemo(() => {
+    const dataDevices = devicesWithData || [];
+    
+    return {
+      cpu:
+        dataDevices.length > 0
+          ? dataDevices
+              .filter((d) => d.latest_report?.cpu_usage !== null)
+              .reduce(
+                (sum, d) => sum + parseFloat(d.latest_report?.cpu_usage || "0"),
+                0,
+              ) /
+            (dataDevices.filter((d) => d.latest_report?.cpu_usage !== null)
+              .length || 1)
+          : 0,
 
-    memory:
-      devicesWithData.length > 0
-        ? devicesWithData
-            .filter((d) => d.latest_report?.memory_usage !== null)
-            .reduce(
-              (sum, d) =>
-                sum + parseFloat(d.latest_report?.memory_usage || "0"),
-              0,
-            ) /
-          (devicesWithData.filter((d) => d.latest_report?.memory_usage !== null)
-            .length || 1)
-        : 0,
+      memory:
+        dataDevices.length > 0
+          ? dataDevices
+              .filter((d) => d.latest_report?.memory_usage !== null)
+              .reduce(
+                (sum, d) =>
+                  sum + parseFloat(d.latest_report?.memory_usage || "0"),
+                0,
+              ) /
+            (dataDevices.filter((d) => d.latest_report?.memory_usage !== null)
+              .length || 1)
+          : 0,
 
-    disk:
-      devicesWithData.length > 0
-        ? devicesWithData
-            .filter((d) => d.latest_report?.disk_usage !== null)
-            .reduce(
-              (sum, d) => sum + parseFloat(d.latest_report?.disk_usage || "0"),
-              0,
-            ) /
-          (devicesWithData.filter((d) => d.latest_report?.disk_usage !== null)
-            .length || 1)
-        : 0,
-  };
+      disk:
+        dataDevices.length > 0
+          ? dataDevices
+              .filter((d) => d.latest_report?.disk_usage !== null)
+              .reduce(
+                (sum, d) => sum + parseFloat(d.latest_report?.disk_usage || "0"),
+                0,
+              ) /
+            (dataDevices.filter((d) => d.latest_report?.disk_usage !== null)
+              .length || 1)
+          : 0,
+    };
+  }, [devicesWithData]);
 
   const handleRefresh = () => {
     refetchDevices();
