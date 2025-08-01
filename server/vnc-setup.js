@@ -1,4 +1,3 @@
-
 import { spawn } from 'child_process';
 import path from 'path';
 
@@ -15,7 +14,7 @@ class VNCServer {
   async startXvfb() {
     return new Promise((resolve, reject) => {
       console.log('🖥️ Starting Xvfb virtual display...');
-      
+
       this.xvfbProcess = spawn('Xvfb', [
         this.vncDisplay,
         '-screen', '0',
@@ -53,7 +52,7 @@ class VNCServer {
   async startVNC() {
     return new Promise((resolve, reject) => {
       console.log('🔒 Starting x11vnc server...');
-      
+
       this.vncProcess = spawn('x11vnc', [
         '-display', this.vncDisplay,
         '-rfbport', this.vncPort.toString(),
@@ -98,7 +97,7 @@ class VNCServer {
   async startWebsockify() {
     return new Promise((resolve, reject) => {
       console.log('🌐 Starting websockify proxy...');
-      
+
       this.websockifyProcess = spawn('websockify', [
         '--web=/usr/share/novnc',
         this.websockifyPort.toString(),
@@ -136,15 +135,15 @@ class VNCServer {
   async startVNCServer() {
     try {
       console.log('🚀 Starting VNC server setup...');
-      
+
       await this.startXvfb();
       await this.startVNC();
       await this.startWebsockify();
-      
+
       console.log('✅ VNC server fully operational!');
       console.log(`📱 noVNC web interface: http://localhost:${this.websockifyPort}/vnc.html`);
       console.log(`🔗 VNC direct connection: localhost:${this.vncPort}`);
-      
+
       return true;
     } catch (error) {
       console.error('❌ Failed to start VNC server:', error);
@@ -155,7 +154,7 @@ class VNCServer {
 
   cleanup() {
     console.log('🧹 Cleaning up VNC processes...');
-    
+
     if (this.websockifyProcess) {
       this.websockifyProcess.kill();
     }
@@ -186,18 +185,18 @@ export default VNCServer;
 // If run directly, start the server
 if (import.meta.url === `file://${process.argv[1]}`) {
   const vncServer = new VNCServer();
-  
+
   vncServer.startVNCServer().then(success => {
     if (success) {
       console.log('VNC server started successfully');
-      
+
       // Handle cleanup on exit
       process.on('SIGINT', () => {
         console.log('Received SIGINT, cleaning up...');
         vncServer.cleanup();
         process.exit(0);
       });
-      
+
       process.on('SIGTERM', () => {
         console.log('Received SIGTERM, cleaning up...');
         vncServer.cleanup();
