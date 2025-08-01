@@ -222,6 +222,24 @@ export default function AgentDetail() {
         // Direct connection without popups
         switch (connectionType) {
           case "vnc":
+            // First, ensure VNC server is started
+            try {
+              const vncStartResponse = await fetch('/api/vnc/start', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                  'Content-Type': 'application/json'
+                }
+              });
+              
+              if (vncStartResponse.ok) {
+                const vncData = await vncStartResponse.json();
+                console.log('VNC server started:', vncData);
+              }
+            } catch (vncError) {
+              console.warn('Could not start VNC server:', vncError);
+            }
+            
             const vncUrl = `/vnc?host=${encodeURIComponent(connection_info.ip_address || agent.hostname)}&port=6080&vncport=5900&deviceName=${encodeURIComponent(agent.hostname)}&timestamp=${Date.now()}`;
             window.open(
               vncUrl,

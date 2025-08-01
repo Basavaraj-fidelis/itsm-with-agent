@@ -14,6 +14,11 @@ import { init as initSlaEscalationService } from './services/sla-escalation-serv
 import { webSocketService } from './websocket-service';
 import expressWs from "express-ws";
 import cors from 'cors';
+import { registerAgentRoutes } from "./routes/agent-routes";
+import { registerAlertRoutes } from "./routes/alert-routes";
+import { registerAnalyticsRoutes } from "./routes/analytics-routes";
+import { registerSecurityRoutes } from "./routes/security-routes";
+import { registerVNCRoutes } from "./routes/vnc-routes";
 
 const app = express();
 const wsInstance = expressWs(app);
