@@ -94,7 +94,9 @@ export function registerVNCRoutes(app: Express, authenticateToken: any) {
         });
       }
 
-      const tunnelCommand = `ssh -R 5901:localhost:5900 itsm-user@0.0.0.0`;
+      // Get the actual server hostname from the request
+      const serverHost = req.get('host')?.split(':')[0] || process.env.REPL_SLUG + '.replit.dev';
+      const tunnelCommand = `ssh -R 5901:localhost:5900 itsm-user@${serverHost}`;
       const instructions = [
         {
           step: 1,
@@ -111,7 +113,7 @@ export function registerVNCRoutes(app: Express, authenticateToken: any) {
         {
           step: 3,
           title: "Keep Tunnel Alive",
-          command: `ssh -R 5901:localhost:5900 -N -f itsm-user@0.0.0.0`,
+          command: `ssh -R 5901:localhost:5900 -N -f itsm-user@${serverHost}`,
           description: "Use -N -f flags to run tunnel in background"
         }
       ];

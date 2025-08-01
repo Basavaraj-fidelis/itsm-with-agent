@@ -176,13 +176,14 @@ export function registerAgentRoutes(
 
         if (isPrivateIP) {
           connectionInfo.tunnel_required = true;
-          connectionInfo.reverse_tunnel_command = `ssh -R 5901:localhost:${port} itsm-user@0.0.0.0`;
+		  const serverHost = req.hostname || "0.0.0.0";
+          connectionInfo.reverse_tunnel_command = `ssh -R 5901:localhost:${port} itsm-user@${serverHost}`;
           connectionInfo.tunnel_instructions = [
             {
               step: 1,
               title: "Setup Reverse SSH Tunnel from Agent",
               description: "Run this command on the Windows endpoint to create a reverse tunnel",
-              command: `ssh -R 5901:localhost:${port} itsm-user@0.0.0.0`,
+              command: `ssh -R 5901:localhost:${port} itsm-user@${serverHost}`,
               notes: "This creates a tunnel from the remote machine back to this server"
             },
             {
@@ -196,7 +197,7 @@ export function registerAgentRoutes(
           connectionInfo.tunnel_suggestions = [
             {
               method: "reverse_ssh_tunnel",
-              command: `ssh -R 5901:localhost:${port} itsm-user@0.0.0.0`,
+              command: `ssh -R 5901:localhost:${port} itsm-user@${serverHost}`,
               description: "Create reverse SSH tunnel from Windows endpoint to this server",
             },
             {
