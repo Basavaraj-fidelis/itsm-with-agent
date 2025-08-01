@@ -19,6 +19,7 @@ import { registerAlertRoutes } from "./routes/alert-routes";
 import { registerAnalyticsRoutes } from "./routes/analytics-routes";
 import { registerSecurityRoutes } from "./routes/security-routes";
 import { registerVNCRoutes } from "./routes/vnc-routes";
+import { authenticateToken, requireRole } from "./middleware/auth-middleware";
 
 const app = express();
 const wsInstance = expressWs(app);
@@ -152,48 +153,7 @@ app.use((req, res, next) => {
     const { reportsStorage } = await import("./models/reports-storage");
     await reportsStorage.createReportsTable();
 
-    // Auth middleware - define properly in scope
-    const authenticateToken = async (req: any, res: any, next: any) => {
-      const authHeader = req.headers["authorization"];
-      const token = authHeader && authHeader.split(" ")[1];
-
-      if (!token) {
-        return res.status(401).json({ message: "Access token required" });
-      }
-
-      try {
-        const jwt = await import("jsonwebtoken");
-        const JWT_SECRET =
-          process.env.JWT_SECRET || "your-secret-key-change-in-production";
-        const decoded: any = jwt.default.verify(token, JWT_SECRET);
-        const user = await storage.getUserById(decoded.userId);
-
-        if (!user || !user.is_active) {
-          return res
-            .status(403)
-            .json({ message: "User not found or inactive" });
-        }
-
-        req.user = user;
-        next();
-      } catch (error) {
-        return res.status(403).json({ message: "Invalid token" });
-      }
-    };
-
-    // Role check middleware
-    const requireRole = (roles: string | string[]) => {
-      return (req: any, res: any, next: any) => {
-        const userRole = req.user?.role;
-        const allowedRoles = Array.isArray(roles) ? roles : [roles];
-
-        if (userRole === "admin" || allowedRoles.includes(userRole)) {
-          next();
-        } else {
-          res.status(403).json({ message: "Insufficient permissions" });
-        }
-      };
-    };
+    // Auth middleware is now imported from middleware/auth-middleware.ts
 
     // Knowledge Base Routes (publicly accessible)
     app.get("/api/knowledge-base", async (req, res) => {
