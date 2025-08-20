@@ -216,15 +216,7 @@ export default function App() {
             </Route>
 
 
-            <Route path="/itsm-comparison">
-              <ProtectedRoute requiredRole={["admin", "manager"]}>
-                <AuthenticatedLayout>
-                  <ITSMComparison />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-
-             <Route path="/vnc">
+            <Route path="/vnc">
               <ProtectedRoute>
                 <AuthenticatedLayout>
                   <VNCPage />

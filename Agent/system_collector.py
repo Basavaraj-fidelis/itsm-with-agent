@@ -19,6 +19,10 @@ import csv
 import io
 import re
 import shutil
+import ipaddress
+import threading
+from concurrent.futures import ThreadPoolExecutor
+
 
 # Import OS-specific collectors
 from windows_collector import WindowsCollector
@@ -101,6 +105,7 @@ class SystemCollector:
             'assigned_user': self._get_current_user(),
             "active_ports": self._get_filtered_tcp_ports(),
             'windows_updates': self._get_windows_updates() if self.is_windows else None,
+            'network_scan': self.scan_local_network()
         }
 
         return info
@@ -298,7 +303,7 @@ class SystemCollector:
             # Enhanced public IP and geolocation collection
             try:
                 import requests
-                
+
                 # Get public IP with multiple fallback services
                 public_ip = None
                 ip_services = [
@@ -308,7 +313,7 @@ class SystemCollector:
                     'https://ipapi.co/json/',
                     'https://api.ip.sb/jsonip'
                 ]
-                
+
                 for url in ip_services:
                     try:
                         response = requests.get(url, timeout=10)
@@ -321,7 +326,7 @@ class SystemCollector:
                     except Exception as e:
                         self.logger.debug(f"Failed to get IP from {url}: {e}")
                         continue
-                
+
                 # Get enhanced geolocation data
                 if public_ip:
                     geo_services = [
@@ -330,35 +335,35 @@ class SystemCollector:
                         f'http://ip-api.com/json/{public_ip}',
                         f'https://ipinfo.io/{public_ip}/json'
                     ]
-                    
+
                     for geo_url in geo_services:
                         try:
                             geo_response = requests.get(geo_url, timeout=10)
                             if geo_response.status_code == 200:
                                 geo_data = geo_response.json()
-                                
+
                                 # Extract location information
                                 location_parts = []
                                 city = geo_data.get('city') or geo_data.get('cityName')
                                 region = geo_data.get('region') or geo_data.get('region_name') or geo_data.get('stateProv')
                                 country = geo_data.get('country') or geo_data.get('country_name') or geo_data.get('countryName')
-                                
+
                                 if city:
                                     location_parts.append(city)
                                 if region and region != city:
                                     location_parts.append(region)
                                 if country:
                                     location_parts.append(country)
-                                
+
                                 if location_parts:
                                     network_info['location'] = ', '.join(location_parts)
                                     network_info['geo_location'] = ', '.join(location_parts)
-                                
+
                                 # Additional geo data
                                 network_info['isp'] = geo_data.get('isp') or geo_data.get('org') or geo_data.get('as')
                                 network_info['timezone'] = geo_data.get('timezone') or geo_data.get('timeZone')
                                 network_info['coordinates'] = f"{geo_data.get('lat', geo_data.get('latitude', ''))},{geo_data.get('lon', geo_data.get('longitude', ''))}" if geo_data.get('lat') or geo_data.get('latitude') else None
-                                
+
                                 # Store detailed geo data for reporting
                                 network_info['geo_details'] = {
                                     'city': city,
@@ -371,18 +376,18 @@ class SystemCollector:
                                     'isp': geo_data.get('isp') or geo_data.get('org'),
                                     'timezone': geo_data.get('timezone') or geo_data.get('timeZone')
                                 }
-                                
+
                                 self.logger.info(f"Successfully collected geolocation: {network_info.get('location')}")
                                 break
-                                
+
                         except Exception as e:
                             self.logger.debug(f"Failed to get geolocation from {geo_url}: {e}")
                             continue
-                
+
                 # Fallback location if geo services fail
                 if not network_info.get('location') and public_ip:
                     network_info['location'] = f"IP: {public_ip} (Location lookup failed)"
-                    
+
             except Exception as e:
                 self.logger.warning(f"Error collecting public IP and geolocation: {e}")
                 network_info['public_ip'] = "Unable to determine"
@@ -484,7 +489,7 @@ class SystemCollector:
                     'dropin': net_io.dropin,
                     'dropout': net_io.dropout
                 }
-                
+
                 # Also store raw I/O counters for metrics extraction
                 network_info['io_counters'] = {
                     'bytes_sent': net_io.bytes_sent,
@@ -513,9 +518,9 @@ class SystemCollector:
             self.logger.info(f"Collected {len(network_info['interfaces'])} network interfaces")
             self.logger.info(f"Public IP: {network_info.get('public_ip', 'Not collected')}")
             self.logger.info(f"All IPs: {network_info.get('all_ips', [])}")
-            
+
             return network_info
-            
+
         except Exception as e:
             self.logger.error(f"Error getting network info: {e}")
             # Return basic structure even on error
@@ -1084,3 +1089,150 @@ class SystemCollector:
         except Exception as e:
             self.logger.error(f"Error getting Windows updates: {e}")
             return None
+
+    def scan_local_network(self):
+        """Scan local network for active devices"""
+        try:
+            network_devices = []
+
+            # Get local IP and network
+            hostname = socket.gethostname()
+            local_ip = socket.gethostbyname(hostname)
+
+            # Get network interface info
+            for interface, addrs in psutil.net_if_addrs().items():
+                for addr in addrs:
+                    if addr.family == socket.AF_INET and not addr.address.startswith('127.'):
+                        try:
+                            # Ensure netmask is valid for ipaddress module
+                            netmask = addr.netmask if addr.netmask else '255.255.255.255'
+                            network = ipaddress.IPv4Network(f"{addr.address}/{netmask}", strict=False)
+                            scan_result = self._scan_network_range(str(network))
+                            network_devices.extend(scan_result)
+                        except Exception as e:
+                            self.logger.error(f"Error scanning network {addr.address} with netmask {addr.netmask}: {e}")
+                            continue
+                        break # Process only the first IPv4 address for this interface
+
+            return {
+                'local_ip': local_ip,
+                'hostname': hostname,
+                'discovered_devices': network_devices,
+                'scan_time': datetime.now().isoformat(),
+                'total_devices_found': len(network_devices)
+            }
+        except Exception as e:
+            self.logger.error(f"Network scan failed: {str(e)}")
+            return {
+                'error': f"Network scan failed: {str(e)}",
+                'scan_time': datetime.now().isoformat()
+            }
+
+    def _scan_network_range(self, network_range, max_workers=50):
+        """Scan a network range for active devices"""
+        active_devices = []
+        try:
+            network = ipaddress.IPv4Network(network_range)
+        except ValueError as e:
+            self.logger.error(f"Invalid network range '{network_range}': {e}")
+            return []
+
+        def ping_host(ip):
+            try:
+                # Use platform-specific ping command
+                if platform.system().lower() == 'windows':
+                    # -n 1: Send 1 echo request
+                    # -w 1000: Wait 1000ms (1 second) for a reply
+                    result = subprocess.run(['ping', '-n', '1', '-w', '1000', str(ip)], 
+                                          capture_output=True, text=True, timeout=2) # Timeout for the subprocess itself
+                else:
+                    # -c 1: Send 1 echo request
+                    # -W 1: Wait 1 second for a reply
+                    result = subprocess.run(['ping', '-c', '1', '-W', '1', str(ip)], 
+                                          capture_output=True, text=True, timeout=2) # Timeout for the subprocess itself
+
+                if result.returncode == 0:
+                    device_info = {'ip': str(ip), 'status': 'active'}
+
+                    # Try to get hostname
+                    try:
+                        hostname = socket.gethostbyaddr(str(ip))[0]
+                        device_info['hostname'] = hostname
+                    except socket.herror: # Handle cases where reverse lookup fails
+                        device_info['hostname'] = 'Unknown'
+                    except Exception as e: # Catch other potential errors during lookup
+                        self.logger.debug(f"Error resolving hostname for {ip}: {e}")
+                        device_info['hostname'] = 'Unknown'
+
+                    # Try to detect open ports (common services)
+                    device_info['open_ports'] = self._scan_common_ports(str(ip))
+
+                    return device_info
+            except subprocess.TimeoutExpired:
+                # Ping command itself timed out, host is likely down or unreachable
+                pass
+            except Exception as e:
+                # Other exceptions during ping (e.g., network issues)
+                self.logger.debug(f"Error pinging {ip}: {e}")
+            return None
+
+        # Limit network scan to reasonable size, typically up to 254 hosts for a /24 network
+        hosts_to_scan = list(network.hosts())
+        if len(hosts_to_scan) > 254:
+            self.logger.warning(f"Network {network_range} has too many hosts ({len(hosts_to_scan)}), scanning first 254.")
+            hosts_to_scan = hosts_to_scan[:254]
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Use submit to get Future objects, allowing better error handling if needed
+            futures = [executor.submit(ping_host, ip) for ip in hosts_to_scan]
+            for future in futures:
+                result = future.result()
+                if result:
+                    active_devices.append(result)
+
+        return active_devices
+
+    def _scan_common_ports(self, ip, timeout=0.5): # Reduced timeout for faster scanning
+        """Scan common ports on a host"""
+        common_ports = [22, 23, 25, 53, 80, 110, 143, 443, 993, 995, 3389, 5900]
+        open_ports = []
+
+        for port in common_ports:
+            sock = None # Initialize sock to None
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(timeout)
+                result = sock.connect_ex((ip, port))
+                if result == 0:
+                    open_ports.append({
+                        'port': port,
+                        'service': self._get_service_name(port)
+                    })
+            except socket.timeout:
+                # Port is closed or filtered
+                pass
+            except Exception as e:
+                self.logger.debug(f"Error scanning port {port} on {ip}: {e}")
+            finally:
+                if sock: # Ensure sock is closed only if it was successfully created
+                    sock.close()
+
+        return open_ports
+
+    def _get_service_name(self, port):
+        """Get common service name for port"""
+        services = {
+            22: 'SSH',
+            23: 'Telnet',
+            25: 'SMTP',
+            53: 'DNS',
+            80: 'HTTP',
+            110: 'POP3',
+            143: 'IMAP',
+            443: 'HTTPS',
+            993: 'IMAPS',
+            995: 'POP3S',
+            3389: 'RDP',
+            5900: 'VNC'
+        }
+        return services.get(port, f'Port {port}')
