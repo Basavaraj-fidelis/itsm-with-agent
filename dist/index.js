@@ -1,5 +1,7 @@
 var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
   get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
 }) : x)(function(x) {
@@ -13,6 +15,15 @@ var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
 };
+var __copyProps = (to, from, except, desc12) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc12 = __getOwnPropDesc(from, key)) || desc12.enumerable });
+  }
+  return to;
+};
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // shared/schema.ts
 var schema_exports = {};
@@ -411,7 +422,7 @@ __export(storage_exports, {
   DatabaseStorage: () => DatabaseStorage,
   MemStorage: () => MemStorage,
   registerAgent: () => registerAgent,
-  storage: () => storage2
+  storage: () => storage
 });
 import { eq, desc, and as and2, sql as sql2 } from "drizzle-orm";
 import os from "os";
@@ -422,9 +433,9 @@ async function registerAgent(hostname2, ip_address, currentUser) {
       version: os.release(),
       name: os.type()
     };
-    let device = await storage2.getDeviceByHostname(hostname2);
+    let device = await storage.getDeviceByHostname(hostname2);
     if (!device) {
-      device = await storage2.createDevice({
+      device = await storage.createDevice({
         hostname: hostname2,
         assigned_user: currentUser,
         os_name: osInfo.name || osInfo.platform || osInfo.system || null,
@@ -444,7 +455,7 @@ async function registerAgent(hostname2, ip_address, currentUser) {
         ip_address
       );
     } else {
-      await storage2.updateDevice(device.id, {
+      await storage.updateDevice(device.id, {
         assigned_user: currentUser || device.assigned_user,
         os_name: osInfo.name || osInfo.platform || osInfo.system || device.os_name,
         os_version: osInfo.version || osInfo.release || osInfo.version_info || device.os_version,
@@ -470,7 +481,7 @@ async function registerAgent(hostname2, ip_address, currentUser) {
     console.error("Error registering agent:", error);
   }
 }
-var MemStorage, DatabaseStorage, storage2;
+var MemStorage, DatabaseStorage, storage;
 var init_storage = __esm({
   "server/storage.ts"() {
     "use strict";
@@ -3255,7 +3266,7 @@ smartphones
       // Database connection instance
       db = db;
     };
-    storage2 = new DatabaseStorage();
+    storage = new DatabaseStorage();
   }
 });
 
@@ -6267,13 +6278,13 @@ var init_auth = __esm({
 
 // server/middleware/auth-middleware.ts
 import jwt3 from "jsonwebtoken";
-var JWT_SECRET3, authenticateToken2, requireRole;
+var JWT_SECRET3, authenticateToken, requireRole;
 var init_auth_middleware = __esm({
   "server/middleware/auth-middleware.ts"() {
     "use strict";
     init_storage();
     JWT_SECRET3 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-    authenticateToken2 = async (req, res, next) => {
+    authenticateToken = async (req, res, next) => {
       try {
         const authHeader = req.headers["authorization"];
         const token = authHeader && authHeader.split(" ")[1];
@@ -6320,7 +6331,7 @@ var init_auth_middleware = __esm({
             dbError.message
           );
         }
-        const user = await storage2.getUserById(decoded.userId || decoded.id);
+        const user = await storage.getUserById(decoded.userId || decoded.id);
         if (!user) {
           return res.status(403).json({ message: "User not found" });
         }
@@ -6369,12 +6380,12 @@ var init_alert_routes = __esm({
     router2.get("/", async (req, res) => {
       try {
         console.log("Fetching alerts for user:", req.user?.email);
-        const alerts2 = await storage2.getActiveAlerts();
+        const alerts2 = await storage.getActiveAlerts();
         console.log(`Found ${alerts2.length} alerts`);
         const enhancedAlerts = await Promise.all(
           alerts2.map(async (alert) => {
             try {
-              const device = await storage2.getDevice(alert.device_id);
+              const device = await storage.getDevice(alert.device_id);
               return {
                 ...alert,
                 device_hostname: device?.hostname || "Unknown Device"
@@ -6402,7 +6413,7 @@ var init_alert_routes = __esm({
       try {
         const alertId = req.params.id;
         console.log(`Fetching alert: ${alertId}`);
-        const alert = await storage2.getAlertById(alertId);
+        const alert = await storage.getAlertById(alertId);
         if (!alert) {
           return res.status(404).json({ message: "Alert not found" });
         }
@@ -6425,7 +6436,7 @@ var init_alert_routes = __esm({
         }
         let alert;
         try {
-          alert = await storage2.getAlertById(alertId);
+          alert = await storage.getAlertById(alertId);
         } catch (fetchError) {
           console.error(`Error fetching alert ${alertId}:`, fetchError);
           return res.status(500).json({
@@ -6451,7 +6462,7 @@ var init_alert_routes = __esm({
           });
         }
         try {
-          await storage2.resolveAlert(alertId);
+          await storage.resolveAlert(alertId);
           console.log(`Alert ${alertId} resolved successfully by ${userId}`);
           res.json({
             message: "Alert resolved successfully",
@@ -6624,7 +6635,7 @@ var init_automation_service = __esm({
           throw new Error(`Software package ${packageId} not found`);
         }
         for (const deviceId of deviceIds) {
-          const device = await storage2.getDevice(deviceId);
+          const device = await storage.getDevice(deviceId);
           if (!device) continue;
           if (!softwarePackage.supported_os.includes(device.os_name || "")) {
             console.log(`Skipping ${deviceId}: OS ${device.os_name} not supported`);
@@ -6643,7 +6654,7 @@ var init_automation_service = __esm({
             this.deploymentQueue.set(deviceId, []);
           }
           this.deploymentQueue.get(deviceId).push(task);
-          await storage2.createAlert({
+          await storage.createAlert({
             device_id: deviceId,
             category: "automation",
             severity: "info",
@@ -6704,12 +6715,12 @@ var init_automation_service = __esm({
         }
       }
       async updateDeploymentStatus(task) {
-        const alerts2 = await storage2.getActiveAlerts();
+        const alerts2 = await storage.getActiveAlerts();
         const deploymentAlert = alerts2.find(
           (alert) => alert.metadata?.deployment_id === task.id
         );
         if (deploymentAlert) {
-          await storage2.updateAlert(deploymentAlert.id, {
+          await storage.updateAlert(deploymentAlert.id, {
             metadata: {
               ...deploymentAlert.metadata,
               status: task.status,
@@ -6741,7 +6752,7 @@ var init_automation_service = __esm({
         return template;
       }
       async applyConfiguration(deviceId, templateId) {
-        await storage2.createAlert({
+        await storage.createAlert({
           device_id: deviceId,
           category: "automation",
           severity: "info",
@@ -6831,7 +6842,7 @@ var init_automation_routes = __esm({
       try {
         const { issue_type, remediation_action } = req.body;
         const deviceId = req.params.deviceId;
-        await storage2.createAlert({
+        await storage.createAlert({
           device_id: deviceId,
           category: "automation",
           severity: "info",
@@ -6857,7 +6868,7 @@ var init_automation_routes = __esm({
     });
     router4.get("/deployments", async (req, res) => {
       try {
-        const alerts2 = await storage2.getActiveAlerts();
+        const alerts2 = await storage.getActiveAlerts();
         const deployments = alerts2.filter(
           (alert) => alert.category === "automation" && alert.metadata?.automation_type === "software_deployment"
         );
@@ -10370,7 +10381,7 @@ var init_performance_service = __esm({
             (alert) => alert.metadata?.metric_type === metricType && this.isRecentAlert(alert.triggered_at)
           );
           if (recentAlert && this.shouldUpdateExistingAlert(recentAlert, currentValue, severity)) {
-            await storage2.updateAlert(recentAlert.id, {
+            await storage.updateAlert(recentAlert.id, {
               severity,
               message: alertMessage,
               metadata: {
@@ -10385,7 +10396,7 @@ var init_performance_service = __esm({
               is_active: true
             });
           } else {
-            await storage2.createAlert({
+            await storage.createAlert({
               device_id: deviceId,
               category: "performance",
               severity,
@@ -10428,7 +10439,7 @@ var init_performance_service = __esm({
         try {
           console.log(`Generating resource predictions for device: ${deviceId}`);
           const predictions = [];
-          const reports = await storage2.getRecentDeviceReports(deviceId, 30);
+          const reports = await storage.getRecentDeviceReports(deviceId, 30);
           const recentReports = reports;
           if (recentReports.length < 7) {
             return predictions;
@@ -10887,7 +10898,7 @@ __export(analytics_routes_exports, {
 });
 import { Router as Router6 } from "express";
 import { sql as sql8, desc as desc8 } from "drizzle-orm";
-var router6, authenticateToken3, analytics_routes_default;
+var router6, authenticateToken2, analytics_routes_default;
 var init_analytics_routes = __esm({
   "server/routes/analytics-routes.ts"() {
     "use strict";
@@ -10901,7 +10912,7 @@ var init_analytics_routes = __esm({
     init_schema();
     init_ticket_schema();
     router6 = Router6();
-    authenticateToken3 = async (req, res, next) => {
+    authenticateToken2 = async (req, res, next) => {
       const authHeader = req.headers["authorization"];
       const token = AuthUtils.extractTokenFromHeader(authHeader || "");
       if (!token) {
@@ -10924,7 +10935,7 @@ var init_analytics_routes = __esm({
         return ResponseUtils.forbidden(res, "Invalid token");
       }
     };
-    router6.get("/performance", authenticateToken3, async (req, res) => {
+    router6.get("/performance", authenticateToken2, async (req, res) => {
       try {
         const { timeRange = "7d" } = req.query;
         console.log(`Generating performance report for timeRange: ${timeRange}`);
@@ -10956,7 +10967,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/availability", authenticateToken3, async (req, res) => {
+    router6.get("/availability", authenticateToken2, async (req, res) => {
       try {
         const { timeRange = "7d" } = req.query;
         console.log(`Generating availability report for timeRange: ${timeRange}`);
@@ -11778,7 +11789,7 @@ var init_analytics_routes = __esm({
     });
     router6.get(
       "/performance/insights/:deviceId",
-      authenticateToken3,
+      authenticateToken2,
       async (req, res) => {
         try {
           const { deviceId } = req.params;
@@ -11796,7 +11807,7 @@ var init_analytics_routes = __esm({
     );
     router6.get(
       "/performance/predictions/:deviceId",
-      authenticateToken3,
+      authenticateToken2,
       async (req, res) => {
         try {
           const { deviceId } = req.params;
@@ -11814,8 +11825,8 @@ var init_analytics_routes = __esm({
     );
     router6.get("/performance/overview", async (req, res) => {
       try {
-        const { storage: storage4 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
-        const devices2 = await storage4.getDevices();
+        const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
+        const devices2 = await storage3.getDevices();
         const performanceOverview = {
           totalDevices: devices2.length,
           onlineDevices: devices2.filter((d) => d.status === "online").length,
@@ -11901,11 +11912,11 @@ var init_analytics_routes = __esm({
       try {
         const deviceId = req.params.deviceId;
         console.log(`Getting advanced analytics for device: ${deviceId}`);
-        const { storage: storage4 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
+        const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
         let device;
         let reports = [];
         try {
-          device = await storage4.getDevice(deviceId);
+          device = await storage3.getDevice(deviceId);
         } catch (storageError) {
           console.error("Storage error getting device:", storageError);
           return res.json({
@@ -11946,7 +11957,7 @@ var init_analytics_routes = __esm({
           });
         }
         try {
-          reports = await storage4.getDeviceReports(deviceId, 24);
+          reports = await storage3.getDeviceReports(deviceId, 24);
         } catch (reportsError) {
           console.error("Error getting device reports:", reportsError);
           reports = [];
@@ -12189,8 +12200,8 @@ var init_analytics_routes = __esm({
           search: req.query.search
         };
         console.log("Generating detailed agents report with filters:", filters);
-        const { storage: storage4 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
-        const devices2 = await storage4.getDevices();
+        const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
+        const devices2 = await storage3.getDevices();
         let filteredDevices = devices2.filter((device) => {
           let matches = true;
           if (filters.status && filters.status !== "all") {
@@ -13088,18 +13099,18 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to change password" });
       }
     });
-    router7.post("/:id/lock", authenticateToken2, async (req, res) => {
+    router7.post("/:id/lock", authenticateToken, async (req, res) => {
       try {
         const { id } = req.params;
         const { reason } = req.body;
         if (!reason) {
           return res.status(400).json({ message: "Reason for locking is required" });
         }
-        const success = await storage2.lockUser(id, reason);
+        const success = await storage.lockUser(id, reason);
         if (!success) {
           return res.status(404).json({ message: "User not found" });
         }
-        const user = await storage2.getUserById(id);
+        const user = await storage.getUserById(id);
         res.json({
           message: "User locked successfully",
           user
@@ -13109,14 +13120,14 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to lock user" });
       }
     });
-    router7.post("/:id/unlock", authenticateToken2, async (req, res) => {
+    router7.post("/:id/unlock", authenticateToken, async (req, res) => {
       try {
         const { id } = req.params;
-        const success = await storage2.unlockUser(id);
+        const success = await storage.unlockUser(id);
         if (!success) {
           return res.status(404).json({ message: "User not found" });
         }
-        const user = await storage2.getUserById(id);
+        const user = await storage.getUserById(id);
         res.json({
           message: "User unlocked successfully",
           user
@@ -13137,7 +13148,7 @@ __export(knowledge_routes_exports, {
 import { Router as Router8 } from "express";
 import { eq as eq9, and as and9, or as or8, sql as sql9, desc as desc9, ilike as ilike3, count as count5, like as like5 } from "drizzle-orm";
 import jwt6 from "jsonwebtoken";
-var router8, storage3, authenticateToken4;
+var router8, storage2, authenticateToken3;
 var init_knowledge_routes = __esm({
   "server/routes/knowledge-routes.ts"() {
     "use strict";
@@ -13146,8 +13157,8 @@ var init_knowledge_routes = __esm({
     init_ticket_storage();
     init_knowledge_ai_service();
     router8 = Router8();
-    storage3 = new TicketStorage();
-    authenticateToken4 = (req, res, next) => {
+    storage2 = new TicketStorage();
+    authenticateToken3 = (req, res, next) => {
       const authHeader = req.headers["authorization"];
       const token = authHeader && authHeader.split(" ")[1];
       if (!token) {
@@ -13164,7 +13175,7 @@ var init_knowledge_routes = __esm({
         next();
       });
     };
-    router8.get("/", authenticateToken4, async (req, res) => {
+    router8.get("/", authenticateToken3, async (req, res) => {
       try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
@@ -13358,9 +13369,9 @@ var init_knowledge_routes = __esm({
         res.status(500).json({ error: "Failed to fetch related articles", details: error.message });
       }
     });
-    router8.get("/:id", authenticateToken4, async (req, res) => {
+    router8.get("/:id", authenticateToken3, async (req, res) => {
       try {
-        const article = await storage3.getKBArticleById(req.params.id);
+        const article = await storage2.getKBArticleById(req.params.id);
         if (!article) {
           return res.status(404).json({ message: "Article not found" });
         }
@@ -13370,7 +13381,7 @@ var init_knowledge_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router8.post("/", authenticateToken4, async (req, res) => {
+    router8.post("/", authenticateToken3, async (req, res) => {
       try {
         const { title, content, category } = req.body;
         const newArticle = {
@@ -13383,7 +13394,7 @@ var init_knowledge_routes = __esm({
           views: 0,
           helpful_votes: 0
         };
-        const article = await storage3.createKBArticle(newArticle);
+        const article = await storage2.createKBArticle(newArticle);
         res.status(201).json(article);
       } catch (error) {
         console.error("Error creating KB article:", error);
@@ -15142,7 +15153,7 @@ var init_ai_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    router11.get("/insights/device/:deviceId", authenticateToken2, async (req, res) => {
+    router11.get("/insights/device/:deviceId", authenticateToken, async (req, res) => {
       try {
         const { deviceId } = req.params;
         console.log("Fetching AI insights for device:", deviceId);
@@ -15171,7 +15182,7 @@ var init_ai_routes = __esm({
         });
       }
     });
-    router11.get("/api/ai-insights", authenticateToken2, async (req, res) => {
+    router11.get("/api/ai-insights", authenticateToken, async (req, res) => {
       try {
         const insights = {
           systemHealth: "good",
@@ -15197,7 +15208,7 @@ var init_ai_routes = __esm({
         });
       }
     });
-    router11.get("/api/ai/insights", authenticateToken2, async (req, res) => {
+    router11.get("/api/ai/insights", authenticateToken, async (req, res) => {
     });
     ai_routes_default = router11;
   }
@@ -15728,6 +15739,93 @@ var init_migrate_admin_tables = __esm({
   }
 });
 
+// server/ssh-server.js
+var ssh_server_exports = {};
+var Server, fs3, crypto, ITSMSSHServer;
+var init_ssh_server = __esm({
+  "server/ssh-server.js"() {
+    "use strict";
+    ({ Server } = __require("ssh2"));
+    fs3 = __require("fs");
+    crypto = __require("crypto");
+    ITSMSSHServer = class {
+      constructor(port2 = 2222) {
+        this.port = port2;
+        this.server = null;
+        this.activeTunnels = /* @__PURE__ */ new Map();
+      }
+      async start() {
+        return new Promise((resolve, reject) => {
+          let hostKey;
+          try {
+            hostKey = fs3.readFileSync("ssh_host_rsa_key");
+          } catch (err) {
+            console.log("Generating new SSH host key...");
+            const { privateKey } = crypto.generateKeyPairSync("rsa", {
+              modulusLength: 2048,
+              privateKeyEncoding: {
+                type: "pkcs1",
+                format: "pem"
+              }
+            });
+            hostKey = privateKey;
+            fs3.writeFileSync("ssh_host_rsa_key", hostKey);
+          }
+          this.server = new Server({
+            hostKeys: [hostKey]
+          }, (client) => {
+            console.log("SSH Client connected!");
+            client.on("authentication", (ctx) => {
+              if (ctx.method === "password" && ctx.username === "itsm-user" && ctx.password === "itsm-secure-2024") {
+                ctx.accept();
+              } else {
+                ctx.reject();
+              }
+            }).on("ready", () => {
+              console.log("SSH Client authenticated and ready!");
+              client.on("request", (accept, reject2, name, info) => {
+                if (name === "tcpip-forward") {
+                  console.log(`Reverse tunnel request: ${info.bindAddr}:${info.bindPort}`);
+                  accept && accept();
+                  this.activeTunnels.set(client, {
+                    bindAddr: info.bindAddr,
+                    bindPort: info.bindPort,
+                    destAddr: info.destIP || "localhost",
+                    destPort: info.destPort || 5900
+                  });
+                  console.log(`Reverse tunnel established: ${info.bindPort} -> ${info.destIP || "localhost"}:${info.destPort || 5900}`);
+                }
+              });
+            }).on("end", () => {
+              console.log("SSH Client disconnected");
+              this.activeTunnels.delete(client);
+            });
+          });
+          this.server.listen(this.port, "0.0.0.0", (err) => {
+            if (err) {
+              reject(err);
+            } else {
+              console.log(`SSH Server listening on port ${this.port}`);
+              resolve();
+            }
+          });
+        });
+      }
+      stop() {
+        if (this.server) {
+          this.server.close();
+          this.activeTunnels.clear();
+          console.log("SSH Server stopped");
+        }
+      }
+      getActiveTunnels() {
+        return Array.from(this.activeTunnels.values());
+      }
+    };
+    module.exports = ITSMSSHServer;
+  }
+});
+
 // server/index.ts
 import express2 from "express";
 
@@ -15918,7 +16016,7 @@ function registerTicketRoutes(app2) {
 
 // server/routes/device-routes.ts
 init_storage();
-function registerDeviceRoutes(app2, authenticateToken5) {
+function registerDeviceRoutes(app2, authenticateToken4) {
   app2.get("/api/devices/export/csv", async (req, res) => {
     try {
       const filters = {
@@ -15929,7 +16027,7 @@ function registerDeviceRoutes(app2, authenticateToken5) {
         health: req.query.health,
         search: req.query.search
       };
-      const devices2 = await storage2.getDevices();
+      const devices2 = await storage.getDevices();
       let filteredDevices = devices2.filter((device) => {
         let matches = true;
         if (filters.status && filters.status !== "all") {
@@ -15976,10 +16074,10 @@ function registerDeviceRoutes(app2, authenticateToken5) {
       res.status(500).json({ error: "Failed to export devices" });
     }
   });
-  app2.get("/api/devices", authenticateToken5, async (req, res) => {
+  app2.get("/api/devices", authenticateToken4, async (req, res) => {
     try {
       console.log("Fetching devices - checking for agent activity...");
-      const devices2 = await storage2.getDevices();
+      const devices2 = await storage.getDevices();
       const onlineCount = devices2.filter((d) => d.status === "online").length;
       const offlineCount = devices2.filter((d) => d.status === "offline").length;
       console.log(
@@ -15987,16 +16085,16 @@ function registerDeviceRoutes(app2, authenticateToken5) {
       );
       const devicesWithReports = await Promise.all(
         devices2.map(async (device) => {
-          const latestReport = await storage2.getLatestDeviceReport(device.id);
+          const latestReport = await storage.getLatestDeviceReport(device.id);
           const now = /* @__PURE__ */ new Date();
           const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
           const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1e3);
           let currentStatus = device.status;
           if (lastSeen && lastSeen < tenMinutesAgo && device.status === "online") {
-            await storage2.updateDevice(device.id, { status: "offline" });
+            await storage.updateDevice(device.id, { status: "offline" });
             currentStatus = "offline";
           } else if (lastSeen && lastSeen >= tenMinutesAgo && device.status === "offline") {
-            await storage2.updateDevice(device.id, { status: "online" });
+            await storage.updateDevice(device.id, { status: "online" });
             currentStatus = "online";
           }
           return {
@@ -16041,16 +16139,16 @@ function registerDeviceRoutes(app2, authenticateToken5) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
-  app2.get("/api/devices/:id", authenticateToken5, async (req, res) => {
+  app2.get("/api/devices/:id", authenticateToken4, async (req, res) => {
     try {
-      let device = await storage2.getDevice(req.params.id);
+      let device = await storage.getDevice(req.params.id);
       if (!device) {
-        device = await storage2.getDeviceByHostname(req.params.id);
+        device = await storage.getDeviceByHostname(req.params.id);
       }
       if (!device) {
         return res.status(404).json({ message: "Device not found" });
       }
-      const latestReport = await storage2.getLatestDeviceReport(device.id);
+      const latestReport = await storage.getLatestDeviceReport(device.id);
       const deviceWithReport = {
         ...device,
         latest_report: latestReport ? {
@@ -16095,7 +16193,7 @@ function registerDeviceRoutes(app2, authenticateToken5) {
   });
   app2.get("/api/devices/:id/reports", async (req, res) => {
     try {
-      const reports = await storage2.getDeviceReports(req.params.id);
+      const reports = await storage.getDeviceReports(req.params.id);
       console.log(`Device reports for device id ${req.params.id}:`, reports);
       res.json(reports);
     } catch (error) {
@@ -16106,7 +16204,7 @@ function registerDeviceRoutes(app2, authenticateToken5) {
   app2.get("/api/devices/:id/usb-devices", async (req, res) => {
     try {
       console.log(`Fetching USB devices for device: ${req.params.id}`);
-      const usbDevices = await storage2.getUSBDevicesForDevice(req.params.id);
+      const usbDevices = await storage.getUSBDevicesForDevice(req.params.id);
       console.log(`Found ${usbDevices.length} USB devices:`, usbDevices);
       res.json(usbDevices);
     } catch (error) {
@@ -16116,7 +16214,7 @@ function registerDeviceRoutes(app2, authenticateToken5) {
   });
   app2.get(
     "/api/devices/:id/performance-insights",
-    authenticateToken5,
+    authenticateToken4,
     async (req, res) => {
       try {
         const { id } = req.params;
@@ -16141,7 +16239,7 @@ function registerDeviceRoutes(app2, authenticateToken5) {
   );
   app2.get(
     "/api/devices/:id/ai-insights",
-    authenticateToken5,
+    authenticateToken4,
     async (req, res) => {
       try {
         const { id } = req.params;
@@ -16160,7 +16258,7 @@ function registerDeviceRoutes(app2, authenticateToken5) {
   );
   app2.get(
     "/api/devices/:id/ai-recommendations",
-    authenticateToken5,
+    authenticateToken4,
     async (req, res) => {
       try {
         const { id } = req.params;
@@ -16177,9 +16275,9 @@ function registerDeviceRoutes(app2, authenticateToken5) {
       }
     }
   );
-  app2.get("/api/debug/devices", authenticateToken5, async (req, res) => {
+  app2.get("/api/debug/devices", authenticateToken4, async (req, res) => {
     try {
-      const devices2 = await storage2.getDevices();
+      const devices2 = await storage.getDevices();
       const now = /* @__PURE__ */ new Date();
       const deviceDetails = devices2.map((device) => {
         const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
@@ -16220,14 +16318,14 @@ function registerDeviceRoutes(app2, authenticateToken5) {
 init_storage();
 init_enhanced_storage();
 init_patch_compliance_service();
-function registerAgentRoutes(app2, authenticateToken5, requireRole2) {
+function registerAgentRoutes(app2, authenticateToken4, requireRole3) {
   app2.post(
     "/api/agents/:id/test-connectivity",
-    authenticateToken5,
+    authenticateToken4,
     async (req, res) => {
       try {
         const { id } = req.params;
-        const device = await storage2.getDevice(id);
+        const device = await storage.getDevice(id);
         if (!device || !device.ip_address) {
           return res.status(404).json({ message: "Agent not found or no IP address" });
         }
@@ -16255,11 +16353,11 @@ function registerAgentRoutes(app2, authenticateToken5, requireRole2) {
   );
   app2.get(
     "/api/agents/:id/connection-status",
-    authenticateToken5,
+    authenticateToken4,
     async (req, res) => {
       try {
         const agentId = req.params.id;
-        const device = await storage2.getDevice(agentId);
+        const device = await storage.getDevice(agentId);
         if (!device) {
           return res.status(404).json({ message: "Agent not found" });
         }
@@ -16284,7 +16382,7 @@ function registerAgentRoutes(app2, authenticateToken5, requireRole2) {
   );
   app2.post(
     "/api/agents/:id/remote-connect",
-    authenticateToken5,
+    authenticateToken4,
     async (req, res) => {
       try {
         const agentId = req.params.id;
@@ -16294,7 +16392,7 @@ function registerAgentRoutes(app2, authenticateToken5, requireRole2) {
           use_tunnel = false,
           jump_host = null
         } = req.body;
-        const device = await storage2.getDevice(agentId);
+        const device = await storage.getDevice(agentId);
         if (!device) {
           return res.status(404).json({ message: "Agent not found" });
         }
@@ -16305,7 +16403,7 @@ function registerAgentRoutes(app2, authenticateToken5, requireRole2) {
           });
         }
         const isPrivateIP = device.ip_address && (device.ip_address.startsWith("10.") || device.ip_address.startsWith("172.") || device.ip_address.startsWith("192.168.") || device.ip_address.startsWith("169.254."));
-        await storage2.createAlert({
+        await storage.createAlert({
           device_id: agentId,
           category: "remote_access",
           severity: "info",
@@ -16335,19 +16433,38 @@ function registerAgentRoutes(app2, authenticateToken5, requireRole2) {
         };
         if (isPrivateIP) {
           connectionInfo.tunnel_required = true;
+          const serverHost = req.hostname || "0.0.0.0";
+          connectionInfo.reverse_tunnel_command = `ssh -R 5901:localhost:${port2} itsm-user@${serverHost}`;
+          connectionInfo.tunnel_instructions = [
+            {
+              step: 1,
+              title: "Setup Reverse SSH Tunnel from Agent",
+              description: "Run this command on the Windows endpoint to create a reverse tunnel",
+              command: `ssh -R 5901:localhost:${port2} -p 2222 itsm-user@${serverHost}`,
+              notes: "This creates a tunnel from the remote machine back to this server"
+            },
+            {
+              step: 2,
+              title: "Connect via Tunnel",
+              description: "Once tunnel is established, connect to localhost:5901",
+              local_connection: "localhost:5901",
+              notes: "The remote VNC server will be accessible via the reverse tunnel"
+            }
+          ];
           connectionInfo.tunnel_suggestions = [
             {
-              method: "ssh_tunnel",
-              command: `ssh -L ${port2}:${device.ip_address}:${port2} ${jump_host || "your_jump_host"}`,
-              description: "Create SSH tunnel via jump host"
+              method: "reverse_ssh_tunnel",
+              command: `ssh -R 5901:localhost:${port2} -p 2222 itsm-user@${serverHost}`,
+              description: "Create reverse SSH tunnel from Windows endpoint to this server"
             },
             {
               method: "vpn",
               description: "Connect to company VPN first, then access private IP directly"
             },
             {
-              method: "reverse_proxy",
-              description: "Deploy reverse proxy on public server"
+              method: "ssh_tunnel",
+              command: `ssh -L ${port2}:${device.ip_address}:${port2} ${jump_host || "your_jump_host"}`,
+              description: "Create SSH tunnel via jump host (alternative method)"
             }
           ];
         }
@@ -16363,8 +16480,8 @@ function registerAgentRoutes(app2, authenticateToken5, requireRole2) {
   );
   app2.post(
     "/api/agents/:id/execute-command",
-    authenticateToken5,
-    requireRole2(["admin", "manager"]),
+    authenticateToken4,
+    requireRole3(["admin", "manager"]),
     async (req, res) => {
       try {
         const agentId = req.params.id;
@@ -16375,7 +16492,7 @@ function registerAgentRoutes(app2, authenticateToken5, requireRole2) {
             message: "Command is required and must be a string"
           });
         }
-        const device = await storage2.getDevice(agentId);
+        const device = await storage.getDevice(agentId);
         if (!device) {
           return res.status(404).json({
             success: false,
@@ -16395,7 +16512,7 @@ function registerAgentRoutes(app2, authenticateToken5, requireRole2) {
          RETURNING id`,
           [agentId, "execute_command", command, 1, req.user.id]
         );
-        await storage2.createAlert({
+        await storage.createAlert({
           device_id: agentId,
           category: "remote_command",
           severity: "info",
@@ -16435,9 +16552,9 @@ function registerAgentRoutes(app2, authenticateToken5, requireRole2) {
       if (!hostname2) {
         return res.status(400).json({ error: "Hostname is required" });
       }
-      let device = await storage2.getDeviceByHostname(hostname2);
+      let device = await storage.getDeviceByHostname(hostname2);
       if (!device) {
-        device = await storage2.createDevice({
+        device = await storage.createDevice({
           hostname: hostname2,
           assigned_user: systemInfo?.current_user || null,
           os_name: systemInfo?.platform || null,
@@ -16448,7 +16565,7 @@ function registerAgentRoutes(app2, authenticateToken5, requireRole2) {
         });
         console.log("Created new device from heartbeat:", device.id);
       } else {
-        await storage2.updateDevice(device.id, {
+        await storage.updateDevice(device.id, {
           status: "online",
           last_seen: /* @__PURE__ */ new Date()
         });
@@ -16531,7 +16648,7 @@ function registerAgentRoutes(app2, authenticateToken5, requireRole2) {
       console.log("Memory Usage:", memoryUsage);
       console.log("Disk Usage:", diskUsage);
       console.log("Network I/O:", networkIO);
-      await storage2.createDeviceReport({
+      await storage.createDeviceReport({
         device_id: device.id,
         cpu_usage: cpuUsage,
         memory_usage: memoryUsage,
@@ -16830,7 +16947,7 @@ var AuthController = class {
           dbError.message
         );
         try {
-          const demoUsers = await storage2.getUsers({ search: email });
+          const demoUsers = await storage.getUsers({ search: email });
           const user = demoUsers.find(
             (u) => u.email.toLowerCase() === email.toLowerCase()
           );
@@ -16873,12 +16990,12 @@ var AuthController = class {
       if (!name || !email || !password) {
         return res.status(400).json({ message: "Name, email and password required" });
       }
-      const existingUsers = await storage2.getUsers({ search: email });
+      const existingUsers = await storage.getUsers({ search: email });
       if (existingUsers.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
         return res.status(400).json({ message: "Email already exists" });
       }
       const password_hash = await bcrypt.hash(password, 10);
-      const newUser = await storage2.createUser({
+      const newUser = await storage.createUser({
         name,
         email: email.toLowerCase(),
         password_hash,
@@ -17005,7 +17122,7 @@ var AuthController = class {
       } catch (dbError) {
         console.log("Database lookup failed for portal, trying file storage:", dbError.message);
         try {
-          const demoUsers = await storage2.getUsers({ search: email });
+          const demoUsers = await storage.getUsers({ search: email });
           const user = demoUsers.find(
             (u) => u.email.toLowerCase() === email.toLowerCase()
           );
@@ -17059,7 +17176,7 @@ var router = Router();
 router.post("/login", AuthController.login);
 router.post("/signup", AuthController.signup);
 router.post("/logout", AuthController.logout);
-router.get("/verify", authenticateToken2, AuthController.verifyToken);
+router.get("/verify", authenticateToken, AuthController.verifyToken);
 router.post("/portal-login", (req, res, next) => {
   console.log(`\u{1F50D} Portal login request received at ${(/* @__PURE__ */ new Date()).toISOString()}`);
   console.log("Request method:", req.method);
@@ -17077,7 +17194,7 @@ async function registerRoutes(app2) {
   app2.use("/api/auth", router);
   console.log("\u2705 Auth routes registered");
   try {
-    await storage2.initializeDemoUsers();
+    await storage.initializeDemoUsers();
     console.log("Demo users initialized successfully");
   } catch (error) {
     console.log("Demo users may already exist, continuing...", error);
@@ -17165,7 +17282,7 @@ async function registerRoutes(app2) {
           user: userWithoutPassword
         });
       } catch (dbError) {
-        const demoUsers = await storage2.getUsers({ search: email });
+        const demoUsers = await storage.getUsers({ search: email });
         const user = demoUsers.find(
           (u) => u.email.toLowerCase() === email.toLowerCase()
         );
@@ -17203,7 +17320,7 @@ async function registerRoutes(app2) {
       if (!name || !email || !password) {
         return res.status(400).json({ message: "Name, email and password required" });
       }
-      const existingUsers = await storage2.getUsers({ search: email });
+      const existingUsers = await storage.getUsers({ search: email });
       if (existingUsers.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
         return res.status(400).json({ message: "Email already exists" });
       }
@@ -17217,14 +17334,14 @@ async function registerRoutes(app2) {
         phone: phone || "",
         is_active: true
       };
-      const newUser = await storage2.createUser(userData);
+      const newUser = await storage.createUser(userData);
       res.status(201).json(newUser);
     } catch (error) {
       console.error("Signup error:", error);
       res.status(500).json({ message: "Failed to create user", error: error.message });
     }
   });
-  app2.get("/api/auth/verify", authenticateToken2, async (req, res) => {
+  app2.get("/api/auth/verify", authenticateToken, async (req, res) => {
     try {
       const { password_hash, ...userWithoutPassword } = req.user;
       res.json(userWithoutPassword);
@@ -17245,9 +17362,9 @@ async function registerRoutes(app2) {
       if (!hostname2) {
         return res.status(400).json({ message: "Hostname is required" });
       }
-      let device = await storage2.getDeviceByHostname(hostname2);
+      let device = await storage.getDeviceByHostname(hostname2);
       if (!device) {
-        device = await storage2.createDevice({
+        device = await storage.createDevice({
           hostname: hostname2,
           assigned_user: data.current_user || null,
           os_name: data.os_info?.name || data.system_info?.platform || null,
@@ -17257,12 +17374,12 @@ async function registerRoutes(app2) {
           last_seen: /* @__PURE__ */ new Date()
         });
       } else {
-        await storage2.updateDevice(device.id, {
+        await storage.updateDevice(device.id, {
           status: "online",
           last_seen: /* @__PURE__ */ new Date()
         });
       }
-      await storage2.createDeviceReport({
+      await storage.createDeviceReport({
         device_id: device.id,
         cpu_usage: data.cpu_usage?.toString() || null,
         memory_usage: data.memory_usage?.toString() || null,
@@ -17276,9 +17393,9 @@ async function registerRoutes(app2) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
-  app2.get("/api/dashboard/summary", authenticateToken2, async (req, res) => {
+  app2.get("/api/dashboard/summary", authenticateToken, async (req, res) => {
     try {
-      const summary = await storage2.getDashboardSummary();
+      const summary = await storage.getDashboardSummary();
       res.json(summary);
     } catch (error) {
       console.error("Error fetching dashboard summary:", error);
@@ -17289,12 +17406,12 @@ async function registerRoutes(app2) {
     res.json({ status: "ok", timestamp: /* @__PURE__ */ new Date() });
   });
   registerTicketRoutes(app2);
-  registerDeviceRoutes(app2, authenticateToken2);
-  registerAgentRoutes(app2, authenticateToken2, requireRole);
+  registerDeviceRoutes(app2, authenticateToken);
+  registerAgentRoutes(app2, authenticateToken, requireRole);
   try {
     const alertRoutes2 = await Promise.resolve().then(() => (init_alert_routes(), alert_routes_exports));
     if (alertRoutes2.default) {
-      app2.use("/api/alerts", authenticateToken2, alertRoutes2.default);
+      app2.use("/api/alerts", authenticateToken, alertRoutes2.default);
     }
   } catch (error) {
     console.warn("Alert routes not available:", error.message);
@@ -17304,7 +17421,7 @@ async function registerRoutes(app2) {
     if (notificationRoutes.default) {
       app2.use(
         "/api/notifications",
-        authenticateToken2,
+        authenticateToken,
         notificationRoutes.default
       );
     }
@@ -17316,7 +17433,7 @@ async function registerRoutes(app2) {
     if (automationRoutes.default) {
       app2.use(
         "/api/automation",
-        authenticateToken2,
+        authenticateToken,
         requireRole(["admin", "manager"]),
         automationRoutes.default
       );
@@ -17343,7 +17460,7 @@ async function registerRoutes(app2) {
   try {
     const userRoutes = await Promise.resolve().then(() => (init_user_routes(), user_routes_exports));
     if (userRoutes.default) {
-      app2.use("/api/users", authenticateToken2, userRoutes.default);
+      app2.use("/api/users", authenticateToken, userRoutes.default);
     }
   } catch (error) {
     console.warn("User routes not available:", error.message);
@@ -17351,7 +17468,7 @@ async function registerRoutes(app2) {
   try {
     const knowledgeRoutes = await Promise.resolve().then(() => (init_knowledge_routes(), knowledge_routes_exports));
     if (knowledgeRoutes.default) {
-      app2.use("/api/knowledge", authenticateToken2, knowledgeRoutes.default);
+      app2.use("/api/knowledge", authenticateToken, knowledgeRoutes.default);
     }
   } catch (error) {
     console.warn("Knowledge routes not available:", error.message);
@@ -17359,7 +17476,7 @@ async function registerRoutes(app2) {
   try {
     const slaRoutes = await Promise.resolve().then(() => (init_sla_routes(), sla_routes_exports));
     if (slaRoutes.default) {
-      app2.use("/api/sla", authenticateToken2, slaRoutes.default);
+      app2.use("/api/sla", authenticateToken, slaRoutes.default);
     }
   } catch (error) {
     console.warn("SLA routes not available:", error.message);
@@ -17367,7 +17484,7 @@ async function registerRoutes(app2) {
   try {
     const slaAnalysisRoutes = await Promise.resolve().then(() => (init_sla_analysis_routes(), sla_analysis_routes_exports));
     if (slaAnalysisRoutes.default) {
-      app2.use("/api/sla-analysis", authenticateToken2, slaAnalysisRoutes.default);
+      app2.use("/api/sla-analysis", authenticateToken, slaAnalysisRoutes.default);
     }
   } catch (error) {
     console.warn("SLA analysis routes not available:", error.message);
@@ -17375,8 +17492,8 @@ async function registerRoutes(app2) {
   try {
     const aiRoutes = await Promise.resolve().then(() => (init_ai_routes(), ai_routes_exports));
     if (aiRoutes.default) {
-      app2.use("/api/ai", authenticateToken2, aiRoutes.default);
-      app2.get("/api/ai-insights", authenticateToken2, async (req, res) => {
+      app2.use("/api/ai", authenticateToken, aiRoutes.default);
+      app2.get("/api/ai-insights", authenticateToken, async (req, res) => {
         try {
           const insights = {
             systemHealth: "good",
@@ -17409,7 +17526,7 @@ async function registerRoutes(app2) {
   try {
     const auditRoutes = await Promise.resolve().then(() => (init_audit_routes(), audit_routes_exports));
     if (auditRoutes.default) {
-      app2.use("/api/audit", authenticateToken2, requireRole(["admin", "manager"]), auditRoutes.default);
+      app2.use("/api/audit", authenticateToken, requireRole(["admin", "manager"]), auditRoutes.default);
     }
   } catch (error) {
     console.warn("Audit routes not available:", error.message);
@@ -17417,8 +17534,8 @@ async function registerRoutes(app2) {
   try {
     const securityRoutes = await Promise.resolve().then(() => (init_security_routes(), security_routes_exports));
     if (securityRoutes.default) {
-      app2.use("/api/security", authenticateToken2, securityRoutes.default);
-      app2.get("/api/security-overview", authenticateToken2, async (req, res) => {
+      app2.use("/api/security", authenticateToken, securityRoutes.default);
+      app2.get("/api/security-overview", authenticateToken, async (req, res) => {
         try {
           const securityOverview = {
             threatLevel: "low",
@@ -17452,7 +17569,7 @@ async function registerRoutes(app2) {
   try {
     const patchRoutes = await Promise.resolve().then(() => (init_patch_routes(), patch_routes_exports));
     if (patchRoutes.default) {
-      app2.use("/api/patch", authenticateToken2, patchRoutes.default);
+      app2.use("/api/patch", authenticateToken, patchRoutes.default);
     }
   } catch (error) {
     console.warn("Patch routes not available:", error.message);
@@ -17773,8 +17890,319 @@ var WebSocketService = class {
 var webSocketService = new WebSocketService();
 
 // server/index.ts
-init_sla_escalation_service();
 import expressWs from "express-ws";
+
+// server/vnc-setup.js
+import { spawn } from "child_process";
+var VNCServer = class {
+  constructor() {
+    this.vncDisplay = ":1";
+    this.vncPort = 5901;
+    this.websockifyPort = 6080;
+    this.xvfbProcess = null;
+    this.vncProcess = null;
+    this.websockifyProcess = null;
+  }
+  async startXvfb() {
+    return new Promise((resolve, reject) => {
+      console.log("\u{1F5A5}\uFE0F Starting Xvfb virtual display...");
+      this.xvfbProcess = spawn("Xvfb", [
+        this.vncDisplay,
+        "-screen",
+        "0",
+        "1024x768x24",
+        "-ac",
+        "+extension",
+        "GLX",
+        "+render",
+        "-noreset"
+      ], {
+        stdio: "pipe",
+        env: { ...process.env, DISPLAY: this.vncDisplay }
+      });
+      this.xvfbProcess.on("error", (error) => {
+        console.error("\u274C Xvfb failed to start:", error.message);
+        reject(error);
+      });
+      this.xvfbProcess.stdout.on("data", (data) => {
+        console.log("Xvfb stdout:", data.toString());
+      });
+      this.xvfbProcess.stderr.on("data", (data) => {
+        console.log("Xvfb stderr:", data.toString());
+      });
+      setTimeout(() => {
+        console.log("\u2705 Xvfb started successfully");
+        resolve(true);
+      }, 2e3);
+    });
+  }
+  async startVNC() {
+    return new Promise((resolve, reject) => {
+      console.log("\u{1F512} Starting x11vnc server...");
+      this.vncProcess = spawn("x11vnc", [
+        "-display",
+        this.vncDisplay,
+        "-rfbport",
+        this.vncPort.toString(),
+        "-localhost",
+        "-nopw",
+        "-once",
+        "-shared",
+        "-forever"
+      ], {
+        stdio: "pipe",
+        env: { ...process.env, DISPLAY: this.vncDisplay }
+      });
+      this.vncProcess.on("error", (error) => {
+        console.error("\u274C x11vnc failed to start:", error.message);
+        reject(error);
+      });
+      this.vncProcess.stdout.on("data", (data) => {
+        const output = data.toString();
+        console.log("x11vnc:", output);
+        if (output.includes("PORT=")) {
+          console.log("\u2705 x11vnc started successfully");
+          resolve(true);
+        }
+      });
+      this.vncProcess.stderr.on("data", (data) => {
+        console.log("x11vnc stderr:", data.toString());
+      });
+      setTimeout(() => {
+        if (!this.vncProcess.killed) {
+          console.log("\u2705 x11vnc appears to be running");
+          resolve(true);
+        }
+      }, 1e4);
+    });
+  }
+  async startWebsockify() {
+    return new Promise((resolve, reject) => {
+      console.log("\u{1F310} Starting websockify proxy...");
+      this.websockifyProcess = spawn("websockify", [
+        "--web=/usr/share/novnc",
+        this.websockifyPort.toString(),
+        `localhost:${this.vncPort}`
+      ], {
+        stdio: "pipe"
+      });
+      this.websockifyProcess.on("error", (error) => {
+        console.error("\u274C Websockify failed to start:", error.message);
+        reject(error);
+      });
+      this.websockifyProcess.stdout.on("data", (data) => {
+        const output = data.toString();
+        console.log("websockify:", output);
+        if (output.includes("Listen")) {
+          console.log("\u2705 Websockify started successfully");
+          resolve(true);
+        }
+      });
+      this.websockifyProcess.stderr.on("data", (data) => {
+        console.log("websockify stderr:", data.toString());
+      });
+      setTimeout(() => {
+        console.log("\u2705 Websockify should be running");
+        resolve(true);
+      }, 5e3);
+    });
+  }
+  async startVNCServer() {
+    try {
+      console.log("\u{1F680} Starting VNC server setup...");
+      await this.startXvfb();
+      await this.startVNC();
+      await this.startWebsockify();
+      console.log("\u2705 VNC server fully operational!");
+      console.log(`\u{1F4F1} noVNC web interface: http://0.0.0.0:${this.websockifyPort}/vnc.html`);
+      console.log(`\u{1F517} VNC direct connection: 0.0.0.0:${this.vncPort}`);
+      console.log(`\u{1F504} Reverse tunnel endpoint: 0.0.0.0:5901 (for private networks)`);
+      console.log(`\u{1F4A1} For private IP endpoints, run: ssh -R 5901:localhost:${this.vncPort} itsm-user@0.0.0.0`);
+      return true;
+    } catch (error) {
+      console.error("\u274C Failed to start VNC server:", error);
+      this.cleanup();
+      return false;
+    }
+  }
+  cleanup() {
+    console.log("\u{1F9F9} Cleaning up VNC processes...");
+    if (this.websockifyProcess) {
+      this.websockifyProcess.kill();
+    }
+    if (this.vncProcess) {
+      this.vncProcess.kill();
+    }
+    if (this.xvfbProcess) {
+      this.xvfbProcess.kill();
+    }
+  }
+  getStatus() {
+    return {
+      xvfb: this.xvfbProcess && !this.xvfbProcess.killed,
+      vnc: this.vncProcess && !this.vncProcess.killed,
+      websockify: this.websockifyProcess && !this.websockifyProcess.killed,
+      ports: {
+        vnc: this.vncPort,
+        websockify: this.websockifyPort
+      }
+    };
+  }
+};
+var vnc_setup_default = VNCServer;
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const vncServer = new VNCServer();
+  vncServer.startVNCServer().then((success) => {
+    if (success) {
+      console.log("VNC server started successfully");
+      process.on("SIGINT", () => {
+        console.log("Received SIGINT, cleaning up...");
+        vncServer.cleanup();
+        process.exit(0);
+      });
+      process.on("SIGTERM", () => {
+        console.log("Received SIGTERM, cleaning up...");
+        vncServer.cleanup();
+        process.exit(0);
+      });
+    } else {
+      console.log("Failed to start VNC server");
+      process.exit(1);
+    }
+  }).catch((error) => {
+    console.error("Error starting VNC server:", error);
+    process.exit(1);
+  });
+}
+
+// server/routes/vnc-routes.ts
+var vncServerInstance = null;
+function registerVNCRoutes(app2, authenticateToken4) {
+  app2.post("/api/vnc/start", authenticateToken4, async (req, res) => {
+    try {
+      if (vncServerInstance && vncServerInstance.vncProcess) {
+        return res.json({
+          success: true,
+          message: "VNC server is already running",
+          websockify_url: "ws://0.0.0.0:6080/websockify",
+          novnc_url: "http://0.0.0.0:6080/vnc.html"
+        });
+      }
+      vncServerInstance = new vnc_setup_default();
+      const started = await vncServerInstance.startVNCServer();
+      if (started) {
+        res.json({
+          success: true,
+          message: "VNC server started successfully",
+          websockify_url: "ws://0.0.0.0:6080/websockify",
+          novnc_url: "http://0.0.0.0:6080/vnc.html",
+          vnc_port: 5900,
+          websockify_port: 6080
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: "Failed to start VNC server"
+        });
+      }
+    } catch (error) {
+      console.error("Error starting VNC server:", error);
+      res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message
+      });
+    }
+  });
+  app2.post("/api/vnc/stop", authenticateToken4, async (req, res) => {
+    try {
+      if (vncServerInstance) {
+        vncServerInstance.stopVNCServer();
+        vncServerInstance = null;
+      }
+      res.json({
+        success: true,
+        message: "VNC server stopped"
+      });
+    } catch (error) {
+      console.error("Error stopping VNC server:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to stop VNC server",
+        error: error.message
+      });
+    }
+  });
+  app2.get("/api/vnc/status", authenticateToken4, (req, res) => {
+    const isRunning = vncServerInstance && vncServerInstance.vncProcess;
+    res.json({
+      running: isRunning,
+      websockify_url: isRunning ? "ws://0.0.0.0:6080/websockify" : null,
+      novnc_url: isRunning ? "http://0.0.0.0:6080/vnc.html" : null,
+      vnc_port: isRunning ? 5900 : null,
+      websockify_port: isRunning ? 6080 : null,
+      reverse_tunnel_port: 5901,
+      reverse_tunnel_command: "ssh -R 5901:localhost:5900 itsm-user@0.0.0.0"
+    });
+  });
+  app2.post("/api/vnc/reverse-tunnel", authenticateToken4, async (req, res) => {
+    try {
+      const { agent_id, agent_hostname } = req.body;
+      if (!vncServerInstance || !vncServerInstance.vncProcess) {
+        return res.status(400).json({
+          success: false,
+          message: "VNC server is not running. Start VNC server first."
+        });
+      }
+      const serverHost = req.get("host")?.split(":")[0] || process.env.REPL_SLUG + ".replit.dev";
+      const tunnelCommand = `ssh -R 5901:localhost:5900 -p 2222 itsm-user@${serverHost}`;
+      const instructions = [
+        {
+          step: 1,
+          title: "Install SSH Client (if not already installed)",
+          windows_command: "winget install Microsoft.OpenSSH.Beta",
+          description: "Install OpenSSH client on Windows endpoint"
+        },
+        {
+          step: 2,
+          title: "Create Reverse Tunnel",
+          command: tunnelCommand,
+          description: "Run this command on the Windows endpoint to create reverse tunnel"
+        },
+        {
+          step: 3,
+          title: "Keep Tunnel Alive",
+          command: `ssh -R 5901:localhost:5900 -N -f -p 2222 itsm-user@${serverHost}`,
+          description: "Use -N -f flags to run tunnel in background"
+        }
+      ];
+      res.json({
+        success: true,
+        agent_id,
+        agent_hostname,
+        tunnel_command: tunnelCommand,
+        local_vnc_url: "http://0.0.0.0:6080/vnc.html?host=localhost&port=5901",
+        instructions,
+        notes: [
+          "The tunnel creates a reverse connection from the endpoint back to this server",
+          "Once established, VNC traffic will flow through the SSH tunnel",
+          "This works even when the endpoint is behind NAT/firewall"
+        ]
+      });
+    } catch (error) {
+      console.error("Error generating reverse tunnel command:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to generate reverse tunnel command",
+        error: error.message
+      });
+    }
+  });
+}
+
+// server/index.ts
+init_auth_middleware();
+init_sla_escalation_service();
 import cors from "cors";
 var app = express2();
 var wsInstance = expressWs(app);
@@ -17859,44 +18287,14 @@ app.use((req, res, next) => {
     const { registerSLARoutes: registerSLARoutes2 } = await Promise.resolve().then(() => (init_sla_routes(), sla_routes_exports));
     registerSLARoutes2(app);
     app.use("/api/users", router7);
+    registerVNCRoutes(app, authenticateToken);
     const { default: analyticsRoutes } = await Promise.resolve().then(() => (init_analytics_routes(), analytics_routes_exports));
     app.use("/api/analytics", analyticsRoutes);
     const patchRoutes = await Promise.resolve().then(() => (init_patch_routes(), patch_routes_exports));
     app.use("/api/patches", patchRoutes.default);
-    const { storage: storage4 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
+    const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
     const { reportsStorage: reportsStorage2 } = await Promise.resolve().then(() => (init_reports_storage(), reports_storage_exports));
     await reportsStorage2.createReportsTable();
-    const authenticateToken5 = async (req, res, next) => {
-      const authHeader = req.headers["authorization"];
-      const token = authHeader && authHeader.split(" ")[1];
-      if (!token) {
-        return res.status(401).json({ message: "Access token required" });
-      }
-      try {
-        const jwt8 = await import("jsonwebtoken");
-        const JWT_SECRET7 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-        const decoded = jwt8.default.verify(token, JWT_SECRET7);
-        const user = await storage4.getUserById(decoded.userId);
-        if (!user || !user.is_active) {
-          return res.status(403).json({ message: "User not found or inactive" });
-        }
-        req.user = user;
-        next();
-      } catch (error) {
-        return res.status(403).json({ message: "Invalid token" });
-      }
-    };
-    const requireRole2 = (roles) => {
-      return (req, res, next) => {
-        const userRole = req.user?.role;
-        const allowedRoles = Array.isArray(roles) ? roles : [roles];
-        if (userRole === "admin" || allowedRoles.includes(userRole)) {
-          next();
-        } else {
-          res.status(403).json({ message: "Insufficient permissions" });
-        }
-      };
-    };
     app.get("/api/knowledge-base", async (req, res) => {
       try {
         const page = parseInt(req.query.page) || 1;
@@ -18042,6 +18440,15 @@ app.use((req, res, next) => {
     const PORT = process.env.PORT || port2;
     const { slaMonitorService: slaMonitorService2 } = await Promise.resolve().then(() => (init_sla_monitor_service(), sla_monitor_service_exports));
     slaMonitorService2.start(5);
+    try {
+      const ITSMSSHServer2 = (init_ssh_server(), __toCommonJS(ssh_server_exports));
+      const sshServer = new ITSMSSHServer2(2222);
+      await sshServer.start();
+      console.log("\u{1F510} SSH Server started for reverse tunnels");
+    } catch (error) {
+      console.log("\u26A0\uFE0F  SSH Server failed to start:", error.message);
+      console.log("\u{1F4A1} Reverse tunnels may not work without SSH server");
+    }
     const serv = app.listen(PORT, "0.0.0.0", () => {
       log(`serving on port ${PORT}`);
       console.log(`\u{1F310} Server accessible at http://0.0.0.0:${PORT}`);
@@ -18069,8 +18476,8 @@ app.use((req, res, next) => {
       const wsKey = request.headers["sec-websocket-key"];
       console.log("WebSocket upgrade request from:", origin, "URL:", url);
       if (wsKey) {
-        const crypto = __require("crypto");
-        const acceptKey = crypto.createHash("sha1").update(wsKey + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").digest("base64");
+        const crypto2 = __require("crypto");
+        const acceptKey = crypto2.createHash("sha1").update(wsKey + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").digest("base64");
         socket.write(
           "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: " + acceptKey + "\r\nAccess-Control-Allow-Origin: *\r\n\r\n"
         );
@@ -18148,7 +18555,8 @@ app.get("/api/auth/test", (req, res) => {
 app.get("/api/dashboard/summary", authenticateToken, async (req, res) => {
   try {
     console.log("Fetching dashboard summary for user:", req.user?.email);
-    const summary = await storage.getDashboardSummary();
+    const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
+    const summary = await storage3.getDashboardSummary();
     console.log("Dashboard summary:", summary);
     res.json(summary);
   } catch (error) {
