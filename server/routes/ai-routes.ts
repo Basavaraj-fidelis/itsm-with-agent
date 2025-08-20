@@ -2,9 +2,9 @@ import { Router } from "express";
 import { aiService } from "../services/ai-service.js";
 import { aiInsightsStorage } from "../models/ai-insights-storage.js";
 import { authenticateToken } from "../middleware/auth-middleware.js";
-import db from '../config/db.js'; // Assuming db is configured elsewhere
-import { tickets, knowledgeBase } from '../models/schema.js'; // Assuming schema is defined
-import { eq, ilike, and, or } from 'drizzle-orm'; // Assuming Drizzle ORM functions
+import { db } from "../db.js";
+import { tickets, knowledgeBase } from "../../shared/ticket-schema.js";
+import { eq, ilike, and, or } from 'drizzle-orm';
 
 const router = Router();
 
@@ -203,55 +203,50 @@ router.get("/article-suggestions/:ticketId", async (req, res) => {
   try {
     const ticketId = req.params.ticketId;
 
-    // Get ticket details
-    const [ticket] = await db
-      .select()
-      .from(tickets)
-      .where(eq(tickets.id, ticketId))
-      .limit(1);
+    // Get ticket details from ticket storage
+    const ticketStorage = await import("../services/ticket-storage.js");
+    const ticket = await ticketStorage.ticketStorage.getTicketById(ticketId);
 
     if (!ticket) {
       return res.status(404).json({ message: "Ticket not found" });
     }
 
-    // Search for related articles
-    const relatedArticles = await db
-      .select()
-      .from(knowledgeBase)
-      .where(
-        and(
-          eq(knowledgeBase.status, "published"),
-          or(
-            ilike(knowledgeBase.title, `%${ticket.title}%`),
-            ilike(knowledgeBase.content, `%${ticket.description}%`),
-            ticket.category ? ilike(knowledgeBase.category, `%${ticket.category}%`) : undefined
-          )
-        )
-      )
-      .limit(5);
+    // Search for related articles using knowledge AI service
+    const knowledgeAIService = await import("../services/knowledge-ai-service.js");
+    const relatedArticles = await knowledgeAIService.knowledgeAIService.findRelevantArticles(ticket);
 
-    let suggestions = relatedArticles.map(article => ({
-      id: article.id,
-      title: article.title,
-      category: article.category,
-      relevanceScore: calculateRelevanceScore(ticket, article),
-      snippet: article.content.substring(0, 200) + "...",
+    let suggestions = relatedArticles.map(match => ({
+      id: match.article.id,
+      title: match.article.title,
+      category: match.article.category,
+      relevanceScore: Math.round(match.relevanceScore * 100),
+      snippet: match.article.content.substring(0, 200) + "...",
       type: 'existing'
     }));
 
     // If no relevant articles found, generate one with AI
     if (suggestions.length === 0) {
       try {
-        const aiSuggestion = await generateAIArticle(ticket);
-        suggestions.push({
-          id: 'ai-generated',
-          title: aiSuggestion.title,
+        const knowledgeAIService = await import("../services/knowledge-ai-service.js");
+        const aiArticle = await knowledgeAIService.knowledgeAIService.generateDraftArticle({
+          title: ticket.title,
+          description: ticket.description,
           category: ticket.category || 'General',
-          relevanceScore: 95,
-          snippet: aiSuggestion.content.substring(0, 200) + "...",
-          type: 'ai-generated',
-          fullContent: aiSuggestion.content
+          type: ticket.type,
+          tags: ticket.tags || []
         });
+        
+        if (aiArticle) {
+          suggestions.push({
+            id: 'ai-generated',
+            title: aiArticle.title,
+            category: aiArticle.category,
+            relevanceScore: 95,
+            snippet: aiArticle.content.substring(0, 200) + "...",
+            type: 'ai-generated',
+            fullContent: aiArticle.content
+          });
+        }
       } catch (error) {
         console.error("Error generating AI article:", error);
       }

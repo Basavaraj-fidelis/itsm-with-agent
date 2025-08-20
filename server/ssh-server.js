@@ -96,4 +96,4 @@ class ITSMSSHServer {
   }
 }
 
-module.exports = ITSMSSHServer;
+export default ITSMSSHServer;
