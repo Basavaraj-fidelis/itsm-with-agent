@@ -1,11 +1,18 @@
-
 import { db } from "../db";
 import { tickets } from "@shared/ticket-schema";
 import { eq, and, count, gte } from "drizzle-orm";
 import { ticketStorage } from "./ticket-storage";
 
 export class IncidentProblemBridge {
-  private readonly PROBLEM_ESCALATION_CRITERIA = {
+  private static circuitBreaker = {
+    failures: 0,
+    lastFailureTime: 0,
+    threshold: 5,
+    timeout: 60000, // 1 minute
+    isOpen: false
+  };
+
+  private static problemThresholds = {
     RECURRING_INCIDENTS: 3, // Number of similar incidents
     TIME_WINDOW_HOURS: 24, // Time window to check for recurring incidents
     SIMILAR_KEYWORDS: ['network', 'server', 'database', 'application']
@@ -13,17 +20,30 @@ export class IncidentProblemBridge {
 
   async checkForProblemEscalation(incidentId: string): Promise<void> {
     try {
+      // Check if the circuit breaker is open
+      if (IncidentProblemBridge.circuitBreaker.isOpen) {
+        console.warn('Circuit breaker is open. Skipping problem escalation check.');
+        return;
+      }
+
       const incident = await ticketStorage.getTicketById(incidentId);
       if (!incident || incident.type !== 'incident') return;
 
       // Check for recurring similar incidents
       const similarIncidents = await this.findSimilarIncidents(incident);
-      
+
       if (similarIncidents.length >= this.PROBLEM_ESCALATION_CRITERIA.RECURRING_INCIDENTS) {
         await this.createProblemFromIncidents(incident, similarIncidents);
       }
     } catch (error) {
       console.error('Error checking for problem escalation:', error);
+      // Implement circuit breaker logic
+      IncidentProblemBridge.circuitBreaker.failures++;
+      IncidentProblemBridge.circuitBreaker.lastFailureTime = Date.now();
+      if (IncidentProblemBridge.circuitBreaker.failures >= IncidentProblemBridge.circuitBreaker.threshold) {
+        IncidentProblemBridge.circuitBreaker.isOpen = true;
+        console.error('Circuit breaker opened due to too many failures.');
+      }
     }
   }
 
@@ -44,6 +64,7 @@ export class IncidentProblemBridge {
       );
     } catch (error) {
       console.error('Error finding similar incidents:', error);
+      // Implement circuit breaker logic for this method if it makes external calls
       return [];
     }
   }
@@ -62,13 +83,13 @@ export class IncidentProblemBridge {
   private calculateSimilarity(incident1: any, incident2: any): number {
     const text1 = (incident1.title + ' ' + incident1.description).toLowerCase();
     const text2 = (incident2.title + ' ' + incident2.description).toLowerCase();
-    
+
     const words1 = new Set(text1.split(/\s+/));
     const words2 = new Set(text2.split(/\s+/));
-    
+
     const intersection = new Set([...words1].filter(x => words2.has(x)));
     const union = new Set([...words1, ...words2]);
-    
+
     return intersection.size / union.size;
   }
 
@@ -106,8 +127,22 @@ export class IncidentProblemBridge {
       }
 
       console.log(`🔄 Created problem ${problemTicket.ticket_number} from recurring incidents`);
+      
+      // Reset circuit breaker on successful operation after it was open
+      if (IncidentProblemBridge.circuitBreaker.isOpen) {
+        IncidentProblemBridge.circuitBreaker.failures = 0;
+        IncidentProblemBridge.circuitBreaker.isOpen = false;
+        console.log('Circuit breaker reset.');
+      }
     } catch (error) {
       console.error('Error creating problem from incidents:', error);
+      // Implement circuit breaker logic for this method as well
+      IncidentProblemBridge.circuitBreaker.failures++;
+      IncidentProblemBridge.circuitBreaker.lastFailureTime = Date.now();
+      if (IncidentProblemBridge.circuitBreaker.failures >= IncidentProblemBridge.circuitBreaker.threshold) {
+        IncidentProblemBridge.circuitBreaker.isOpen = true;
+        console.error('Circuit breaker opened due to too many failures.');
+      }
     }
   }
 }

@@ -1,10 +1,12 @@
-
 import { db } from "../db";
 import { tickets } from "@shared/ticket-schema";
 import { eq, and, gte } from "drizzle-orm";
 import { ticketStorage } from "./ticket-storage";
 
 export class MajorIncidentService {
+  private static escalationRules = new Map();
+  private static redisClient: any = null; // Will be implemented for clustering
+
   // Major incident criteria
   private readonly MAJOR_INCIDENT_CRITERIA = {
     CRITICAL_PRIORITY: 'critical',
@@ -20,7 +22,7 @@ export class MajorIncidentService {
 
       // Check if ticket meets major incident criteria
       const isMajorIncident = this.evaluateMajorIncidentCriteria(ticket);
-      
+
       if (isMajorIncident) {
         await this.escalateToMajorIncident(ticket);
       }

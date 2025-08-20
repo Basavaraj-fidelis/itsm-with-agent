@@ -2,6 +2,11 @@ import { db } from "../db";
 import { knowledgeBase } from "@shared/ticket-schema";
 import { eq, like, or, desc } from "drizzle-orm";
 import type { KnowledgeBaseArticle, NewKnowledgeBaseArticle } from "@shared/ticket-schema";
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || 'your-openai-api-key'
+});
 
 export interface TicketArticleMatch {
   article: KnowledgeBaseArticle;
@@ -546,6 +551,84 @@ If the above steps don't resolve the issue:
       console.error('Error in getRelatedArticles:', error);
       throw error;
     }
+  }
+
+  static async createArticleFromChatGPT(topic: string, description: string) {
+    try {
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert IT support knowledge base writer. Create comprehensive, well-structured articles for IT support teams.'
+          },
+          {
+            role: 'user',
+            content: `Create a detailed knowledge base article about: ${topic}
+
+            Context: ${description}
+
+            Please include:
+            1. Problem description
+            2. Step-by-step resolution
+            3. Common causes
+            4. Prevention tips
+            5. Related issues
+
+            Format the response as a structured article with clear headings.`
+          }
+        ],
+        max_tokens: 2000,
+        temperature: 0.7
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No content generated from ChatGPT');
+      }
+
+      return {
+        title: topic,
+        content: content,
+        category: 'AI Generated',
+        tags: this.extractTags(content),
+        auto_generated: true,
+        source: 'ChatGPT'
+      };
+    } catch (error) {
+      console.error('Error creating article with ChatGPT:', error);
+      throw error;
+    }
+  }
+
+  static extractTags(content: string): string[] {
+    const commonTags = [
+      'troubleshooting', 'network', 'hardware', 'software', 'security',
+      'password', 'email', 'browser', 'windows', 'linux', 'macos',
+      'printer', 'vpn', 'wifi', 'installation', 'configuration'
+    ];
+
+    return commonTags.filter(tag => 
+      content.toLowerCase().includes(tag.toLowerCase())
+    ).slice(0, 5);
+  }
+
+  static extractMainTopic(description: string): string {
+    // Extract the main topic from ticket description
+    const words = description.toLowerCase().split(' ');
+    const keywords = [
+      'login', 'password', 'email', 'network', 'printer', 'software',
+      'hardware', 'installation', 'error', 'crash', 'slow', 'virus',
+      'security', 'backup', 'vpn', 'wifi', 'connection', 'access'
+    ];
+
+    const foundKeywords = words.filter(word => keywords.includes(word));
+    if (foundKeywords.length > 0) {
+      return `${foundKeywords[0]} troubleshooting guide`;
+    }
+
+    // Fallback to first few words
+    return description.split(' ').slice(0, 5).join(' ') + ' - Solution Guide';
   }
 }
 
