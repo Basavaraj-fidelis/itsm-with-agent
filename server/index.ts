@@ -377,7 +377,12 @@ app.use((req, res, next) => {
     const port = 5000;
     const PORT = process.env.PORT || port;
 
-    // Initialize WebSocket service
+    const serv = app.listen(PORT, "0.0.0.0", () => {
+      log(`serving on port ${PORT}`);
+      console.log(`🌐 Server accessible at http://0.0.0.0:${PORT}`);
+    });
+
+    // Initialize WebSocket service after server is created
     webSocketService.init(serv);
 
     // Start SLA monitoring service
@@ -394,11 +399,6 @@ app.use((req, res, next) => {
       console.log('⚠️  SSH Server failed to start:', error.message);
       console.log('💡 Reverse tunnels may not work without SSH server');
     }
-
-    const serv = app.listen(PORT, "0.0.0.0", () => {
-      log(`serving on port ${PORT}`);
-      console.log(`🌐 Server accessible at http://0.0.0.0:${PORT}`);
-    });
 
     // Handle WebSocket upgrade requests properly - but only for non-Vite paths
     serv.on("upgrade", (request, socket, head) => {
