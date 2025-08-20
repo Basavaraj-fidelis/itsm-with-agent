@@ -24,6 +24,8 @@ export interface Device {
   os_name: string | null;
   os_version: string | null;
   ip_address: string | null;
+  primary_ip_address?: string | null;
+  primary_mac_address?: string | null;
   status: string;
   last_seen: string | null;
   created_at: string;
@@ -50,15 +52,16 @@ class ApiClient {
   private baseURL: string;
 
   constructor() {
-    // Use empty string for relative API calls to avoid CORS issues
-    this.baseURL = "";
+    // Use /api prefix for relative API calls
+    this.baseURL = "/api";
   }
 
   private async request(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<Response> {
-    const url = `${this.baseURL}${endpoint}`;
+    // Ensure endpoint starts with /api
+    const url = endpoint.startsWith('/api') ? endpoint : `${this.baseURL}${endpoint}`;
 
     // Get auth token from localStorage
     const token = getAuthToken();
@@ -216,7 +219,7 @@ export const api = {
 
   async getDashboardSummary(): Promise<DashboardSummary> {
     try {
-      const response = await apiClient.get("/api/dashboard/summary");
+      const response = await apiClient.get("/dashboard/summary");
       if (!response.ok) {
         console.error(`Dashboard summary API error: ${response.status}`);
         return {
@@ -240,7 +243,7 @@ export const api = {
 
   async getDevices(): Promise<Device[]> {
     try {
-      const response = await apiClient.get("/api/devices");
+      const response = await apiClient.get("/devices");
       if (!response.ok) {
         console.error(`Devices API error: ${response.status}`);
         return [];

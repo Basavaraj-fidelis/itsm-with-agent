@@ -382,11 +382,51 @@ export function registerAgentRoutes(
 
       console.log("=== END COMPLETE SYSTEM REPORT ===\n");
 
-      // Verify network data before storing
+      // Process and enhance network data
       console.log("=== NETWORK DATA VERIFICATION BEFORE STORAGE ===");
       console.log("Network interfaces count:", reportData.network?.interfaces?.length || 0);
       console.log("Network public IP:", reportData.network?.public_ip || "Not provided");
       console.log("Network adapters count:", Object.keys(reportData.network?.network_adapters || {}).length);
+
+      // Extract primary network interface and IP
+      let primaryIP = device.ip_address;
+      let primaryMAC = null;
+      
+      if (reportData.network?.interfaces && Array.isArray(reportData.network.interfaces)) {
+        // Find primary interface (active, not loopback, has IP)
+        const primaryInterface = reportData.network.interfaces.find(iface => 
+          iface.ip_address && 
+          iface.ip_address !== '127.0.0.1' && 
+          iface.ip_address !== '::1' &&
+          !iface.ip_address.startsWith('169.254.') && // Exclude APIPA
+          iface.status === 'up'
+        ) || reportData.network.interfaces.find(iface => 
+          iface.ip_address && 
+          iface.ip_address !== '127.0.0.1' && 
+          iface.ip_address !== '::1'
+        );
+
+        if (primaryInterface) {
+          primaryIP = primaryInterface.ip_address;
+          primaryMAC = primaryInterface.mac_address;
+          
+          // Update device IP if different
+          if (primaryIP !== device.ip_address) {
+            await storage.updateDevice(device.id, { ip_address: primaryIP });
+          }
+        }
+      }
+
+      // Enhanced network data with primary interface info
+      const enhancedNetworkData = {
+        ...reportData.network,
+        primary_interface: {
+          ip_address: primaryIP,
+          mac_address: primaryMAC
+        }
+      };
+
+      reportData.network = enhancedNetworkData;
 
       if (!reportData.network || Object.keys(reportData.network).length === 0) {
         console.log("⚠️  WARNING: Empty network data received from agent!");

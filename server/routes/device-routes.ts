@@ -200,7 +200,7 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
       console.log("=== INDIVIDUAL DEVICE DATA FOR ID:", deviceId, "===");
       console.log("Device Found:", deviceWithReport.hostname);
       
-      // Parse and display network data specifically
+      // Parse and enhance network data
       if (deviceWithReport.latest_report?.raw_data) {
         let parsedData;
         try {
@@ -212,14 +212,33 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
           console.log("Network Data Keys:", Object.keys(parsedData.network || {}));
           console.log("Network Interfaces Count:", parsedData.network?.interfaces?.length || 0);
           console.log("Public IP:", parsedData.network?.public_ip || "Not found");
-          console.log("Network Adapters:", Object.keys(parsedData.network?.network_adapters || {}));
           
-          if (parsedData.network?.interfaces) {
-            console.log("First Interface Example:", JSON.stringify(parsedData.network.interfaces[0], null, 2));
+          // Extract primary network interface information
+          if (parsedData.network?.interfaces && Array.isArray(parsedData.network.interfaces)) {
+            const primaryInterface = parsedData.network.interfaces.find(iface => 
+              iface.ip_address && 
+              iface.ip_address !== '127.0.0.1' && 
+              iface.ip_address !== '::1' &&
+              !iface.ip_address.startsWith('169.254.') &&
+              (iface.status === 'up' || iface.is_up === true)
+            ) || parsedData.network.interfaces.find(iface => 
+              iface.ip_address && 
+              iface.ip_address !== '127.0.0.1' && 
+              iface.ip_address !== '::1'
+            );
+
+            if (primaryInterface) {
+              // Add primary interface data to device
+              deviceWithReport.primary_ip_address = primaryInterface.ip_address;
+              deviceWithReport.primary_mac_address = primaryInterface.mac_address;
+              
+              console.log("Primary Interface:", {
+                ip: primaryInterface.ip_address,
+                mac: primaryInterface.mac_address,
+                name: primaryInterface.name || primaryInterface.interface_name
+              });
+            }
           }
-          
-          console.log("=== FULL NETWORK DATA ===");
-          console.log(JSON.stringify(parsedData.network, null, 2));
           
         } catch (e) {
           console.log("Error parsing raw_data:", e);

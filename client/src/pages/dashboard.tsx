@@ -329,7 +329,7 @@ export default function Dashboard() {
 
   if (summaryLoading || agentsLoading || alertsLoading || ticketsLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900 p-6 space-y-8">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900 p-6 space-y-8">
         {/* Header Skeleton */}
         <div className="space-y-3">
           <div className="h-8 bg-gradient-to-r from-neutral-200 to-neutral-300 dark:from-neutral-700 dark:to-neutral-600 rounded-lg w-64 animate-pulse"></div>
@@ -378,16 +378,16 @@ export default function Dashboard() {
     );
   }
 
-  if (summaryError || alertsError || agentsError) {
+  if (summaryError || alertsError || agentsError || ticketsError) {
     return (
-      <div className="flex items-center justify-center h-96 p-6">
-        <div className="text-center">
-          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-2" />
-          <h3 className="text-lg font-semibold text-red-600 mb-2">
-            Error Loading Dashboard
+      <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900">
+        <div className="text-center max-w-md">
+          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h3 className="text-2xl font-bold text-red-700 mb-3">
+            Dashboard Data Unavailable
           </h3>
-          <p className="text-neutral-600">
-            Please refresh the page or try again later.
+          <p className="text-gray-600 dark:text-gray-300 mb-5">
+            We encountered an issue loading critical data for the dashboard. Please try refreshing the page or contact support if the problem persists.
           </p>
           {summaryError && (
             <p className="text-xs text-red-500 mt-2">
@@ -404,10 +404,22 @@ export default function Dashboard() {
               Agents Error: {agentsError.message}
             </p>
           )}
+          {ticketsError && (
+            <p className="text-xs text-red-500 mt-2">
+              Tickets Error: {ticketsError.message}
+            </p>
+          )}
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-6 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+          >
+            Refresh Dashboard
+          </button>
         </div>
       </div>
     );
   }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900">
@@ -639,6 +651,7 @@ export default function Dashboard() {
                     <div>
                       <p className="text-sm font-semibold text-red-800 dark:text-red-200">SLA Breached</p>
                       <p className="text-xs text-red-600 dark:text-red-300">
+                        {/* Assuming these properties exist, otherwise adjust or remove */}
                         {slaStatus.responseBreaches > 0 && slaStatus.resolutionBreaches > 0 
                           ? `${slaStatus.responseBreaches} Response + ${slaStatus.resolutionBreaches} Resolution`
                           : slaStatus.responseBreaches > 0 
