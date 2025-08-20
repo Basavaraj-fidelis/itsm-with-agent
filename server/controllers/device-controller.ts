@@ -10,20 +10,20 @@ export class DeviceController {
       console.log("Fetching devices - checking for agent activity...");
       const devices = await storage.getDevices();
       
-      // Mark devices as offline if they haven't reported in the last 5 minutes
+      // Mark devices as offline if they haven't reported in the last 10 minutes
       const now = new Date();
       const onlineDevices = devices.filter(device => {
         if (!device.last_seen) return false;
         const lastSeen = new Date(device.last_seen);
         const minutesAgo = (now.getTime() - lastSeen.getTime()) / (1000 * 60);
-        return minutesAgo < 5;
+        return minutesAgo < 10; // Increased to 10 minutes for more tolerance
       });
 
       const offlineDevices = devices.filter(device => {
         if (!device.last_seen) return true;
         const lastSeen = new Date(device.last_seen);
         const minutesAgo = (now.getTime() - lastSeen.getTime()) / (1000 * 60);
-        return minutesAgo >= 5;
+        return minutesAgo >= 10;
       });
 
       console.log(`Device Status Summary: ${onlineDevices.length} online, ${offlineDevices.length} offline, ${devices.length} total`);
@@ -169,8 +169,8 @@ export class DeviceController {
       const minutesSinceLastReport = lastReportTime ? Math.floor((now.getTime() - lastReportTime.getTime()) / (1000 * 60)) : null;
 
       const connectivity = {
-        reachable: device.status === 'online' && minutesSinceLastSeen !== null && minutesSinceLastSeen < 5,
-        port_open: device.status === 'online' && hasRecentData && minutesSinceLastReport !== null && minutesSinceLastReport < 10,
+        reachable: device.status === 'online' && minutesSinceLastSeen !== null && minutesSinceLastSeen < 15,
+        port_open: device.status === 'online' && hasRecentData && minutesSinceLastReport !== null && minutesSinceLastReport < 20,
         response_time: minutesSinceLastSeen !== null ? Math.min(minutesSinceLastSeen * 1000, 30000) : 30000,
         tested_at: now.toISOString(),
         last_seen_minutes_ago: minutesSinceLastSeen,

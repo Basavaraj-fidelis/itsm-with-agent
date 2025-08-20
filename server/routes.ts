@@ -297,14 +297,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Dashboard summary endpoint
+  // Dashboard
+  app.get("/api/dashboard", authenticateToken, async (req, res) => {
+    try {
+      const summary = await storage.getDashboardSummary();
+      res.json(summary);
+    } catch (error) {
+      console.error("Error fetching dashboard:", error);
+      res.status(500).json({ error: "Failed to fetch dashboard data" });
+    }
+  });
+
+  // Dashboard Summary
   app.get("/api/dashboard/summary", authenticateToken, async (req, res) => {
     try {
       const summary = await storage.getDashboardSummary();
       res.json(summary);
     } catch (error) {
       console.error("Error fetching dashboard summary:", error);
-      res.status(500).json({ message: "Internal server error" });
+      res.status(500).json({
+        error: "Failed to fetch dashboard summary",
+        total_devices: 0,
+        online_devices: 0,
+        offline_devices: 0,
+        active_alerts: 0
+      });
     }
   });
 

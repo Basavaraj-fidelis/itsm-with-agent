@@ -812,7 +812,7 @@ export default function Dashboard() {
                           <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1 line-clamp-2">
                             {ticket.title || "No title"}
                           </p>
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
                             <User className="w-3 h-3 inline mr-1" />
                             {ticket.requester_email || "Unknown requester"}
                           </p>

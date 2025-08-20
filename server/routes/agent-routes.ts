@@ -403,6 +403,8 @@ export function registerAgentRoutes(
         cpuUsage = reportData.hardware.cpu.usage_percent.toString();
       } else if (reportData.system_health?.cpu_usage) {
         cpuUsage = reportData.system_health.cpu_usage.toString();
+      } else if (reportData.systemInfo?.cpu_usage) {
+        cpuUsage = reportData.systemInfo.cpu_usage.toString();
       }
 
       // Extract memory usage from multiple possible sources
@@ -410,6 +412,8 @@ export function registerAgentRoutes(
         memoryUsage = reportData.hardware.memory.percentage.toString();
       } else if (reportData.system_health?.memory_usage) {
         memoryUsage = reportData.system_health.memory_usage.toString();
+      } else if (reportData.systemInfo?.memory_usage) {
+        memoryUsage = reportData.systemInfo.memory_usage.toString();
       }
 
       // Extract disk usage from storage.disks (use primary disk)
@@ -424,6 +428,8 @@ export function registerAgentRoutes(
         }
       } else if (reportData.system_health?.disk_usage) {
         diskUsage = reportData.system_health.disk_usage.toString();
+      } else if (reportData.systemInfo?.disk_usage) {
+        diskUsage = reportData.systemInfo.disk_usage.toString();
       }
 
       // Extract network I/O from network stats with multiple sources
@@ -433,6 +439,8 @@ export function registerAgentRoutes(
         networkIO = reportData.network.io_counters.bytes_recv.toString();
       } else if (reportData.network?.total_bytes) {
         networkIO = reportData.network.total_bytes.toString();
+      } else if (reportData.systemInfo?.network_interfaces) {
+        networkIO = reportData.systemInfo.network_interfaces.toString();
       }
 
       // Log what we found for debugging

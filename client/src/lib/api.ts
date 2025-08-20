@@ -215,19 +215,41 @@ export const api = {
   delete: (url: string) => apiClient.delete(url),
 
   async getDashboardSummary(): Promise<DashboardSummary> {
-    const response = await apiClient.get("/api/dashboard/summary");
-    if (!response.ok) {
-      throw new Error(`Failed to fetch dashboard summary: ${response.status}`);
+    try {
+      const response = await apiClient.get("/api/dashboard/summary");
+      if (!response.ok) {
+        console.error(`Dashboard summary API error: ${response.status}`);
+        return {
+          total_devices: 0,
+          online_devices: 0,
+          offline_devices: 0,
+          active_alerts: 0
+        };
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to fetch dashboard summary:', error);
+      return {
+        total_devices: 0,
+        online_devices: 0,
+        offline_devices: 0,
+        active_alerts: 0
+      };
     }
-    return await response.json();
   },
 
   async getDevices(): Promise<Device[]> {
-    const response = await apiClient.get("/api/devices");
-    if (!response.ok) {
-      throw new Error(`Failed to fetch devices: ${response.status}`);
+    try {
+      const response = await apiClient.get("/api/devices");
+      if (!response.ok) {
+        console.error(`Devices API error: ${response.status}`);
+        return [];
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to fetch devices:', error);
+      return [];
     }
-    return await response.json();
   },
 
   getPerformanceInsights: async (deviceId: string) => {
