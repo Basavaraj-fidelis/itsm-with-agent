@@ -1,0 +1,331 @@
+Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check your code at sidebar.tsx:431.
+    at Sidebar (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/src/components/layout/sidebar.tsx:48:22)
+    at div
+    at AuthenticatedLayout (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/src/App.tsx:58:32)
+    at ProtectedRoute (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/src/components/auth/protected-route.tsx:76:3)
+    at Route (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b42b318f:206:16)
+    at Switch (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b42b318f:262:17)
+    at Router (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b42b318f:161:17)
+    at AuthProvider (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/src/components/auth/protected-route.tsx:36:32)
+    at QueryClientProvider (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=b42b318f:2933:3)
+    at App (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/src/App.tsx:90:49)
+printWarning @ react_jsx-dev-runtime.js?v=b42b318f:64
+error @ react_jsx-dev-runtime.js?v=b42b318f:48
+jsxWithValidation @ react_jsx-dev-runtime.js?v=b42b318f:834
+(anonymous) @ sidebar.tsx:412
+Sidebar @ sidebar.tsx:393
+renderWithHooks @ chunk-RPCDYKBN.js?v=b42b318f:11548
+mountIndeterminateComponent @ chunk-RPCDYKBN.js?v=b42b318f:14926
+beginWork @ chunk-RPCDYKBN.js?v=b42b318f:15914
+beginWork$1 @ chunk-RPCDYKBN.js?v=b42b318f:19753
+performUnitOfWork @ chunk-RPCDYKBN.js?v=b42b318f:19198
+workLoopSync @ chunk-RPCDYKBN.js?v=b42b318f:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=b42b318f:19116
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=b42b318f:18874
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=b42b318f:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=b42b318f:18627
+setTimeout
+defaultScheduler @ @tanstack_react-query.js?v=b42b318f:565
+flush @ @tanstack_react-query.js?v=b42b318f:589
+batch @ @tanstack_react-query.js?v=b42b318f:607
+dispatch_fn @ @tanstack_react-query.js?v=b42b318f:1040
+setData @ @tanstack_react-query.js?v=b42b318f:718
+onSuccess @ @tanstack_react-query.js?v=b42b318f:940
+resolve @ @tanstack_react-query.js?v=b42b318f:475
+Promise.then
+run @ @tanstack_react-query.js?v=b42b318f:517
+start @ @tanstack_react-query.js?v=b42b318f:555
+fetch @ @tanstack_react-query.js?v=b42b318f:969
+executeFetch_fn @ @tanstack_react-query.js?v=b42b318f:2279
+onSubscribe @ @tanstack_react-query.js?v=b42b318f:1983
+subscribe @ @tanstack_react-query.js?v=b42b318f:24
+(anonymous) @ @tanstack_react-query.js?v=b42b318f:3146
+subscribeToStore @ chunk-RPCDYKBN.js?v=b42b318f:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=b42b318f:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=b42b318f:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=b42b318f:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=b42b318f:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=b42b318f:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=b42b318f:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=b42b318f:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=b42b318f:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=b42b318f:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=b42b318f:19432
+commitRoot @ chunk-RPCDYKBN.js?v=b42b318f:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=b42b318f:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=b42b318f:18718
+workLoop @ chunk-RPCDYKBN.js?v=b42b318f:197
+flushWork @ chunk-RPCDYKBN.js?v=b42b318f:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=b42b318f:384
+chunk-RPCDYKBN.js?v=b42b318f:20442 Uncaught Error: Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check the render method of `Sidebar`.
+    at createFiberFromTypeAndProps (chunk-RPCDYKBN.js?v=b42b318f:20442:23)
+    at createFiberFromElement (chunk-RPCDYKBN.js?v=b42b318f:20463:23)
+    at reconcileSingleElement (chunk-RPCDYKBN.js?v=b42b318f:10513:31)
+    at reconcileChildFibers2 (chunk-RPCDYKBN.js?v=b42b318f:10550:43)
+    at reconcileChildren (chunk-RPCDYKBN.js?v=b42b318f:14290:37)
+    at updateHostComponent (chunk-RPCDYKBN.js?v=b42b318f:14807:11)
+    at beginWork (chunk-RPCDYKBN.js?v=b42b318f:15935:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b42b318f:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b42b318f:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=b42b318f:3733:39)
+createFiberFromTypeAndProps @ chunk-RPCDYKBN.js?v=b42b318f:20442
+createFiberFromElement @ chunk-RPCDYKBN.js?v=b42b318f:20463
+reconcileSingleElement @ chunk-RPCDYKBN.js?v=b42b318f:10513
+reconcileChildFibers2 @ chunk-RPCDYKBN.js?v=b42b318f:10550
+reconcileChildren @ chunk-RPCDYKBN.js?v=b42b318f:14290
+updateHostComponent @ chunk-RPCDYKBN.js?v=b42b318f:14807
+beginWork @ chunk-RPCDYKBN.js?v=b42b318f:15935
+callCallback2 @ chunk-RPCDYKBN.js?v=b42b318f:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=b42b318f:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=b42b318f:3733
+beginWork$1 @ chunk-RPCDYKBN.js?v=b42b318f:19765
+performUnitOfWork @ chunk-RPCDYKBN.js?v=b42b318f:19198
+workLoopSync @ chunk-RPCDYKBN.js?v=b42b318f:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=b42b318f:19116
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=b42b318f:18874
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=b42b318f:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=b42b318f:18627
+setTimeout
+defaultScheduler @ @tanstack_react-query.js?v=b42b318f:565
+flush @ @tanstack_react-query.js?v=b42b318f:589
+batch @ @tanstack_react-query.js?v=b42b318f:607
+dispatch_fn @ @tanstack_react-query.js?v=b42b318f:1040
+setData @ @tanstack_react-query.js?v=b42b318f:718
+onSuccess @ @tanstack_react-query.js?v=b42b318f:940
+resolve @ @tanstack_react-query.js?v=b42b318f:475
+Promise.then
+run @ @tanstack_react-query.js?v=b42b318f:517
+start @ @tanstack_react-query.js?v=b42b318f:555
+fetch @ @tanstack_react-query.js?v=b42b318f:969
+executeFetch_fn @ @tanstack_react-query.js?v=b42b318f:2279
+onSubscribe @ @tanstack_react-query.js?v=b42b318f:1983
+subscribe @ @tanstack_react-query.js?v=b42b318f:24
+(anonymous) @ @tanstack_react-query.js?v=b42b318f:3146
+subscribeToStore @ chunk-RPCDYKBN.js?v=b42b318f:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=b42b318f:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=b42b318f:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=b42b318f:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=b42b318f:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=b42b318f:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=b42b318f:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=b42b318f:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=b42b318f:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=b42b318f:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=b42b318f:19432
+commitRoot @ chunk-RPCDYKBN.js?v=b42b318f:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=b42b318f:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=b42b318f:18718
+workLoop @ chunk-RPCDYKBN.js?v=b42b318f:197
+flushWork @ chunk-RPCDYKBN.js?v=b42b318f:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=b42b318f:384
+sidebar.tsx:412 Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check your code at sidebar.tsx:431.
+    at Sidebar (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/src/components/layout/sidebar.tsx:48:22)
+    at div
+    at AuthenticatedLayout (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/src/App.tsx:58:32)
+    at ProtectedRoute (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/src/components/auth/protected-route.tsx:76:3)
+    at Route (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b42b318f:206:16)
+    at Switch (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b42b318f:262:17)
+    at Router (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b42b318f:161:17)
+    at AuthProvider (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/src/components/auth/protected-route.tsx:36:32)
+    at QueryClientProvider (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=b42b318f:2933:3)
+    at App (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/src/App.tsx:90:49)
+printWarning @ react_jsx-dev-runtime.js?v=b42b318f:64
+error @ react_jsx-dev-runtime.js?v=b42b318f:48
+jsxWithValidation @ react_jsx-dev-runtime.js?v=b42b318f:834
+(anonymous) @ sidebar.tsx:412
+Sidebar @ sidebar.tsx:393
+renderWithHooks @ chunk-RPCDYKBN.js?v=b42b318f:11548
+mountIndeterminateComponent @ chunk-RPCDYKBN.js?v=b42b318f:14926
+beginWork @ chunk-RPCDYKBN.js?v=b42b318f:15914
+beginWork$1 @ chunk-RPCDYKBN.js?v=b42b318f:19753
+performUnitOfWork @ chunk-RPCDYKBN.js?v=b42b318f:19198
+workLoopSync @ chunk-RPCDYKBN.js?v=b42b318f:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=b42b318f:19116
+recoverFromConcurrentError @ chunk-RPCDYKBN.js?v=b42b318f:18736
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=b42b318f:18879
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=b42b318f:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=b42b318f:18627
+setTimeout
+defaultScheduler @ @tanstack_react-query.js?v=b42b318f:565
+flush @ @tanstack_react-query.js?v=b42b318f:589
+batch @ @tanstack_react-query.js?v=b42b318f:607
+dispatch_fn @ @tanstack_react-query.js?v=b42b318f:1040
+setData @ @tanstack_react-query.js?v=b42b318f:718
+onSuccess @ @tanstack_react-query.js?v=b42b318f:940
+resolve @ @tanstack_react-query.js?v=b42b318f:475
+Promise.then
+run @ @tanstack_react-query.js?v=b42b318f:517
+start @ @tanstack_react-query.js?v=b42b318f:555
+fetch @ @tanstack_react-query.js?v=b42b318f:969
+executeFetch_fn @ @tanstack_react-query.js?v=b42b318f:2279
+onSubscribe @ @tanstack_react-query.js?v=b42b318f:1983
+subscribe @ @tanstack_react-query.js?v=b42b318f:24
+(anonymous) @ @tanstack_react-query.js?v=b42b318f:3146
+subscribeToStore @ chunk-RPCDYKBN.js?v=b42b318f:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=b42b318f:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=b42b318f:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=b42b318f:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=b42b318f:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=b42b318f:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=b42b318f:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=b42b318f:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=b42b318f:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=b42b318f:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=b42b318f:19432
+commitRoot @ chunk-RPCDYKBN.js?v=b42b318f:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=b42b318f:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=b42b318f:18718
+workLoop @ chunk-RPCDYKBN.js?v=b42b318f:197
+flushWork @ chunk-RPCDYKBN.js?v=b42b318f:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=b42b318f:384
+chunk-RPCDYKBN.js?v=b42b318f:20442 Uncaught Error: Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check the render method of `Sidebar`.
+    at createFiberFromTypeAndProps (chunk-RPCDYKBN.js?v=b42b318f:20442:23)
+    at createFiberFromElement (chunk-RPCDYKBN.js?v=b42b318f:20463:23)
+    at reconcileSingleElement (chunk-RPCDYKBN.js?v=b42b318f:10513:31)
+    at reconcileChildFibers2 (chunk-RPCDYKBN.js?v=b42b318f:10550:43)
+    at reconcileChildren (chunk-RPCDYKBN.js?v=b42b318f:14290:37)
+    at updateHostComponent (chunk-RPCDYKBN.js?v=b42b318f:14807:11)
+    at beginWork (chunk-RPCDYKBN.js?v=b42b318f:15935:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b42b318f:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b42b318f:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=b42b318f:3733:39)
+createFiberFromTypeAndProps @ chunk-RPCDYKBN.js?v=b42b318f:20442
+createFiberFromElement @ chunk-RPCDYKBN.js?v=b42b318f:20463
+reconcileSingleElement @ chunk-RPCDYKBN.js?v=b42b318f:10513
+reconcileChildFibers2 @ chunk-RPCDYKBN.js?v=b42b318f:10550
+reconcileChildren @ chunk-RPCDYKBN.js?v=b42b318f:14290
+updateHostComponent @ chunk-RPCDYKBN.js?v=b42b318f:14807
+beginWork @ chunk-RPCDYKBN.js?v=b42b318f:15935
+callCallback2 @ chunk-RPCDYKBN.js?v=b42b318f:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=b42b318f:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=b42b318f:3733
+beginWork$1 @ chunk-RPCDYKBN.js?v=b42b318f:19765
+performUnitOfWork @ chunk-RPCDYKBN.js?v=b42b318f:19198
+workLoopSync @ chunk-RPCDYKBN.js?v=b42b318f:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=b42b318f:19116
+recoverFromConcurrentError @ chunk-RPCDYKBN.js?v=b42b318f:18736
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=b42b318f:18879
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=b42b318f:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=b42b318f:18627
+setTimeout
+defaultScheduler @ @tanstack_react-query.js?v=b42b318f:565
+flush @ @tanstack_react-query.js?v=b42b318f:589
+batch @ @tanstack_react-query.js?v=b42b318f:607
+dispatch_fn @ @tanstack_react-query.js?v=b42b318f:1040
+setData @ @tanstack_react-query.js?v=b42b318f:718
+onSuccess @ @tanstack_react-query.js?v=b42b318f:940
+resolve @ @tanstack_react-query.js?v=b42b318f:475
+Promise.then
+run @ @tanstack_react-query.js?v=b42b318f:517
+start @ @tanstack_react-query.js?v=b42b318f:555
+fetch @ @tanstack_react-query.js?v=b42b318f:969
+executeFetch_fn @ @tanstack_react-query.js?v=b42b318f:2279
+onSubscribe @ @tanstack_react-query.js?v=b42b318f:1983
+subscribe @ @tanstack_react-query.js?v=b42b318f:24
+(anonymous) @ @tanstack_react-query.js?v=b42b318f:3146
+subscribeToStore @ chunk-RPCDYKBN.js?v=b42b318f:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=b42b318f:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=b42b318f:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=b42b318f:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=b42b318f:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=b42b318f:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=b42b318f:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=b42b318f:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=b42b318f:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=b42b318f:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=b42b318f:19432
+commitRoot @ chunk-RPCDYKBN.js?v=b42b318f:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=b42b318f:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=b42b318f:18718
+workLoop @ chunk-RPCDYKBN.js?v=b42b318f:197
+flushWork @ chunk-RPCDYKBN.js?v=b42b318f:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=b42b318f:384
+chunk-RPCDYKBN.js?v=b42b318f:14032 The above error occurred in the <div> component:
+
+    at div
+    at a
+    at https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b42b318f:220:18
+    at nav
+    at div
+    at Provider (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=b42b318f:38:15)
+    at TooltipProvider (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=b42b318f:63:5)
+    at Sidebar (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/src/components/layout/sidebar.tsx:48:22)
+    at div
+    at AuthenticatedLayout (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/src/App.tsx:58:32)
+    at ProtectedRoute (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/src/components/auth/protected-route.tsx:76:3)
+    at Route (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b42b318f:206:16)
+    at Switch (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b42b318f:262:17)
+    at Router (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b42b318f:161:17)
+    at AuthProvider (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/src/components/auth/protected-route.tsx:36:32)
+    at QueryClientProvider (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=b42b318f:2933:3)
+    at App (https://cbb78785-2712-42f1-b508-b25defb7e924-00-2lauuq58gby06.pike.replit.dev/src/App.tsx:90:49)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-RPCDYKBN.js?v=b42b318f:14032
+update.callback @ chunk-RPCDYKBN.js?v=b42b318f:14052
+callCallback @ chunk-RPCDYKBN.js?v=b42b318f:11248
+commitUpdateQueue @ chunk-RPCDYKBN.js?v=b42b318f:11265
+commitLayoutEffectOnFiber @ chunk-RPCDYKBN.js?v=b42b318f:17093
+commitLayoutMountEffects_complete @ chunk-RPCDYKBN.js?v=b42b318f:17980
+commitLayoutEffects_begin @ chunk-RPCDYKBN.js?v=b42b318f:17969
+commitLayoutEffects @ chunk-RPCDYKBN.js?v=b42b318f:17920
+commitRootImpl @ chunk-RPCDYKBN.js?v=b42b318f:19353
+commitRoot @ chunk-RPCDYKBN.js?v=b42b318f:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=b42b318f:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=b42b318f:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=b42b318f:18627
+setTimeout
+defaultScheduler @ @tanstack_react-query.js?v=b42b318f:565
+flush @ @tanstack_react-query.js?v=b42b318f:589
+batch @ @tanstack_react-query.js?v=b42b318f:607
+dispatch_fn @ @tanstack_react-query.js?v=b42b318f:1040
+setData @ @tanstack_react-query.js?v=b42b318f:718
+onSuccess @ @tanstack_react-query.js?v=b42b318f:940
+resolve @ @tanstack_react-query.js?v=b42b318f:475
+Promise.then
+run @ @tanstack_react-query.js?v=b42b318f:517
+start @ @tanstack_react-query.js?v=b42b318f:555
+fetch @ @tanstack_react-query.js?v=b42b318f:969
+executeFetch_fn @ @tanstack_react-query.js?v=b42b318f:2279
+onSubscribe @ @tanstack_react-query.js?v=b42b318f:1983
+subscribe @ @tanstack_react-query.js?v=b42b318f:24
+(anonymous) @ @tanstack_react-query.js?v=b42b318f:3146
+subscribeToStore @ chunk-RPCDYKBN.js?v=b42b318f:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=b42b318f:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=b42b318f:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=b42b318f:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=b42b318f:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=b42b318f:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=b42b318f:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=b42b318f:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=b42b318f:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=b42b318f:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=b42b318f:19432
+commitRoot @ chunk-RPCDYKBN.js?v=b42b318f:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=b42b318f:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=b42b318f:18718
+workLoop @ chunk-RPCDYKBN.js?v=b42b318f:197
+flushWork @ chunk-RPCDYKBN.js?v=b42b318f:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=b42b318f:384
+chunk-RPCDYKBN.js?v=b42b318f:20442 Uncaught Error: Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check the render method of `Sidebar`.
+    at createFiberFromTypeAndProps (chunk-RPCDYKBN.js?v=b42b318f:20442:23)
+    at createFiberFromElement (chunk-RPCDYKBN.js?v=b42b318f:20463:23)
+    at reconcileSingleElement (chunk-RPCDYKBN.js?v=b42b318f:10513:31)
+    at reconcileChildFibers2 (chunk-RPCDYKBN.js?v=b42b318f:10550:43)
+    at reconcileChildren (chunk-RPCDYKBN.js?v=b42b318f:14290:37)
+    at updateHostComponent (chunk-RPCDYKBN.js?v=b42b318f:14807:11)
+    at beginWork (chunk-RPCDYKBN.js?v=b42b318f:15935:22)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b42b318f:19753:22)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=b42b318f:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=b42b318f:19137:13)
