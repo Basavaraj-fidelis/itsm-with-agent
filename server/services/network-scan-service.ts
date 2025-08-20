@@ -125,11 +125,85 @@ class NetworkScanService {
     return recommended;
   }
 
+  private isIPInRange(ip: string, range: string): boolean {
+    if (range.includes('/')) {
+      // CIDR notation
+      const [networkIP, prefixLength] = range.split('/');
+      const prefix = parseInt(prefixLength);
+      
+      const ipToInt = (ip: string) => {
+        return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet), 0) >>> 0;
+      };
+      
+      const mask = (0xffffffff << (32 - prefix)) >>> 0;
+      const networkInt = ipToInt(networkIP) & mask;
+      const ipInt = ipToInt(ip) & mask;
+      
+      return networkInt === ipInt;
+    } else if (range.includes('-')) {
+      // Range notation like 192.168.1.1-192.168.1.100
+      const [startIP, endIP] = range.split('-');
+      const ipToInt = (ip: string) => {
+        return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet), 0) >>> 0;
+      };
+      
+      const targetInt = ipToInt(ip);
+      const startInt = ipToInt(startIP);
+      const endInt = ipToInt(endIP);
+      
+      return targetInt >= startInt && targetInt <= endInt;
+    }
+    
+    return false;
+  }
+
+  private findAgentsInIPRange(agents: any[], ipRange: string): any[] {
+    return agents.filter(agent => {
+      if (!agent.ip_address) return false;
+      return this.isIPInRange(agent.ip_address, ipRange);
+    });
+  }
+
+  async findBestAgentForIPRange(ipRange: string): Promise<any | null> {
+    try {
+      // Get all online agents
+      const onlineAgents = await db
+        .select()
+        .from(devices)
+        .where(
+          and(
+            eq(devices.status, 'online'),
+            isNotNull(devices.ip_address)
+          )
+        );
+
+      // Find agents within the specified IP range
+      const agentsInRange = this.findAgentsInIPRange(onlineAgents, ipRange);
+      
+      if (agentsInRange.length === 0) {
+        console.log(`No online agents found in IP range: ${ipRange}`);
+        return null;
+      }
+
+      // Select the most recently seen agent
+      const bestAgent = agentsInRange.sort((a, b) => 
+        new Date(b.last_seen).getTime() - new Date(a.last_seen).getTime()
+      )[0];
+
+      console.log(`Selected agent ${bestAgent.hostname} (${bestAgent.ip_address}) for IP range: ${ipRange}`);
+      return bestAgent;
+    } catch (error) {
+      console.error('Error finding agent for IP range:', error);
+      return null;
+    }
+  }
+
   async initiateScan(config: {
     subnets: string[];
     scan_type: 'ping' | 'port' | 'full';
     initiated_by: string;
     agent_assignments?: { subnet: string; agent_id: string }[];
+    custom_ip_ranges?: string[];
   }) {
     try {
       const sessionId = this.generateSessionId();
@@ -138,7 +212,8 @@ class NetworkScanService {
       // Get scanning agents
       const scanningAgents = await this.prepareScanningAgents(
         config.subnets, 
-        config.agent_assignments
+        config.agent_assignments,
+        config.custom_ip_ranges
       );
 
       const session: ScanSession = {
@@ -175,10 +250,54 @@ class NetworkScanService {
 
   private async prepareScanningAgents(
     subnets: string[], 
-    agentAssignments?: { subnet: string; agent_id: string }[]
+    agentAssignments?: { subnet: string; agent_id: string }[],
+    customIPRanges?: string[]
   ) {
     const scanningAgents = [];
 
+    // Handle custom IP ranges first
+    if (customIPRanges && customIPRanges.length > 0) {
+      for (const ipRange of customIPRanges) {
+        console.log(`Finding agent for custom IP range: ${ipRange}`);
+        
+        let agentId = null;
+        
+        // Check if specific agent is assigned for this range
+        if (agentAssignments) {
+          const assignment = agentAssignments.find(a => a.subnet === ipRange);
+          if (assignment) {
+            agentId = assignment.agent_id;
+          }
+        }
+
+        // If no specific assignment, find best agent for IP range
+        if (!agentId) {
+          const bestAgent = await this.findBestAgentForIPRange(ipRange);
+          if (bestAgent) {
+            agentId = bestAgent.id;
+          }
+        }
+
+        if (agentId) {
+          const agent = await db.select().from(devices).where(eq(devices.id, agentId)).limit(1);
+          if (agent.length > 0) {
+            scanningAgents.push({
+              subnet: ipRange, // Use the IP range as subnet identifier
+              agent_id: agentId,
+              hostname: agent[0].hostname,
+              ip_address: agent[0].ip_address,
+              scan_type: 'custom_range'
+            });
+          }
+        } else {
+          console.warn(`No suitable agent found for IP range: ${ipRange}`);
+        }
+      }
+      
+      return scanningAgents;
+    }
+
+    // Handle regular subnet scanning
     for (const subnet of subnets) {
       let agentId = null;
 
@@ -206,7 +325,8 @@ class NetworkScanService {
             subnet,
             agent_id: agentId,
             hostname: agent[0].hostname,
-            ip_address: agent[0].ip_address
+            ip_address: agent[0].ip_address,
+            scan_type: 'subnet'
           });
         }
       }

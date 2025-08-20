@@ -28,18 +28,21 @@ export function registerNetworkScanRoutes(app: Express) {
   // Initiate network scan
   app.post("/api/network-scan/initiate", async (req, res) => {
     try {
-      const { subnets, scan_type, agent_assignments } = req.body;
+      const { subnets, scan_type, agent_assignments, custom_ip_ranges } = req.body;
       const userEmail = req.headers['user-email'] as string || 'admin@company.com';
 
-      if (!subnets || !Array.isArray(subnets) || subnets.length === 0) {
-        return res.status(400).json({ error: "Subnets are required" });
+      // Validate that either subnets or custom_ip_ranges are provided
+      if ((!subnets || !Array.isArray(subnets) || subnets.length === 0) && 
+          (!custom_ip_ranges || !Array.isArray(custom_ip_ranges) || custom_ip_ranges.length === 0)) {
+        return res.status(400).json({ error: "Either subnets or custom IP ranges are required" });
       }
 
       const result = await networkScanService.initiateScan({
-        subnets,
+        subnets: subnets || [],
         scan_type: scan_type || 'ping',
         initiated_by: userEmail,
-        agent_assignments
+        agent_assignments,
+        custom_ip_ranges
       });
 
       res.json(result);

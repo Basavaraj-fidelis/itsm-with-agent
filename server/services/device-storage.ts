@@ -42,7 +42,9 @@ export class DeviceStorage {
         latest_report: device.latest_report ? 
           (typeof device.latest_report === 'string' ? 
             JSON.parse(device.latest_report) : 
-            device.latest_report) : null
+            device.latest_report) : null,
+        // Ensure IP address consistency
+        display_ip: device.ip_address
       }));
     } catch (error) {
       console.error("Error fetching devices:", error);
@@ -64,7 +66,9 @@ export class DeviceStorage {
         latest_report: device.latest_report ? 
           (typeof device.latest_report === 'string' ? 
             JSON.parse(device.latest_report) : 
-            device.latest_report) : null
+            device.latest_report) : null,
+        // Ensure IP address consistency
+        display_ip: device.ip_address
       };
     } catch (error) {
       console.error("Error fetching device by ID:", error);

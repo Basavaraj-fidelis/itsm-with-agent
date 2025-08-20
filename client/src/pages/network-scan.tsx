@@ -58,6 +58,8 @@ export default function NetworkScan() {
   const [defaultSubnets, setDefaultSubnets] = useState<any[]>([]);
   const [selectedSubnets, setSelectedSubnets] = useState<string[]>([]);
   const [scanType, setScanType] = useState<'ping' | 'port' | 'full'>('ping');
+  const [customIPRanges, setCustomIPRanges] = useState<string[]>(['']);
+  const [scanMode, setScanMode] = useState<'subnet' | 'custom'>('subnet');
   const [isScanning, setIsScanning] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -144,7 +146,8 @@ export default function NetworkScan() {
   };
 
   const initiateScan = async () => {
-    if (selectedSubnets.length === 0) {
+    // Validate input based on scan mode
+    if (scanMode === 'subnet' && selectedSubnets.length === 0) {
       toast({
         title: "Error",
         description: "Please select at least one subnet to scan",
@@ -153,24 +156,44 @@ export default function NetworkScan() {
       return;
     }
 
+    if (scanMode === 'custom') {
+      const validRanges = customIPRanges.filter(range => range.trim() !== '');
+      if (validRanges.length === 0) {
+        toast({
+          title: "Error",
+          description: "Please enter at least one IP range to scan",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setIsScanning(true);
     try {
+      const requestBody: any = {
+        scan_type: scanType,
+      };
+
+      if (scanMode === 'subnet') {
+        requestBody.subnets = selectedSubnets;
+      } else {
+        requestBody.custom_ip_ranges = customIPRanges.filter(range => range.trim() !== '');
+      }
+
       const response = await fetch('/api/network-scan/initiate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          subnets: selectedSubnets,
-          scan_type: scanType,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (response.ok) {
         const data = await response.json();
+        const targetCount = scanMode === 'subnet' ? selectedSubnets.length : customIPRanges.filter(r => r.trim()).length;
         toast({
           title: "Scan Initiated",
-          description: `Network scan started for ${selectedSubnets.length} subnet(s)`,
+          description: `Network scan started for ${targetCount} ${scanMode === 'subnet' ? 'subnet(s)' : 'IP range(s)'}`,
         });
 
         // Refresh sessions and set current session
@@ -388,37 +411,104 @@ export default function NetworkScan() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Network Subnets to Scan</Label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                  {defaultSubnets.map((subnet) => (
-                    <div key={subnet.range} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={subnet.range}
-                        checked={selectedSubnets.includes(subnet.range)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedSubnets([...selectedSubnets, subnet.range]);
-                          } else {
-                            setSelectedSubnets(selectedSubnets.filter(s => s !== subnet.range));
-                          }
-                        }}
-                      />
-                      <Label htmlFor={subnet.range} className="text-sm">
-                        {subnet.range}
-                        <div className="text-xs text-muted-foreground">
-                          e.g., {subnet.example}
-                        </div>
-                      </Label>
-                    </div>
-                  ))}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Scan Mode</Label>
+                  <Select value={scanMode} onValueChange={(value: any) => setScanMode(value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select scan mode" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="subnet">Predefined Subnets</SelectItem>
+                      <SelectItem value="custom">Custom IP Ranges</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+
+                {scanMode === 'subnet' && (
+                  <div className="space-y-2">
+                    <Label>Network Subnets to Scan</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                      {defaultSubnets.map((subnet) => (
+                        <div key={subnet.range} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={subnet.range}
+                            checked={selectedSubnets.includes(subnet.range)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedSubnets([...selectedSubnets, subnet.range]);
+                              } else {
+                                setSelectedSubnets(selectedSubnets.filter(s => s !== subnet.range));
+                              }
+                            }}
+                          />
+                          <Label htmlFor={subnet.range} className="text-sm">
+                            {subnet.range}
+                            <div className="text-xs text-muted-foreground">
+                              e.g., {subnet.example}
+                            </div>
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {scanMode === 'custom' && (
+                  <div className="space-y-2">
+                    <Label>Custom IP Ranges</Label>
+                    <div className="space-y-2">
+                      {customIPRanges.map((range, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <Input
+                            placeholder="Enter IP range (e.g., 192.168.1.0/24 or 192.168.1.1-192.168.1.100)"
+                            value={range}
+                            onChange={(e) => {
+                              const newRanges = [...customIPRanges];
+                              newRanges[index] = e.target.value;
+                              setCustomIPRanges(newRanges);
+                            }}
+                            className="flex-1"
+                          />
+                          {customIPRanges.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const newRanges = customIPRanges.filter((_, i) => i !== index);
+                                setCustomIPRanges(newRanges);
+                              }}
+                            >
+                              Remove
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCustomIPRanges([...customIPRanges, ''])}
+                      >
+                        Add IP Range
+                      </Button>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      <p>Supported formats:</p>
+                      <ul className="list-disc list-inside ml-2">
+                        <li>CIDR notation: 192.168.1.0/24</li>
+                        <li>IP range: 192.168.1.1-192.168.1.100</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end">
                 <Button 
                   onClick={initiateScan} 
-                  disabled={isScanning || selectedSubnets.length === 0}
+                  disabled={isScanning || (scanMode === 'subnet' && selectedSubnets.length === 0) || (scanMode === 'custom' && customIPRanges.filter(r => r.trim()).length === 0)}
                   className="w-full md:w-auto"
                 >
                   {isScanning ? (

@@ -390,7 +390,7 @@ export function registerAgentRoutes(
       console.log("Network adapters count:", Object.keys(reportData.network?.network_adapters || {}).length);
 
       // Extract primary network interface and IP from the correct structure
-      let primaryIP = device.ip_address;
+      let primaryIP = req.ip || device.ip_address;
       let primaryMAC = null;
       
       if (reportData.network?.interfaces && Array.isArray(reportData.network.interfaces)) {
@@ -415,14 +415,18 @@ export function registerAgentRoutes(
             ip: primaryIP,
             mac: primaryMAC,
             interface_name: primaryInterface.name,
-            status: primaryInterface.status
+            status: primaryInterface.status,
+            request_ip: req.ip
           });
-          
-          // Update device IP if different
-          if (primaryIP !== device.ip_address) {
-            await storage.updateDevice(device.id, { ip_address: primaryIP });
-          }
         }
+      }
+
+      // Always update device with the most reliable IP (request IP takes precedence)
+      const mostReliableIP = req.ip || primaryIP;
+      if (mostReliableIP !== device.ip_address) {
+        await storage.updateDevice(device.id, { ip_address: mostReliableIP });
+        device.ip_address = mostReliableIP;
+        primaryIP = mostReliableIP;
       }
 
       // Enhanced network data with primary interface info
