@@ -21,7 +21,7 @@ import re
 import shutil
 import ipaddress
 import threading
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 # Import OS-specific collectors
@@ -117,9 +117,11 @@ class SystemCollector:
 
         return info
 
-    def _get_hostname(self):
+    def _get_hostname(self, ip=None):
         """Get system hostname"""
         try:
+            if ip:
+                return socket.gethostbyaddr(ip)[0]
             return socket.gethostname()
         except Exception as e:
             self.logger.error(f"Error getting hostname: {e}")
@@ -213,7 +215,7 @@ class SystemCollector:
                         interface_data['packets_sent'] = getattr(interface_io, 'packets_sent', 0)
                         interface_data['packets_recv'] = getattr(interface_io, 'packets_recv', 0)
 
-                # Determine interface type based on name
+                    # Determine interface type based on name
                     name_lower = interface_name.lower()
                     if 'wi-fi' in name_lower or 'wireless' in name_lower or 'wlan' in name_lower:
                         interface_data['type'] = 'Wi-Fi'
@@ -241,7 +243,7 @@ class SystemCollector:
                                     interface_data['ip'] = addr.address
                                     if addr.address not in network_info['all_ips']:
                                         network_info['all_ips'].append(addr.address)
-                            elif (hasattr(addr, 'address') and addr.address and 
+                            elif (hasattr(addr, 'address') and addr.address and
                                   ':' not in addr.address and len(addr.address) == 17):
                                 interface_data['mac'] = addr.address
                         except Exception as e:
@@ -267,26 +269,11 @@ class SystemCollector:
                     self.logger.debug(f"Error processing interface {interface_name}: {e}")
                     continue
 
-                network_info['interfaces'].append(interface_data)
-
-                # Add to network adapters with enhanced info
-                if interface_data['ip'] or interface_data['mac']:
-                    network_info['network_adapters'][interface_name] = {
-                        'type': interface_data['type'],
-                        'ip_address': interface_data['ip'],
-                        'mac_address': interface_data['mac'],
-                        'status': interface_data['status'],
-                        'speed': f"{interface_data['speed']} Mbps" if interface_data['speed'] > 0 else "Unknown",
-                        'bytes_sent': self._format_bytes(interface_data['bytes_sent']),
-                        'bytes_recv': self._format_bytes(interface_data['bytes_recv']),
-                        'operational_status': interface_data['status']
-                    }
-
             # Get default gateway
             try:
                 import subprocess
                 if platform.system() == "Windows":
-                    result = subprocess.run(['route', 'print', '0.0.0.0'], 
+                    result = subprocess.run(['route', 'print', '0.0.0.0'],
                                           capture_output=True, text=True, timeout=10)
                     for line in result.stdout.split('\n'):
                         if '0.0.0.0' in line and 'Gateway' not in line:
@@ -295,7 +282,7 @@ class SystemCollector:
                                 network_info['gateway'] = parts[2]
                                 break
                 else:  # Linux/Mac
-                    result = subprocess.run(['ip', 'route', 'show', 'default'], 
+                    result = subprocess.run(['ip', 'route', 'show', 'default'],
                                           capture_output=True, text=True, timeout=10)
                     if result.returncode == 0:
                         for line in result.stdout.split('\n'):
@@ -304,7 +291,8 @@ class SystemCollector:
                                 if len(parts) >= 3:
                                     network_info['gateway'] = parts[2]
                                     break
-            except:
+            except Exception as e:
+                self.logger.debug(f"Could not determine default gateway: {e}")
                 pass
 
             # Enhanced public IP and geolocation collection
@@ -404,7 +392,7 @@ class SystemCollector:
             try:
                 if platform.system() == "Windows":
                     import subprocess
-                    result = subprocess.run(['nslookup', 'google.com'], 
+                    result = subprocess.run(['nslookup', 'google.com'],
                                           capture_output=True, text=True, timeout=10)
                     lines = result.stdout.split('\n')
                     for line in lines:
@@ -424,20 +412,22 @@ class SystemCollector:
                                     dns_ip = line.split()[1]
                                     if dns_ip not in network_info['dns_servers']:
                                         network_info['dns_servers'].append(dns_ip)
-                    except:
+                    except Exception as e:
+                        self.logger.debug(f"Error reading /etc/resolv.conf: {e}")
                         pass
 
                     # Also try systemd-resolve
                     try:
                         import subprocess
-                        result = subprocess.run(['systemd-resolve', '--status'], 
+                        result = subprocess.run(['systemd-resolve', '--status'],
                                               capture_output=True, text=True, timeout=10)
                         for line in result.stdout.split('\n'):
                             if 'DNS Servers:' in line:
                                 dns_ip = line.split(':')[-1].strip()
                                 if dns_ip and dns_ip not in network_info['dns_servers']:
                                     network_info['dns_servers'].append(dns_ip)
-                    except:
+                    except Exception as e:
+                        self.logger.debug(f"Error checking systemd-resolve: {e}")
                         pass
             except Exception as e:
                 self.logger.debug(f"DNS detection error: {e}")
@@ -446,10 +436,10 @@ class SystemCollector:
             try:
                 if platform.system() == "Windows":
                     import subprocess
-                    result = subprocess.run(['netsh', 'wlan', 'show', 'profiles'], 
+                    result = subprocess.run(['netsh', 'wlan', 'show', 'profiles'],
                                           capture_output=True, text=True, timeout=10)
                     if result.returncode == 0:
-                        connected_result = subprocess.run(['netsh', 'wlan', 'show', 'interfaces'], 
+                        connected_result = subprocess.run(['netsh', 'wlan', 'show', 'interfaces'],
                                                         capture_output=True, text=True, timeout=10)
                         if 'connected' in connected_result.stdout.lower():
                             network_info['wifi_info'] = {
@@ -478,9 +468,11 @@ class SystemCollector:
                                     break
                         else:
                             network_info['wifi_info'] = {'connected': False, 'status': 'disconnected'}
-                    except:
+                    except Exception as e:
+                        self.logger.debug(f"Error getting Wi-Fi info on Linux: {e}")
                         network_info['wifi_info'] = {'connected': False, 'status': 'unknown'}
-            except:
+            except Exception as e:
+                self.logger.debug(f"Error getting Wi-Fi info: {e}")
                 network_info['wifi_info'] = {'connected': False, 'status': 'unknown'}
 
             # Get network statistics
@@ -518,7 +510,8 @@ class SystemCollector:
                 fqdn = socket.getfqdn()
                 if '.' in fqdn:
                     network_info['domain'] = fqdn.split('.', 1)[1]
-            except:
+            except Exception as e:
+                self.logger.debug(f"Could not determine domain: {e}")
                 pass
 
             # Log collected network info for debugging
@@ -529,7 +522,7 @@ class SystemCollector:
             return network_info
 
         except Exception as e:
-            self.logger.error(f"Error getting network info: {e}")
+            self.logger.error(f"Error getting network info: {e}", exc_info=True)
             # Return basic structure even on error
             return {
                 'interfaces': [],
@@ -554,7 +547,7 @@ class SystemCollector:
                     return f"{bytes_value:.1f} {unit}"
                 bytes_value /= 1024.0
             return f"{bytes_value:.1f} PB"
-        except:
+        except Exception:
             return "0 B"
 
     def _get_public_ip(self):
@@ -572,11 +565,13 @@ class SystemCollector:
                     response = requests.get(service, timeout=10)
                     if response.status_code == 200:
                         return response.text.strip()
-                except Exception:
+                except Exception as e:
+                    self.logger.debug(f"Failed to get IP from {service}: {e}")
                     continue
 
             return "unknown"
-        except Exception:
+        except Exception as e:
+            self.logger.error(f"Error in _get_public_ip: {e}")
             return "unknown"
 
     def _get_network_io_counters(self):
@@ -593,7 +588,8 @@ class SystemCollector:
                 'dropin': io_counters.dropin,
                 'dropout': io_counters.dropout
             }
-        except Exception:
+        except Exception as e:
+            self.logger.error(f"Error in _get_network_io_counters: {e}")
             return {}
 
     def _get_hardware_info(self):
@@ -853,8 +849,8 @@ class SystemCollector:
 
                     # Fallback: check for users with home directories in /home
                     if os.path.exists('/home'):
-                        home_users = [d for d in os.listdir('/home') 
-                                    if os.path.isdir(os.path.join('/home', d)) 
+                        home_users = [d for d in os.listdir('/home')
+                                    if os.path.isdir(os.path.join('/home', d))
                                     and not d.startswith('.')]
                         if home_users:
                             # Return the first regular user
@@ -1005,7 +1001,7 @@ class SystemCollector:
                 $Updates | ConvertTo-Json -Depth 3
                 '''
 
-                result = subprocess.run(["powershell", "-Command", ps_command], 
+                result = subprocess.run(["powershell", "-Command", ps_command],
                                       capture_output=True, text=True, timeout=60)
 
                 if result.returncode == 0 and result.stdout.strip():
@@ -1043,7 +1039,7 @@ class SystemCollector:
                 $InstalledUpdates | ConvertTo-Json -Depth 3
                 '''
 
-                result = subprocess.run(["powershell", "-Command", ps_command], 
+                result = subprocess.run(["powershell", "-Command", ps_command],
                                       capture_output=True, text=True, timeout=60)
 
                 if result.returncode == 0 and result.stdout.strip():
@@ -1066,7 +1062,7 @@ class SystemCollector:
                 $AutoUpdate.Results.LastSearchSuccessDate.ToString("yyyy-MM-dd HH:mm:ss")
                 '''
 
-                result = subprocess.run(["powershell", "-Command", ps_command], 
+                result = subprocess.run(["powershell", "-Command", ps_command],
                                       capture_output=True, text=True, timeout=30)
 
                 if result.returncode == 0 and result.stdout.strip():
@@ -1082,7 +1078,7 @@ class SystemCollector:
                 $AUSettings.NotificationLevel -ne 1
                 '''
 
-                result = subprocess.run(["powershell", "-Command", ps_command], 
+                result = subprocess.run(["powershell", "-Command", ps_command],
                                       capture_output=True, text=True, timeout=30)
 
                 if result.returncode == 0:
@@ -1097,37 +1093,42 @@ class SystemCollector:
             self.logger.error(f"Error getting Windows updates: {e}")
             return None
 
-    def scan_local_network(self):
-        """Scan local network for active devices - Enhanced version"""
+    def scan_local_network(self, subnet=None, scan_type='ping'):
+        """Perform comprehensive network scan of specified subnet or local subnet"""
         try:
-            network_devices = []
             scan_start_time = datetime.now()
+            network_devices = []
 
-            # Get local IP and network
+            # Get local network information
+            local_ip = self._get_local_ip()
             hostname = socket.gethostname()
-            local_ip = socket.gethostbyname(hostname)
+            local_mac = self._get_local_mac()
 
-            self.logger.info(f"Starting enhanced network scan from {local_ip}")
+            if not local_ip or local_ip == '127.0.0.1':
+                return {'error': 'Could not determine local IP address'}
 
-            # Enhanced device discovery with multiple methods
+            # Determine target subnet
+            if subnet:
+                target_subnet = subnet
+            else:
+                # Auto-detect local subnet
+                ip_parts = local_ip.split('.')
+                target_subnet = f"{ip_parts[0]}.{ip_parts[1]}.{ip_parts[2]}.0/24"
+
+            self.logger.info(f"Starting network scan of subnet: {target_subnet}")
+
+            # Perform network scan using multiple methods
+            if scan_type in ['ping', 'full']:
+                network_devices.extend(self._ping_sweep(target_subnet))
+
             network_devices.extend(self._scan_arp_table())
             network_devices.extend(self._scan_dhcp_clients())
             network_devices.extend(self._scan_active_connections())
 
-            # Get network interface info
-            for interface, addrs in psutil.net_if_addrs().items():
-                for addr in addrs:
-                    if addr.family == socket.AF_INET and not addr.address.startswith('127.'):
-                        try:
-                            # Ensure netmask is valid for ipaddress module
-                            netmask = addr.netmask if addr.netmask else '255.255.255.255'
-                            network = ipaddress.IPv4Network(f"{addr.address}/{netmask}", strict=False)
-                            scan_result = self._scan_network_range(str(network))
-                            network_devices.extend(scan_result)
-                        except Exception as e:
-                            self.logger.error(f"Error scanning network {addr.address} with netmask {addr.netmask}: {e}")
-                            continue
-                        break # Process only the first IPv4 address for this interface
+            if scan_type == 'full':
+                # Additional comprehensive scanning for full scans
+                network_devices.extend(self._scan_network_neighbors())
+                network_devices.extend(self._scan_common_ports())
 
             # Deduplicate devices by IP
             unique_devices = {}
@@ -1146,132 +1147,197 @@ class SystemCollector:
 
             return {
                 'local_ip': local_ip,
+                'local_mac': local_mac,
                 'hostname': hostname,
+                'target_subnet': target_subnet,
+                'scan_type': scan_type,
                 'discovered_devices': list(unique_devices.values()),
                 'scan_time': scan_start_time.isoformat(),
                 'scan_duration_seconds': scan_duration,
                 'total_devices_found': len(unique_devices),
-                'scan_methods_used': ['ping_sweep', 'arp_table', 'dhcp_clients', 'active_connections'],
+                'scan_methods_used': ['ping_sweep', 'arp_table', 'dhcp_clients', 'active_connections'] + (['network_neighbors', 'port_scan'] if scan_type == 'full' else []),
                 'network_topology': self._analyze_network_topology(list(unique_devices.values()))
             }
         except Exception as e:
-            self.logger.error(f"Network scan failed: {str(e)}")
+            self.logger.error(f"Network scan failed: {str(e)}", exc_info=True)
             return {
                 'error': f"Network scan failed: {str(e)}",
-                'scan_time': datetime.now().isoformat()
+                'scan_time': datetime.now().isoformat(),
+                'local_ip': local_ip,
+                'target_subnet': subnet
             }
 
-    def _scan_network_range(self, network_range, max_workers=50):
-        """Scan a network range for active devices"""
-        active_devices = []
+    def _get_local_ip(self):
+        """Get local IP address"""
         try:
-            network = ipaddress.ip_network(network_range, strict=False)
-        except ValueError as e:
-            self.logger.error(f"Invalid network range '{network_range}': {e}")
-            return []
-
-        def ping_host(ip):
+            # Try to get the primary IP address, avoiding loopback
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             try:
-                # Try to connect to common ports to detect device
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.settimeout(0.5)
-
-                # Try connecting to port 135 (Windows RPC)
-                result = sock.connect_ex((ip, 135))
-                sock.close()
-
-                if result == 0:
-                    return {
-                        'ip': ip,
-                        'status': 'online',
-                        'response_time': 1,
-                        'detected_ports': [135]
-                    }
-
-                # Try ping if port connection fails
-                if platform.system().lower() == 'windows':
-                    ping_cmd = f'ping -n 1 -w 1000 {ip}'
-                else:
-                    ping_cmd = f'ping -c 1 -W 1 {ip}'
-
-                result = subprocess.run(ping_cmd, shell=True, capture_output=True, text=True, timeout=2)
-                if result.returncode == 0:
-                    return {
-                        'ip': ip,
-                        'status': 'online',
-                        'response_time': 1,
-                        'detected_ports': []
-                    }
-
+                s.connect(('10.255.255.255', 1)) # Connect to a dummy address
+                ip = s.getsockname()[0]
             except Exception:
-                pass
-
-            return None
-
-        # Scan network range with threading for performance
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = []
-            for ip in network.hosts():
-                if len(futures) >= 254:  # Limit to avoid overwhelming
-                    break
-                futures.append(executor.submit(ping_host, str(ip)))
-
-            for future in as_completed(futures):
-                result = future.result()
-                if result:
-                    active_devices.append(result)
-
-        return {
-            'subnet': network_range,
-            'total_scanned': len(futures),
-            'active_devices': active_devices,
-            'scan_completed_at': datetime.now().isoformat()
-        }
-
-    def _scan_common_ports(self, ip, timeout=0.5): # Reduced timeout for faster scanning
-        """Scan common ports on a host"""
-        common_ports = [22, 23, 25, 53, 80, 110, 143, 443, 993, 995, 3389, 5900]
-        open_ports = []
-
-        for port in common_ports:
-            sock = None # Initialize sock to None
-            try:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.settimeout(timeout)
-                result = sock.connect_ex((ip, port))
-                if result == 0:
-                    open_ports.append({
-                        'port': port,
-                        'service': self._get_service_name(port)
-                    })
-            except socket.timeout:
-                # Port is closed or filtered
-                pass
-            except Exception as e:
-                self.logger.debug(f"Error scanning port {port} on {ip}: {e}")
+                ip = '127.0.0.1'
             finally:
-                if sock: # Ensure sock is closed only if it was successfully created
-                    sock.close()
+                s.close()
+            return ip
+        except Exception as e:
+            self.logger.error(f"Could not get local IP address: {str(e)}")
+            return '127.0.0.1' # Default to loopback if all else fails
 
-        return open_ports
+    def _get_local_mac(self):
+        """Get local MAC address"""
+        try:
+            import uuid
+            mac = ':'.join(['{:02x}'.format((uuid.getnode() >> elements) & 0xff)
+                           for elements in range(0,2*6,2)][::-1])
+            return mac
+        except Exception as e:
+            self.logger.error(f"Could not get MAC address: {str(e)}")
+            return 'Unknown'
 
-    def _get_service_name(self, port):
-        """Get common service name for port"""
-        services = {
-            22: 'SSH',
-            23: 'Telnet',
-            25: 'SMTP',
-            53: 'DNS',
-            80: 'HTTP',
-            110: 'POP3',
-            143: 'IMAP',
-            443: 'HTTPS',
-            993: 'IMAPS',
-            995: 'POP3S',
-            3389: 'RDP',
-            5900: 'VNC'
-        }
-        return services.get(port, f'Port {port}')
+    def _ping_sweep(self, subnet):
+        """Perform ping sweep on subnet"""
+        devices = []
+        try:
+            # Extract base IP from subnet
+            if '/' in subnet:
+                base_ip = subnet.split('/')[0]
+                base_parts = base_ip.split('.')
+                base = f"{base_parts[0]}.{base_parts[1]}.{base_parts[2]}"
+            else:
+                base_parts = subnet.split('.')
+                base = f"{base_parts[0]}.{base_parts[1]}.{base_parts[2]}"
+
+            self.logger.info(f"Ping sweeping subnet: {base}.0/24")
+
+            # Ping common IP addresses first (faster results)
+            priority_ips = [1, 254, 100, 101, 102, 200, 201, 202]
+
+            for last_octet in priority_ips:
+                ip = f"{base}.{last_octet}"
+                if self._ping_host(ip):
+                    hostname = self._get_hostname(ip)
+                    devices.append({
+                        'ip': ip,
+                        'hostname': hostname,
+                        'status': 'online',
+                        'source': 'ping_sweep',
+                        'device_type': self._infer_device_type(ip, hostname),
+                        'response_time': self._get_ping_time(ip)
+                    })
+
+            # Then scan range 2-50 for other devices
+            for last_octet in range(2, 51):
+                if last_octet in priority_ips:
+                    continue
+
+                ip = f"{base}.{last_octet}"
+                if self._ping_host(ip):
+                    hostname = self._get_hostname(ip)
+                    devices.append({
+                        'ip': ip,
+                        'hostname': hostname,
+                        'status': 'online',
+                        'source': 'ping_sweep',
+                        'device_type': self._infer_device_type(ip, hostname),
+                        'response_time': self._get_ping_time(ip)
+                    })
+
+        except Exception as e:
+            self.logger.error(f"Ping sweep failed: {str(e)}")
+
+        return devices
+
+    def _ping_host(self, ip):
+        """Ping a single host"""
+        try:
+            import subprocess
+            import platform
+
+            param = '-n' if platform.system().lower() == 'windows' else '-c'
+            timeout_param = '-w' if platform.system().lower() == 'windows' else '-W'
+            timeout_value = '1000' if platform.system().lower() == 'windows' else '1' # Milliseconds for Windows, seconds for Linux
+
+            command = ['ping', param, '1', timeout_param, timeout_value, ip]
+
+            result = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=2)
+            return result.returncode == 0
+        except Exception:
+            return False
+
+    def _get_hostname(self, ip):
+        """Get hostname from IP"""
+        try:
+            hostname = socket.gethostbyaddr(ip)[0]
+            return hostname
+        except Exception:
+            return f"device-{ip.split('.')[-1]}"
+
+    def _get_ping_time(self, ip):
+        """Get ping response time"""
+        try:
+            import subprocess
+            import platform
+            import re
+
+            if platform.system().lower() == 'windows':
+                result = subprocess.run(['ping', '-n', '1', ip], capture_output=True, text=True, timeout=2)
+                match = re.search(r'time[<=](\d+)ms', result.stdout)
+                if match:
+                    return int(match.group(1))
+            else:
+                result = subprocess.run(['ping', '-c', '1', ip], capture_output=True, text=True, timeout=2)
+                match = re.search(r'time=(\d+\.?\d*)', result.stdout)
+                if match:
+                    return float(match.group(1))
+
+            return 1  # Default response time
+        except Exception:
+            return 1
+
+    def _infer_device_type(self, ip, hostname):
+        """Infer device type from IP and hostname"""
+        last_octet = int(ip.split('.')[-1])
+        hostname_lower = hostname.lower()
+
+        if last_octet == 1 or last_octet == 254:
+            return 'Router'
+        elif 'router' in hostname_lower or 'gateway' in hostname_lower:
+            return 'Router'
+        elif 'switch' in hostname_lower:
+            return 'Network Infrastructure'
+        elif 'printer' in hostname_lower or 'print' in hostname_lower:
+            return 'Printer'
+        elif 'server' in hostname_lower:
+            return 'Server'
+        elif last_octet >= 100 and last_octet <= 150:
+            return 'Printer'
+        elif last_octet >= 200:
+            return 'IoT Device'
+        else:
+            return 'Workstation'
+
+    def _scan_network_neighbors(self):
+        """Scan for network neighbors (additional method for full scans)"""
+        devices = []
+        try:
+            # This would use additional network discovery methods
+            # For now, return empty - can be extended with nmap or other tools
+            pass
+        except Exception as e:
+            self.logger.error(f"Network neighbor scan failed: {str(e)}")
+        return devices
+
+    def _scan_common_ports(self):
+        """Scan common ports on discovered devices"""
+        devices = []
+        try:
+            # This would perform port scanning
+            # For now, return empty - can be extended with socket connections
+            pass
+        except Exception as e:
+            self.logger.error(f"Port scan failed: {str(e)}")
+        return devices
 
     def _scan_arp_table(self):
         """Scan ARP table for known devices"""
@@ -1317,7 +1383,7 @@ class SystemCollector:
         try:
             # This is limited without router access, but we can try netstat
             if platform.system().lower() == 'windows':
-                result = subprocess.run(['netstat', ' -rn'], capture_output=True, text=True, timeout=10)
+                result = subprocess.run(['netstat', '-rn'], capture_output=True, text=True, timeout=10)
             else:
                 result = subprocess.run(['netstat', '-rn'], capture_output=True, text=True, timeout=10)
 

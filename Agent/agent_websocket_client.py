@@ -95,7 +95,7 @@ class ITSMAgent:
         command = data.get('command')
         params = data.get('params', {})
         
-        logger.info(f"Executing command: {command}")
+        logger.info(f"Executing command: {command} with params: {params}")
         
         try:
             if command == 'syncAD':
@@ -106,6 +106,8 @@ class ITSMAgent:
                 result = self.get_ad_status()
             elif command == 'collectSystemInfo':
                 result = self.system_collector.collect_all()
+            elif command == 'networkScan':
+                result = self.perform_network_scan(params)
             else:
                 result = {'success': False, 'error': f'Unknown command: {command}'}
                 
@@ -126,6 +128,36 @@ class ITSMAgent:
                 'success': False,
                 'error': str(e)
             }))
+            
+    def perform_network_scan(self, params):
+        """Perform network scan on the specified subnet"""
+        try:
+            subnet = params.get('subnet')
+            scan_type = params.get('scan_type', 'ping')
+            session_id = params.get('session_id')
+            
+            logger.info(f"Starting network scan for subnet: {subnet}, type: {scan_type}, session: {session_id}")
+            
+            # Use the enhanced network scan method
+            scan_result = self.system_collector.collect_network_scan(subnet=subnet, scan_type=scan_type)
+            
+            if 'error' in scan_result:
+                logger.error(f"Network scan failed: {scan_result['error']}")
+                return {'success': False, 'error': scan_result['error']}
+            
+            logger.info(f"Network scan completed. Found {scan_result.get('total_devices_found', 0)} devices")
+            
+            return {
+                'success': True,
+                'subnet': subnet,
+                'scan_type': scan_type,
+                'session_id': session_id,
+                **scan_result  # Include all scan results
+            }
+            
+        except Exception as e:
+            logger.error(f"Network scan error: {e}")
+            return {'success': False, 'error': str(e)}
             
     def sync_active_directory(self, config):
         """Sync with Active Directory"""

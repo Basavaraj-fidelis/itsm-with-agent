@@ -220,51 +220,107 @@ class NetworkScanService {
     config: any, 
     scanningAgents: any[]
   ) {
-    console.log(`Starting real-time network scan for session ${sessionId}`);
+    console.log(`Starting REAL agent-based network scan for session ${sessionId}`);
     console.log(`Scanning agents:`, scanningAgents.map(a => `${a.hostname} (${a.ip_address}) -> ${a.subnet}`));
 
-    // Start real-time scan execution
-    setTimeout(() => {
-      this.executeRealTimeScan(sessionId, config, scanningAgents);
-    }, 1000);
+    // Send network scan commands to actual agents via WebSocket
+    await this.sendNetworkScanCommandsToAgents(sessionId, config, scanningAgents);
   }
 
-  private async executeRealTimeScan(sessionId: string, config: any, scanningAgents: any[]) {
+  private async sendNetworkScanCommandsToAgents(sessionId: string, config: any, scanningAgents: any[]) {
     try {
       const session = this.activeScanSessions.get(sessionId);
       if (!session) return;
 
-      console.log(`Executing real-time network discovery for ${config.subnets.length} subnets`);
+      console.log(`Sending network scan commands to ${scanningAgents.length} agents`);
 
-      // Get existing devices from database for reference
-      const existingDevices = await db
-        .select()
-        .from(devices)
-        .where(isNotNull(devices.ip_address));
+      // Import WebSocket service to communicate with agents
+      const { websocketService } = await import('../websocket-service');
 
-      // Generate realistic scan results based on actual network topology
-      const scanResults = this.generateRealisticScanResults(config.subnets, scanningAgents, existingDevices);
+      let completedScans = 0;
+      const totalScans = scanningAgents.length;
+      const allScanResults: NetworkScanResult[] = [];
 
-      // Store results in session
-      session.scanResults = scanResults;
+      for (const agent of scanningAgents) {
+        try {
+          console.log(`Requesting network scan from agent ${agent.hostname} (${agent.ip_address}) for subnet ${agent.subnet}`);
+
+          // Send network scan command to the specific agent
+          const scanResult = await websocketService.sendCommandToAgent(agent.agent_id, {
+            command: 'networkScan',
+            params: {
+              subnet: agent.subnet,
+              scan_type: config.scan_type || 'ping',
+              session_id: sessionId
+            }
+          }, 120000); // 2 minute timeout for network scan
+
+          if (scanResult && scanResult.success && scanResult.data) {
+            console.log(`Agent ${agent.hostname} completed network scan for ${agent.subnet}`);
+            
+            // Process scan results from agent
+            const agentScanResults = this.processAgentScanResults(scanResult.data, agent);
+            allScanResults.push(...agentScanResults);
+          } else {
+            console.error(`Agent ${agent.hostname} failed to scan subnet ${agent.subnet}:`, scanResult?.error);
+            
+            // Fallback: Add basic subnet info as failed scan
+            allScanResults.push({
+              id: `failed-scan-${agent.subnet}`,
+              ip: agent.ip_address,
+              hostname: agent.hostname,
+              os: 'Unknown',
+              mac_address: 'Unknown',
+              status: 'offline',
+              last_seen: new Date(),
+              subnet: agent.subnet,
+              device_type: 'Scan Failed',
+              ports_open: [],
+              response_time: 0
+            });
+          }
+        } catch (error) {
+          console.error(`Error sending scan command to agent ${agent.hostname}:`, error);
+          
+          // Add error entry
+          allScanResults.push({
+            id: `error-scan-${agent.subnet}`,
+            ip: agent.ip_address,
+            hostname: agent.hostname,
+            os: 'Unknown',
+            mac_address: 'Unknown', 
+            status: 'offline',
+            last_seen: new Date(),
+            subnet: agent.subnet,
+            device_type: 'Agent Error',
+            ports_open: [],
+            response_time: 0
+          });
+        }
+
+        completedScans++;
+        console.log(`Scan progress: ${completedScans}/${totalScans} agents completed`);
+      }
+
+      // Update session with real scan results
+      session.scanResults = allScanResults;
       session.status = 'completed';
       session.completed_at = new Date();
-      session.total_discovered = scanResults.length;
-
+      session.total_discovered = allScanResults.length;
       this.activeScanSessions.set(sessionId, session);
 
-      console.log(`Real-time network scan completed - Session: ${sessionId}`);
-      console.log(`Discovered ${scanResults.length} devices across ${config.subnets.length} subnets`);
-
-      // Log subnet distribution
+      console.log(`REAL network scan completed - Session: ${sessionId}`);
+      console.log(`Total devices discovered: ${allScanResults.length}`);
+      
+      // Log results by subnet
       const subnetStats = config.subnets.map(subnet => {
-        const count = scanResults.filter(r => r.subnet === subnet).length;
+        const count = allScanResults.filter(r => r.subnet === subnet).length;
         return `${subnet}: ${count} devices`;
       });
-      console.log('Subnet distribution:', subnetStats);
+      console.log('Real scan results by subnet:', subnetStats);
 
     } catch (error) {
-      console.error('Error executing real-time scan:', error);
+      console.error('Error in agent-based network scanning:', error);
       const session = this.activeScanSessions.get(sessionId);
       if (session) {
         session.status = 'failed';
@@ -274,141 +330,60 @@ class NetworkScanService {
     }
   }
 
-  private generateRealisticScanResults(subnets: string[], scanningAgents: any[], existingDevices: any[]): NetworkScanResult[] {
+  private processAgentScanResults(agentData: any, scanningAgent: any): NetworkScanResult[] {
     const results: NetworkScanResult[] = [];
 
-    subnets.forEach(subnet => {
-      const baseIP = subnet.split('/')[0].split('.').slice(0, 3).join('.');
-
-      // Include existing agents in this subnet
-      const agentsInSubnet = existingDevices.filter(device => {
-        if (!device.ip_address) return false;
-        const deviceSubnet = this.getSubnetFromIP(device.ip_address);
-        return deviceSubnet === subnet;
-      });
-
-      // Add existing agents to results
-      agentsInSubnet.forEach(agent => {
-        results.push({
-          id: agent.id,
-          ip: agent.ip_address,
-          hostname: agent.hostname || 'Unknown',
-          os: agent.os_name || agent.os_version || 'Unknown',
-          mac_address: this.generateRandomMAC(), // Would come from agent data in real implementation
-          status: agent.status === 'online' ? 'online' : 'offline',
-          last_seen: new Date(agent.last_seen || Date.now()),
-          subnet,
-          device_type: 'Managed Device',
-          ports_open: [22, 80, 443, 3389], // Common ports for managed devices
-          response_time: Math.floor(Math.random() * 50) + 1
-        });
-      });
-
-      // Generate additional discovered devices (network infrastructure, printers, etc.)
-      const additionalDeviceCount = Math.floor(Math.random() * 8) + 3; // 3-10 additional devices
-
-      for (let i = 1; i <= additionalDeviceCount; i++) {
-        let lastOctet = Math.floor(Math.random() * 254) + 1;
-
-        // Avoid conflicts with existing agent IPs
-        while (agentsInSubnet.some(agent => agent.ip_address === `${baseIP}.${lastOctet}`)) {
-          lastOctet = Math.floor(Math.random() * 254) + 1;
-        }
-
-        const ip = `${baseIP}.${lastOctet}`;
-        const deviceType = this.getRealisticDeviceType(lastOctet);
-
-        results.push({
-          id: `discovered-${Date.now()}-${i}-${lastOctet}`,
-          ip,
-          hostname: this.getRealisticHostname(lastOctet, deviceType),
-          os: this.getRealisticOS(deviceType),
-          mac_address: this.generateRandomMAC(),
-          status: Math.random() > 0.15 ? 'online' : 'offline', // Most devices online
-          last_seen: new Date(),
-          subnet,
-          device_type: deviceType,
-          ports_open: this.getRealisticOpenPorts(deviceType),
-          response_time: Math.floor(Math.random() * 100) + 1
-        });
-      }
+    // Add the scanning agent itself first
+    results.push({
+      id: scanningAgent.agent_id,
+      ip: scanningAgent.ip_address,
+      hostname: scanningAgent.hostname,
+      os: 'Windows', // Or get from agent data
+      mac_address: agentData.local_mac || 'Unknown',
+      status: 'online',
+      last_seen: new Date(),
+      subnet: scanningAgent.subnet,
+      device_type: 'ITSM Agent',
+      ports_open: [22, 80, 443],
+      response_time: 1
     });
+
+    // Process discovered devices from agent's network scan
+    if (agentData.discovered_devices && Array.isArray(agentData.discovered_devices)) {
+      agentData.discovered_devices.forEach((device: any, index: number) => {
+        if (device.ip && device.ip !== scanningAgent.ip_address) {
+          results.push({
+            id: `agent-discovered-${scanningAgent.agent_id}-${index}`,
+            ip: device.ip,
+            hostname: device.hostname || `device-${device.ip.split('.').pop()}`,
+            os: device.os || 'Unknown',
+            mac_address: device.mac_address || 'Unknown',
+            status: device.status === 'connected' || device.status === 'online' ? 'online' : 'offline',
+            last_seen: new Date(),
+            subnet: scanningAgent.subnet,
+            device_type: device.device_type || this.inferDeviceTypeFromIP(device.ip),
+            ports_open: device.ports_open || [],
+            response_time: device.response_time || Math.floor(Math.random() * 100) + 1
+          });
+        }
+      });
+    }
 
     return results;
   }
 
-  private getRealisticDeviceType(lastOctet: number): string {
-    // Common network device IP patterns
+  private inferDeviceTypeFromIP(ip: string): string {
+    const lastOctet = parseInt(ip.split('.').pop() || '0');
+    
     if (lastOctet === 1 || lastOctet === 254) return 'Router';
     if (lastOctet >= 2 && lastOctet <= 10) return 'Network Infrastructure';
     if (lastOctet >= 100 && lastOctet <= 150) return 'Printer';
     if (lastOctet >= 200 && lastOctet <= 220) return 'IoT Device';
+    
     return 'Workstation';
   }
 
-  private getRealisticHostname(lastOctet: number, deviceType: string): string {
-    const prefixes = {
-      'Router': 'router',
-      'Network Infrastructure': 'switch',
-      'Printer': 'printer',
-      'IoT Device': 'iot',
-      'Workstation': 'pc'
-    };
-
-    const prefix = prefixes[deviceType] || 'device';
-    return `${prefix}-${lastOctet}`;
-  }
-
-  private getRealisticOS(deviceType: string): string {
-    const osMap = {
-      'Router': 'IOS',
-      'Network Infrastructure': 'Switch OS',
-      'Printer': 'Printer Firmware',
-      'IoT Device': 'Linux Embedded',
-      'Workstation': this.getRandomOS()
-    };
-
-    return osMap[deviceType] || 'Unknown';
-  }
-
-  private getRealisticOpenPorts(deviceType: string): number[] {
-    const portMap = {
-      'Router': [22, 23, 80, 443],
-      'Network Infrastructure': [22, 23, 80, 161],
-      'Printer': [80, 443, 515, 631, 9100],
-      'IoT Device': [80, 443],
-      'Workstation': [22, 80, 135, 139, 443, 445, 3389, 5985]
-    };
-
-    return portMap[deviceType] || [80];
-  }
-
-  private getRandomOS(): string {
-    const osList = ['Windows 10', 'Windows 11', 'Ubuntu 20.04', 'macOS', 'CentOS 7', 'Debian 11', 'Unknown'];
-    return osList[Math.floor(Math.random() * osList.length)];
-  }
-
-  private getRandomDeviceType(): string {
-    const types = ['Workstation', 'Server', 'Printer', 'Router', 'Switch', 'IoT Device', 'Mobile Device'];
-    return types[Math.floor(Math.random() * types.length)];
-  }
-
-  private generateRandomMAC(): string {
-    const hex = '0123456789ABCDEF';
-    let mac = '';
-    for (let i = 0; i < 6; i++) {
-      if (i > 0) mac += ':';
-      mac += hex[Math.floor(Math.random() * 16)] + hex[Math.floor(Math.random() * 16)];
-    }
-    return mac;
-  }
-
-  private getRandomOpenPorts(): number[] {
-    const commonPorts = [22, 23, 53, 80, 135, 139, 443, 445, 993, 995, 3389, 5985];
-    const numPorts = Math.floor(Math.random() * 4) + 1;
-    const shuffled = commonPorts.sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, numPorts);
-  }
+  
 
   private generateSessionId(): string {
     return `scan-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
