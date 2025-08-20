@@ -213,29 +213,36 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
           console.log("Network Interfaces Count:", parsedData.network?.interfaces?.length || 0);
           console.log("Public IP:", parsedData.network?.public_ip || "Not found");
           
-          // Extract primary network interface information
+          // Extract primary network interface information from the correct structure
           if (parsedData.network?.interfaces && Array.isArray(parsedData.network.interfaces)) {
-            const primaryInterface = parsedData.network.interfaces.find(iface => 
-              iface.ip_address && 
-              iface.ip_address !== '127.0.0.1' && 
-              iface.ip_address !== '::1' &&
-              !iface.ip_address.startsWith('169.254.') &&
-              (iface.status === 'up' || iface.is_up === true)
-            ) || parsedData.network.interfaces.find(iface => 
-              iface.ip_address && 
-              iface.ip_address !== '127.0.0.1' && 
-              iface.ip_address !== '::1'
-            );
+            const primaryInterface = parsedData.network.interfaces.find(iface => {
+              // Look for interface with IP address (not loopback or APIPA)
+              const ip = iface.ip || iface.ip_address;
+              return ip && 
+                ip !== '127.0.0.1' && 
+                ip !== '::1' &&
+                !ip.startsWith('169.254.') &&
+                (iface.status === 'Up' || iface.status === 'up' || iface.is_up === true);
+            }) || parsedData.network.interfaces.find(iface => {
+              // Fallback: any interface with valid IP
+              const ip = iface.ip || iface.ip_address;
+              return ip && ip !== '127.0.0.1' && ip !== '::1';
+            });
 
             if (primaryInterface) {
+              // Extract IP and MAC from the interface data
+              const primaryIP = primaryInterface.ip || primaryInterface.ip_address;
+              const primaryMAC = primaryInterface.mac || primaryInterface.mac_address;
+              
               // Add primary interface data to device
-              deviceWithReport.primary_ip_address = primaryInterface.ip_address;
-              deviceWithReport.primary_mac_address = primaryInterface.mac_address;
+              deviceWithReport.primary_ip_address = primaryIP;
+              deviceWithReport.primary_mac_address = primaryMAC;
               
               console.log("Primary Interface:", {
-                ip: primaryInterface.ip_address,
-                mac: primaryInterface.mac_address,
-                name: primaryInterface.name || primaryInterface.interface_name
+                ip: primaryIP,
+                mac: primaryMAC,
+                name: primaryInterface.name,
+                status: primaryInterface.status
               });
             }
           }

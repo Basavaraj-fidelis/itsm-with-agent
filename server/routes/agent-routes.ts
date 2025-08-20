@@ -388,27 +388,34 @@ export function registerAgentRoutes(
       console.log("Network public IP:", reportData.network?.public_ip || "Not provided");
       console.log("Network adapters count:", Object.keys(reportData.network?.network_adapters || {}).length);
 
-      // Extract primary network interface and IP
+      // Extract primary network interface and IP from the correct structure
       let primaryIP = device.ip_address;
       let primaryMAC = null;
       
       if (reportData.network?.interfaces && Array.isArray(reportData.network.interfaces)) {
-        // Find primary interface (active, not loopback, has IP)
-        const primaryInterface = reportData.network.interfaces.find(iface => 
-          iface.ip_address && 
-          iface.ip_address !== '127.0.0.1' && 
-          iface.ip_address !== '::1' &&
-          !iface.ip_address.startsWith('169.254.') && // Exclude APIPA
-          iface.status === 'up'
-        ) || reportData.network.interfaces.find(iface => 
-          iface.ip_address && 
-          iface.ip_address !== '127.0.0.1' && 
-          iface.ip_address !== '::1'
-        );
+        // Find primary interface using the correct field names from agent data
+        const primaryInterface = reportData.network.interfaces.find(iface => {
+          const ip = iface.ip || iface.ip_address;
+          return ip && 
+            ip !== '127.0.0.1' && 
+            ip !== '::1' &&
+            !ip.startsWith('169.254.') && // Exclude APIPA
+            (iface.status === 'Up' || iface.status === 'up' || iface.is_up === true);
+        }) || reportData.network.interfaces.find(iface => {
+          const ip = iface.ip || iface.ip_address;
+          return ip && ip !== '127.0.0.1' && ip !== '::1';
+        });
 
         if (primaryInterface) {
-          primaryIP = primaryInterface.ip_address;
-          primaryMAC = primaryInterface.mac_address;
+          primaryIP = primaryInterface.ip || primaryInterface.ip_address;
+          primaryMAC = primaryInterface.mac || primaryInterface.mac_address;
+          
+          console.log("Extracted Primary Network Info:", {
+            ip: primaryIP,
+            mac: primaryMAC,
+            interface_name: primaryInterface.name,
+            status: primaryInterface.status
+          });
           
           // Update device IP if different
           if (primaryIP !== device.ip_address) {

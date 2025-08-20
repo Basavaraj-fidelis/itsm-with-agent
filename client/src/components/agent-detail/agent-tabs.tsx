@@ -1183,10 +1183,20 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                           <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
                             <h4 className="font-medium text-green-800 dark:text-green-200 mb-2 flex items-center gap-2">
                               <Network className="w-4 h-4" />
-                              Primary IP
+                              Primary IP Address
                             </h4>
                             <p className="text-green-900 dark:text-green-100 font-mono">
-                              {agent?.ip_address || allIPs[0] || "Unknown"}
+                              {agent?.primary_ip_address || agent?.ip_address || allIPs[0] || "Unknown"}
+                            </p>
+                          </div>
+
+                          <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                            <h4 className="font-medium text-indigo-800 dark:text-indigo-200 mb-2 flex items-center gap-2">
+                              <Network className="w-4 h-4" />
+                              Primary MAC Address
+                            </h4>
+                            <p className="text-indigo-900 dark:text-indigo-100 font-mono">
+                              {agent?.primary_mac_address || processedData?.networkInfo?.ethernetMAC || "Unknown"}
                             </p>
                           </div>
 
