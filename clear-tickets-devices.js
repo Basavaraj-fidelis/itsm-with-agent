@@ -1,10 +1,8 @@
 
-#!/usr/bin/env node
-
-const { drizzle } = require('drizzle-orm/postgres-js');
-const postgres = require('postgres');
-const { tickets, ticketComments, ticketAttachments } = require('./shared/ticket-schema');
-const { devices, device_reports, alerts, usb_devices } = require('./shared/schema');
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import { tickets, ticketComments, ticketAttachments } from './shared/ticket-schema.js';
+import { devices, device_reports, alerts, usb_devices } from './shared/schema.js';
 
 // Database connection
 const connectionString = process.env.DATABASE_URL;
