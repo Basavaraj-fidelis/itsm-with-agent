@@ -1,8 +1,12 @@
 
+#!/usr/bin/env node
+
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { tickets, ticketComments, ticketAttachments } from './shared/ticket-schema.js';
-import { devices, device_reports, alerts, usb_devices } from './shared/schema.js';
+
+// Import schemas from the correct paths
+const { tickets, ticketComments, ticketAttachments } = await import('./shared/ticket-schema.js');
+const { devices, device_reports, alerts, usb_devices } = await import('./shared/schema.js');
 
 // Database connection
 const connectionString = process.env.DATABASE_URL;
