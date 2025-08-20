@@ -128,36 +128,12 @@ router.get('/compliance', authenticateToken, async (req, res) => {
 // Security overview endpoint for dashboard
 router.get('/overview', authenticateToken, async (req, res) => {
   try {
-    const { db } = await import('../db');
-
-    // Get actual device and alert counts
-    const deviceCount = await db.query('SELECT COUNT(*) as count FROM devices');
-    const alertCount = await db.query(`
-      SELECT COUNT(*) as count FROM alerts 
-      WHERE is_active = true AND severity IN ('critical', 'high')
-    `);
-
-    const securityOverview = {
-      threatLevel: 'low',
-      activeThreats: parseInt(alertCount.rows[0]?.count) || 0,
-      vulnerabilities: {
-        critical: 0,
-        high: 2,
-        medium: 5,
-        low: 8
-      },
-      lastScan: new Date().toISOString(),
-      complianceScore: 92,
-      securityAlerts: parseInt(alertCount.rows[0]?.count) || 0,
-      firewallStatus: 'active',
-      antivirusStatus: 'active',
-      patchCompliance: 85
-    };
-
-    res.json(securityOverview);
+    const { securityService } = await import('../services/security-service');
+    const overview = await securityService.getSecurityOverview();
+    res.json(overview);
   } catch (error) {
     console.error('Error fetching security overview:', error);
-    res.json({
+    res.status(500).json({
       threatLevel: 'unknown',
       activeThreats: 0,
       vulnerabilities: { critical: 0, high: 0, medium: 0, low: 0 },

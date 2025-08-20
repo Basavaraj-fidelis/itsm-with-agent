@@ -731,3 +731,168 @@ const apiRequest = async <T>(
     throw error;
   }
 };
+
+// Analytics APIs
+export const getAnalytics = async () => {
+  try {
+    const response = await fetch("/api/analytics/overview", {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      if (response.status === 401) {
+        window.location.href = '/login';
+        return null;
+      }
+      throw new Error(`Failed to fetch analytics: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Analytics fetch error:", error);
+    return {
+      totalDevices: 0,
+      onlineDevices: 0,
+      criticalAlerts: 0,
+      totalTickets: 0,
+      performanceMetrics: {
+        avgCpuUsage: 0,
+        avgMemoryUsage: 0,
+        avgDiskUsage: 0,
+        networkThroughput: 0
+      }
+    };
+  }
+};
+
+export const getDeviceAnalytics = async () => {
+  try {
+    const response = await fetch("/api/analytics/devices", {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      if (response.status === 401) {
+        window.location.href = '/login';
+        return null;
+      }
+      throw new Error(`Failed to fetch device analytics: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Device analytics fetch error:", error);
+    return {
+      devices: [],
+      metrics: {
+        totalDevices: 0,
+        onlineDevices: 0,
+        offlineDevices: 0,
+        healthyDevices: 0,
+        unhealthyDevices: 0
+      }
+    };
+  }
+};
+
+export const getTickets = async () => {
+  try {
+    const response = await fetch("/api/tickets", {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error("Failed to fetch tickets");
+    return await response.json();
+  } catch (error) {
+    console.error("Tickets fetch error:", error);
+    throw error;
+  }
+};
+
+// Device insights API
+export const getDeviceInsights = async (deviceId: string) => {
+  try {
+    const response = await fetch(`/api/ai/insights/${deviceId}`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      if (response.status === 401) {
+        window.location.href = '/login';
+        return null;
+      }
+      throw new Error(`Failed to fetch device insights: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Device insights fetch error:", error);
+    return { insights: [] };
+  }
+};
+
+// Agent APIs
+export const getAgents = async () => {
+  try {
+    const response = await fetch("/api/devices", {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error("Failed to fetch agents");
+    return await response.json();
+  } catch (error) {
+    console.error("Agents fetch error:", error);
+    throw error;
+  }
+};
+
+// Security APIs
+export const getSecurityOverview = async () => {
+  try {
+    const response = await fetch("/api/security/overview", {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      if (response.status === 401) {
+        window.location.href = '/login';
+        return null;
+      }
+      throw new Error(`Failed to fetch security overview: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Security overview fetch error:", error);
+    return {
+      threatLevel: 'unknown',
+      activeThreats: 0,
+      vulnerabilities: { critical: 0, high: 0, medium: 0, low: 0 },
+      lastScan: new Date().toISOString(),
+      complianceScore: 0,
+      securityAlerts: 0,
+      firewallStatus: 'unknown',
+      antivirusStatus: 'unknown',
+      patchCompliance: 0
+    };
+  }
+};
+
+export const getSecurityCompliance = async () => {
+  try {
+    const response = await fetch("/api/security/compliance", {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      if (response.status === 401) {
+        window.location.href = '/login';
+        return null;
+      }
+      throw new Error(`Failed to fetch security compliance: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Security compliance fetch error:", error);
+    return {
+      total_devices: 0,
+      compliant_devices: 0,
+      non_compliant_devices: 0,
+      unknown_devices: 0
+    };
+  }
+};

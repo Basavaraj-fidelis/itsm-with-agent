@@ -235,7 +235,7 @@ router.get("/article-suggestions/:ticketId", async (req, res) => {
           type: ticket.type,
           tags: ticket.tags || []
         });
-        
+
         if (aiArticle) {
           suggestions.push({
             id: 'ai-generated',

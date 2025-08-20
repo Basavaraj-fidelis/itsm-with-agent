@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -200,7 +199,7 @@ function PerformanceAnalyticsContent() {
     const deviceList = devices || [];
     return deviceList.filter((d: any) => d.status === "online");
   }, [devices]);
-  
+
   const offlineDevices = useMemo(() => {
     const deviceList = devices || [];
     return deviceList.filter((d: any) => d.status === "offline");
@@ -272,7 +271,7 @@ function PerformanceAnalyticsContent() {
   // Calculate average metrics using useMemo to maintain consistent hook ordering
   const avgMetrics = useMemo(() => {
     const dataDevices = devicesWithData || [];
-    
+
     return {
       cpu:
         dataDevices.length > 0
