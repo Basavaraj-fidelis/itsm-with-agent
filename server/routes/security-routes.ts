@@ -1,6 +1,6 @@
 
 import { Router } from 'express';
-import { authenticateToken } from '../middleware/auth-middleware.js';
+import { authenticateToken } from '../middleware/auth-middleware';
 import { storage } from '../storage';
 import { DatabaseUtils } from '../utils/database';
 

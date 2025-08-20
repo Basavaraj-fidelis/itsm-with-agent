@@ -33,6 +33,7 @@ import SLAManagement from "./pages/sla-management";
 import { ErrorBoundary } from './components/ui/error-boundary';
 import { DashboardErrorBoundary } from './components/ui/dashboard-error-boundary';
 import NetworkScan from "./pages/network-scan";
+import SecurityDashboard from "@/pages/security-dashboard";
 
 
 // Layout
@@ -261,6 +262,15 @@ export default function App() {
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>
+
+            <Route path="/security">
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <SecurityDashboard />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            </Route>
+
 
             <Route path="/portal">
               <EndUserPortal />
