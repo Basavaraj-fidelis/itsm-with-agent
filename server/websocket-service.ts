@@ -1,4 +1,3 @@
-
 import WebSocket, { WebSocketServer } from 'ws';
 import { Server } from 'http';
 
@@ -8,18 +7,18 @@ class WebSocketService {
 
   init(server: Server): void {
     this.wss = new WebSocketServer({ server, path: '/ws' });
-    
+
     this.wss.on('connection', (ws: WebSocket) => {
       console.log('New WebSocket connection established');
-      
+
       ws.on('message', (message: string) => {
         try {
           const data = JSON.parse(message);
-          
+
           if (data.type === 'subscribe' && data.channel) {
             this.subscribeToChannel(ws, data.channel);
           }
-          
+
           if (data.type === 'unsubscribe' && data.channel) {
             this.unsubscribeFromChannel(ws, data.channel);
           }
@@ -27,18 +26,18 @@ class WebSocketService {
           console.error('Error parsing WebSocket message:', error);
         }
       });
-      
+
       ws.on('close', () => {
         console.log('WebSocket connection closed');
         this.removeFromAllChannels(ws);
       });
-      
+
       ws.on('error', (error) => {
         console.error('WebSocket error:', error);
         this.removeFromAllChannels(ws);
       });
     });
-    
+
     console.log('WebSocket service initialized');
   }
 
@@ -46,7 +45,7 @@ class WebSocketService {
     if (!this.channels.has(channel)) {
       this.channels.set(channel, new Set());
     }
-    
+
     this.channels.get(channel)!.add(ws);
     console.log(`Client subscribed to channel: ${channel}`);
   }
@@ -70,7 +69,7 @@ class WebSocketService {
 
     const subscribers = this.channels.get(channel)!;
     const message = JSON.stringify(data);
-    
+
     subscribers.forEach((ws) => {
       if (ws.readyState === WebSocket.OPEN) {
         try {
@@ -87,9 +86,9 @@ class WebSocketService {
 
   broadcastToAll(data: any): void {
     if (!this.wss) return;
-    
+
     const message = JSON.stringify(data);
-    
+
     this.wss.clients.forEach((ws) => {
       if (ws.readyState === WebSocket.OPEN) {
         try {
