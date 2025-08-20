@@ -11,6 +11,7 @@ import { ResponseUtils } from "./utils/response";
 import { UserUtils } from "./utils/user";
 import { authRoutes } from "./routes/auth-routes";
 import { registerNetworkScanRoutes } from "./routes/network-scan-routes";
+import { securityService } from "./services/security-service"; // Import securityService
 
 const JWT_SECRET =
   process.env.JWT_SECRET || "your-secret-key-change-in-production";
@@ -272,6 +273,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         network_io: data.network_io?.toString() || null,
         raw_data: JSON.stringify(req.body),
       });
+
+      // Security and performance checks
+      const reportData = req.body; // Use the actual report data
+
+      // Security compliance checks
+      if (reportData.usb_devices && Array.isArray(reportData.usb_devices)) {
+        await securityService.checkUSBCompliance(device.id, reportData.usb_devices);
+      }
+
+      if (reportData.software?.installed && Array.isArray(reportData.software.installed)) {
+        await securityService.checkVulnerabilities(device.id, reportData.software.installed);
+        await securityService.checkSoftwareLicenseCompliance(device.id, reportData.software.installed);
+      }
+
+      // Process device for performance alerts
+      await securityService.processAllDevicesForAlerts();
 
       res.json({ message: "Report saved successfully" });
     } catch (error) {

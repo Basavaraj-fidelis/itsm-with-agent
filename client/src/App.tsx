@@ -271,7 +271,6 @@ export default function App() {
               </ProtectedRoute>
             </Route>
 
-
             <Route path="/portal">
               <EndUserPortal />
             </Route>

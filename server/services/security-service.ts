@@ -150,6 +150,83 @@ class SecurityService {
     }
   }
 
+  async processAllDevicesForAlerts(): Promise<void> {
+    try {
+      console.log("Processing all devices for security alerts...");
+      const devices = await storage.getDevices();
+      
+      for (const device of devices) {
+        // Get latest report for device
+        const reports = await storage.getDeviceReports(device.id, 1);
+        if (reports.length === 0) continue;
+        
+        const latestReport = reports[0];
+        let rawData;
+        
+        try {
+          rawData = typeof latestReport.raw_data === 'string' 
+            ? JSON.parse(latestReport.raw_data)
+            : latestReport.raw_data;
+        } catch (e) {
+          continue;
+        }
+
+        // Check memory utilization
+        const memoryUsage = latestReport.memory_usage || rawData?.hardware?.memory?.usage_percentage;
+        if (memoryUsage && memoryUsage > 80) {
+          await storage.createAlert({
+            device_id: device.id,
+            category: "performance",
+            severity: memoryUsage > 90 ? "critical" : "high",
+            message: `High memory utilization detected: ${memoryUsage}%`,
+            metadata: {
+              metric: "memory",
+              value: memoryUsage,
+              threshold: 80,
+              device_hostname: device.hostname
+            },
+            is_active: true,
+          });
+        }
+
+        // Check CPU utilization
+        const cpuUsage = latestReport.cpu_usage || rawData?.hardware?.cpu?.usage_percentage;
+        if (cpuUsage && cpuUsage > 85) {
+          await storage.createAlert({
+            device_id: device.id,
+            category: "performance", 
+            severity: cpuUsage > 95 ? "critical" : "high",
+            message: `High CPU utilization detected: ${cpuUsage}%`,
+            metadata: {
+              metric: "cpu",
+              value: cpuUsage,
+              threshold: 85,
+              device_hostname: device.hostname
+            },
+            is_active: true,
+          });
+        }
+
+        // Check USB devices
+        const usbDevices = rawData?.usb_devices || [];
+        if (usbDevices.length > 0) {
+          await this.checkUSBCompliance(device.id, usbDevices);
+        }
+
+        // Check installed software for vulnerabilities
+        const software = rawData?.software?.installed || [];
+        if (software.length > 0) {
+          await this.checkVulnerabilities(device.id, software);
+          await this.checkSoftwareLicenseCompliance(device.id, software);
+        }
+      }
+      
+      console.log("Completed security alert processing for all devices");
+    } catch (error) {
+      console.error("Error processing devices for alerts:", error);
+    }
+  }
+
   async checkVulnerabilities(
     deviceId: string,
     installedSoftware: any[],

@@ -38,7 +38,7 @@ export default function SecurityDashboard() {
     }
   });
 
-  const { data: alerts, isError: alertsError } = useQuery({
+  const { data: alerts, isError: alertsError, isLoading: alertsLoading } = useQuery({
     queryKey: ["security-alerts"],
     queryFn: () => api.get("/api/alerts").then(res => res.data.filter(alert => alert.category === "security")),
     retry: 1,
@@ -69,22 +69,22 @@ export default function SecurityDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {alerts?.filter(a => a.severity === "critical" || a.severity === "high").length || 0}
+              {alertsLoading ? "..." : (alerts?.filter(a => a.severity === "critical" || a.severity === "high").length || 0)}
             </div>
-            <p className="text-xs text-muted-foreground">Critical/High severity</p>
+            <p className="text-xs text-muted-foreground">Critical/High severity from database</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">USB Devices</CardTitle>
+            <CardTitle className="text-sm font-medium">USB Violations</CardTitle>
             <Usb className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {alerts?.filter(a => a.metadata?.metric === "usb").length || 0}
+              {alertsLoading ? "..." : (alerts?.filter(a => a.metadata?.usb_device || a.message?.toLowerCase().includes('usb')).length || 0)}
             </div>
-            <p className="text-xs text-muted-foreground">Connected devices</p>
+            <p className="text-xs text-muted-foreground">USB policy violations</p>
           </CardContent>
         </Card>
 
@@ -95,9 +95,9 @@ export default function SecurityDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">
-              {alerts?.filter(a => a.category === "compliance").length || 0}
+              {alertsLoading ? "..." : (alerts?.filter(a => a.category === "compliance").length || 0)}
             </div>
-            <p className="text-xs text-muted-foreground">Compliance violations</p>
+            <p className="text-xs text-muted-foreground">Compliance violations from database</p>
           </CardContent>
         </Card>
 
