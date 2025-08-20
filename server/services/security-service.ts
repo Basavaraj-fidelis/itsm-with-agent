@@ -418,16 +418,16 @@ class SecurityService {
 
   async getSecurityOverview() {
     try {
-      const { db } = await import("../db");
+      const { pool } = await import("../db");
 
-      // Get actual counts from database
-      const alertsResult = await db.query(`
+      // Get actual counts from database using pool.query instead of db.query
+      const alertsResult = await pool.query(`
         SELECT COUNT(*) as count FROM alerts
         WHERE is_active = true AND category IN ('security', 'vulnerability')
       `);
 
-      const devicesResult = await db.query(
-        "SELECT COUNT(*) as count FROM devices",
+      const devicesResult = await pool.query(
+        "SELECT COUNT(*) as count FROM devices"
       );
 
       const activeThreats = parseInt(alertsResult.rows[0]?.count) || 0;

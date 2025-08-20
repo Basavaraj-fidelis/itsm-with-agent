@@ -34,10 +34,10 @@ export function registerAgentRoutes(
           : null;
 
         // Check if device has recent reports (within last 5 minutes)
-        const hasRecentData =
-          device.latest_report && device.latest_report.collected_at;
+        const hasRecentData = device.latest_report && 
+          (device.latest_report.collected_at || device.latest_report.timestamp);
         const lastReportTime = hasRecentData
-          ? new Date(device.latest_report.collected_at)
+          ? new Date(device.latest_report.collected_at || device.latest_report.timestamp)
           : null;
         const minutesSinceLastReport = lastReportTime
           ? Math.floor((now.getTime() - lastReportTime.getTime()) / (1000 * 60))
@@ -496,6 +496,44 @@ export function registerAgentRoutes(
       console.log("Memory Usage:", memoryUsage, "- Source:", reportData.hardware?.memory?.percentage ? "hardware.memory.percentage" : reportData.system_health?.memory_usage ? "system_health.memory_usage" : "none");
       console.log("Disk Usage:", diskUsage, "- Source:", reportData.storage?.disks?.length > 0 ? "storage.disks" : reportData.system_health?.disk_usage ? "system_health.disk_usage" : "none");
       console.log("Network I/O:", networkIO, "- Source:", reportData.network?.io_counters ? "network.io_counters" : reportData.network?.total_bytes ? "network.total_bytes" : "none");
+
+
+
+  // Agent diagnostics endpoint
+  app.get("/api/agents/diagnostics", authenticateToken, async (req, res) => {
+    try {
+      const devices = await storage.getDevices();
+      const now = new Date();
+      
+      const diagnostics = devices.map(device => {
+        const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
+        const minutesOffline = lastSeen ? 
+          Math.floor((now.getTime() - lastSeen.getTime()) / (1000 * 60)) : null;
+        
+        return {
+          id: device.id,
+          hostname: device.hostname,
+          status: device.status,
+          ip_address: device.ip_address,
+          last_seen: device.last_seen,
+          minutes_offline: minutesOffline,
+          is_online: device.status === "online" && minutesOffline !== null && minutesOffline < 5,
+          has_recent_report: device.latest_report ? true : false
+        };
+      });
+      
+      res.json({
+        timestamp: now.toISOString(),
+        total_agents: devices.length,
+        online_agents: diagnostics.filter(d => d.is_online).length,
+        offline_agents: diagnostics.filter(d => !d.is_online).length,
+        agents: diagnostics
+      });
+    } catch (error) {
+      console.error("Error in agent diagnostics:", error);
+      res.status(500).json({ error: "Failed to get diagnostics" });
+    }
+  });
 
       console.log("=== EXTRACTED METRICS ===");
       console.log("CPU Usage:", cpuUsage);
