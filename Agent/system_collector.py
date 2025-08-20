@@ -98,7 +98,7 @@ class SystemCollector:
         """Collect all available system information"""
         info = {
             'timestamp': datetime.utcnow().isoformat() + 'Z',
-            'hostname': self._get_hostname(),
+            'hostname': socket.gethostname(),
             'os_info': self._get_os_info(),
             'network': self._get_network_info(),
             'hardware': self._get_hardware_info(),
@@ -118,14 +118,18 @@ class SystemCollector:
         return info
 
     def _get_hostname(self, ip=None):
-        """Get system hostname"""
+        """Get system hostname or hostname for given IP"""
         try:
             if ip:
                 return socket.gethostbyaddr(ip)[0]
             return socket.gethostname()
         except Exception as e:
-            self.logger.error(f"Error getting hostname: {e}")
-            return "unknown"
+            if ip:
+                self.logger.debug(f"Error getting hostname for IP {ip}: {e}")
+                return f"device-{ip.split('.')[-1]}"
+            else:
+                self.logger.error(f"Error getting hostname: {e}")
+                return "unknown"
 
     def _get_os_info(self):
         """Get operating system information"""
@@ -1265,7 +1269,7 @@ class SystemCollector:
         except Exception:
             return False
 
-    def _get_hostname(self, ip):
+    def _get_hostname_for_ip(self, ip):
         """Get hostname from IP"""
         try:
             hostname = socket.gethostbyaddr(ip)[0]
