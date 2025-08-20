@@ -21,6 +21,7 @@ import {
   Wifi,
   BarChart3,
   Network,
+  Scan,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -219,7 +220,7 @@ export function Sidebar() {
       {
         name: "Network Scan",
         href: "/network-scan",
-        icon: Network,
+        icon: Scan,
         roles: ["admin", "manager", "technician"],
         iconColor: "text-teal-500",
         activeColor: "bg-teal-50 border-teal-200 text-teal-700",
