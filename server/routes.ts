@@ -510,35 +510,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const securityRoutes = await import("./routes/security-routes");
     if (securityRoutes.default) {
       app.use("/api/security", authenticateToken, securityRoutes.default);
-      // Also register the security overview endpoint at the root API level
-      app.get("/api/security-overview", authenticateToken, async (req, res) => {
-        try {
-          const securityOverview = {
-            threatLevel: 'low',
-            activeThreats: 0,
-            vulnerabilities: {
-              critical: 0,
-              high: 2,
-              medium: 5,
-              low: 8
-            },
-            lastScan: new Date().toISOString(),
-            complianceScore: 92,
-            securityAlerts: 0,
-            firewallStatus: 'active',
-            antivirusStatus: 'active',
-            patchCompliance: 85
-          };
-
-          res.json(securityOverview);
-        } catch (error) {
-          console.error('Error fetching security overview:', error);
-          res.status(500).json({ 
-            error: 'Failed to fetch security overview',
-            message: error.message 
-          });
-        }
-      });
+      console.log("✅ Security routes registered");
     }
   } catch (error) {
     console.warn("Security routes not available:", error.message);

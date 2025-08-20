@@ -294,15 +294,17 @@ export const api = {
     return await response.json();
   },
 
-  async getVulnerabilities(deviceId: string): Promise<any[]> {
-    const response = await apiClient.get(`/api/security/vulnerabilities/${deviceId}`);
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to fetch vulnerabilities: ${response.status} ${errorText}`);
+  getVulnerabilities: async (deviceId: string = '') => {
+    if (!deviceId) {
+      return [];
     }
-    const data = await response.json();
-    console.log('Vulnerabilities data:', data);
-    return data;
+    try {
+      const response = await apiClient.get(`/api/security/vulnerabilities?device_id=${deviceId}`);
+      return response.data || [];
+    } catch (error) {
+      console.error('Failed to fetch vulnerabilities:', error);
+      return [];
+    }
   },
 
   // Security Dashboard

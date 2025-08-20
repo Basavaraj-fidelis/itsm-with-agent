@@ -1,4 +1,3 @@
-
 import { db } from "../db";
 import { devices } from "../../shared/schema";
 import { eq, and, isNotNull } from "drizzle-orm";
@@ -38,7 +37,7 @@ export interface ScanSession {
 
 class NetworkScanService {
   private activeScanSessions: Map<string, ScanSession> = new Map();
-  
+
   private readonly DEFAULT_SUBNETS = [
     { range: "192.168.1.0/24", example: "192.168.1.80" },
     { range: "192.168.2.0/24", example: "192.168.2.10" },
@@ -64,7 +63,7 @@ class NetworkScanService {
 
       // Group agents by subnet
       const agentsBySubnet = this.groupAgentsBySubnet(onlineAgents);
-      
+
       return {
         total_agents: onlineAgents.length,
         agents_by_subnet: agentsBySubnet,
@@ -78,7 +77,7 @@ class NetworkScanService {
 
   private groupAgentsBySubnet(agents: any[]) {
     const subnets: Record<string, any[]> = {};
-    
+
     agents.forEach(agent => {
       if (agent.ip_address) {
         const subnet = this.getSubnetFromIP(agent.ip_address);
@@ -108,7 +107,7 @@ class NetworkScanService {
 
   private selectRecommendedAgents(agentsBySubnet: Record<string, any[]>) {
     const recommended = [];
-    
+
     // Select one agent per subnet (prefer most recently seen)
     for (const [subnet, agents] of Object.entries(agentsBySubnet)) {
       if (agents.length > 0) {
@@ -179,10 +178,10 @@ class NetworkScanService {
     agentAssignments?: { subnet: string; agent_id: string }[]
   ) {
     const scanningAgents = [];
-    
+
     for (const subnet of subnets) {
       let agentId = null;
-      
+
       // Check if specific agent is assigned
       if (agentAssignments) {
         const assignment = agentAssignments.find(a => a.subnet === subnet);
@@ -190,7 +189,7 @@ class NetworkScanService {
           agentId = assignment.agent_id;
         }
       }
-      
+
       // If no specific assignment, find best agent for subnet
       if (!agentId) {
         const availableAgents = await this.getAvailableAgents();
@@ -199,7 +198,7 @@ class NetworkScanService {
           agentId = subnetAgents[0].id;
         }
       }
-      
+
       if (agentId) {
         const agent = await db.select().from(devices).where(eq(devices.id, agentId)).limit(1);
         if (agent.length > 0) {
@@ -212,7 +211,7 @@ class NetworkScanService {
         }
       }
     }
-    
+
     return scanningAgents;
   }
 
@@ -223,7 +222,7 @@ class NetworkScanService {
   ) {
     console.log(`Starting real-time network scan for session ${sessionId}`);
     console.log(`Scanning agents:`, scanningAgents.map(a => `${a.hostname} (${a.ip_address}) -> ${a.subnet}`));
-    
+
     // Start real-time scan execution
     setTimeout(() => {
       this.executeRealTimeScan(sessionId, config, scanningAgents);
@@ -236,7 +235,7 @@ class NetworkScanService {
       if (!session) return;
 
       console.log(`Executing real-time network discovery for ${config.subnets.length} subnets`);
-      
+
       // Get existing devices from database for reference
       const existingDevices = await db
         .select()
@@ -245,25 +244,25 @@ class NetworkScanService {
 
       // Generate realistic scan results based on actual network topology
       const scanResults = this.generateRealisticScanResults(config.subnets, scanningAgents, existingDevices);
-      
+
       // Store results in session
       session.scanResults = scanResults;
       session.status = 'completed';
       session.completed_at = new Date();
       session.total_discovered = scanResults.length;
-      
+
       this.activeScanSessions.set(sessionId, session);
-      
+
       console.log(`Real-time network scan completed - Session: ${sessionId}`);
       console.log(`Discovered ${scanResults.length} devices across ${config.subnets.length} subnets`);
-      
+
       // Log subnet distribution
       const subnetStats = config.subnets.map(subnet => {
         const count = scanResults.filter(r => r.subnet === subnet).length;
         return `${subnet}: ${count} devices`;
       });
       console.log('Subnet distribution:', subnetStats);
-      
+
     } catch (error) {
       console.error('Error executing real-time scan:', error);
       const session = this.activeScanSessions.get(sessionId);
@@ -277,10 +276,10 @@ class NetworkScanService {
 
   private generateRealisticScanResults(subnets: string[], scanningAgents: any[], existingDevices: any[]): NetworkScanResult[] {
     const results: NetworkScanResult[] = [];
-    
+
     subnets.forEach(subnet => {
       const baseIP = subnet.split('/')[0].split('.').slice(0, 3).join('.');
-      
+
       // Include existing agents in this subnet
       const agentsInSubnet = existingDevices.filter(device => {
         if (!device.ip_address) return false;
@@ -307,18 +306,18 @@ class NetworkScanService {
 
       // Generate additional discovered devices (network infrastructure, printers, etc.)
       const additionalDeviceCount = Math.floor(Math.random() * 8) + 3; // 3-10 additional devices
-      
+
       for (let i = 1; i <= additionalDeviceCount; i++) {
         let lastOctet = Math.floor(Math.random() * 254) + 1;
-        
+
         // Avoid conflicts with existing agent IPs
         while (agentsInSubnet.some(agent => agent.ip_address === `${baseIP}.${lastOctet}`)) {
           lastOctet = Math.floor(Math.random() * 254) + 1;
         }
-        
+
         const ip = `${baseIP}.${lastOctet}`;
         const deviceType = this.getRealisticDeviceType(lastOctet);
-        
+
         results.push({
           id: `discovered-${Date.now()}-${i}-${lastOctet}`,
           ip,
@@ -334,7 +333,7 @@ class NetworkScanService {
         });
       }
     });
-    
+
     return results;
   }
 
@@ -355,7 +354,7 @@ class NetworkScanService {
       'IoT Device': 'iot',
       'Workstation': 'pc'
     };
-    
+
     const prefix = prefixes[deviceType] || 'device';
     return `${prefix}-${lastOctet}`;
   }
@@ -368,7 +367,7 @@ class NetworkScanService {
       'IoT Device': 'Linux Embedded',
       'Workstation': this.getRandomOS()
     };
-    
+
     return osMap[deviceType] || 'Unknown';
   }
 
@@ -380,7 +379,7 @@ class NetworkScanService {
       'IoT Device': [80, 443],
       'Workstation': [22, 80, 135, 139, 443, 445, 3389, 5985]
     };
-    
+
     return portMap[deviceType] || [80];
   }
 
@@ -451,7 +450,7 @@ class NetworkScanService {
         );
 
       const discoveredSubnets = new Set<string>();
-      
+
       // Extract subnets from agent IPs
       onlineAgents.forEach(agent => {
         if (agent.ip_address) {
@@ -467,7 +466,7 @@ class NetworkScanService {
         const baseIP = subnet.split('/')[0];
         const parts = baseIP.split('.');
         const exampleIP = `${parts[0]}.${parts[1]}.${parts[2]}.${Math.floor(Math.random() * 254) + 1}`;
-        
+
         return {
           range: subnet,
           example: exampleIP
@@ -490,11 +489,11 @@ class NetworkScanService {
 
   async exportScanResults(sessionId: string, format: 'csv' | 'excel' = 'csv') {
     const results = await this.getScanResults(sessionId);
-    
+
     if (format === 'csv') {
       return this.generateCSV(results);
     }
-    
+
     throw new Error('Export format not supported');
   }
 

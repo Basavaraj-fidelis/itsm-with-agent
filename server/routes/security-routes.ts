@@ -152,4 +152,60 @@ router.get('/overview', async (req, res) => {
   }
 });
 
+// Vulnerabilities endpoint
+router.get('/vulnerabilities', async (req, res) => {
+  try {
+    const { device_id } = req.query;
+    
+    if (!device_id) {
+      return res.status(400).json({ 
+        error: 'Device ID is required',
+        message: 'Please provide a device_id parameter' 
+      });
+    }
+
+    // Get device to ensure it exists
+    const device = await storage.getDevice(device_id as string);
+    if (!device) {
+      return res.status(404).json({ 
+        error: 'Device not found',
+        message: `Device with ID ${device_id} not found` 
+      });
+    }
+
+    // Get latest device report
+    const reports = await storage.getDeviceReports(device_id as string, 1);
+    if (reports.length === 0) {
+      return res.json([]);
+    }
+
+    const latestReport = reports[0];
+    let rawData;
+    
+    try {
+      rawData = typeof latestReport.raw_data === 'string' 
+        ? JSON.parse(latestReport.raw_data)
+        : latestReport.raw_data;
+    } catch (parseError) {
+      console.error('Failed to parse device report data:', parseError);
+      return res.json([]);
+    }
+
+    // Get installed software
+    const software = rawData?.software?.installed || [];
+    
+    // Check vulnerabilities for the software
+    const { securityService } = await import('../services/security-service');
+    const vulnerabilities = await securityService.checkVulnerabilities(device_id as string, software);
+    
+    res.json(vulnerabilities);
+  } catch (error) {
+    console.error('Error fetching vulnerabilities:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch vulnerabilities',
+      message: error.message 
+    });
+  }
+});
+
 export default router;
