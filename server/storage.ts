@@ -505,20 +505,36 @@ export class DatabaseStorage implements IStorage {
           CREATE TABLE IF NOT EXISTS users (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             email VARCHAR(255) UNIQUE NOT NULL,
-            username VARCHAR(100),
-            name VARCHAR(255),
+            username VARCHAR(100) UNIQUE NOT NULL,
             first_name VARCHAR(100),
             last_name VARCHAR(100),
             password_hash TEXT NOT NULL,
-            role VARCHAR(50) DEFAULT 'user',
-            department VARCHAR(100),
-            phone VARCHAR(50),
+            role VARCHAR(50) NOT NULL DEFAULT 'end_user',
+            department_id UUID,
+            manager_id UUID,
+            phone VARCHAR(20),
+            mobile_phone VARCHAR(20),
+            employee_id VARCHAR(50),
             job_title VARCHAR(100),
             location VARCHAR(100),
+            office_location VARCHAR(100),
+            work_hours VARCHAR(50),
+            timezone VARCHAR(50),
+            profile_picture TEXT,
+            emergency_contact_name VARCHAR(100),
+            emergency_contact_phone VARCHAR(20),
+            cost_center VARCHAR(50),
+            reporting_manager_email VARCHAR(255),
+            permissions JSON DEFAULT '[]'::json,
+            preferences JSON DEFAULT '{}'::json,
             is_active BOOLEAN DEFAULT true,
             is_locked BOOLEAN DEFAULT false,
-            created_at TIMESTAMP DEFAULT NOW(),
-            updated_at TIMESTAMP DEFAULT NOW()
+            password_reset_required BOOLEAN DEFAULT false,
+            failed_login_attempts INTEGER DEFAULT 0,
+            last_login TIMESTAMP,
+            last_password_change TIMESTAMP,
+            created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMP DEFAULT NOW() NOT NULL
           )
         `);
 
@@ -603,14 +619,13 @@ export class DatabaseStorage implements IStorage {
           await pool.query(
             `
             INSERT INTO users (
-              email, username, name, first_name, last_name, password_hash, 
+              email, username, first_name, last_name, password_hash, 
               role, department, phone, job_title, location, is_active
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
           `,
             [
               user.email,
               user.username,
-              user.name,
               user.first_name,
               user.last_name,
               user.password_hash,
