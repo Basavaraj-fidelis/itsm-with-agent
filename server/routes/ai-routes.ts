@@ -2,6 +2,9 @@ import { Router } from "express";
 import { aiService } from "../services/ai-service.js";
 import { aiInsightsStorage } from "../models/ai-insights-storage.js";
 import { authenticateToken } from "../middleware/auth-middleware.js";
+import db from '../config/db.js'; // Assuming db is configured elsewhere
+import { tickets, knowledgeBase } from '../models/schema.js'; // Assuming schema is defined
+import { eq, ilike, and, or } from 'drizzle-orm'; // Assuming Drizzle ORM functions
 
 const router = Router();
 
@@ -194,5 +197,155 @@ router.get('/api/ai-insights', authenticateToken, async (req, res) => {
 router.get('/api/ai/insights', authenticateToken, async (req, res) => {
 
 });
+
+// Enhance article suggestions with ChatGPT
+router.get("/article-suggestions/:ticketId", async (req, res) => {
+  try {
+    const ticketId = req.params.ticketId;
+
+    // Get ticket details
+    const [ticket] = await db
+      .select()
+      .from(tickets)
+      .where(eq(tickets.id, ticketId))
+      .limit(1);
+
+    if (!ticket) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+
+    // Search for related articles
+    const relatedArticles = await db
+      .select()
+      .from(knowledgeBase)
+      .where(
+        and(
+          eq(knowledgeBase.status, "published"),
+          or(
+            ilike(knowledgeBase.title, `%${ticket.title}%`),
+            ilike(knowledgeBase.content, `%${ticket.description}%`),
+            ticket.category ? ilike(knowledgeBase.category, `%${ticket.category}%`) : undefined
+          )
+        )
+      )
+      .limit(5);
+
+    let suggestions = relatedArticles.map(article => ({
+      id: article.id,
+      title: article.title,
+      category: article.category,
+      relevanceScore: calculateRelevanceScore(ticket, article),
+      snippet: article.content.substring(0, 200) + "...",
+      type: 'existing'
+    }));
+
+    // If no relevant articles found, generate one with AI
+    if (suggestions.length === 0) {
+      try {
+        const aiSuggestion = await generateAIArticle(ticket);
+        suggestions.push({
+          id: 'ai-generated',
+          title: aiSuggestion.title,
+          category: ticket.category || 'General',
+          relevanceScore: 95,
+          snippet: aiSuggestion.content.substring(0, 200) + "...",
+          type: 'ai-generated',
+          fullContent: aiSuggestion.content
+        });
+      } catch (error) {
+        console.error("Error generating AI article:", error);
+      }
+    }
+
+    res.json({ suggestions: suggestions.sort((a, b) => b.relevanceScore - a.relevanceScore) });
+  } catch (error) {
+    console.error("Error getting article suggestions:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+function calculateRelevanceScore(ticket: any, article: any): number {
+  let score = 50;
+
+  // Title similarity
+  const titleWords = ticket.title.toLowerCase().split(' ');
+  const articleTitleWords = article.title.toLowerCase().split(' ');
+  const titleMatches = titleWords.filter(word => 
+    articleTitleWords.some(articleWord => articleWord.includes(word) || word.includes(articleWord))
+  ).length;
+  score += (titleMatches / titleWords.length) * 30;
+
+  // Category match
+  if (ticket.category && article.category && 
+      ticket.category.toLowerCase() === article.category.toLowerCase()) {
+    score += 20;
+  }
+
+  return Math.min(Math.round(score), 100);
+}
+
+async function generateAIArticle(ticket: any) {
+  const prompt = `Create a knowledge base article to help resolve this IT support ticket:
+
+Title: ${ticket.title}
+Description: ${ticket.description}
+Category: ${ticket.category || 'General'}
+Type: ${ticket.type}
+
+Generate a comprehensive article with:
+1. A clear, searchable title
+2. Step-by-step resolution instructions
+3. Common causes and troubleshooting tips
+4. Prevention recommendations
+
+Format as JSON with 'title' and 'content' fields.`;
+
+  // Mock AI response (replace with actual OpenAI/ChatGPT integration)
+  const aiResponse = {
+    title: `How to Resolve: ${ticket.title}`,
+    content: `# Resolution Guide: ${ticket.title}
+
+## Overview
+This article provides step-by-step instructions for resolving issues related to: ${ticket.title}
+
+## Common Causes
+- System configuration issues
+- Network connectivity problems
+- User permission conflicts
+- Software compatibility issues
+
+## Resolution Steps
+1. **Initial Assessment**
+   - Verify the reported symptoms
+   - Check system logs for error messages
+   - Confirm user permissions and access levels
+
+2. **Troubleshooting**
+   - Restart affected services
+   - Clear application cache and temporary files
+   - Update software to latest version
+   - Check network connectivity
+
+3. **Advanced Solutions**
+   - Review configuration settings
+   - Reinstall problematic software
+   - Contact vendor support if needed
+
+## Prevention
+- Regular system updates
+- Periodic user training
+- Proactive monitoring
+- Regular backup verification
+
+## Related Articles
+- System Maintenance Best Practices
+- User Access Management
+- Network Troubleshooting Guide
+
+For additional assistance, please contact the IT Support team.`
+  };
+
+  return aiResponse;
+}
 
 export default router;

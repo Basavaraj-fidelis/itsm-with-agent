@@ -27,8 +27,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
-  TooltipContent,
   TooltipProvider,
+  TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
@@ -217,16 +217,6 @@ export function Sidebar() {
 
 
 
-      {
-        name: "ITSM Comparison",
-        href: "/itsm-comparison",
-        icon: TrendingUp,
-        current: location === "/itsm-comparison",
-        roles: ["manager", "admin"],
-        iconColor: "text-purple-500",
-        activeColor: "bg-purple-50 border-purple-200 text-purple-700",
-        description: "Platform comparison analysis",
-      },
       {
         name: "Performance Analytics",
         href: "/performance-analytics",
