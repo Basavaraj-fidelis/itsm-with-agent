@@ -7,30 +7,12 @@ const router = Router();
 router.get("/", async (req, res) => {
   try {
     console.log("Fetching alerts for user:", req.user?.email);
-    const alerts = await storage.getActiveAlerts();
+    const alerts = await storage.getAlerts();
     console.log(`Found ${alerts.length} alerts`);
 
-    // Enhance alerts with device hostname
-    const enhancedAlerts = await Promise.all(
-      alerts.map(async (alert) => {
-        try {
-          const device = await storage.getDevice(alert.device_id);
-          return {
-            ...alert,
-            device_hostname: device?.hostname || "Unknown Device",
-          };
-        } catch (deviceError) {
-          console.warn(`Failed to get device for alert ${alert.id}:`, deviceError);
-          return {
-            ...alert,
-            device_hostname: "Unknown Device",
-          };
-        }
-      })
-    );
-
-    console.log(`Returning ${enhancedAlerts.length} enhanced alerts`);
-    res.json(enhancedAlerts);
+    // Ensure we return an array
+    const alertsArray = Array.isArray(alerts) ? alerts : [];
+    res.json(alertsArray);
   } catch (error) {
     console.error("Error fetching alerts:", error);
     res.status(500).json({

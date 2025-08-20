@@ -507,9 +507,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   try {
-    const securityRoutes = await import("./routes/security-routes");
-    if (securityRoutes.default) {
-      app.use("/api/security", authenticateToken, securityRoutes.default);
+    const { default: securityRoutes } = await import("./routes/security-routes");
+    if (securityRoutes) {
+      app.use("/api/security", authenticateToken, securityRoutes);
       console.log("✅ Security routes registered");
     }
   } catch (error) {

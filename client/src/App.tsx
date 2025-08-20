@@ -263,6 +263,14 @@ export default function App() {
               </ProtectedRoute>
             </Route>
 
+            <Route path="/security-dashboard">
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <SecurityDashboard />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            </Route>
+            
             <Route path="/security">
               <ProtectedRoute>
                 <AuthenticatedLayout>

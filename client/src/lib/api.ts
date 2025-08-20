@@ -50,7 +50,7 @@ class ApiClient {
   private baseURL: string;
 
   constructor() {
-    // Use relative path for API calls to avoid mixed content issues
+    // Use empty string for relative API calls to avoid CORS issues
     this.baseURL = "";
   }
 
@@ -300,7 +300,12 @@ export const api = {
     }
     try {
       const response = await apiClient.get(`/api/security/vulnerabilities?device_id=${deviceId}`);
-      return response.data || [];
+      if (!response.ok) {
+        console.error('Vulnerabilities API error:', response.status);
+        return [];
+      }
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error('Failed to fetch vulnerabilities:', error);
       return [];

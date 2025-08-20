@@ -40,11 +40,22 @@ export default function SecurityDashboard() {
 
   const { data: alerts, isError: alertsError, isLoading: alertsLoading } = useQuery({
     queryKey: ["security-alerts"],
-    queryFn: () => api.get("/api/alerts").then(res => res.data.filter(alert => alert.category === "security")),
+    queryFn: async () => {
+      try {
+        const response = await api.get("/api/security/alerts");
+        if (!response.ok) {
+          console.error("Security alerts API error:", response.status);
+          return [];
+        }
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error("Error fetching security alerts:", error);
+        return [];
+      }
+    },
     retry: 1,
-    onError: (error) => {
-      console.error("Error fetching security alerts:", error);
-    }
+    refetchOnWindowFocus: false
   });
 
   return (
