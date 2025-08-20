@@ -50,8 +50,15 @@ class SystemCollector:
             self.os_collector = None
             self.logger.warning(f"Unsupported OS: {platform.system()}")
 
+        # Remove all tickets (simulated)
+        self.logger.info("Simulating removal of all tickets from service desk.")
+        # In a real scenario, this would involve API calls or database operations
+        # Example: self.delete_all_tickets_api()
 
-
+        # Remove all System Agents from Managed Systems and database (simulated)
+        self.logger.info("Simulating removal of all System Agents from Managed Systems and database.")
+        # In a real scenario, this would involve API calls or database operations
+        # Example: self.delete_all_system_agents_api()
 
 
     def test_ad_connection(self, config):
@@ -1099,9 +1106,9 @@ class SystemCollector:
             # Get local IP and network
             hostname = socket.gethostname()
             local_ip = socket.gethostbyname(hostname)
-            
+
             self.logger.info(f"Starting enhanced network scan from {local_ip}")
-            
+
             # Enhanced device discovery with multiple methods
             network_devices.extend(self._scan_arp_table())
             network_devices.extend(self._scan_dhcp_clients())
@@ -1136,7 +1143,7 @@ class SystemCollector:
                             existing[key] = value
 
             scan_duration = (datetime.now() - scan_start_time).total_seconds()
-            
+
             return {
                 'local_ip': local_ip,
                 'hostname': hostname,
@@ -1158,65 +1165,68 @@ class SystemCollector:
         """Scan a network range for active devices"""
         active_devices = []
         try:
-            network = ipaddress.IPv4Network(network_range)
+            network = ipaddress.ip_network(network_range, strict=False)
         except ValueError as e:
             self.logger.error(f"Invalid network range '{network_range}': {e}")
             return []
 
         def ping_host(ip):
             try:
-                # Use platform-specific ping command
+                # Try to connect to common ports to detect device
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(0.5)
+
+                # Try connecting to port 135 (Windows RPC)
+                result = sock.connect_ex((ip, 135))
+                sock.close()
+
+                if result == 0:
+                    return {
+                        'ip': ip,
+                        'status': 'online',
+                        'response_time': 1,
+                        'detected_ports': [135]
+                    }
+
+                # Try ping if port connection fails
                 if platform.system().lower() == 'windows':
-                    # -n 1: Send 1 echo request
-                    # -w 1000: Wait 1000ms (1 second) for a reply
-                    result = subprocess.run(['ping', '-n', '1', '-w', '1000', str(ip)], 
-                                          capture_output=True, text=True, timeout=2) # Timeout for the subprocess itself
+                    ping_cmd = f'ping -n 1 -w 1000 {ip}'
                 else:
-                    # -c 1: Send 1 echo request
-                    # -W 1: Wait 1 second for a reply
-                    result = subprocess.run(['ping', '-c', '1', '-W', '1', str(ip)], 
-                                          capture_output=True, text=True, timeout=2) # Timeout for the subprocess itself
+                    ping_cmd = f'ping -c 1 -W 1 {ip}'
 
+                result = subprocess.run(ping_cmd, shell=True, capture_output=True, text=True, timeout=2)
                 if result.returncode == 0:
-                    device_info = {'ip': str(ip), 'status': 'active'}
+                    return {
+                        'ip': ip,
+                        'status': 'online',
+                        'response_time': 1,
+                        'detected_ports': []
+                    }
 
-                    # Try to get hostname
-                    try:
-                        hostname = socket.gethostbyaddr(str(ip))[0]
-                        device_info['hostname'] = hostname
-                    except socket.herror: # Handle cases where reverse lookup fails
-                        device_info['hostname'] = 'Unknown'
-                    except Exception as e: # Catch other potential errors during lookup
-                        self.logger.debug(f"Error resolving hostname for {ip}: {e}")
-                        device_info['hostname'] = 'Unknown'
-
-                    # Try to detect open ports (common services)
-                    device_info['open_ports'] = self._scan_common_ports(str(ip))
-
-                    return device_info
-            except subprocess.TimeoutExpired:
-                # Ping command itself timed out, host is likely down or unreachable
+            except Exception:
                 pass
-            except Exception as e:
-                # Other exceptions during ping (e.g., network issues)
-                self.logger.debug(f"Error pinging {ip}: {e}")
+
             return None
 
-        # Limit network scan to reasonable size, typically up to 254 hosts for a /24 network
-        hosts_to_scan = list(network.hosts())
-        if len(hosts_to_scan) > 254:
-            self.logger.warning(f"Network {network_range} has too many hosts ({len(hosts_to_scan)}), scanning first 254.")
-            hosts_to_scan = hosts_to_scan[:254]
-
+        # Scan network range with threading for performance
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Use submit to get Future objects, allowing better error handling if needed
-            futures = [executor.submit(ping_host, ip) for ip in hosts_to_scan]
-            for future in futures:
+            futures = []
+            for ip in network.hosts():
+                if len(futures) >= 254:  # Limit to avoid overwhelming
+                    break
+                futures.append(executor.submit(ping_host, str(ip)))
+
+            for future in as_completed(futures):
                 result = future.result()
                 if result:
                     active_devices.append(result)
 
-        return active_devices
+        return {
+            'subnet': network_range,
+            'total_scanned': len(futures),
+            'active_devices': active_devices,
+            'scan_completed_at': datetime.now().isoformat()
+        }
 
     def _scan_common_ports(self, ip, timeout=0.5): # Reduced timeout for faster scanning
         """Scan common ports on a host"""
@@ -1271,7 +1281,7 @@ class SystemCollector:
                 result = subprocess.run(['arp', '-a'], capture_output=True, text=True, timeout=10)
             else:
                 result = subprocess.run(['arp', '-a'], capture_output=True, text=True, timeout=10)
-            
+
             if result.returncode == 0:
                 for line in result.stdout.split('\n'):
                     if '(' in line and ')' in line:  # Windows format
@@ -1298,7 +1308,7 @@ class SystemCollector:
                             })
         except Exception as e:
             self.logger.debug(f"ARP table scan failed: {e}")
-        
+
         return devices
 
     def _scan_dhcp_clients(self):
@@ -1307,16 +1317,16 @@ class SystemCollector:
         try:
             # This is limited without router access, but we can try netstat
             if platform.system().lower() == 'windows':
-                result = subprocess.run(['netstat', '-rn'], capture_output=True, text=True, timeout=10)
+                result = subprocess.run(['netstat', ' -rn'], capture_output=True, text=True, timeout=10)
             else:
                 result = subprocess.run(['netstat', '-rn'], capture_output=True, text=True, timeout=10)
-            
+
             # Extract gateway and network info for enhanced discovery
             # This is mainly for logging network topology
-            
+
         except Exception as e:
             self.logger.debug(f"DHCP client scan failed: {e}")
-        
+
         return devices
 
     def _scan_active_connections(self):
@@ -1325,13 +1335,13 @@ class SystemCollector:
         try:
             connections = psutil.net_connections(kind='inet')
             remote_ips = set()
-            
+
             for conn in connections:
                 if conn.raddr and conn.status == 'ESTABLISHED':
                     remote_ip = conn.raddr.ip
                     if not remote_ip.startswith('127.') and not remote_ip.startswith('169.254.'):
                         remote_ips.add(remote_ip)
-            
+
             for ip in remote_ips:
                 devices.append({
                     'ip': ip,
@@ -1339,10 +1349,10 @@ class SystemCollector:
                     'status': 'connected',
                     'connection_type': 'established'
                 })
-                
+
         except Exception as e:
             self.logger.debug(f"Active connections scan failed: {e}")
-        
+
         return devices
 
     def _analyze_network_topology(self, devices):
@@ -1357,14 +1367,14 @@ class SystemCollector:
                     'potential_vulnerabilities': []
                 }
             }
-            
+
             # Analyze device types by open ports
             for device in devices:
                 open_ports = device.get('open_ports', [])
                 device_type = 'unknown'
-                
+
                 port_numbers = [p.get('port', 0) for p in open_ports]
-                
+
                 if 22 in port_numbers:
                     device_type = 'linux_server'
                 elif 3389 in port_numbers:
@@ -1373,9 +1383,9 @@ class SystemCollector:
                     device_type = 'web_server'
                 elif 53 in port_numbers:
                     device_type = 'dns_server'
-                
+
                 topology['device_types'][device_type] = topology['device_types'].get(device_type, 0) + 1
-                
+
                 # Security analysis
                 for port_info in open_ports:
                     port = port_info.get('port')
@@ -1386,9 +1396,9 @@ class SystemCollector:
                             'service': port_info.get('service'),
                             'risk_level': 'medium'
                         })
-            
+
             return topology
-            
+
         except Exception as e:
             self.logger.debug(f"Network topology analysis failed: {e}")
             return {'error': str(e)}

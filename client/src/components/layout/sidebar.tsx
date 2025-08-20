@@ -20,6 +20,7 @@ import {
   Cog,
   Wifi,
   BarChart3,
+  Network,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -215,7 +216,24 @@ export function Sidebar() {
         description: "Manage user accounts",
       },
 
+      {
+        name: "Network Scan",
+        href: "/network-scan",
+        icon: Network,
+        roles: ["admin", "manager", "technician"],
+        iconColor: "text-teal-500",
+        activeColor: "bg-teal-50 border-teal-200 text-teal-700",
+        description: "Scan network for devices",
+      },
 
+      {
+        name: "Security Dashboard",
+        href: "/security-dashboard",
+        roles: ["admin", "manager"],
+        iconColor: "text-indigo-500",
+        activeColor: "bg-indigo-50 border-indigo-200 text-indigo-700",
+        description: "Security overview and threats",
+      },
 
       {
         name: "Performance Analytics",

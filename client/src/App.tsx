@@ -32,6 +32,7 @@ import SLAAnalysis from "./pages/sla-analysis";
 import SLAManagement from "./pages/sla-management";
 import { ErrorBoundary } from './components/ui/error-boundary';
 import { DashboardErrorBoundary } from './components/ui/dashboard-error-boundary';
+import NetworkScan from "./pages/network-scan";
 
 
 // Layout
@@ -242,6 +243,13 @@ export default function App() {
               <ProtectedRoute>
                 <AuthenticatedLayout>
                   <PatchCompliancePage />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            </Route>
+            <Route path="/network-scan">
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <NetworkScan />
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>

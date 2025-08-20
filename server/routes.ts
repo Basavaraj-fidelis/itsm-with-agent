@@ -10,6 +10,7 @@ import { AuthUtils } from "./utils/auth";
 import { ResponseUtils } from "./utils/response";
 import { UserUtils } from "./utils/user";
 import { authRoutes } from "./routes/auth-routes";
+import { registerNetworkScanRoutes } from "./routes/network-scan-routes";
 
 const JWT_SECRET =
   process.env.JWT_SECRET || "your-secret-key-change-in-production";
@@ -349,6 +350,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerTicketRoutes(app);
   registerDeviceRoutes(app, authenticateToken);
   registerAgentRoutes(app, authenticateToken, requireRole);
+  registerNetworkScanRoutes(app);
 
   // Register additional modular routes with error handling
   try {
