@@ -1,0 +1,105 @@
+psql 'postgres://avnadmin:AVNS_YOa-jMJ2ghMv9bcWgze@pg-2d00a622-basureddy2020-11ac.l.aivencloud.com:21320/defaultdb'
+psql (17.5, server 16.9)
+WARNING: Console code page (437) differs from Windows code page (1252)
+         8-bit characters might not work correctly. See psql reference
+         page "Notes for Windows users" for details.
+SSL connection (protocol: TLSv1.3, cipher: TLS_AES_256_GCM_SHA384, compression: off, ALPN: none)
+Type "help" for help.
+
+defaultdb=> \dt
+                    List of relations
+ Schema |             Name             | Type  |  Owner
+--------+------------------------------+-------+----------
+ public | ai_insights                  | table | avnadmin
+ public | alerts                       | table | avnadmin
+ public | assets                       | table | avnadmin
+ public | attachments                  | table | avnadmin
+ public | audit_log                    | table | avnadmin
+ public | categories                   | table | avnadmin
+ public | changes                      | table | avnadmin
+ public | ci_relationships             | table | avnadmin
+ public | compliance_policies          | table | avnadmin
+ public | configuration_items          | table | avnadmin
+ public | configuration_templates      | table | avnadmin
+ public | departments                  | table | avnadmin
+ public | deployment_tasks             | table | avnadmin
+ public | detailed_performance_metrics | table | avnadmin
+ public | device_patch_status          | table | avnadmin
+ public | device_reports               | table | avnadmin
+ public | device_usb_history           | table | avnadmin
+ public | devices                      | table | avnadmin
+ public | error_reports                | table | avnadmin
+ public | group_members                | table | avnadmin
+ public | groups                       | table | avnadmin
+ public | installed_software           | table | avnadmin
+ public | knowledge_base               | table | avnadmin
+ public | license_assignments          | table | avnadmin
+ public | license_compliance           | table | avnadmin
+ public | network_topology             | table | avnadmin
+ public | notifications                | table | avnadmin
+ public | patch_definitions            | table | avnadmin
+ public | patch_deployment_results     | table | avnadmin
+ public | patch_deployments            | table | avnadmin
+ public | patch_management             | table | avnadmin
+ public | performance_alerts           | table | avnadmin
+ public | performance_anomalies        | table | avnadmin
+ public | performance_baselines        | table | avnadmin
+ public | performance_trends           | table | avnadmin
+ public | problems                     | table | avnadmin
+ public | reports                      | table | avnadmin
+ public | resource_predictions         | table | avnadmin
+ public | running_processes            | table | avnadmin
+ public | security_policies            | table | avnadmin
+ public | service_requests             | table | avnadmin
+ public | services                     | table | avnadmin
+ public | sla_breaches                 | table | avnadmin
+ public | sla_policies                 | table | avnadmin
+ public | software_installations       | table | avnadmin
+ public | software_licenses            | table | avnadmin
+ public | software_packages            | table | avnadmin
+ public | ticket_approvals             | table | avnadmin
+ public | ticket_attachments           | table | avnadmin
+ public | ticket_comments              | table | avnadmin
+ public | tickets                      | table | avnadmin
+ public | time_entries                 | table | avnadmin
+ public | usb_devices                  | table | avnadmin
+ public | user_activity                | table | avnadmin
+ public | user_group_memberships       | table | avnadmin
+ public | user_groups                  | table | avnadmin
+ public | user_preferences             | table | avnadmin
+ public | user_sessions                | table | avnadmin
+ public | users                        | table | avnadmin
+ public | vulnerability_assessments    | table | avnadmin
+ public | workflow_executions          | table | avnadmin
+ public | workflows                    | table | avnadmin
+(62 rows)
+
+
+defaultdb=>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
