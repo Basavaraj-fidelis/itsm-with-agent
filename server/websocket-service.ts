@@ -1,13 +1,13 @@
 
-import WebSocket from 'ws';
+import WebSocket, { WebSocketServer } from 'ws';
 import { Server } from 'http';
 
 class WebSocketService {
-  private wss: WebSocket.Server | null = null;
+  private wss: WebSocketServer | null = null;
   private channels: Map<string, Set<WebSocket>> = new Map();
 
   init(server: Server): void {
-    this.wss = new WebSocket.Server({ server, path: '/ws' });
+    this.wss = new WebSocketServer({ server, path: '/ws' });
     
     this.wss.on('connection', (ws: WebSocket) => {
       console.log('New WebSocket connection established');
