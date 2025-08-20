@@ -190,7 +190,7 @@ export class MemStorage implements IStorage {
         name: "John Technician",
         password_hash: "$2b$10$dummy.hash.for.demo", // Demo: tech123
         role: "technician",
-        department: "IT",
+        department: "IT Support",
         phone: "+1 (555) 123-4568",
         is_active: true,
         last_login: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
@@ -1873,7 +1873,6 @@ netsh int ip reset
           views: 334,
           helpful_votes: 87,
         },
-
         {
           title: "Software Installation Policy",
           content: `# Software Installation Guidelines
@@ -2401,8 +2400,48 @@ smartphones
     }
   }
   async getDevices(): Promise<Device[]> {
-    const allDevices = await db.select().from(devices);
-    return allDevices;
+    const result = await this.pool.query(`
+      SELECT d.*, dr.cpu_usage, dr.memory_usage, dr.disk_usage, dr.network_io, dr.collected_at, dr.raw_data
+      FROM devices d
+      LEFT JOIN device_reports dr ON d.id = dr.device_id 
+      AND dr.id = (
+        SELECT id FROM device_reports 
+        WHERE device_id = d.id 
+        ORDER BY collected_at DESC 
+        LIMIT 1
+      )
+      ORDER BY d.created_at DESC
+    `);
+
+    const now = new Date();
+
+    return result.rows.map(row => {
+      // Check if device has recent activity (within 10 minutes)
+      const lastSeen = row.last_seen ? new Date(row.last_seen) : null;
+      const lastReport = row.collected_at ? new Date(row.collected_at) : null;
+
+      const minutesSinceLastSeen = lastSeen ? 
+        Math.floor((now.getTime() - lastSeen.getTime()) / (1000 * 60)) : null;
+      const minutesSinceLastReport = lastReport ? 
+        Math.floor((now.getTime() - lastReport.getTime()) / (1000 * 60)) : null;
+
+      // Consider device online if it has recent activity
+      const isOnline = (minutesSinceLastSeen !== null && minutesSinceLastSeen < 10) || 
+                      (minutesSinceLastReport !== null && minutesSinceLastReport < 10);
+
+      return {
+        ...row,
+        status: isOnline ? 'online' : 'offline',
+        latest_report: row.cpu_usage ? {
+          cpu_usage: row.cpu_usage,
+          memory_usage: row.memory_usage,
+          disk_usage: row.disk_usage,
+          network_io: row.network_io,
+          collected_at: row.collected_at,
+          raw_data: row.raw_data
+        } : null
+      };
+    });
   }
 
   async getDevice(id: string): Promise<Device | undefined> {
@@ -2989,7 +3028,7 @@ smartphones
       `;
 
       const result = await pool.query(query, params);
-      
+
       if (result.rows.length > 0) {
         const user = result.rows[0];
         // Add computed name field for consistency
@@ -2997,7 +3036,7 @@ smartphones
                    user.username || user.email?.split('@')[0];
         return user;
       }
-      
+
       return null;
     } catch (error) {
       console.error("Error updating user:", error);

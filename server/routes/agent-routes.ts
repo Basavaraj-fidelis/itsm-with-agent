@@ -330,10 +330,11 @@ export function registerAgentRoutes(
         });
         console.log("Created new device from heartbeat:", device.id);
       } else {
-        // Update existing device
+        // Update existing device with current timestamp
         await storage.updateDevice(device.id, {
           status: "online",
           last_seen: new Date(),
+          ip_address: req.ip || device.ip_address, // Update IP if available
         });
         console.log("Updated device from heartbeat:", device.id);
       }
@@ -549,6 +550,12 @@ export function registerAgentRoutes(
         disk_usage: diskUsage,
         network_io: networkIO,
         raw_data: JSON.stringify(req.body),
+      });
+      
+      // Update device status to ensure it's marked as online
+      await storage.updateDevice(device.id, {
+        status: "online",
+        last_seen: new Date(),
       });
 
       // Process USB devices

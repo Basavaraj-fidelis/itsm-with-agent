@@ -1,10 +1,13 @@
 import type { Express } from "express";
 import { storage } from "../storage";
+import express from 'express'; // Import express to use router
 
 export function registerDeviceRoutes(app: Express, authenticateToken: any) {
 
+  const router = express.Router(); // Create a router
+
   // Export devices as CSV
-  app.get("/api/devices/export/csv", async (req, res) => {
+  router.get("/api/devices/export/csv", async (req, res) => {
     try {
       const filters = {
         status: req.query.status as string,
@@ -77,7 +80,7 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
     }
   });
   // Get all devices
-  app.get("/api/devices", authenticateToken, async (req, res) => {
+  router.get("/api/devices", authenticateToken, async (req, res) => {
     try {
       console.log("Fetching devices - checking for agent activity...");
       const devices = await storage.getDevices();
@@ -168,7 +171,7 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
   });
 
   // Get device by ID or hostname
-  app.get("/api/devices/:id", authenticateToken, async (req, res) => {
+  router.get("/api/devices/:id", authenticateToken, async (req, res) => {
     try {
       let device = await storage.getDevice(req.params.id);
 
@@ -199,7 +202,7 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
       const deviceId = req.params.id;
       console.log("=== INDIVIDUAL DEVICE DATA FOR ID:", deviceId, "===");
       console.log("Device Found:", deviceWithReport.hostname);
-      
+
       // Parse and enhance network data
       if (deviceWithReport.latest_report?.raw_data) {
         let parsedData;
@@ -207,12 +210,12 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
           parsedData = typeof deviceWithReport.latest_report.raw_data === 'string' 
             ? JSON.parse(deviceWithReport.latest_report.raw_data)
             : deviceWithReport.latest_report.raw_data;
-          
+
           console.log("=== NETWORK DATA ANALYSIS ===");
           console.log("Network Data Keys:", Object.keys(parsedData.network || {}));
           console.log("Network Interfaces Count:", parsedData.network?.interfaces?.length || 0);
           console.log("Public IP:", parsedData.network?.public_ip || "Not found");
-          
+
           // Extract primary network interface information from the correct structure
           if (parsedData.network?.interfaces && Array.isArray(parsedData.network.interfaces)) {
             const primaryInterface = parsedData.network.interfaces.find(iface => {
@@ -233,11 +236,11 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
               // Extract IP and MAC from the interface data
               const primaryIP = primaryInterface.ip || primaryInterface.ip_address;
               const primaryMAC = primaryInterface.mac || primaryInterface.mac_address;
-              
+
               // Add primary interface data to device
               deviceWithReport.primary_ip_address = primaryIP;
               deviceWithReport.primary_mac_address = primaryMAC;
-              
+
               console.log("Primary Interface:", {
                 ip: primaryIP,
                 mac: primaryMAC,
@@ -246,13 +249,13 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
               });
             }
           }
-          
+
         } catch (e) {
           console.log("Error parsing raw_data:", e);
           console.log("Raw data type:", typeof deviceWithReport.latest_report.raw_data);
         }
       }
-      
+
       console.log("=== FULL DEVICE RECORD ===");
       console.log(JSON.stringify(deviceWithReport, null, 2));
       console.log("=== END INDIVIDUAL DEVICE DATA ===");
@@ -266,7 +269,7 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
   });
 
   // Get device reports
-  app.get("/api/devices/:id/reports", async (req, res) => {
+  router.get("/api/devices/:id/reports", async (req, res) => {
     try {
       const reports = await storage.getDeviceReports(req.params.id);
       console.log(`Device reports for device id ${req.params.id}:`, reports); // Added logging
@@ -278,7 +281,7 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
   });
 
   // Get USB devices for a device
-  app.get("/api/devices/:id/usb-devices", async (req, res) => {
+  router.get("/api/devices/:id/usb-devices", async (req, res) => {
     try {
       console.log(`Fetching USB devices for device: ${req.params.id}`);
       const usbDevices = await storage.getUSBDevicesForDevice(req.params.id);
@@ -291,7 +294,7 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
   });
 
   // Get application performance insights for a device
-  app.get(
+  router.get(
     "/api/devices/:id/performance-insights",
     authenticateToken,
     async (req, res) => {
@@ -319,7 +322,7 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
   );
 
   // Get AI-powered insights for a device
-  app.get(
+  router.get(
     "/api/devices/:id/ai-insights",
     authenticateToken,
     async (req, res) => {
@@ -340,7 +343,7 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
   );
 
   // Get AI recommendations for a device
-  app.get(
+  router.get(
     "/api/devices/:id/ai-recommendations",
     authenticateToken,
     async (req, res) => {
@@ -361,7 +364,7 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
   );
 
   // Debug endpoint to check device status
-  app.get("/api/debug/devices", authenticateToken, async (req, res) => {
+  router.get("/api/debug/devices", authenticateToken, async (req, res) => {
     try {
       const devices = await storage.getDevices();
       const now = new Date();
@@ -405,4 +408,63 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
+
+  // Dashboard summary endpoint - this is where the change is applied
+  router.get("/api/dashboard/summary", authenticateToken, async (req, res) => {
+    try {
+      console.log('Fetching dashboard summary...');
+      const devices = await storage.getDevices();
+      const alerts = await storage.getAlerts();
+
+      const now = new Date();
+
+      // More accurate online detection
+      const onlineDevices = devices.filter(device => {
+        const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
+        const hasRecentReport = device.latest_report && device.latest_report.collected_at;
+        const lastReport = hasRecentReport ? new Date(device.latest_report.collected_at) : null;
+
+        const minutesSinceLastSeen = lastSeen ? 
+          Math.floor((now.getTime() - lastSeen.getTime()) / (1000 * 60)) : null;
+        const minutesSinceLastReport = lastReport ? 
+          Math.floor((now.getTime() - lastReport.getTime()) / (1000 * 60)) : null;
+
+        // Consider online if seen or reported within last 10 minutes
+        return (minutesSinceLastSeen !== null && minutesSinceLastSeen < 10) || 
+               (minutesSinceLastReport !== null && minutesSinceLastReport < 10);
+      });
+
+      const totalDevices = devices.length;
+      const onlineCount = onlineDevices.length;
+      const offlineDevices = totalDevices - onlineCount;
+      const activeAlerts = alerts.filter(alert => alert.is_active).length;
+
+      const summary = {
+        total_devices: totalDevices,
+        online_devices: onlineCount,
+        offline_devices: offlineDevices,
+        active_alerts: activeAlerts
+      };
+
+      console.log('Dashboard summary:', summary);
+      console.log('Device status details:', devices.map(d => ({
+        hostname: d.hostname,
+        status: d.status,
+        last_seen: d.last_seen,
+        has_report: !!d.latest_report
+      })));
+
+      res.json(summary);
+    } catch (error) {
+      console.error("Error fetching dashboard summary:", error);
+      res.status(500).json({ 
+        error: "Failed to fetch dashboard summary",
+        message: error.message 
+      });
+    }
+  });
+
+
+  // Mount the router to the app
+  app.use('/', router);
 }

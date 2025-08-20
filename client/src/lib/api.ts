@@ -164,17 +164,21 @@ const clearAuthToken = () => {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://0.0.0.0:5000';
 
-// Global error handler for unhandled promise rejections
+// Enhanced global error handler for unhandled promise rejections
 window.addEventListener('unhandledrejection', (event) => {
-  console.error('Unhandled promise rejection:', event.reason);
-
-  // Prevent the default behavior (logging to console)
-  event.preventDefault();
-
-  // You can add custom error reporting here
-  if (event.reason?.message) {
-    console.error('Error details:', event.reason.message);
+  // Only handle specific types of errors to avoid interfering with other parts
+  if (event.reason?.message?.includes('Failed to fetch') ||
+      event.reason?.message?.includes('security-overview') ||
+      event.reason?.message?.includes('analytics') ||
+      event.reason?.message?.includes('timeout')) {
+    
+    console.warn('Handled API error:', event.reason.message);
+    event.preventDefault(); // Prevent console spam
+    return;
   }
+  
+  // Let other errors through normally
+  console.error('Unhandled promise rejection:', event.reason);
 });
 
 const makeRequest = async (url: string, options: RequestInit = {}): Promise<Response> => {
