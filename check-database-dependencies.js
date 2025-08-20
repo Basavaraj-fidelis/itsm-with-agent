@@ -1,15 +1,9 @@
 
-#!/usr/bin/env node
-
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
 // Database connection
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
-  console.error('❌ DATABASE_URL environment variable is not set');
-  process.exit(1);
-}
+const connectionString = process.env.DATABASE_URL || 'postgres://avnadmin:AVNS_YOa-jMJ2ghMv9bcWgze@pg-2d00a622-basureddy2020-11ac.l.aivencloud.com:21320/defaultdb';
 
 const sql = postgres(connectionString);
 const db = drizzle(sql);

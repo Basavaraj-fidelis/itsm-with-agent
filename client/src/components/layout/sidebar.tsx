@@ -22,6 +22,7 @@ import {
   BarChart3,
   Network,
   Scan,
+  ArrowLeft,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -221,6 +222,7 @@ export function Sidebar() {
         name: "Network Scan",
         href: "/network-scan",
         icon: Scan,
+        current: location === "/network-scan",
         roles: ["admin", "manager", "technician"],
         iconColor: "text-teal-500",
         activeColor: "bg-teal-50 border-teal-200 text-teal-700",
@@ -230,6 +232,8 @@ export function Sidebar() {
       {
         name: "Security Dashboard",
         href: "/security-dashboard",
+        icon: Shield,
+        current: location === "/security-dashboard",
         roles: ["admin", "manager"],
         iconColor: "text-indigo-500",
         activeColor: "bg-indigo-50 border-indigo-200 text-indigo-700",
