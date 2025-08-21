@@ -309,7 +309,7 @@ class AIService {
     insights: AIInsight[]
   ): Promise<AIInsight[]> {
     // Ensure newInsights is always initialized as an array
-    let newInsights: AIInsight[] = [];
+    const newInsights: AIInsight[] = [];
     
     try {
       if (!reports || !Array.isArray(reports) || reports.length < 5) {
@@ -395,7 +395,7 @@ class AIService {
       try {
         const hardwareFailures = await this.predictHardwareFailures(deviceId, reports, []);
         if (Array.isArray(hardwareFailures)) {
-          newInsights = newInsights.concat(hardwareFailures);
+          newInsights.push(...hardwareFailures);
         }
       } catch (error) {
         console.warn('Hardware failure prediction failed:', error?.message || error);
@@ -410,7 +410,7 @@ class AIService {
 
   private async predictHardwareFailures(deviceId: string, reports: any[], insights: AIInsight[]): Promise<AIInsight[]> {
     // Ensure proper array initialization
-    let newInsights: AIInsight[] = [];
+    const newInsights: AIInsight[] = [];
     
     try {
       if (!reports || !Array.isArray(reports) || reports.length === 0) {
@@ -424,7 +424,7 @@ class AIService {
       let riskScore = 0;
       const riskFactors: string[] = [];
 
-    for (const metric of metrics) {
+      for (const metric of metrics) {
         try {
           const values = reports.map(r => parseFloat(r[metric] || "0")).filter(v => !isNaN(v) && v > 0);
           if (values.length < 3) continue;
