@@ -309,81 +309,99 @@ class AIService {
     insights: AIInsight[]
   ): Promise<AIInsight[]> {
     const newInsights: AIInsight[] = [];
-    if (reports.length < 5) return newInsights;
+    
+    try {
+      if (reports.length < 5) {
+        console.log(`Insufficient reports for resource prediction: ${reports.length} (need at least 5)`);
+        return newInsights;
+      }
 
-    const timestamps = reports.map(r => new Date(r.timestamp || r.created_at));
+      const timestamps = reports.map(r => new Date(r.timestamp || r.created_at));
 
-    // Enhanced disk space prediction with seasonality
-    const diskValues = reports.map(r => parseFloat(r.disk_usage || "0")).filter(v => !isNaN(v));
-    const diskAnalysis = this.analyzeTimeSeriesPatterns(diskValues, timestamps);
+      // Enhanced disk space prediction with seasonality
+      const diskValues = reports.map(r => parseFloat(r.disk_usage || "0")).filter(v => !isNaN(v));
+      
+      if (diskValues.length === 0) {
+        console.log('No valid disk usage data found for prediction');
+        return newInsights;
+      }
 
-    if (diskAnalysis.trend > 0.5) {
-      const currentDisk = diskValues[0] || 0;
-      const forecast = diskAnalysis.forecast;
+      const diskAnalysis = this.analyzeTimeSeriesPatterns(diskValues, timestamps);
 
-      // Find when disk will reach 95% based on forecast
-      let daysToFull = -1;
-      for (let i = 0; i < forecast.length; i++) {
-        if (forecast[i] >= 95) {
-          daysToFull = i + 1;
-          break;
+      if (diskAnalysis && diskAnalysis.trend > 0.5) {
+        const currentDisk = diskValues[0] || 0;
+        const forecast = diskAnalysis.forecast || [];
+
+        // Find when disk will reach 95% based on forecast
+        let daysToFull = -1;
+        for (let i = 0; i < forecast.length; i++) {
+          if (forecast[i] >= 95) {
+            daysToFull = i + 1;
+            break;
+          }
+        }
+
+        if (daysToFull > 0) {
+          newInsights.push({
+            id: `disk-prediction-${deviceId}`,
+            device_id: deviceId,
+            type: 'prediction',
+            severity: daysToFull < 30 ? 'high' : 'medium',
+            title: 'Advanced Disk Space Forecast',
+            description: `Predictive model shows disk reaching 95% capacity in ${daysToFull} days. Pattern: ${diskAnalysis.seasonality}`,
+            recommendation: this.generateMaintenanceRecommendation(daysToFull, diskAnalysis.volatility),
+            confidence: Math.min(0.95, reports.length / 15),
+            metadata: { 
+              days_to_full: daysToFull, 
+              current_usage: currentDisk, 
+              trend: diskAnalysis.trend,
+              seasonality: diskAnalysis.seasonality,
+              volatility: diskAnalysis.volatility,
+              forecast: forecast.slice(0, 7)
+            },
+            created_at: new Date()
+          });
         }
       }
 
-      if (daysToFull > 0) {
-        newInsights.push({
-          id: `disk-prediction-${deviceId}`,
-          device_id: deviceId,
-          type: 'prediction',
-          severity: daysToFull < 30 ? 'high' : 'medium',
-          title: 'Advanced Disk Space Forecast',
-          description: `Predictive model shows disk reaching 95% capacity in ${daysToFull} days. Pattern: ${diskAnalysis.seasonality}`,
-          recommendation: this.generateMaintenanceRecommendation(daysToFull, diskAnalysis.volatility),
-          confidence: Math.min(0.95, reports.length / 15),
-          metadata: { 
-            days_to_full: daysToFull, 
-            current_usage: currentDisk, 
-            trend: diskAnalysis.trend,
-            seasonality: diskAnalysis.seasonality,
-            volatility: diskAnalysis.volatility,
-            forecast: forecast.slice(0, 7)
-          },
-          created_at: new Date()
-        });
+      // Memory degradation prediction
+      const memoryValues = reports.map(r => parseFloat(r.memory_usage || "0")).filter(v => !isNaN(v));
+      
+      if (memoryValues.length > 0) {
+        const memoryAnalysis = this.analyzeTimeSeriesPatterns(memoryValues, timestamps);
+
+        if (memoryAnalysis && memoryAnalysis.volatility > 20 && memoryAnalysis.trend > 1) {
+          newInsights.push({
+            id: `memory-degradation-${deviceId}`,
+            device_id: deviceId,
+            type: 'prediction',
+            severity: 'medium',
+            title: 'Memory Performance Degradation Predicted',
+            description: `Memory usage patterns suggest potential degradation. Volatility: ${memoryAnalysis.volatility.toFixed(1)}%`,
+            recommendation: 'Consider memory diagnostics and potential hardware refresh planning',
+            confidence: 0.7,
+            metadata: {
+              current_trend: memoryAnalysis.trend,
+              volatility: memoryAnalysis.volatility,
+              anomaly_count: memoryAnalysis.anomalies?.length || 0
+            },
+            created_at: new Date()
+          });
+        }
       }
-    }
 
-    // Memory degradation prediction
-    const memoryValues = reports.map(r => parseFloat(r.memory_usage || "0")).filter(v => !isNaN(v));
-    const memoryAnalysis = this.analyzeTimeSeriesPatterns(memoryValues, timestamps);
-
-    if (memoryAnalysis.volatility > 20 && memoryAnalysis.trend > 1) {
-      newInsights.push({
-        id: `memory-degradation-${deviceId}`,
-        device_id: deviceId,
-        type: 'prediction',
-        severity: 'medium',
-        title: 'Memory Performance Degradation Predicted',
-        description: `Memory usage patterns suggest potential degradation. Volatility: ${memoryAnalysis.volatility.toFixed(1)}%`,
-        recommendation: 'Consider memory diagnostics and potential hardware refresh planning',
-        confidence: 0.7,
-        metadata: {
-          current_trend: memoryAnalysis.trend,
-          volatility: memoryAnalysis.volatility,
-          anomaly_count: memoryAnalysis.anomalies.length
-        },
-        created_at: new Date()
-      });
-    }
-
-    // Hardware failure prediction based on multiple metrics
-    try {
-      const hardwareFailures = await this.predictHardwareFailures(deviceId, reports, []);
-      if (Array.isArray(hardwareFailures)) {
-        newInsights.push(...hardwareFailures);
+      // Hardware failure prediction based on multiple metrics
+      try {
+        const hardwareFailures = await this.predictHardwareFailures(deviceId, reports, []);
+        if (Array.isArray(hardwareFailures) && hardwareFailures.length > 0) {
+          newInsights.push(...hardwareFailures);
+        }
+      } catch (error) {
+        console.warn('Hardware failure prediction failed:', error?.message || error);
       }
+
     } catch (error) {
-      console.warn('Hardware failure prediction failed:', error.message);
+      console.error('Resource prediction error:', error?.message || error);
     }
 
     return newInsights;
@@ -601,31 +619,61 @@ class AIService {
     anomalies: number[];
     forecast: number[];
   } {
-    const trend = this.calculateTrend(values);
-    const volatility = this.calculateVolatility(values);
-    const anomalies = this.detectAnomalies(values);
+    try {
+      if (!values || values.length === 0) {
+        return {
+          trend: 0,
+          seasonality: 'insufficient_data',
+          volatility: 0,
+          anomalies: [],
+          forecast: []
+        };
+      }
 
-    // Simple moving average forecast for next 7 periods
-    const forecast = this.generateForecast(values, 7);
+      const trend = this.calculateTrend(values) || 0;
+      const volatility = this.calculateVolatility(values) || 0;
+      const anomalies = this.detectAnomalies(values) || [];
 
-    // Enhanced seasonality detection
-    const seasonality = this.detectSeasonalityPatterns(values, timestamps);
+      // Simple moving average forecast for next 7 periods
+      const forecast = this.generateForecast(values, 7) || [];
 
-    return { trend, seasonality, volatility, anomalies, forecast };
+      // Enhanced seasonality detection
+      const seasonality = this.detectSeasonalityPatterns(values, timestamps) || 'random';
+
+      return { trend, seasonality, volatility, anomalies, forecast };
+    } catch (error) {
+      console.warn('Time series analysis failed:', error?.message || error);
+      return {
+        trend: 0,
+        seasonality: 'error',
+        volatility: 0,
+        anomalies: [],
+        forecast: []
+      };
+    }
   }
 
   private generateForecast(values: number[], periods: number): number[] {
-    if (values.length < 3) return [];
+    try {
+      if (!values || values.length < 3 || !periods || periods <= 0) {
+        return [];
+      }
 
-    const trend = this.calculateTrend(values);
-    const lastValue = values[values.length - 1];
-    const forecast = [];
+      const trend = this.calculateTrend(values) || 0;
+      const lastValue = values[values.length - 1] || 0;
+      const forecast = [];
 
-    for (let i = 1; i <= periods; i++) {
-      forecast.push(Math.max(0, lastValue + (trend * i)));
+      for (let i = 1; i <= periods; i++) {
+        const predictedValue = Math.max(0, lastValue + (trend * i));
+        // Cap predictions at reasonable maximum (e.g., 100% for usage percentages)
+        forecast.push(Math.min(predictedValue, 100));
+      }
+
+      return forecast;
+    } catch (error) {
+      console.warn('Forecast generation failed:', error?.message || error);
+      return [];
     }
-
-    return forecast;
   }
 
   private detectSeasonalityPatterns(values: number[], timestamps: Date[]): string {
