@@ -138,11 +138,35 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
             network_io: latestReport?.network_io || null,
           };
 
+          // Extract active IP address from current agent data
+          let activeIP = device.ip_address; // fallback to stored IP
+          
           if (latestReport?.raw_data) {
             try {
               const rawData = typeof latestReport.raw_data === 'string' 
                 ? JSON.parse(latestReport.raw_data) 
                 : latestReport.raw_data;
+
+              // Extract active IP from network data
+              if (rawData.network?.primary_interface?.ip_address) {
+                activeIP = rawData.network.primary_interface.ip_address;
+              } else if (rawData.network?.interfaces && Array.isArray(rawData.network.interfaces)) {
+                // Find the primary active interface
+                const activeInterface = rawData.network.interfaces.find(iface => {
+                  const ip = iface.ip || iface.ip_address;
+                  return ip && 
+                    ip !== '127.0.0.1' && 
+                    ip !== '::1' &&
+                    !ip.startsWith('169.254.') &&
+                    (iface.status === 'Up' || iface.status === 'up' || iface.is_up === true);
+                });
+                
+                if (activeInterface) {
+                  activeIP = activeInterface.ip || activeInterface.ip_address;
+                }
+              } else if (rawData.extracted_public_ip) {
+                activeIP = rawData.extracted_public_ip;
+              }
 
               // Extract CPU usage
               if (rawData.hardware?.cpu?.usage_percentage) {
@@ -182,6 +206,7 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
           return {
             ...device,
             status: currentStatus,
+            ip_address: activeIP, // Use active IP from current agent data
             latest_report: latestReport
               ? {
                   cpu_usage: extractedMetrics.cpu_usage,
@@ -253,11 +278,35 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
         network_io: latestReport?.network_io || null,
       };
 
+      // Extract active IP address from current agent data
+      let activeIP = device.ip_address; // fallback to stored IP
+
       if (latestReport?.raw_data) {
         try {
           const rawData = typeof latestReport.raw_data === 'string' 
             ? JSON.parse(latestReport.raw_data) 
             : latestReport.raw_data;
+
+          // Extract active IP from network data
+          if (rawData.network?.primary_interface?.ip_address) {
+            activeIP = rawData.network.primary_interface.ip_address;
+          } else if (rawData.network?.interfaces && Array.isArray(rawData.network.interfaces)) {
+            // Find the primary active interface
+            const activeInterface = rawData.network.interfaces.find(iface => {
+              const ip = iface.ip || iface.ip_address;
+              return ip && 
+                ip !== '127.0.0.1' && 
+                ip !== '::1' &&
+                !ip.startsWith('169.254.') &&
+                (iface.status === 'Up' || iface.status === 'up' || iface.is_up === true);
+            });
+            
+            if (activeInterface) {
+              activeIP = activeInterface.ip || activeInterface.ip_address;
+            }
+          } else if (rawData.extracted_public_ip) {
+            activeIP = rawData.extracted_public_ip;
+          }
 
           // Extract CPU usage
           if (rawData.hardware?.cpu?.usage_percentage) {
@@ -294,6 +343,7 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
 
       const deviceWithReport = {
         ...device,
+        ip_address: activeIP, // Use active IP from current agent data
         latest_report: latestReport
           ? {
               cpu_usage: extractedMetrics.cpu_usage,

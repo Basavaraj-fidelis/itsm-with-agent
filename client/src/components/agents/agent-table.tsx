@@ -83,11 +83,11 @@ export const AgentTable: React.FC<AgentTableProps> = ({
       sortable: true,
       filterable: true,
       render: (value, agent) => {
-        // Extract proper hostname and primary IP
+        // Extract proper hostname and active IP
         let hostname = agent.hostname || value || 'Unknown';
-        let primaryIP = agent.ip_address || 'No IP';
+        let activeIP = 'No IP';
         
-        // Try to get better data from raw_data if available
+        // Get hostname from raw data if available
         if (agent.latest_report?.raw_data) {
           try {
             const rawData = typeof agent.latest_report.raw_data === 'string' 
@@ -98,17 +98,13 @@ export const AgentTable: React.FC<AgentTableProps> = ({
             if (rawData.hostname || rawData.computer_name) {
               hostname = rawData.hostname || rawData.computer_name;
             }
-            
-            // Get primary IP from network interfaces
-            if (rawData.network?.primary_interface?.ip_address) {
-              primaryIP = rawData.network.primary_interface.ip_address;
-            } else if (rawData.extracted_public_ip) {
-              primaryIP = rawData.extracted_public_ip;
-            }
           } catch (e) {
             // Use fallback values
           }
         }
+        
+        // Use the active IP from the device record (already processed by backend)
+        activeIP = agent.ip_address || 'No IP';
         
         return (
           <div className="flex items-center space-x-3">
@@ -118,7 +114,7 @@ export const AgentTable: React.FC<AgentTableProps> = ({
                 {hostname}
               </div>
               <div className="text-sm text-gray-500">
-                {primaryIP}
+                {activeIP}
               </div>
             </div>
           </div>
