@@ -2,39 +2,28 @@ import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db';
 import { systemAlerts } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
+import { systemConfig } from '../system-config'; // Assuming systemConfig is in the same directory or accessible
 
-// Define alert thresholds
-const ALERT_THRESHOLDS = {
-  WARNING: {
-    cpu_usage: 85,
-    memory_usage: 85,
-    disk_usage: 80,
-    network_bandwidth: 1000000000, // bytes
-  },
-  HIGH: {
-    cpu_usage: 90,
-    memory_usage: 90,
-    disk_usage: 90,
-    network_bandwidth: 500000000, // bytes
-  },
-  CRITICAL: {
-    cpu_usage: 95,
-    memory_usage: 95,
-    disk_usage: 95,
-    network_bandwidth: 100000000, // bytes
-  },
+// Define alert severities
+const AlertSeverity = {
+  WARNING: 'warning',
+  HIGH: 'high',
+  CRITICAL: 'critical',
+  INFO: 'info',
+  OK: 'ok',
 };
 
 export interface Alert {
   id: string;
   device_id: string;
-  type: string;
-  severity: string;
+  type: string; // e.g., 'performance', 'security', 'connectivity'
+  severity: string; // 'critical', 'high', 'warning', 'info', 'ok'
   title: string;
   message: string;
   timestamp: Date;
   acknowledged: boolean;
   resolved: boolean;
+  metadata?: any; // Additional context
 }
 
 export class AlertUtils {
@@ -64,78 +53,67 @@ export class AlertUtils {
   }
 
   /**
-   * Determine alert severity based on metric value
+   * Determine alert severity based on metric value and thresholds
    */
   static determineSeverity(
     value: number,
     thresholds: { critical: number; high: number; warning: number }
-  ): string | null {
-    if (value >= thresholds.critical) return "critical";
-    if (value >= thresholds.high) return "high";
-    if (value >= thresholds.warning) return "warning";
-    return null;
+  ): string {
+    if (value >= thresholds.critical) return AlertSeverity.CRITICAL;
+    if (value >= thresholds.high) return AlertSeverity.HIGH;
+    if (value >= thresholds.warning) return AlertSeverity.WARNING;
+    return AlertSeverity.OK; // Or 'info' depending on context
   }
 
   /**
    * Build performance alert message
    */
   static buildPerformanceMessage(metric: string, value: number, severity: string): string {
-    const metricDisplayNames = {
+    const metricDisplayNames: { [key: string]: string } = {
       cpu: "CPU",
       memory: "Memory",
       disk: "Disk",
-      network: "Network"
+      network: "Network Bandwidth"
     };
 
-    const metricName = metricDisplayNames[metric as keyof typeof metricDisplayNames] || metric;
-    const valueStr = value.toFixed(1);
+    const metricName = metricDisplayNames[metric] || metric;
+    const valueStr = typeof value === 'number' ? value.toFixed(1) : String(value);
 
-    const severityMessages = {
-      critical: `Critical ${metricName} usage: ${valueStr}% - Immediate attention required`,
-      high: `High ${metricName} usage: ${valueStr}% - Performance degraded`,
-      warning: `${metricName} usage elevated: ${valueStr}% - Monitor closely`
+    const severityMessages: { [key: string]: string } = {
+      [AlertSeverity.CRITICAL]: `Critical ${metricName} usage: ${valueStr}${metric === 'network' ? 'bps' : '%'}. Immediate attention required.`,
+      [AlertSeverity.HIGH]: `High ${metricName} usage: ${valueStr}${metric === 'network' ? 'bps' : '%'}. Performance degraded.`,
+      [AlertSeverity.WARNING]: `${metricName} usage elevated: ${valueStr}${metric === 'network' ? 'bps' : '%'}. Monitor closely.`
     };
 
-    return severityMessages[severity as keyof typeof severityMessages] || 
-           `${metricName} usage: ${valueStr}%`;
+    return severityMessages[severity] || `${metricName} usage: ${valueStr}${metric === 'network' ? 'bps' : '%'}`;
   }
 
   /**
-   * Check if alert should be updated
+   * Check if alert should be updated based on value change or time elapsed
    */
   static shouldUpdateAlert(
     existingAlert: any,
     newValue: number,
     newSeverity: string,
+    metric: string, // Added metric to get appropriate thresholds
     updateThresholdMinutes: number = 30
   ): boolean {
-    const lastValue = existingAlert.metadata?.[existingAlert.metadata?.metric + "_usage"] || 0;
+    const thresholds = systemConfig.getAlertThresholds()[metric as keyof typeof systemConfig.getAlertThresholds()];
+    if (!thresholds) return false; // No thresholds found for this metric
+
+    const lastValue = existingAlert.metadata?.[metric + "_usage"] || 0;
     const valueChange = Math.abs(newValue - lastValue);
 
-    const timeSinceLastUpdate = new Date().getTime() - 
+    const timeSinceLastUpdate = new Date().getTime() -
       new Date(existingAlert.metadata?.last_updated || existingAlert.triggered_at).getTime();
     const minutesSinceUpdate = timeSinceLastUpdate / (1000 * 60);
 
+    // Update if severity changed, value changed significantly, or enough time has passed
     return (
-      existingAlert.severity !== newSeverity || 
-      valueChange > 3 || 
+      existingAlert.severity !== newSeverity ||
+      valueChange > thresholds.warning * 0.1 || // Example: update if change is more than 10% of warning threshold
       minutesSinceUpdate > updateThresholdMinutes
     );
-  }
-
-  /**
-   * Get standard performance thresholds
-   */
-  static getPerformanceThresholds(metric: string) {
-    const thresholds = {
-      cpu: { critical: 92, high: 88, warning: 85 },
-      memory: { critical: 92, high: 88, warning: 85 },
-      disk: { critical: 92, high: 88, warning: 85 },
-      network: { critical: 1000000000, high: 500000000, warning: 100000000 } // bytes
-    };
-
-    return thresholds[metric as keyof typeof thresholds] || 
-           { critical: 90, high: 80, warning: 70 };
   }
 
   /**
@@ -145,22 +123,28 @@ export class AlertUtils {
     existingMetadata: any,
     metric: string,
     value: number,
-    threshold: number,
-    previousValue?: number
+    severity: string // Added severity to determine update reason
   ) {
+    const thresholds = systemConfig.getAlertThresholds()[metric as keyof typeof systemConfig.getAlertThresholds()];
+    const threshold = thresholds ? thresholds[severity as keyof typeof thresholds] : undefined;
+    const previousValue = existingMetadata?.[metric + "_usage"] || 0;
+    const valueChange = typeof value === 'number' && typeof previousValue === 'number' ? Math.abs(value - previousValue).toFixed(1) : 'N/A';
+
+    let updateReason = 'periodic_update';
+    if (existingAlert.severity !== severity) {
+        updateReason = 'severity_change';
+    } else if (parseFloat(valueChange) > (thresholds?.warning * 0.1 || 3)) { // Use a small threshold for significant change
+        updateReason = 'significant_change';
+    }
+
     return {
       ...existingMetadata,
       [metric + "_usage"]: value,
-      threshold,
-      metric,
+      metric: metric,
       last_updated: new Date().toISOString(),
-      previous_value: previousValue || existingMetadata?.[metric + "_usage"] || 0,
-      value_change: previousValue ? Math.abs(value - previousValue).toFixed(1) : '0',
-      update_reason: existingMetadata?.severity !== this.determineSeverity(value, this.getPerformanceThresholds(metric))
-        ? 'severity_change' 
-        : Math.abs(value - (previousValue || 0)) > 3 
-        ? 'significant_change' 
-        : 'periodic_update'
+      previous_value: previousValue,
+      value_change: valueChange,
+      update_reason: updateReason
     };
   }
 
@@ -173,7 +157,7 @@ export class AlertUtils {
     return this.createAlertData(
       deviceId,
       "security",
-      "info",
+      AlertSeverity.INFO,
       message,
       {
         usb_count: usbDevices.length,
@@ -190,26 +174,30 @@ function getAlertTitle(category: string, message: string): string {
   if (message.includes('Memory')) return 'High Memory Usage';
   if (message.includes('Disk')) return 'High Disk Usage';
   if (message.includes('offline')) return 'Device Offline';
+  if (category === 'security' && message.includes('USB')) return 'USB Device Detected';
   return 'System Alert';
 }
 
 // Helper function to determine if an alert should be updated
-function shouldUpdateAlert(existingAlert: any, currentValue: number): boolean {
-  const lastValue = existingAlert.metadata?.cpu_usage || 
-                   existingAlert.metadata?.memory_usage || 
-                   existingAlert.metadata?.disk_usage || 0;
+function shouldUpdateAlert(existingAlert: any, currentValue: number, metric: string): boolean {
+  const metricKey = `${metric}_usage`;
+  const lastValue = existingAlert.metadata?.[metricKey] || 0;
 
   const valueChange = Math.abs(currentValue - lastValue);
-  const timeSinceLastUpdate = new Date().getTime() - 
+  const timeSinceLastUpdate = new Date().getTime() -
     new Date(existingAlert.metadata?.last_updated || existingAlert.triggered_at).getTime();
   const minutesSinceUpdate = timeSinceLastUpdate / (1000 * 60);
 
+  // Use a more dynamic threshold based on the metric's warning level
+  const thresholds = systemConfig.getAlertThresholds()[metric as keyof typeof systemConfig.getAlertThresholds()];
+  const updateThreshold = thresholds ? thresholds.warning * 0.1 : 5; // 10% of warning threshold, default 5
+
   // Update if value changed significantly or enough time has passed
-  return valueChange > 5 || minutesSinceUpdate > 60;
+  return valueChange > updateThreshold || minutesSinceUpdate > 60;
 }
 
 // Helper function to update existing alert
-async function updateExistingAlert(alertId: string, updates: any): Promise<void> {
+async function updateExistingAlert(alertId: string, updates: Partial<Alert>): Promise<void> {
   try {
     await db
       .update(systemAlerts)
@@ -217,35 +205,47 @@ async function updateExistingAlert(alertId: string, updates: any): Promise<void>
         severity: updates.severity,
         message: updates.message,
         metadata: updates.metadata,
-        updated_at: new Date()
+        updated_at: new Date(),
+        resolved: false, // Ensure it's marked as active if updated
       })
       .where(eq(systemAlerts.id, alertId));
   } catch (error) {
-    console.error('Error updating existing alert:', error);
+    console.error(`Error updating existing alert ${alertId}:`, error);
   }
 }
 
 // Helper function to resolve alerts when conditions improve
 async function resolveImprovedAlerts(deviceData: any, existingAlerts: any[]) {
   const now = new Date();
+  const thresholds = systemConfig.getAlertThresholds();
 
   for (const alert of existingAlerts) {
     let shouldResolve = false;
     const alertMessage = alert.message || '';
 
     // Resolve CPU alerts if usage is now below threshold (with hysteresis)
-    if (alertMessage.includes('CPU') && deviceData.metrics?.cpu_usage <= ALERT_THRESHOLDS.WARNING.cpu_usage - 5) {
-      shouldResolve = true;
+    if (alertMessage.includes('CPU') && alert.severity !== AlertSeverity.OK) {
+      const cpuUsage = deviceData.metrics?.cpu_usage || deviceData.cpu_usage || deviceData.raw_data?.cpu_usage;
+      if (cpuUsage !== undefined && cpuUsage < thresholds.cpu.warning - 5) { // Hysteresis of 5%
+        shouldResolve = true;
+      }
     }
 
     // Resolve memory alerts if usage is now below threshold (with hysteresis)
-    if (alertMessage.includes('Memory') && deviceData.metrics?.memory_usage <= ALERT_THRESHOLDS.WARNING.memory_usage - 5) {
-      shouldResolve = true;
+    if (alertMessage.includes('Memory') && alert.severity !== AlertSeverity.OK) {
+      const memoryUsage = deviceData.metrics?.memory_usage || deviceData.memory_usage || deviceData.raw_data?.memory_usage;
+      if (memoryUsage !== undefined && memoryUsage < thresholds.memory.warning - 5) { // Hysteresis of 5%
+        shouldResolve = true;
+      }
     }
 
     // Resolve disk alerts if usage is now below threshold (with hysteresis)
-    if (alertMessage.includes('Disk') && deviceData.metrics?.disk_usage <= ALERT_THRESHOLDS.WARNING.disk_usage - 5) {
-      shouldResolve = true;
+    if (alertMessage.includes('Disk') && alert.severity !== AlertSeverity.OK) {
+      // Assuming we check the primary disk or an aggregate if specific disk isn't mentioned
+      const diskUsage = deviceData.metrics?.disk_usage || deviceData.disk_usage || deviceData.raw_data?.disk_usage;
+      if (diskUsage !== undefined && diskUsage < thresholds.disk.warning - 5) { // Hysteresis of 5%
+        shouldResolve = true;
+      }
     }
 
     // Resolve offline alerts if device is now online
@@ -254,14 +254,16 @@ async function resolveImprovedAlerts(deviceData: any, existingAlerts: any[]) {
     }
 
     if (shouldResolve && alert.is_active) {
-      console.log(`Auto-resolving alert ${alert.id}: ${alertMessage}`);
+      console.log(`Auto-resolving alert ${alert.id} (${alert.severity}): ${alertMessage}`);
 
       await db
         .update(systemAlerts)
-        .set({ 
+        .set({
           is_active: false,
+          resolved: true,
           resolved_at: now,
           updated_at: now,
+          severity: AlertSeverity.OK,
           metadata: {
             ...alert.metadata,
             resolution_reason: 'auto_resolved',
@@ -273,310 +275,273 @@ async function resolveImprovedAlerts(deviceData: any, existingAlerts: any[]) {
   }
 }
 
+// Main function to generate system alerts for a given device
 export async function generateSystemAlerts(deviceData: any): Promise<Alert[]> {
-  const alerts: Alert[] = [];
+  const alertsToCreate: Alert[] = [];
   const now = new Date();
+  const deviceId = deviceData.id;
+  const deviceHostname = deviceData.hostname || 'Unknown';
+  const thresholds = systemConfig.getAlertThresholds();
 
-  // Get existing ACTIVE alerts for this device (not just unread ones)
+  // Get existing ACTIVE alerts for this device
   const existingAlerts = await db
     .select()
     .from(systemAlerts)
     .where(
       and(
-        eq(systemAlerts.device_id, deviceData.id),
-        eq(systemAlerts.is_active, true)
+        eq(systemAlerts.device_id, deviceId),
+        eq(systemAlerts.is_active, true) // Only consider active alerts
       )
     );
 
-  // Create a map of existing alert types with their IDs for efficient lookup
-  const existingAlertMap = new Map();
+  // Create a map of existing alert keys (category_title) to their alert objects for efficient lookup
+  const existingAlertMap = new Map<string, any>();
   existingAlerts.forEach(alert => {
     const alertKey = `${alert.category}_${getAlertTitle(alert.category, alert.message)}`;
     existingAlertMap.set(alertKey, alert);
   });
 
-  console.log(`=== GENERATING ALERTS FOR DEVICE ${deviceData.id} ===`);
-  console.log(`Device data keys:`, Object.keys(deviceData));
-  console.log(`Raw data available:`, !!deviceData.raw_data);
+  console.log(`=== GENERATING ALERTS FOR DEVICE ${deviceHostname} (${deviceId}) ===`);
 
-  // Parse raw_data if it's a string
-  let rawData = deviceData.raw_data;
-  if (typeof rawData === 'string') {
-    try {
-      rawData = JSON.parse(rawData);
-    } catch (e) {
-      console.error('Failed to parse raw_data:', e);
-      rawData = {};
-    }
-  }
+  // --- Performance Alerts ---
 
-  // Extract CPU usage from multiple possible sources
-  const cpuUsage = deviceData.metrics?.cpu_usage || 
-                  deviceData.cpu_usage || 
-                  rawData?.hardware?.cpu?.usage_percentage ||
-                  rawData?.system_health?.metrics?.cpu_percent ||
-                  (rawData?.hardware?.cpu && parseFloat(rawData.hardware.cpu.usage_percentage));
+  // CPU Usage Alert
+  const cpuUsage = deviceData.metrics?.cpu_usage ?? deviceData.cpu_usage ?? deviceData.raw_data?.cpu_usage ?? deviceData.raw_data?.hardware?.cpu?.usage_percentage ?? deviceData.raw_data?.system_health?.metrics?.cpu_percent;
+  if (cpuUsage !== undefined && typeof cpuUsage === 'number') {
+    const cpuThresholds = thresholds.cpu;
+    const currentSeverity = AlertUtils.determineSeverity(cpuUsage, cpuThresholds);
+    const alertKey = `performance_${currentSeverity}_cpu_${deviceId}`;
+    const existingAlert = existingAlertMap.get(`performance_cpu_${deviceId}`); // Look for any CPU alert regardless of severity
 
-  console.log(`Checking CPU usage for device ${deviceData.id}: ${cpuUsage}%`);
-  console.log(`CPU sources:`, {
-    metrics: deviceData.metrics?.cpu_usage,
-    direct: deviceData.cpu_usage,
-    raw_hardware: rawData?.hardware?.cpu?.usage_percentage,
-    raw_system_health: rawData?.system_health?.metrics?.cpu_percent
-  });
+    if (currentSeverity !== AlertSeverity.OK) {
+      const message = AlertUtils.buildPerformanceMessage('cpu', cpuUsage, currentSeverity);
+      const metadata = AlertUtils.buildUpdateMetadata(existingAlert?.metadata || {}, 'cpu', cpuUsage, currentSeverity);
 
-  // CPU Usage Alert - Using ALERT_THRESHOLDS
-  if (cpuUsage && cpuUsage > ALERT_THRESHOLDS.WARNING.cpu_usage) {
-    const alertKey = `performance_cpu_${deviceData.id}`;
-    const existingAlert = existingAlertMap.get(alertKey);
-
-    if (!existingAlert) {
-      let severity = 'warning';
-      if (cpuUsage > ALERT_THRESHOLDS.CRITICAL.cpu_usage) {
-        severity = 'critical';
-      } else if (cpuUsage > ALERT_THRESHOLDS.HIGH.cpu_usage) {
-        severity = 'high';
+      if (!existingAlert) {
+        alertsToCreate.push({
+          id: uuidv4(),
+          device_id: deviceId,
+          type: 'performance',
+          severity: currentSeverity,
+          title: `High CPU Usage`,
+          message: message,
+          timestamp: now,
+          acknowledged: false,
+          resolved: false,
+          metadata: metadata
+        });
+        console.log(`Created CPU alert (${currentSeverity}) for ${deviceHostname}: ${cpuUsage.toFixed(1)}%`);
+      } else if (AlertUtils.shouldUpdateAlert(existingAlert, cpuUsage, 'cpu')) {
+        await updateExistingAlert(existingAlert.id, {
+          severity: currentSeverity,
+          message: message,
+          metadata: metadata
+        });
+        console.log(`Updated CPU alert for ${deviceHostname}: ${cpuUsage.toFixed(1)}%`);
       }
-
-      const newAlert = AlertUtils.createAlertData(
-        deviceData.id,
-        'performance',
-        severity,
-        `CPU usage is at ${cpuUsage.toFixed(1)}%`,
-        {
-          cpu_usage: cpuUsage,
-          threshold: ALERT_THRESHOLDS.WARNING.cpu_usage,
-          metric: 'cpu',
-          alert_type: 'performance_threshold',
-          device_hostname: deviceData.hostname || 'Unknown'
-        }
-      );
-
-      alerts.push({
-        id: uuidv4(),
-        device_id: deviceData.id,
-        type: 'performance',
-        severity: severity,
-        title: 'High CPU Usage',
-        message: newAlert.message,
-        timestamp: now,
-        acknowledged: false,
-        resolved: false
-      });
-
-      console.log(`Created CPU alert for device ${deviceData.hostname}: ${cpuUsage}% (threshold: ${ALERT_THRESHOLDS.WARNING.cpu_usage}%)`);
-    } else if (shouldUpdateAlert(existingAlert, cpuUsage)) {
-      const severity = cpuUsage > ALERT_THRESHOLDS.CRITICAL.cpu_usage ? 'critical' : cpuUsage > ALERT_THRESHOLDS.HIGH.cpu_usage ? 'high' : 'warning';
-      await updateExistingAlert(existingAlert.id, {
-        severity: severity,
-        message: `CPU usage is at ${cpuUsage.toFixed(1)}%`,
-        metadata: {
-          ...existingAlert.metadata,
-          cpu_usage: cpuUsage,
-          last_updated: now.toISOString(),
-          update_count: (existingAlert.metadata?.update_count || 0) + 1
-        }
-      });
-      console.log(`Updated CPU alert for device ${deviceData.hostname}: ${cpuUsage.toFixed(1)}%`);
+    } else if (existingAlert && existingAlert.severity !== AlertSeverity.OK) {
+      // If condition improved and existing alert was active, resolve it
+      await db.update(systemAlerts).set({
+        is_active: false,
+        resolved: true,
+        resolved_at: now,
+        severity: AlertSeverity.OK,
+        metadata: { ...existingAlert.metadata, resolution_reason: 'auto_resolved', resolved_at_timestamp: now.toISOString() }
+      }).where(eq(systemAlerts.id, existingAlert.id));
+      console.log(`Resolved CPU alert for ${deviceHostname} due to improved performance.`);
     }
   }
 
-  // Extract memory usage from multiple possible sources
-  const memoryUsage = deviceData.metrics?.memory_usage || 
-                     deviceData.memory_usage || 
-                     rawData?.hardware?.memory?.usage_percentage ||
-                     rawData?.system_health?.memory_pressure?.memory_usage_percent ||
-                     (rawData?.hardware?.memory && parseFloat(rawData.hardware.memory.usage_percentage));
+  // Memory Usage Alert
+  const memoryUsage = deviceData.metrics?.memory_usage ?? deviceData.memory_usage ?? deviceData.raw_data?.memory_usage ?? deviceData.raw_data?.hardware?.memory?.usage_percentage ?? deviceData.raw_data?.system_health?.memory_pressure?.memory_usage_percent;
+  if (memoryUsage !== undefined && typeof memoryUsage === 'number') {
+    const memoryThresholds = thresholds.memory;
+    const currentSeverity = AlertUtils.determineSeverity(memoryUsage, memoryThresholds);
+    const alertKey = `performance_${currentSeverity}_memory_${deviceId}`;
+    const existingAlert = existingAlertMap.get(`performance_memory_${deviceId}`);
 
-  console.log(`Checking memory usage for device ${deviceData.id}: ${memoryUsage}%`);
-  console.log(`Memory sources:`, {
-    metrics: deviceData.metrics?.memory_usage,
-    direct: deviceData.memory_usage,
-    raw_hardware: rawData?.hardware?.memory?.usage_percentage,
-    raw_system_health: rawData?.system_health?.memory_pressure?.memory_usage_percent
-  });
+    if (currentSeverity !== AlertSeverity.OK) {
+      const message = AlertUtils.buildPerformanceMessage('memory', memoryUsage, currentSeverity);
+      const metadata = AlertUtils.buildUpdateMetadata(existingAlert?.metadata || {}, 'memory', memoryUsage, currentSeverity);
 
-  // Memory Usage Alert - Using ALERT_THRESHOLDS
-  if (memoryUsage && memoryUsage > ALERT_THRESHOLDS.WARNING.memory_usage) {
-    const alertKey = `performance_memory_${deviceData.id}`;
-    const existingAlert = existingAlertMap.get(alertKey);
-
-    if (!existingAlert) {
-      let severity = 'warning';
-      if (memoryUsage > ALERT_THRESHOLDS.CRITICAL.memory_usage) {
-        severity = 'critical';
-      } else if (memoryUsage > ALERT_THRESHOLDS.HIGH.memory_usage) {
-        severity = 'high';
+      if (!existingAlert) {
+        alertsToCreate.push({
+          id: uuidv4(),
+          device_id: deviceId,
+          type: 'performance',
+          severity: currentSeverity,
+          title: `High Memory Usage`,
+          message: message,
+          timestamp: now,
+          acknowledged: false,
+          resolved: false,
+          metadata: metadata
+        });
+        console.log(`Created Memory alert (${currentSeverity}) for ${deviceHostname}: ${memoryUsage.toFixed(1)}%`);
+      } else if (AlertUtils.shouldUpdateAlert(existingAlert, memoryUsage, 'memory')) {
+        await updateExistingAlert(existingAlert.id, {
+          severity: currentSeverity,
+          message: message,
+          metadata: metadata
+        });
+        console.log(`Updated Memory alert for ${deviceHostname}: ${memoryUsage.toFixed(1)}%`);
       }
-
-      const newAlert = AlertUtils.createAlertData(
-        deviceData.id,
-        'performance',
-        severity,
-        `Memory usage is at ${memoryUsage.toFixed(1)}%`,
-        {
-          memory_usage: memoryUsage,
-          threshold: ALERT_THRESHOLDS.WARNING.memory_usage,
-          metric: 'memory',
-          alert_type: 'performance_threshold',
-          device_hostname: deviceData.hostname || 'Unknown'
-        }
-      );
-
-      alerts.push({
-        id: uuidv4(),
-        device_id: deviceData.id,
-        type: 'performance',
-        severity: severity,
-        title: 'High Memory Usage',
-        message: newAlert.message,
-        timestamp: now,
-        acknowledged: false,
-        resolved: false
-      });
-
-      console.log(`Created memory alert for device ${deviceData.hostname}: ${memoryUsage}% (threshold: ${ALERT_THRESHOLDS.WARNING.memory_usage}%)`);
-    } else if (shouldUpdateAlert(existingAlert, memoryUsage)) {
-      const severity = memoryUsage > ALERT_THRESHOLDS.CRITICAL.memory_usage ? 'critical' : memoryUsage > ALERT_THRESHOLDS.HIGH.memory_usage ? 'high' : 'warning';
-      await updateExistingAlert(existingAlert.id, {
-        severity: severity,
-        message: `Memory usage is at ${memoryUsage.toFixed(1)}%`,
-        metadata: {
-          ...existingAlert.metadata,
-          memory_usage: memoryUsage,
-          last_updated: now.toISOString(),
-          update_count: (existingAlert.metadata?.update_count || 0) + 1
-        }
-      });
-      console.log(`Updated memory alert for device ${deviceData.hostname}: ${memoryUsage.toFixed(1)}%`);
+    } else if (existingAlert && existingAlert.severity !== AlertSeverity.OK) {
+      // If condition improved and existing alert was active, resolve it
+      await db.update(systemAlerts).set({
+        is_active: false,
+        resolved: true,
+        resolved_at: now,
+        severity: AlertSeverity.OK,
+        metadata: { ...existingAlert.metadata, resolution_reason: 'auto_resolved', resolved_at_timestamp: now.toISOString() }
+      }).where(eq(systemAlerts.id, existingAlert.id));
+      console.log(`Resolved Memory alert for ${deviceHostname} due to improved performance.`);
     }
   }
 
-  // Extract disk usage from multiple possible sources
-  const diskUsage = deviceData.metrics?.disk_usage || 
-                   deviceData.disk_usage || 
-                   rawData?.storage?.primary_drive?.usage_percentage ||
-                   (rawData?.storage?.drives && rawData.storage.drives[0]?.usage_percentage) ||
-                   (rawData?.storage?.drives && rawData.storage.drives.length > 0 && parseFloat(rawData.storage.drives[0].usage_percentage));
+  // Disk Usage Alert
+  const disks = deviceData.storage?.disks || deviceData.raw_data?.storage?.disks;
+  if (disks && Array.isArray(disks)) {
+    for (const disk of disks) {
+      const diskUsage = disk.usage?.percentage ?? disk.usage_percentage;
+      if (diskUsage !== undefined && typeof diskUsage === 'number') {
+        const diskThresholds = thresholds.disk;
+        const currentSeverity = AlertUtils.determineSeverity(diskUsage, diskThresholds);
+        const diskDeviceName = disk.device || disk.name || 'Unknown';
+        const alertKey = `performance_${currentSeverity}_disk_${deviceId}_${diskDeviceName}`;
+        const existingAlert = existingAlerts.find(a =>
+          a.metadata?.disk_device === diskDeviceName && a.category === 'performance' && a.message.includes('Disk Usage')
+        );
 
-  console.log(`Checking disk usage for device ${deviceData.id}: ${diskUsage}%`);
-  console.log(`Disk sources:`, {
-    metrics: deviceData.metrics?.disk_usage,
-    direct: deviceData.disk_usage,
-    raw_primary: rawData?.storage?.primary_drive?.usage_percentage,
-    raw_drives: rawData?.storage?.drives?.[0]?.usage_percentage
-  });
+        if (currentSeverity !== AlertSeverity.OK) {
+          const message = AlertUtils.buildPerformanceMessage('disk', diskUsage, currentSeverity);
+          const metadata = AlertUtils.buildUpdateMetadata(existingAlert?.metadata || {}, 'disk', diskUsage, currentSeverity);
+          metadata.disk_device = diskDeviceName; // Ensure disk device is in metadata
 
-  // Disk Usage Alert - Using ALERT_THRESHOLDS
-  if (diskUsage && diskUsage > ALERT_THRESHOLDS.WARNING.disk_usage) {
-    const alertKey = `performance_disk_${deviceData.id}`;
-    const existingAlert = existingAlertMap.get(alertKey);
-
-    if (!existingAlert) {
-      let severity = 'warning';
-      if (diskUsage > ALERT_THRESHOLDS.CRITICAL.disk_usage) {
-        severity = 'critical';
-      } else if (diskUsage > ALERT_THRESHOLDS.HIGH.disk_usage) {
-        severity = 'high';
+          if (!existingAlert) {
+            alertsToCreate.push({
+              id: uuidv4(),
+              device_id: deviceId,
+              type: 'performance',
+              severity: currentSeverity,
+              title: `High Disk Usage`,
+              message: `Disk ${diskDeviceName} usage is at ${diskUsage.toFixed(1)}%`,
+              timestamp: now,
+              acknowledged: false,
+              resolved: false,
+              metadata: metadata
+            });
+            console.log(`Created Disk alert (${currentSeverity}) for ${deviceHostname} (Disk: ${diskDeviceName}): ${diskUsage.toFixed(1)}%`);
+          } else if (AlertUtils.shouldUpdateAlert(existingAlert, diskUsage, 'disk')) {
+            await updateExistingAlert(existingAlert.id, {
+              severity: currentSeverity,
+              message: `Disk ${diskDeviceName} usage is at ${diskUsage.toFixed(1)}%`,
+              metadata: metadata
+            });
+            console.log(`Updated Disk alert for ${deviceHostname} (Disk: ${diskDeviceName}): ${diskUsage.toFixed(1)}%`);
+          }
+        } else if (existingAlert && existingAlert.severity !== AlertSeverity.OK) {
+          // If condition improved and existing alert was active, resolve it
+          await db.update(systemAlerts).set({
+            is_active: false,
+            resolved: true,
+            resolved_at: now,
+            severity: AlertSeverity.OK,
+            metadata: { ...existingAlert.metadata, resolution_reason: 'auto_resolved', resolved_at_timestamp: now.toISOString() }
+          }).where(eq(systemAlerts.id, existingAlert.id));
+          console.log(`Resolved Disk alert for ${deviceHostname} (Disk: ${diskDeviceName}) due to improved performance.`);
+        }
       }
-
-      const newAlert = AlertUtils.createAlertData(
-        deviceData.id,
-        'performance',
-        severity,
-        `Disk usage is at ${diskUsage.toFixed(1)}%`,
-        {
-          disk_usage: diskUsage,
-          threshold: ALERT_THRESHOLDS.WARNING.disk_usage,
-          metric: 'disk',
-          alert_type: 'performance_threshold',
-          device_hostname: deviceData.hostname || 'Unknown'
-        }
-      );
-
-      alerts.push({
-        id: uuidv4(),
-        device_id: deviceData.id,
-        type: 'performance',
-        severity: severity,
-        title: 'High Disk Usage',
-        message: newAlert.message,
-        timestamp: now,
-        acknowledged: false,
-        resolved: false
-      });
-
-      console.log(`Created disk alert for device ${deviceData.hostname}: ${diskUsage}% (threshold: ${ALERT_THRESHOLDS.WARNING.disk_usage}%)`);
-    } else if (shouldUpdateAlert(existingAlert, diskUsage)) {
-      const severity = diskUsage > ALERT_THRESHOLDS.CRITICAL.disk_usage ? 'critical' : diskUsage > ALERT_THRESHOLDS.HIGH.disk_usage ? 'high' : 'warning';
-      await updateExistingAlert(existingAlert.id, {
-        severity: severity,
-        message: `Disk usage is at ${diskUsage.toFixed(1)}%`,
-        metadata: {
-          ...existingAlert.metadata,
-          disk_usage: diskUsage,
-          last_updated: now.toISOString(),
-          update_count: (existingAlert.metadata?.update_count || 0) + 1
-        }
-      });
-      console.log(`Updated disk alert for device ${deviceData.hostname}: ${diskUsage.toFixed(1)}%`);
     }
   }
 
-  // Device Offline Alert - only generate if no existing active offline alert
+  // --- Connectivity Alerts ---
   if (deviceData.status === 'offline') {
     const alertKey = 'connectivity_Device Offline';
     const existingAlert = existingAlertMap.get(alertKey);
 
     if (!existingAlert) {
-      const newAlert = AlertUtils.createAlertData(
-        deviceData.id,
-        'connectivity',
-        'high',
-        `Device ${deviceData.hostname} is offline`,
-        {
-          device_status: 'offline',
-          hostname: deviceData.hostname,
-          alert_type: 'connectivity_status'
-        }
-      );
-
-      alerts.push({
+      const message = `Device ${deviceHostname} is offline`;
+      alertsToCreate.push({
         id: uuidv4(),
-        device_id: deviceData.id,
+        device_id: deviceId,
         type: 'connectivity',
-        severity: 'high',
+        severity: AlertSeverity.CRITICAL, // Offline is critical
         title: 'Device Offline',
-        message: newAlert.message,
+        message: message,
         timestamp: now,
         acknowledged: false,
-        resolved: false
+        resolved: false,
+        metadata: {
+          device_status: 'offline',
+          hostname: deviceHostname,
+          alert_type: 'connectivity_status'
+        }
       });
-      console.log(`Created offline alert for device ${deviceData.hostname}`);
+      console.log(`Created Offline alert for ${deviceHostname}`);
+    }
+  } else if (deviceData.status === 'online' && existingAlertMap.has('connectivity_Device Offline')) {
+    // If device is online and there was an offline alert, resolve it
+    const offlineAlert = existingAlertMap.get('connectivity_Device Offline');
+    if (offlineAlert && offlineAlert.is_active) {
+      await db.update(systemAlerts).set({
+        is_active: false,
+        resolved: true,
+        resolved_at: now,
+        severity: AlertSeverity.OK,
+        metadata: { ...offlineAlert.metadata, resolution_reason: 'auto_resolved', resolved_at_timestamp: now.toISOString() }
+      }).where(eq(systemAlerts.id, offlineAlert.id));
+      console.log(`Resolved Offline alert for ${deviceHostname} as it is now online.`);
     }
   }
 
-  // Add comprehensive system resource check with lower thresholds
-  console.log(`=== RESOURCE SUMMARY FOR DEVICE ${deviceData.hostname || deviceData.id} ===`);
-  console.log(`CPU: ${cpuUsage !== undefined ? cpuUsage.toFixed(1) + '%' : 'N/A'} (threshold: ${ALERT_THRESHOLDS.WARNING.cpu_usage}%)`);
-  console.log(`Memory: ${memoryUsage !== undefined ? memoryUsage.toFixed(1) + '%' : 'N/A'} (threshold: ${ALERT_THRESHOLDS.WARNING.memory_usage}%)`);
-  console.log(`Disk: ${diskUsage !== undefined ? diskUsage.toFixed(1) + '%' : 'N/A'} (threshold: ${ALERT_THRESHOLDS.WARNING.disk_usage}%)`);
-  console.log(`Existing alerts: ${existingAlerts.length}`);
-  console.log(`New alerts generated: ${alerts.length}`);
+  // --- Security Alerts ---
+  // Example: USB Device Detection
+  if (deviceData.usb_devices && Array.isArray(deviceData.usb_devices) && deviceData.usb_devices.length > 0) {
+    const usbAlertKey = 'security_USB Device Detected';
+    const existingUSBAlert = existingAlertMap.get(usbAlertKey);
 
-  // Auto-resolve alerts when conditions improve
+    if (!existingUSBAlert) {
+      const usbAlertData = AlertUtils.createUSBAlert(deviceId, deviceData.usb_devices);
+      alertsToCreate.push({
+        id: uuidv4(),
+        device_id: deviceId,
+        type: usbAlertData.category,
+        severity: usbAlertData.severity,
+        title: 'USB Device Detected',
+        message: usbAlertData.message,
+        timestamp: now,
+        acknowledged: false,
+        resolved: false,
+        metadata: usbAlertData.metadata
+      });
+      console.log(`Created USB Device alert for ${deviceHostname} with ${deviceData.usb_devices.length} devices.`);
+    }
+  }
+
+  // Summary log
+  console.log(`=== RESOURCE SUMMARY FOR DEVICE ${deviceHostname} (${deviceId}) ===`);
+  const cpuVal = cpuUsage !== undefined ? `${cpuUsage.toFixed(1)}%` : 'N/A';
+  const memVal = memoryUsage !== undefined ? `${memoryUsage.toFixed(1)}%` : 'N/A';
+  const diskVals = disks?.map(d => `${d.device || 'Unknown'}: ${d.usage?.percentage ?? d.usage_percentage ?? 'N/A'}%`).join(', ') || 'N/A';
+  console.log(`CPU: ${cpuVal} (Thresholds: W:${thresholds.cpu.warning}%, H:${thresholds.cpu.high}%, C:${thresholds.cpu.critical}%)`);
+  console.log(`Memory: ${memVal} (Thresholds: W:${thresholds.memory.warning}%, H:${thresholds.memory.high}%, C:${thresholds.memory.critical}%)`);
+  console.log(`Disk: ${diskVals} (Thresholds: W:${thresholds.disk.warning}%, H:${thresholds.disk.high}%, C:${thresholds.disk.critical}%)`);
+  console.log(`Existing active alerts: ${existingAlerts.length}`);
+  console.log(`New alerts to create: ${alertsToCreate.length}`);
+
+  // Auto-resolve alerts based on current device state
   await resolveImprovedAlerts(deviceData, existingAlerts);
 
-  console.log(`=== FINAL ALERT COUNT FOR DEVICE ${deviceData.hostname || deviceData.id}: ${alerts.length} ===`);
+  console.log(`=== FINAL ALERT GENERATION FOR DEVICE ${deviceHostname} (${deviceId}) ===`);
 
-  return alerts;
+  return alertsToCreate;
 }
 
 // Mock storage and generateAlertsForDevice for demonstration purposes
 // In a real scenario, these would be imported from their respective modules.
 const storage = {
   createAlert: async (alertData: any) => {
-    // Simulate database insertion
     console.log('Simulating alert creation in DB:', alertData);
     // In a real application, you would insert into the systemAlerts table
     // await db.insert(systemAlerts).values({...alertData, id: uuidv4()});
@@ -595,12 +560,16 @@ async function generateAlertsForDevice(deviceData: any): Promise<Alert[]> {
 
 export async function processAlertsForDevice(deviceData: any): Promise<any[]> {
   try {
-    console.log(`=== ALERT PROCESSING DEBUG ===`);
-    console.log(`Device: ${deviceData.hostname || deviceData.id}`);
-    console.log(`Memory Usage: ${deviceData.hardware?.memory?.usage_percentage || deviceData.memory_usage}%`);
-    console.log(`CPU Usage: ${deviceData.hardware?.cpu?.usage_percentage || deviceData.cpu_usage}%`);
-    console.log(`Disk Usage: ${deviceData.hardware?.storage?.usage_percentage || deviceData.disk_usage}%`);
-    console.log(`Memory Threshold: ${ALERT_THRESHOLDS.WARNING.memory_usage}%`);
+    console.log(`\n=== ALERT PROCESSING START FOR DEVICE: ${deviceData.hostname || deviceData.id} ===`);
+    // Log key metrics for context
+    const cpuUsage = deviceData.metrics?.cpu_usage ?? deviceData.cpu_usage ?? deviceData.raw_data?.cpu_usage ?? deviceData.raw_data?.hardware?.cpu?.usage_percentage;
+    const memoryUsage = deviceData.metrics?.memory_usage ?? deviceData.memory_usage ?? deviceData.raw_data?.memory_usage ?? deviceData.raw_data?.hardware?.memory?.usage_percentage;
+    const diskUsage = deviceData.storage?.disks?.[0]?.usage?.percentage ?? deviceData.storage?.disks?.[0]?.usage_percentage ?? deviceData.raw_data?.storage?.disks?.[0]?.usage_percentage;
+    const thresholds = systemConfig.getAlertThresholds();
+
+    console.log(`Device Metrics: CPU=${cpuUsage !== undefined ? cpuUsage.toFixed(1) + '%' : 'N/A'}, Memory=${memoryUsage !== undefined ? memoryUsage.toFixed(1) + '%' : 'N/A'}, Disk=${diskUsage !== undefined ? diskUsage.toFixed(1) + '%' : 'N/A'}`);
+    console.log(`Thresholds: CPU(W:${thresholds.cpu.warning}%, H:${thresholds.cpu.high}%, C:${thresholds.cpu.critical}%), Memory(W:${thresholds.memory.warning}%, H:${thresholds.memory.high}%, C:${thresholds.memory.critical}%), Disk(W:${thresholds.disk.warning}%, H:${thresholds.disk.high}%, C:${thresholds.disk.critical}%)`);
+    console.log(`Device Status: ${deviceData.status}`);
 
     const alerts = await generateAlertsForDevice(deviceData);
 
@@ -609,21 +578,28 @@ export async function processAlertsForDevice(deviceData: any): Promise<any[]> {
     if (alerts.length > 0) {
       // Store alerts in database
       for (const alert of alerts) {
-        console.log(`Creating alert: ${alert.title} - ${alert.message}`);
+        console.log(`Creating alert: ${alert.title} [${alert.severity}] - ${alert.message}`);
+        // Ensure alert object conforms to the expected schema for storage.createAlert
         await storage.createAlert({
           device_id: alert.device_id,
           category: alert.type,
           severity: alert.severity,
           message: alert.message,
           metadata: alert.metadata || {},
-          is_active: true,
+          is_active: true, // New alerts are active
+          created_at: new Date(),
+          updated_at: new Date(),
+          resolved: false,
+          acknowledged: false,
+          title: alert.title
         });
-        console.log(`Alert created successfully in database`);
+        console.log(`Alert added to storage queue.`);
       }
     } else {
-      console.log(`No alerts generated for device ${deviceData.hostname || deviceData.id}`);
+      console.log(`No new alerts generated for device ${deviceData.hostname || deviceData.id}. Checking for resolution.`);
     }
 
+    console.log(`=== ALERT PROCESSING END FOR DEVICE: ${deviceData.hostname || deviceData.id} ===`);
     return alerts;
   } catch (error) {
     console.error('Error processing alerts for device:', error);

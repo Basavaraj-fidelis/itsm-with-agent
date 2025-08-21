@@ -215,6 +215,18 @@ class NetworkScanService {
         const fallbackAgents = this.findNearbyAgents(onlineAgents, ipRange);
         
         if (fallbackAgents.length === 0) {
+          console.log(`No agents in same subnet for IP range: ${ipRange}. Using any available agent for cross-subnet scanning.`);
+          
+          // Use any available agent for cross-subnet scanning
+          if (onlineAgents.length > 0) {
+            const anyAgent = onlineAgents.sort((a, b) => 
+              new Date(b.last_seen).getTime() - new Date(a.last_seen).getTime()
+            )[0];
+            
+            console.log(`Selected cross-subnet agent ${anyAgent.hostname} (${anyAgent.ip_address}) for IP range: ${ipRange}`);
+            return anyAgent;
+          }
+          
           console.log(`No suitable agents found for IP range: ${ipRange}`);
           return null;
         }
@@ -253,14 +265,17 @@ class NetworkScanService {
       networkBase = ipRange.replace(/\*/g, '').replace(/\.$/, '');
     }
     
-    if (!networkBase) return [];
+    if (!networkBase) return agents; // Return all agents as fallback
     
     // Find agents on the same network segment
-    return agents.filter(agent => {
+    const sameSubnetAgents = agents.filter(agent => {
       if (!agent.ip_address) return false;
       const agentNetworkBase = agent.ip_address.split('.').slice(0, 3).join('.');
       return agentNetworkBase === networkBase;
     });
+    
+    // If no agents in same subnet, return all available agents for cross-subnet scanning
+    return sameSubnetAgents.length > 0 ? sameSubnetAgents : agents;
   }
 
   async initiateScan(config: {
@@ -431,6 +446,7 @@ class NetworkScanService {
           console.log(`Requesting network scan from agent ${agent.hostname} (${agent.ip_address}) for subnet ${agent.subnet}`);
 
           // Send network scan command to the specific agent
+          const networkConfig = systemConfig.getNetworkConfig();
           const scanResult = await websocketService.sendCommandToAgent(agent.agent_id, {
             command: 'networkScan',
             params: {
@@ -438,7 +454,7 @@ class NetworkScanService {
               scan_type: config.scan_type || 'ping',
               session_id: sessionId
             }
-          }, 120000); // 2 minute timeout for network scan
+          }, networkConfig.scan.timeoutMs);
 
           if (scanResult && scanResult.success && scanResult.data) {
             console.log(`Agent ${agent.hostname} completed network scan for ${agent.subnet}`);

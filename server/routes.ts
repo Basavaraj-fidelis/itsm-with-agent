@@ -11,6 +11,8 @@ import { ResponseUtils } from "./utils/response";
 import { UserUtils } from "./utils/user";
 import { authRoutes } from "./routes/auth-routes";
 import { registerNetworkScanRoutes } from "./routes/network-scan-routes";
+import { registerVNCRoutes } from "./routes/vnc-routes";
+import { registerSystemConfigRoutes } from "./routes/system-config-routes";
 import { securityService } from "./services/security-service"; // Import securityService
 
 // Import centralized middleware
@@ -391,6 +393,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerDeviceRoutes(app, authenticateToken);
   registerAgentRoutes(app, authenticateToken, requireRole);
   registerNetworkScanRoutes(app);
+  registerVNCRoutes(app);
+  registerSystemConfigRoutes(app);
 
   // Register additional modular routes with error handling
   try {
