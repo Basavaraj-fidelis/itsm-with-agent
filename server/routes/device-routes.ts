@@ -83,7 +83,7 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
   router.get("/api/devices", authenticateToken, async (req, res) => {
     try {
       console.log("Fetching devices - checking for agent activity...");
-      
+
       // Get storage instance safely
       let devices = [];
       try {
@@ -159,7 +159,7 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
                 const diskUsages = rawData.storage.disks
                   .map(disk => parseFloat(disk.usage_percentage || 0))
                   .filter(usage => !isNaN(usage) && usage > 0);
-                
+
                 if (diskUsages.length > 0) {
                   extractedMetrics.disk_usage = diskUsages.reduce((sum, usage) => sum + usage, 0) / diskUsages.length;
                 }
@@ -244,7 +244,7 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
       }
 
       const latestReport = await storage.getLatestDeviceReport(device.id);
-      
+
       // Extract metrics from raw_data if available
       let extractedMetrics = {
         cpu_usage: latestReport?.cpu_usage || null,
@@ -274,7 +274,7 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
             const diskUsages = rawData.storage.disks
               .map(disk => parseFloat(disk.usage_percentage || 0))
               .filter(usage => !isNaN(usage) && usage > 0);
-            
+
             if (diskUsages.length > 0) {
               extractedMetrics.disk_usage = diskUsages.reduce((sum, usage) => sum + usage, 0) / diskUsages.length;
             }
@@ -520,10 +520,10 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
   router.get("/api/dashboard/summary", authenticateToken, async (req, res) => {
     try {
       console.log('Fetching dashboard summary...');
-      
+
       let devices = [];
       let alerts = [];
-      
+
       try {
         devices = await storage.getDevices();
         alerts = await storage.getActiveAlerts();

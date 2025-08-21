@@ -37,15 +37,28 @@ export class DeviceStorage {
       
       const result = await query;
       
-      return result.map(device => ({
-        ...device,
-        latest_report: device.latest_report ? 
-          (typeof device.latest_report === 'string' ? 
-            JSON.parse(device.latest_report) : 
-            device.latest_report) : null,
-        // Ensure IP address consistency
-        display_ip: device.ip_address
-      }));
+      return result.map(device => {
+        let parsedLatestReport = null;
+        
+        // Parse latest_report if it exists
+        if (device.latest_report) {
+          try {
+            parsedLatestReport = typeof device.latest_report === 'string' ? 
+              JSON.parse(device.latest_report) : device.latest_report;
+          } catch (e) {
+            console.warn(`Failed to parse latest_report for device ${device.id}:`, e);
+            parsedLatestReport = device.latest_report;
+          }
+        }
+        
+        return {
+          ...device,
+          latest_report: parsedLatestReport,
+          // Ensure consistent display values
+          display_ip: device.ip_address,
+          display_hostname: device.hostname
+        };
+      });
     } catch (error) {
       console.error("Error fetching devices:", error);
       throw error;

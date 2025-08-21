@@ -34,6 +34,19 @@ export const AgentTable: React.FC<AgentTableProps> = ({
   selectedAgents = [],
   onSelectionChange
 }) => {
+  // Debug logging for agent data
+  React.useEffect(() => {
+    if (agents?.length > 0) {
+      console.log('Agent Table Debug - Sample agent data:', {
+        sampleAgent: agents[0],
+        latestReport: agents[0]?.latest_report,
+        rawDataExists: !!agents[0]?.latest_report?.raw_data,
+        cpuUsage: agents[0]?.latest_report?.cpu_usage,
+        memoryUsage: agents[0]?.latest_report?.memory_usage,
+        diskUsage: agents[0]?.latest_report?.disk_usage
+      });
+    }
+  }, [agents]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [deleteAgent, setDeleteAgent] = useState<any>(null);
@@ -69,19 +82,48 @@ export const AgentTable: React.FC<AgentTableProps> = ({
       header: 'Agent Name',
       sortable: true,
       filterable: true,
-      render: (value, agent) => (
-        <div className="flex items-center space-x-3">
-          <Monitor className="h-5 w-5 text-gray-400" />
-          <div>
-            <div className="font-medium text-gray-900 dark:text-white">
-              {value || 'Unknown'}
-            </div>
-            <div className="text-sm text-gray-500">
-              {agent.ip_address || 'No IP'}
+      render: (value, agent) => {
+        // Extract proper hostname and primary IP
+        let hostname = agent.hostname || value || 'Unknown';
+        let primaryIP = agent.ip_address || 'No IP';
+        
+        // Try to get better data from raw_data if available
+        if (agent.latest_report?.raw_data) {
+          try {
+            const rawData = typeof agent.latest_report.raw_data === 'string' 
+              ? JSON.parse(agent.latest_report.raw_data) 
+              : agent.latest_report.raw_data;
+            
+            // Get hostname from raw data
+            if (rawData.hostname || rawData.computer_name) {
+              hostname = rawData.hostname || rawData.computer_name;
+            }
+            
+            // Get primary IP from network interfaces
+            if (rawData.network?.primary_interface?.ip_address) {
+              primaryIP = rawData.network.primary_interface.ip_address;
+            } else if (rawData.extracted_public_ip) {
+              primaryIP = rawData.extracted_public_ip;
+            }
+          } catch (e) {
+            // Use fallback values
+          }
+        }
+        
+        return (
+          <div className="flex items-center space-x-3">
+            <Monitor className="h-5 w-5 text-gray-400" />
+            <div>
+              <div className="font-medium text-gray-900 dark:text-white">
+                {hostname}
+              </div>
+              <div className="text-sm text-gray-500">
+                {primaryIP}
+              </div>
             </div>
           </div>
-        </div>
-      )
+        );
+      }
     },
     {
       key: 'status',
@@ -101,27 +143,29 @@ export const AgentTable: React.FC<AgentTableProps> = ({
       header: 'CPU',
       sortable: true,
       render: (value, agent) => {
-        // Extract CPU from multiple possible sources
+        // Extract CPU from multiple possible sources with proper field names
         let cpuValue = 0;
         
-        if (agent.latest_report?.raw_data) {
+        // First check direct fields
+        if (agent.latest_report?.cpu_usage && parseFloat(agent.latest_report.cpu_usage) > 0) {
+          cpuValue = parseFloat(agent.latest_report.cpu_usage);
+        } else if (agent.latest_report?.raw_data) {
           try {
             const rawData = typeof agent.latest_report.raw_data === 'string' 
               ? JSON.parse(agent.latest_report.raw_data) 
               : agent.latest_report.raw_data;
             
-            cpuValue = rawData?.hardware?.cpu?.usage_percentage || 
+            // Try multiple extraction paths
+            cpuValue = rawData?.hardware?.cpu?.usage_percent || 
+                      rawData?.system_health?.cpu_usage ||
                       rawData?.cpu_usage || 
-                      agent.latest_report?.cpu_usage || 
-                      value || 0;
+                      parseFloat(agent.latest_report?.cpu_usage || '0');
           } catch (e) {
-            cpuValue = agent.latest_report?.cpu_usage || value || 0;
+            cpuValue = parseFloat(agent.latest_report?.cpu_usage || '0');
           }
-        } else {
-          cpuValue = agent.latest_report?.cpu_usage || value || 0;
         }
         
-        return `${parseFloat(cpuValue).toFixed(1)}%`;
+        return `${Math.max(0, Math.min(100, parseFloat(cpuValue))).toFixed(1)}%`;
       }
     },
     {
@@ -129,27 +173,29 @@ export const AgentTable: React.FC<AgentTableProps> = ({
       header: 'Memory',
       sortable: true,
       render: (value, agent) => {
-        // Extract Memory from multiple possible sources
+        // Extract Memory from multiple possible sources with proper field names
         let memoryValue = 0;
         
-        if (agent.latest_report?.raw_data) {
+        // First check direct fields
+        if (agent.latest_report?.memory_usage && parseFloat(agent.latest_report.memory_usage) > 0) {
+          memoryValue = parseFloat(agent.latest_report.memory_usage);
+        } else if (agent.latest_report?.raw_data) {
           try {
             const rawData = typeof agent.latest_report.raw_data === 'string' 
               ? JSON.parse(agent.latest_report.raw_data) 
               : agent.latest_report.raw_data;
             
-            memoryValue = rawData?.hardware?.memory?.usage_percentage || 
+            // Try multiple extraction paths
+            memoryValue = rawData?.hardware?.memory?.percentage || 
+                         rawData?.system_health?.memory_usage ||
                          rawData?.memory_usage || 
-                         agent.latest_report?.memory_usage || 
-                         value || 0;
+                         parseFloat(agent.latest_report?.memory_usage || '0');
           } catch (e) {
-            memoryValue = agent.latest_report?.memory_usage || value || 0;
+            memoryValue = parseFloat(agent.latest_report?.memory_usage || '0');
           }
-        } else {
-          memoryValue = agent.latest_report?.memory_usage || value || 0;
         }
         
-        return `${parseFloat(memoryValue).toFixed(1)}%`;
+        return `${Math.max(0, Math.min(100, parseFloat(memoryValue))).toFixed(1)}%`;
       }
     },
     {
@@ -157,37 +203,39 @@ export const AgentTable: React.FC<AgentTableProps> = ({
       header: 'Disk',
       sortable: true,
       render: (value, agent) => {
-        // Extract Disk from multiple possible sources
+        // Extract Disk from multiple possible sources with proper field names
         let diskValue = 0;
         
-        if (agent.latest_report?.raw_data) {
+        // First check direct fields
+        if (agent.latest_report?.disk_usage && parseFloat(agent.latest_report.disk_usage) > 0) {
+          diskValue = parseFloat(agent.latest_report.disk_usage);
+        } else if (agent.latest_report?.raw_data) {
           try {
             const rawData = typeof agent.latest_report.raw_data === 'string' 
               ? JSON.parse(agent.latest_report.raw_data) 
               : agent.latest_report.raw_data;
             
-            // Calculate average disk usage from all disks
+            // Try to get from storage disks (primary disk usage)
             if (rawData?.storage?.disks && Array.isArray(rawData.storage.disks)) {
-              const diskUsages = rawData.storage.disks
-                .map(disk => parseFloat(disk.usage_percentage || 0))
-                .filter(usage => !isNaN(usage) && usage > 0);
+              const primaryDisk = rawData.storage.disks.find(disk => 
+                disk.device === 'C:\\' || disk.mountpoint === 'C:\\'
+              ) || rawData.storage.disks[0];
               
-              if (diskUsages.length > 0) {
-                diskValue = diskUsages.reduce((sum, usage) => sum + usage, 0) / diskUsages.length;
+              if (primaryDisk?.percent) {
+                diskValue = parseFloat(primaryDisk.percent);
               }
             } else {
-              diskValue = rawData?.disk_usage || 
-                         agent.latest_report?.disk_usage || 
-                         value || 0;
+              // Try other sources
+              diskValue = rawData?.system_health?.disk_usage ||
+                         rawData?.disk_usage || 
+                         parseFloat(agent.latest_report?.disk_usage || '0');
             }
           } catch (e) {
-            diskValue = agent.latest_report?.disk_usage || value || 0;
+            diskValue = parseFloat(agent.latest_report?.disk_usage || '0');
           }
-        } else {
-          diskValue = agent.latest_report?.disk_usage || value || 0;
         }
         
-        return `${parseFloat(diskValue).toFixed(1)}%`;
+        return `${Math.max(0, Math.min(100, parseFloat(diskValue))).toFixed(1)}%`;
       }
     }
   ];
