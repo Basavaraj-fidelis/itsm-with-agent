@@ -1,0 +1,46 @@
+7:13:43 AM [express] GET /api/notifications 200 in 894ms :: []
+Generating AI insights for device: DESKTOP-CMM8H3C (f7f5ac23-fa74-4e1b-8e46-d134d3480948)
+Resource prediction failed: Cannot read properties of undefined (reading 'push')
+Generated 2 AI insights for device f7f5ac23-fa74-4e1b-8e46-d134d3480948
+Resource prediction failed: Cannot read properties of undefined (reading 'push')
+Generated 2 AI insights for device f7f5ac23-fa74-4e1b-8e46-d134d3480948
+7:13:44 AM [express] GET /api/ai/insights/f7f5ac23-fa74-4e1b-8e46-d134d3480948 200 in 1370ms :: {"su…
+Authenticating token for /insights/f7f5ac23-fa74-4e1b-8e46-d134d3480948
+Decoded token: {
+  userId: '37b1fbab-ce59-4dba-81b8-154dcf442c05',
+  id: '37b1fbab-ce59-4dba-81b8-154dcf442c05',
+  email: 'admin@company.com',
+  role: 'admin',
+  iat: 1755759360,
+  exp: 1755845760
+}
+Generating AI insights for device: DESKTOP-CMM8H3C (f7f5ac23-fa74-4e1b-8e46-d134d3480948)
+Resource prediction failed: Cannot read properties of undefined (reading 'push')
+Generated 2 AI insights for device f7f5ac23-fa74-4e1b-8e46-d134d3480948
+7:13:45 AM [express] GET /api/ai/insights/f7f5ac23-fa74-4e1b-8e46-d134d3480948 200 in 402ms :: {"suc…
+Authenticating token for /insights/f7f5ac23-fa74-4e1b-8e46-d134d3480948
+Decoded token: {
+  userId: '37b1fbab-ce59-4dba-81b8-154dcf442c05',
+  id: '37b1fbab-ce59-4dba-81b8-154dcf442c05',
+  email: 'admin@company.com',
+  role: 'admin',
+  iat: 1755759360,
+  exp: 1755845760
+}
+Generating AI insights for device: DESKTOP-CMM8H3C (f7f5ac23-fa74-4e1b-8e46-d134d3480948)
+Resource prediction failed: Cannot read properties of undefined (reading 'push')
+Generated 2 AI insights for device f7f5ac23-fa74-4e1b-8e46-d134d3480948
+7:13:45 AM [express] GET /api/ai/insights/f7f5ac23-fa74-4e1b-8e46-d134d3480948 200 in 273ms :: {"suc…
+Authenticating token for /insights/f7f5ac23-fa74-4e1b-8e46-d134d3480948
+Decoded token: {
+  userId: '37b1fbab-ce59-4dba-81b8-154dcf442c05',
+  id: '37b1fbab-ce59-4dba-81b8-154dcf442c05',
+  email: 'admin@company.com',
+  role: 'admin',
+  iat: 1755759360,
+  exp: 1755845760
+}
+Generating AI insights for device: DESKTOP-CMM8H3C (f7f5ac23-fa74-4e1b-8e46-d134d3480948)
+Resource prediction failed: Cannot read properties of undefined (reading 'push')
+Generated 2 AI insights for device f7f5ac23-fa74-4e1b-8e46-d134d3480948
+7:13:45 AM [express] GET /api/ai/insights/f7f5ac23-fa74-4e1b-8e46-d134d3480
