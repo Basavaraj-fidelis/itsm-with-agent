@@ -26,7 +26,7 @@ class AIInsightsStorage {
     try {
       const { db, sql } = await import("../db");
 
-      const [result] = await db.execute(sql`
+      const results = await db.execute(sql`
         INSERT INTO ai_insights (
           device_id, insight_type, severity, title, description, 
           recommendation, confidence, metadata, is_active
@@ -44,7 +44,16 @@ class AIInsightsStorage {
         RETURNING *
       `);
 
-      return result;
+      // Handle different database result formats
+      const rows = Array.isArray(results) ? results : (results.rows || []);
+      const result = rows[0];
+      
+      return {
+        ...result,
+        metadata: typeof result.metadata === "string" 
+          ? JSON.parse(result.metadata) 
+          : (result.metadata || {}),
+      };
     } catch (error) {
       console.error("Error storing AI insight:", error);
       throw error;
@@ -65,7 +74,10 @@ class AIInsightsStorage {
         LIMIT ${limit}
       `);
 
-      return results.map((row: any) => ({
+      // Handle different database result formats
+      const rows = Array.isArray(results) ? results : (results.rows || []);
+      
+      return rows.map((row: any) => ({
         ...row,
         metadata: typeof row.metadata === "string" 
           ? JSON.parse(row.metadata) 

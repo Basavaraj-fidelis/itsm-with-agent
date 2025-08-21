@@ -71,8 +71,12 @@ router.get("/insights/:deviceId", async (req, res) => {
             console.warn("Failed to get cached insights:", cacheError.message);
           }
 
-          // Fallback to generating fresh insights
-          return await aiService.generateDeviceInsights(deviceId);
+          try {
+            return await aiService.generateDeviceInsights(deviceId);
+          } catch (generateError) {
+            console.warn("Failed to generate insights:", generateError.message);
+            return [];
+          }
         }
       })();
 

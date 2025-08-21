@@ -92,14 +92,12 @@ class AIService {
           }
         }
         
+        console.log(`Generated ${insights.length} AI insights for device ${deviceId}`);
         return insights;
       } catch (timeoutError) {
         console.warn(`Analysis timeout for device ${deviceId}:`, timeoutError.message);
         return []; // Return empty array on timeout
       }
-
-      console.log(`Generated ${insights.length} AI insights for device ${deviceId}`);
-      return insights;
 
     } catch (error) {
       console.warn(`Error generating AI insights for device ${deviceId}:`, error.message);
@@ -379,8 +377,14 @@ class AIService {
     }
 
     // Hardware failure prediction based on multiple metrics
-    const hardwareFailures = await this.predictHardwareFailures(deviceId, reports, []);
-    newInsights.push(...hardwareFailures);
+    try {
+      const hardwareFailures = await this.predictHardwareFailures(deviceId, reports, []);
+      if (Array.isArray(hardwareFailures)) {
+        newInsights.push(...hardwareFailures);
+      }
+    } catch (error) {
+      console.warn('Hardware failure prediction failed:', error.message);
+    }
 
     return newInsights;
   }
