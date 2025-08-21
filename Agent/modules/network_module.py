@@ -37,6 +37,36 @@ class NetworkModule(BaseModule):
         
         return network_info
     
+    def perform_network_scan(self, subnet: str, scan_type: str = 'ping') -> Dict[str, Any]:
+        """Perform on-demand network scanning"""
+        self.logger.info(f"Starting network scan for subnet: {subnet}, type: {scan_type}")
+        
+        scan_results = {
+            'subnet': subnet,
+            'scan_type': scan_type,
+            'discovered_devices': [],
+            'local_mac': self._get_local_mac(),
+            'scan_timestamp': self._get_current_timestamp()
+        }
+        
+        try:
+            if scan_type == 'ping':
+                scan_results['discovered_devices'] = self._ping_scan(subnet)
+            elif scan_type == 'port':
+                scan_results['discovered_devices'] = self._port_scan(subnet)
+            elif scan_type == 'full':
+                scan_results['discovered_devices'] = self._full_scan(subnet)
+            else:
+                scan_results['discovered_devices'] = self._ping_scan(subnet)
+            
+            self.logger.info(f"Network scan completed. Found {len(scan_results['discovered_devices'])} devices")
+            
+        except Exception as e:
+            self.logger.error(f"Error during network scan: {e}")
+            scan_results['error'] = str(e)
+        
+        return scan_results
+    
     def _get_hostname(self) -> str:
         """Get system hostname"""
         try:
@@ -367,6 +397,250 @@ class NetworkModule(BaseModule):
                             'isp': geo_data.get('isp') or geo_data.get('org') or geo_data.get('as'),
                             'timezone': geo_data.get('timezone') or geo_data.get('timeZone'),
                             'coordinates': f"{geo_data.get('lat', geo_data.get('latitude', ''))},{geo_data.get('lon', geo_data.get('longitude', ''))}" if geo_data.get('lat') or geo_data.get('latitude') else None
+
+
+    def _get_local_mac(self) -> str:
+        """Get local machine's MAC address"""
+        try:
+            net_if_addrs = psutil.net_if_addrs()
+            for interface_name, addresses in net_if_addrs.items():
+                if 'loopback' in interface_name.lower() or 'virtual' in interface_name.lower():
+                    continue
+                for addr in addresses:
+                    if hasattr(addr, 'address') and ':' in addr.address and len(addr.address) == 17:
+                        return addr.address
+        except Exception:
+            pass
+        return "Unknown"
+    
+    def _get_current_timestamp(self) -> str:
+        """Get current timestamp"""
+        import datetime
+        return datetime.datetime.now().isoformat()
+    
+    def _ping_scan(self, subnet: str) -> List[Dict[str, Any]]:
+        """Perform ping scan on subnet"""
+        discovered_devices = []
+        
+        try:
+            # Parse IP range
+            ip_list = self._parse_ip_range(subnet)
+            
+            for ip in ip_list[:50]:  # Limit to 50 IPs for performance
+                if self._ping_host(ip):
+                    device_info = {
+                        'ip': ip,
+                        'hostname': self._get_hostname_from_ip(ip),
+                        'status': 'online',
+                        'mac_address': self._get_mac_from_ip(ip),
+                        'response_time': self._get_ping_time(ip),
+                        'device_type': self._guess_device_type(ip),
+                        'os': 'Unknown'
+                    }
+                    discovered_devices.append(device_info)
+                    
+        except Exception as e:
+            self.logger.error(f"Error in ping scan: {e}")
+        
+        return discovered_devices
+    
+    def _port_scan(self, subnet: str) -> List[Dict[str, Any]]:
+        """Perform port scan on subnet"""
+        discovered_devices = self._ping_scan(subnet)
+        
+        # Add port scanning for discovered devices
+        for device in discovered_devices:
+            device['ports_open'] = self._scan_common_ports(device['ip'])
+            
+        return discovered_devices
+    
+    def _full_scan(self, subnet: str) -> List[Dict[str, Any]]:
+        """Perform comprehensive scan"""
+        discovered_devices = self._port_scan(subnet)
+        
+        # Add OS detection and service detection
+        for device in discovered_devices:
+            device['os'] = self._detect_os(device['ip'], device.get('ports_open', []))
+            device['services'] = self._detect_services(device['ip'], device.get('ports_open', []))
+            
+        return discovered_devices
+    
+    def _parse_ip_range(self, ip_range: str) -> List[str]:
+        """Parse different IP range formats"""
+        ip_list = []
+        
+        try:
+            if '/' in ip_range:
+                # CIDR notation
+                import ipaddress
+                network = ipaddress.ip_network(ip_range, strict=False)
+                ip_list = [str(ip) for ip in network.hosts()]
+                
+            elif '-' in ip_range:
+                # Range notation
+                start_ip, end_ip = ip_range.split('-')
+                start_parts = list(map(int, start_ip.strip().split('.')))
+                end_parts = list(map(int, end_ip.strip().split('.')))
+                
+                # Simple range implementation for last octet
+                if start_parts[:3] == end_parts[:3]:
+                    for i in range(start_parts[3], end_parts[3] + 1):
+                        ip = f"{start_parts[0]}.{start_parts[1]}.{start_parts[2]}.{i}"
+                        ip_list.append(ip)
+                        
+            elif '*' in ip_range:
+                # Wildcard notation
+                base = ip_range.replace('*', '')
+                if base.endswith('.'):
+                    base = base[:-1]
+                for i in range(1, 255):
+                    ip = f"{base}.{i}"
+                    ip_list.append(ip)
+                    
+        except Exception as e:
+            self.logger.error(f"Error parsing IP range {ip_range}: {e}")
+            
+        return ip_list
+    
+    def _ping_host(self, ip: str) -> bool:
+        """Ping a single host"""
+        try:
+            if self.is_windows:
+                result = subprocess.run(['ping', '-n', '1', '-w', '1000', ip], 
+                                      capture_output=True, text=True, timeout=3)
+            else:
+                result = subprocess.run(['ping', '-c', '1', '-W', '1', ip], 
+                                      capture_output=True, text=True, timeout=3)
+            return result.returncode == 0
+        except Exception:
+            return False
+    
+    def _get_hostname_from_ip(self, ip: str) -> str:
+        """Get hostname from IP address"""
+        try:
+            import socket
+            hostname = socket.gethostbyaddr(ip)[0]
+            return hostname
+        except Exception:
+            return f"device-{ip.split('.')[-1]}"
+    
+    def _get_mac_from_ip(self, ip: str) -> str:
+        """Get MAC address from IP (ARP table)"""
+        try:
+            if self.is_windows:
+                result = subprocess.run(['arp', '-a', ip], capture_output=True, text=True, timeout=5)
+                for line in result.stdout.split('\n'):
+                    if ip in line and 'dynamic' in line.lower():
+                        parts = line.split()
+                        for part in parts:
+                            if '-' in part and len(part) == 17:
+                                return part.replace('-', ':')
+            else:
+                result = subprocess.run(['arp', '-n', ip], capture_output=True, text=True, timeout=5)
+                for line in result.stdout.split('\n'):
+                    if ip in line:
+                        parts = line.split()
+                        for part in parts:
+                            if ':' in part and len(part) == 17:
+                                return part
+        except Exception:
+            pass
+        return "Unknown"
+    
+    def _get_ping_time(self, ip: str) -> int:
+        """Get ping response time"""
+        try:
+            if self.is_windows:
+                result = subprocess.run(['ping', '-n', '1', ip], capture_output=True, text=True, timeout=3)
+                for line in result.stdout.split('\n'):
+                    if 'time=' in line.lower():
+                        time_part = line.split('time=')[1].split('ms')[0].strip()
+                        return int(float(time_part.replace('<', '')))
+            else:
+                result = subprocess.run(['ping', '-c', '1', ip], capture_output=True, text=True, timeout=3)
+                for line in result.stdout.split('\n'):
+                    if 'time=' in line:
+                        time_part = line.split('time=')[1].split()[0]
+                        return int(float(time_part))
+        except Exception:
+            pass
+        return 0
+    
+    def _guess_device_type(self, ip: str) -> str:
+        """Guess device type based on IP pattern"""
+        last_octet = int(ip.split('.')[-1])
+        
+        if last_octet == 1 or last_octet == 254:
+            return 'Router'
+        elif 2 <= last_octet <= 10:
+            return 'Network Infrastructure'
+        elif 100 <= last_octet <= 150:
+            return 'Printer'
+        elif 200 <= last_octet <= 220:
+            return 'IoT Device'
+        else:
+            return 'Workstation'
+    
+    def _scan_common_ports(self, ip: str) -> List[int]:
+        """Scan common ports"""
+        common_ports = [22, 23, 25, 53, 80, 110, 143, 443, 993, 995, 3389, 5900]
+        open_ports = []
+        
+        for port in common_ports:
+            if self._is_port_open(ip, port):
+                open_ports.append(port)
+                
+        return open_ports
+    
+    def _is_port_open(self, ip: str, port: int) -> bool:
+        """Check if port is open"""
+        try:
+            import socket
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(1)
+            result = sock.connect_ex((ip, port))
+            sock.close()
+            return result == 0
+        except Exception:
+            return False
+    
+    def _detect_os(self, ip: str, open_ports: List[int]) -> str:
+        """Detect OS based on open ports"""
+        if 3389 in open_ports:
+            return 'Windows'
+        elif 22 in open_ports and 80 in open_ports:
+            return 'Linux'
+        elif 22 in open_ports:
+            return 'Unix/Linux'
+        elif 5900 in open_ports:
+            return 'macOS/Linux'
+        else:
+            return 'Unknown'
+    
+    def _detect_services(self, ip: str, open_ports: List[int]) -> List[str]:
+        """Detect services based on open ports"""
+        services = []
+        port_services = {
+            22: 'SSH',
+            23: 'Telnet',
+            25: 'SMTP',
+            53: 'DNS',
+            80: 'HTTP',
+            110: 'POP3',
+            143: 'IMAP',
+            443: 'HTTPS',
+            993: 'IMAPS',
+            995: 'POP3S',
+            3389: 'RDP',
+            5900: 'VNC'
+        }
+        
+        for port in open_ports:
+            if port in port_services:
+                services.append(port_services[port])
+                
+        return services
+
                         }
                 except Exception as e:
                     self.logger.debug(f"Failed to get geolocation from {geo_url}: {e}")

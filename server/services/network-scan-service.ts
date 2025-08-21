@@ -126,35 +126,60 @@ class NetworkScanService {
   }
 
   private isIPInRange(ip: string, range: string): boolean {
-    if (range.includes('/')) {
-      // CIDR notation
-      const [networkIP, prefixLength] = range.split('/');
-      const prefix = parseInt(prefixLength);
+    try {
+      if (range.includes('/')) {
+        // CIDR notation like 192.168.1.0/24
+        const [networkIP, prefixLength] = range.split('/');
+        const prefix = parseInt(prefixLength);
+        
+        if (prefix < 0 || prefix > 32) return false;
+        
+        const ipToInt = (ip: string) => {
+          const parts = ip.split('.').map(Number);
+          if (parts.length !== 4 || parts.some(p => p < 0 || p > 255)) return null;
+          return (parts[0] << 24) + (parts[1] << 16) + (parts[2] << 8) + parts[3];
+        };
+        
+        const targetInt = ipToInt(ip);
+        const networkInt = ipToInt(networkIP);
+        
+        if (targetInt === null || networkInt === null) return false;
+        
+        const mask = (0xffffffff << (32 - prefix)) >>> 0;
+        return (targetInt & mask) === (networkInt & mask);
+        
+      } else if (range.includes('-')) {
+        // Range notation like 192.168.1.1-192.168.1.100
+        const [startIP, endIP] = range.split('-').map(s => s.trim());
+        
+        const ipToInt = (ip: string) => {
+          const parts = ip.split('.').map(Number);
+          if (parts.length !== 4 || parts.some(p => p < 0 || p > 255)) return null;
+          return (parts[0] << 24) + (parts[1] << 16) + (parts[2] << 8) + parts[3];
+        };
+        
+        const targetInt = ipToInt(ip);
+        const startInt = ipToInt(startIP);
+        const endInt = ipToInt(endIP);
+        
+        if (targetInt === null || startInt === null || endInt === null) return false;
+        
+        return targetInt >= startInt && targetInt <= endInt;
+        
+      } else if (range.includes('*')) {
+        // Wildcard notation like 192.168.1.*
+        const pattern = range.replace(/\*/g, '\\d{1,3}');
+        const regex = new RegExp(`^${pattern}$`);
+        return regex.test(ip);
+      }
       
-      const ipToInt = (ip: string) => {
-        return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet), 0) >>> 0;
-      };
+      // Exact IP match
+      return ip === range;
       
-      const mask = (0xffffffff << (32 - prefix)) >>> 0;
-      const networkInt = ipToInt(networkIP) & mask;
-      const ipInt = ipToInt(ip) & mask;
-      
-      return networkInt === ipInt;
-    } else if (range.includes('-')) {
-      // Range notation like 192.168.1.1-192.168.1.100
-      const [startIP, endIP] = range.split('-');
-      const ipToInt = (ip: string) => {
-        return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet), 0) >>> 0;
-      };
-      
-      const targetInt = ipToInt(ip);
-      const startInt = ipToInt(startIP);
-      const endInt = ipToInt(endIP);
-      
-      return targetInt >= startInt && targetInt <= endInt;
+    } catch (error) {
+      console.error(`Error checking IP range ${ip} in ${range}:`, error);
+      return false;
     }
-    
-    return false;
   }
 
   private findAgentsInIPRange(agents: any[], ipRange: string): any[] {
@@ -177,15 +202,33 @@ class NetworkScanService {
           )
         );
 
+      console.log(`Searching for agents to scan IP range: ${ipRange}`);
+      console.log(`Available online agents: ${onlineAgents.length}`);
+
       // Find agents within the specified IP range
       const agentsInRange = this.findAgentsInIPRange(onlineAgents, ipRange);
       
       if (agentsInRange.length === 0) {
-        console.log(`No online agents found in IP range: ${ipRange}`);
-        return null;
+        console.log(`No online agents found directly in IP range: ${ipRange}`);
+        
+        // Fallback: Find agents in the same network segment
+        const fallbackAgents = this.findNearbyAgents(onlineAgents, ipRange);
+        
+        if (fallbackAgents.length === 0) {
+          console.log(`No suitable agents found for IP range: ${ipRange}`);
+          return null;
+        }
+        
+        console.log(`Using fallback agent selection: ${fallbackAgents.length} candidates`);
+        const bestAgent = fallbackAgents.sort((a, b) => 
+          new Date(b.last_seen).getTime() - new Date(a.last_seen).getTime()
+        )[0];
+        
+        console.log(`Selected fallback agent ${bestAgent.hostname} (${bestAgent.ip_address}) for IP range: ${ipRange}`);
+        return bestAgent;
       }
 
-      // Select the most recently seen agent
+      // Select the most recently seen agent from those in range
       const bestAgent = agentsInRange.sort((a, b) => 
         new Date(b.last_seen).getTime() - new Date(a.last_seen).getTime()
       )[0];
@@ -196,6 +239,28 @@ class NetworkScanService {
       console.error('Error finding agent for IP range:', error);
       return null;
     }
+  }
+
+  private findNearbyAgents(agents: any[], ipRange: string): any[] {
+    // Extract network portion from IP range
+    let networkBase = '';
+    
+    if (ipRange.includes('/')) {
+      networkBase = ipRange.split('/')[0].split('.').slice(0, 3).join('.');
+    } else if (ipRange.includes('-')) {
+      networkBase = ipRange.split('-')[0].split('.').slice(0, 3).join('.');
+    } else if (ipRange.includes('*')) {
+      networkBase = ipRange.replace(/\*/g, '').replace(/\.$/, '');
+    }
+    
+    if (!networkBase) return [];
+    
+    // Find agents on the same network segment
+    return agents.filter(agent => {
+      if (!agent.ip_address) return false;
+      const agentNetworkBase = agent.ip_address.split('.').slice(0, 3).join('.');
+      return agentNetworkBase === networkBase;
+    });
   }
 
   async initiateScan(config: {

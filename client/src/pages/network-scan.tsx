@@ -528,15 +528,30 @@ export default function NetworkScan() {
               {currentSession && currentSession.status === 'running' && (
                 <Card>
                   <CardContent className="pt-6">
-                    <div className="space-y-2">
+                    <div className="space-y-4">
                       <div className="flex justify-between text-sm">
                         <span>Scanning in progress...</span>
-                        <span>{currentSession.subnets_scanned.length} subnets</span>
+                        <span>{currentSession.subnets_scanned.length} target(s)</span>
                       </div>
                       <Progress value={33} className="w-full" />
                       <div className="text-xs text-muted-foreground">
                         Started: {new Date(currentSession.started_at).toLocaleString()}
                       </div>
+                      
+                      {currentSession.scanning_agents && currentSession.scanning_agents.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="text-sm font-medium">Selected Scanning Agents:</div>
+                          {currentSession.scanning_agents.map((agent, index) => (
+                            <div key={index} className="flex items-center justify-between text-xs p-2 bg-muted rounded">
+                              <span className="font-mono">{agent.hostname}</span>
+                              <span className="text-muted-foreground">{agent.ip_address}</span>
+                              <Badge variant="outline" className="text-xs">
+                                {agent.subnet}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
