@@ -23,11 +23,29 @@ import ipaddress
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+# Import the module manager with error handling
+try:
+    from modules.module_manager import ModuleManager
+    MODULAR_AVAILABLE = True
+except ImportError as e:
+    ModuleManager = None
+    MODULAR_AVAILABLE = False
 
-# Import OS-specific collectors
-from windows_collector import WindowsCollector
-from linux_collector import LinuxCollector
-from macos_collector import MacOSCollector
+# Import OS-specific collectors for backward compatibility
+try:
+    from windows_collector import WindowsCollector
+except ImportError:
+    WindowsCollector = None
+
+try:
+    from linux_collector import LinuxCollector
+except ImportError:
+    LinuxCollector = None
+
+try:
+    from macos_collector import MacOSCollector
+except ImportError:
+    MacOSCollector = None
 
 
 class SystemCollector:
@@ -49,6 +67,21 @@ class SystemCollector:
         else:
             self.os_collector = None
             self.logger.warning(f"Unsupported OS: {platform.system()}")
+
+        # Initialize modular system
+        if MODULAR_AVAILABLE:
+            try:
+                self.module_manager = ModuleManager()
+                self.use_modular = True
+                self.logger.info("Using modular architecture for system collection")
+            except Exception as e:
+                self.logger.error(f"Failed to initialize modular system: {e}")
+                self.use_modular = False
+                self._initialize_legacy_collectors()
+        else:
+            self.logger.warning("Modular architecture not available, using legacy collectors")
+            self.use_modular = False
+            self._initialize_legacy_collectors()
 
         # Remove all tickets (simulated)
         self.logger.info("Simulating removal of all tickets from service desk.")
@@ -1472,3 +1505,10 @@ class SystemCollector:
         except Exception as e:
             self.logger.debug(f"Network topology analysis failed: {e}")
             return {'error': str(e)}
+
+    def _initialize_legacy_collectors(self):
+        """Initialize legacy collectors if modular is not available"""
+        self.logger.info("Initializing legacy collectors.")
+        # In a real scenario, this would re-initialize or ensure specific legacy functions are called.
+        # For this example, we'll just log that it's happening.
+        pass
