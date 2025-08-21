@@ -6,6 +6,46 @@ import { notificationService } from "../services/notification-service";
 import { securityService } from "../services/security-service";
 import { patchComplianceService } from "../services/patch-compliance-service";
 
+// Helper function to generate a device ID if not provided
+function generateDeviceId(report: any): string {
+  // Simple heuristic: use hostname and first network MAC address if available
+  const hostname = report.hostname || `unknown_${Date.now()}`;
+  const macAddress = report.network?.interfaces?.[0]?.mac_address || 
+                     report.network?.network_adapters?.[Object.keys(report.network?.network_adapters || {})[0]]?.mac_address ||
+                     `mac_${Date.now()}`;
+  return `${hostname}_${macAddress}`;
+}
+
+// Helper function to extract key metrics from the agent report
+function extractMetrics(data: any) {
+  // Extract memory usage from multiple possible sources
+  const memoryUsage = data.hardware?.memory?.usage_percentage || 
+                     data.hardware?.memory?.percentage ||
+                     data.system_health?.memory_pressure?.memory_usage_percent ||
+                     0;
+
+  // Extract CPU usage from multiple possible sources  
+  const cpuUsage = data.hardware?.cpu?.usage_percentage ||
+                  data.hardware?.cpu?.percentage ||
+                  data.system_health?.metrics?.cpu_percent ||
+                  0;
+
+  // Extract disk usage from multiple possible sources
+  const diskUsage = data.storage?.drives?.[0]?.usage_percentage ||
+                   data.storage?.primary_drive?.usage_percentage ||
+                   0;
+
+  console.log(`Extracted metrics - CPU: ${cpuUsage}%, Memory: ${memoryUsage}%, Disk: ${diskUsage}%`);
+
+  return {
+    cpu_usage: cpuUsage,
+    memory_usage: memoryUsage,
+    disk_usage: diskUsage,
+    network_usage: data.network?.total_bytes_sent || 0
+  };
+}
+
+
 export function registerAgentRoutes(
   app: Express,
   authenticateToken: any,
@@ -392,7 +432,7 @@ export function registerAgentRoutes(
       // Extract primary network interface and IP from the correct structure
       let primaryIP = req.ip || device.ip_address;
       let primaryMAC = null;
-      
+
       if (reportData.network?.interfaces && Array.isArray(reportData.network.interfaces)) {
         // Find primary interface using the correct field names from agent data
         const primaryInterface = reportData.network.interfaces.find(iface => {
@@ -410,7 +450,7 @@ export function registerAgentRoutes(
         if (primaryInterface) {
           primaryIP = primaryInterface.ip || primaryInterface.ip_address;
           primaryMAC = primaryInterface.mac || primaryInterface.mac_address;
-          
+
           console.log("Extracted Primary Network Info:", {
             ip: primaryIP,
             mac: primaryMAC,
@@ -444,64 +484,12 @@ export function registerAgentRoutes(
         console.log("⚠️  WARNING: Empty network data received from agent!");
       }
 
-      // Extract metrics from the collected data with multiple fallback sources
-      let cpuUsage = null;
-      let memoryUsage = null;
-      let diskUsage = null;
-      let networkIO = null;
-
-      // Extract CPU usage from multiple possible sources
-      if (reportData.hardware?.cpu?.usage_percent) {
-        cpuUsage = reportData.hardware.cpu.usage_percent.toString();
-      } else if (reportData.system_health?.cpu_usage) {
-        cpuUsage = reportData.system_health.cpu_usage.toString();
-      } else if (reportData.systemInfo?.cpu_usage) {
-        cpuUsage = reportData.systemInfo.cpu_usage.toString();
-      }
-
-      // Extract memory usage from multiple possible sources
-      if (reportData.hardware?.memory?.percentage) {
-        memoryUsage = reportData.hardware.memory.percentage.toString();
-      } else if (reportData.system_health?.memory_usage) {
-        memoryUsage = reportData.system_health.memory_usage.toString();
-      } else if (reportData.systemInfo?.memory_usage) {
-        memoryUsage = reportData.systemInfo.memory_usage.toString();
-      }
-
-      // Extract disk usage from storage.disks (use primary disk)
-      if (reportData.storage?.disks && reportData.storage.disks.length > 0) {
-        // Find C: drive or first disk
-        const primaryDisk = reportData.storage.disks.find(disk => 
-          disk.device === 'C:\\' || disk.mountpoint === 'C:\\'
-        ) || reportData.storage.disks[0];
-
-        if (primaryDisk?.percent) {
-          diskUsage = primaryDisk.percent.toString();
-        }
-      } else if (reportData.system_health?.disk_usage) {
-        diskUsage = reportData.system_health.disk_usage.toString();
-      } else if (reportData.systemInfo?.disk_usage) {
-        diskUsage = reportData.systemInfo.disk_usage.toString();
-      }
-
-      // Extract network I/O from network stats with multiple sources
-      if (reportData.network?.io_counters?.bytes_sent) {
-        networkIO = reportData.network.io_counters.bytes_sent.toString();
-      } else if (reportData.network?.io_counters?.bytes_recv) {
-        networkIO = reportData.network.io_counters.bytes_recv.toString();
-      } else if (reportData.network?.total_bytes) {
-        networkIO = reportData.network.total_bytes.toString();
-      } else if (reportData.systemInfo?.network_interfaces) {
-        networkIO = reportData.systemInfo.network_interfaces.toString();
-      }
-
       // Log what we found for debugging
       console.log("=== METRICS EXTRACTION RESULTS ===");
-      console.log("CPU Usage:", cpuUsage, "- Source:", reportData.hardware?.cpu?.usage_percent ? "hardware.cpu.usage_percent" : reportData.system_health?.cpu_usage ? "system_health.cpu_usage" : "none");
-      console.log("Memory Usage:", memoryUsage, "- Source:", reportData.hardware?.memory?.percentage ? "hardware.memory.percentage" : reportData.system_health?.memory_usage ? "system_health.memory_usage" : "none");
-      console.log("Disk Usage:", diskUsage, "- Source:", reportData.storage?.disks?.length > 0 ? "storage.disks" : reportData.system_health?.disk_usage ? "system_health.disk_usage" : "none");
-      console.log("Network I/O:", networkIO, "- Source:", reportData.network?.io_counters ? "network.io_counters" : reportData.network?.total_bytes ? "network.total_bytes" : "none");
-
+      console.log("CPU Usage:", extractMetrics(reportData).cpu_usage);
+      console.log("Memory Usage:", extractMetrics(reportData).memory_usage);
+      console.log("Disk Usage:", extractMetrics(reportData).disk_usage);
+      console.log("Network I/O:", extractMetrics(reportData).network_usage);
 
 
   // Agent diagnostics endpoint
@@ -509,12 +497,12 @@ export function registerAgentRoutes(
     try {
       const devices = await storage.getDevices();
       const now = new Date();
-      
+
       const diagnostics = devices.map(device => {
         const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
         const minutesOffline = lastSeen ? 
           Math.floor((now.getTime() - lastSeen.getTime()) / (1000 * 60)) : null;
-        
+
         return {
           id: device.id,
           hostname: device.hostname,
@@ -526,7 +514,7 @@ export function registerAgentRoutes(
           has_recent_report: device.latest_report ? true : false
         };
       });
-      
+
       res.json({
         timestamp: now.toISOString(),
         total_agents: devices.length,
@@ -540,22 +528,16 @@ export function registerAgentRoutes(
     }
   });
 
-      console.log("=== EXTRACTED METRICS ===");
-      console.log("CPU Usage:", cpuUsage);
-      console.log("Memory Usage:", memoryUsage);
-      console.log("Disk Usage:", diskUsage);
-      console.log("Network I/O:", networkIO);
-
       // Store system info with extracted metrics
       await storage.createDeviceReport({
         device_id: device.id,
-        cpu_usage: cpuUsage,
-        memory_usage: memoryUsage,
-        disk_usage: diskUsage,
-        network_io: networkIO,
-        raw_data: JSON.stringify(req.body),
+        cpu_usage: extractMetrics(reportData).cpu_usage,
+        memory_usage: extractMetrics(reportData).memory_usage,
+        disk_usage: extractMetrics(reportData).disk_usage,
+        network_io: extractMetrics(reportData).network_usage,
+        raw_data: JSON.stringify(reportData),
       });
-      
+
       // Update device status to ensure it's marked as online
       await storage.updateDevice(device.id, {
         status: "online",
