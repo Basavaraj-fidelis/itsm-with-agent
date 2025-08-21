@@ -77,6 +77,11 @@ class AIInsightsStorage {
     }
   }
 
+  // Alias method for backwards compatibility
+  async getDeviceInsights(deviceId: string, limit: number = 50): Promise<StoredAIInsight[]> {
+    return this.getInsightsForDevice(deviceId, limit);
+  }
+
   async createAIInsightsTable(): Promise<void> {
     try {
       const { db, sql } = await import("../db");

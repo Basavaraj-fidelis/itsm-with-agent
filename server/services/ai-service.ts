@@ -40,6 +40,7 @@ class AIService {
       const insights: AIInsight[] = [];
 
       // Get recent device reports for analysis
+      const { storage } = await import("../storage");
       const reportsPromise = storage.getRecentDeviceReports(deviceId, 7);
       const timeout = new Promise<never>((_, reject) => 
         setTimeout(() => reject(new Error('Database query timeout')), 3000)
@@ -101,6 +102,7 @@ class AIService {
 
   private async getDeviceData(deviceId: string): Promise<any> {
     try {
+      const { storage } = await import("../storage");
       const device = await storage.getDevice(deviceId);
       return device;
     } catch (error) {

@@ -135,18 +135,53 @@ router.get('/insights/device/:deviceId', authenticateToken, async (req, res) => 
     const { deviceId } = req.params;
     console.log('Fetching AI insights for device:', deviceId);
 
-    // Check if the method exists before calling it
-    if (typeof aiInsightsStorage.getDeviceInsights !== 'function') {
-      console.warn('getDeviceInsights method not found, returning empty insights');
-      return res.json({
-        success: true,
-        data: [],
-        total: 0,
-        message: 'AI insights feature is being initialized'
-      });
+    // Ensure AI insights table exists
+    try {
+      await aiInsightsStorage.createAIInsightsTable();
+    } catch (tableError) {
+      console.warn('Failed to ensure AI insights table exists:', tableError.message);
     }
 
-    const insights = await aiInsightsStorage.getDeviceInsights(deviceId);
+    // Try to get insights from storage first
+    let insights = [];
+    try {
+      insights = await aiInsightsStorage.getInsightsForDevice(deviceId, 20);
+    } catch (storageError) {
+      console.warn('Failed to get stored insights:', storageError.message);
+    }
+
+    // If no stored insights, generate fresh ones
+    if (!insights || insights.length === 0) {
+      try {
+        const generatedInsights = await aiService.generateDeviceInsights(deviceId);
+        if (Array.isArray(generatedInsights)) {
+          insights = generatedInsights;
+          
+          // Store generated insights asynchronously
+          setImmediate(async () => {
+            for (const insight of generatedInsights) {
+              try {
+                await aiInsightsStorage.storeInsight({
+                  device_id: deviceId,
+                  insight_type: insight.type,
+                  severity: insight.severity,
+                  title: insight.title,
+                  description: insight.description,
+                  recommendation: insight.recommendation,
+                  confidence: insight.confidence,
+                  metadata: insight.metadata || {},
+                  is_active: true,
+                });
+              } catch (storeError) {
+                console.warn('Failed to store insight:', storeError.message);
+              }
+            }
+          });
+        }
+      } catch (generateError) {
+        console.warn('Failed to generate AI insights:', generateError.message);
+      }
+    }
 
     res.json({
       success: true,
