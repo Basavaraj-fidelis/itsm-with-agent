@@ -100,19 +100,28 @@ export const AgentTable: React.FC<AgentTableProps> = ({
       key: 'cpu_usage',
       header: 'CPU',
       sortable: true,
-      render: (value) => `${(value || 0).toFixed(1)}%`
+      render: (value, agent) => {
+        const cpuValue = value || agent.latest_report?.cpu_usage || 0;
+        return `${parseFloat(cpuValue).toFixed(1)}%`;
+      }
     },
     {
       key: 'memory_usage',
       header: 'Memory',
       sortable: true,
-      render: (value) => `${(value || 0).toFixed(1)}%`
+      render: (value, agent) => {
+        const memoryValue = value || agent.latest_report?.memory_usage || 0;
+        return `${parseFloat(memoryValue).toFixed(1)}%`;
+      }
     },
     {
       key: 'disk_usage',
       header: 'Disk',
       sortable: true,
-      render: (value) => `${(value || 0).toFixed(1)}%`
+      render: (value, agent) => {
+        const diskValue = value || agent.latest_report?.disk_usage || 0;
+        return `${parseFloat(diskValue).toFixed(1)}%`;
+      }
     }
   ];
 

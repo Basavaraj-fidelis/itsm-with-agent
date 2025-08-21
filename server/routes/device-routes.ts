@@ -130,15 +130,64 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
             currentStatus = "online";
           }
 
+          // Extract metrics from raw_data if available
+          let extractedMetrics = {
+            cpu_usage: latestReport?.cpu_usage || null,
+            memory_usage: latestReport?.memory_usage || null,
+            disk_usage: latestReport?.disk_usage || null,
+            network_io: latestReport?.network_io || null,
+          };
+
+          if (latestReport?.raw_data) {
+            try {
+              const rawData = typeof latestReport.raw_data === 'string' 
+                ? JSON.parse(latestReport.raw_data) 
+                : latestReport.raw_data;
+
+              // Extract CPU usage
+              if (rawData.hardware?.cpu?.usage_percentage) {
+                extractedMetrics.cpu_usage = parseFloat(rawData.hardware.cpu.usage_percentage);
+              }
+
+              // Extract Memory usage
+              if (rawData.hardware?.memory?.usage_percentage) {
+                extractedMetrics.memory_usage = parseFloat(rawData.hardware.memory.usage_percentage);
+              }
+
+              // Extract Disk usage (average of all disks)
+              if (rawData.storage?.disks && Array.isArray(rawData.storage.disks)) {
+                const diskUsages = rawData.storage.disks
+                  .map(disk => parseFloat(disk.usage_percentage || 0))
+                  .filter(usage => !isNaN(usage) && usage > 0);
+                
+                if (diskUsages.length > 0) {
+                  extractedMetrics.disk_usage = diskUsages.reduce((sum, usage) => sum + usage, 0) / diskUsages.length;
+                }
+              }
+
+              // Extract Network I/O (sum of all interfaces)
+              if (rawData.network?.io_counters) {
+                const totalBytes = Object.values(rawData.network.io_counters).reduce((sum: number, iface: any) => {
+                  return sum + (iface.bytes_sent || 0) + (iface.bytes_recv || 0);
+                }, 0);
+                extractedMetrics.network_io = totalBytes;
+              }
+
+              console.log(`Extracted metrics for ${device.hostname}:`, extractedMetrics);
+            } catch (error) {
+              console.error(`Error parsing raw_data for device ${device.hostname}:`, error);
+            }
+          }
+
           return {
             ...device,
             status: currentStatus,
             latest_report: latestReport
               ? {
-                  cpu_usage: latestReport.cpu_usage,
-                  memory_usage: latestReport.memory_usage,
-                  disk_usage: latestReport.disk_usage,
-                  network_io: latestReport.network_io,
+                  cpu_usage: extractedMetrics.cpu_usage,
+                  memory_usage: extractedMetrics.memory_usage,
+                  disk_usage: extractedMetrics.disk_usage,
+                  network_io: extractedMetrics.network_io,
                   collected_at: latestReport.collected_at,
                   raw_data: latestReport.raw_data, // Include raw_data for metric extraction
                 }
@@ -195,14 +244,62 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
       }
 
       const latestReport = await storage.getLatestDeviceReport(device.id);
+      
+      // Extract metrics from raw_data if available
+      let extractedMetrics = {
+        cpu_usage: latestReport?.cpu_usage || null,
+        memory_usage: latestReport?.memory_usage || null,
+        disk_usage: latestReport?.disk_usage || null,
+        network_io: latestReport?.network_io || null,
+      };
+
+      if (latestReport?.raw_data) {
+        try {
+          const rawData = typeof latestReport.raw_data === 'string' 
+            ? JSON.parse(latestReport.raw_data) 
+            : latestReport.raw_data;
+
+          // Extract CPU usage
+          if (rawData.hardware?.cpu?.usage_percentage) {
+            extractedMetrics.cpu_usage = parseFloat(rawData.hardware.cpu.usage_percentage);
+          }
+
+          // Extract Memory usage
+          if (rawData.hardware?.memory?.usage_percentage) {
+            extractedMetrics.memory_usage = parseFloat(rawData.hardware.memory.usage_percentage);
+          }
+
+          // Extract Disk usage (average of all disks)
+          if (rawData.storage?.disks && Array.isArray(rawData.storage.disks)) {
+            const diskUsages = rawData.storage.disks
+              .map(disk => parseFloat(disk.usage_percentage || 0))
+              .filter(usage => !isNaN(usage) && usage > 0);
+            
+            if (diskUsages.length > 0) {
+              extractedMetrics.disk_usage = diskUsages.reduce((sum, usage) => sum + usage, 0) / diskUsages.length;
+            }
+          }
+
+          // Extract Network I/O (sum of all interfaces)
+          if (rawData.network?.io_counters) {
+            const totalBytes = Object.values(rawData.network.io_counters).reduce((sum: number, iface: any) => {
+              return sum + (iface.bytes_sent || 0) + (iface.bytes_recv || 0);
+            }, 0);
+            extractedMetrics.network_io = totalBytes;
+          }
+        } catch (error) {
+          console.error(`Error parsing raw_data for device ${device.hostname}:`, error);
+        }
+      }
+
       const deviceWithReport = {
         ...device,
         latest_report: latestReport
           ? {
-              cpu_usage: latestReport.cpu_usage,
-              memory_usage: latestReport.memory_usage,
-              disk_usage: latestReport.disk_usage,
-              network_io: latestReport.network_io,
+              cpu_usage: extractedMetrics.cpu_usage,
+              memory_usage: extractedMetrics.memory_usage,
+              disk_usage: extractedMetrics.disk_usage,
+              network_io: extractedMetrics.network_io,
               collected_at: latestReport.collected_at,
               raw_data: latestReport.raw_data,
             }
