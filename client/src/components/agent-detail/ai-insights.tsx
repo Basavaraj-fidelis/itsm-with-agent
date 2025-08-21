@@ -177,6 +177,51 @@ export function AIInsights({ agent }: AIInsightsProps) {
       });
     }
 
+    // 8. Network Connectivity Issues
+    if (agent.status === 'offline' || agent.status === 'disconnected') {
+      aiInsights.push({
+        type: 'maintenance',
+        severity: 'high',
+        title: 'Connectivity Issue Detected',
+        description: `Agent is currently ${agent.status}. Last seen: ${agent.last_seen || 'Unknown'}`,
+        recommendation: 'Check network connectivity, firewall rules, and agent service status',
+        confidence: 0.95,
+        metric: 'Connectivity'
+      });
+    }
+
+    // 9. Uptime Monitoring
+    if (agent.uptime && parseInt(agent.uptime) < 24) {
+      aiInsights.push({
+        type: 'maintenance',
+        severity: 'medium',
+        title: 'Recent System Restart',
+        description: `System uptime is only ${agent.uptime} hours, indicating recent restart`,
+        recommendation: 'Monitor for instability patterns or verify if restart was planned maintenance',
+        confidence: 0.8,
+        metric: 'Uptime'
+      });
+    }
+
+    // 10. Agent Version Check
+    if (agent.agent_version) {
+      const versionParts = agent.agent_version.split('.');
+      const majorVersion = parseInt(versionParts[0]) || 0;
+      const minorVersion = parseInt(versionParts[1]) || 0;
+      
+      if (majorVersion < 2 || (majorVersion === 2 && minorVersion < 5)) {
+        aiInsights.push({
+          type: 'security',
+          severity: 'medium',
+          title: 'Agent Version Outdated',
+          description: `Agent version ${agent.agent_version} may have security vulnerabilities`,
+          recommendation: 'Update to the latest agent version for security patches and new features',
+          confidence: 0.9,
+          metric: 'Security'
+        });
+      }
+    }
+
     return aiInsights;
     } catch (error) {
       console.error('Error generating AI insights:', error);
@@ -222,9 +267,18 @@ export function AIInsights({ agent }: AIInsightsProps) {
 
   useEffect(() => {
     if (agent) {
-      fetchInsights(false);
+      fetchInsights();
     }
-  }, [agent]);
+    
+    // Set up periodic refresh every 30 seconds for high severity issues
+    const interval = setInterval(() => {
+      if (agent && insights.some(insight => insight.severity === 'high' || insight.severity === 'critical')) {
+        fetchInsights();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [agent, insights]);
 
   const refreshInsights = () => {
     fetchInsights(true);

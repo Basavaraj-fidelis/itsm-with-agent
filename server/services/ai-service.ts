@@ -218,7 +218,25 @@ class AIService {
     const newInsights: AIInsight[] = [];
     if (!latestReport.raw_data) return newInsights;
 
-    const rawData = JSON.parse(latestReport.raw_data);
+    let rawData;
+    try {
+      if (typeof latestReport.raw_data === 'string') {
+        // Only parse if it's a valid JSON string, not "[object Object]"
+        if (latestReport.raw_data.startsWith('{') || latestReport.raw_data.startsWith('[')) {
+          rawData = JSON.parse(latestReport.raw_data);
+        } else {
+          console.warn('Invalid JSON format in security analysis:', latestReport.raw_data);
+          return newInsights;
+        }
+      } else if (typeof latestReport.raw_data === 'object') {
+        rawData = latestReport.raw_data;
+      } else {
+        return newInsights;
+      }
+    } catch (parseError) {
+      console.error('Error parsing raw_data in security analysis:', parseError);
+      return newInsights;
+    }
     const securityData = rawData.security || {};
     const processes = rawData.processes || [];
 
@@ -413,7 +431,24 @@ class AIService {
     const newInsights: AIInsight[] = [];
     if (!latestReport.raw_data) return newInsights;
 
-    const rawData = JSON.parse(latestReport.raw_data);
+    let rawData;
+    try {
+      if (typeof latestReport.raw_data === 'string') {
+        if (latestReport.raw_data.startsWith('{') || latestReport.raw_data.startsWith('[')) {
+          rawData = JSON.parse(latestReport.raw_data);
+        } else {
+          console.warn('Invalid JSON format in process analysis:', latestReport.raw_data);
+          return newInsights;
+        }
+      } else if (typeof latestReport.raw_data === 'object') {
+        rawData = latestReport.raw_data;
+      } else {
+        return newInsights;
+      }
+    } catch (parseError) {
+      console.error('Error parsing raw_data in process analysis:', parseError);
+      return newInsights;
+    }
     const processes = rawData.processes || [];
 
     // Resource-intensive processes
@@ -462,7 +497,24 @@ class AIService {
     const newInsights: AIInsight[] = [];
     if (!latestReport.raw_data) return newInsights;
 
-    const rawData = JSON.parse(latestReport.raw_data);
+    let rawData;
+    try {
+      if (typeof latestReport.raw_data === 'string') {
+        if (latestReport.raw_data.startsWith('{') || latestReport.raw_data.startsWith('[')) {
+          rawData = JSON.parse(latestReport.raw_data);
+        } else {
+          console.warn('Invalid JSON format in system health analysis:', latestReport.raw_data);
+          return newInsights;
+        }
+      } else if (typeof latestReport.raw_data === 'object') {
+        rawData = latestReport.raw_data;
+      } else {
+        return newInsights;
+      }
+    } catch (parseError) {
+      console.error('Error parsing raw_data in system health analysis:', parseError);
+      return newInsights;
+    }
     const systemHealth = rawData.system_health || {};
 
     // Memory pressure analysis

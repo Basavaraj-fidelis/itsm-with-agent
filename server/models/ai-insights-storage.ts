@@ -24,7 +24,7 @@ class AIInsightsStorage {
     insight: Omit<StoredAIInsight, "id" | "created_at">,
   ): Promise<StoredAIInsight> {
     try {
-      const { pool } = await import("./db");
+      const { pool } = await import("../db");
 
       const result = await pool.query(
         `
@@ -59,7 +59,7 @@ class AIInsightsStorage {
     limit: number = 50,
   ): Promise<StoredAIInsight[]> {
     try {
-      const { pool } = await import("./db");
+      const { pool } = await import("../db");
 
       const result = await pool.query(
         `
@@ -86,7 +86,7 @@ class AIInsightsStorage {
 
   async createAIInsightsTable(): Promise<void> {
     try {
-      const { pool } = await import("./db");
+      const { pool } = await import("../db");
 
       await pool.query(`
         CREATE TABLE IF NOT EXISTS ai_insights (

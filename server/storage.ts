@@ -1155,7 +1155,7 @@ netsh int ip reset
 
 ### Overheating While Charging
 - **Clean Vents**: Use compressed air to clear dust from cooling vents
-- **Hard Surface**: Use laptop on hard, flat surface forairflow
+- **Hard Surface**: Use laptop on hard, flat surface for airflow
 - **Reduce Load**: Close intensive programs whilecharging
 - **Contact IT**: If overheating persists, hardware inspection needed
 
@@ -1729,34 +1729,6 @@ netsh int ip reset
 - **Admin Rights**: Contact IT if permission errors occur
 - **Network Issues**: Check internet connection
 - **Conflicting Software**: Uninstall old versions first
-
-## Browser Extensions & Add-ons
-
-### Safe Extension Installation
-**Chrome Web Store:**
-1. **Open Chrome** > Three dots menu > **More tools** > **Extensions**
-2. **Open Chrome Web Store** (link at bottom)
-3. **Search for Extension**: Use specific, well-known names
-4. **Check Reviews**: Read user ratings and comments
-5. **Add to Chrome**: Click button and confirm
-
-**Extension Safety Tips:**
-- Only install from official stores (Chrome, Edge, Firefox)
-- Check developer credibility and user reviews
-- Avoid extensions with excessive permissions
-- Remove unused extensions regularly
-
-### Common Useful Extensions
-**Productivity:**
-- **LastPass/1Password**: Password managers
-- **Grammarly**: Writing assistance
-- **AdBlock Plus**: Ad blocking (if company allows)
-- **OneTab**: Tab management
-
-**Security:**
-- **HTTPS Everywhere**: Force secure connections
-- **Privacy Badger**: Block trackers
-- **uBlock Origin**: Ad and script blocking
 
 ## Microsoft Store / App Store
 
@@ -2403,7 +2375,7 @@ smartphones
     try {
       // Try database first
       const { pool } = await import("./db");
-      
+
       const result = await pool.query(`
         SELECT d.*, dr.cpu_usage, dr.memory_usage, dr.disk_usage, dr.network_io, dr.collected_at, dr.raw_data
         FROM devices d
@@ -2448,7 +2420,7 @@ smartphones
       });
     } catch (error) {
       console.error("Database error in getDevices:", error);
-      
+
       // Return sample data if database fails
       return [
         {
@@ -2532,13 +2504,35 @@ smartphones
     return newReport;
   }
 
-  async getDeviceReports(deviceId: string): Promise<DeviceReport[]> {
-    const reports = await db
-      .select()
-      .from(device_reports)
-      .where(eq(device_reports.device_id, deviceId))
-      .orderBy(desc(device_reports.collected_at));
-    return reports;
+  async getDeviceReports(deviceId: string, limit: number = 10): Promise<any[]> {
+    try {
+      const { pool } = await import('./db');
+      const result = await pool.query(
+        `SELECT * FROM device_reports WHERE device_id = $1 ORDER BY timestamp DESC LIMIT $2`,
+        [deviceId, limit]
+      );
+      return result.rows;
+    } catch (error) {
+      console.error('Error fetching device reports:', error);
+      return [];
+    }
+  }
+
+  async getRecentDeviceReports(deviceId: string, days: number = 7): Promise<any[]> {
+    try {
+      const { pool } = await import('./db');
+      const result = await pool.query(
+        `SELECT * FROM device_reports 
+         WHERE device_id = $1 
+         AND timestamp >= NOW() - INTERVAL '${days} days'
+         ORDER BY timestamp DESC`,
+        [deviceId]
+      );
+      return result.rows;
+    } catch (error) {
+      console.error('Error fetching recent device reports:', error);
+      return [];
+    }
   }
 
   async getLatestDeviceReport(
@@ -2579,17 +2573,6 @@ smartphones
       .limit(1);
 
     return result[0] || null;
-  }
-
-  async getRecentDeviceReports(deviceId: string, limit: number = 30) {
-    const result = await db
-      .select()
-      .from(device_reports)
-      .where(eq(device_reports.device_id, deviceId))
-      .orderBy(desc(device_reports.collected_at))
-      .limit(limit);
-
-    return result;
   }
 
   async updateAlert(alertId: string, updates: any) {
