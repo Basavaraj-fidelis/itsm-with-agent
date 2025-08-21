@@ -101,7 +101,26 @@ export const AgentTable: React.FC<AgentTableProps> = ({
       header: 'CPU',
       sortable: true,
       render: (value, agent) => {
-        const cpuValue = value || agent.latest_report?.cpu_usage || 0;
+        // Extract CPU from multiple possible sources
+        let cpuValue = 0;
+        
+        if (agent.latest_report?.raw_data) {
+          try {
+            const rawData = typeof agent.latest_report.raw_data === 'string' 
+              ? JSON.parse(agent.latest_report.raw_data) 
+              : agent.latest_report.raw_data;
+            
+            cpuValue = rawData?.hardware?.cpu?.usage_percentage || 
+                      rawData?.cpu_usage || 
+                      agent.latest_report?.cpu_usage || 
+                      value || 0;
+          } catch (e) {
+            cpuValue = agent.latest_report?.cpu_usage || value || 0;
+          }
+        } else {
+          cpuValue = agent.latest_report?.cpu_usage || value || 0;
+        }
+        
         return `${parseFloat(cpuValue).toFixed(1)}%`;
       }
     },
@@ -110,7 +129,26 @@ export const AgentTable: React.FC<AgentTableProps> = ({
       header: 'Memory',
       sortable: true,
       render: (value, agent) => {
-        const memoryValue = value || agent.latest_report?.memory_usage || 0;
+        // Extract Memory from multiple possible sources
+        let memoryValue = 0;
+        
+        if (agent.latest_report?.raw_data) {
+          try {
+            const rawData = typeof agent.latest_report.raw_data === 'string' 
+              ? JSON.parse(agent.latest_report.raw_data) 
+              : agent.latest_report.raw_data;
+            
+            memoryValue = rawData?.hardware?.memory?.usage_percentage || 
+                         rawData?.memory_usage || 
+                         agent.latest_report?.memory_usage || 
+                         value || 0;
+          } catch (e) {
+            memoryValue = agent.latest_report?.memory_usage || value || 0;
+          }
+        } else {
+          memoryValue = agent.latest_report?.memory_usage || value || 0;
+        }
+        
         return `${parseFloat(memoryValue).toFixed(1)}%`;
       }
     },
@@ -119,7 +157,36 @@ export const AgentTable: React.FC<AgentTableProps> = ({
       header: 'Disk',
       sortable: true,
       render: (value, agent) => {
-        const diskValue = value || agent.latest_report?.disk_usage || 0;
+        // Extract Disk from multiple possible sources
+        let diskValue = 0;
+        
+        if (agent.latest_report?.raw_data) {
+          try {
+            const rawData = typeof agent.latest_report.raw_data === 'string' 
+              ? JSON.parse(agent.latest_report.raw_data) 
+              : agent.latest_report.raw_data;
+            
+            // Calculate average disk usage from all disks
+            if (rawData?.storage?.disks && Array.isArray(rawData.storage.disks)) {
+              const diskUsages = rawData.storage.disks
+                .map(disk => parseFloat(disk.usage_percentage || 0))
+                .filter(usage => !isNaN(usage) && usage > 0);
+              
+              if (diskUsages.length > 0) {
+                diskValue = diskUsages.reduce((sum, usage) => sum + usage, 0) / diskUsages.length;
+              }
+            } else {
+              diskValue = rawData?.disk_usage || 
+                         agent.latest_report?.disk_usage || 
+                         value || 0;
+            }
+          } catch (e) {
+            diskValue = agent.latest_report?.disk_usage || value || 0;
+          }
+        } else {
+          diskValue = agent.latest_report?.disk_usage || value || 0;
+        }
+        
         return `${parseFloat(diskValue).toFixed(1)}%`;
       }
     }
