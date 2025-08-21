@@ -69,7 +69,7 @@ class AIService {
       ]);
 
       let insights: AIInsight[] = [];
-      
+
       for (const result of analysisResults) {
         if (result.status === 'fulfilled' && Array.isArray(result.value)) {
           insights = insights.concat(result.value);
@@ -77,7 +77,7 @@ class AIService {
           console.warn('Analysis function failed:', result.reason?.message || result.reason);
         }
       }
-      
+
       console.log(`Generated ${insights.length} AI insights for device ${deviceId}`);
       return insights;
 
@@ -292,7 +292,7 @@ class AIService {
   ): Promise<AIInsight[]> {
     // Ensure newInsights is always initialized as an array
     const newInsights: AIInsight[] = [];
-    
+
     try {
       if (!reports || !Array.isArray(reports) || reports.length < 5) {
         console.log(`Insufficient reports for resource prediction: ${reports?.length || 0} (need at least 5)`);
@@ -303,7 +303,7 @@ class AIService {
 
       // Enhanced disk space prediction with seasonality
       const diskValues = reports.map(r => parseFloat(r.disk_usage || "0")).filter(v => !isNaN(v));
-      
+
       if (diskValues.length === 0) {
         console.log('No valid disk usage data found for prediction');
         return newInsights;
@@ -349,7 +349,7 @@ class AIService {
 
       // Memory degradation prediction
       const memoryValues = reports.map(r => parseFloat(r.memory_usage || "0")).filter(v => !isNaN(v));
-      
+
       if (memoryValues.length > 0) {
         const memoryAnalysis = this.analyzeTimeSeriesPatterns(memoryValues, timestamps);
 
@@ -393,7 +393,7 @@ class AIService {
   private async predictHardwareFailures(deviceId: string, reports: any[], insights: AIInsight[]): Promise<AIInsight[]> {
     // Ensure proper array initialization
     const newInsights: AIInsight[] = [];
-    
+
     try {
       if (!reports || !Array.isArray(reports) || reports.length === 0) {
         return newInsights;

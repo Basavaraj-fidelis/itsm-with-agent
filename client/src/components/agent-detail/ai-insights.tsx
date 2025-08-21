@@ -10,7 +10,9 @@ import {
   Zap,
   Target,
   Activity,
-  RefreshCw
+  RefreshCw,
+  Clock,
+  Circle
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -27,6 +29,9 @@ interface AIInsight {
   confidence: number;
   trend?: 'up' | 'down' | 'stable';
   metric?: string;
+  details?: string; // Added for more granular info
+  timestamp?: string; // Added for when the insight was generated
+  existing_ticket?: { number: string }; // Added for existing ticket info
 }
 
 export function AIInsights({ agent }: AIInsightsProps) {
@@ -87,7 +92,9 @@ export function AIInsights({ agent }: AIInsightsProps) {
         recommendation: 'Consider investigating high CPU processes or scheduling maintenance during off-hours.',
         confidence: 0.9,
         trend: 'up',
-        metric: 'CPU'
+        metric: 'CPU',
+        details: `CPU usage: ${cpuUsage.toFixed(1)}%. Top process: ${topCPUProcess?.name || 'N/A'} (${topCPUProcess?.cpu_percent?.toFixed(1)}% CPU)`,
+        timestamp: new Date().toISOString()
       });
     }
 
@@ -105,7 +112,9 @@ export function AIInsights({ agent }: AIInsightsProps) {
           : 'Monitor memory usage and consider memory upgrade if pattern persists',
         confidence: 0.85,
         trend: 'up',
-        metric: 'Memory'
+        metric: 'Memory',
+        details: `Memory usage: ${memoryUsage.toFixed(1)}%. Pressure: ${memoryPressure}`,
+        timestamp: new Date().toISOString()
       });
     }
 
@@ -121,7 +130,9 @@ export function AIInsights({ agent }: AIInsightsProps) {
         recommendation: 'Schedule disk cleanup or expansion to prevent service interruption',
         confidence: 0.75,
         trend: 'up',
-        metric: 'Disk'
+        metric: 'Disk',
+        details: `Disk usage: ${diskUsage.toFixed(1)}%. Estimated days to full: ${daysToFull}`,
+        timestamp: new Date().toISOString()
       });
     }
 
@@ -136,7 +147,9 @@ export function AIInsights({ agent }: AIInsightsProps) {
         recommendation: 'Review running applications and consider process optimization',
         confidence: 0.8,
         trend: 'stable',
-        metric: 'Processes'
+        metric: 'Processes',
+        details: `Processes consuming >15% CPU: ${highCPUProcesses.map(p => `${p.name} (${p.cpu_percent.toFixed(1)}%)`).join(', ')}`,
+        timestamp: new Date().toISOString()
       });
     }
 
@@ -146,10 +159,12 @@ export function AIInsights({ agent }: AIInsightsProps) {
         type: 'security',
         severity: 'high',
         title: 'Security Service Alert',
-        description: `${securityData.firewall_status === 'disabled' ? 'Firewall disabled' : ''} ${securityData.antivirus_status === 'disabled' ? 'Antivirus disabled' : ''}`,
+        description: `${securityData.firewall_status === 'disabled' ? 'Firewall disabled.' : ''} ${securityData.antivirus_status === 'disabled' ? 'Antivirus disabled.' : ''}`,
         recommendation: 'Immediately enable disabled security services to protect the system',
         confidence: 0.95,
-        metric: 'Security'
+        metric: 'Security',
+        details: `Firewall status: ${securityData.firewall_status || 'unknown'}, Antivirus status: ${securityData.antivirus_status || 'unknown'}`,
+        timestamp: new Date().toISOString()
       });
     }
 
@@ -162,7 +177,9 @@ export function AIInsights({ agent }: AIInsightsProps) {
         description: `Disk health status: ${systemHealth.disk_health?.status || 'unknown'}`,
         recommendation: 'Run disk diagnostics and consider backup of critical data',
         confidence: 0.7,
-        metric: 'Hardware'
+        metric: 'Hardware',
+        details: `Disk health status: ${systemHealth.disk_health?.status || 'unknown'}`,
+        timestamp: new Date().toISOString()
       });
     }
 
@@ -176,7 +193,9 @@ export function AIInsights({ agent }: AIInsightsProps) {
         recommendation: 'Consider consolidating workloads or reducing system specifications if pattern persists',
         confidence: 0.6,
         trend: 'stable',
-        metric: 'Overall'
+        metric: 'Overall',
+        details: `CPU: ${cpuUsage.toFixed(1)}%, Memory: ${memoryUsage.toFixed(1)}%, Disk: ${diskUsage.toFixed(1)}%`,
+        timestamp: new Date().toISOString()
       });
     }
 
@@ -189,7 +208,9 @@ export function AIInsights({ agent }: AIInsightsProps) {
         description: `Agent is currently ${agent.status}. Last seen: ${agent.last_seen || 'Unknown'}`,
         recommendation: 'Check network connectivity, firewall rules, and agent service status',
         confidence: 0.95,
-        metric: 'Connectivity'
+        metric: 'Connectivity',
+        details: `Agent status: ${agent.status}, Last seen: ${agent.last_seen || 'N/A'}`,
+        timestamp: new Date().toISOString()
       });
     }
 
@@ -202,7 +223,9 @@ export function AIInsights({ agent }: AIInsightsProps) {
         description: `System uptime is only ${agent.uptime} hours, indicating recent restart`,
         recommendation: 'Monitor for instability patterns or verify if restart was planned maintenance',
         confidence: 0.8,
-        metric: 'Uptime'
+        metric: 'Uptime',
+        details: `Current uptime: ${agent.uptime} hours`,
+        timestamp: new Date().toISOString()
       });
     }
 
@@ -211,7 +234,7 @@ export function AIInsights({ agent }: AIInsightsProps) {
       const versionParts = agent.agent_version.split('.');
       const majorVersion = parseInt(versionParts[0]) || 0;
       const minorVersion = parseInt(versionParts[1]) || 0;
-      
+
       if (majorVersion < 2 || (majorVersion === 2 && minorVersion < 5)) {
         aiInsights.push({
           type: 'security',
@@ -220,7 +243,9 @@ export function AIInsights({ agent }: AIInsightsProps) {
           description: `Agent version ${agent.agent_version} may have security vulnerabilities`,
           recommendation: 'Update to the latest agent version for security patches and new features',
           confidence: 0.9,
-          metric: 'Security'
+          metric: 'Security',
+          details: `Current agent version: ${agent.agent_version}, Recommended: 2.5+`,
+          timestamp: new Date().toISOString()
         });
       }
     }
@@ -252,7 +277,19 @@ export function AIInsights({ agent }: AIInsightsProps) {
       if (response.ok) {
         const data = await response.json().catch(() => ({ success: false, insights: [] }));
         if (data.success && Array.isArray(data.insights)) {
-          setInsights(data.insights);
+          // Ensure insights have all required fields, providing defaults if missing
+          const processedInsights = data.insights.map((insight: AIInsight) => ({
+            ...insight,
+            type: insight.type || 'info',
+            severity: insight.severity || 'info',
+            title: insight.title || 'Unknown Insight',
+            description: insight.description || 'No description available.',
+            recommendation: insight.recommendation || 'No recommendation provided.',
+            confidence: insight.confidence || 0,
+            details: insight.details || '',
+            timestamp: insight.timestamp || new Date().toISOString()
+          }));
+          setInsights(processedInsights);
         } else {
           // Fallback to client-side generation
           const clientInsights = generateInsights();
@@ -296,7 +333,8 @@ export function AIInsights({ agent }: AIInsightsProps) {
     if (!agent?.id) return;
 
     const interval = setInterval(() => {
-      if (insights.some(insight => insight.severity === 'high' || insight.severity === 'critical')) {
+      // Only refresh if there are high or critical severity insights
+      if (insights.some(insight => insight.severity === 'high')) {
         fetchInsights().catch(error => {
           console.error('Failed to refresh insights:', error);
         });
@@ -322,6 +360,16 @@ export function AIInsights({ agent }: AIInsightsProps) {
     }
   };
 
+  const getSeverityIcon = (severity: string) => {
+    switch (severity) {
+      case 'high': return <AlertTriangle className="w-5 h-5 text-red-500" />;
+      case 'medium': return <Activity className="w-5 h-5 text-yellow-500" />;
+      case 'low': return <TrendingDown className="w-5 h-5 text-blue-500" />;
+      case 'info': return <CheckCircle className="w-5 h-5 text-green-500" />;
+      default: return <Circle className="w-5 h-5 text-gray-400" />;
+    }
+  };
+
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'performance': return Activity;
@@ -331,6 +379,29 @@ export function AIInsights({ agent }: AIInsightsProps) {
       default: return Brain;
     }
   };
+
+  // Handle loading state
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Brain className="w-5 h-5" />
+            AI Insights & Recommendations
+            <Button variant="ghost" size="sm" onClick={refreshInsights}>
+              <RefreshCw className="w-4 h-4" />
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-3 text-sm text-gray-600">Analyzing device data...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -353,16 +424,7 @@ export function AIInsights({ agent }: AIInsightsProps) {
         </div>
       </CardHeader>
       <CardContent>
-        {loading ? (
-          <div className="space-y-3">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-              </div>
-            ))}
-          </div>
-        ) : insights.length === 0 ? (
+        {insights.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-500" />
             <p className="font-medium text-green-700">System Operating Normally</p>
@@ -400,12 +462,24 @@ export function AIInsights({ agent }: AIInsightsProps) {
                         )}
                       </div>
                       <p className="text-sm mb-2">{insight.description}</p>
-                      <div className="flex items-start gap-2">
+                      <div className="flex items-start gap-2 mb-2">
                         <Zap className="w-3 h-3 mt-0.5 flex-shrink-0" />
                         <p className="text-xs font-medium">
                           Recommendation: {insight.recommendation}
                         </p>
                       </div>
+
+                      {insight.details && (
+                        <p className="text-xs text-gray-500 mb-2">Details: {insight.details}</p>
+                      )}
+                      {insight.timestamp && (
+                        <div className="flex items-center gap-2 mb-2">
+                          <Clock className="w-3 h-3 text-gray-400" />
+                          <span className="text-xs text-gray-500">
+                            {new Date(insight.timestamp).toLocaleString()}
+                          </span>
+                        </div>
+                      )}
 
                       {/* Action Buttons for High Severity Issues */}
                       {insight.severity === 'high' && (
