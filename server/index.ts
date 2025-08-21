@@ -190,6 +190,16 @@ app.use((req, res, next) => {
     const { reportsStorage } = await import("./models/reports-storage");
     await reportsStorage.createReportsTable();
 
+    // Initialize AI insights table
+    try {
+      const { aiInsightsStorage } = await import('./models/ai-insights-storage.js');
+      await aiInsightsStorage.createAIInsightsTable();
+      console.log('✅ AI insights table initialized');
+    } catch (error) {
+      console.warn('⚠️ Failed to initialize AI insights table:', error.message);
+    }
+
+
     // Auth middleware is now imported from middleware/auth-middleware.ts
 
     // Knowledge Base Routes (publicly accessible)

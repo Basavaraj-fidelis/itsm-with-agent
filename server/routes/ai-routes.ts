@@ -8,7 +8,7 @@ import { eq, ilike, and, or } from 'drizzle-orm';
 
 const router = Router();
 
-// Generate and return AI insights for a device
+// Generate and return AI insights for a device (main endpoint)
 router.get("/insights/:deviceId", async (req, res) => {
   try {
     const { deviceId } = req.params;
@@ -129,78 +129,8 @@ router.post("/insights/batch", async (req, res) => {
   }
 });
 
-// AI Insights endpoint for specific device
-router.get('/insights/device/:deviceId', authenticateToken, async (req, res) => {
-  try {
-    const { deviceId } = req.params;
-    console.log('Fetching AI insights for device:', deviceId);
-
-    // Ensure AI insights table exists
-    try {
-      await aiInsightsStorage.createAIInsightsTable();
-    } catch (tableError) {
-      console.warn('Failed to ensure AI insights table exists:', tableError.message);
-    }
-
-    // Try to get insights from storage first
-    let insights = [];
-    try {
-      insights = await aiInsightsStorage.getInsightsForDevice(deviceId, 20);
-    } catch (storageError) {
-      console.warn('Failed to get stored insights:', storageError.message);
-    }
-
-    // If no stored insights, generate fresh ones
-    if (!insights || insights.length === 0) {
-      try {
-        const generatedInsights = await aiService.generateDeviceInsights(deviceId);
-        if (Array.isArray(generatedInsights)) {
-          insights = generatedInsights;
-          
-          // Store generated insights asynchronously
-          setImmediate(async () => {
-            for (const insight of generatedInsights) {
-              try {
-                await aiInsightsStorage.storeInsight({
-                  device_id: deviceId,
-                  insight_type: insight.type,
-                  severity: insight.severity,
-                  title: insight.title,
-                  description: insight.description,
-                  recommendation: insight.recommendation,
-                  confidence: insight.confidence,
-                  metadata: insight.metadata || {},
-                  is_active: true,
-                });
-              } catch (storeError) {
-                console.warn('Failed to store insight:', storeError.message);
-              }
-            }
-          });
-        }
-      } catch (generateError) {
-        console.warn('Failed to generate AI insights:', generateError.message);
-      }
-    }
-
-    res.json({
-      success: true,
-      data: insights,
-      total: insights.length
-    });
-  } catch (error) {
-    console.error('Error fetching device AI insights:', error);
-    console.error('Error stack:', error.stack);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch AI insights',
-      message: error.message
-    });
-  }
-});
-
-// AI-powered insights and recommendations
-router.get('/api/ai-insights', authenticateToken, async (req, res) => {
+// Dashboard AI insights endpoint
+router.get('/dashboard-insights', authenticateToken, async (req, res) => {
   try {
     // Mock AI insights data for dashboard
     const insights = {
@@ -227,10 +157,6 @@ router.get('/api/ai-insights', authenticateToken, async (req, res) => {
       message: error.message 
     });
   }
-});
-
-router.get('/api/ai/insights', authenticateToken, async (req, res) => {
-
 });
 
 // Enhance article suggestions with ChatGPT

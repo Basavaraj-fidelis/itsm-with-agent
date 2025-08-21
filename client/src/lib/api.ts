@@ -109,7 +109,7 @@ class ApiClient {
       return response;
     } catch (error) {
       console.error(`API Request failed for ${url}:`, error);
-      
+
       // Handle specific error types
       if (error instanceof Error) {
         if (error.message.includes('timeout') || error.message.includes('Request timeout')) {
@@ -190,16 +190,16 @@ const maxErrors = 10;
 
 window.addEventListener('unhandledrejection', (event) => {
   errorCount++;
-  
+
   // Prevent too many error logs
   if (errorCount > maxErrors) {
     event.preventDefault();
     return;
   }
-  
+
   // Handle API-related errors
   const errorMessage = event.reason?.message || String(event.reason);
-  
+
   if (errorMessage.includes('Failed to fetch') ||
       errorMessage.includes('security-overview') ||
       errorMessage.includes('analytics') ||
@@ -208,19 +208,19 @@ window.addEventListener('unhandledrejection', (event) => {
       errorMessage.includes('Server error') ||
       errorMessage.includes('NetworkError') ||
       errorMessage.includes('ERR_NETWORK')) {
-    
+
     if (errorCount <= 3) {
       console.warn('Handled API error:', errorMessage);
     }
     event.preventDefault(); // Prevent console spam
     return;
   }
-  
+
   // Reset error count periodically
   if (errorCount === 1) {
     setTimeout(() => { errorCount = 0; }, 30000);
   }
-  
+
   // Let other errors through normally but limit spam
   if (errorCount <= 5) {
     console.error('Unhandled promise rejection:', event.reason);
@@ -704,7 +704,7 @@ export const api = {
   },
 
   getDeviceAIInsights: async (deviceId: string) => {
-    const response = await apiClient.get(`/api/ai/insights/device/${deviceId}`);
+    const response = await apiClient.get(`/api/ai/insights/${deviceId}`);
     if (!response.ok) {
       throw new Error(`Failed to fetch device AI insights: ${response.status}`);
     }

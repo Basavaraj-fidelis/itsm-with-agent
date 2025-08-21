@@ -37,8 +37,6 @@ class AIService {
         return [];
       }
 
-      const insights: AIInsight[] = [];
-
       // Get recent device reports for analysis
       const { storage } = await import("../storage");
       const reportsPromise = storage.getRecentDeviceReports(deviceId, 7);
@@ -79,16 +77,25 @@ class AIService {
         setTimeout(() => reject(new Error('Analysis timeout')), 2000)
       );
 
-      await Promise.race([
-        Promise.allSettled(analysisPromises),
-        analysisTimeout
-      ]);
+      try {
+        await Promise.race([
+          Promise.allSettled(analysisPromises),
+          analysisTimeout
+        ]);
 
-      let insights: AIInsight[] = [];
-      for (const analysisResult of await Promise.allSettled(analysisPromises)) {
-        if (analysisResult.status === 'fulfilled' && Array.isArray(analysisResult.value)) {
-          insights = insights.concat(analysisResult.value);
+        const analysisResults = await Promise.allSettled(analysisPromises);
+        let insights: AIInsight[] = [];
+        
+        for (const result of analysisResults) {
+          if (result.status === 'fulfilled' && Array.isArray(result.value)) {
+            insights = insights.concat(result.value);
+          }
         }
+        
+        return insights;
+      } catch (timeoutError) {
+        console.warn(`Analysis timeout for device ${deviceId}:`, timeoutError.message);
+        return []; // Return empty array on timeout
       }
 
       console.log(`Generated ${insights.length} AI insights for device ${deviceId}`);
