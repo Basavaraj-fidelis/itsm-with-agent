@@ -526,25 +526,104 @@ export function AIInsights({ agent }: AIInsightsProps) {
                                 </div>
                               </div>
 
-                              {/* Description */}
+                              {/* Enhanced Description */}
                               <div>
                                 <label className="text-sm font-medium text-gray-600">Description</label>
-                                <p className="mt-1 text-gray-800">{insight.description}</p>
+                                <div className="mt-1 text-gray-800 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                  <p className="mb-3 font-medium">{insight.description}</p>
+                                  
+                                  {/* Additional context based on insight type */}
+                                  {insight.type === 'performance' && (
+                                    <div className="text-sm text-gray-600 space-y-2">
+                                      <p><strong>Impact:</strong> This performance issue may affect system responsiveness and user experience.</p>
+                                      <p><strong>Common Causes:</strong> Resource-intensive applications, insufficient hardware capacity, or system configuration issues.</p>
+                                      {insight.metric && (
+                                        <p><strong>Affected Metric:</strong> {insight.metric} usage is above normal thresholds.</p>
+                                      )}
+                                    </div>
+                                  )}
+                                  
+                                  {insight.type === 'security' && (
+                                    <div className="text-sm text-gray-600 space-y-2">
+                                      <p><strong>Risk Level:</strong> {insight.severity === 'high' ? 'High - Immediate attention required' : insight.severity === 'medium' ? 'Medium - Should be addressed soon' : 'Low - Monitor and plan remediation'}</p>
+                                      <p><strong>Security Impact:</strong> This issue may expose the system to potential security vulnerabilities or compliance violations.</p>
+                                      <p><strong>Recommended Timeline:</strong> {insight.severity === 'high' ? 'Address within 24 hours' : insight.severity === 'medium' ? 'Address within 7 days' : 'Address within 30 days'}</p>
+                                    </div>
+                                  )}
+                                  
+                                  {insight.type === 'maintenance' && (
+                                    <div className="text-sm text-gray-600 space-y-2">
+                                      <p><strong>Maintenance Type:</strong> {insight.severity === 'high' ? 'Critical maintenance required' : 'Routine maintenance recommended'}</p>
+                                      <p><strong>System Impact:</strong> This maintenance activity may require system downtime or performance degradation during execution.</p>
+                                      <p><strong>Planning:</strong> Schedule during low-usage periods to minimize business impact.</p>
+                                    </div>
+                                  )}
+                                  
+                                  {insight.type === 'prediction' && (
+                                    <div className="text-sm text-gray-600 space-y-2">
+                                      <p><strong>Prediction Confidence:</strong> {insight.confidence ? `${(insight.confidence * 100).toFixed(0)}%` : 'N/A'}</p>
+                                      <p><strong>Trend Analysis:</strong> Based on current usage patterns and historical data trends.</p>
+                                      <p><strong>Proactive Action:</strong> Taking action now can prevent future service disruptions and maintain optimal performance.</p>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Universal additional context */}
+                                  <div className="mt-3 pt-3 border-t border-gray-300 text-sm text-gray-600">
+                                    <p><strong>AI Analysis:</strong> This insight was generated using machine learning algorithms that analyze system metrics, historical patterns, and best practices to identify potential issues and optimization opportunities.</p>
+                                  </div>
+                                </div>
                               </div>
 
                               {/* Recommendation */}
                               <div>
                                 <label className="text-sm font-medium text-gray-600">Recommendation</label>
-                                <p className="mt-1 text-gray-800 bg-blue-50 p-3 rounded-lg border-l-4 border-blue-400">
-                                  {insight.recommendation}
-                                </p>
+                                <div className="mt-1 bg-blue-50 p-4 rounded-lg border-l-4 border-blue-400">
+                                  <p className="text-gray-800 mb-2 font-medium">{insight.recommendation}</p>
+                                  
+                                  {/* Specific action steps based on insight type */}
+                                  {insight.type === 'performance' && (
+                                    <div className="text-sm text-blue-800 mt-3">
+                                      <p className="font-medium mb-2">Suggested Action Steps:</p>
+                                      <ol className="list-decimal list-inside space-y-1 ml-2">
+                                        <li>Identify and analyze high-resource consuming processes</li>
+                                        <li>Consider closing unnecessary applications</li>
+                                        <li>Monitor performance trends over the next 24-48 hours</li>
+                                        <li>Schedule maintenance if issue persists</li>
+                                      </ol>
+                                    </div>
+                                  )}
+                                  
+                                  {insight.type === 'security' && (
+                                    <div className="text-sm text-blue-800 mt-3">
+                                      <p className="font-medium mb-2">Security Action Plan:</p>
+                                      <ol className="list-decimal list-inside space-y-1 ml-2">
+                                        <li>Verify current security service status</li>
+                                        <li>Enable any disabled security features</li>
+                                        <li>Run security scans to check for vulnerabilities</li>
+                                        <li>Document changes for compliance tracking</li>
+                                      </ol>
+                                    </div>
+                                  )}
+                                  
+                                  {insight.type === 'maintenance' && (
+                                    <div className="text-sm text-blue-800 mt-3">
+                                      <p className="font-medium mb-2">Maintenance Workflow:</p>
+                                      <ol className="list-decimal list-inside space-y-1 ml-2">
+                                        <li>Schedule maintenance window during off-peak hours</li>
+                                        <li>Create backup or snapshot before maintenance</li>
+                                        <li>Execute recommended maintenance actions</li>
+                                        <li>Verify system stability post-maintenance</li>
+                                      </ol>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
 
                               {/* Technical Details */}
                               {insight.details && (
                                 <div>
                                   <label className="text-sm font-medium text-gray-600">Technical Details</label>
-                                  <p className="mt-1 text-sm text-gray-600 bg-gray-50 p-3 rounded font-mono">
+                                  <p className="mt-1 text-sm text-gray-600 bg-gray-50 p-3 rounded font-mono border border-gray-200">
                                     {insight.details}
                                   </p>
                                 </div>
@@ -619,16 +698,6 @@ export function AIInsights({ agent }: AIInsightsProps) {
                                     View Metrics
                                   </Button>
                                 )}
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="flex-1"
-                                  onClick={() => {
-                                    window.open(`/agent-detail/${agent.id}`, '_blank');
-                                  }}
-                                >
-                                  Agent Details
-                                </Button>
                               </div>
                             </div>
                           </DialogContent>
