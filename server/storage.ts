@@ -18,7 +18,7 @@ import {
   knowledgeBase,
 } from "@shared/ticket-schema";
 import { auditLog } from "@shared/admin-schema";
-import { eq, desc, gte, and, sql, or, like, count, sql } from "drizzle-orm";
+import { eq, desc, gte, and, sql, or, like, count } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
@@ -42,6 +42,9 @@ export interface IStorage {
   // Alert operations
   getActiveAlerts(): Promise<Alert[]>;
   createAlert(alert: InsertAlert): Promise<Alert>;
+  resolveAlert(alertId: string): Promise<void>;
+  markAlertAsRead(alertId: string, userId: string): Promise<void>;
+  getAlertById(alertId: string): Promise<Alert | null>;
 
   // Dashboard operations
   getDashboardSummary(): Promise<{
@@ -151,6 +154,9 @@ export class MemStorage implements IStorage {
         triggered_at: new Date(Date.now() - 15 * 60 * 1000), // 15 minutes ago
         resolved_at: null,
         is_active: true,
+        is_read: false,
+        read_by: null,
+        read_at: null,
       },
       {
         id: this.generateId(),
@@ -162,6 +168,9 @@ export class MemStorage implements IStorage {
         triggered_at: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
         resolved_at: null,
         is_active: true,
+        is_read: false,
+        read_by: null,
+        read_at: null,
       },
     ];
 
@@ -395,6 +404,9 @@ export class MemStorage implements IStorage {
       triggered_at: new Date(),
       resolved_at: null,
       is_active: alertData.is_active,
+      is_read: false,
+      read_by: null,
+      read_at: null,
     };
 
     this.alerts.set(alert.id, alert);
@@ -442,15 +454,26 @@ export class MemStorage implements IStorage {
   }
 
   async resolveAlert(alertId: string): Promise<void> {
-    const existing = this.alerts.get(alertId);
-    if (existing) {
-      const updated: Alert = {
-        ...existing,
-        is_active: false,
-        resolved_at: new Date(),
-      };
-      this.alerts.set(alertId, updated);
+    const alert = this.alerts.get(alertId);
+    if (alert) {
+      alert.resolved = true;
+      alert.resolved_at = new Date();
+      alert.is_active = false;
     }
+  }
+
+  async markAlertAsRead(alertId: string, userId: string): Promise<void> {
+    const alert = this.alerts.get(alertId);
+    if (alert) {
+      alert.is_read = true;
+      alert.read_by = userId;
+      alert.read_at = new Date();
+    }
+  }
+
+  async getAlertById(alertId: string): Promise<Alert | null> {
+    const alert = this.alerts.get(alertId);
+    return alert || null;
   }
 
   async getDashboardSummary(): Promise<{
@@ -2204,7 +2227,7 @@ ipconfig /flushdns
 4. **Verify**: Enter code from app to complete setup
 
 ### Alternative Methods
-- **Text Messages: Less secure, use only if app unavailable
+- **Text Messages**: Less secure, use only if app unavailable
 - **Phone Calls**: For the next line.
 smartphones
 - **Hardware Tokens**: For high-security accounts
@@ -3154,6 +3177,9 @@ smartphones
       .values({
         ...alert,
         triggered_at: new Date(),
+        is_read: false, // Initialize as not read
+        read_by: null,
+        read_at: null,
       })
       .returning();
     return newAlert;

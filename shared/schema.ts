@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, json, numeric, uuid, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, json, numeric, uuid, boolean, varchar, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -144,4 +144,21 @@ export const user_sessions = pgTable("user_sessions", {
   session_end: timestamp("session_end"),
   duration_minutes: numeric("duration_minutes"),
   created_at: timestamp("created_at").defaultNow()
+});
+
+export const systemAlerts = pgTable("system_alerts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  device_id: varchar("device_id", { length: 255 }).notNull(),
+  category: varchar("category", { length: 100 }).notNull(),
+  severity: varchar("severity", { length: 50 }).notNull(),
+  message: text("message").notNull(),
+  metadata: jsonb("metadata").default({}),
+  triggered_at: timestamp("triggered_at").defaultNow().notNull(),
+  resolved_at: timestamp("resolved_at"),
+  is_active: boolean("is_active").default(true).notNull(),
+  is_read: boolean("is_read").default(false).notNull(),
+  read_by: varchar("read_by", { length: 255 }),
+  read_at: timestamp("read_at"),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
 });

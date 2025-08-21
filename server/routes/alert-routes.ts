@@ -41,6 +41,60 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+// Mark alert as read endpoint
+router.post("/:id/read", async (req, res) => {
+  try {
+    const alertId = req.params.id;
+    const userId = req.user?.id || req.user?.email;
+    console.log(`User ${userId} marking alert as read: ${alertId}`);
+
+    if (!alertId) {
+      return res.status(400).json({
+        message: "Alert ID is required",
+        success: false,
+      });
+    }
+
+    // Check if alert exists first
+    const alert = await storage.getAlertById(alertId);
+    if (!alert) {
+      return res.status(404).json({
+        message: "Alert not found",
+        alertId: alertId,
+        success: false,
+      });
+    }
+
+    try {
+      await storage.markAlertAsRead(alertId, userId);
+      console.log(`Alert ${alertId} marked as read by ${userId}`);
+
+      res.json({
+        message: "Alert marked as read successfully",
+        alertId: alertId,
+        success: true,
+        readBy: userId,
+        readAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error(`Error marking alert as read ${alertId}:`, error);
+      res.status(500).json({
+        message: "Failed to mark alert as read",
+        error: error.message,
+        alertId: alertId,
+        success: false,
+      });
+    }
+  } catch (error) {
+    console.error("Error in mark alert as read endpoint:", error);
+    res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+      success: false,
+    });
+  }
+});
+
 // Resolve alert endpoint
 router.post("/:id/resolve", async (req, res) => {
   try {

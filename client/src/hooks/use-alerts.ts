@@ -67,6 +67,24 @@ export async function resolveAlert(alertId: string): Promise<boolean> {
   }
 }
 
+export async function markAlertAsRead(alertId: string): Promise<boolean> {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`/api/alerts/${alertId}/read`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error('Error marking alert as read:', error);
+    return false;
+  }
+}
+
 export async function createTicketFromAlert(alert: Alert, description: string, priority: string): Promise<any> {
   try {
     const token = localStorage.getItem('token');
