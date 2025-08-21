@@ -237,14 +237,20 @@ export function AIInsights({ agent }: AIInsightsProps) {
 
     setLoading(true);
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
       const response = await fetch(`/api/ai/insights/${agent.id}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+        },
+        signal: controller.signal
       });
 
+      clearTimeout(timeoutId);
+
       if (response.ok) {
-        const data = await response.json();
+        const data = await response.json().catch(() => ({ success: false, insights: [] }));
         if (data.success && Array.isArray(data.insights)) {
           setInsights(data.insights);
         } else {
@@ -259,32 +265,51 @@ export function AIInsights({ agent }: AIInsightsProps) {
         setInsights(clientInsights);
       }
     } catch (error) {
-      console.warn('AI insights API unavailable, using fallback:', error.message);
+      if (error.name === 'AbortError') {
+        console.warn('AI insights request timed out, using fallback');
+      } else {
+        console.warn('AI insights API unavailable, using fallback:', error?.message || 'Unknown error');
+      }
       // Fallback to client-side generation
-      const clientInsights = generateInsights();
-      setInsights(clientInsights);
+      try {
+        const clientInsights = generateInsights();
+        setInsights(clientInsights);
+      } catch (fallbackError) {
+        console.error('Client-side insight generation failed:', fallbackError);
+        setInsights([]);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (agent) {
-      fetchInsights();
+    if (agent?.id) {
+      fetchInsights().catch(error => {
+        console.error('Failed to fetch insights in useEffect:', error);
+      });
     }
-    
+  }, [agent?.id]);
+
+  useEffect(() => {
     // Set up periodic refresh every 30 seconds for high severity issues
+    if (!agent?.id) return;
+
     const interval = setInterval(() => {
-      if (agent && insights.some(insight => insight.severity === 'high' || insight.severity === 'critical')) {
-        fetchInsights();
+      if (insights.some(insight => insight.severity === 'high' || insight.severity === 'critical')) {
+        fetchInsights().catch(error => {
+          console.error('Failed to refresh insights:', error);
+        });
       }
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [agent, insights]);
+  }, [insights, agent?.id]);
 
   const refreshInsights = () => {
-    fetchInsights(true);
+    fetchInsights().catch(error => {
+      console.error('Failed to refresh insights manually:', error);
+    });
   };
 
   const getSeverityColor = (severity: string) => {

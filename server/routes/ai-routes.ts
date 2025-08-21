@@ -10,6 +10,8 @@ const router = Router();
 
 // Generate and return AI insights for a device (main endpoint)
 router.get("/insights/:deviceId", async (req, res) => {
+  const startTime = Date.now();
+  
   try {
     const { deviceId } = req.params;
     const { refresh } = req.query;
@@ -20,81 +22,75 @@ router.get("/insights/:deviceId", async (req, res) => {
         .json({ success: false, error: "Device ID is required" });
     }
 
-    // Set timeout to prevent long-running requests
-    const timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Request timeout")), 5000),
-    );
-
-    let insights = [];
+    let insights: any[] = [];
 
     try {
-      const insightsPromise = (async () => {
-        // Check if we should generate fresh insights or use cached ones
-        if (refresh === "true") {
-          const generatedInsights =
-            await aiService.generateDeviceInsights(deviceId);
+      // Check if we should generate fresh insights or use cached ones
+      if (refresh === "true") {
+        console.log(`Generating fresh insights for device ${deviceId}`);
+        const generatedInsights = await aiService.generateDeviceInsights(deviceId);
 
+        if (Array.isArray(generatedInsights)) {
+          insights = generatedInsights;
+          
           // Store insights in database for future use (fire and forget)
-          if (Array.isArray(generatedInsights)) {
-            setImmediate(async () => {
-              for (const insight of generatedInsights) {
-                try {
-                  await aiInsightsStorage.storeInsight({
-                    device_id: deviceId,
-                    insight_type: insight.type,
-                    severity: insight.severity,
-                    title: insight.title,
-                    description: insight.description,
-                    recommendation: insight.recommendation,
-                    confidence: insight.confidence,
-                    metadata: insight.metadata || {},
-                    is_active: true,
-                  });
-                } catch (storeError) {
-                  console.warn("Failed to store insight:", storeError.message);
-                }
+          setImmediate(async () => {
+            for (const insight of generatedInsights) {
+              try {
+                await aiInsightsStorage.storeInsight({
+                  device_id: deviceId,
+                  insight_type: insight.type,
+                  severity: insight.severity,
+                  title: insight.title,
+                  description: insight.description,
+                  recommendation: insight.recommendation,
+                  confidence: insight.confidence,
+                  metadata: insight.metadata || {},
+                  is_active: true,
+                });
+              } catch (storeError) {
+                console.warn("Failed to store insight:", storeError?.message || storeError);
               }
-            });
-          }
-          return generatedInsights;
-        } else {
-          // Try cached insights first
-          try {
-            const cachedInsights = await aiInsightsStorage.getInsightsForDevice(
-              deviceId,
-              20,
-            );
-            if (cachedInsights && cachedInsights.length > 0) {
-              return cachedInsights;
             }
-          } catch (cacheError) {
-            console.warn("Failed to get cached insights:", cacheError.message);
+          });
+        }
+      } else {
+        // Try cached insights first
+        try {
+          const cachedInsights = await aiInsightsStorage.getInsightsForDevice(deviceId, 20);
+          if (Array.isArray(cachedInsights) && cachedInsights.length > 0) {
+            console.log(`Using ${cachedInsights.length} cached insights for device ${deviceId}`);
+            insights = cachedInsights;
+          } else {
+            console.log(`No cached insights found, generating for device ${deviceId}`);
+            const generatedInsights = await aiService.generateDeviceInsights(deviceId);
+            insights = Array.isArray(generatedInsights) ? generatedInsights : [];
           }
-
+        } catch (cacheError) {
+          console.warn("Failed to get cached insights:", cacheError?.message || cacheError);
           try {
-            return await aiService.generateDeviceInsights(deviceId);
+            const generatedInsights = await aiService.generateDeviceInsights(deviceId);
+            insights = Array.isArray(generatedInsights) ? generatedInsights : [];
           } catch (generateError) {
-            console.warn("Failed to generate insights:", generateError.message);
-            return [];
+            console.warn("Failed to generate insights:", generateError?.message || generateError);
+            insights = [];
           }
         }
-      })();
-
-      insights = await Promise.race([insightsPromise, timeout]);
-
-      // Ensure insights is an array
-      if (!Array.isArray(insights)) {
-        insights = [];
       }
 
-      res.json({ success: true, insights });
+      const duration = Date.now() - startTime;
+      console.log(`AI insights request completed in ${duration}ms for device ${deviceId}`);
+      
+      res.json({ success: true, insights: insights || [] });
     } catch (serviceError) {
-      console.warn("AI service timeout or error:", serviceError.message);
-      // Return empty insights array on service error/timeout
+      const duration = Date.now() - startTime;
+      console.warn(`AI service error after ${duration}ms for device ${deviceId}:`, serviceError?.message || serviceError);
+      // Return empty insights array on service error
       res.json({ success: true, insights: [] });
     }
   } catch (error) {
-    console.error("Error in AI insights API:", error);
+    const duration = Date.now() - startTime;
+    console.error(`Critical error in AI insights API after ${duration}ms:`, error?.message || error);
     res.status(500).json({ success: false, error: "Internal server error" });
   }
 });

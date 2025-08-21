@@ -37,70 +37,52 @@ class AIService {
         return [];
       }
 
-      // Get recent device reports for analysis
+      // Get recent device reports for analysis with timeout
       const { storage } = await import("../storage");
       const reportsPromise = storage.getRecentDeviceReports(deviceId, 7);
       const timeout = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Database query timeout')), 3000)
+        setTimeout(() => reject(new Error('Database query timeout')), 5000)
       );
 
-      const reports = await Promise.race([reportsPromise, timeout]);
+      let reports;
+      try {
+        reports = await Promise.race([reportsPromise, timeout]);
+      } catch (dbError) {
+        console.warn(`Database query failed for device ${deviceId}:`, dbError?.message || dbError);
+        return [];
+      }
 
-      if (!reports || reports.length === 0) {
+      if (!Array.isArray(reports) || reports.length === 0) {
         console.log(`No reports found for device ${deviceId}`);
         return [];
       }
 
       const latestReport = reports[0];
 
-      // Run analysis with timeout protection
-      const analysisPromises = [
-        this.analyzePerformancePatterns(deviceId, reports, []).catch(err => 
-          console.warn('Performance analysis failed:', err.message)
-        ),
-        this.analyzeSecurityPosture(deviceId, latestReport, []).catch(err => 
-          console.warn('Security analysis failed:', err.message)
-        ),
-        this.generateResourcePredictions(deviceId, reports, []).catch(err => 
-          console.warn('Resource prediction failed:', err?.message || err)
-        ),
-        this.analyzeProcessBehavior(deviceId, latestReport, []).catch(err => 
-          console.warn('Process analysis failed:', err.message)
-        ),
-        this.analyzeSystemHealth(deviceId, latestReport, []).catch(err => 
-          console.warn('System health analysis failed:', err.message)
-        )
-      ];
+      // Run analysis with individual error handling - don't let one failure break others
+      const analysisResults = await Promise.allSettled([
+        this.analyzePerformancePatterns(deviceId, reports, []),
+        this.analyzeSecurityPosture(deviceId, latestReport, []),
+        this.generateResourcePredictions(deviceId, reports, []),
+        this.analyzeProcessBehavior(deviceId, latestReport, []),
+        this.analyzeSystemHealth(deviceId, latestReport, [])
+      ]);
 
-      // Wait for all analysis to complete with timeout
-      const analysisTimeout = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Analysis timeout')), 2000)
-      );
-
-      try {
-        await Promise.race([
-          Promise.allSettled(analysisPromises),
-          analysisTimeout
-        ]);
-
-        const analysisResults = await Promise.allSettled(analysisPromises);
-        let insights: AIInsight[] = [];
-        
-        for (const result of analysisResults) {
-          if (result.status === 'fulfilled' && Array.isArray(result.value)) {
-            insights = insights.concat(result.value);
-          }
+      let insights: AIInsight[] = [];
+      
+      for (const result of analysisResults) {
+        if (result.status === 'fulfilled' && Array.isArray(result.value)) {
+          insights = insights.concat(result.value);
+        } else if (result.status === 'rejected') {
+          console.warn('Analysis function failed:', result.reason?.message || result.reason);
         }
-        
-        console.log(`Generated ${insights.length} AI insights for device ${deviceId}`);
-        return insights;
-      } catch (timeoutError) {
-        console.warn(`Analysis timeout for device ${deviceId}:`, timeoutError.message);
-        return []; // Return empty array on timeout
       }
+      
+      console.log(`Generated ${insights.length} AI insights for device ${deviceId}`);
+      return insights;
 
     } catch (error) {
-      console.warn(`Error generating AI insights for device ${deviceId}:`, error.message);
+      console.error(`Critical error generating AI insights for device ${deviceId}:`, error?.message || error);
       return [];
     }
   }
@@ -638,7 +620,7 @@ class AIService {
     forecast: number[];
   } | null {
     try {
-      if (!values || !Array.isArray(values) || values.length === 0 || !timestamps || !Array.isArray(timestamps)) {
+      if (!Array.isArray(values) || values.length === 0 || !Array.isArray(timestamps)) {
         return {
           trend: 0,
           seasonality: 'insufficient_data',
@@ -650,10 +632,10 @@ class AIService {
 
       const trend = this.calculateTrend(values) || 0;
       const volatility = this.calculateVolatility(values) || 0;
-      const anomalies = this.detectAnomalies(values) || [];
+      const anomalies: number[] = this.detectAnomalies(values) || [];
 
       // Simple moving average forecast for next 7 periods
-      const forecast = this.generateForecast(values, 7) || [];
+      const forecast: number[] = this.generateForecast(values, 7) || [];
 
       // Enhanced seasonality detection
       const seasonality = this.detectSeasonalityPatterns(values, timestamps) || 'random';
@@ -661,19 +643,25 @@ class AIService {
       return { trend, seasonality, volatility, anomalies, forecast };
     } catch (error) {
       console.warn('Time series analysis failed:', error?.message || error);
-      return null;
+      return {
+        trend: 0,
+        seasonality: 'error',
+        volatility: 0,
+        anomalies: [],
+        forecast: []
+      };
     }
   }
 
   private generateForecast(values: number[], periods: number): number[] {
     try {
-      if (!values || values.length < 3 || !periods || periods <= 0) {
+      if (!Array.isArray(values) || values.length < 3 || !periods || periods <= 0) {
         return [];
       }
 
       const trend = this.calculateTrend(values) || 0;
       const lastValue = values[values.length - 1] || 0;
-      const forecast = [];
+      const forecast: number[] = [];
 
       for (let i = 1; i <= periods; i++) {
         const predictedValue = Math.max(0, lastValue + (trend * i));
@@ -704,50 +692,76 @@ class AIService {
   }
 
   private analyzeHourlyPatterns(values: number[], timestamps: Date[]): { strength: number } {
-    // Group by hour of day
-    const hourlyBuckets = new Array(24).fill(0).map(() => []);
+    try {
+      if (!Array.isArray(values) || !Array.isArray(timestamps) || values.length === 0) {
+        return { strength: 0 };
+      }
 
-    timestamps.forEach((timestamp, index) => {
-      const hour = timestamp.getHours();
-      hourlyBuckets[hour].push(values[index]);
-    });
+      // Group by hour of day
+      const hourlyBuckets: number[][] = new Array(24).fill(null).map(() => []);
 
-    // Calculate variance between hours vs within hours
-    const hourlyAverages = hourlyBuckets.map(bucket => 
-      bucket.length > 0 ? bucket.reduce((a, b) => a + b, 0) / bucket.length : 0
-    );
+      timestamps.forEach((timestamp, index) => {
+        if (timestamp && values[index] !== undefined) {
+          const hour = timestamp.getHours();
+          if (hour >= 0 && hour < 24) {
+            hourlyBuckets[hour].push(values[index]);
+          }
+        }
+      });
 
-    const overallMean = values.reduce((a, b) => a + b, 0) / values.length;
-    const betweenHourVariance = hourlyAverages.reduce((sum, avg) => 
-      sum + Math.pow(avg - overallMean, 2), 0) / 24;
+      // Calculate variance between hours vs within hours
+      const hourlyAverages = hourlyBuckets.map(bucket => 
+        bucket.length > 0 ? bucket.reduce((a, b) => a + b, 0) / bucket.length : 0
+      );
 
-    const totalVariance = values.reduce((sum, val) => 
-      sum + Math.pow(val - overallMean, 2), 0) / values.length;
+      const overallMean = values.reduce((a, b) => a + b, 0) / values.length;
+      const betweenHourVariance = hourlyAverages.reduce((sum, avg) => 
+        sum + Math.pow(avg - overallMean, 2), 0) / 24;
 
-    return { strength: betweenHourVariance / (totalVariance || 1) };
+      const totalVariance = values.reduce((sum, val) => 
+        sum + Math.pow(val - overallMean, 2), 0) / values.length;
+
+      return { strength: betweenHourVariance / (totalVariance || 1) };
+    } catch (error) {
+      console.warn('Hourly pattern analysis failed:', error?.message || error);
+      return { strength: 0 };
+    }
   }
 
   private analyzeWeeklyPatterns(values: number[], timestamps: Date[]): { strength: number } {
-    // Group by day of week
-    const weeklyBuckets = new Array(7).fill(0).map(() => []);
+    try {
+      if (!Array.isArray(values) || !Array.isArray(timestamps) || values.length === 0) {
+        return { strength: 0 };
+      }
 
-    timestamps.forEach((timestamp, index) => {
-      const dayOfWeek = timestamp.getDay();
-      weeklyBuckets[dayOfWeek].push(values[index]);
-    });
+      // Group by day of week
+      const weeklyBuckets: number[][] = new Array(7).fill(null).map(() => []);
 
-    const weeklyAverages = weeklyBuckets.map(bucket => 
-      bucket.length > 0 ? bucket.reduce((a, b) => a + b, 0) / bucket.length : 0
-    );
+      timestamps.forEach((timestamp, index) => {
+        if (timestamp && values[index] !== undefined) {
+          const dayOfWeek = timestamp.getDay();
+          if (dayOfWeek >= 0 && dayOfWeek < 7) {
+            weeklyBuckets[dayOfWeek].push(values[index]);
+          }
+        }
+      });
 
-    const overallMean = values.reduce((a, b) => a + b, 0) / values.length;
-    const betweenDayVariance = weeklyAverages.reduce((sum, avg) => 
-      sum + Math.pow(avg - overallMean, 2), 0) / 7;
+      const weeklyAverages = weeklyBuckets.map(bucket => 
+        bucket.length > 0 ? bucket.reduce((a, b) => a + b, 0) / bucket.length : 0
+      );
 
-    const totalVariance = values.reduce((sum, val) => 
-      sum + Math.pow(val - overallMean, 2), 0) / values.length;
+      const overallMean = values.reduce((a, b) => a + b, 0) / values.length;
+      const betweenDayVariance = weeklyAverages.reduce((sum, avg) => 
+        sum + Math.pow(avg - overallMean, 2), 0) / 7;
 
-    return { strength: betweenDayVariance / (totalVariance || 1) };
+      const totalVariance = values.reduce((sum, val) => 
+        sum + Math.pow(val - overallMean, 2), 0) / values.length;
+
+      return { strength: betweenDayVariance / (totalVariance || 1) };
+    } catch (error) {
+      console.warn('Weekly pattern analysis failed:', error?.message || error);
+      return { strength: 0 };
+    }
   }
 
   private calculateVolatility(values: number[]): number {
@@ -759,12 +773,23 @@ class AIService {
   }
 
   private detectAnomalies(values: number[], threshold = 2.5): number[] {
-    if (values.length < 3) return [];
+    try {
+      if (!Array.isArray(values) || values.length < 3) return [];
 
-    const mean = values.reduce((a, b) => a + b, 0) / values.length;
-    const std = Math.sqrt(values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length);
+      const mean = values.reduce((a, b) => a + b, 0) / values.length;
+      const std = Math.sqrt(values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length);
 
-    return values.filter(value => Math.abs(value - mean) > threshold * std);
+      const anomalies: number[] = [];
+      for (const value of values) {
+        if (Math.abs(value - mean) > threshold * std) {
+          anomalies.push(value);
+        }
+      }
+      return anomalies;
+    } catch (error) {
+      console.warn('Anomaly detection failed:', error?.message || error);
+      return [];
+    }
   }
 
   private calculateSeasonality(values: number[]): { pattern: string; confidence: number } {
