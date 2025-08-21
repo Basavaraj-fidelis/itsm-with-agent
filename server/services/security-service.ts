@@ -172,73 +172,8 @@ class SecurityService {
           continue;
         }
 
-        // Check memory utilization
-        const memoryUsage =
-          parseFloat(latestReport.memory_usage) ||
-          rawData?.hardware?.memory?.usage_percentage;
-        if (memoryUsage && memoryUsage > 80) {
-          // Check if alert already exists for this condition
-          const existingAlerts = await storage.getActiveAlerts();
-          const hasMemoryAlert = existingAlerts.some(
-            (alert) =>
-              alert.device_id === device.id &&
-              alert.category === "performance" &&
-              alert.metadata?.metric === "memory",
-          );
-
-          if (!hasMemoryAlert) {
-            await storage.createAlert({
-              device_id: device.id,
-              category: "performance",
-              severity: memoryUsage > 90 ? "critical" : "high",
-              message: `High memory utilization detected: ${memoryUsage.toFixed(1)}%`,
-              metadata: {
-                metric: "memory",
-                value: memoryUsage,
-                threshold: 80,
-                device_hostname: device.hostname,
-              },
-              is_active: true,
-            });
-            console.log(
-              `Created memory alert for device ${device.hostname}: ${memoryUsage.toFixed(1)}%`,
-            );
-          }
-        }
-
-        // Check CPU utilization
-        const cpuUsage =
-          parseFloat(latestReport.cpu_usage) ||
-          rawData?.hardware?.cpu?.usage_percentage;
-        if (cpuUsage && cpuUsage > 85) {
-          // Check if alert already exists for this condition
-          const existingAlerts = await storage.getActiveAlerts();
-          const hasCpuAlert = existingAlerts.some(
-            (alert) =>
-              alert.device_id === device.id &&
-              alert.category === "performance" &&
-              alert.metadata?.metric === "cpu",
-          );
-
-          if (!hasCpuAlert) {
-            await storage.createAlert({
-              device_id: device.id,
-              category: "performance",
-              severity: cpuUsage > 95 ? "critical" : "high",
-              message: `High CPU utilization detected: ${cpuUsage.toFixed(1)}%`,
-              metadata: {
-                metric: "cpu",
-                value: cpuUsage,
-                threshold: 85,
-                device_hostname: device.hostname,
-              },
-              is_active: true,
-            });
-            console.log(
-              `Created CPU alert for device ${device.hostname}: ${cpuUsage.toFixed(1)}%`,
-            );
-          }
-        }
+        // Performance alerts are now handled by alert processing service
+        // This prevents duplicate alert generation
 
         // Check USB devices
         const usbDevices = rawData?.usb_devices || [];

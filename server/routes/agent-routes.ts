@@ -406,7 +406,7 @@ export function registerAgentRoutes(
       console.log(JSON.stringify(reportData.processes?.slice(0, 5), null, 2));
       console.log(`Total Processes Count: ${reportData.processes?.length || 0}`);
 
-      console.log("\n=== USB DEVICES ===");
+      console.log("\n=== USBDEVICES ===");
       console.log(JSON.stringify(reportData.usb_devices, null, 2));
 
       console.log("\n=== VIRTUALIZATION INFO ===");
@@ -565,7 +565,7 @@ export function registerAgentRoutes(
       try {
         console.log("=== GENERATING SYSTEM ALERTS ===");
         const { generateSystemAlerts } = await import("../utils/alerts");
-        
+
         // Prepare device data for alert generation
         const deviceForAlerts = {
           id: device.id,
@@ -576,10 +576,10 @@ export function registerAgentRoutes(
         };
 
         const generatedAlerts = await generateSystemAlerts(deviceForAlerts);
-        
+
         if (generatedAlerts.length > 0) {
           console.log(`Generated ${generatedAlerts.length} alerts for device ${device.hostname}`);
-          
+
           // Store alerts in database
           for (const alert of generatedAlerts) {
             await storage.createAlert({
