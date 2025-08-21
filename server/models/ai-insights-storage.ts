@@ -24,30 +24,27 @@ class AIInsightsStorage {
     insight: Omit<StoredAIInsight, "id" | "created_at">,
   ): Promise<StoredAIInsight> {
     try {
-      const { pool } = await import("../db");
+      const { db, sql } = await import("../db");
 
-      const result = await pool.query(
-        `
+      const [result] = await db.execute(sql`
         INSERT INTO ai_insights (
           device_id, insight_type, severity, title, description, 
-          recommendation, confidence, metadata, created_at, is_active
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), $9)
+          recommendation, confidence, metadata, is_active
+        ) VALUES (
+          ${insight.device_id}, 
+          ${insight.insight_type}, 
+          ${insight.severity}, 
+          ${insight.title}, 
+          ${insight.description}, 
+          ${insight.recommendation}, 
+          ${insight.confidence}, 
+          ${JSON.stringify(insight.metadata || {})}, 
+          ${insight.is_active}
+        )
         RETURNING *
-      `,
-        [
-          insight.device_id,
-          insight.insight_type,
-          insight.severity,
-          insight.title,
-          insight.description,
-          insight.recommendation,
-          insight.confidence,
-          JSON.stringify(insight.metadata),
-          insight.is_active,
-        ],
-      );
+      `);
 
-      return result.rows[0];
+      return result;
     } catch (error) {
       console.error("Error storing AI insight:", error);
       throw error;
@@ -59,24 +56,20 @@ class AIInsightsStorage {
     limit: number = 50,
   ): Promise<StoredAIInsight[]> {
     try {
-      const { pool } = await import("../db");
+      const { db, sql } = await import("../db");
 
-      const result = await pool.query(
-        `
+      const results = await db.execute(sql`
         SELECT * FROM ai_insights 
-        WHERE device_id = $1 AND is_active = true
+        WHERE device_id = ${deviceId} AND is_active = true
         ORDER BY created_at DESC 
-        LIMIT $2
-      `,
-        [deviceId, limit],
-      );
+        LIMIT ${limit}
+      `);
 
-      return result.rows.map((row) => ({
+      return results.map((row: any) => ({
         ...row,
-        metadata:
-          typeof row.metadata === "string"
-            ? JSON.parse(row.metadata)
-            : row.metadata,
+        metadata: typeof row.metadata === "string" 
+          ? JSON.parse(row.metadata) 
+          : (row.metadata || {}),
       }));
     } catch (error) {
       console.error("Error fetching AI insights:", error);
@@ -86,24 +79,32 @@ class AIInsightsStorage {
 
   async createAIInsightsTable(): Promise<void> {
     try {
-      const { pool } = await import("../db");
+      const { db, sql } = await import("../db");
 
-      await pool.query(`
+      await db.execute(sql`
         CREATE TABLE IF NOT EXISTS ai_insights (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          device_id UUID REFERENCES devices(id) ON DELETE CASCADE,
+          device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
           insight_type VARCHAR(50) NOT NULL,
           severity VARCHAR(20) NOT NULL,
           title VARCHAR(255) NOT NULL,
           description TEXT NOT NULL,
           recommendation TEXT NOT NULL,
           confidence DECIMAL(3,2) NOT NULL,
-          metadata JSONB,
+          metadata JSONB DEFAULT '{}',
           created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-          is_active BOOLEAN DEFAULT true,
-          INDEX (device_id, created_at),
-          INDEX (insight_type, severity)
+          is_active BOOLEAN DEFAULT true
         )
+      `);
+
+      await db.execute(sql`
+        CREATE INDEX IF NOT EXISTS idx_ai_insights_device_created 
+        ON ai_insights(device_id, created_at)
+      `);
+
+      await db.execute(sql`
+        CREATE INDEX IF NOT EXISTS idx_ai_insights_type_severity 
+        ON ai_insights(insight_type, severity)
       `);
 
       console.log("AI insights table created successfully");

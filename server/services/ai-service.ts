@@ -29,12 +29,15 @@ export interface PerformancePrediction {
 class AIService {
   async generateDeviceInsights(deviceId: string): Promise<AIInsight[]> {
     try {
-      const device = await storage.getDevice(deviceId);
-      if (!device) {
-        throw new Error('Device not found');
+      const deviceData = await this.getDeviceData(deviceId);
+      console.log(`Generating AI insights for device: ${deviceData?.hostname || 'Unknown'} (${deviceId})`);
+
+      if (!deviceData) {
+        console.log('No device data found for AI analysis');
+        return [];
       }
 
-      console.log(`Generating AI insights for device: ${device.hostname} (${deviceId})`);
+      const insights: AIInsight[] = [];
 
       // Get recent device reports for analysis
       const reportsPromise = storage.getRecentDeviceReports(deviceId, 7);
@@ -60,7 +63,7 @@ class AIService {
           console.warn('Security analysis failed:', err.message)
         ),
         this.generateResourcePredictions(deviceId, reports, []).catch(err => 
-          console.warn('Resource prediction failed:', err.message)
+          console.warn('Resource prediction failed:', err?.message || err)
         ),
         this.analyzeProcessBehavior(deviceId, latestReport, []).catch(err => 
           console.warn('Process analysis failed:', err.message)
@@ -93,6 +96,16 @@ class AIService {
     } catch (error) {
       console.warn(`Error generating AI insights for device ${deviceId}:`, error.message);
       return [];
+    }
+  }
+
+  private async getDeviceData(deviceId: string): Promise<any> {
+    try {
+      const device = await storage.getDevice(deviceId);
+      return device;
+    } catch (error) {
+      console.error(`Error fetching device data for ${deviceId}:`, error);
+      return null;
     }
   }
 
@@ -724,16 +737,16 @@ class AIService {
   private shouldUpdateAlert(existingAlert: AIInsight, newValue: number, newSeverity: string): boolean {
     const timeSinceCreated = new Date().getTime() - new Date(existingAlert.created_at).getTime();
     const hoursSinceCreated = timeSinceCreated / (1000 * 60 * 60);
-    
+
     // Update if severity changed or if more than 1 hour has passed
     const severityChanged = existingAlert.severity !== newSeverity;
     const significantTimeElapsed = hoursSinceCreated > 1;
-    
+
     // Check if the metric value changed significantly
     const oldValue = existingAlert.metadata?.trend || existingAlert.metadata?.volatility || 0;
     const valueChangePercent = Math.abs((newValue - oldValue) / oldValue) * 100;
     const significantChange = valueChangePercent > 10; // 10% change
-    
+
     return severityChanged || significantChange || significantTimeElapsed;
   }
 

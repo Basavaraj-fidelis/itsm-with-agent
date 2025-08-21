@@ -541,7 +541,7 @@ app.get('/api/auth/test', (req, res) => {
     console.log("Fetching dashboard summary for user:", req.user?.email);
     // Import storage after it's available
     const { storage } = await import("./storage");
-    
+
     let summary;
     try {
       summary = await storage.getDashboardSummary();
@@ -555,7 +555,7 @@ app.get('/api/auth/test', (req, res) => {
         active_alerts: 0
       };
     }
-    
+
     console.log("Dashboard summary:", summary);
     res.json(summary);
   } catch (error) {
