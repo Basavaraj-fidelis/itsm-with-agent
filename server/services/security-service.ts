@@ -420,7 +420,7 @@ class SecurityService {
     try {
       // Add timeout to prevent hanging
       const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Security overview timeout")), 5000)
+        setTimeout(() => reject(new Error("Security overview timeout")), 5000),
       );
 
       const dataPromise = this.getSecurityData();
@@ -443,7 +443,7 @@ class SecurityService {
       `);
 
       const devicesResult = await pool.query(
-        "SELECT COUNT(*) as count FROM devices"
+        "SELECT COUNT(*) as count FROM devices",
       );
 
       const activeThreats = parseInt(alertsResult.rows[0]?.count) || 0;
@@ -485,7 +485,5 @@ class SecurityService {
       patchCompliance: 78,
     };
   }
-  }
 }
-
 export const securityService = new SecurityService();
