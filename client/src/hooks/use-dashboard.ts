@@ -36,9 +36,9 @@ export function useDashboardSummary() {
           total_tickets: data.total_tickets || 0,
           open_tickets: data.open_tickets || 0,
           resolved_tickets: data.resolved_tickets || 0,
-          total_devices: Math.max(1, data.total_devices || 1), // At least 1 if we're getting data
-          online_devices: Math.max(1, data.online_devices || 1), // At least 1 online
-          offline_devices: Math.max(0, data.offline_devices || 0),
+          total_devices: data.total_devices || 0,
+          online_devices: data.online_devices || 0,
+          offline_devices: data.offline_devices || 0,
           critical_alerts: data.critical_alerts || 0,
           warnings: data.warnings || 0
         };
@@ -49,8 +49,8 @@ export function useDashboardSummary() {
           total_tickets: 0,
           open_tickets: 0,
           resolved_tickets: 0,
-          total_devices: 1,
-          online_devices: 1,
+          total_devices: 0,
+          online_devices: 0,
           offline_devices: 0,
           critical_alerts: 0,
           warnings: 0

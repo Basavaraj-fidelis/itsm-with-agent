@@ -464,8 +464,8 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
       const activeAlerts = Array.isArray(alerts) ? alerts.filter(alert => alert.is_active).length : 0;
 
       const summary = {
-        total_devices: Math.max(1, totalDevices), // Ensure at least 1 device shown
-        online_devices: Math.max(totalDevices > 0 ? 1 : 0, onlineCount),
+        total_devices: totalDevices,
+        online_devices: onlineCount,
         offline_devices: offlineDevices,
         active_alerts: activeAlerts
       };

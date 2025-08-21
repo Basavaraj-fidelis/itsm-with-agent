@@ -473,13 +473,15 @@ export default function Dashboard() {
                     System Health
                   </div>
                   <div className="text-xl font-bold text-green-600 dark:text-green-400">
-                    {summary ? `${Math.round((summary.online_devices / summary.total_devices) * 100)}%` : "0%"}
+                    {summary && summary.total_devices > 0 ? `${Math.round((summary.online_devices / summary.total_devices) * 100)}%` : "N/A"}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
                     {summary?.online_devices || 0} of {summary?.total_devices || 0} online
-                    <span className="block mt-1 text-blue-600 dark:text-blue-400">
-                      Thresholds: CPU/Memory/Disk {safeAlertThresholds.CRITICAL.cpu_usage}%+ Critical
-                    </span>
+                    {summary && summary.total_devices === 0 && (
+                      <span className="block mt-1 text-blue-600 dark:text-blue-400">
+                        No agents registered
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
