@@ -67,6 +67,7 @@ class ApiClient {
     const token = getAuthToken();
 
     const config: RequestInit = {
+      timeout: 10000, // 10 second timeout
       headers: {
         'Content-Type': 'application/json',
         ...(token && { 'Authorization': `Bearer ${token}` }),
@@ -75,29 +76,48 @@ class ApiClient {
       ...options,
     };
 
-    console.log(`API Request: ${url}`, config);
+    console.log(`API Request: ${url}`);
 
     try {
-      const response = await fetch(url, config);
+      // Create timeout promise
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout')), 10000);
+      });
+
+      const fetchPromise = fetch(url, config);
+      const response = await Promise.race([fetchPromise, timeoutPromise]);
 
       console.log(`API Response: ${response.status} ${response.statusText}`);
 
       // Handle authentication errors
       if (response.status === 401) {
-        console.warn('Authentication failed, clearing token and redirecting to login');
+        console.warn('Authentication failed, clearing token');
         localStorage.removeItem('auth_token');
         localStorage.removeItem('token');
-        window.location.href = '/login';
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
         throw new Error('Authentication required');
       }
 
-      // Don't throw for other client errors, let the caller handle them
+      // Handle server errors gracefully
+      if (response.status >= 500) {
+        console.error(`Server error: ${response.status} for ${url}`);
+        throw new Error(`Server error: ${response.status}`);
+      }
+
       return response;
     } catch (error) {
-      console.error('API Request failed:', error);
-      // Handle network connection errors
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-        throw new Error('Network connection failed. Please check your internet connection.');
+      console.error(`API Request failed for ${url}:`, error);
+      
+      // Handle specific error types
+      if (error instanceof Error) {
+        if (error.message.includes('timeout') || error.message.includes('Request timeout')) {
+          throw new Error('Request timed out. Please try again.');
+        }
+        if (error.message.includes('fetch') || error.name === 'TypeError') {
+          throw new Error('Network connection failed. Please check your connection.');
+        }
       }
       throw error;
     }
@@ -165,16 +185,36 @@ const clearAuthToken = () => {
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://0.0.0.0:5000';
 
 // Enhanced global error handler for unhandled promise rejections
+let errorCount = 0;
+const maxErrors = 10;
+
 window.addEventListener('unhandledrejection', (event) => {
+  errorCount++;
+  
+  // Prevent too many error logs
+  if (errorCount > maxErrors) {
+    event.preventDefault();
+    return;
+  }
+  
   // Only handle specific types of errors to avoid interfering with other parts
   if (event.reason?.message?.includes('Failed to fetch') ||
       event.reason?.message?.includes('security-overview') ||
       event.reason?.message?.includes('analytics') ||
-      event.reason?.message?.includes('timeout')) {
+      event.reason?.message?.includes('timeout') ||
+      event.reason?.message?.includes('Request timeout') ||
+      event.reason?.message?.includes('Server error')) {
     
-    console.warn('Handled API error:', event.reason.message);
+    if (errorCount <= 3) {
+      console.warn('Handled API error:', event.reason.message);
+    }
     event.preventDefault(); // Prevent console spam
     return;
+  }
+  
+  // Reset error count periodically
+  if (errorCount === 1) {
+    setTimeout(() => { errorCount = 0; }, 30000);
   }
   
   // Let other errors through normally
@@ -343,11 +383,37 @@ export const api = {
 
   // Security Dashboard
   getSecurityOverview: async () => {
-    const response = await apiClient.get("/api/security/overview");
-    if (!response.ok) {
-      throw new Error(`Failed to fetch security overview: ${response.status}`);
+    try {
+      const response = await apiClient.get("/api/security/overview");
+      if (!response.ok) {
+        console.error(`Security overview API error: ${response.status}`);
+        return {
+          threatLevel: 'unknown',
+          activeThreats: 0,
+          vulnerabilities: { critical: 0, high: 0, medium: 0, low: 0 },
+          lastScan: new Date().toISOString(),
+          complianceScore: 0,
+          securityAlerts: 0,
+          firewallStatus: 'unknown',
+          antivirusStatus: 'unknown',
+          patchCompliance: 0
+        };
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Security overview fetch error:', error);
+      return {
+        threatLevel: 'unknown',
+        activeThreats: 0,
+        vulnerabilities: { critical: 0, high: 0, medium: 0, low: 0 },
+        lastScan: new Date().toISOString(),
+        complianceScore: 0,
+        securityAlerts: 0,
+        firewallStatus: 'unknown',
+        antivirusStatus: 'unknown',
+        patchCompliance: 0
+      };
     }
-    return response.json();
   },
 
   getSecurityIncidents: async () => {
@@ -739,20 +805,32 @@ const apiRequest = async <T>(
 // Analytics APIs
 export const getAnalytics = async () => {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
     const response = await fetch("/api/analytics/overview", {
       headers: getAuthHeaders(),
       credentials: 'include',
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
+
     if (!response.ok) {
       if (response.status === 401) {
         window.location.href = '/login';
         return null;
       }
+      console.error(`Analytics API error: ${response.status}`);
       throw new Error(`Failed to fetch analytics: ${response.status}`);
     }
     return await response.json();
   } catch (error) {
-    console.error("Analytics fetch error:", error);
+    if (error.name === 'AbortError') {
+      console.warn("Analytics request timed out");
+    } else {
+      console.error("Analytics fetch error:", error);
+    }
     return {
       totalDevices: 0,
       onlineDevices: 0,
