@@ -561,6 +561,47 @@ export function registerAgentRoutes(
         console.error("Error processing patch data, continuing...", patchError);
       }
 
+      // Generate system alerts based on the latest report
+      try {
+        console.log("=== GENERATING SYSTEM ALERTS ===");
+        const { generateSystemAlerts } = await import("../utils/alerts");
+        
+        // Prepare device data for alert generation
+        const deviceForAlerts = {
+          id: device.id,
+          hostname: device.hostname,
+          status: device.status,
+          metrics: extractMetrics(reportData),
+          raw_data: reportData
+        };
+
+        const generatedAlerts = await generateSystemAlerts(deviceForAlerts);
+        
+        if (generatedAlerts.length > 0) {
+          console.log(`Generated ${generatedAlerts.length} alerts for device ${device.hostname}`);
+          
+          // Store alerts in database
+          for (const alert of generatedAlerts) {
+            await storage.createAlert({
+              device_id: alert.device_id,
+              category: alert.type,
+              severity: alert.severity,
+              message: alert.message,
+              metadata: {
+                title: alert.title,
+                timestamp: alert.timestamp,
+                alert_type: 'performance_threshold'
+              },
+              is_active: true
+            });
+          }
+        } else {
+          console.log(`No alerts generated for device ${device.hostname}`);
+        }
+      } catch (alertError) {
+        console.error("Error generating system alerts:", alertError);
+      }
+
       console.log(`=== AGENT REPORT PROCESSED SUCCESSFULLY ===`);
       console.log(`Device ID: ${device.id}`);
       console.log(`Device Status: ${device.status}`);

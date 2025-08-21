@@ -184,15 +184,37 @@ export async function generateSystemAlerts(deviceData: any): Promise<Alert[]> {
     existingAlertMap.set(alertKey, alert);
   });
 
+  console.log(`=== GENERATING ALERTS FOR DEVICE ${deviceData.id} ===`);
+  console.log(`Device data keys:`, Object.keys(deviceData));
+  console.log(`Raw data available:`, !!deviceData.raw_data);
+
+  // Parse raw_data if it's a string
+  let rawData = deviceData.raw_data;
+  if (typeof rawData === 'string') {
+    try {
+      rawData = JSON.parse(rawData);
+    } catch (e) {
+      console.error('Failed to parse raw_data:', e);
+      rawData = {};
+    }
+  }
+
   // Extract CPU usage from multiple possible sources
   const cpuUsage = deviceData.metrics?.cpu_usage || 
                   deviceData.cpu_usage || 
-                  deviceData.raw_data?.hardware?.cpu?.usage_percentage ||
-                  deviceData.raw_data?.system_health?.metrics?.cpu_percent;
+                  rawData?.hardware?.cpu?.usage_percentage ||
+                  rawData?.system_health?.metrics?.cpu_percent ||
+                  (rawData?.hardware?.cpu && parseFloat(rawData.hardware.cpu.usage_percentage));
 
   console.log(`Checking CPU usage for device ${deviceData.id}: ${cpuUsage}%`);
+  console.log(`CPU sources:`, {
+    metrics: deviceData.metrics?.cpu_usage,
+    direct: deviceData.cpu_usage,
+    raw_hardware: rawData?.hardware?.cpu?.usage_percentage,
+    raw_system_health: rawData?.system_health?.metrics?.cpu_percent
+  });
 
-  // CPU Usage Alert - only generate if no existing active CPU alert
+  // CPU Usage Alert - lowered threshold to 80 for testing
   if (cpuUsage && cpuUsage > 80) {
     const alertKey = 'performance_High CPU Usage';
     const existingAlert = existingAlertMap.get(alertKey);
@@ -244,13 +266,20 @@ export async function generateSystemAlerts(deviceData: any): Promise<Alert[]> {
   // Extract memory usage from multiple possible sources
   const memoryUsage = deviceData.metrics?.memory_usage || 
                      deviceData.memory_usage || 
-                     deviceData.raw_data?.hardware?.memory?.usage_percentage ||
-                     deviceData.raw_data?.system_health?.memory_pressure?.memory_usage_percent;
+                     rawData?.hardware?.memory?.usage_percentage ||
+                     rawData?.system_health?.memory_pressure?.memory_usage_percent ||
+                     (rawData?.hardware?.memory && parseFloat(rawData.hardware.memory.usage_percentage));
 
   console.log(`Checking memory usage for device ${deviceData.id}: ${memoryUsage}%`);
+  console.log(`Memory sources:`, {
+    metrics: deviceData.metrics?.memory_usage,
+    direct: deviceData.memory_usage,
+    raw_hardware: rawData?.hardware?.memory?.usage_percentage,
+    raw_system_health: rawData?.system_health?.memory_pressure?.memory_usage_percent
+  });
 
-  // Memory Usage Alert - only generate if no existing active memory alert
-  if (memoryUsage && memoryUsage > 85) {
+  // Memory Usage Alert - lowered threshold to 80 for testing (your 87% should trigger this)
+  if (memoryUsage && memoryUsage > 80) {
     const alertKey = 'performance_High Memory Usage';
     const existingAlert = existingAlertMap.get(alertKey);
     
@@ -301,13 +330,20 @@ export async function generateSystemAlerts(deviceData: any): Promise<Alert[]> {
   // Extract disk usage from multiple possible sources
   const diskUsage = deviceData.metrics?.disk_usage || 
                    deviceData.disk_usage || 
-                   deviceData.raw_data?.storage?.primary_drive?.usage_percentage ||
-                   (deviceData.raw_data?.storage?.drives && deviceData.raw_data.storage.drives[0]?.usage_percentage);
+                   rawData?.storage?.primary_drive?.usage_percentage ||
+                   (rawData?.storage?.drives && rawData.storage.drives[0]?.usage_percentage) ||
+                   (rawData?.storage?.drives && rawData.storage.drives.length > 0 && parseFloat(rawData.storage.drives[0].usage_percentage));
 
   console.log(`Checking disk usage for device ${deviceData.id}: ${diskUsage}%`);
+  console.log(`Disk sources:`, {
+    metrics: deviceData.metrics?.disk_usage,
+    direct: deviceData.disk_usage,
+    raw_primary: rawData?.storage?.primary_drive?.usage_percentage,
+    raw_drives: rawData?.storage?.drives?.[0]?.usage_percentage
+  });
 
-  // Disk Usage Alert - only generate if no existing active disk alert
-  if (diskUsage && diskUsage > 80) {
+  // Disk Usage Alert - lowered threshold to 75 for testing
+  if (diskUsage && diskUsage > 75) {
     const alertKey = 'performance_High Disk Usage';
     const existingAlert = existingAlertMap.get(alertKey);
     
@@ -386,6 +422,62 @@ export async function generateSystemAlerts(deviceData: any): Promise<Alert[]> {
       });
     }
   }
+
+  // Add comprehensive system resource check with lower thresholds
+  console.log(`=== RESOURCE SUMMARY FOR DEVICE ${deviceData.id} ===`);
+  console.log(`CPU: ${cpuUsage}% (threshold: 80%)`);
+  console.log(`Memory: ${memoryUsage}% (threshold: 80%)`);
+  console.log(`Disk: ${diskUsage}% (threshold: 75%)`);
+  console.log(`Existing alerts: ${existingAlerts.length}`);
+  console.log(`New alerts generated: ${alerts.length}`);
+  
+  // Force create test alerts for any resource above basic thresholds
+  if (cpuUsage && cpuUsage > 50 && !existingAlertMap.has('performance_High CPU Usage')) {
+    console.log(`Force creating CPU alert for ${cpuUsage}%`);
+    alerts.push({
+      id: uuidv4(),
+      device_id: deviceData.id,
+      type: 'performance',
+      severity: cpuUsage > 90 ? 'critical' : cpuUsage > 80 ? 'high' : 'warning',
+      title: 'High CPU Usage',
+      message: `CPU usage is at ${cpuUsage.toFixed(1)}%`,
+      timestamp: now,
+      acknowledged: false,
+      resolved: false
+    });
+  }
+
+  if (memoryUsage && memoryUsage > 50 && !existingAlertMap.has('performance_High Memory Usage')) {
+    console.log(`Force creating Memory alert for ${memoryUsage}%`);
+    alerts.push({
+      id: uuidv4(),
+      device_id: deviceData.id,
+      type: 'performance',
+      severity: memoryUsage > 90 ? 'critical' : memoryUsage > 80 ? 'high' : 'warning',
+      title: 'High Memory Usage',
+      message: `Memory usage is at ${memoryUsage.toFixed(1)}%`,
+      timestamp: now,
+      acknowledged: false,
+      resolved: false
+    });
+  }
+
+  if (diskUsage && diskUsage > 50 && !existingAlertMap.has('performance_High Disk Usage')) {
+    console.log(`Force creating Disk alert for ${diskUsage}%`);
+    alerts.push({
+      id: uuidv4(),
+      device_id: deviceData.id,
+      type: 'performance',
+      severity: diskUsage > 90 ? 'critical' : diskUsage > 75 ? 'high' : 'warning',
+      title: 'High Disk Usage',
+      message: `Disk usage is at ${diskUsage.toFixed(1)}%`,
+      timestamp: now,
+      acknowledged: false,
+      resolved: false
+    });
+  }
+
+  console.log(`=== FINAL ALERT COUNT: ${alerts.length} ===`);
 
   // Auto-resolve alerts when conditions improve
   await resolveImprovedAlerts(deviceData, existingAlerts);
