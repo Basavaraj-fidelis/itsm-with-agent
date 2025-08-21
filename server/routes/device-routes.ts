@@ -140,6 +140,7 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
                   disk_usage: latestReport.disk_usage,
                   network_io: latestReport.network_io,
                   collected_at: latestReport.collected_at,
+                  raw_data: latestReport.raw_data, // Include raw_data for metric extraction
                 }
               : null,
           };
