@@ -15,6 +15,7 @@ import {
   Circle
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface AIInsightsProps {
   agent: any;
@@ -481,43 +482,178 @@ export function AIInsights({ agent }: AIInsightsProps) {
                         </div>
                       )}
 
-                      {/* Action Buttons for High Severity Issues */}
-                      {insight.severity === 'high' && (
-                        <div className="flex gap-2 mt-3">
+                      {/* Action Buttons */}
+                      <div className="flex gap-2 mt-3">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs h-7"
+                            >
+                              View Details
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle className="flex items-center gap-2">
+                                {getSeverityIcon(insight.severity)}
+                                {insight.title}
+                              </DialogTitle>
+                            </DialogHeader>
+                            
+                            <div className="space-y-4">
+                              {/* Basic Information */}
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <label className="text-sm font-medium text-gray-600">Severity</label>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    {getSeverityIcon(insight.severity)}
+                                    <span className="capitalize font-medium">{insight.severity}</span>
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium text-gray-600">Type</label>
+                                  <p className="mt-1 capitalize">{insight.type}</p>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium text-gray-600">Confidence</label>
+                                  <p className="mt-1">{insight.confidence ? `${(insight.confidence * 100).toFixed(0)}%` : 'N/A'}</p>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium text-gray-600">Metric</label>
+                                  <p className="mt-1">{insight.metric || 'N/A'}</p>
+                                </div>
+                              </div>
+
+                              {/* Description */}
+                              <div>
+                                <label className="text-sm font-medium text-gray-600">Description</label>
+                                <p className="mt-1 text-gray-800">{insight.description}</p>
+                              </div>
+
+                              {/* Recommendation */}
+                              <div>
+                                <label className="text-sm font-medium text-gray-600">Recommendation</label>
+                                <p className="mt-1 text-gray-800 bg-blue-50 p-3 rounded-lg border-l-4 border-blue-400">
+                                  {insight.recommendation}
+                                </p>
+                              </div>
+
+                              {/* Technical Details */}
+                              {insight.details && (
+                                <div>
+                                  <label className="text-sm font-medium text-gray-600">Technical Details</label>
+                                  <p className="mt-1 text-sm text-gray-600 bg-gray-50 p-3 rounded font-mono">
+                                    {insight.details}
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Trend Information */}
+                              {insight.trend && (
+                                <div>
+                                  <label className="text-sm font-medium text-gray-600">Trend</label>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    {insight.trend === 'up' && <TrendingUp className="w-4 h-4 text-red-500" />}
+                                    {insight.trend === 'down' && <TrendingDown className="w-4 h-4 text-green-500" />}
+                                    {insight.trend === 'stable' && <Activity className="w-4 h-4 text-blue-500" />}
+                                    <span className="capitalize">{insight.trend}</span>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Timestamp */}
+                              {insight.timestamp && (
+                                <div>
+                                  <label className="text-sm font-medium text-gray-600">Generated At</label>
+                                  <p className="mt-1 text-sm text-gray-600">
+                                    {new Date(insight.timestamp).toLocaleString()}
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Existing Ticket */}
+                              {insight.existing_ticket && (
+                                <div>
+                                  <label className="text-sm font-medium text-gray-600">Existing Ticket</label>
+                                  <div className="mt-1">
+                                    <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                                      Ticket: {insight.existing_ticket.number}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Action Buttons */}
+                              <div className="flex gap-2 pt-4 border-t">
+                                {!insight.existing_ticket && (
+                                  <Button
+                                    size="sm"
+                                    className="flex-1"
+                                    onClick={() => {
+                                      const ticketData = {
+                                        title: `[${insight.severity.toUpperCase()}] ${insight.title} - ${agent.hostname || agent.name}`,
+                                        description: `AI-Generated Alert Details:\n\n${insight.description}\n\nRecommended Action:\n${insight.recommendation}\n\nTechnical Details:\n${insight.details || 'N/A'}\n\nConfidence Level: ${insight.confidence ? `${(insight.confidence * 100).toFixed(0)}%` : 'N/A'}`,
+                                        priority: insight.severity === 'high' || insight.severity === 'critical' ? 'high' : 'medium',
+                                        type: insight.type,
+                                        agent_id: agent.id,
+                                        category: insight.type === 'security' ? 'Security' : insight.type === 'performance' ? 'Performance' : 'Infrastructure',
+                                        tags: ['ai-generated', insight.type, insight.severity]
+                                      };
+                                      window.open(`/tickets/new?data=${encodeURIComponent(JSON.stringify(ticketData))}`, '_blank');
+                                    }}
+                                  >
+                                    Create Ticket
+                                  </Button>
+                                )}
+                                {insight.type === 'performance' && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="flex-1"
+                                    onClick={() => {
+                                      window.open(`/performance-analytics?agent=${agent.id}&metric=${insight.metric}`, '_blank');
+                                    }}
+                                  >
+                                    View Metrics
+                                  </Button>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="flex-1"
+                                  onClick={() => {
+                                    window.open(`/agent-detail/${agent.id}`, '_blank');
+                                  }}
+                                >
+                                  Agent Details
+                                </Button>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+
+                        {(insight.severity === 'high' || insight.severity === 'critical') && !insight.existing_ticket && (
                           <Button
                             size="sm"
-                            variant="outline"
+                            variant="default"
                             className="text-xs h-7"
                             onClick={() => {
-                              // Create ticket for this issue
                               const ticketData = {
-                                title: insight.title,
+                                title: `[${insight.severity.toUpperCase()}] ${insight.title} - ${agent.hostname || agent.name}`,
                                 description: `${insight.description}\n\nRecommendation: ${insight.recommendation}`,
-                                priority: 'high',
+                                priority: insight.severity === 'critical' ? 'urgent' : 'high',
                                 type: insight.type,
                                 agent_id: agent.id
                               };
-                              // Navigate to create ticket with pre-filled data
                               window.open(`/tickets/new?data=${encodeURIComponent(JSON.stringify(ticketData))}`, '_blank');
                             }}
                           >
-                            Create Ticket
+                            Quick Ticket
                           </Button>
-                          {insight.type === 'performance' && (
-                            <Button
-                              size="sm"
-                              variant="outline" 
-                              className="text-xs h-7"
-                              onClick={() => {
-                                // Navigate to performance analytics for this agent
-                                window.open(`/performance-analytics?agent=${agent.id}&metric=${insight.metric}`, '_blank');
-                              }}
-                            >
-                              View Metrics
-                            </Button>
-                          )}
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

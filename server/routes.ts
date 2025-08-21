@@ -13,11 +13,16 @@ import { authRoutes } from "./routes/auth-routes";
 import { registerNetworkScanRoutes } from "./routes/network-scan-routes";
 import { securityService } from "./services/security-service"; // Import securityService
 
-const JWT_SECRET =
-  process.env.JWT_SECRET || "your-secret-key-change-in-production";
-
 // Import centralized middleware
 import { authenticateToken, requireRole } from "./middleware/auth-middleware";
+
+// Import modular routes
+import automationRoutes from './routes/automation-routes';
+import errorReportingRoutes from './routes/error-reporting-routes';
+import thresholdRoutes from './routes/threshold-routes';
+
+const JWT_SECRET =
+  process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const server = createServer(app);
@@ -519,11 +524,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Also register the ai-insights endpoint at the root API level
       app.get("/api/ai-insights", authenticateToken, async (req, res) => {
         try {
+          // Enhanced AI Insights with view details capability
+          const deviceDetails = {
+            cpu: {
+              usage: 75,
+              threshold: 80,
+              status: 'normal'
+            },
+            memory: {
+              usage: 65,
+              threshold: 70,
+              status: 'normal'
+            },
+            disk: {
+              usage: 85,
+              threshold: 90,
+              status: 'warning'
+            }
+          };
+
           const insights = {
             systemHealth: 'good',
             recommendations: [
               'Consider updating 3 devices with pending security patches',
-              'Monitor disk usage on SRV-DATABASE (85% full)',
+              'Monitor disk usage on SRV-DATABASE (85% full) - View Details',
               'Review failed login attempts from IP 192.168.1.100'
             ],
             predictiveAlerts: [],
@@ -532,7 +556,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               memory: 'increasing',
               disk: 'stable'
             },
-            lastUpdated: new Date().toISOString()
+            lastUpdated: new Date().toISOString(),
+            deviceDetails: deviceDetails // Added for "View Details"
           };
 
           res.json(insights);
@@ -605,6 +630,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   } catch (error) {
     console.warn("Patch routes not available:", error.message);
+  }
+
+  // Register threshold routes
+  try {
+    if (thresholdRoutes.default) {
+      app.use('/api/thresholds', authenticateToken, thresholdRoutes.default);
+      console.log("✅ Threshold routes registered");
+    }
+  } catch (error) {
+    console.warn("Threshold routes not available:", error.message);
   }
 
   return server;

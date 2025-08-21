@@ -26,6 +26,55 @@ export interface PerformancePrediction {
   recommendation: string;
 }
 
+// Centralized thresholds for alerts
+const ALERT_THRESHOLDS = {
+  WARNING: {
+    cpu_usage: 85,
+    memory_usage: 80,
+    disk_usage: 75,
+  },
+  MEDIUM: {
+    cpu_usage: 90,
+    memory_usage: 85,
+    disk_usage: 85,
+  },
+  HIGH: {
+    cpu_usage: 95,
+    memory_usage: 90,
+    disk_usage: 90,
+  },
+  CRITICAL: {
+    cpu_usage: 98,
+    memory_usage: 95,
+    disk_usage: 95,
+  }
+};
+
+// Centralized thresholds for AI analysis
+const AI_THRESHOLDS = {
+  PERFORMANCE: {
+    high_cpu_process_threshold: 15, // Example: process consuming > 15% CPU
+    high_memory_process_threshold: 10, // Example: process consuming > 10% Memory
+    volatility_threshold: 15,
+    trend_threshold: 2,
+  },
+  SECURITY: {
+    suspicious_cpu_threshold: 50,
+    suspicious_name_keywords: ['crypto', 'miner'],
+  },
+  PREDICTION: {
+    disk_full_warning_days: 30,
+    disk_critical_warning_days: 7,
+    memory_degradation_volatility: 20,
+    memory_degradation_trend: 1,
+  },
+  SYSTEM_HEALTH: {
+    memory_pressure_threshold: 'high',
+    disk_health_threshold: 'healthy',
+  }
+};
+
+
 class AIService {
   async generateDeviceInsights(deviceId: string): Promise<AIInsight[]> {
     try {
@@ -113,7 +162,44 @@ class AIService {
     const cpuValues = reports.map(r => parseFloat(r.cpu_usage || "0")).filter(v => !isNaN(v));
     const cpuTrend = this.calculateTrend(cpuValues);
 
-    if (cpuTrend > 2) { // Increasing by >2% per day
+    // 1. Performance Anomaly Detection
+    if (cpuValues.length > 0) {
+      const latestCpuUsage = cpuValues[0]; // Assuming reports are ordered latest first
+      if (latestCpuUsage > ALERT_THRESHOLDS.WARNING.cpu_usage) {
+        const newSeverity = latestCpuUsage > ALERT_THRESHOLDS.CRITICAL.cpu_usage ? 'critical' : latestCpuUsage > ALERT_THRESHOLDS.HIGH.cpu_usage ? 'high' : 'medium';
+        const alertKey = 'cpu-usage';
+        const existingAlert = existingAlerts.find(a => a.metadata?.metric === 'cpu' && a.metadata?.alert_type === 'usage');
+
+        if (existingAlert && this.shouldUpdateAlert(existingAlert, latestCpuUsage, newSeverity)) {
+          newInsights.push({
+            ...existingAlert,
+            severity: newSeverity,
+            description: `CPU usage at ${latestCpuUsage.toFixed(1)}%`,
+            metadata: { 
+              ...existingAlert.metadata, 
+              current_usage: latestCpuUsage, 
+              last_updated: new Date().toISOString()
+            },
+            created_at: new Date()
+          });
+        } else if (!existingAlert) {
+          newInsights.push({
+            id: `cpu-usage-${deviceId}`,
+            device_id: deviceId,
+            type: 'performance',
+            severity: newSeverity,
+            title: 'High CPU Usage Detected',
+            description: `CPU usage at ${latestCpuUsage.toFixed(1)}%`,
+            recommendation: 'Investigate processes consuming high CPU or consider scaling resources',
+            confidence: 0.85,
+            metadata: { current_usage: latestCpuUsage, metric: 'cpu', alert_type: 'usage' },
+            created_at: new Date()
+          });
+        }
+      }
+    }
+
+    if (cpuTrend > AI_THRESHOLDS.PERFORMANCE.trend_threshold) { // Increasing by >2% per day
       const newSeverity = cpuTrend > 5 ? 'high' : 'medium';
       const alertKey = 'cpu-trend';
       const existingAlert = existingAlerts.find(a => a.metadata?.metric === 'cpu' && a.title.includes('Trend'));
@@ -153,15 +239,49 @@ class AIService {
     const memoryValues = reports.map(r => parseFloat(r.memory_usage || "0")).filter(v => !isNaN(v));
     const memoryTrend = this.calculateTrend(memoryValues);
 
+    if (memoryValues.length > 0) {
+      const latestMemoryUsage = memoryValues[0]; // Assuming reports are ordered latest first
+      if (latestMemoryUsage > ALERT_THRESHOLDS.WARNING.memory_usage) {
+        const newSeverity = latestMemoryUsage > ALERT_THRESHOLDS.CRITICAL.memory_usage ? 'critical' : latestMemoryUsage > ALERT_THRESHOLDS.HIGH.memory_usage ? 'high' : 'medium';
+        const existingAlert = existingAlerts.find(a => a.metadata?.metric === 'memory' && a.metadata?.alert_type === 'usage');
+
+        if (existingAlert && this.shouldUpdateAlert(existingAlert, latestMemoryUsage, newSeverity)) {
+          newInsights.push({
+            ...existingAlert,
+            severity: newSeverity,
+            description: `Memory usage at ${latestMemoryUsage.toFixed(1)}%`,
+            metadata: { 
+              ...existingAlert.metadata, 
+              current_usage: latestMemoryUsage, 
+              last_updated: new Date().toISOString()
+            },
+            created_at: new Date()
+          });
+        } else if (!existingAlert) {
+          newInsights.push({
+            id: `memory-usage-${deviceId}`,
+            device_id: deviceId,
+            type: 'performance',
+            severity: newSeverity,
+            title: 'High Memory Usage Detected',
+            description: `Memory usage at ${latestMemoryUsage.toFixed(1)}%`,
+            recommendation: 'Check for memory leaks or plan for memory upgrade',
+            confidence: 0.8,
+            metadata: { current_usage: latestMemoryUsage, metric: 'memory', alert_type: 'usage' },
+            created_at: new Date()
+          });
+        }
+      }
+    }
+
     if (memoryTrend > 1.5) {
-      const newSeverity = memoryTrend > 3 ? 'high' : 'medium';
       const existingAlert = existingAlerts.find(a => a.metadata?.metric === 'memory' && a.title.includes('Climbing'));
 
-      if (existingAlert && this.shouldUpdateAlert(existingAlert, memoryTrend, newSeverity)) {
+      if (existingAlert && this.shouldUpdateAlert(existingAlert, memoryTrend, 'medium')) { // Using 'medium' as default for trend
         // Update existing alert
         newInsights.push({
           ...existingAlert,
-          severity: newSeverity,
+          severity: 'medium',
           description: `Memory usage increasing by ${memoryTrend.toFixed(1)}% per day`,
           metadata: { 
             ...existingAlert.metadata, 
@@ -177,7 +297,7 @@ class AIService {
           id: `memory-trend-${deviceId}`,
           device_id: deviceId,
           type: 'performance',
-          severity: newSeverity,
+          severity: 'medium',
           title: 'Memory Usage Climbing',
           description: `Memory usage increasing by ${memoryTrend.toFixed(1)}% per day`,
           recommendation: 'Check for memory leaks or plan for memory upgrade',
@@ -190,7 +310,7 @@ class AIService {
 
     // Performance volatility analysis
     const cpuVolatility = this.calculateVolatility(cpuValues);
-    if (cpuVolatility > 15) {
+    if (cpuVolatility > AI_THRESHOLDS.PERFORMANCE.volatility_threshold) {
       const existingAlert = existingAlerts.find(a => a.metadata?.metric === 'cpu' && a.title.includes('Volatility'));
 
       if (!existingAlert) {
@@ -263,8 +383,8 @@ class AIService {
 
     // Suspicious process analysis
     const suspiciousProcesses = processes.filter(p => 
-      p.cpu_percent > 50 || 
-      (p.name && (p.name.includes('crypto') || p.name.includes('miner')))
+      p.cpu_percent > AI_THRESHOLDS.SECURITY.suspicious_cpu_threshold || 
+      (p.name && AI_THRESHOLDS.SECURITY.suspicious_name_keywords.some(keyword => p.name.includes(keyword)))
     );
 
     if (suspiciousProcesses.length > 0) {
@@ -324,26 +444,36 @@ class AIService {
           }
         }
 
-        if (daysToFull > 0) {
-          newInsights.push({
-            id: `disk-prediction-${deviceId}`,
-            device_id: deviceId,
-            type: 'prediction',
-            severity: daysToFull < 30 ? 'high' : 'medium',
-            title: 'Advanced Disk Space Forecast',
-            description: `Predictive model shows disk reaching 95% capacity in ${daysToFull} days. Pattern: ${diskAnalysis.seasonality}`,
-            recommendation: this.generateMaintenanceRecommendation(daysToFull, diskAnalysis.volatility),
-            confidence: Math.min(0.95, reports.length / 15),
-            metadata: { 
-              days_to_full: daysToFull, 
-              current_usage: currentDisk, 
-              trend: diskAnalysis.trend,
-              seasonality: diskAnalysis.seasonality,
-              volatility: diskAnalysis.volatility,
-              forecast: forecast.slice(0, 7)
-            },
-            created_at: new Date()
-          });
+        // 3. Disk Space Prediction
+        if (currentDisk > ALERT_THRESHOLDS.MEDIUM.disk_usage) {
+          const daysToFull = currentDisk > ALERT_THRESHOLDS.HIGH.disk_usage ? AI_THRESHOLDS.PREDICTION.disk_critical_warning_days : currentDisk > ALERT_THRESHOLDS.WARNING.disk_usage ? AI_THRESHOLDS.PREDICTION.disk_full_warning_days : 90;
+          
+          let severity = 'low';
+          if (currentDisk > ALERT_THRESHOLDS.CRITICAL.disk_usage) severity = 'critical';
+          else if (currentDisk > ALERT_THRESHOLDS.HIGH.disk_usage) severity = 'high';
+          else if (currentDisk > ALERT_THRESHOLDS.MEDIUM.disk_usage) severity = 'medium';
+
+          if (daysToFull > 0) {
+            newInsights.push({
+              id: `disk-prediction-${deviceId}`,
+              device_id: deviceId,
+              type: 'prediction',
+              severity: daysToFull < AI_THRESHOLDS.PREDICTION.disk_critical_warning_days ? 'high' : daysToFull < AI_THRESHOLDS.PREDICTION.disk_full_warning_days ? 'medium' : 'low',
+              title: 'Advanced Disk Space Forecast',
+              description: `Predictive model shows disk reaching 95% capacity in ${daysToFull} days. Current usage: ${currentDisk.toFixed(1)}%. Pattern: ${diskAnalysis.seasonality}`,
+              recommendation: this.generateMaintenanceRecommendation(daysToFull, diskAnalysis.volatility),
+              confidence: Math.min(0.95, reports.length / 15),
+              metadata: { 
+                days_to_full: daysToFull, 
+                current_usage: currentDisk, 
+                trend: diskAnalysis.trend,
+                seasonality: diskAnalysis.seasonality,
+                volatility: diskAnalysis.volatility,
+                forecast: forecast.slice(0, 7)
+              },
+              created_at: new Date()
+            });
+          }
         }
       }
 
@@ -353,7 +483,7 @@ class AIService {
       if (memoryValues.length > 0) {
         const memoryAnalysis = this.analyzeTimeSeriesPatterns(memoryValues, timestamps);
 
-        if (memoryAnalysis && memoryAnalysis.volatility > 20 && memoryAnalysis.trend > 1) {
+        if (memoryAnalysis && memoryAnalysis.volatility > AI_THRESHOLDS.PREDICTION.memory_degradation_volatility && memoryAnalysis.trend > AI_THRESHOLDS.PREDICTION.memory_degradation_trend) {
           newInsights.push({
             id: `memory-degradation-${deviceId}`,
             device_id: deviceId,
@@ -464,8 +594,8 @@ class AIService {
   }
 
   private generateMaintenanceRecommendation(daysToFull: number, volatility: number): string {
-    if (daysToFull < 7) return 'CRITICAL: Immediate action required within 24 hours';
-    if (daysToFull < 30) return 'HIGH: Schedule maintenance within 1 week';
+    if (daysToFull < AI_THRESHOLDS.PREDICTION.disk_critical_warning_days) return 'CRITICAL: Immediate action required within 24 hours';
+    if (daysToFull < AI_THRESHOLDS.PREDICTION.disk_full_warning_days) return 'HIGH: Schedule maintenance within 1 week';
     if (volatility > 15) return 'MEDIUM: Volatile pattern detected, monitor closely and plan maintenance';
     return 'LOW: Plan routine maintenance within the month';
   }
@@ -499,17 +629,17 @@ class AIService {
     const processes = rawData.processes || [];
 
     // Resource-intensive processes
-    const highCPUProcesses = processes.filter(p => p.cpu_percent > 20);
-    const highMemoryProcesses = processes.filter(p => p.memory_percent > 10);
+    const highCPUProcesses = processes.filter(p => p.cpu_percent > AI_THRESHOLDS.PERFORMANCE.high_cpu_process_threshold);
+    const highMemoryProcesses = processes.filter(p => p.memory_percent > AI_THRESHOLDS.PERFORMANCE.high_memory_process_threshold);
 
-    if (highCPUProcesses.length >= 3) {
+    if (highCPUProcesses.length > 3) {
       newInsights.push({
         id: `high-cpu-processes-${deviceId}`,
         device_id: deviceId,
         type: 'performance',
         severity: 'medium',
         title: 'Multiple High-CPU Processes',
-        description: `${highCPUProcesses.length} processes consuming >20% CPU each`,
+        description: `${highCPUProcesses.length} processes consuming >${AI_THRESHOLDS.PERFORMANCE.high_cpu_process_threshold}% CPU each`,
         recommendation: 'Review process efficiency and consider workload optimization',
         confidence: 0.8,
         metadata: { processes: highCPUProcesses.slice(0, 5).map(p => ({ name: p.name, cpu: p.cpu_percent })) },
@@ -565,7 +695,7 @@ class AIService {
     const systemHealth = rawData.system_health || {};
 
     // Memory pressure analysis
-    if (systemHealth.memory_pressure?.pressure_level === 'high') {
+    if (systemHealth.memory_pressure?.pressure_level === AI_THRESHOLDS.SYSTEM_HEALTH.memory_pressure_threshold) {
       newInsights.push({
         id: `memory-pressure-${deviceId}`,
         device_id: deviceId,
@@ -581,7 +711,7 @@ class AIService {
     }
 
     // Disk health monitoring
-    if (systemHealth.disk_health?.status !== 'healthy') {
+    if (systemHealth.disk_health?.status !== AI_THRESHOLDS.SYSTEM_HEALTH.disk_health_threshold) {
       newInsights.push({
         id: `disk-health-${deviceId}`,
         device_id: deviceId,
@@ -841,11 +971,11 @@ class AIService {
     const significantTimeElapsed = hoursSinceCreated > 1;
 
     // Check if the metric value changed significantly
-    const oldValue = existingAlert.metadata?.trend || existingAlert.metadata?.volatility || 0;
+    const oldValue = existingAlert.metadata?.trend || existingAlert.metadata?.volatility || existingAlert.metadata?.current_usage || 0;
     const valueChangePercent = Math.abs((newValue - oldValue) / oldValue) * 100;
     const significantChange = valueChangePercent > 10; // 10% change
 
-    return severityChanged || significantChange || significantTimeElapsed;
+    return severityChanged || (significantChange && !isNaN(valueChangePercent)) || significantTimeElapsed;
   }
 
   async getDeviceRecommendations(deviceId: string): Promise<string[]> {
