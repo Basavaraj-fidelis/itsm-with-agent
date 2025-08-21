@@ -145,9 +145,10 @@ class SystemCollector:
             'assigned_user': self._get_current_user(),
             "active_ports": self._get_filtered_tcp_ports(),
             'windows_updates': self._get_windows_updates() if self.is_windows else None,
-            'network_scan': self.scan_local_network()
         }
 
+        # Network topology scan is now on-demand only via networkScan command
+        # This prevents resource-intensive scanning during regular data collection
         return info
 
     def _get_hostname(self, ip=None):
@@ -836,7 +837,13 @@ class SystemCollector:
         """Get connected external USB devices"""
         try:
             if self.os_collector:
-                return self.os_collector.get_usb_devices()
+                usb_devices = self.os_collector.get_usb_devices()
+                # Filter for storage devices only
+                storage_devices = [
+                    device for device in usb_devices
+                    if device.get('device_type') and 'storage' in device.get('device_type').lower()
+                ]
+                return storage_devices
             return []
         except Exception as e:
             self.logger.error(f"Error getting USB devices: {e}")
@@ -1420,7 +1427,7 @@ class SystemCollector:
         try:
             # This is limited without router access, but we can try netstat
             if platform.system().lower() == 'windows':
-                result = subprocess.run(['netstat', '-rn'], capture_output=True, text=True, timeout=10)
+                result = subprocess.run(['netstat', ' -rn'], capture_output=True, text=True, timeout=10)
             else:
                 result = subprocess.run(['netstat', '-rn'], capture_output=True, text=True, timeout=10)
 

@@ -185,16 +185,21 @@ class WindowsCollector:
             return {}
 
     def get_usb_devices(self):
-        """Get USB devices on Windows"""
+        """Get USB storage devices on Windows"""
         try:
             usb_devices = []
+            
+            # Get USB storage devices only
             cmd = [
                 "powershell",
                 "-Command",
                 (
-                    "Get-PnpDevice -Class USB | "
-                    "Where-Object { $_.FriendlyName -notmatch 'Root Hub|Host Controller' } | "
-                    "Select-Object FriendlyName, InstanceId | ConvertTo-Json"
+                    "Get-PnpDevice -Class DiskDrive,USB | "
+                    "Where-Object { "
+                    "$_.FriendlyName -notmatch 'Root Hub|Host Controller|HID|Human Interface|Keyboard|Mouse|Audio|Bluetooth|Wireless|WiFi|Network|Camera|Webcam|Microphone|Speaker|Headset|Gaming|Controller|Touchpad|Fingerprint|Biometric' -and "
+                    "($_.FriendlyName -match 'USB|Storage|Drive|Disk|Flash|Thumb|Memory|Card|External|Portable|Mass Storage|SSD|HDD' -or $_.InstanceId -match 'USBSTOR') "
+                    "} | "
+                    "Select-Object FriendlyName, InstanceId, DeviceID | ConvertTo-Json"
                 )
             ]
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
@@ -205,12 +210,81 @@ class WindowsCollector:
                 for dev in devices:
                     desc = dev.get('FriendlyName', '').strip()
                     device_id = dev.get('InstanceId', '').strip()
-                    if desc:
-                        usb_devices.append({'description': desc, 'device_id': device_id})
+                    if desc and self._is_storage_device(desc, device_id):
+                        usb_devices.append({
+                            'description': desc, 
+                            'device_id': device_id,
+                            'device_type': 'USB Storage'
+                        })
+            
+            # Also check for removable drives
+            try:
+                drive_cmd = [
+                    "powershell",
+                    "-Command",
+                    (
+                        "Get-WmiObject -Class Win32_LogicalDisk | "
+                        "Where-Object { $_.DriveType -eq 2 } | "
+                        "Select-Object DeviceID, VolumeName, Size | ConvertTo-Json"
+                    )
+                ]
+                drive_result = subprocess.run(drive_cmd, capture_output=True, text=True, timeout=20)
+                if drive_result.returncode == 0 and drive_result.stdout:
+                    drives = json.loads(drive_result.stdout)
+                    if isinstance(drives, dict):
+                        drives = [drives]
+                    for drive in drives:
+                        device_id = drive.get('DeviceID', '')
+                        volume_name = drive.get('VolumeName', 'Removable Drive')
+                        size = drive.get('Size', 0)
+                        if device_id:
+                            size_gb = round(int(size) / (1024**3), 2) if size else 0
+                            usb_devices.append({
+                                'description': f"{volume_name} ({device_id}) - {size_gb}GB",
+                                'device_id': f"REMOVABLE_{device_id}",
+                                'device_type': 'Removable Storage'
+                            })
+            except Exception as e:
+                self.logger.debug(f"Error getting removable drives: {e}")
+            
             return usb_devices
         except Exception as e:
-            self.logger.error(f"Error getting Windows USB devices: {e}")
+            self.logger.error(f"Error getting Windows USB storage devices: {e}")
             return []
+    
+    def _is_storage_device(self, description, device_id):
+        """Check if device is a storage device based on description and ID"""
+        storage_keywords = [
+            'storage', 'drive', 'disk', 'flash', 'thumb', 'memory', 'card',
+            'external', 'portable', 'mass storage', 'ssd', 'hdd', 'usb drive',
+            'sd card', 'micro sd', 'cf card', 'compact flash'
+        ]
+        
+        exclude_keywords = [
+            'keyboard', 'mouse', 'audio', 'bluetooth', 'wireless', 'wifi',
+            'network', 'camera', 'webcam', 'microphone', 'speaker', 'headset',
+            'gaming', 'controller', 'touchpad', 'fingerprint', 'biometric',
+            'hid', 'human interface', 'input', 'pointing', 'composite'
+        ]
+        
+        desc_lower = description.lower()
+        id_lower = device_id.lower()
+        
+        # Exclude non-storage devices
+        for exclude in exclude_keywords:
+            if exclude in desc_lower:
+                return False
+        
+        # Include storage devices
+        for storage in storage_keywords:
+            if storage in desc_lower:
+                return True
+        
+        # Check device ID for storage indicators
+        if 'usbstor' in id_lower or 'disk&' in id_lower:
+            return True
+        
+        return False
 
     def get_security_info(self):
         """Get Windows security information"""

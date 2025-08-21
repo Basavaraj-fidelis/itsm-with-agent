@@ -22,6 +22,8 @@ class NetworkModule(BaseModule):
     
     def collect(self) -> Dict[str, Any]:
         """Collect network information"""
+        # Note: Network topology scanning is now on-demand only via networkScan command
+        # to prevent resource-intensive operations during regular data collection
         network_info = {
             'hostname': self._get_hostname(),
             'interfaces': self._get_network_interfaces(),
