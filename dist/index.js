@@ -6846,14 +6846,14 @@ var alert_routes_exports = {};
 __export(alert_routes_exports, {
   default: () => alert_routes_default
 });
-import { Router as Router2 } from "express";
-var router2, alert_routes_default;
+import { Router as Router3 } from "express";
+var router3, alert_routes_default;
 var init_alert_routes = __esm({
   "server/routes/alert-routes.ts"() {
     "use strict";
     init_storage();
-    router2 = Router2();
-    router2.get("/", async (req, res) => {
+    router3 = Router3();
+    router3.get("/", async (req, res) => {
       try {
         console.log("Fetching alerts for user:", req.user?.email);
         const alerts2 = await storage.getAlerts();
@@ -6868,7 +6868,7 @@ var init_alert_routes = __esm({
         });
       }
     });
-    router2.get("/:id", async (req, res) => {
+    router3.get("/:id", async (req, res) => {
       try {
         const alertId = req.params.id;
         console.log(`Fetching alert: ${alertId}`);
@@ -6882,7 +6882,7 @@ var init_alert_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router2.post("/:id/resolve", async (req, res) => {
+    router3.post("/:id/resolve", async (req, res) => {
       try {
         const alertId = req.params.id;
         const userId = req.user?.id || req.user?.email;
@@ -6948,7 +6948,7 @@ var init_alert_routes = __esm({
         });
       }
     });
-    alert_routes_default = router2;
+    alert_routes_default = router3;
   }
 });
 
@@ -6957,15 +6957,15 @@ var notification_routes_exports = {};
 __export(notification_routes_exports, {
   default: () => notification_routes_default
 });
-import { Router as Router3 } from "express";
+import { Router as Router4 } from "express";
 import jwt4 from "jsonwebtoken";
-var router3, JWT_SECRET4, notification_routes_default;
+var router4, JWT_SECRET4, notification_routes_default;
 var init_notification_routes = __esm({
   "server/routes/notification-routes.ts"() {
     "use strict";
-    router3 = Router3();
+    router4 = Router4();
     JWT_SECRET4 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-    router3.get("/", async (req, res) => {
+    router4.get("/", async (req, res) => {
       try {
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -7004,7 +7004,7 @@ var init_notification_routes = __esm({
         res.json([]);
       }
     });
-    router3.post("/:id/read", async (req, res) => {
+    router4.post("/:id/read", async (req, res) => {
       try {
         const notificationId = req.params.id;
         res.json({ message: "Notification marked as read" });
@@ -7013,7 +7013,7 @@ var init_notification_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router3.post("/mark-all-read", async (req, res) => {
+    router4.post("/mark-all-read", async (req, res) => {
       try {
         const userId = req.user.id;
         console.log(`Marking all notifications as read for user: ${userId}`);
@@ -7028,7 +7028,7 @@ var init_notification_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router3.delete("/:id", async (req, res) => {
+    router4.delete("/:id", async (req, res) => {
       try {
         const notificationId = req.params.id;
         res.json({ message: "Notification deleted" });
@@ -7037,7 +7037,7 @@ var init_notification_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    notification_routes_default = router3;
+    notification_routes_default = router4;
   }
 });
 
@@ -7241,14 +7241,14 @@ var automation_routes_exports = {};
 __export(automation_routes_exports, {
   default: () => automation_routes_default
 });
-import { Router as Router4 } from "express";
-var router4, automation_routes_default;
+import { Router as Router5 } from "express";
+var router5, automation_routes_default;
 var init_automation_routes = __esm({
   "server/routes/automation-routes.ts"() {
     "use strict";
     init_storage();
-    router4 = Router4();
-    router4.get("/software-packages", async (req, res) => {
+    router5 = Router5();
+    router5.get("/software-packages", async (req, res) => {
       try {
         const { automationService: automationService2 } = await Promise.resolve().then(() => (init_automation_service(), automation_service_exports));
         const packages = automationService2.getSoftwarePackages();
@@ -7258,7 +7258,7 @@ var init_automation_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router4.post("/deploy-software", async (req, res) => {
+    router5.post("/deploy-software", async (req, res) => {
       try {
         const { device_ids, package_id, scheduled_time } = req.body;
         if (!device_ids || !package_id) {
@@ -7282,7 +7282,7 @@ var init_automation_routes = __esm({
         res.status(500).json({ message: error.message || "Internal server error" });
       }
     });
-    router4.get("/deployment/:deploymentId", async (req, res) => {
+    router5.get("/deployment/:deploymentId", async (req, res) => {
       try {
         const { automationService: automationService2 } = await Promise.resolve().then(() => (init_automation_service(), automation_service_exports));
         const deployment = await automationService2.getDeploymentStatus(
@@ -7297,7 +7297,7 @@ var init_automation_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router4.post("/remediation/:deviceId", async (req, res) => {
+    router5.post("/remediation/:deviceId", async (req, res) => {
       try {
         const { issue_type, remediation_action } = req.body;
         const deviceId = req.params.deviceId;
@@ -7325,7 +7325,7 @@ var init_automation_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router4.get("/deployments", async (req, res) => {
+    router5.get("/deployments", async (req, res) => {
       try {
         const alerts2 = await storage.getActiveAlerts();
         const deployments = alerts2.filter(
@@ -7337,7 +7337,7 @@ var init_automation_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    automation_routes_default = router4;
+    automation_routes_default = router5;
   }
 });
 
@@ -7346,7 +7346,7 @@ var agent_download_routes_exports = {};
 __export(agent_download_routes_exports, {
   default: () => agent_download_routes_default
 });
-import { Router as Router5 } from "express";
+import { Router as Router6 } from "express";
 import path from "path";
 import fs from "fs";
 import archiver from "archiver";
@@ -7436,13 +7436,13 @@ For technical support, contact your system administrator.`;
       return baseInstructions;
   }
 }
-var router5, JWT_SECRET5, agent_download_routes_default;
+var router6, JWT_SECRET5, agent_download_routes_default;
 var init_agent_download_routes = __esm({
   "server/routes/agent-download-routes.ts"() {
     "use strict";
-    router5 = Router5();
+    router6 = Router6();
     JWT_SECRET5 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-    router5.get("/:platform", async (req, res) => {
+    router6.get("/:platform", async (req, res) => {
       try {
         const { platform } = req.params;
         console.log(`${platform} agent download requested - no auth required`);
@@ -7508,7 +7508,7 @@ var init_agent_download_routes = __esm({
         }
       }
     });
-    agent_download_routes_default = router5;
+    agent_download_routes_default = router6;
   }
 });
 
@@ -11371,9 +11371,9 @@ var analytics_routes_exports = {};
 __export(analytics_routes_exports, {
   default: () => analytics_routes_default
 });
-import { Router as Router6 } from "express";
+import { Router as Router7 } from "express";
 import { sql as sql8, desc as desc8 } from "drizzle-orm";
-var router6, authenticateToken2, analytics_routes_default;
+var router7, authenticateToken2, analytics_routes_default;
 var init_analytics_routes = __esm({
   "server/routes/analytics-routes.ts"() {
     "use strict";
@@ -11386,7 +11386,7 @@ var init_analytics_routes = __esm({
     init_db();
     init_schema();
     init_ticket_schema();
-    router6 = Router6();
+    router7 = Router7();
     authenticateToken2 = async (req, res, next) => {
       const authHeader = req.headers["authorization"];
       const token = AuthUtils.extractTokenFromHeader(authHeader || "");
@@ -11410,7 +11410,7 @@ var init_analytics_routes = __esm({
         return ResponseUtils.forbidden(res, "Invalid token");
       }
     };
-    router6.get("/performance", authenticateToken2, async (req, res) => {
+    router7.get("/performance", authenticateToken2, async (req, res) => {
       try {
         const { timeRange = "7d" } = req.query;
         console.log(`Generating performance report for timeRange: ${timeRange}`);
@@ -11442,7 +11442,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/availability", authenticateToken2, async (req, res) => {
+    router7.get("/availability", authenticateToken2, async (req, res) => {
       try {
         const { timeRange = "7d" } = req.query;
         console.log(`Generating availability report for timeRange: ${timeRange}`);
@@ -11474,7 +11474,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/inventory", async (req, res) => {
+    router7.get("/inventory", async (req, res) => {
       try {
         console.log("Generating system inventory report");
         const data = await analyticsService.generateSystemInventory();
@@ -11503,7 +11503,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/asset-inventory", async (req, res) => {
+    router7.get("/asset-inventory", async (req, res) => {
       try {
         console.log("Generating comprehensive asset inventory report");
         const data = await analyticsService.generateAssetInventoryReport();
@@ -11532,7 +11532,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/ticket-analytics", async (req, res) => {
+    router7.get("/ticket-analytics", async (req, res) => {
       try {
         const { timeRange = "30d" } = req.query;
         console.log(`Generating ticket analytics report for ${timeRange}`);
@@ -11564,7 +11564,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/system-health", async (req, res) => {
+    router7.get("/system-health", async (req, res) => {
       try {
         console.log("Generating comprehensive system health report");
         const data = await analyticsService.generateSystemHealthReport();
@@ -11593,7 +11593,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/security-compliance", async (req, res) => {
+    router7.get("/security-compliance", async (req, res) => {
       try {
         console.log("Generating comprehensive security compliance report");
         const data = await analyticsService.generateSecurityComplianceReport();
@@ -11622,7 +11622,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.post("/generate", async (req, res) => {
+    router7.post("/generate", async (req, res) => {
       req.setTimeout(45e3);
       try {
         const { reportType, timeRange = "7d", format: format2 = "docx" } = req.body;
@@ -11761,7 +11761,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/realtime", async (req, res) => {
+    router7.get("/realtime", async (req, res) => {
       req.setTimeout(2e3);
       try {
         console.log("Fetching real-time performance metrics...");
@@ -11789,7 +11789,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/trends", async (req, res) => {
+    router7.get("/trends", async (req, res) => {
       try {
         const { metric = "cpu", timeRange = "7d" } = req.query;
         console.log(`Generating trend analysis for ${metric} over ${timeRange}`);
@@ -11809,7 +11809,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/capacity", async (req, res) => {
+    router7.get("/capacity", async (req, res) => {
       try {
         console.log("Generating capacity planning recommendations...");
         const recommendations = await analyticsService.getCapacityRecommendations();
@@ -11825,7 +11825,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/recent", async (req, res) => {
+    router7.get("/recent", async (req, res) => {
       req.setTimeout(5e3);
       try {
         console.log("Fetching recent reports from database...");
@@ -11876,7 +11876,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/report/:id", async (req, res) => {
+    router7.get("/report/:id", async (req, res) => {
       try {
         const { id } = req.params;
         console.log(`Fetching report with ID: ${id}`);
@@ -11899,7 +11899,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.post("/comprehensive", async (req, res) => {
+    router7.post("/comprehensive", async (req, res) => {
       req.setTimeout(2e4);
       try {
         const {
@@ -12006,7 +12006,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.post("/enterprise-scale", async (req, res) => {
+    router7.post("/enterprise-scale", async (req, res) => {
       req.setTimeout(12e4);
       try {
         const {
@@ -12124,7 +12124,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.delete("/report/:id", async (req, res) => {
+    router7.delete("/report/:id", async (req, res) => {
       try {
         const { id } = req.params;
         console.log(`Deleting report with ID: ${id}`);
@@ -12147,7 +12147,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.post("/export-pdf", async (req, res) => {
+    router7.post("/export-pdf", async (req, res) => {
       try {
         const reportData = req.body;
         const htmlContent = `
@@ -12262,7 +12262,7 @@ var init_analytics_routes = __esm({
         res.status(500).json({ message: "Failed to generate PDF report" });
       }
     });
-    router6.get(
+    router7.get(
       "/performance/insights/:deviceId",
       authenticateToken2,
       async (req, res) => {
@@ -12280,7 +12280,7 @@ var init_analytics_routes = __esm({
         }
       }
     );
-    router6.get(
+    router7.get(
       "/performance/predictions/:deviceId",
       authenticateToken2,
       async (req, res) => {
@@ -12298,7 +12298,7 @@ var init_analytics_routes = __esm({
         }
       }
     );
-    router6.get("/performance/overview", async (req, res) => {
+    router7.get("/performance/overview", async (req, res) => {
       try {
         const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
         const devices2 = await storage3.getDevices();
@@ -12341,7 +12341,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/performance/trends", async (req, res) => {
+    router7.get("/performance/trends", async (req, res) => {
       try {
         const { timeRange = "24h" } = req.query;
         const trends = {
@@ -12363,7 +12363,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/health", async (req, res) => {
+    router7.get("/health", async (req, res) => {
       res.json({
         status: "ok",
         service: "analytics",
@@ -12376,14 +12376,14 @@ var init_analytics_routes = __esm({
         ]
       });
     });
-    router6.get("/test", async (req, res) => {
+    router7.get("/test", async (req, res) => {
       res.json({
         success: true,
         message: "Analytics routes are working",
         timestamp: (/* @__PURE__ */ new Date()).toISOString()
       });
     });
-    router6.get("/device/:deviceId/advanced", async (req, res) => {
+    router7.get("/device/:deviceId/advanced", async (req, res) => {
       try {
         const deviceId = req.params.deviceId;
         console.log(`Getting advanced analytics for device: ${deviceId}`);
@@ -12518,7 +12518,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/performance/insights/:deviceId", async (req, res) => {
+    router7.get("/performance/insights/:deviceId", async (req, res) => {
       try {
         const deviceId = req.params.deviceId;
         console.log(`Getting performance insights for device: ${deviceId}`);
@@ -12532,7 +12532,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/service-desk-report", async (req, res) => {
+    router7.get("/service-desk-report", async (req, res) => {
       try {
         const format2 = req.query.format || "json";
         const timeRange = req.query.timeRange || "30d";
@@ -12663,7 +12663,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/agents-detailed-report", async (req, res) => {
+    router7.get("/agents-detailed-report", async (req, res) => {
       try {
         const format2 = req.query.format || "json";
         const filters = {
@@ -12783,7 +12783,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/tickets/metrics", async (req, res) => {
+    router7.get("/tickets/metrics", async (req, res) => {
       try {
         console.log("Analytics API - Fetching ticket metrics");
         const metrics = {
@@ -12816,7 +12816,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/devices/health", async (req, res) => {
+    router7.get("/devices/health", async (req, res) => {
       try {
         const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
         const result = await db5.query(`
@@ -12839,7 +12839,7 @@ var init_analytics_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router6.get("/overview", async (req, res) => {
+    router7.get("/overview", async (req, res) => {
       try {
         const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
         const deviceResult = await db5.query(`
@@ -12899,7 +12899,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router6.get("/devices", async (req, res) => {
+    router7.get("/devices", async (req, res) => {
       try {
         const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
         const devicesResult = await db5.query(`
@@ -12948,33 +12948,33 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    analytics_routes_default = router6;
+    analytics_routes_default = router7;
   }
 });
 
 // server/routes/user-routes.ts
 var user_routes_exports = {};
 __export(user_routes_exports, {
-  userRoutes: () => router7
+  userRoutes: () => router8
 });
-import { Router as Router7 } from "express";
+import { Router as Router8 } from "express";
 import bcrypt2 from "bcrypt";
 import multer from "multer";
 import * as XLSX from "xlsx";
-var router7, upload;
+var router8, upload;
 var init_user_routes = __esm({
   "server/routes/user-routes.ts"() {
     "use strict";
     init_db();
     init_storage();
     init_auth_middleware();
-    router7 = Router7();
+    router8 = Router8();
     upload = multer({
       storage: multer.memoryStorage(),
       limits: { fileSize: 5 * 1024 * 124 }
       // 5MB limit
     });
-    router7.post("/import-end-users", upload.single("file"), async (req, res) => {
+    router8.post("/import-end-users", upload.single("file"), async (req, res) => {
       try {
         if (!req.file) {
           return res.status(400).json({ message: "No file uploaded" });
@@ -13099,7 +13099,7 @@ var init_user_routes = __esm({
         });
       }
     });
-    router7.get("/stats", async (req, res) => {
+    router8.get("/stats", async (req, res) => {
       try {
         const result = await pool.query(`
       SELECT 
@@ -13115,7 +13115,7 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router7.get("/", async (req, res) => {
+    router8.get("/", async (req, res) => {
       try {
         const { search, role, department, status, page = 1, limit = 50, sync_source } = req.query;
         console.log("GET /api/users - Enhanced query with filters:", { search, role, department, status, sync_source });
@@ -13264,7 +13264,7 @@ var init_user_routes = __esm({
         });
       }
     });
-    router7.get("/departments", async (req, res) => {
+    router8.get("/departments", async (req, res) => {
       try {
         const result = await pool.query(`
       SELECT DISTINCT department 
@@ -13279,7 +13279,7 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to fetch departments" });
       }
     });
-    router7.post("/bulk-ad-sync", async (req, res) => {
+    router8.post("/bulk-ad-sync", async (req, res) => {
       try {
         const { userEmails } = req.body;
         if (!userEmails || !Array.isArray(userEmails)) {
@@ -13318,7 +13318,7 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to perform bulk AD sync" });
       }
     });
-    router7.get("/:id", async (req, res) => {
+    router8.get("/:id", async (req, res) => {
       try {
         const result = await pool.query(`
       SELECT 
@@ -13339,7 +13339,7 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to fetch user" });
       }
     });
-    router7.post("/", async (req, res) => {
+    router8.post("/", async (req, res) => {
       try {
         const { email, name, first_name, last_name, role, password, department, phone } = req.body;
         if (!email || !name && !first_name) {
@@ -13403,7 +13403,7 @@ var init_user_routes = __esm({
         });
       }
     });
-    router7.put("/:id", async (req, res) => {
+    router8.put("/:id", async (req, res) => {
       try {
         console.log("PUT /api/users/:id - Updating user:", req.params.id);
         console.log("Request body:", req.body);
@@ -13491,7 +13491,7 @@ var init_user_routes = __esm({
         });
       }
     });
-    router7.delete("/:id", async (req, res) => {
+    router8.delete("/:id", async (req, res) => {
       try {
         const result = await pool.query(`
       UPDATE users 
@@ -13532,7 +13532,7 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to delete user" });
       }
     });
-    router7.post("/:id/lock", async (req, res) => {
+    router8.post("/:id/lock", async (req, res) => {
       try {
         const { reason } = req.body;
         const userId = req.params.id;
@@ -13591,7 +13591,7 @@ var init_user_routes = __esm({
         });
       }
     });
-    router7.post("/:id/unlock", async (req, res) => {
+    router8.post("/:id/unlock", async (req, res) => {
       try {
         const userId = req.params.id;
         console.log(`Attempting to unlock user ${userId}`);
@@ -13649,7 +13649,7 @@ var init_user_routes = __esm({
         });
       }
     });
-    router7.post("/change-password", async (req, res) => {
+    router8.post("/change-password", async (req, res) => {
       try {
         const { currentPassword, newPassword } = req.body;
         const authHeader = req.headers.authorization;
@@ -13692,7 +13692,7 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to change password" });
       }
     });
-    router7.post("/:id/lock", authenticateToken, async (req, res) => {
+    router8.post("/:id/lock", authenticateToken, async (req, res) => {
       try {
         const { id } = req.params;
         const { reason } = req.body;
@@ -13713,7 +13713,7 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to lock user" });
       }
     });
-    router7.post("/:id/unlock", authenticateToken, async (req, res) => {
+    router8.post("/:id/unlock", authenticateToken, async (req, res) => {
       try {
         const { id } = req.params;
         const success = await storage.unlockUser(id);
@@ -13736,12 +13736,12 @@ var init_user_routes = __esm({
 // server/routes/knowledge-routes.ts
 var knowledge_routes_exports = {};
 __export(knowledge_routes_exports, {
-  knowledgeRoutes: () => router8
+  knowledgeRoutes: () => router9
 });
-import { Router as Router8 } from "express";
+import { Router as Router9 } from "express";
 import { eq as eq10, and as and10, or as or8, sql as sql9, desc as desc9, ilike as ilike3, count as count5, like as like5 } from "drizzle-orm";
 import jwt6 from "jsonwebtoken";
-var router8, storage2, authenticateToken3;
+var router9, storage2, authenticateToken3;
 var init_knowledge_routes = __esm({
   "server/routes/knowledge-routes.ts"() {
     "use strict";
@@ -13749,7 +13749,7 @@ var init_knowledge_routes = __esm({
     init_ticket_schema();
     init_ticket_storage();
     init_knowledge_ai_service();
-    router8 = Router8();
+    router9 = Router9();
     storage2 = new TicketStorage();
     authenticateToken3 = (req, res, next) => {
       const authHeader = req.headers["authorization"];
@@ -13768,7 +13768,7 @@ var init_knowledge_routes = __esm({
         next();
       });
     };
-    router8.get("/", authenticateToken3, async (req, res) => {
+    router9.get("/", authenticateToken3, async (req, res) => {
       try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
@@ -13819,7 +13819,7 @@ var init_knowledge_routes = __esm({
         });
       }
     });
-    router8.get("/related", async (req, res) => {
+    router9.get("/related", async (req, res) => {
       try {
         const { tags, category, limit = "5", header, title } = req.query;
         console.log("Related articles request:", { tags, category, limit, header, title });
@@ -13887,7 +13887,7 @@ var init_knowledge_routes = __esm({
         });
       }
     });
-    router8.get("/related/:ticketId", async (req, res) => {
+    router9.get("/related/:ticketId", async (req, res) => {
       try {
         const { ticketId } = req.params;
         const ticket = await db.select().from(tickets).where(eq10(tickets.id, ticketId)).limit(1);
@@ -13962,7 +13962,7 @@ var init_knowledge_routes = __esm({
         res.status(500).json({ error: "Failed to fetch related articles", details: error.message });
       }
     });
-    router8.get("/:id", authenticateToken3, async (req, res) => {
+    router9.get("/:id", authenticateToken3, async (req, res) => {
       try {
         const article = await storage2.getKBArticleById(req.params.id);
         if (!article) {
@@ -13974,7 +13974,7 @@ var init_knowledge_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router8.post("/", authenticateToken3, async (req, res) => {
+    router9.post("/", authenticateToken3, async (req, res) => {
       try {
         const { title, content, category } = req.body;
         const newArticle = {
@@ -14945,7 +14945,7 @@ __export(sla_routes_exports, {
   default: () => sla_routes_default,
   registerSLARoutes: () => registerSLARoutes
 });
-import { Router as Router9 } from "express";
+import { Router as Router10 } from "express";
 function registerSLARoutes(app2) {
   app2.get("/api/sla/dashboard", async (req, res) => {
     try {
@@ -15160,14 +15160,14 @@ function registerSLARoutes(app2) {
     }
   });
 }
-var router9, sla_routes_default;
+var router10, sla_routes_default;
 var init_sla_routes = __esm({
   "server/routes/sla-routes.ts"() {
     "use strict";
     init_sla_escalation_service();
     init_sla_monitor_service();
-    router9 = Router9();
-    router9.get("/dashboard", async (req, res) => {
+    router10 = Router10();
+    router10.get("/dashboard", async (req, res) => {
       try {
         const { slaEscalationService: slaEscalationService2 } = await Promise.resolve().then(() => (init_sla_escalation_service(), sla_escalation_service_exports));
         const data = await slaEscalationService2.getSLADashboardData();
@@ -15177,7 +15177,7 @@ var init_sla_routes = __esm({
         res.status(500).json({ error: "Failed to fetch SLA dashboard data" });
       }
     });
-    router9.get("/metrics", async (req, res) => {
+    router10.get("/metrics", async (req, res) => {
       try {
         const { slaMonitorService: slaMonitorService2 } = await Promise.resolve().then(() => (init_sla_monitor_service(), sla_monitor_service_exports));
         const metrics = await slaMonitorService2.getSLAMetrics();
@@ -15187,7 +15187,7 @@ var init_sla_routes = __esm({
         res.status(500).json({ error: "Failed to fetch SLA metrics" });
       }
     });
-    sla_routes_default = router9;
+    sla_routes_default = router10;
   }
 });
 
@@ -15196,7 +15196,7 @@ var sla_analysis_routes_exports = {};
 __export(sla_analysis_routes_exports, {
   default: () => sla_analysis_routes_default
 });
-import { Router as Router10 } from "express";
+import { Router as Router11 } from "express";
 import { eq as eq13, and as and13, not as not3, inArray as inArray4 } from "drizzle-orm";
 async function validateSLACalculation(ticket) {
   try {
@@ -15299,7 +15299,7 @@ async function testFutureTicketSLA() {
     };
   }
 }
-var router10, sla_analysis_routes_default;
+var router11, sla_analysis_routes_default;
 var init_sla_analysis_routes = __esm({
   "server/routes/sla-analysis-routes.ts"() {
     "use strict";
@@ -15307,8 +15307,8 @@ var init_sla_analysis_routes = __esm({
     init_ticket_schema();
     init_sla_schema();
     init_sla_policy_service();
-    router10 = Router10();
-    router10.get("/api/sla/analysis", async (req, res) => {
+    router11 = Router11();
+    router11.get("/api/sla/analysis", async (req, res) => {
       try {
         const now = /* @__PURE__ */ new Date();
         const allTickets = await db.select().from(tickets);
@@ -15408,7 +15408,7 @@ var init_sla_analysis_routes = __esm({
         res.status(500).json({ error: "Failed to analyze SLA data" });
       }
     });
-    router10.post("/api/sla/fix-tickets", async (req, res) => {
+    router11.post("/api/sla/fix-tickets", async (req, res) => {
       try {
         const ticketsToFix = await db.select().from(tickets).where(
           and13(
@@ -15460,7 +15460,7 @@ var init_sla_analysis_routes = __esm({
         res.status(500).json({ error: "Failed to fix ticket SLA data" });
       }
     });
-    router10.post("/api/sla/check-breaches", async (req, res) => {
+    router11.post("/api/sla/check-breaches", async (req, res) => {
       try {
         const { slaMonitorService: slaMonitorService2 } = await Promise.resolve().then(() => (init_sla_monitor_service(), sla_monitor_service_exports));
         console.log("\u{1F50D} Manual SLA breach check initiated...");
@@ -15476,76 +15476,772 @@ var init_sla_analysis_routes = __esm({
         res.status(500).json({ error: "Failed to perform SLA check" });
       }
     });
-    sla_analysis_routes_default = router10;
+    sla_analysis_routes_default = router11;
   }
 });
 
-// server/services/ai-service.js
-var AIService, aiService;
+// server/services/ai-service.ts
+var ALERT_THRESHOLDS2, AI_THRESHOLDS2, AIService, aiService;
 var init_ai_service = __esm({
-  "server/services/ai-service.js"() {
+  "server/services/ai-service.ts"() {
     "use strict";
-    AIService = class {
-      constructor() {
-        this.isEnabled = process.env.AI_ENABLED === "true" || false;
+    ALERT_THRESHOLDS2 = {
+      WARNING: {
+        cpu_usage: 85,
+        memory_usage: 80,
+        disk_usage: 75
+      },
+      MEDIUM: {
+        cpu_usage: 90,
+        memory_usage: 85,
+        disk_usage: 85
+      },
+      HIGH: {
+        cpu_usage: 95,
+        memory_usage: 90,
+        disk_usage: 90
+      },
+      CRITICAL: {
+        cpu_usage: 98,
+        memory_usage: 95,
+        disk_usage: 95
       }
+    };
+    AI_THRESHOLDS2 = {
+      PERFORMANCE: {
+        high_cpu_process_threshold: 15,
+        // Example: process consuming > 15% CPU
+        high_memory_process_threshold: 10,
+        // Example: process consuming > 10% Memory
+        volatility_threshold: 15,
+        trend_threshold: 2
+      },
+      SECURITY: {
+        suspicious_cpu_threshold: 50,
+        suspicious_name_keywords: ["crypto", "miner"]
+      },
+      PREDICTION: {
+        disk_full_warning_days: 30,
+        disk_critical_warning_days: 7,
+        memory_degradation_volatility: 20,
+        memory_degradation_trend: 1
+      },
+      SYSTEM_HEALTH: {
+        memory_pressure_threshold: "high",
+        disk_health_threshold: "healthy"
+      }
+    };
+    AIService = class {
       async generateDeviceInsights(deviceId) {
         try {
-          const insights = [
-            {
-              type: "performance",
-              severity: "medium",
-              title: "CPU Usage Trending Upward",
-              description: "CPU usage has increased 15% over the past week",
-              recommendation: "Consider checking for unnecessary background processes",
-              confidence: 0.85,
-              metadata: {
-                trend: "increasing",
-                timeframe: "7 days"
-              }
-            },
-            {
-              type: "security",
-              severity: "low",
-              title: "Regular Security Updates Available",
-              description: "System has 3 pending security updates",
-              recommendation: "Schedule maintenance window for updates",
-              confidence: 0.95,
-              metadata: {
-                updateCount: 3,
-                category: "security"
-              }
+          const deviceData = await this.getDeviceData(deviceId);
+          console.log(`Generating AI insights for device: ${deviceData?.hostname || "Unknown"} (${deviceId})`);
+          if (!deviceData) {
+            console.log("No device data found for AI analysis");
+            return [];
+          }
+          const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
+          const reportsPromise = storage3.getRecentDeviceReports(deviceId, 7);
+          const timeout = new Promise(
+            (_, reject) => setTimeout(() => reject(new Error("Database query timeout")), 5e3)
+          );
+          let reports;
+          try {
+            reports = await Promise.race([reportsPromise, timeout]);
+          } catch (dbError) {
+            console.warn(`Database query failed for device ${deviceId}:`, dbError?.message || dbError);
+            return [];
+          }
+          if (!Array.isArray(reports) || reports.length === 0) {
+            console.log(`No reports found for device ${deviceId}`);
+            return [];
+          }
+          const latestReport = reports[0];
+          const analysisResults = await Promise.allSettled([
+            this.analyzePerformancePatterns(deviceId, reports, []),
+            this.analyzeSecurityPosture(deviceId, latestReport, []),
+            this.generateResourcePredictions(deviceId, reports, []),
+            this.analyzeProcessBehavior(deviceId, latestReport, []),
+            this.analyzeSystemHealth(deviceId, latestReport, [])
+          ]);
+          let insights = [];
+          for (const result of analysisResults) {
+            if (result.status === "fulfilled" && Array.isArray(result.value)) {
+              insights = insights.concat(result.value);
+            } else if (result.status === "rejected") {
+              console.warn("Analysis function failed:", result.reason?.message || result.reason);
             }
-          ];
+          }
+          console.log(`Generated ${insights.length} AI insights for device ${deviceId}`);
           return insights;
         } catch (error) {
-          console.error("Error generating AI insights:", error);
+          console.error(`Critical error generating AI insights for device ${deviceId}:`, error?.message || error);
           return [];
         }
       }
-      async getDeviceRecommendations(deviceId) {
+      async getDeviceData(deviceId) {
         try {
-          const recommendations = [
-            {
-              category: "performance",
-              title: "Optimize Memory Usage",
-              description: "Consider increasing virtual memory or closing unused applications",
-              priority: "medium",
-              estimatedImpact: "high"
-            },
-            {
-              category: "security",
-              title: "Enable Automatic Updates",
-              description: "Configure automatic security updates for better protection",
-              priority: "high",
-              estimatedImpact: "high"
-            }
-          ];
-          return recommendations;
+          const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
+          const device = await storage3.getDevice(deviceId);
+          return device;
         } catch (error) {
-          console.error("Error getting AI recommendations:", error);
+          console.error(`Error fetching device data for ${deviceId}:`, error);
+          return null;
+        }
+      }
+      async analyzePerformancePatterns(deviceId, reports, insights) {
+        const newInsights = [];
+        if (reports.length < 3) return newInsights;
+        const existingAlerts = await this.getExistingPerformanceAlerts(deviceId);
+        const cpuValues = reports.map((r) => parseFloat(r.cpu_usage || "0")).filter((v) => !isNaN(v));
+        const cpuTrend = this.calculateTrend(cpuValues);
+        if (cpuValues.length > 0) {
+          const latestCpuUsage = cpuValues[0];
+          if (latestCpuUsage > ALERT_THRESHOLDS2.WARNING.cpu_usage) {
+            const newSeverity = latestCpuUsage > ALERT_THRESHOLDS2.CRITICAL.cpu_usage ? "critical" : latestCpuUsage > ALERT_THRESHOLDS2.HIGH.cpu_usage ? "high" : "medium";
+            const alertKey = "cpu-usage";
+            const existingAlert = existingAlerts.find((a) => a.metadata?.metric === "cpu" && a.metadata?.alert_type === "usage");
+            if (existingAlert && this.shouldUpdateAlert(existingAlert, latestCpuUsage, newSeverity)) {
+              newInsights.push({
+                ...existingAlert,
+                severity: newSeverity,
+                description: `CPU usage at ${latestCpuUsage.toFixed(1)}%`,
+                metadata: {
+                  ...existingAlert.metadata,
+                  current_usage: latestCpuUsage,
+                  last_updated: (/* @__PURE__ */ new Date()).toISOString()
+                },
+                created_at: /* @__PURE__ */ new Date()
+              });
+            } else if (!existingAlert) {
+              newInsights.push({
+                id: `cpu-usage-${deviceId}`,
+                device_id: deviceId,
+                type: "performance",
+                severity: newSeverity,
+                title: "High CPU Usage Detected",
+                description: `CPU usage at ${latestCpuUsage.toFixed(1)}%`,
+                recommendation: "Investigate processes consuming high CPU or consider scaling resources",
+                confidence: 0.85,
+                metadata: { current_usage: latestCpuUsage, metric: "cpu", alert_type: "usage" },
+                created_at: /* @__PURE__ */ new Date()
+              });
+            }
+          }
+        }
+        if (cpuTrend > AI_THRESHOLDS2.PERFORMANCE.trend_threshold) {
+          const newSeverity = cpuTrend > 5 ? "high" : "medium";
+          const alertKey = "cpu-trend";
+          const existingAlert = existingAlerts.find((a) => a.metadata?.metric === "cpu" && a.title.includes("Trend"));
+          if (existingAlert && this.shouldUpdateAlert(existingAlert, cpuTrend, newSeverity)) {
+            newInsights.push({
+              ...existingAlert,
+              severity: newSeverity,
+              description: `CPU usage trending upward by ${cpuTrend.toFixed(1)}% per day over the last week`,
+              metadata: {
+                ...existingAlert.metadata,
+                trend: cpuTrend,
+                previous_trend: existingAlert.metadata?.trend || 0,
+                last_updated: (/* @__PURE__ */ new Date()).toISOString()
+              },
+              created_at: /* @__PURE__ */ new Date()
+            });
+          } else if (!existingAlert) {
+            newInsights.push({
+              id: `cpu-trend-${deviceId}`,
+              device_id: deviceId,
+              type: "performance",
+              severity: newSeverity,
+              title: "Rising CPU Usage Trend",
+              description: `CPU usage trending upward by ${cpuTrend.toFixed(1)}% per day over the last week`,
+              recommendation: "Monitor for runaway processes or consider CPU upgrade if trend continues",
+              confidence: 0.8,
+              metadata: { trend: cpuTrend, metric: "cpu", alert_type: "trend" },
+              created_at: /* @__PURE__ */ new Date()
+            });
+          }
+        }
+        const memoryValues = reports.map((r) => parseFloat(r.memory_usage || "0")).filter((v) => !isNaN(v));
+        const memoryTrend = this.calculateTrend(memoryValues);
+        if (memoryValues.length > 0) {
+          const latestMemoryUsage = memoryValues[0];
+          if (latestMemoryUsage > ALERT_THRESHOLDS2.WARNING.memory_usage) {
+            const newSeverity = latestMemoryUsage > ALERT_THRESHOLDS2.CRITICAL.memory_usage ? "critical" : latestMemoryUsage > ALERT_THRESHOLDS2.HIGH.memory_usage ? "high" : "medium";
+            const existingAlert = existingAlerts.find((a) => a.metadata?.metric === "memory" && a.metadata?.alert_type === "usage");
+            if (existingAlert && this.shouldUpdateAlert(existingAlert, latestMemoryUsage, newSeverity)) {
+              newInsights.push({
+                ...existingAlert,
+                severity: newSeverity,
+                description: `Memory usage at ${latestMemoryUsage.toFixed(1)}%`,
+                metadata: {
+                  ...existingAlert.metadata,
+                  current_usage: latestMemoryUsage,
+                  last_updated: (/* @__PURE__ */ new Date()).toISOString()
+                },
+                created_at: /* @__PURE__ */ new Date()
+              });
+            } else if (!existingAlert) {
+              newInsights.push({
+                id: `memory-usage-${deviceId}`,
+                device_id: deviceId,
+                type: "performance",
+                severity: newSeverity,
+                title: "High Memory Usage Detected",
+                description: `Memory usage at ${latestMemoryUsage.toFixed(1)}%`,
+                recommendation: "Check for memory leaks or plan for memory upgrade",
+                confidence: 0.8,
+                metadata: { current_usage: latestMemoryUsage, metric: "memory", alert_type: "usage" },
+                created_at: /* @__PURE__ */ new Date()
+              });
+            }
+          }
+        }
+        if (memoryTrend > 1.5) {
+          const existingAlert = existingAlerts.find((a) => a.metadata?.metric === "memory" && a.title.includes("Climbing"));
+          if (existingAlert && this.shouldUpdateAlert(existingAlert, memoryTrend, "medium")) {
+            newInsights.push({
+              ...existingAlert,
+              severity: "medium",
+              description: `Memory usage increasing by ${memoryTrend.toFixed(1)}% per day`,
+              metadata: {
+                ...existingAlert.metadata,
+                trend: memoryTrend,
+                previous_trend: existingAlert.metadata?.trend || 0,
+                last_updated: (/* @__PURE__ */ new Date()).toISOString()
+              },
+              created_at: /* @__PURE__ */ new Date()
+            });
+          } else if (!existingAlert) {
+            newInsights.push({
+              id: `memory-trend-${deviceId}`,
+              device_id: deviceId,
+              type: "performance",
+              severity: "medium",
+              title: "Memory Usage Climbing",
+              description: `Memory usage increasing by ${memoryTrend.toFixed(1)}% per day`,
+              recommendation: "Check for memory leaks or plan for memory upgrade",
+              confidence: 0.75,
+              metadata: { trend: memoryTrend, metric: "memory", alert_type: "trend" },
+              created_at: /* @__PURE__ */ new Date()
+            });
+          }
+        }
+        const cpuVolatility = this.calculateVolatility(cpuValues);
+        if (cpuVolatility > AI_THRESHOLDS2.PERFORMANCE.volatility_threshold) {
+          const existingAlert = existingAlerts.find((a) => a.metadata?.metric === "cpu" && a.title.includes("Volatility"));
+          if (!existingAlert) {
+            newInsights.push({
+              id: `cpu-volatility-${deviceId}`,
+              device_id: deviceId,
+              type: "performance",
+              severity: "medium",
+              title: "Unstable CPU Performance",
+              description: `High CPU usage volatility detected (${cpuVolatility.toFixed(1)}% std deviation)`,
+              recommendation: "Investigate intermittent high-CPU processes or system instability",
+              confidence: 0.7,
+              metadata: { volatility: cpuVolatility, metric: "cpu", alert_type: "volatility" },
+              created_at: /* @__PURE__ */ new Date()
+            });
+          }
+        }
+        return newInsights;
+      }
+      async analyzeSecurityPosture(deviceId, latestReport, insights) {
+        const newInsights = [];
+        if (!latestReport.raw_data) return newInsights;
+        let rawData;
+        try {
+          if (typeof latestReport.raw_data === "string") {
+            if (latestReport.raw_data === "[object Object]") {
+              console.warn("Detected improper object serialization in security analysis");
+              return newInsights;
+            } else if (latestReport.raw_data.startsWith("{") || latestReport.raw_data.startsWith("[")) {
+              rawData = JSON.parse(latestReport.raw_data);
+            } else {
+              console.warn("Invalid JSON format in security analysis:", latestReport.raw_data);
+              return newInsights;
+            }
+          } else if (typeof latestReport.raw_data === "object" && latestReport.raw_data !== null) {
+            rawData = latestReport.raw_data;
+          } else {
+            return newInsights;
+          }
+        } catch (parseError) {
+          console.error("Error parsing raw_data in security analysis:", parseError);
+          return newInsights;
+        }
+        const securityData = rawData.security || {};
+        const processes = rawData.processes || [];
+        if (securityData.firewall_status !== "enabled" || securityData.antivirus_status !== "enabled") {
+          newInsights.push({
+            id: `security-services-${deviceId}`,
+            device_id: deviceId,
+            type: "security",
+            severity: "critical",
+            title: "Critical Security Services Disabled",
+            description: `${securityData.firewall_status !== "enabled" ? "Firewall disabled. " : ""}${securityData.antivirus_status !== "enabled" ? "Antivirus disabled." : ""}`,
+            recommendation: "Immediately enable all security services and run full system scan",
+            confidence: 0.95,
+            metadata: { firewall: securityData.firewall_status, antivirus: securityData.antivirus_status },
+            created_at: /* @__PURE__ */ new Date()
+          });
+        }
+        const suspiciousProcesses = processes.filter(
+          (p) => p.cpu_percent > AI_THRESHOLDS2.SECURITY.suspicious_cpu_threshold || p.name && AI_THRESHOLDS2.SECURITY.suspicious_name_keywords.some((keyword) => p.name.includes(keyword))
+        );
+        if (suspiciousProcesses.length > 0) {
+          newInsights.push({
+            id: `suspicious-processes-${deviceId}`,
+            device_id: deviceId,
+            type: "security",
+            severity: "high",
+            title: "Suspicious Process Activity",
+            description: `${suspiciousProcesses.length} potentially suspicious processes detected`,
+            recommendation: "Review process activity and run malware scan",
+            confidence: 0.6,
+            metadata: { processes: suspiciousProcesses.map((p) => p.name) },
+            created_at: /* @__PURE__ */ new Date()
+          });
+        }
+        return newInsights;
+      }
+      async generateResourcePredictions(deviceId, reports, insights) {
+        const newInsights = [];
+        try {
+          if (!reports || !Array.isArray(reports) || reports.length < 5) {
+            console.log(`Insufficient reports for resource prediction: ${reports?.length || 0} (need at least 5)`);
+            return newInsights;
+          }
+          const timestamps = reports.map((r) => new Date(r.timestamp || r.created_at));
+          const diskValues = reports.map((r) => parseFloat(r.disk_usage || "0")).filter((v) => !isNaN(v));
+          if (diskValues.length === 0) {
+            console.log("No valid disk usage data found for prediction");
+            return newInsights;
+          }
+          const diskAnalysis = this.analyzeTimeSeriesPatterns(diskValues, timestamps);
+          if (diskAnalysis && diskAnalysis.trend > 0.5) {
+            const currentDisk = diskValues[0] || 0;
+            const forecast = diskAnalysis.forecast || [];
+            let daysToFull = -1;
+            for (let i = 0; i < forecast.length; i++) {
+              if (forecast[i] >= 95) {
+                daysToFull = i + 1;
+                break;
+              }
+            }
+            if (currentDisk > ALERT_THRESHOLDS2.MEDIUM.disk_usage) {
+              const daysToFull2 = currentDisk > ALERT_THRESHOLDS2.HIGH.disk_usage ? AI_THRESHOLDS2.PREDICTION.disk_critical_warning_days : currentDisk > ALERT_THRESHOLDS2.WARNING.disk_usage ? AI_THRESHOLDS2.PREDICTION.disk_full_warning_days : 90;
+              let severity = "low";
+              if (currentDisk > ALERT_THRESHOLDS2.CRITICAL.disk_usage) severity = "critical";
+              else if (currentDisk > ALERT_THRESHOLDS2.HIGH.disk_usage) severity = "high";
+              else if (currentDisk > ALERT_THRESHOLDS2.MEDIUM.disk_usage) severity = "medium";
+              if (daysToFull2 > 0) {
+                newInsights.push({
+                  id: `disk-prediction-${deviceId}`,
+                  device_id: deviceId,
+                  type: "prediction",
+                  severity: daysToFull2 < AI_THRESHOLDS2.PREDICTION.disk_critical_warning_days ? "high" : daysToFull2 < AI_THRESHOLDS2.PREDICTION.disk_full_warning_days ? "medium" : "low",
+                  title: "Advanced Disk Space Forecast",
+                  description: `Predictive model shows disk reaching 95% capacity in ${daysToFull2} days. Current usage: ${currentDisk.toFixed(1)}%. Pattern: ${diskAnalysis.seasonality}`,
+                  recommendation: this.generateMaintenanceRecommendation(daysToFull2, diskAnalysis.volatility),
+                  confidence: Math.min(0.95, reports.length / 15),
+                  metadata: {
+                    days_to_full: daysToFull2,
+                    current_usage: currentDisk,
+                    trend: diskAnalysis.trend,
+                    seasonality: diskAnalysis.seasonality,
+                    volatility: diskAnalysis.volatility,
+                    forecast: forecast.slice(0, 7)
+                  },
+                  created_at: /* @__PURE__ */ new Date()
+                });
+              }
+            }
+          }
+          const memoryValues = reports.map((r) => parseFloat(r.memory_usage || "0")).filter((v) => !isNaN(v));
+          if (memoryValues.length > 0) {
+            const memoryAnalysis = this.analyzeTimeSeriesPatterns(memoryValues, timestamps);
+            if (memoryAnalysis && memoryAnalysis.volatility > AI_THRESHOLDS2.PREDICTION.memory_degradation_volatility && memoryAnalysis.trend > AI_THRESHOLDS2.PREDICTION.memory_degradation_trend) {
+              newInsights.push({
+                id: `memory-degradation-${deviceId}`,
+                device_id: deviceId,
+                type: "prediction",
+                severity: "medium",
+                title: "Memory Performance Degradation Predicted",
+                description: `Memory usage patterns suggest potential degradation. Volatility: ${memoryAnalysis.volatility.toFixed(1)}%`,
+                recommendation: "Consider memory diagnostics and potential hardware refresh planning",
+                confidence: 0.7,
+                metadata: {
+                  current_trend: memoryAnalysis.trend,
+                  volatility: memoryAnalysis.volatility,
+                  anomaly_count: memoryAnalysis.anomalies?.length || 0
+                },
+                created_at: /* @__PURE__ */ new Date()
+              });
+            }
+          }
+          try {
+            const hardwareFailures = await this.predictHardwareFailures(deviceId, reports, []);
+            if (Array.isArray(hardwareFailures)) {
+              newInsights.push(...hardwareFailures);
+            }
+          } catch (error) {
+            console.warn("Hardware failure prediction failed:", error?.message || error);
+          }
+        } catch (error) {
+          console.error("Resource prediction error:", error?.message || error);
+        }
+        return newInsights;
+      }
+      async predictHardwareFailures(deviceId, reports, insights) {
+        const newInsights = [];
+        try {
+          if (!reports || !Array.isArray(reports) || reports.length === 0) {
+            return newInsights;
+          }
+          const timestamps = reports.map((r) => new Date(r.timestamp || r.created_at));
+          const metrics = ["cpu_usage", "memory_usage", "disk_usage", "cpu_temperature"];
+          let riskScore = 0;
+          const riskFactors = [];
+          for (const metric of metrics) {
+            try {
+              const values = reports.map((r) => parseFloat(r[metric] || "0")).filter((v) => !isNaN(v) && v > 0);
+              if (values.length < 3) continue;
+              const analysis = this.analyzeTimeSeriesPatterns(values, timestamps);
+              if (!analysis) continue;
+              if (analysis.volatility > 25) {
+                riskScore += analysis.volatility / 25;
+                riskFactors.push(`${metric} volatility: ${analysis.volatility.toFixed(1)}%`);
+              }
+              if (metric === "cpu_temperature" && analysis.trend > 1) {
+                riskScore += 2;
+                riskFactors.push(`Rising temperature trend: +${analysis.trend.toFixed(1)}\xB0C/day`);
+              }
+              if (Array.isArray(analysis.anomalies) && analysis.anomalies.length > values.length * 0.1) {
+                riskScore += 1;
+                riskFactors.push(`${metric} anomalies: ${analysis.anomalies.length}/${values.length} readings`);
+              }
+            } catch (metricError) {
+              console.warn(`Error analyzing metric ${metric}:`, metricError?.message || metricError);
+            }
+          }
+          if (riskScore > 3) {
+            const insight = {
+              id: `hardware-failure-risk-${deviceId}`,
+              device_id: deviceId,
+              type: "prediction",
+              severity: riskScore > 6 ? "high" : "medium",
+              title: "Hardware Failure Risk Detected",
+              description: `Predictive analysis indicates elevated hardware failure risk. Risk score: ${riskScore.toFixed(1)}`,
+              recommendation: "Schedule comprehensive hardware diagnostics and consider preventive replacement",
+              confidence: Math.min(0.9, riskScore / 10),
+              metadata: {
+                risk_score: riskScore,
+                risk_factors: riskFactors,
+                analysis_period_days: timestamps.length > 0 ? Math.ceil(((/* @__PURE__ */ new Date()).getTime() - timestamps[timestamps.length - 1].getTime()) / (1e3 * 60 * 60 * 24)) : 0
+              },
+              created_at: /* @__PURE__ */ new Date()
+            };
+            newInsights.push(insight);
+          }
+        } catch (error) {
+          console.warn("Error in hardware failure prediction:", error?.message || error);
+        }
+        return newInsights;
+      }
+      generateMaintenanceRecommendation(daysToFull, volatility) {
+        if (daysToFull < AI_THRESHOLDS2.PREDICTION.disk_critical_warning_days) return "CRITICAL: Immediate action required within 24 hours";
+        if (daysToFull < AI_THRESHOLDS2.PREDICTION.disk_full_warning_days) return "HIGH: Schedule maintenance within 1 week";
+        if (volatility > 15) return "MEDIUM: Volatile pattern detected, monitor closely and plan maintenance";
+        return "LOW: Plan routine maintenance within the month";
+      }
+      async analyzeProcessBehavior(deviceId, latestReport, insights) {
+        const newInsights = [];
+        if (!latestReport.raw_data) return newInsights;
+        let rawData;
+        try {
+          if (typeof latestReport.raw_data === "string") {
+            if (latestReport.raw_data.startsWith("{") || latestReport.raw_data.startsWith("[")) {
+              rawData = JSON.parse(latestReport.raw_data);
+            } else {
+              console.warn("Invalid JSON format in process analysis:", latestReport.raw_data);
+              return newInsights;
+            }
+          } else if (typeof latestReport.raw_data === "object") {
+            rawData = latestReport.raw_data;
+          } else {
+            return newInsights;
+          }
+        } catch (parseError) {
+          console.error("Error parsing raw_data in process analysis:", parseError);
+          return newInsights;
+        }
+        const processes = rawData.processes || [];
+        const highCPUProcesses = processes.filter((p) => p.cpu_percent > AI_THRESHOLDS2.PERFORMANCE.high_cpu_process_threshold);
+        const highMemoryProcesses = processes.filter((p) => p.memory_percent > AI_THRESHOLDS2.PERFORMANCE.high_memory_process_threshold);
+        if (highCPUProcesses.length > 3) {
+          newInsights.push({
+            id: `high-cpu-processes-${deviceId}`,
+            device_id: deviceId,
+            type: "performance",
+            severity: "medium",
+            title: "Multiple High-CPU Processes",
+            description: `${highCPUProcesses.length} processes consuming >${AI_THRESHOLDS2.PERFORMANCE.high_cpu_process_threshold}% CPU each`,
+            recommendation: "Review process efficiency and consider workload optimization",
+            confidence: 0.8,
+            metadata: { processes: highCPUProcesses.slice(0, 5).map((p) => ({ name: p.name, cpu: p.cpu_percent })) },
+            created_at: /* @__PURE__ */ new Date()
+          });
+        }
+        if (processes.length > 100) {
+          newInsights.push({
+            id: `process-optimization-${deviceId}`,
+            device_id: deviceId,
+            type: "optimization",
+            severity: "info",
+            title: "Process Optimization Opportunity",
+            description: `${processes.length} running processes detected - system may benefit from cleanup`,
+            recommendation: "Review and disable unnecessary startup programs and services",
+            confidence: 0.6,
+            metadata: { process_count: processes.length },
+            created_at: /* @__PURE__ */ new Date()
+          });
+        }
+        return newInsights;
+      }
+      async analyzeSystemHealth(deviceId, latestReport, insights) {
+        const newInsights = [];
+        if (!latestReport.raw_data) return newInsights;
+        let rawData;
+        try {
+          if (typeof latestReport.raw_data === "string") {
+            if (latestReport.raw_data.startsWith("{") || latestReport.raw_data.startsWith("[")) {
+              rawData = JSON.parse(latestReport.raw_data);
+            } else {
+              console.warn("Invalid JSON format in system health analysis:", latestReport.raw_data);
+              return newInsights;
+            }
+          } else if (typeof latestReport.raw_data === "object") {
+            rawData = latestReport.raw_data;
+          } else {
+            return newInsights;
+          }
+        } catch (parseError) {
+          console.error("Error parsing raw_data in system health analysis:", parseError);
+          return newInsights;
+        }
+        const systemHealth = rawData.system_health || {};
+        if (systemHealth.memory_pressure?.pressure_level === AI_THRESHOLDS2.SYSTEM_HEALTH.memory_pressure_threshold) {
+          newInsights.push({
+            id: `memory-pressure-${deviceId}`,
+            device_id: deviceId,
+            type: "maintenance",
+            severity: "high",
+            title: "High Memory Pressure",
+            description: "System experiencing significant memory pressure",
+            recommendation: "Close unnecessary applications or restart system to free memory",
+            confidence: 0.9,
+            metadata: { pressure_level: systemHealth.memory_pressure.pressure_level },
+            created_at: /* @__PURE__ */ new Date()
+          });
+        }
+        if (systemHealth.disk_health?.status !== AI_THRESHOLDS2.SYSTEM_HEALTH.disk_health_threshold) {
+          newInsights.push({
+            id: `disk-health-${deviceId}`,
+            device_id: deviceId,
+            type: "maintenance",
+            severity: "medium",
+            title: "Disk Health Warning",
+            description: `Disk health status: ${systemHealth.disk_health?.status || "unknown"}`,
+            recommendation: "Run disk diagnostics and ensure data backups are current",
+            confidence: 0.8,
+            metadata: { disk_status: systemHealth.disk_health?.status },
+            created_at: /* @__PURE__ */ new Date()
+          });
+        }
+        return newInsights;
+      }
+      calculateTrend(values) {
+        if (values.length < 2) return 0;
+        const n = values.length;
+        const sumX = n * (n - 1) / 2;
+        const sumY = values.reduce((a, b) => a + b, 0);
+        const sumXY = values.reduce((sum2, y, x) => sum2 + x * y, 0);
+        const sumXX = n * (n - 1) * (2 * n - 1) / 6;
+        const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+        return slope || 0;
+      }
+      analyzeTimeSeriesPatterns(values, timestamps) {
+        try {
+          if (!Array.isArray(values) || values.length === 0 || !Array.isArray(timestamps)) {
+            return {
+              trend: 0,
+              seasonality: "insufficient_data",
+              volatility: 0,
+              anomalies: [],
+              forecast: []
+            };
+          }
+          const trend = this.calculateTrend(values) || 0;
+          const volatility = this.calculateVolatility(values) || 0;
+          const anomalies = this.detectAnomalies(values) || [];
+          const forecast = this.generateForecast(values, 7) || [];
+          const seasonality = this.detectSeasonalityPatterns(values, timestamps) || "random";
+          return { trend, seasonality, volatility, anomalies, forecast };
+        } catch (error) {
+          console.warn("Time series analysis failed:", error?.message || error);
+          return {
+            trend: 0,
+            seasonality: "error",
+            volatility: 0,
+            anomalies: [],
+            forecast: []
+          };
+        }
+      }
+      generateForecast(values, periods) {
+        try {
+          if (!Array.isArray(values) || values.length < 3 || !periods || periods <= 0) {
+            return [];
+          }
+          const trend = this.calculateTrend(values) || 0;
+          const lastValue = values[values.length - 1] || 0;
+          const forecast = [];
+          for (let i = 1; i <= periods; i++) {
+            const predictedValue = Math.max(0, lastValue + trend * i);
+            forecast.push(Math.min(predictedValue, 100));
+          }
+          return forecast;
+        } catch (error) {
+          console.warn("Forecast generation failed:", error?.message || error);
           return [];
         }
+      }
+      detectSeasonalityPatterns(values, timestamps) {
+        if (values.length < 14) return "insufficient_data";
+        const hourlyPatterns = this.analyzeHourlyPatterns(values, timestamps);
+        const weeklyPatterns = this.analyzeWeeklyPatterns(values, timestamps);
+        if (hourlyPatterns.strength > 0.3) return "daily";
+        if (weeklyPatterns.strength > 0.3) return "weekly";
+        return "random";
+      }
+      analyzeHourlyPatterns(values, timestamps) {
+        try {
+          if (!Array.isArray(values) || !Array.isArray(timestamps) || values.length === 0) {
+            return { strength: 0 };
+          }
+          const hourlyBuckets = new Array(24).fill(null).map(() => []);
+          timestamps.forEach((timestamp6, index) => {
+            if (timestamp6 && values[index] !== void 0) {
+              const hour = timestamp6.getHours();
+              if (hour >= 0 && hour < 24) {
+                hourlyBuckets[hour].push(values[index]);
+              }
+            }
+          });
+          const hourlyAverages = hourlyBuckets.map(
+            (bucket) => bucket.length > 0 ? bucket.reduce((a, b) => a + b, 0) / bucket.length : 0
+          );
+          const overallMean = values.reduce((a, b) => a + b, 0) / values.length;
+          const betweenHourVariance = hourlyAverages.reduce((sum2, avg2) => sum2 + Math.pow(avg2 - overallMean, 2), 0) / 24;
+          const totalVariance = values.reduce((sum2, val) => sum2 + Math.pow(val - overallMean, 2), 0) / values.length;
+          return { strength: betweenHourVariance / (totalVariance || 1) };
+        } catch (error) {
+          console.warn("Hourly pattern analysis failed:", error?.message || error);
+          return { strength: 0 };
+        }
+      }
+      analyzeWeeklyPatterns(values, timestamps) {
+        try {
+          if (!Array.isArray(values) || !Array.isArray(timestamps) || values.length === 0) {
+            return { strength: 0 };
+          }
+          const weeklyBuckets = new Array(7).fill(null).map(() => []);
+          timestamps.forEach((timestamp6, index) => {
+            if (timestamp6 && values[index] !== void 0) {
+              const dayOfWeek = timestamp6.getDay();
+              if (dayOfWeek >= 0 && dayOfWeek < 7) {
+                weeklyBuckets[dayOfWeek].push(values[index]);
+              }
+            }
+          });
+          const weeklyAverages = weeklyBuckets.map(
+            (bucket) => bucket.length > 0 ? bucket.reduce((a, b) => a + b, 0) / bucket.length : 0
+          );
+          const overallMean = values.reduce((a, b) => a + b, 0) / values.length;
+          const betweenDayVariance = weeklyAverages.reduce((sum2, avg2) => sum2 + Math.pow(avg2 - overallMean, 2), 0) / 7;
+          const totalVariance = values.reduce((sum2, val) => sum2 + Math.pow(val - overallMean, 2), 0) / values.length;
+          return { strength: betweenDayVariance / (totalVariance || 1) };
+        } catch (error) {
+          console.warn("Weekly pattern analysis failed:", error?.message || error);
+          return { strength: 0 };
+        }
+      }
+      calculateVolatility(values) {
+        if (values.length < 2) return 0;
+        const mean = values.reduce((a, b) => a + b, 0) / values.length;
+        const variance = values.reduce((sum2, value) => sum2 + Math.pow(value - mean, 2), 0) / values.length;
+        return Math.sqrt(variance);
+      }
+      detectAnomalies(values, threshold = 2.5) {
+        try {
+          if (!Array.isArray(values) || values.length < 3) return [];
+          const mean = values.reduce((a, b) => a + b, 0) / values.length;
+          const std = Math.sqrt(values.reduce((sum2, val) => sum2 + Math.pow(val - mean, 2), 0) / values.length);
+          const anomalies = [];
+          for (const value of values) {
+            if (Math.abs(value - mean) > threshold * std) {
+              anomalies.push(value);
+            }
+          }
+          return anomalies;
+        } catch (error) {
+          console.warn("Anomaly detection failed:", error?.message || error);
+          return [];
+        }
+      }
+      calculateSeasonality(values) {
+        if (values.length < 7) return { pattern: "insufficient_data", confidence: 0 };
+        const weeklyAvg = [];
+        for (let day = 0; day < 7; day++) {
+          const dayValues = values.filter((_, index) => index % 7 === day);
+          weeklyAvg[day] = dayValues.reduce((a, b) => a + b, 0) / dayValues.length;
+        }
+        const totalVariance = values.reduce((sum2, val) => {
+          const overallMean = values.reduce((a, b) => a + b, 0) / values.length;
+          return sum2 + Math.pow(val - overallMean, 2);
+        }, 0) / values.length;
+        const weeklyVariance = weeklyAvg.reduce((sum2, dayMean) => {
+          const overallMean = weeklyAvg.reduce((a, b) => a + b, 0) / 7;
+          return sum2 + Math.pow(dayMean - overallMean, 2);
+        }, 0) / 7;
+        const seasonalityStrength = weeklyVariance / totalVariance;
+        return {
+          pattern: seasonalityStrength > 0.3 ? "weekly" : "random",
+          confidence: Math.min(seasonalityStrength, 1)
+        };
+      }
+      async getExistingPerformanceAlerts(deviceId) {
+        try {
+          return [];
+        } catch (error) {
+          console.error("Error fetching existing alerts:", error);
+          return [];
+        }
+      }
+      shouldUpdateAlert(existingAlert, newValue, newSeverity) {
+        const timeSinceCreated = (/* @__PURE__ */ new Date()).getTime() - new Date(existingAlert.created_at).getTime();
+        const hoursSinceCreated = timeSinceCreated / (1e3 * 60 * 60);
+        const severityChanged = existingAlert.severity !== newSeverity;
+        const significantTimeElapsed = hoursSinceCreated > 1;
+        const oldValue = existingAlert.metadata?.trend || existingAlert.metadata?.volatility || existingAlert.metadata?.current_usage || 0;
+        const valueChangePercent = Math.abs((newValue - oldValue) / oldValue) * 100;
+        const significantChange = valueChangePercent > 10;
+        return severityChanged || significantChange && !isNaN(valueChangePercent) || significantTimeElapsed;
+      }
+      async getDeviceRecommendations(deviceId) {
+        const insights = await this.generateDeviceInsights(deviceId);
+        return insights.filter((insight) => insight.severity === "high" || insight.severity === "critical").map((insight) => insight.recommendation).slice(0, 5);
       }
     };
     aiService = new AIService();
@@ -15553,6 +16249,10 @@ var init_ai_service = __esm({
 });
 
 // server/models/ai-insights-storage.ts
+var ai_insights_storage_exports = {};
+__export(ai_insights_storage_exports, {
+  aiInsightsStorage: () => aiInsightsStorage
+});
 var AIInsightsStorage, aiInsightsStorage;
 var init_ai_insights_storage = __esm({
   "server/models/ai-insights-storage.ts"() {
@@ -15560,28 +16260,40 @@ var init_ai_insights_storage = __esm({
     AIInsightsStorage = class {
       async storeInsight(insight) {
         try {
-          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-          const result = await pool3.query(
-            `
+          const { db: db5, sql: sql12 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const results = await db5.execute(sql12`
         INSERT INTO ai_insights (
           device_id, insight_type, severity, title, description, 
-          recommendation, confidence, metadata, created_at, is_active
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), $9)
+          recommendation, confidence, metadata, is_active
+        ) VALUES (
+          ${insight.device_id}, 
+          ${insight.insight_type}, 
+          ${insight.severity}, 
+          ${insight.title}, 
+          ${insight.description}, 
+          ${insight.recommendation}, 
+          ${insight.confidence}, 
+          ${JSON.stringify(insight.metadata || {})}, 
+          ${insight.is_active}
+        )
         RETURNING *
-      `,
-            [
-              insight.device_id,
-              insight.insight_type,
-              insight.severity,
-              insight.title,
-              insight.description,
-              insight.recommendation,
-              insight.confidence,
-              JSON.stringify(insight.metadata),
-              insight.is_active
-            ]
-          );
-          return result.rows[0];
+      `);
+          let rows = [];
+          if (Array.isArray(results)) {
+            rows = results;
+          } else if (results && typeof results === "object" && Array.isArray(results.rows)) {
+            rows = results.rows;
+          } else if (results && typeof results === "object" && results.rows === void 0) {
+            rows = [results];
+          }
+          if (rows.length === 0) {
+            throw new Error("No result returned from database insert");
+          }
+          const result = rows[0];
+          return {
+            ...result,
+            metadata: typeof result.metadata === "string" ? JSON.parse(result.metadata) : result.metadata || {}
+          };
         } catch (error) {
           console.error("Error storing AI insight:", error);
           throw error;
@@ -15589,44 +16301,69 @@ var init_ai_insights_storage = __esm({
       }
       async getInsightsForDevice(deviceId, limit = 50) {
         try {
-          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-          const result = await pool3.query(
-            `
+          const { db: db5, sql: sql12 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const results = await db5.execute(sql12`
         SELECT * FROM ai_insights 
-        WHERE device_id = $1 AND is_active = true
+        WHERE device_id = ${deviceId} AND is_active = true
         ORDER BY created_at DESC 
-        LIMIT $2
-      `,
-            [deviceId, limit]
-          );
-          return result.rows.map((row) => ({
-            ...row,
-            metadata: typeof row.metadata === "string" ? JSON.parse(row.metadata) : row.metadata
-          }));
+        LIMIT ${limit}
+      `);
+          let rows = [];
+          if (Array.isArray(results)) {
+            rows = results;
+          } else if (results && typeof results === "object" && Array.isArray(results.rows)) {
+            rows = results.rows;
+          } else if (results && typeof results === "object") {
+            rows = [results];
+          }
+          return rows.map((row) => {
+            if (!row) return null;
+            let metadata = {};
+            try {
+              metadata = typeof row.metadata === "string" ? JSON.parse(row.metadata) : row.metadata || {};
+            } catch (e) {
+              console.warn("Failed to parse metadata:", e);
+              metadata = {};
+            }
+            return {
+              ...row,
+              metadata
+            };
+          }).filter(Boolean);
         } catch (error) {
           console.error("Error fetching AI insights:", error);
           return [];
         }
       }
+      // Alias method for backwards compatibility
+      async getDeviceInsights(deviceId, limit = 50) {
+        return this.getInsightsForDevice(deviceId, limit);
+      }
       async createAIInsightsTable() {
         try {
-          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-          await pool3.query(`
+          const { db: db5, sql: sql12 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          await db5.execute(sql12`
         CREATE TABLE IF NOT EXISTS ai_insights (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          device_id UUID REFERENCES devices(id) ON DELETE CASCADE,
+          device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
           insight_type VARCHAR(50) NOT NULL,
           severity VARCHAR(20) NOT NULL,
           title VARCHAR(255) NOT NULL,
           description TEXT NOT NULL,
           recommendation TEXT NOT NULL,
           confidence DECIMAL(3,2) NOT NULL,
-          metadata JSONB,
+          metadata JSONB DEFAULT '{}',
           created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-          is_active BOOLEAN DEFAULT true,
-          INDEX (device_id, created_at),
-          INDEX (insight_type, severity)
+          is_active BOOLEAN DEFAULT true
         )
+      `);
+          await db5.execute(sql12`
+        CREATE INDEX IF NOT EXISTS idx_ai_insights_device_created 
+        ON ai_insights(device_id, created_at)
+      `);
+          await db5.execute(sql12`
+        CREATE INDEX IF NOT EXISTS idx_ai_insights_type_severity 
+        ON ai_insights(insight_type, severity)
       `);
           console.log("AI insights table created successfully");
         } catch (error) {
@@ -15643,82 +16380,87 @@ var ai_routes_exports = {};
 __export(ai_routes_exports, {
   default: () => ai_routes_default
 });
-import { Router as Router11 } from "express";
-var router11, ai_routes_default;
+import { Router as Router12 } from "express";
+var router12, ai_routes_default;
 var init_ai_routes = __esm({
   "server/routes/ai-routes.ts"() {
     "use strict";
     init_ai_service();
     init_ai_insights_storage();
     init_auth_middleware();
-    router11 = Router11();
-    router11.get("/insights/:deviceId", async (req, res) => {
+    router12 = Router12();
+    router12.get("/insights/:deviceId", async (req, res) => {
+      const startTime = Date.now();
       try {
         const { deviceId } = req.params;
         const { refresh } = req.query;
         if (!deviceId) {
           return res.status(400).json({ success: false, error: "Device ID is required" });
         }
-        const timeout = new Promise(
-          (_, reject) => setTimeout(() => reject(new Error("Request timeout")), 5e3)
-        );
         let insights = [];
         try {
-          const insightsPromise = (async () => {
-            if (refresh === "true") {
-              const generatedInsights = await aiService.generateDeviceInsights(deviceId);
-              if (Array.isArray(generatedInsights)) {
-                setImmediate(async () => {
-                  for (const insight of generatedInsights) {
-                    try {
-                      await aiInsightsStorage.storeInsight({
-                        device_id: deviceId,
-                        insight_type: insight.type,
-                        severity: insight.severity,
-                        title: insight.title,
-                        description: insight.description,
-                        recommendation: insight.recommendation,
-                        confidence: insight.confidence,
-                        metadata: insight.metadata || {},
-                        is_active: true
-                      });
-                    } catch (storeError) {
-                      console.warn("Failed to store insight:", storeError.message);
-                    }
+          if (refresh === "true") {
+            console.log(`Generating fresh insights for device ${deviceId}`);
+            const generatedInsights = await aiService.generateDeviceInsights(deviceId);
+            if (Array.isArray(generatedInsights)) {
+              insights = generatedInsights;
+              setImmediate(async () => {
+                for (const insight of generatedInsights) {
+                  try {
+                    await aiInsightsStorage.storeInsight({
+                      device_id: deviceId,
+                      insight_type: insight.type,
+                      severity: insight.severity,
+                      title: insight.title,
+                      description: insight.description,
+                      recommendation: insight.recommendation,
+                      confidence: insight.confidence,
+                      metadata: insight.metadata || {},
+                      is_active: true
+                    });
+                  } catch (storeError) {
+                    console.warn("Failed to store insight:", storeError?.message || storeError);
                   }
-                });
-              }
-              return generatedInsights;
-            } else {
-              try {
-                const cachedInsights = await aiInsightsStorage.getInsightsForDevice(
-                  deviceId,
-                  20
-                );
-                if (cachedInsights && cachedInsights.length > 0) {
-                  return cachedInsights;
                 }
-              } catch (cacheError) {
-                console.warn("Failed to get cached insights:", cacheError.message);
-              }
-              return await aiService.generateDeviceInsights(deviceId);
+              });
             }
-          })();
-          insights = await Promise.race([insightsPromise, timeout]);
-          if (!Array.isArray(insights)) {
-            insights = [];
+          } else {
+            try {
+              const cachedInsights = await aiInsightsStorage.getInsightsForDevice(deviceId, 20);
+              if (Array.isArray(cachedInsights) && cachedInsights.length > 0) {
+                console.log(`Using ${cachedInsights.length} cached insights for device ${deviceId}`);
+                insights = cachedInsights;
+              } else {
+                console.log(`No cached insights found, generating for device ${deviceId}`);
+                const generatedInsights = await aiService.generateDeviceInsights(deviceId);
+                insights = Array.isArray(generatedInsights) ? generatedInsights : [];
+              }
+            } catch (cacheError) {
+              console.warn("Failed to get cached insights:", cacheError?.message || cacheError);
+              try {
+                const generatedInsights = await aiService.generateDeviceInsights(deviceId);
+                insights = Array.isArray(generatedInsights) ? generatedInsights : [];
+              } catch (generateError) {
+                console.warn("Failed to generate insights:", generateError?.message || generateError);
+                insights = [];
+              }
+            }
           }
-          res.json({ success: true, insights });
+          const duration = Date.now() - startTime;
+          console.log(`AI insights request completed in ${duration}ms for device ${deviceId}`);
+          res.json({ success: true, insights: insights || [] });
         } catch (serviceError) {
-          console.warn("AI service timeout or error:", serviceError.message);
+          const duration = Date.now() - startTime;
+          console.warn(`AI service error after ${duration}ms for device ${deviceId}:`, serviceError?.message || serviceError);
           res.json({ success: true, insights: [] });
         }
       } catch (error) {
-        console.error("Error in AI insights API:", error);
+        const duration = Date.now() - startTime;
+        console.error(`Critical error in AI insights API after ${duration}ms:`, error?.message || error);
         res.status(500).json({ success: false, error: "Internal server error" });
       }
     });
-    router11.get("/recommendations/:deviceId", async (req, res) => {
+    router12.get("/recommendations/:deviceId", async (req, res) => {
       try {
         const { deviceId } = req.params;
         const recommendations = await aiService.getDeviceRecommendations(deviceId);
@@ -15728,7 +16470,7 @@ var init_ai_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    router11.post("/insights/batch", async (req, res) => {
+    router12.post("/insights/batch", async (req, res) => {
       try {
         const { deviceIds } = req.body;
         const results = [];
@@ -15746,36 +16488,7 @@ var init_ai_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    router11.get("/insights/device/:deviceId", authenticateToken, async (req, res) => {
-      try {
-        const { deviceId } = req.params;
-        console.log("Fetching AI insights for device:", deviceId);
-        if (typeof aiInsightsStorage.getDeviceInsights !== "function") {
-          console.warn("getDeviceInsights method not found, returning empty insights");
-          return res.json({
-            success: true,
-            data: [],
-            total: 0,
-            message: "AI insights feature is being initialized"
-          });
-        }
-        const insights = await aiInsightsStorage.getDeviceInsights(deviceId);
-        res.json({
-          success: true,
-          data: insights,
-          total: insights.length
-        });
-      } catch (error) {
-        console.error("Error fetching device AI insights:", error);
-        console.error("Error stack:", error.stack);
-        res.status(500).json({
-          success: false,
-          error: "Failed to fetch AI insights",
-          message: error.message
-        });
-      }
-    });
-    router11.get("/api/ai-insights", authenticateToken, async (req, res) => {
+    router12.get("/dashboard-insights", authenticateToken, async (req, res) => {
       try {
         const insights = {
           systemHealth: "good",
@@ -15801,9 +16514,7 @@ var init_ai_routes = __esm({
         });
       }
     });
-    router11.get("/api/ai/insights", authenticateToken, async (req, res) => {
-    });
-    router11.get("/article-suggestions/:ticketId", async (req, res) => {
+    router12.get("/article-suggestions/:ticketId", async (req, res) => {
       try {
         const ticketId = req.params.ticketId;
         const ticketStorage2 = await Promise.resolve().then(() => (init_ticket_storage(), ticket_storage_exports));
@@ -15852,7 +16563,7 @@ var init_ai_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    ai_routes_default = router11;
+    ai_routes_default = router12;
   }
 });
 
@@ -15861,13 +16572,13 @@ var audit_routes_exports = {};
 __export(audit_routes_exports, {
   default: () => audit_routes_default
 });
-import { Router as Router12 } from "express";
-var router12, audit_routes_default;
+import { Router as Router13 } from "express";
+var router13, audit_routes_default;
 var init_audit_routes = __esm({
   "server/routes/audit-routes.ts"() {
     "use strict";
-    router12 = Router12();
-    router12.get("/logs", async (req, res) => {
+    router13 = Router13();
+    router13.get("/logs", async (req, res) => {
       try {
         const { user, action, resource, startDate, endDate } = req.query;
         const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
@@ -15915,7 +16626,7 @@ var init_audit_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router12.post("/logs", async (req, res) => {
+    router13.post("/logs", async (req, res) => {
       try {
         const { user_id, action, resource_type, resource_id, details, ip_address, user_agent } = req.body;
         const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
@@ -15930,7 +16641,7 @@ var init_audit_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    audit_routes_default = router12;
+    audit_routes_default = router13;
   }
 });
 
@@ -15939,15 +16650,15 @@ var security_routes_exports = {};
 __export(security_routes_exports, {
   default: () => security_routes_default
 });
-import { Router as Router13 } from "express";
-var router13, security_routes_default;
+import { Router as Router14 } from "express";
+var router14, security_routes_default;
 var init_security_routes = __esm({
   "server/routes/security-routes.ts"() {
     "use strict";
     init_auth_middleware();
     init_storage();
-    router13 = Router13();
-    router13.get("/alerts", authenticateToken, async (req, res) => {
+    router14 = Router14();
+    router14.get("/alerts", authenticateToken, async (req, res) => {
       try {
         const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
         const securityAlerts = await db5.query(`
@@ -15968,7 +16679,7 @@ var init_security_routes = __esm({
         res.json([]);
       }
     });
-    router13.get("/vulnerabilities", authenticateToken, async (req, res) => {
+    router14.get("/vulnerabilities", authenticateToken, async (req, res) => {
       try {
         const { device_id } = req.query;
         if (!device_id) {
@@ -16013,7 +16724,7 @@ var init_security_routes = __esm({
         res.json([]);
       }
     });
-    router13.get("/compliance", authenticateToken, async (req, res) => {
+    router14.get("/compliance", authenticateToken, async (req, res) => {
       try {
         const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
         const compliance = await db5.query(`
@@ -16040,7 +16751,7 @@ var init_security_routes = __esm({
         });
       }
     });
-    router13.get("/overview", authenticateToken, async (req, res) => {
+    router14.get("/overview", authenticateToken, async (req, res) => {
       try {
         console.log("Fetching security overview...");
         const mockOverview = {
@@ -16068,7 +16779,7 @@ var init_security_routes = __esm({
         });
       }
     });
-    security_routes_default = router13;
+    security_routes_default = router14;
   }
 });
 
@@ -16077,14 +16788,14 @@ var patch_routes_exports = {};
 __export(patch_routes_exports, {
   default: () => patch_routes_default
 });
-import { Router as Router14 } from "express";
-var router14, patch_routes_default;
+import { Router as Router15 } from "express";
+var router15, patch_routes_default;
 var init_patch_routes = __esm({
   "server/routes/patch-routes.ts"() {
     "use strict";
     init_patch_compliance_service();
-    router14 = Router14();
-    router14.get("/patch-compliance/dashboard", async (req, res) => {
+    router15 = Router15();
+    router15.get("/patch-compliance/dashboard", async (req, res) => {
       try {
         console.log("\u{1F4CA} Fetching patch compliance dashboard data...");
         console.log("Request timestamp:", (/* @__PURE__ */ new Date()).toISOString());
@@ -16203,7 +16914,7 @@ var init_patch_routes = __esm({
         }
       }
     });
-    router14.get("/patch-compliance/report/:deviceId?", async (req, res) => {
+    router15.get("/patch-compliance/report/:deviceId?", async (req, res) => {
       try {
         const { deviceId } = req.params;
         const reports = await patchComplianceService.getDashboardData();
@@ -16213,7 +16924,7 @@ var init_patch_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    router14.post("/patch-compliance/scan/:deviceId", async (req, res) => {
+    router15.post("/patch-compliance/scan/:deviceId", async (req, res) => {
       try {
         const { deviceId } = req.params;
         const result = await patchComplianceService.processPatchData(
@@ -16226,7 +16937,7 @@ var init_patch_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    router14.post("/patch-compliance/deploy", async (req, res) => {
+    router15.post("/patch-compliance/deploy", async (req, res) => {
       try {
         const deployment = req.body;
         const deploymentId = await patchComplianceService.createPatchDeployment(deployment);
@@ -16236,7 +16947,7 @@ var init_patch_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    router14.get("/patch-compliance/pending-applications", async (req, res) => {
+    router15.get("/patch-compliance/pending-applications", async (req, res) => {
       try {
         const pendingPatches = await patchComplianceService.getPendingApplicationPatches();
         res.json({ success: true, patches: pendingPatches });
@@ -16245,7 +16956,7 @@ var init_patch_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    patch_routes_default = router14;
+    patch_routes_default = router15;
   }
 });
 
@@ -16665,8 +17376,8 @@ function registerTicketRoutes(app2) {
 init_storage();
 import express from "express";
 function registerDeviceRoutes(app2, authenticateToken4) {
-  const router15 = express.Router();
-  router15.get("/api/devices/export/csv", async (req, res) => {
+  const router16 = express.Router();
+  router16.get("/api/devices/export/csv", async (req, res) => {
     try {
       const filters = {
         status: req.query.status,
@@ -16723,7 +17434,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       res.status(500).json({ error: "Failed to export devices" });
     }
   });
-  router15.get("/api/devices", authenticateToken4, async (req, res) => {
+  router16.get("/api/devices", authenticateToken4, async (req, res) => {
     try {
       console.log("Fetching devices - checking for agent activity...");
       let devices2 = [];
@@ -16844,7 +17555,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
-  router15.get("/api/devices/:id", authenticateToken4, async (req, res) => {
+  router16.get("/api/devices/:id", authenticateToken4, async (req, res) => {
     try {
       let device = await storage.getDevice(req.params.id);
       if (!device) {
@@ -16958,7 +17669,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
-  router15.get("/api/devices/:id/reports", async (req, res) => {
+  router16.get("/api/devices/:id/reports", async (req, res) => {
     try {
       const reports = await storage.getDeviceReports(req.params.id);
       console.log(`Device reports for device id ${req.params.id}:`, reports);
@@ -16968,7 +17679,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
-  router15.get("/api/devices/:id/usb-devices", async (req, res) => {
+  router16.get("/api/devices/:id/usb-devices", async (req, res) => {
     try {
       console.log(`Fetching USB devices for device: ${req.params.id}`);
       const usbDevices = await storage.getUSBDevicesForDevice(req.params.id);
@@ -16979,7 +17690,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
-  router15.get(
+  router16.get(
     "/api/devices/:id/performance-insights",
     authenticateToken4,
     async (req, res) => {
@@ -17004,7 +17715,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       }
     }
   );
-  router15.get(
+  router16.get(
     "/api/devices/:id/ai-insights",
     authenticateToken4,
     async (req, res) => {
@@ -17023,7 +17734,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       }
     }
   );
-  router15.get(
+  router16.get(
     "/api/devices/:id/ai-recommendations",
     authenticateToken4,
     async (req, res) => {
@@ -17042,7 +17753,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       }
     }
   );
-  router15.get("/api/debug/devices", authenticateToken4, async (req, res) => {
+  router16.get("/api/debug/devices", authenticateToken4, async (req, res) => {
     try {
       const devices2 = await storage.getDevices();
       const now = /* @__PURE__ */ new Date();
@@ -17079,7 +17790,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
-  router15.get("/api/dashboard/summary", authenticateToken4, async (req, res) => {
+  router16.get("/api/dashboard/summary", authenticateToken4, async (req, res) => {
     try {
       console.log("Fetching dashboard summary...");
       let devices2 = [];
@@ -17127,7 +17838,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       });
     }
   });
-  app2.use("/", router15);
+  app2.use("/", router16);
 }
 
 // server/routes/agent-routes.ts
@@ -18992,6 +19703,265 @@ var securityService = new SecurityService();
 
 // server/routes.ts
 init_auth_middleware();
+
+// server/routes/threshold-routes.ts
+init_auth_middleware();
+import { Router as Router2 } from "express";
+
+// shared/alert-thresholds.ts
+var ALERT_THRESHOLDS = {
+  CRITICAL: {
+    cpu_usage: 95,
+    cpu: 95,
+    memory_usage: 95,
+    memory: 95,
+    disk_usage: 98,
+    disk: 98,
+    response_time: 5e3,
+    error_rate: 0.1,
+    temperature: 85,
+    // CPU temperature in Celsius
+    load_average: 10,
+    // System load average
+    uptime_hours: 1
+    // Minimum uptime in hours for stability
+  },
+  HIGH: {
+    cpu_usage: 85,
+    cpu: 85,
+    memory_usage: 90,
+    memory: 90,
+    disk_usage: 95,
+    disk: 95,
+    response_time: 4e3,
+    error_rate: 0.08,
+    temperature: 80,
+    load_average: 8,
+    uptime_hours: 12
+  },
+  WARNING: {
+    cpu_usage: 80,
+    cpu: 80,
+    memory_usage: 85,
+    memory: 85,
+    disk_usage: 90,
+    disk: 90,
+    response_time: 3e3,
+    error_rate: 0.05,
+    temperature: 75,
+    load_average: 6,
+    uptime_hours: 24
+  },
+  MEDIUM: {
+    cpu_usage: 75,
+    cpu: 75,
+    memory_usage: 80,
+    memory: 80,
+    disk_usage: 85,
+    disk: 85,
+    response_time: 2500,
+    error_rate: 0.03,
+    temperature: 70,
+    load_average: 4,
+    uptime_hours: 48
+  },
+  INFO: {
+    cpu_usage: 70,
+    cpu: 70,
+    memory_usage: 75,
+    memory: 75,
+    disk_usage: 80,
+    disk: 80,
+    response_time: 2e3,
+    error_rate: 0.02,
+    temperature: 65,
+    load_average: 2,
+    uptime_hours: 72
+  },
+  LOW: {
+    cpu_usage: 60,
+    cpu: 60,
+    memory_usage: 65,
+    memory: 65,
+    disk_usage: 75,
+    disk: 75,
+    response_time: 1500,
+    error_rate: 0.01,
+    temperature: 60,
+    load_average: 1,
+    uptime_hours: 168
+    // 1 week
+  }
+};
+var AI_THRESHOLDS = {
+  TREND_ANALYSIS: {
+    cpu_trend_daily: 2,
+    // % increase per day
+    memory_trend_daily: 1.5,
+    disk_trend_daily: 0.5,
+    volatility_threshold: 15
+    // Standard deviation %
+  },
+  PREDICTION: {
+    confidence_minimum: 0.7,
+    forecast_days: 30,
+    seasonality_strength: 0.3
+  },
+  PERFORMANCE: {
+    high_cpu_process_threshold: 20,
+    // % CPU per process
+    high_memory_process_threshold: 10,
+    // % Memory per process
+    process_count_threshold: 100
+  },
+  SECURITY: {
+    failed_login_threshold: 5,
+    suspicious_process_cpu: 50,
+    firewall_required: true,
+    antivirus_required: true
+  }
+};
+
+// server/utils/threshold-manager.ts
+var ThresholdManager = class {
+  static getSeverityLevel(metric, value) {
+    const metricKey = metric.toLowerCase().replace("_usage", "");
+    if (value >= (ALERT_THRESHOLDS.CRITICAL[metricKey] || Infinity)) {
+      return "critical";
+    }
+    if (value >= (ALERT_THRESHOLDS.HIGH[metricKey] || Infinity)) {
+      return "high";
+    }
+    if (value >= (ALERT_THRESHOLDS.WARNING[metricKey] || Infinity)) {
+      return "medium";
+    }
+    if (value >= (ALERT_THRESHOLDS.MEDIUM[metricKey] || Infinity)) {
+      return "low";
+    }
+    return "info";
+  }
+  static getThresholdForSeverity(metric, severity) {
+    const metricKey = metric.toLowerCase().replace("_usage", "");
+    const severityKey = severity.toUpperCase();
+    return ALERT_THRESHOLDS[severityKey]?.[metricKey] || 0;
+  }
+  static getAIThreshold(category, threshold) {
+    return AI_THRESHOLDS[category.toUpperCase()]?.[threshold] || 0;
+  }
+  static isThresholdBreached(metric, value, minSeverity = "INFO") {
+    const currentSeverity = this.getSeverityLevel(metric, value);
+    const severityLevels = ["info", "low", "medium", "high", "critical"];
+    const currentIndex = severityLevels.indexOf(currentSeverity.toLowerCase());
+    const minIndex = severityLevels.indexOf(minSeverity.toLowerCase());
+    return currentIndex >= minIndex;
+  }
+  static getAllThresholds() {
+    return {
+      alert_thresholds: ALERT_THRESHOLDS,
+      ai_thresholds: AI_THRESHOLDS
+    };
+  }
+  static validateThresholds() {
+    const errors = [];
+    const metrics = ["cpu_usage", "memory_usage", "disk_usage"];
+    const severities = ["INFO", "LOW", "MEDIUM", "WARNING", "HIGH", "CRITICAL"];
+    for (const metric of metrics) {
+      let previousValue = 0;
+      for (const severity of severities) {
+        const value = ALERT_THRESHOLDS[severity]?.[metric];
+        if (value && value <= previousValue) {
+          errors.push(`${metric} threshold for ${severity} (${value}) should be greater than ${severity} (${previousValue})`);
+        }
+        previousValue = value || previousValue;
+      }
+    }
+    return {
+      valid: errors.length === 0,
+      errors
+    };
+  }
+};
+var threshold_manager_default = ThresholdManager;
+
+// server/routes/threshold-routes.ts
+var router2 = Router2();
+router2.get("/thresholds", authenticateToken, async (req, res) => {
+  try {
+    const thresholds = threshold_manager_default.getAllThresholds();
+    const validation = threshold_manager_default.validateThresholds();
+    res.json({
+      success: true,
+      data: thresholds,
+      validation
+    });
+  } catch (error) {
+    console.error("Error fetching thresholds:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch thresholds"
+    });
+  }
+});
+router2.post("/thresholds/check", authenticateToken, async (req, res) => {
+  try {
+    const { metric, value, minSeverity = "INFO" } = req.body;
+    if (!metric || value === void 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Metric and value are required"
+      });
+    }
+    const severity = threshold_manager_default.getSeverityLevel(metric, value);
+    const isBreached = threshold_manager_default.isThresholdBreached(metric, value, minSeverity);
+    const threshold = threshold_manager_default.getThresholdForSeverity(metric, severity);
+    res.json({
+      success: true,
+      data: {
+        metric,
+        value,
+        severity,
+        threshold,
+        isBreached,
+        minSeverity
+      }
+    });
+  } catch (error) {
+    console.error("Error checking threshold:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to check threshold"
+    });
+  }
+});
+router2.get("/thresholds/:metric", authenticateToken, async (req, res) => {
+  try {
+    const { metric } = req.params;
+    const thresholds = threshold_manager_default.getAllThresholds();
+    const metricThresholds = {};
+    for (const [severity, values] of Object.entries(thresholds.alert_thresholds)) {
+      const metricKey = metric.toLowerCase().replace("_usage", "");
+      if (values[metricKey] !== void 0) {
+        metricThresholds[severity] = values[metricKey];
+      }
+    }
+    res.json({
+      success: true,
+      data: {
+        metric,
+        thresholds: metricThresholds
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching metric thresholds:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch metric thresholds"
+    });
+  }
+});
+var threshold_routes_default = router2;
+
+// server/routes.ts
 var JWT_SECRET6 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 async function registerRoutes(app2) {
   const server = createServer(app2);
@@ -19400,11 +20370,28 @@ async function registerRoutes(app2) {
       app2.use("/api/ai", authenticateToken, aiRoutes.default);
       app2.get("/api/ai-insights", authenticateToken, async (req, res) => {
         try {
+          const deviceDetails = {
+            cpu: {
+              usage: 75,
+              threshold: 80,
+              status: "normal"
+            },
+            memory: {
+              usage: 65,
+              threshold: 70,
+              status: "normal"
+            },
+            disk: {
+              usage: 85,
+              threshold: 90,
+              status: "warning"
+            }
+          };
           const insights = {
             systemHealth: "good",
             recommendations: [
               "Consider updating 3 devices with pending security patches",
-              "Monitor disk usage on SRV-DATABASE (85% full)",
+              "Monitor disk usage on SRV-DATABASE (85% full) - View Details",
               "Review failed login attempts from IP 192.168.1.100"
             ],
             predictiveAlerts: [],
@@ -19413,7 +20400,9 @@ async function registerRoutes(app2) {
               memory: "increasing",
               disk: "stable"
             },
-            lastUpdated: (/* @__PURE__ */ new Date()).toISOString()
+            lastUpdated: (/* @__PURE__ */ new Date()).toISOString(),
+            deviceDetails
+            // Added for "View Details"
           };
           res.json(insights);
         } catch (error) {
@@ -19479,6 +20468,14 @@ async function registerRoutes(app2) {
     }
   } catch (error) {
     console.warn("Patch routes not available:", error.message);
+  }
+  try {
+    if (threshold_routes_default.default) {
+      app2.use("/api/thresholds", authenticateToken, threshold_routes_default.default);
+      console.log("\u2705 Threshold routes registered");
+    }
+  } catch (error) {
+    console.warn("Threshold routes not available:", error.message);
   }
   return server;
 }
@@ -20132,7 +21129,7 @@ app.use((req, res, next) => {
     const server = await registerRoutes(app);
     const { registerSLARoutes: registerSLARoutes2 } = await Promise.resolve().then(() => (init_sla_routes(), sla_routes_exports));
     registerSLARoutes2(app);
-    app.use("/api/users", router7);
+    app.use("/api/users", router8);
     registerVNCRoutes(app, authenticateToken);
     const { default: analyticsRoutes } = await Promise.resolve().then(() => (init_analytics_routes(), analytics_routes_exports));
     app.use("/api/analytics", analyticsRoutes);
@@ -20141,6 +21138,13 @@ app.use((req, res, next) => {
     const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
     const { reportsStorage: reportsStorage2 } = await Promise.resolve().then(() => (init_reports_storage(), reports_storage_exports));
     await reportsStorage2.createReportsTable();
+    try {
+      const { aiInsightsStorage: aiInsightsStorage2 } = await Promise.resolve().then(() => (init_ai_insights_storage(), ai_insights_storage_exports));
+      await aiInsightsStorage2.createAIInsightsTable();
+      console.log("\u2705 AI insights table initialized");
+    } catch (error) {
+      console.warn("\u26A0\uFE0F Failed to initialize AI insights table:", error.message);
+    }
     app.get("/api/knowledge-base", async (req, res) => {
       try {
         const page = parseInt(req.query.page) || 1;
@@ -20252,7 +21256,7 @@ app.use((req, res, next) => {
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    app.use("/api/knowledge", router8);
+    app.use("/api/knowledge", router9);
     app.get("/api/health", async (req, res) => {
       try {
         await db.execute(sql`SELECT 1`);
