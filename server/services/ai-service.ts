@@ -308,11 +308,12 @@ class AIService {
     reports: any[], 
     insights: AIInsight[]
   ): Promise<AIInsight[]> {
-    const newInsights: AIInsight[] = [];
+    // Ensure newInsights is always initialized as an array
+    let newInsights: AIInsight[] = [];
     
     try {
-      if (reports.length < 5) {
-        console.log(`Insufficient reports for resource prediction: ${reports.length} (need at least 5)`);
+      if (!reports || !Array.isArray(reports) || reports.length < 5) {
+        console.log(`Insufficient reports for resource prediction: ${reports?.length || 0} (need at least 5)`);
         return newInsights;
       }
 
@@ -393,8 +394,8 @@ class AIService {
       // Hardware failure prediction based on multiple metrics
       try {
         const hardwareFailures = await this.predictHardwareFailures(deviceId, reports, []);
-        if (Array.isArray(hardwareFailures) && hardwareFailures.length > 0) {
-          newInsights.push(...hardwareFailures);
+        if (Array.isArray(hardwareFailures)) {
+          newInsights = newInsights.concat(hardwareFailures);
         }
       } catch (error) {
         console.warn('Hardware failure prediction failed:', error?.message || error);
@@ -408,56 +409,73 @@ class AIService {
   }
 
   private async predictHardwareFailures(deviceId: string, reports: any[], insights: AIInsight[]): Promise<AIInsight[]> {
-    const newInsights: AIInsight[] = [];
-    const timestamps = reports.map(r => new Date(r.timestamp || r.created_at));
+    // Ensure proper array initialization
+    let newInsights: AIInsight[] = [];
+    
+    try {
+      if (!reports || !Array.isArray(reports) || reports.length === 0) {
+        return newInsights;
+      }
 
-    // Analyze multiple metrics for failure prediction
-    const metrics = ['cpu_usage', 'memory_usage', 'disk_usage', 'cpu_temperature'];
-    let riskScore = 0;
-    const riskFactors = [];
+      const timestamps = reports.map(r => new Date(r.timestamp || r.created_at));
+
+      // Analyze multiple metrics for failure prediction
+      const metrics = ['cpu_usage', 'memory_usage', 'disk_usage', 'cpu_temperature'];
+      let riskScore = 0;
+      const riskFactors: string[] = [];
 
     for (const metric of metrics) {
-      const values = reports.map(r => parseFloat(r[metric] || "0")).filter(v => !isNaN(v) && v > 0);
-      if (values.length < 3) continue;
+        try {
+          const values = reports.map(r => parseFloat(r[metric] || "0")).filter(v => !isNaN(v) && v > 0);
+          if (values.length < 3) continue;
 
-      const analysis = this.analyzeTimeSeriesPatterns(values, timestamps);
+          const analysis = this.analyzeTimeSeriesPatterns(values, timestamps);
+          if (!analysis) continue;
 
       // High volatility in critical metrics indicates potential hardware issues
-      if (analysis.volatility > 25) {
-        riskScore += analysis.volatility / 25;
-        riskFactors.push(`${metric} volatility: ${analysis.volatility.toFixed(1)}%`);
+          if (analysis.volatility > 25) {
+            riskScore += analysis.volatility / 25;
+            riskFactors.push(`${metric} volatility: ${analysis.volatility.toFixed(1)}%`);
+          }
+
+          // Abnormal trending patterns
+          if (metric === 'cpu_temperature' && analysis.trend > 1) {
+            riskScore += 2;
+            riskFactors.push(`Rising temperature trend: +${analysis.trend.toFixed(1)}°C/day`);
+          }
+
+          // Anomaly frequency
+          if (Array.isArray(analysis.anomalies) && analysis.anomalies.length > values.length * 0.1) {
+            riskScore += 1;
+            riskFactors.push(`${metric} anomalies: ${analysis.anomalies.length}/${values.length} readings`);
+          }
+        } catch (metricError) {
+          console.warn(`Error analyzing metric ${metric}:`, metricError?.message || metricError);
+        }
       }
 
-      // Abnormal trending patterns
-      if (metric === 'cpu_temperature' && analysis.trend > 1) {
-        riskScore += 2;
-        riskFactors.push(`Rising temperature trend: +${analysis.trend.toFixed(1)}°C/day`);
+      if (riskScore > 3) {
+        const insight: AIInsight = {
+          id: `hardware-failure-risk-${deviceId}`,
+          device_id: deviceId,
+          type: 'prediction',
+          severity: riskScore > 6 ? 'high' : 'medium',
+          title: 'Hardware Failure Risk Detected',
+          description: `Predictive analysis indicates elevated hardware failure risk. Risk score: ${riskScore.toFixed(1)}`,
+          recommendation: 'Schedule comprehensive hardware diagnostics and consider preventive replacement',
+          confidence: Math.min(0.9, riskScore / 10),
+          metadata: {
+            risk_score: riskScore,
+            risk_factors: riskFactors,
+            analysis_period_days: timestamps.length > 0 ? Math.ceil((new Date().getTime() - timestamps[timestamps.length - 1].getTime()) / (1000 * 60 * 60 * 24)) : 0
+          },
+          created_at: new Date()
+        };
+        newInsights.push(insight);
       }
 
-      // Anomaly frequency
-      if (analysis.anomalies.length > values.length * 0.1) {
-        riskScore += 1;
-        riskFactors.push(`${metric} anomalies: ${analysis.anomalies.length}/${values.length} readings`);
-      }
-    }
-
-    if (riskScore > 3) {
-      newInsights.push({
-        id: `hardware-failure-risk-${deviceId}`,
-        device_id: deviceId,
-        type: 'prediction',
-        severity: riskScore > 6 ? 'high' : 'medium',
-        title: 'Hardware Failure Risk Detected',
-        description: `Predictive analysis indicates elevated hardware failure risk. Risk score: ${riskScore.toFixed(1)}`,
-        recommendation: 'Schedule comprehensive hardware diagnostics and consider preventive replacement',
-        confidence: Math.min(0.9, riskScore / 10),
-        metadata: {
-          risk_score: riskScore,
-          risk_factors: riskFactors,
-          analysis_period_days: Math.ceil((new Date().getTime() - timestamps[timestamps.length - 1].getTime()) / (1000 * 60 * 60 * 24))
-        },
-        created_at: new Date()
-      });
+    } catch (error) {
+      console.warn('Error in hardware failure prediction:', error?.message || error);
     }
 
     return newInsights;
@@ -618,9 +636,9 @@ class AIService {
     volatility: number;
     anomalies: number[];
     forecast: number[];
-  } {
+  } | null {
     try {
-      if (!values || values.length === 0) {
+      if (!values || !Array.isArray(values) || values.length === 0 || !timestamps || !Array.isArray(timestamps)) {
         return {
           trend: 0,
           seasonality: 'insufficient_data',
@@ -643,13 +661,7 @@ class AIService {
       return { trend, seasonality, volatility, anomalies, forecast };
     } catch (error) {
       console.warn('Time series analysis failed:', error?.message || error);
-      return {
-        trend: 0,
-        seasonality: 'error',
-        volatility: 0,
-        anomalies: [],
-        forecast: []
-      };
+      return null;
     }
   }
 

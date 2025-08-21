@@ -45,7 +45,20 @@ class AIInsightsStorage {
       `);
 
       // Handle different database result formats
-      const rows = Array.isArray(results) ? results : (results.rows || []);
+      let rows: any[] = [];
+      if (Array.isArray(results)) {
+        rows = results;
+      } else if (results && typeof results === 'object' && Array.isArray(results.rows)) {
+        rows = results.rows;
+      } else if (results && typeof results === 'object' && results.rows === undefined) {
+        // Single result object
+        rows = [results];
+      }
+
+      if (rows.length === 0) {
+        throw new Error('No result returned from database insert');
+      }
+
       const result = rows[0];
       
       return {
@@ -74,15 +87,35 @@ class AIInsightsStorage {
         LIMIT ${limit}
       `);
 
-      // Handle different database result formats
-      const rows = Array.isArray(results) ? results : (results.rows || []);
+      // Handle different database result formats safely
+      let rows: any[] = [];
+      if (Array.isArray(results)) {
+        rows = results;
+      } else if (results && typeof results === 'object' && Array.isArray(results.rows)) {
+        rows = results.rows;
+      } else if (results && typeof results === 'object') {
+        // Single result object, convert to array
+        rows = [results];
+      }
       
-      return rows.map((row: any) => ({
-        ...row,
-        metadata: typeof row.metadata === "string" 
-          ? JSON.parse(row.metadata) 
-          : (row.metadata || {}),
-      }));
+      return rows.map((row: any) => {
+        if (!row) return null;
+        
+        let metadata = {};
+        try {
+          metadata = typeof row.metadata === "string" 
+            ? JSON.parse(row.metadata) 
+            : (row.metadata || {});
+        } catch (e) {
+          console.warn('Failed to parse metadata:', e);
+          metadata = {};
+        }
+
+        return {
+          ...row,
+          metadata,
+        };
+      }).filter(Boolean); // Remove any null entries
     } catch (error) {
       console.error("Error fetching AI insights:", error);
       return [];
