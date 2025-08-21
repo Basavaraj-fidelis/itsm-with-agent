@@ -265,18 +265,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      await storage.createDeviceReport({
+      const reportData = req.body;
+
+      // Create device report with raw data
+      const deviceReport = await storage.createDeviceReport({
         device_id: device.id,
-        cpu_usage: data.cpu_usage?.toString() || null,
-        memory_usage: data.memory_usage?.toString() || null,
-        disk_usage: data.disk_usage?.toString() || null,
-        network_io: data.network_io?.toString() || null,
-        raw_data: JSON.stringify(req.body),
+        cpu_usage: reportData.cpu_usage?.toString() || null,
+        memory_usage: reportData.memory_usage?.toString() || null,
+        disk_usage: reportData.disk_usage?.toString() || null,
+        network_io: reportData.network_io?.toString() || null,
+        raw_data: typeof reportData === 'object' ? JSON.stringify(reportData) : reportData,
       });
 
       // Security and performance checks
-      const reportData = req.body; // Use the actual report data
-
       // Security compliance checks
       if (reportData.usb_devices && Array.isArray(reportData.usb_devices)) {
         await securityService.checkUSBCompliance(device.id, reportData.usb_devices);
@@ -537,9 +538,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           res.json(insights);
         } catch (error) {
           console.error('Error fetching AI insights:', error);
-          res.status(500).json({ 
+          res.status(500).json({
             error: 'Failed to fetch AI insights',
-            message: error.message 
+            message: error.message
           });
         }
       });
@@ -563,11 +564,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const securityData = {
         threatLevel: 'low',
         activeThreats: 0,
-        vulnerabilities: { 
-          critical: 0, 
-          high: 2, 
-          medium: 5, 
-          low: 8 
+        vulnerabilities: {
+          critical: 0,
+          high: 2,
+          medium: 5,
+          low: 8
         },
         lastScan: new Date().toISOString(),
         complianceScore: 85,
@@ -576,7 +577,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         antivirusStatus: 'active',
         patchCompliance: 78
       };
-      
+
       res.json(securityData);
     } catch (error) {
       console.error('Security overview error:', error);

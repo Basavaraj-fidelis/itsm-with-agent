@@ -197,16 +197,20 @@ window.addEventListener('unhandledrejection', (event) => {
     return;
   }
   
-  // Only handle specific types of errors to avoid interfering with other parts
-  if (event.reason?.message?.includes('Failed to fetch') ||
-      event.reason?.message?.includes('security-overview') ||
-      event.reason?.message?.includes('analytics') ||
-      event.reason?.message?.includes('timeout') ||
-      event.reason?.message?.includes('Request timeout') ||
-      event.reason?.message?.includes('Server error')) {
+  // Handle API-related errors
+  const errorMessage = event.reason?.message || String(event.reason);
+  
+  if (errorMessage.includes('Failed to fetch') ||
+      errorMessage.includes('security-overview') ||
+      errorMessage.includes('analytics') ||
+      errorMessage.includes('timeout') ||
+      errorMessage.includes('Request timeout') ||
+      errorMessage.includes('Server error') ||
+      errorMessage.includes('NetworkError') ||
+      errorMessage.includes('ERR_NETWORK')) {
     
     if (errorCount <= 3) {
-      console.warn('Handled API error:', event.reason.message);
+      console.warn('Handled API error:', errorMessage);
     }
     event.preventDefault(); // Prevent console spam
     return;
@@ -217,8 +221,10 @@ window.addEventListener('unhandledrejection', (event) => {
     setTimeout(() => { errorCount = 0; }, 30000);
   }
   
-  // Let other errors through normally
-  console.error('Unhandled promise rejection:', event.reason);
+  // Let other errors through normally but limit spam
+  if (errorCount <= 5) {
+    console.error('Unhandled promise rejection:', event.reason);
+  }
 });
 
 const makeRequest = async (url: string, options: RequestInit = {}): Promise<Response> => {

@@ -221,14 +221,17 @@ class AIService {
     let rawData;
     try {
       if (typeof latestReport.raw_data === 'string') {
-        // Only parse if it's a valid JSON string, not "[object Object]"
-        if (latestReport.raw_data.startsWith('{') || latestReport.raw_data.startsWith('[')) {
+        // Check for improper serialization
+        if (latestReport.raw_data === '[object Object]') {
+          console.warn('Detected improper object serialization in security analysis');
+          return newInsights;
+        } else if (latestReport.raw_data.startsWith('{') || latestReport.raw_data.startsWith('[')) {
           rawData = JSON.parse(latestReport.raw_data);
         } else {
           console.warn('Invalid JSON format in security analysis:', latestReport.raw_data);
           return newInsights;
         }
-      } else if (typeof latestReport.raw_data === 'object') {
+      } else if (typeof latestReport.raw_data === 'object' && latestReport.raw_data !== null) {
         rawData = latestReport.raw_data;
       } else {
         return newInsights;

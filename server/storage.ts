@@ -2508,7 +2508,7 @@ smartphones
     try {
       const { pool } = await import('./db');
       const result = await pool.query(
-        `SELECT * FROM device_reports WHERE device_id = $1 ORDER BY timestamp DESC LIMIT $2`,
+        `SELECT * FROM device_reports WHERE device_id = $1 ORDER BY collected_at DESC LIMIT $2`,
         [deviceId, limit]
       );
       return result.rows;
@@ -2524,8 +2524,8 @@ smartphones
       const result = await pool.query(
         `SELECT * FROM device_reports 
          WHERE device_id = $1 
-         AND timestamp >= NOW() - INTERVAL '${days} days'
-         ORDER BY timestamp DESC`,
+         AND collected_at >= NOW() - INTERVAL '${days} days'
+         ORDER BY collected_at DESC`,
         [deviceId]
       );
       return result.rows;

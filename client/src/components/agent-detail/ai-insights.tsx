@@ -50,14 +50,17 @@ export function AIInsights({ agent }: AIInsightsProps) {
       try {
         if (latestReport.raw_data) {
           if (typeof latestReport.raw_data === "string") {
-            // Only parse if it's a valid JSON string, not "[object Object]"
-            if (latestReport.raw_data.startsWith('{') || latestReport.raw_data.startsWith('[')) {
+            // Check for "[object Object]" which indicates improper serialization
+            if (latestReport.raw_data === "[object Object]") {
+              console.warn('Detected improper object serialization in raw_data');
+              rawData = {};
+            } else if (latestReport.raw_data.startsWith('{') || latestReport.raw_data.startsWith('[')) {
               rawData = JSON.parse(latestReport.raw_data);
             } else {
               console.warn('Invalid JSON format in raw_data:', latestReport.raw_data);
               rawData = {};
             }
-          } else if (typeof latestReport.raw_data === "object") {
+          } else if (typeof latestReport.raw_data === "object" && latestReport.raw_data !== null) {
             rawData = latestReport.raw_data;
           }
         }
