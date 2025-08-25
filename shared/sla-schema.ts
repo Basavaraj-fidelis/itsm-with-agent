@@ -1,5 +1,5 @@
 
-import { pgTable, text, timestamp, integer, uuid, varchar, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, integer, uuid, varchar, boolean, json } from "drizzle-orm/pg-core";
 
 // SLA Policies table
 export const slaPolicies = pgTable("sla_policies", {
