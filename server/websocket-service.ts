@@ -25,9 +25,15 @@ class WebSocketService {
 
           // Handle agent connection and command responses
           if (data.type === 'agent-connect' && data.agentId) {
-            console.log(`Agent connected: ${data.agentId}`);
+            console.log(`Agent connected: ${data.agentId} with capabilities: ${data.capabilities?.join(', ')}`);
             this.agentConnections.set(data.agentId, ws);
-            // Optionally, send a confirmation or initial command to the agent
+            
+            // Send connection confirmation
+            ws.send(JSON.stringify({
+              type: 'connection-confirmed',
+              agentId: data.agentId,
+              timestamp: new Date().toISOString()
+            }));
           }
 
           if (data.type === 'command-response' && data.requestId) {
@@ -151,9 +157,18 @@ class WebSocketService {
   async sendCommandToAgent(agentId: string, command: any, timeoutMs: number = 30000): Promise<any> {
     return new Promise((resolve, reject) => {
       const connection = this.agentConnections.get(agentId);
-      if (!connection || connection.readyState !== WebSocket.OPEN) {
-        console.error(`Agent ${agentId} is not connected or connection not ready`);
+      
+      console.log(`Available agent connections: ${Array.from(this.agentConnections.keys()).join(', ')}`);
+      
+      if (!connection) {
+        console.error(`Agent ${agentId} is not found in agent connections`);
         reject(new Error(`Agent ${agentId} is not connected`));
+        return;
+      }
+      
+      if (connection.readyState !== WebSocket.OPEN) {
+        console.error(`Agent ${agentId} connection is not ready. State: ${connection.readyState}`);
+        reject(new Error(`Agent ${agentId} connection is not ready`));
         return;
       }
 

@@ -73,12 +73,26 @@ export default function NetworkScan() {
   const loadInitialData = async () => {
     try {
       const promises = [
-        loadScanSessions().catch(err => console.error('Failed to load sessions:', err)),
-        loadAvailableAgents().catch(err => console.error('Failed to load agents:', err)),
-        loadDefaultSubnets().catch(err => console.error('Failed to load subnets:', err))
+        loadScanSessions().catch(err => {
+          console.error('Failed to load sessions:', err);
+          return null;
+        }),
+        loadAvailableAgents().catch(err => {
+          console.error('Failed to load agents:', err);
+          return null;
+        }),
+        loadDefaultSubnets().catch(err => {
+          console.error('Failed to load subnets:', err);
+          return null;
+        })
       ];
 
-      await Promise.allSettled(promises);
+      const results = await Promise.allSettled(promises);
+      const failedCount = results.filter(result => result.status === 'rejected').length;
+      
+      if (failedCount > 0) {
+        console.warn(`${failedCount} out of 3 initial data loads failed`);
+      }
     } catch (error) {
       console.error('Error loading initial data:', error);
       toast({

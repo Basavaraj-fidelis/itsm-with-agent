@@ -29,12 +29,21 @@ class ITSMAgent:
     async def connect(self):
         """Connect to the ITSM server via WebSocket"""
         try:
-            capabilities_str = ','.join(self.capabilities)
-            uri = f"{self.server_url}/api/agents/agent-tunnel/{self.agent_id}?capabilities={capabilities_str}"
+            # Connect to the WebSocket service endpoint
+            ws_url = self.server_url.replace('http://', 'ws://').replace('https://', 'wss://')
+            uri = f"{ws_url}/ws"
 
             logger.info(f"Connecting to {uri}")
             self.websocket = await websockets.connect(uri)
             logger.info(f"Agent {self.agent_id} connected successfully")
+
+            # Send agent identification immediately after connection
+            await self.websocket.send(json.dumps({
+                'type': 'agent-connect',
+                'agentId': self.agent_id,
+                'capabilities': self.capabilities,
+                'timestamp': datetime.utcnow().isoformat()
+            }))
 
             # Start ping task
             asyncio.create_task(self.ping_loop())
@@ -112,20 +121,24 @@ class ITSMAgent:
 
             # Send response back to server
             await self.websocket.send(json.dumps({
-                'type': 'commandResponse',
+                'type': 'command-response',
                 'requestId': request_id,
-                'success': result.get('success', True),
-                'data': result,
-                'error': result.get('error') if not result.get('success', True) else None
+                'payload': {
+                    'success': result.get('success', True),
+                    'data': result,
+                    'error': result.get('error') if not result.get('success', True) else None
+                }
             }))
 
         except Exception as e:
             logger.error(f"Command execution error: {e}")
             await self.websocket.send(json.dumps({
-                'type': 'commandResponse',
+                'type': 'command-response',
                 'requestId': request_id,
-                'success': False,
-                'error': str(e)
+                'payload': {
+                    'success': False,
+                    'error': str(e)
+                }
             }))
 
     def perform_network_scan(self, params):
@@ -146,11 +159,25 @@ class ITSMAgent:
 
             logger.info(f"Network scan completed. Found {scan_result.get('total_devices_found', 0)} devices")
 
+            # Get local system info for the agent itself
+            try:
+                system_info = self.system_collector.collect_all()
+                local_mac = None
+                if 'network' in system_info and 'interfaces' in system_info['network']:
+                    for iface in system_info['network']['interfaces']:
+                        if iface.get('mac_address') and iface.get('ip_address') and not iface['ip_address'].startswith('127.'):
+                            local_mac = iface['mac_address']
+                            break
+            except Exception as e:
+                logger.warning(f"Could not get local system info: {e}")
+                local_mac = "Unknown"
+
             return {
                 'success': True,
                 'subnet': subnet,
                 'scan_type': scan_type,
                 'session_id': session_id,
+                'local_mac': local_mac,
                 **scan_result  # Include all scan results
             }
 
@@ -205,7 +232,7 @@ class ITSMAgent:
 
 async def main():
     # Server URL - change this to match your server
-    server_url = "ws://185cd56e-141e-46ea-a8f3-24bb7937b01f-00-2fb1xx64qyx23.pike.replit.dev"
+    server_url = "http://0.0.0.0:5000"
 
     agent = ITSMAgent(server_url)
 
