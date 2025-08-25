@@ -25,15 +25,20 @@ class WebSocketService {
 
           // Handle agent connection and command responses
           if (data.type === 'agent-connect' && data.agentId) {
-            console.log(`Agent connected: ${data.agentId} with capabilities: ${data.capabilities?.join(', ')}`);
+            console.log(`Agent registration received - ID: ${data.agentId}, Capabilities: ${data.capabilities?.join(', ')}`);
             this.agentConnections.set(data.agentId, ws);
+            console.log(`Agent ${data.agentId} registered successfully. Total connected agents: ${this.agentConnections.size}`);
             
             // Send connection confirmation
-            ws.send(JSON.stringify({
+            const confirmationMessage = {
               type: 'connection-confirmed',
               agentId: data.agentId,
-              timestamp: new Date().toISOString()
-            }));
+              timestamp: new Date().toISOString(),
+              status: 'registered'
+            };
+            
+            ws.send(JSON.stringify(confirmationMessage));
+            console.log(`Sent connection confirmation to agent ${data.agentId}`);
           }
 
           if (data.type === 'command-response' && data.requestId) {
@@ -158,16 +163,20 @@ class WebSocketService {
     return new Promise((resolve, reject) => {
       const connection = this.agentConnections.get(agentId);
       
+      console.log(`Attempting to send command to agent ${agentId}`);
       console.log(`Available agent connections: ${Array.from(this.agentConnections.keys()).join(', ')}`);
+      console.log(`Total connected agents: ${this.agentConnections.size}`);
       
       if (!connection) {
         console.error(`Agent ${agentId} is not found in agent connections`);
+        console.error(`This likely means the agent is not connected via WebSocket`);
         reject(new Error(`Agent ${agentId} is not connected`));
         return;
       }
       
       if (connection.readyState !== WebSocket.OPEN) {
         console.error(`Agent ${agentId} connection is not ready. State: ${connection.readyState}`);
+        console.error(`WebSocket states: CONNECTING=0, OPEN=1, CLOSING=2, CLOSED=3`);
         reject(new Error(`Agent ${agentId} connection is not ready`));
         return;
       }

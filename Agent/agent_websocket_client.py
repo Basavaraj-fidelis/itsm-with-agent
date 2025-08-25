@@ -33,20 +33,28 @@ class ITSMAgent:
             ws_url = self.server_url.replace('http://', 'ws://').replace('https://', 'wss://')
             uri = f"{ws_url}/ws"
 
-            logger.info(f"Connecting to {uri}")
+            logger.info(f"Attempting to connect to {uri}")
             self.websocket = await websockets.connect(uri)
-            logger.info(f"Agent {self.agent_id} connected successfully")
+            logger.info(f"WebSocket connection established for Agent {self.agent_id}")
 
             # Send agent identification immediately after connection
-            await self.websocket.send(json.dumps({
+            connect_message = {
                 'type': 'agent-connect',
                 'agentId': self.agent_id,
                 'capabilities': self.capabilities,
-                'timestamp': datetime.utcnow().isoformat()
-            }))
+                'timestamp': datetime.utcnow().isoformat(),
+                'status': 'online'
+            }
+            
+            await self.websocket.send(json.dumps(connect_message))
+            logger.info(f"Sent agent registration: {connect_message}")
+
+            # Wait a moment for connection confirmation
+            await asyncio.sleep(1)
 
             # Start ping task
-            asyncio.create_task(self.ping_loop())
+            ping_task = asyncio.create_task(self.ping_loop())
+            logger.info("Started ping loop task")
 
             # Listen for messages
             await self.listen_for_messages()
@@ -90,12 +98,16 @@ class ITSMAgent:
 
         if message_type == 'pong':
             logger.debug("Received pong")
+            
+        elif message_type == 'connection-confirmed':
+            logger.info(f"Connection confirmed by server for agent: {data.get('agentId')}")
 
         elif message_type == 'command':
+            logger.info(f"Received command: {data.get('command')} with requestId: {data.get('requestId')}")
             await self.handle_command(data)
 
         else:
-            logger.warning(f"Unknown message type: {message_type}")
+            logger.warning(f"Unknown message type: {message_type}, data: {data}")
 
     async def handle_command(self, data):
         """Handle remote commands"""
