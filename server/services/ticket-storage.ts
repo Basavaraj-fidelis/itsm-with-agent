@@ -16,6 +16,7 @@ import { userStorage } from "./user-storage";
 import { device_reports, alerts, devices } from "../../shared/schema";
 import { workflowService } from "./workflow-service";
 import { cabService } from "./cab-service";
+import { changeAdvisoryBoard, ticketApprovals, changeImpactAssessment } from "@shared/change-management-schema";
 
 interface TicketFilters {
   type?: string;

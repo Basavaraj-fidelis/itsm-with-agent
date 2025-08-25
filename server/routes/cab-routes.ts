@@ -1,7 +1,8 @@
-
 import type { Express } from "express";
 import { CABService } from "../services/cab-service";
 import { z } from "zod";
+import { changeAdvisoryBoard, ticketApprovals } from "@shared/change-management-schema";
+import { tickets } from "@shared/ticket-schema";
 
 const createCABSchema = z.object({
   name: z.string().min(1),
@@ -61,14 +62,14 @@ export function registerCABRoutes(app: Express) {
     try {
       const { ticketId } = req.params;
       const validatedData = approvalDecisionSchema.parse(req.body);
-      
+
       const result = await CABService.processApproval(
         ticketId,
         validatedData.approver_id,
         validatedData.decision,
         validatedData.comments
       );
-      
+
       res.json(result);
     } catch (error) {
       if (error instanceof z.ZodError) {

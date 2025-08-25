@@ -1,6 +1,7 @@
 
 import { db } from "../db";
-import { changeAdvisoryBoard, tickets, ticketApprovals } from "@shared/change-management-schema";
+import { changeAdvisoryBoard, ticketApprovals } from "@shared/change-management-schema";
+import { tickets } from "@shared/ticket-schema";
 import { eq, and, inArray } from "drizzle-orm";
 
 export interface CABMember {
