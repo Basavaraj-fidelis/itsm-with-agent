@@ -1,55 +1,122 @@
-import { useQuery } from '@tanstack/react-query'
-import { api } from '../lib/api'
 
-export interface Alert {
+import { useQuery } from '@tanstack/react-query'
+
+interface Alert {
   id: string
   device_id: string
-  type: string
-  severity: "critical" | "high" | "warning" | "info" | "ok"
-  title: string
+  device_hostname: string
+  category: string
+  severity: "critical" | "high" | "warning" | "info"
   message: string
-  timestamp: string
-  acknowledged: boolean
-  resolved: boolean
-  metadata?: any
+  metadata: any
+  triggered_at: string
+  resolved_at?: string
+  is_active: boolean
 }
-
-export const ALERT_SEVERITY = {
-  CRITICAL: 'critical',
-  HIGH: 'high',
-  WARNING: 'warning',
-  INFO: 'info',
-  OK: 'ok',
-} as const
 
 export function useAlerts() {
-  return useQuery({
+  return useQuery<Alert[]>({
     queryKey: ['alerts'],
-    queryFn: async (): Promise<Alert[]> => {
-      try {
-        const alerts = await api.get<Alert[]>('/alerts')
-        return Array.isArray(alerts) ? alerts : []
-      } catch (error) {
-        console.error('Error fetching alerts:', error)
-        return []
+    queryFn: async () => {
+      const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
+
+      const response = await fetch('/api/alerts', { headers });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication required');
+        }
+        throw new Error(`Failed to fetch alerts: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     },
+    retry: 2,
+    retryDelay: 1000,
     refetchInterval: 30000, // Refetch every 30 seconds
     staleTime: 10000, // Consider data stale after 10 seconds
+    onError: (error) => {
+      console.error('useAlerts error:', error);
+    }
   })
 }
 
-export function useAlert(id: string) {
-  return useQuery({
-    queryKey: ['alerts', id],
-    queryFn: async (): Promise<Alert | null> => {
-      try {
-        return await api.get<Alert>(`/alerts/${id}`)
-      } catch (error) {
-        console.error(`Error fetching alert ${id}:`, error)
-        return null
-      }
-    },
-    enabled: !!id,
-  })
+export async function resolveAlert(alertId: string): Promise<boolean> {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`/api/alerts/${alertId}/resolve`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error('Error resolving alert:', error);
+    return false;
+  }
+}
+
+export async function markAlertAsRead(alertId: string): Promise<boolean> {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`/api/alerts/${alertId}/read`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error('Error marking alert as read:', error);
+    return false;
+  }
+}
+
+export async function createTicketFromAlert(alert: Alert, description: string, priority: string): Promise<any> {
+  try {
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+    const ticketData = {
+      type: "incident",
+      title: `CRITICAL ALERT: ${alert.message}`,
+      description: description,
+      priority: priority,
+      requester_email: user.email || 'admin@company.com',
+      category: `System Alert - ${alert.category}`,
+      impact: alert.severity === "critical" ? "high" : "medium",
+      urgency: alert.severity === "critical" ? "high" : "medium"
+    };
+
+    const response = await fetch('/api/tickets', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(ticketData)
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to create ticket');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error creating ticket from alert:', error);
+    throw error;
+  }
 }
