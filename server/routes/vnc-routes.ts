@@ -1,10 +1,11 @@
 
 import type { Express } from "express";
 import VNCServer from '../vnc-setup';
+import { authenticateToken } from "../middleware/auth-middleware";
 
 let vncServerInstance: any = null;
 
-export function registerVNCRoutes(app: Express, authenticateToken: any) {
+export function registerVNCRoutes(app: Express) {
   // Start VNC server endpoint
   app.post("/api/vnc/start", authenticateToken, async (req, res) => {
     try {
