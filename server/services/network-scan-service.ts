@@ -1,6 +1,7 @@
 import { db } from "../db";
 import { devices } from "../../shared/schema";
 import { eq, and, isNotNull } from "drizzle-orm";
+import { systemConfig } from "../../shared/system-config";
 
 export interface NetworkScanResult {
   id: string;
@@ -430,12 +431,31 @@ class NetworkScanService {
   private async sendNetworkScanCommandsToAgents(sessionId: string, config: any, scanningAgents: any[]) {
     try {
       const session = this.activeScanSessions.get(sessionId);
-      if (!session) return;
+      if (!session) {
+        console.error(`Session ${sessionId} not found during agent communication`);
+        return;
+      }
 
       console.log(`Sending network scan commands to ${scanningAgents.length} agents`);
 
-      // Import WebSocket service to communicate with agents
-      const { websocketService } = await import('../websocket-service');
+      // Clean up old sessions before starting new scan
+      this.cleanupOldSessions();
+
+      let websocketService;
+      try {
+        const wsModule = await import('../websocket-service');
+        websocketService = wsModule.websocketService;
+        
+        if (!websocketService) {
+          throw new Error('WebSocket service not initialized');
+        }
+      } catch (importError) {
+        console.error('Failed to import WebSocket service:', importError);
+        session.status = 'failed';
+        session.completed_at = new Date();
+        this.activeScanSessions.set(sessionId, session);
+        return;
+      }
 
       let completedScans = 0;
       const totalScans = scanningAgents.length;
@@ -445,8 +465,15 @@ class NetworkScanService {
         try {
           console.log(`Requesting network scan from agent ${agent.hostname} (${agent.ip_address}) for subnet ${agent.subnet}`);
 
-          // Send network scan command to the specific agent
-          const networkConfig = systemConfig.getNetworkConfig();
+          // Get network config with fallback values
+          let timeoutMs = 30000; // Default 30 seconds
+          try {
+            const networkConfig = systemConfig.getNetworkConfig();
+            timeoutMs = networkConfig?.scan?.timeoutMs || 30000;
+          } catch (configError) {
+            console.warn('Using default timeout due to config error:', configError);
+          }
+
           const scanResult = await websocketService.sendCommandToAgent(agent.agent_id, {
             command: 'networkScan',
             params: {
@@ -454,20 +481,38 @@ class NetworkScanService {
               scan_type: config.scan_type || 'ping',
               session_id: sessionId
             }
-          }, networkConfig.scan.timeoutMs);
+          }, timeoutMs);
 
           if (scanResult && scanResult.success && scanResult.data) {
             console.log(`Agent ${agent.hostname} completed network scan for ${agent.subnet}`);
             
-            // Process scan results from agent
-            const agentScanResults = this.processAgentScanResults(scanResult.data, agent);
-            allScanResults.push(...agentScanResults);
+            try {
+              // Process scan results from agent
+              const agentScanResults = this.processAgentScanResults(scanResult.data, agent);
+              allScanResults.push(...agentScanResults);
+            } catch (processError) {
+              console.error(`Error processing scan results from agent ${agent.hostname}:`, processError);
+              // Add fallback result
+              allScanResults.push({
+                id: `process-error-${agent.subnet}`,
+                ip: agent.ip_address,
+                hostname: agent.hostname,
+                os: 'Unknown',
+                mac_address: 'Unknown',
+                status: 'offline',
+                last_seen: new Date(),
+                subnet: agent.subnet,
+                device_type: 'Processing Error',
+                ports_open: [],
+                response_time: 0
+              });
+            }
           } else {
-            console.error(`Agent ${agent.hostname} failed to scan subnet ${agent.subnet}:`, scanResult?.error);
+            console.error(`Agent ${agent.hostname} failed to scan subnet ${agent.subnet}:`, scanResult?.error || 'No response');
             
             // Fallback: Add basic subnet info as failed scan
             allScanResults.push({
-              id: `failed-scan-${agent.subnet}`,
+              id: `failed-scan-${agent.subnet}-${Date.now()}`,
               ip: agent.ip_address,
               hostname: agent.hostname,
               os: 'Unknown',
@@ -483,9 +528,9 @@ class NetworkScanService {
         } catch (error) {
           console.error(`Error sending scan command to agent ${agent.hostname}:`, error);
           
-          // Add error entry
+          // Add error entry with unique ID
           allScanResults.push({
-            id: `error-scan-${agent.subnet}`,
+            id: `error-scan-${agent.subnet}-${Date.now()}`,
             ip: agent.ip_address,
             hostname: agent.hostname,
             os: 'Unknown',
@@ -493,7 +538,7 @@ class NetworkScanService {
             status: 'offline',
             last_seen: new Date(),
             subnet: agent.subnet,
-            device_type: 'Agent Error',
+            device_type: 'Agent Communication Error',
             ports_open: [],
             response_time: 0
           });
@@ -588,6 +633,18 @@ class NetworkScanService {
 
   private generateSessionId(): string {
     return `scan-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  private cleanupOldSessions(): void {
+    const cutoffTime = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
+    
+    for (const [sessionId, session] of this.activeScanSessions.entries()) {
+      if (session.started_at < cutoffTime || 
+          (session.status === 'completed' && session.completed_at && session.completed_at < cutoffTime)) {
+        this.activeScanSessions.delete(sessionId);
+        console.log(`Cleaned up old scan session: ${sessionId}`);
+      }
+    }
   }
 
   async getScanSessions() {

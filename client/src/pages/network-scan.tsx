@@ -72,11 +72,13 @@ export default function NetworkScan() {
 
   const loadInitialData = async () => {
     try {
-      await Promise.all([
-        loadScanSessions(),
-        loadAvailableAgents(),
-        loadDefaultSubnets()
-      ]);
+      const promises = [
+        loadScanSessions().catch(err => console.error('Failed to load sessions:', err)),
+        loadAvailableAgents().catch(err => console.error('Failed to load agents:', err)),
+        loadDefaultSubnets().catch(err => console.error('Failed to load subnets:', err))
+      ];
+      
+      await Promise.allSettled(promises);
     } catch (error) {
       console.error('Error loading initial data:', error);
       toast({
@@ -100,11 +102,20 @@ export default function NetworkScan() {
             new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
           )[0];
           setCurrentSession(latest);
-          loadScanResults(latest.id);
+          await loadScanResults(latest.id).catch(err => {
+            console.error('Error loading results for latest session:', err);
+          });
         }
+      } else {
+        console.error('Failed to load scan sessions:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('Error loading scan sessions:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load scan sessions",
+        variant: "destructive",
+      });
     }
   };
 
@@ -138,10 +149,24 @@ export default function NetworkScan() {
       const response = await fetch(`/api/network-scan/sessions/${sessionId}/results`);
       if (response.ok) {
         const data = await response.json();
-        setScanResults(data);
+        setScanResults(Array.isArray(data) ? data : []);
+      } else {
+        console.error('Failed to load scan results:', response.status, response.statusText);
+        setScanResults([]);
+        toast({
+          title: "Warning",
+          description: "Could not load scan results for this session",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Error loading scan results:', error);
+      setScanResults([]);
+      toast({
+        title: "Error",
+        description: "Failed to load scan results",
+        variant: "destructive",
+      });
     }
   };
 
@@ -217,19 +242,37 @@ export default function NetworkScan() {
   };
 
   const pollScanProgress = async (sessionId: string) => {
+    let pollCount = 0;
+    const maxPolls = 150; // 5 minutes max (150 * 2 seconds)
+    
     const checkProgress = async () => {
       try {
+        if (pollCount >= maxPolls) {
+          console.warn('Polling timeout reached for session:', sessionId);
+          toast({
+            title: "Scan Timeout",
+            description: "Scan is taking longer than expected",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        pollCount++;
         const response = await fetch(`/api/network-scan/sessions/${sessionId}`);
         if (response.ok) {
           const session = await response.json();
           setCurrentSession(session);
           
           if (session.status === 'completed') {
-            await loadScanResults(sessionId);
-            await loadScanSessions();
+            await loadScanResults(sessionId).catch(err => {
+              console.error('Error loading results after completion:', err);
+            });
+            await loadScanSessions().catch(err => {
+              console.error('Error refreshing sessions:', err);
+            });
             toast({
               title: "Scan Completed",
-              description: `Discovered ${session.total_discovered} devices`,
+              description: `Discovered ${session.total_discovered || 0} devices`,
             });
             return;
           } else if (session.status === 'failed') {
@@ -242,14 +285,25 @@ export default function NetworkScan() {
           }
           
           // Continue polling if still running
-          setTimeout(checkProgress, 2000);
+          setTimeout(() => checkProgress().catch(err => {
+            console.error('Error in polling cycle:', err);
+          }), 2000);
+        } else {
+          console.error('Failed to poll scan progress:', response.status);
         }
       } catch (error) {
         console.error('Error polling scan progress:', error);
+        toast({
+          title: "Polling Error",
+          description: "Could not check scan progress",
+          variant: "destructive",
+        });
       }
     };
 
-    checkProgress();
+    checkProgress().catch(err => {
+      console.error('Error starting progress polling:', err);
+    });
   };
 
   const exportResults = async () => {
