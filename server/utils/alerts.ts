@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db';
 import { systemAlerts } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
-import { systemConfig } from '../system-config'; // Assuming systemConfig is in the same directory or accessible
+import { systemConfig } from '../../shared/system-config';
 
 // Define alert severities
 const AlertSeverity = {
