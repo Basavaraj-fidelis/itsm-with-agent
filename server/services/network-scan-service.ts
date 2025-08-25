@@ -441,8 +441,9 @@ class NetworkScanService {
       // Clean up old sessions before starting new scan
       this.cleanupOldSessions();
 
-      // Import WebSocket service directly
-      const { websocketService } = require('../websocket-service');
+      // Import WebSocket service dynamically
+      const websocketModule = await import('../websocket-service.js');
+      const websocketService = websocketModule.websocketService;
       
       if (!websocketService) {
         console.error('WebSocket service not available - no agents connected');
