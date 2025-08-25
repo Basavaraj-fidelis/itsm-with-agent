@@ -251,15 +251,7 @@ export function Sidebar() {
         activeColor: "bg-amber-50 border-amber-200 text-amber-700",
         description: "Analyze performance metrics",
       },
-      {
-        name: "SLA Analysis",
-        href: "/sla-analysis",
-        icon: CheckCircle,
-        roles: ["manager", "admin"],
-        iconColor: "text-purple-500",
-        activeColor: "bg-purple-50 border-purple-200 text-purple-700",
-        description: "Service level analysis",
-      },
+      
       {
         name: "Automation Center",
         href: "/automation-center",
