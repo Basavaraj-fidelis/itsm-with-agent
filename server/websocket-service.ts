@@ -166,11 +166,40 @@ class WebSocketService {
 
       this.pendingCommands.set(requestId, { resolve, reject, timeout });
 
-      const message = {
-        type: 'command',
-        requestId,
-        ...command
-      };
+      let message: any;
+      switch (command.command) {
+        case 'networkScan':
+          console.log(`Forwarding networkScan command to agent ${agentId}:`, command.params);
+          if (command.params) {
+            message = {
+              type: 'command',
+              requestId,
+              command: 'networkScan',
+              params: {
+                subnet: command.params.subnet,
+                scan_type: command.params.scan_type || 'ping',
+                session_id: command.params.session_id
+              }
+            };
+            console.log(`Sending networkScan command with params:`, message.params);
+          } else {
+             console.error(`networkScan command for agent ${agentId} requires params.`);
+             clearTimeout(timeout);
+             this.pendingCommands.delete(requestId);
+             reject(new Error('networkScan command requires params'));
+             return;
+          }
+          break;
+        // Add other command types here if needed
+        default:
+          message = {
+            type: 'command',
+            requestId,
+            ...command
+          };
+          break;
+      }
+
 
       console.log(`Sending command to agent ${agentId}:`, message);
       connection.send(JSON.stringify(message));

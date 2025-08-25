@@ -583,50 +583,19 @@ export default function NetworkScan() {
                 <Alert>
                   <AlertDescription>
                     Network scan in progress... This may take a few minutes.
-                    {scanResults.some(r => r.device_type?.includes('Error')) && 
-                      " Note: Some agents may not be responding properly."}
                   </AlertDescription>
                 </Alert>
               )}
 
-              {scanResults.some(r => r.device_type?.includes('WebSocket')) && (
-                <Alert variant="destructive">
+              {scanResults.length === 0 && isScanning && (
+                <Alert>
                   <AlertDescription>
-                    WebSocket service error detected. Please ensure agents are properly connected and try again.
+                    No devices discovered yet. This could indicate:
+                    • Network scan is still in progress
+                    • No devices are responding to the scan
+                    • Agent may not have network access to the target subnet
                   </AlertDescription>
                 </Alert>
-              )}
-
-              {currentSession && currentSession.status === 'running' && (
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="space-y-4">
-                      <div className="flex justify-between text-sm">
-                        <span>Scanning in progress...</span>
-                        <span>{currentSession.subnets_scanned.length} target(s)</span>
-                      </div>
-                      <Progress value={33} className="w-full" />
-                      <div className="text-xs text-muted-foreground">
-                        Started: {new Date(currentSession.started_at).toLocaleString()}
-                      </div>
-
-                      {currentSession.scanning_agents && currentSession.scanning_agents.length > 0 && (
-                        <div className="space-y-2">
-                          <div className="text-sm font-medium">Selected Scanning Agents:</div>
-                          {currentSession.scanning_agents.map((agent, index) => (
-                            <div key={index} className="flex items-center justify-between text-xs p-2 bg-muted rounded">
-                              <span className="font-mono">{agent.hostname}</span>
-                              <span className="text-muted-foreground">{agent.ip_address}</span>
-                              <Badge variant="outline" className="text-xs">
-                                {agent.subnet}
-                              </Badge>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
               )}
             </CardContent>
           </Card>

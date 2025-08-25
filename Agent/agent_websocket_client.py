@@ -1,4 +1,3 @@
-
 """
 WebSocket Agent Client for ITSM
 Connects to the server and handles remote commands including AD sync
@@ -26,27 +25,27 @@ class ITSMAgent:
         self.system_collector = SystemCollector()
         self.running = True
         self.capabilities = ['systemInfo', 'adSync', 'remoteCommand']
-        
+
     async def connect(self):
         """Connect to the ITSM server via WebSocket"""
         try:
             capabilities_str = ','.join(self.capabilities)
             uri = f"{self.server_url}/api/agents/agent-tunnel/{self.agent_id}?capabilities={capabilities_str}"
-            
+
             logger.info(f"Connecting to {uri}")
             self.websocket = await websockets.connect(uri)
             logger.info(f"Agent {self.agent_id} connected successfully")
-            
+
             # Start ping task
             asyncio.create_task(self.ping_loop())
-            
+
             # Listen for messages
             await self.listen_for_messages()
-            
+
         except Exception as e:
             logger.error(f"Connection error: {e}")
             await asyncio.sleep(5)  # Wait before retry
-            
+
     async def ping_loop(self):
         """Send periodic ping messages"""
         while self.running and self.websocket:
@@ -59,7 +58,7 @@ class ITSMAgent:
             except Exception as e:
                 logger.error(f"Ping error: {e}")
                 break
-                
+
     async def listen_for_messages(self):
         """Listen for incoming messages from server"""
         try:
@@ -75,28 +74,28 @@ class ITSMAgent:
             logger.info("Connection closed by server")
         except Exception as e:
             logger.error(f"Listen error: {e}")
-            
+
     async def handle_message(self, data):
         """Handle incoming messages"""
         message_type = data.get('type')
-        
+
         if message_type == 'pong':
             logger.debug("Received pong")
-            
+
         elif message_type == 'command':
             await self.handle_command(data)
-            
+
         else:
             logger.warning(f"Unknown message type: {message_type}")
-            
+
     async def handle_command(self, data):
         """Handle remote commands"""
         request_id = data.get('requestId')
         command = data.get('command')
         params = data.get('params', {})
-        
+
         logger.info(f"Executing command: {command} with params: {params}")
-        
+
         try:
             if command == 'syncAD':
                 result = self.sync_active_directory(params.get('config', {}))
@@ -110,7 +109,7 @@ class ITSMAgent:
                 result = self.perform_network_scan(params)
             else:
                 result = {'success': False, 'error': f'Unknown command: {command}'}
-                
+
             # Send response back to server
             await self.websocket.send(json.dumps({
                 'type': 'commandResponse',
@@ -119,7 +118,7 @@ class ITSMAgent:
                 'data': result,
                 'error': result.get('error') if not result.get('success', True) else None
             }))
-            
+
         except Exception as e:
             logger.error(f"Command execution error: {e}")
             await self.websocket.send(json.dumps({
@@ -128,25 +127,25 @@ class ITSMAgent:
                 'success': False,
                 'error': str(e)
             }))
-            
+
     def perform_network_scan(self, params):
         """Perform network scan on the specified subnet"""
         try:
             subnet = params.get('subnet')
             scan_type = params.get('scan_type', 'ping')
             session_id = params.get('session_id')
-            
+
             logger.info(f"Starting network scan for subnet: {subnet}, type: {scan_type}, session: {session_id}")
-            
+
             # Use the enhanced network scan method
             scan_result = self.system_collector.collect_network_scan(subnet=subnet, scan_type=scan_type)
-            
+
             if 'error' in scan_result:
                 logger.error(f"Network scan failed: {scan_result['error']}")
                 return {'success': False, 'error': scan_result['error']}
-            
+
             logger.info(f"Network scan completed. Found {scan_result.get('total_devices_found', 0)} devices")
-            
+
             return {
                 'success': True,
                 'subnet': subnet,
@@ -154,11 +153,11 @@ class ITSMAgent:
                 'session_id': session_id,
                 **scan_result  # Include all scan results
             }
-            
+
         except Exception as e:
             logger.error(f"Network scan error: {e}")
             return {'success': False, 'error': str(e)}
-            
+
     def sync_active_directory(self, config):
         """Sync with Active Directory"""
         try:
@@ -166,7 +165,7 @@ class ITSMAgent:
         except Exception as e:
             logger.error(f"AD sync error: {e}")
             return {'success': False, 'error': str(e)}
-            
+
     def test_ad_connection(self, config):
         """Test AD connection"""
         try:
@@ -174,7 +173,7 @@ class ITSMAgent:
         except Exception as e:
             logger.error(f"AD test error: {e}")
             return {'success': False, 'error': str(e)}
-            
+
     def get_ad_status(self):
         """Get AD sync status"""
         return {
@@ -183,11 +182,11 @@ class ITSMAgent:
             'capabilities': self.capabilities,
             'agent_id': self.agent_id
         }
-        
+
     async def start(self):
         """Start the agent"""
         logger.info(f"Starting ITSM Agent {self.agent_id}")
-        
+
         while self.running:
             try:
                 await self.connect()
@@ -197,7 +196,7 @@ class ITSMAgent:
             except Exception as e:
                 logger.error(f"Agent error: {e}")
                 await asyncio.sleep(10)  # Wait before reconnecting
-                
+
     def stop(self):
         """Stop the agent"""
         self.running = False
@@ -207,17 +206,17 @@ class ITSMAgent:
 async def main():
     # Server URL - change this to match your server
     server_url = "ws://185cd56e-141e-46ea-a8f3-24bb7937b01f-00-2fb1xx64qyx23.pike.replit.dev"
-    
+
     agent = ITSMAgent(server_url)
-    
+
     # Handle shutdown gracefully
     def signal_handler(signum, frame):
         logger.info("Received shutdown signal")
         agent.stop()
-        
+
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
-    
+
     await agent.start()
 
 if __name__ == "__main__":
