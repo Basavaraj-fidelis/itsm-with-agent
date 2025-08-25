@@ -2,6 +2,7 @@ import React, { useEffect, useState, lazy } from "react";
 import { Router, Route, Switch, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { DashboardErrorBoundary } from "@/components/ui/dashboard-error-boundary";
 import { ProtectedRoute, AuthProvider } from "@/components/auth/protected-route";
 
 // Import pages
