@@ -333,6 +333,16 @@ export default function App() {
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>
+            
+            {/* Root path redirect - must be before wildcard */}
+            <Route path="/" exact>
+              {isAuthenticated ? (
+                <Redirect to="/dashboard" />
+              ) : (
+                <Redirect to="/login" />
+              )}
+            </Route>
+            
             <Route path="*">
               <NotFound />
             </Route>
