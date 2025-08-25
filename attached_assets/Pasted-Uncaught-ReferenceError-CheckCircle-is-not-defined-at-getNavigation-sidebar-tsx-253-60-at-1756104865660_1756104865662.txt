@@ -1,0 +1,191 @@
+Uncaught ReferenceError: CheckCircle is not defined
+    at getNavigation (sidebar.tsx:253:60)
+    at Sidebar (sidebar.tsx:296:22)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=f3343dc1:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=f3343dc1:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=f3343dc1:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=f3343dc1:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=f3343dc1:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=f3343dc1:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=f3343dc1:19765:15)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=f3343dc1:19198:20)
+getNavigation @ sidebar.tsx:253
+Sidebar @ sidebar.tsx:296
+renderWithHooks @ chunk-RPCDYKBN.js?v=f3343dc1:11548
+mountIndeterminateComponent @ chunk-RPCDYKBN.js?v=f3343dc1:14926
+beginWork @ chunk-RPCDYKBN.js?v=f3343dc1:15914
+callCallback2 @ chunk-RPCDYKBN.js?v=f3343dc1:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=f3343dc1:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=f3343dc1:3733
+beginWork$1 @ chunk-RPCDYKBN.js?v=f3343dc1:19765
+performUnitOfWork @ chunk-RPCDYKBN.js?v=f3343dc1:19198
+workLoopSync @ chunk-RPCDYKBN.js?v=f3343dc1:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=f3343dc1:19116
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=f3343dc1:18874
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=f3343dc1:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=f3343dc1:18627
+setTimeout
+defaultScheduler @ @tanstack_react-query.js?v=f3343dc1:565
+flush @ @tanstack_react-query.js?v=f3343dc1:589
+batch @ @tanstack_react-query.js?v=f3343dc1:607
+dispatch_fn @ @tanstack_react-query.js?v=f3343dc1:1040
+setData @ @tanstack_react-query.js?v=f3343dc1:718
+onSuccess @ @tanstack_react-query.js?v=f3343dc1:940
+resolve @ @tanstack_react-query.js?v=f3343dc1:475
+Promise.then
+run @ @tanstack_react-query.js?v=f3343dc1:517
+start @ @tanstack_react-query.js?v=f3343dc1:555
+fetch @ @tanstack_react-query.js?v=f3343dc1:969
+executeFetch_fn @ @tanstack_react-query.js?v=f3343dc1:2279
+onSubscribe @ @tanstack_react-query.js?v=f3343dc1:1983
+subscribe @ @tanstack_react-query.js?v=f3343dc1:24
+(anonymous) @ @tanstack_react-query.js?v=f3343dc1:3146
+subscribeToStore @ chunk-RPCDYKBN.js?v=f3343dc1:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=f3343dc1:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=f3343dc1:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=f3343dc1:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=f3343dc1:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=f3343dc1:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=f3343dc1:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=f3343dc1:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=f3343dc1:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=f3343dc1:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=f3343dc1:19432
+commitRoot @ chunk-RPCDYKBN.js?v=f3343dc1:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=f3343dc1:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=f3343dc1:18718
+workLoop @ chunk-RPCDYKBN.js?v=f3343dc1:197
+flushWork @ chunk-RPCDYKBN.js?v=f3343dc1:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=f3343dc1:384
+sidebar.tsx:253 Uncaught ReferenceError: CheckCircle is not defined
+    at getNavigation (sidebar.tsx:253:60)
+    at Sidebar (sidebar.tsx:296:22)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=f3343dc1:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=f3343dc1:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=f3343dc1:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=f3343dc1:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=f3343dc1:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=f3343dc1:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=f3343dc1:19765:15)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=f3343dc1:19198:20)
+getNavigation @ sidebar.tsx:253
+Sidebar @ sidebar.tsx:296
+renderWithHooks @ chunk-RPCDYKBN.js?v=f3343dc1:11548
+mountIndeterminateComponent @ chunk-RPCDYKBN.js?v=f3343dc1:14926
+beginWork @ chunk-RPCDYKBN.js?v=f3343dc1:15914
+callCallback2 @ chunk-RPCDYKBN.js?v=f3343dc1:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=f3343dc1:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=f3343dc1:3733
+beginWork$1 @ chunk-RPCDYKBN.js?v=f3343dc1:19765
+performUnitOfWork @ chunk-RPCDYKBN.js?v=f3343dc1:19198
+workLoopSync @ chunk-RPCDYKBN.js?v=f3343dc1:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=f3343dc1:19116
+recoverFromConcurrentError @ chunk-RPCDYKBN.js?v=f3343dc1:18736
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=f3343dc1:18879
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=f3343dc1:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=f3343dc1:18627
+setTimeout
+defaultScheduler @ @tanstack_react-query.js?v=f3343dc1:565
+flush @ @tanstack_react-query.js?v=f3343dc1:589
+batch @ @tanstack_react-query.js?v=f3343dc1:607
+dispatch_fn @ @tanstack_react-query.js?v=f3343dc1:1040
+setData @ @tanstack_react-query.js?v=f3343dc1:718
+onSuccess @ @tanstack_react-query.js?v=f3343dc1:940
+resolve @ @tanstack_react-query.js?v=f3343dc1:475
+Promise.then
+run @ @tanstack_react-query.js?v=f3343dc1:517
+start @ @tanstack_react-query.js?v=f3343dc1:555
+fetch @ @tanstack_react-query.js?v=f3343dc1:969
+executeFetch_fn @ @tanstack_react-query.js?v=f3343dc1:2279
+onSubscribe @ @tanstack_react-query.js?v=f3343dc1:1983
+subscribe @ @tanstack_react-query.js?v=f3343dc1:24
+(anonymous) @ @tanstack_react-query.js?v=f3343dc1:3146
+subscribeToStore @ chunk-RPCDYKBN.js?v=f3343dc1:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=f3343dc1:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=f3343dc1:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=f3343dc1:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=f3343dc1:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=f3343dc1:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=f3343dc1:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=f3343dc1:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=f3343dc1:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=f3343dc1:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=f3343dc1:19432
+commitRoot @ chunk-RPCDYKBN.js?v=f3343dc1:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=f3343dc1:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=f3343dc1:18718
+workLoop @ chunk-RPCDYKBN.js?v=f3343dc1:197
+flushWork @ chunk-RPCDYKBN.js?v=f3343dc1:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=f3343dc1:384
+chunk-RPCDYKBN.js?v=f3343dc1:14032 The above error occurred in the <Sidebar> component:
+
+    at Sidebar (https://6ab4f2f5-f3c4-400a-a0e3-e26bc398f7b1-00-1bowk0mrgt7ax.pike.replit.dev/src/components/layout/sidebar.tsx:48:22)
+    at div
+    at AuthenticatedLayout (https://6ab4f2f5-f3c4-400a-a0e3-e26bc398f7b1-00-1bowk0mrgt7ax.pike.replit.dev/src/App.tsx:61:32)
+    at ProtectedRoute (https://6ab4f2f5-f3c4-400a-a0e3-e26bc398f7b1-00-1bowk0mrgt7ax.pike.replit.dev/src/components/auth/protected-route.tsx:76:3)
+    at Route (https://6ab4f2f5-f3c4-400a-a0e3-e26bc398f7b1-00-1bowk0mrgt7ax.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f3343dc1:206:16)
+    at Switch (https://6ab4f2f5-f3c4-400a-a0e3-e26bc398f7b1-00-1bowk0mrgt7ax.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f3343dc1:262:17)
+    at Router (https://6ab4f2f5-f3c4-400a-a0e3-e26bc398f7b1-00-1bowk0mrgt7ax.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f3343dc1:161:17)
+    at AuthProvider (https://6ab4f2f5-f3c4-400a-a0e3-e26bc398f7b1-00-1bowk0mrgt7ax.pike.replit.dev/src/components/auth/protected-route.tsx:36:32)
+    at QueryClientProvider (https://6ab4f2f5-f3c4-400a-a0e3-e26bc398f7b1-00-1bowk0mrgt7ax.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=f3343dc1:2933:3)
+    at App (https://6ab4f2f5-f3c4-400a-a0e3-e26bc398f7b1-00-1bowk0mrgt7ax.pike.replit.dev/src/App.tsx:93:49)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-RPCDYKBN.js?v=f3343dc1:14032
+update.callback @ chunk-RPCDYKBN.js?v=f3343dc1:14052
+callCallback @ chunk-RPCDYKBN.js?v=f3343dc1:11248
+commitUpdateQueue @ chunk-RPCDYKBN.js?v=f3343dc1:11265
+commitLayoutEffectOnFiber @ chunk-RPCDYKBN.js?v=f3343dc1:17093
+commitLayoutMountEffects_complete @ chunk-RPCDYKBN.js?v=f3343dc1:17980
+commitLayoutEffects_begin @ chunk-RPCDYKBN.js?v=f3343dc1:17969
+commitLayoutEffects @ chunk-RPCDYKBN.js?v=f3343dc1:17920
+commitRootImpl @ chunk-RPCDYKBN.js?v=f3343dc1:19353
+commitRoot @ chunk-RPCDYKBN.js?v=f3343dc1:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=f3343dc1:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=f3343dc1:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=f3343dc1:18627
+setTimeout
+defaultScheduler @ @tanstack_react-query.js?v=f3343dc1:565
+flush @ @tanstack_react-query.js?v=f3343dc1:589
+batch @ @tanstack_react-query.js?v=f3343dc1:607
+dispatch_fn @ @tanstack_react-query.js?v=f3343dc1:1040
+setData @ @tanstack_react-query.js?v=f3343dc1:718
+onSuccess @ @tanstack_react-query.js?v=f3343dc1:940
+resolve @ @tanstack_react-query.js?v=f3343dc1:475
+Promise.then
+run @ @tanstack_react-query.js?v=f3343dc1:517
+start @ @tanstack_react-query.js?v=f3343dc1:555
+fetch @ @tanstack_react-query.js?v=f3343dc1:969
+executeFetch_fn @ @tanstack_react-query.js?v=f3343dc1:2279
+onSubscribe @ @tanstack_react-query.js?v=f3343dc1:1983
+subscribe @ @tanstack_react-query.js?v=f3343dc1:24
+(anonymous) @ @tanstack_react-query.js?v=f3343dc1:3146
+subscribeToStore @ chunk-RPCDYKBN.js?v=f3343dc1:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=f3343dc1:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=f3343dc1:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=f3343dc1:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=f3343dc1:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=f3343dc1:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=f3343dc1:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=f3343dc1:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=f3343dc1:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=f3343dc1:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=f3343dc1:19432
+commitRoot @ chunk-RPCDYKBN.js?v=f3343dc1:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=f3343dc1:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=f3343dc1:18718
+workLoop @ chunk-RPCDYKBN.js?v=f3343dc1:197
+flushWork @ chunk-RPCDYKBN.js?v=f3343dc1:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=f3343dc1:384
+chunk-RPCDYKBN.js?v=f3343dc1:9129 Uncaught ReferenceError: CheckCircle is not defined
+    at getNavigation (sidebar.tsx:253:60)
+    at Sidebar (sidebar.tsx:296:22)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=f3343dc1:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=f3343dc1:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=f3343dc1:15914:22)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=f3343dc1:19753:22)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=f3343dc1:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=f3343dc1:19137:13)
+    at renderRootSync (chunk-RPCDYKBN.js?v=f3343dc1:19116:15)
+    at recoverFromConcurrentError (chunk-RPCDYKBN.js?v=f3343dc1:18736:28)
