@@ -15,11 +15,11 @@ var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
 };
-var __copyProps = (to, from, except, desc12) => {
+var __copyProps = (to, from, except, desc13) => {
   if (from && typeof from === "object" || typeof from === "function") {
     for (let key of __getOwnPropNames(from))
       if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc12 = __getOwnPropDesc(from, key)) || desc12.enumerable });
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc13 = __getOwnPropDesc(from, key)) || desc13.enumerable });
   }
   return to;
 };
@@ -38,13 +38,14 @@ __export(schema_exports, {
   installed_software: () => installed_software,
   patch_management: () => patch_management,
   reportDataSchema: () => reportDataSchema,
+  systemAlerts: () => systemAlerts,
   usb_devices: () => usb_devices,
   user_sessions: () => user_sessions
 });
-import { pgTable, text, timestamp, json as json2, numeric, uuid, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, json, numeric, uuid, boolean, varchar, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-var devices, device_reports, alerts, usb_devices, reportDataSchema, deviceReportRequestSchema, insertDeviceSchema, insertDeviceReportSchema, insertAlertSchema, installed_software, patch_management, user_sessions;
+var devices, device_reports, alerts, usb_devices, reportDataSchema, deviceReportRequestSchema, insertDeviceSchema, insertDeviceReportSchema, insertAlertSchema, installed_software, patch_management, user_sessions, systemAlerts;
 var init_schema = __esm({
   "shared/schema.ts"() {
     "use strict";
@@ -68,7 +69,7 @@ var init_schema = __esm({
       memory_usage: numeric("memory_usage"),
       disk_usage: numeric("disk_usage"),
       network_io: numeric("network_io"),
-      raw_data: json2("raw_data").notNull()
+      raw_data: json("raw_data").notNull()
     });
     alerts = pgTable("alerts", {
       id: uuid("id").primaryKey().defaultRandom(),
@@ -76,7 +77,7 @@ var init_schema = __esm({
       category: text("category").notNull(),
       severity: text("severity").notNull(),
       message: text("message").notNull(),
-      metadata: json2("metadata"),
+      metadata: json("metadata"),
       triggered_at: timestamp("triggered_at").defaultNow(),
       resolved_at: timestamp("resolved_at"),
       is_active: boolean("is_active").default(true)
@@ -97,7 +98,7 @@ var init_schema = __esm({
       first_seen: timestamp("first_seen").defaultNow(),
       last_seen: timestamp("last_seen").defaultNow(),
       is_connected: boolean("is_connected").default(true),
-      raw_data: json2("raw_data")
+      raw_data: json("raw_data")
     });
     reportDataSchema = z.object({
       hardware: z.record(z.any()).optional(),
@@ -168,6 +169,22 @@ var init_schema = __esm({
       session_end: timestamp("session_end"),
       duration_minutes: numeric("duration_minutes"),
       created_at: timestamp("created_at").defaultNow()
+    });
+    systemAlerts = pgTable("system_alerts", {
+      id: uuid("id").primaryKey().defaultRandom(),
+      device_id: varchar("device_id", { length: 255 }).notNull(),
+      category: varchar("category", { length: 100 }).notNull(),
+      severity: varchar("severity", { length: 50 }).notNull(),
+      message: text("message").notNull(),
+      metadata: jsonb("metadata").default({}),
+      triggered_at: timestamp("triggered_at").defaultNow().notNull(),
+      resolved_at: timestamp("resolved_at"),
+      is_active: boolean("is_active").default(true).notNull(),
+      is_read: boolean("is_read").default(false).notNull(),
+      read_by: varchar("read_by", { length: 255 }),
+      read_at: timestamp("read_at"),
+      created_at: timestamp("created_at").defaultNow().notNull(),
+      updated_at: timestamp("updated_at").defaultNow().notNull()
     });
   }
 });
@@ -257,7 +274,7 @@ __export(ticket_schema_exports, {
   ticketTypes: () => ticketTypes,
   tickets: () => tickets
 });
-import { pgTable as pgTable2, text as text2, timestamp as timestamp2, integer, json as json3, uuid as uuid2, varchar, boolean as boolean2 } from "drizzle-orm/pg-core";
+import { pgTable as pgTable2, text as text2, timestamp as timestamp2, integer, json as json2, uuid as uuid2, varchar as varchar2, boolean as boolean2 } from "drizzle-orm/pg-core";
 var ticketTypes, ticketPriorities, ticketStatuses, tickets, ticketComments, ticketAttachments, ticketApprovals, knowledgeBase;
 var init_ticket_schema = __esm({
   "shared/ticket-schema.ts"() {
@@ -267,39 +284,39 @@ var init_ticket_schema = __esm({
     ticketStatuses = ["new", "assigned", "in_progress", "pending", "on_hold", "resolved", "closed", "cancelled"];
     tickets = pgTable2("tickets", {
       id: uuid2("id").primaryKey().defaultRandom(),
-      ticket_number: varchar("ticket_number", { length: 20 }).unique().notNull(),
-      type: varchar("type", { length: 20 }).notNull(),
+      ticket_number: varchar2("ticket_number", { length: 20 }).unique().notNull(),
+      type: varchar2("type", { length: 20 }).notNull(),
       // request, incident, problem, change
       title: text2("title").notNull(),
       description: text2("description").notNull(),
-      priority: varchar("priority", { length: 20 }).notNull().default("medium"),
-      status: varchar("status", { length: 20 }).notNull().default("new"),
+      priority: varchar2("priority", { length: 20 }).notNull().default("medium"),
+      status: varchar2("status", { length: 20 }).notNull().default("new"),
       // Assignment
-      requester_email: varchar("requester_email", { length: 255 }).notNull(),
-      requester_phone: varchar("requester_phone", { length: 20 }),
-      requester_name: varchar("requester_name", { length: 255 }),
-      assigned_to: varchar("assigned_to", { length: 255 }),
-      assigned_group: varchar("assigned_group", { length: 100 }),
-      source: varchar("source", { length: 50 }).default("web"),
+      requester_email: varchar2("requester_email", { length: 255 }).notNull(),
+      requester_phone: varchar2("requester_phone", { length: 20 }),
+      requester_name: varchar2("requester_name", { length: 255 }),
+      assigned_to: varchar2("assigned_to", { length: 255 }),
+      assigned_group: varchar2("assigned_group", { length: 100 }),
+      source: varchar2("source", { length: 50 }).default("web"),
       // web, email, phone, portal
-      contact_method: varchar("contact_method", { length: 20 }).default("email"),
+      contact_method: varchar2("contact_method", { length: 20 }).default("email"),
       // email, phone, chat
       // Related entities
       device_id: uuid2("device_id"),
-      related_tickets: json3("related_tickets").$type().default([]),
+      related_tickets: json2("related_tickets").$type().default([]),
       // Workflow specific fields
-      impact: varchar("impact", { length: 20 }).default("medium"),
+      impact: varchar2("impact", { length: 20 }).default("medium"),
       // low, medium, high, critical
-      urgency: varchar("urgency", { length: 20 }).default("medium"),
+      urgency: varchar2("urgency", { length: 20 }).default("medium"),
       // low, medium, high, critical
-      category: varchar("category", { length: 100 }),
-      subcategory: varchar("subcategory", { length: 100 }),
+      category: varchar2("category", { length: 100 }),
+      subcategory: varchar2("subcategory", { length: 100 }),
       // Change management specific
-      change_type: varchar("change_type", { length: 50 }),
+      change_type: varchar2("change_type", { length: 50 }),
       // standard, emergency, normal
-      risk_level: varchar("risk_level", { length: 20 }),
+      risk_level: varchar2("risk_level", { length: 20 }),
       // low, medium, high
-      approval_status: varchar("approval_status", { length: 20 }),
+      approval_status: varchar2("approval_status", { length: 20 }),
       // pending, approved, rejected
       implementation_plan: text2("implementation_plan"),
       rollback_plan: text2("rollback_plan"),
@@ -310,13 +327,13 @@ var init_ticket_schema = __esm({
       workaround: text2("workaround"),
       known_error: boolean2("known_error").default(false),
       // Metadata
-      tags: json3("tags").$type().default([]),
-      custom_fields: json3("custom_fields").$type().default({}),
-      related_article_ids: json3("related_article_ids").$type().default([]),
+      tags: json2("tags").$type().default([]),
+      custom_fields: json2("custom_fields").$type().default({}),
+      related_article_ids: json2("related_article_ids").$type().default([]),
       // SLA fields
       sla_policy_id: uuid2("sla_policy_id"),
       // Reference to SLA policy
-      sla_policy: varchar("sla_policy", { length: 100 }),
+      sla_policy: varchar2("sla_policy", { length: 100 }),
       sla_response_time: integer("sla_response_time"),
       // in minutes
       sla_resolution_time: integer("sla_resolution_time"),
@@ -348,19 +365,19 @@ var init_ticket_schema = __esm({
       time_spent_minutes: integer("time_spent_minutes").default(0),
       // Time tracking for SLA
       // Business Impact
-      business_service: varchar("business_service", { length: 100 }),
+      business_service: varchar2("business_service", { length: 100 }),
       affected_users_count: integer("affected_users_count").default(1),
-      financial_impact: varchar("financial_impact", { length: 20 }),
+      financial_impact: varchar2("financial_impact", { length: 20 }),
       // low, medium, high, critical
       // Closure Information
-      closure_code: varchar("closure_code", { length: 50 }),
+      closure_code: varchar2("closure_code", { length: 50 }),
       closure_notes: text2("closure_notes"),
       customer_satisfaction: integer("customer_satisfaction"),
       // 1-5 rating
       // Additional ITSM fields
-      billing_code: varchar("billing_code", { length: 50 }),
-      external_reference: varchar("external_reference", { length: 100 }),
-      vendor_ticket_id: varchar("vendor_ticket_id", { length: 100 }),
+      billing_code: varchar2("billing_code", { length: 50 }),
+      external_reference: varchar2("external_reference", { length: 100 }),
+      vendor_ticket_id: varchar2("vendor_ticket_id", { length: 100 }),
       parent_ticket_id: uuid2("parent_ticket_id"),
       duplicate_of_ticket_id: uuid2("duplicate_of_ticket_id"),
       merged_into_ticket_id: uuid2("merged_into_ticket_id"),
@@ -374,26 +391,26 @@ var init_ticket_schema = __esm({
     ticketComments = pgTable2("ticket_comments", {
       id: uuid2("id").primaryKey().defaultRandom(),
       ticket_id: uuid2("ticket_id").notNull(),
-      author_email: varchar("author_email", { length: 255 }).notNull(),
+      author_email: varchar2("author_email", { length: 255 }).notNull(),
       comment: text2("comment").notNull(),
       is_internal: boolean2("is_internal").default(false),
-      attachments: json3("attachments").$type().default([]),
+      attachments: json2("attachments").$type().default([]),
       created_at: timestamp2("created_at").defaultNow().notNull()
     });
     ticketAttachments = pgTable2("ticket_attachments", {
       id: uuid2("id").primaryKey().defaultRandom(),
       ticket_id: uuid2("ticket_id").notNull(),
-      filename: varchar("filename", { length: 255 }).notNull(),
+      filename: varchar2("filename", { length: 255 }).notNull(),
       file_size: integer("file_size"),
-      mime_type: varchar("mime_type", { length: 100 }),
-      uploaded_by: varchar("uploaded_by", { length: 255 }).notNull(),
+      mime_type: varchar2("mime_type", { length: 100 }),
+      uploaded_by: varchar2("uploaded_by", { length: 255 }).notNull(),
       uploaded_at: timestamp2("uploaded_at").defaultNow().notNull()
     });
     ticketApprovals = pgTable2("ticket_approvals", {
       id: uuid2("id").primaryKey().defaultRandom(),
       ticket_id: uuid2("ticket_id").notNull(),
-      approver_email: varchar("approver_email", { length: 255 }).notNull(),
-      status: varchar("status", { length: 20 }).notNull(),
+      approver_email: varchar2("approver_email", { length: 255 }).notNull(),
+      status: varchar2("status", { length: 20 }).notNull(),
       // pending, approved, rejected
       comments: text2("comments"),
       approved_at: timestamp2("approved_at"),
@@ -403,10 +420,10 @@ var init_ticket_schema = __esm({
       id: uuid2("id").primaryKey().defaultRandom(),
       title: text2("title").notNull(),
       content: text2("content").notNull(),
-      category: varchar("category", { length: 100 }),
-      tags: json3("tags").$type().default([]),
-      author_email: varchar("author_email", { length: 255 }).notNull(),
-      status: varchar("status", { length: 20 }).default("draft"),
+      category: varchar2("category", { length: 100 }),
+      tags: json2("tags").$type().default([]),
+      author_email: varchar2("author_email", { length: 255 }).notNull(),
+      status: varchar2("status", { length: 20 }).default("draft"),
       // draft, published, archived
       views: integer("views").default(0),
       helpful_votes: integer("helpful_votes").default(0),
@@ -580,7 +597,10 @@ var init_storage = __esm({
             triggered_at: new Date(Date.now() - 15 * 60 * 1e3),
             // 15 minutes ago
             resolved_at: null,
-            is_active: true
+            is_active: true,
+            is_read: false,
+            read_by: null,
+            read_at: null
           },
           {
             id: this.generateId(),
@@ -593,7 +613,10 @@ var init_storage = __esm({
             triggered_at: new Date(Date.now() - 30 * 60 * 1e3),
             // 30 minutes ago
             resolved_at: null,
-            is_active: true
+            is_active: true,
+            is_read: false,
+            read_by: null,
+            read_at: null
           }
         ];
         sampleAlerts.forEach((alert) => {
@@ -781,7 +804,10 @@ var init_storage = __esm({
           metadata: alertData.metadata,
           triggered_at: /* @__PURE__ */ new Date(),
           resolved_at: null,
-          is_active: alertData.is_active
+          is_active: alertData.is_active,
+          is_read: false,
+          read_by: null,
+          read_at: null
         };
         this.alerts.set(alert.id, alert);
         return alert;
@@ -806,15 +832,24 @@ var init_storage = __esm({
         return alert || null;
       }
       async resolveAlert(alertId) {
-        const existing = this.alerts.get(alertId);
-        if (existing) {
-          const updated = {
-            ...existing,
-            is_active: false,
-            resolved_at: /* @__PURE__ */ new Date()
-          };
-          this.alerts.set(alertId, updated);
+        const alert = this.alerts.get(alertId);
+        if (alert) {
+          alert.resolved = true;
+          alert.resolved_at = /* @__PURE__ */ new Date();
+          alert.is_active = false;
         }
+      }
+      async markAlertAsRead(alertId, userId) {
+        const alert = this.alerts.get(alertId);
+        if (alert) {
+          alert.is_read = true;
+          alert.read_by = userId;
+          alert.read_at = /* @__PURE__ */ new Date();
+        }
+      }
+      async getAlertById(alertId) {
+        const alert = this.alerts.get(alertId);
+        return alert || null;
       }
       async getDashboardSummary() {
         const allDevices = Array.from(this.devices.values());
@@ -2527,7 +2562,7 @@ ipconfig /flushdns
 4. **Verify**: Enter code from app to complete setup
 
 ### Alternative Methods
-- **Text Messages: Less secure, use only if app unavailable
+- **Text Messages**: Less secure, use only if app unavailable
 - **Phone Calls**: For the next line.
 smartphones
 - **Hardware Tokens**: For high-security accounts
@@ -2868,8 +2903,8 @@ smartphones
         try {
           const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { usb_devices: usb_devices2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-          const { eq: eq15, desc: desc12 } = await import("drizzle-orm");
-          const result = await db5.select().from(usb_devices2).where(eq15(usb_devices2.device_id, deviceId)).orderBy(desc12(usb_devices2.last_seen));
+          const { eq: eq19, desc: desc13 } = await import("drizzle-orm");
+          const result = await db5.select().from(usb_devices2).where(eq19(usb_devices2.device_id, deviceId)).orderBy(desc13(usb_devices2.last_seen));
           return result;
         } catch (error) {
           console.error("Error fetching USB devices for device:", error);
@@ -2880,8 +2915,8 @@ smartphones
         try {
           const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { usb_devices: usb_devices2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-          const { eq: eq15, and: and14 } = await import("drizzle-orm");
-          await db5.update(usb_devices2).set({ is_connected: false }).where(eq15(usb_devices2.device_id, deviceId));
+          const { eq: eq19, and: and17 } = await import("drizzle-orm");
+          await db5.update(usb_devices2).set({ is_connected: false }).where(eq19(usb_devices2.device_id, deviceId));
           for (const device of usbDevices) {
             let vendor_id = device.vendor_id;
             let product_id = device.product_id;
@@ -2899,9 +2934,9 @@ smartphones
             );
             const deviceIdentifier = vendor_id && product_id ? `${vendor_id}:${product_id}:${serial_number || "no-serial"}` : device.device_id || device.serial_number || `unknown-${Date.now()}`;
             const existingDevices = await db5.select().from(usb_devices2).where(
-              and14(
-                eq15(usb_devices2.device_id, deviceId),
-                eq15(usb_devices2.device_identifier, deviceIdentifier)
+              and17(
+                eq19(usb_devices2.device_id, deviceId),
+                eq19(usb_devices2.device_identifier, deviceIdentifier)
               )
             );
             if (existingDevices.length > 0) {
@@ -2917,7 +2952,7 @@ smartphones
                 last_seen: /* @__PURE__ */ new Date(),
                 is_connected: true,
                 raw_data: device
-              }).where(eq15(usb_devices2.id, existingDevices[0].id));
+              }).where(eq19(usb_devices2.id, existingDevices[0].id));
             } else {
               await db5.insert(usb_devices2).values({
                 device_id: deviceId,
@@ -3267,7 +3302,11 @@ smartphones
       async createAlert(alert) {
         const [newAlert] = await db.insert(alerts).values({
           ...alert,
-          triggered_at: /* @__PURE__ */ new Date()
+          triggered_at: /* @__PURE__ */ new Date(),
+          is_read: false,
+          // Initialize as not read
+          read_by: null,
+          read_at: null
         }).returning();
         return newAlert;
       }
@@ -3319,7 +3358,7 @@ smartphones
 });
 
 // shared/admin-schema.ts
-import { pgTable as pgTable3, text as text3, timestamp as timestamp3, json as json4, uuid as uuid3, varchar as varchar2, boolean as boolean3, integer as integer2 } from "drizzle-orm/pg-core";
+import { pgTable as pgTable3, text as text3, timestamp as timestamp3, json as json3, uuid as uuid3, varchar as varchar3, boolean as boolean3, integer as integer2 } from "drizzle-orm/pg-core";
 import { createInsertSchema as createInsertSchema2 } from "drizzle-zod";
 var groups, groupMembers, auditLog, slaPolicies, slaBreaches, insertGroupSchema, insertGroupMemberSchema, insertAuditLogSchema, insertSLAPolicySchema, insertSLABreachSchema;
 var init_admin_schema = __esm({
@@ -3327,14 +3366,14 @@ var init_admin_schema = __esm({
     "use strict";
     groups = pgTable3("groups", {
       id: uuid3("id").primaryKey().defaultRandom(),
-      name: varchar2("name", { length: 100 }).notNull(),
+      name: varchar3("name", { length: 100 }).notNull(),
       description: text3("description"),
-      type: varchar2("type", { length: 20 }).default("team"),
+      type: varchar3("type", { length: 20 }).default("team"),
       // team, department, project
       parent_group_id: uuid3("parent_group_id").references(() => groups.id),
       manager_id: uuid3("manager_id"),
       // references users.id
-      email: varchar2("email", { length: 255 }),
+      email: varchar3("email", { length: 255 }),
       is_active: boolean3("is_active").default(true),
       created_at: timestamp3("created_at").defaultNow(),
       updated_at: timestamp3("updated_at").defaultNow()
@@ -3344,45 +3383,45 @@ var init_admin_schema = __esm({
       group_id: uuid3("group_id").references(() => groups.id).notNull(),
       user_id: uuid3("user_id").notNull(),
       // references users.id
-      role: varchar2("role", { length: 20 }).default("member"),
+      role: varchar3("role", { length: 20 }).default("member"),
       // member, lead, manager
       joined_at: timestamp3("joined_at").defaultNow(),
       is_active: boolean3("is_active").default(true)
     });
     auditLog = pgTable3("audit_log", {
       id: uuid3("id").primaryKey().defaultRandom(),
-      entity_type: varchar2("entity_type", { length: 50 }).notNull(),
+      entity_type: varchar3("entity_type", { length: 50 }).notNull(),
       // ticket, user, device, etc.
       entity_id: uuid3("entity_id").notNull(),
-      action: varchar2("action", { length: 20 }).notNull(),
+      action: varchar3("action", { length: 20 }).notNull(),
       // create, update, delete, view
       user_id: uuid3("user_id"),
       // who performed the action
-      user_email: varchar2("user_email", { length: 255 }),
-      old_values: json4("old_values"),
+      user_email: varchar3("user_email", { length: 255 }),
+      old_values: json3("old_values"),
       // previous state
-      new_values: json4("new_values"),
+      new_values: json3("new_values"),
       // new state
-      changes: json4("changes"),
+      changes: json3("changes"),
       // specific field changes
-      ip_address: varchar2("ip_address", { length: 45 }),
+      ip_address: varchar3("ip_address", { length: 45 }),
       user_agent: text3("user_agent"),
       timestamp: timestamp3("timestamp").defaultNow().notNull()
     });
     slaPolicies = pgTable3("sla_policies", {
       id: uuid3("id").primaryKey().defaultRandom(),
-      name: varchar2("name", { length: 100 }).notNull(),
+      name: varchar3("name", { length: 100 }).notNull(),
       description: text3("description"),
       // Conditions
-      ticket_type: varchar2("ticket_type", { length: 20 }),
+      ticket_type: varchar3("ticket_type", { length: 20 }),
       // request, incident, problem, change
-      priority: varchar2("priority", { length: 20 }),
+      priority: varchar3("priority", { length: 20 }),
       // low, medium, high, critical
-      impact: varchar2("impact", { length: 20 }),
+      impact: varchar3("impact", { length: 20 }),
       // low, medium, high, critical
-      urgency: varchar2("urgency", { length: 20 }),
+      urgency: varchar3("urgency", { length: 20 }),
       // low, medium, high, critical
-      category: varchar2("category", { length: 100 }),
+      category: varchar3("category", { length: 100 }),
       // SLA Targets (in minutes)
       response_time: integer2("response_time").notNull(),
       // Time to first response
@@ -3390,11 +3429,11 @@ var init_admin_schema = __esm({
       // Time to resolve
       // Business hours
       business_hours_only: boolean3("business_hours_only").default(true),
-      business_start: varchar2("business_start", { length: 5 }).default("09:00"),
+      business_start: varchar3("business_start", { length: 5 }).default("09:00"),
       // HH:MM format
-      business_end: varchar2("business_end", { length: 5 }).default("17:00"),
+      business_end: varchar3("business_end", { length: 5 }).default("17:00"),
       // HH:MM format
-      business_days: varchar2("business_days", { length: 20 }).default("1,2,3,4,5"),
+      business_days: varchar3("business_days", { length: 20 }).default("1,2,3,4,5"),
       // 1=Monday, 7=Sunday
       // Status
       is_active: boolean3("is_active").default(true),
@@ -3406,7 +3445,7 @@ var init_admin_schema = __esm({
       id: uuid3("id").primaryKey().defaultRandom(),
       ticket_id: uuid3("ticket_id").notNull(),
       sla_policy_id: uuid3("sla_policy_id").references(() => slaPolicies.id).notNull(),
-      breach_type: varchar2("breach_type", { length: 20 }).notNull(),
+      breach_type: varchar3("breach_type", { length: 20 }).notNull(),
       // response, resolution
       target_time: timestamp3("target_time").notNull(),
       actual_time: timestamp3("actual_time"),
@@ -3450,7 +3489,7 @@ __export(user_schema_exports, {
   userSessions: () => userSessions,
   users: () => users
 });
-import { pgTable as pgTable4, text as text4, timestamp as timestamp4, uuid as uuid4, varchar as varchar3, boolean as boolean4, integer as integer3, json as json5 } from "drizzle-orm/pg-core";
+import { pgTable as pgTable4, text as text4, timestamp as timestamp4, uuid as uuid4, varchar as varchar4, boolean as boolean4, integer as integer3, json as json4 } from "drizzle-orm/pg-core";
 var userRoles, users, departments, userSessions, userGroups, userGroupMemberships, userActivity;
 var init_user_schema = __esm({
   "shared/user-schema.ts"() {
@@ -3458,39 +3497,39 @@ var init_user_schema = __esm({
     userRoles = ["admin", "technician", "end_user", "manager"];
     users = pgTable4("users", {
       id: uuid4("id").primaryKey().defaultRandom(),
-      email: varchar3("email", { length: 255 }).unique().notNull(),
-      username: varchar3("username", { length: 100 }).unique().notNull(),
-      first_name: varchar3("first_name", { length: 100 }),
-      last_name: varchar3("last_name", { length: 100 }),
+      email: varchar4("email", { length: 255 }).unique().notNull(),
+      username: varchar4("username", { length: 100 }).unique().notNull(),
+      first_name: varchar4("first_name", { length: 100 }),
+      last_name: varchar4("last_name", { length: 100 }),
       password_hash: text4("password_hash").notNull(),
-      role: varchar3("role", { length: 50 }).notNull().default("end_user"),
+      role: varchar4("role", { length: 50 }).notNull().default("end_user"),
       department_id: uuid4("department_id"),
       manager_id: uuid4("manager_id"),
-      phone: varchar3("phone", { length: 20 }),
-      mobile_phone: varchar3("mobile_phone", { length: 20 }),
-      employee_id: varchar3("employee_id", { length: 50 }),
-      job_title: varchar3("job_title", { length: 100 }),
-      location: varchar3("location", { length: 100 }),
-      office_location: varchar3("office_location", { length: 100 }),
-      work_hours: varchar3("work_hours", { length: 50 }),
+      phone: varchar4("phone", { length: 20 }),
+      mobile_phone: varchar4("mobile_phone", { length: 20 }),
+      employee_id: varchar4("employee_id", { length: 50 }),
+      job_title: varchar4("job_title", { length: 100 }),
+      location: varchar4("location", { length: 100 }),
+      office_location: varchar4("office_location", { length: 100 }),
+      work_hours: varchar4("work_hours", { length: 50 }),
       // e.g., "9:00-17:00"
-      timezone: varchar3("timezone", { length: 50 }),
+      timezone: varchar4("timezone", { length: 50 }),
       profile_picture: text4("profile_picture"),
-      emergency_contact_name: varchar3("emergency_contact_name", { length: 100 }),
-      emergency_contact_phone: varchar3("emergency_contact_phone", { length: 20 }),
-      cost_center: varchar3("cost_center", { length: 50 }),
-      reporting_manager_email: varchar3("reporting_manager_email", { length: 255 }),
-      permissions: json5("permissions").$type().default([]),
-      preferences: json5("preferences").$type().default({}),
+      emergency_contact_name: varchar4("emergency_contact_name", { length: 100 }),
+      emergency_contact_phone: varchar4("emergency_contact_phone", { length: 20 }),
+      cost_center: varchar4("cost_center", { length: 50 }),
+      reporting_manager_email: varchar4("reporting_manager_email", { length: 255 }),
+      permissions: json4("permissions").$type().default([]),
+      preferences: json4("preferences").$type().default({}),
       is_active: boolean4("is_active").default(true),
       is_locked: boolean4("is_locked").default(false),
       // ITSM-specific fields
       vip_user: boolean4("vip_user").default(false),
-      security_clearance: varchar3("security_clearance", { length: 50 }),
-      business_unit: varchar3("business_unit", { length: 100 }),
+      security_clearance: varchar4("security_clearance", { length: 50 }),
+      business_unit: varchar4("business_unit", { length: 100 }),
       primary_device_id: uuid4("primary_device_id"),
-      backup_contact_email: varchar3("backup_contact_email", { length: 255 }),
-      shift_schedule: varchar3("shift_schedule", { length: 100 }),
+      backup_contact_email: varchar4("backup_contact_email", { length: 255 }),
+      shift_schedule: varchar4("shift_schedule", { length: 100 }),
       escalation_manager_id: uuid4("escalation_manager_id"),
       password_reset_required: boolean4("password_reset_required").default(false),
       failed_login_attempts: integer3("failed_login_attempts").default(0),
@@ -3501,12 +3540,12 @@ var init_user_schema = __esm({
     });
     departments = pgTable4("departments", {
       id: uuid4("id").primaryKey().defaultRandom(),
-      name: varchar3("name", { length: 100 }).notNull(),
+      name: varchar4("name", { length: 100 }).notNull(),
       description: text4("description"),
       manager_id: uuid4("manager_id"),
       budget: integer3("budget"),
-      cost_center: varchar3("cost_center", { length: 50 }),
-      location: varchar3("location", { length: 100 }),
+      cost_center: varchar4("cost_center", { length: 50 }),
+      location: varchar4("location", { length: 100 }),
       is_active: boolean4("is_active").default(true),
       created_at: timestamp4("created_at").defaultNow().notNull(),
       updated_at: timestamp4("updated_at").defaultNow().notNull()
@@ -3520,12 +3559,12 @@ var init_user_schema = __esm({
     });
     userGroups = pgTable4("user_groups", {
       id: uuid4("id").primaryKey().defaultRandom(),
-      name: varchar3("name", { length: 100 }).notNull(),
+      name: varchar4("name", { length: 100 }).notNull(),
       description: text4("description"),
-      group_type: varchar3("group_type", { length: 50 }).notNull(),
+      group_type: varchar4("group_type", { length: 50 }).notNull(),
       // support_team, department, project_team
       manager_id: uuid4("manager_id").references(() => users.id),
-      email: varchar3("email", { length: 255 }),
+      email: varchar4("email", { length: 255 }),
       is_active: boolean4("is_active").default(true),
       created_at: timestamp4("created_at").defaultNow().notNull(),
       updated_at: timestamp4("updated_at").defaultNow().notNull()
@@ -3534,19 +3573,19 @@ var init_user_schema = __esm({
       id: uuid4("id").primaryKey().defaultRandom(),
       user_id: uuid4("user_id").notNull().references(() => users.id),
       group_id: uuid4("group_id").notNull().references(() => userGroups.id),
-      role: varchar3("role", { length: 50 }).default("member"),
+      role: varchar4("role", { length: 50 }).default("member"),
       // member, leader, admin
       joined_at: timestamp4("joined_at").defaultNow().notNull()
     });
     userActivity = pgTable4("user_activity", {
       id: uuid4("id").primaryKey().defaultRandom(),
       user_id: uuid4("user_id").notNull().references(() => users.id),
-      activity_type: varchar3("activity_type", { length: 50 }).notNull(),
+      activity_type: varchar4("activity_type", { length: 50 }).notNull(),
       // login, logout, password_change, etc.
       description: text4("description"),
-      ip_address: varchar3("ip_address", { length: 45 }),
+      ip_address: varchar4("ip_address", { length: 45 }),
       user_agent: text4("user_agent"),
-      metadata: json5("metadata").$type().default({}),
+      metadata: json4("metadata").$type().default({}),
       created_at: timestamp4("created_at").defaultNow().notNull()
     });
   }
@@ -3558,7 +3597,7 @@ __export(user_storage_exports, {
   UserStorage: () => UserStorage,
   userStorage: () => userStorage
 });
-import { eq as eq2, desc as desc2, and as and3, or as or2, like as like3, count as count2 } from "drizzle-orm";
+import { eq as eq2, desc as desc2, and as and3, or as or2, like as like2, count as count2 } from "drizzle-orm";
 var UserStorage, userStorage;
 var init_user_storage = __esm({
   "server/services/user-storage.ts"() {
@@ -3594,11 +3633,11 @@ var init_user_storage = __esm({
         if (filters.search) {
           conditions.push(
             or2(
-              like3(users.first_name, `%${filters.search}%`),
-              like3(users.last_name, `%${filters.search}%`),
-              like3(users.email, `%${filters.search}%`),
-              like3(users.username, `%${filters.search}%`),
-              like3(users.employee_id, `%${filters.search}%`)
+              like2(users.first_name, `%${filters.search}%`),
+              like2(users.last_name, `%${filters.search}%`),
+              like2(users.email, `%${filters.search}%`),
+              like2(users.username, `%${filters.search}%`),
+              like2(users.employee_id, `%${filters.search}%`)
             )
           );
         }
@@ -3948,69 +3987,297 @@ var init_user_storage = __esm({
   }
 });
 
+// shared/change-management-schema.ts
+import { pgTable as pgTable5, text as text5, timestamp as timestamp5, uuid as uuid5, varchar as varchar5, boolean as boolean5, integer as integer4, json as json5 } from "drizzle-orm/pg-core";
+var changeAdvisoryBoard, changeWindows, releases, changeImpactAssessment, ticketApprovals2;
+var init_change_management_schema = __esm({
+  "shared/change-management-schema.ts"() {
+    "use strict";
+    changeAdvisoryBoard = pgTable5("change_advisory_board", {
+      id: uuid5("id").primaryKey().defaultRandom(),
+      name: varchar5("name", { length: 100 }).notNull(),
+      description: text5("description"),
+      chairperson_id: uuid5("chairperson_id").notNull(),
+      members: json5("members").$type().default([]),
+      meeting_frequency: varchar5("meeting_frequency", { length: 50 }),
+      is_active: boolean5("is_active").default(true),
+      created_at: timestamp5("created_at").defaultNow().notNull()
+    });
+    changeWindows = pgTable5("change_windows", {
+      id: uuid5("id").primaryKey().defaultRandom(),
+      name: varchar5("name", { length: 100 }).notNull(),
+      description: text5("description"),
+      window_type: varchar5("window_type", { length: 20 }).notNull(),
+      // standard, emergency, maintenance
+      start_time: varchar5("start_time", { length: 5 }).notNull(),
+      // HH:MM
+      end_time: varchar5("end_time", { length: 5 }).notNull(),
+      // HH:MM
+      days_of_week: varchar5("days_of_week", { length: 20 }).notNull(),
+      // 1,2,3,4,5
+      blackout_dates: json5("blackout_dates").$type().default([]),
+      approval_required: boolean5("approval_required").default(true),
+      is_active: boolean5("is_active").default(true),
+      created_at: timestamp5("created_at").defaultNow().notNull()
+    });
+    releases = pgTable5("releases", {
+      id: uuid5("id").primaryKey().defaultRandom(),
+      name: varchar5("name", { length: 100 }).notNull(),
+      version: varchar5("version", { length: 50 }).notNull(),
+      description: text5("description"),
+      release_type: varchar5("release_type", { length: 20 }).notNull(),
+      // major, minor, patch, hotfix
+      planned_date: timestamp5("planned_date"),
+      actual_date: timestamp5("actual_date"),
+      status: varchar5("status", { length: 20 }).default("planned"),
+      // planned, in_progress, completed, cancelled
+      release_manager_id: uuid5("release_manager_id").notNull(),
+      environment: varchar5("environment", { length: 50 }),
+      // dev, test, staging, production
+      rollback_plan: text5("rollback_plan"),
+      created_at: timestamp5("created_at").defaultNow().notNull()
+    });
+    changeImpactAssessment = pgTable5("change_impact_assessment", {
+      id: uuid5("id").primaryKey().defaultRandom(),
+      change_ticket_id: uuid5("change_ticket_id").notNull(),
+      affected_systems: json5("affected_systems").$type().default([]),
+      affected_users_count: integer4("affected_users_count").default(0),
+      business_impact: varchar5("business_impact", { length: 20 }).notNull(),
+      technical_complexity: varchar5("technical_complexity", { length: 20 }).notNull(),
+      estimated_effort_hours: integer4("estimated_effort_hours"),
+      resource_requirements: json5("resource_requirements").$type().default({}),
+      dependencies: json5("dependencies").$type().default([]),
+      created_at: timestamp5("created_at").defaultNow().notNull()
+    });
+    ticketApprovals2 = pgTable5("ticket_approvals", {
+      id: uuid5("id").primaryKey().defaultRandom(),
+      ticket_id: uuid5("ticket_id").notNull(),
+      approver_type: varchar5("approver_type", { length: 20 }).notNull(),
+      // cab, manager, emergency
+      approver_id: varchar5("approver_id", { length: 100 }).notNull(),
+      status: varchar5("status", { length: 20 }).default("pending"),
+      // pending, approved, rejected
+      submitted_by: varchar5("submitted_by", { length: 100 }).notNull(),
+      submitted_at: timestamp5("submitted_at").defaultNow().notNull(),
+      approved_by: varchar5("approved_by", { length: 100 }),
+      approved_at: timestamp5("approved_at"),
+      comments: text5("comments"),
+      created_at: timestamp5("created_at").defaultNow().notNull()
+    });
+  }
+});
+
+// server/services/cab-service.ts
+import { eq as eq3, and as and4 } from "drizzle-orm";
+var CABService, cabService;
+var init_cab_service = __esm({
+  "server/services/cab-service.ts"() {
+    "use strict";
+    init_db();
+    init_change_management_schema();
+    init_ticket_schema();
+    CABService = class {
+      // Get all active CAB boards
+      static async getCABBoards() {
+        try {
+          const boards = await db.select().from(changeAdvisoryBoard).where(eq3(changeAdvisoryBoard.is_active, true));
+          return boards;
+        } catch (error) {
+          console.error("Error fetching CAB boards:", error);
+          throw error;
+        }
+      }
+      // Create new CAB board
+      static async createCABBoard(data) {
+        try {
+          const [board] = await db.insert(changeAdvisoryBoard).values(data).returning();
+          return board;
+        } catch (error) {
+          console.error("Error creating CAB board:", error);
+          throw error;
+        }
+      }
+      // Get pending change requests for CAB approval
+      static async getPendingChanges(cabId) {
+        try {
+          const pendingChanges = await db.select({
+            id: tickets.id,
+            ticket_number: tickets.ticket_number,
+            title: tickets.title,
+            description: tickets.description,
+            change_type: tickets.change_type,
+            priority: tickets.priority,
+            risk_level: tickets.risk_level,
+            requester_email: tickets.requester_email,
+            created_at: tickets.created_at,
+            planned_implementation_date: tickets.planned_implementation_date,
+            approval_status: tickets.approval_status
+          }).from(tickets).where(
+            and4(
+              eq3(tickets.type, "change"),
+              eq3(tickets.approval_status, "pending")
+            )
+          );
+          return pendingChanges;
+        } catch (error) {
+          console.error("Error fetching pending changes:", error);
+          throw error;
+        }
+      }
+      // Submit change for CAB approval
+      static async submitForApproval(ticketId, cabId, submittedBy) {
+        try {
+          const [approval] = await db.insert(ticketApprovals2).values({
+            ticket_id: ticketId,
+            approver_type: "cab",
+            approver_id: cabId,
+            status: "pending",
+            submitted_by: submittedBy,
+            submitted_at: /* @__PURE__ */ new Date()
+          }).returning();
+          await db.update(tickets).set({
+            approval_status: "pending",
+            status: "pending",
+            updated_at: /* @__PURE__ */ new Date()
+          }).where(eq3(tickets.id, ticketId));
+          return approval;
+        } catch (error) {
+          console.error("Error submitting for approval:", error);
+          throw error;
+        }
+      }
+      // Approve/Reject change
+      static async processApproval(ticketId, approverId, decision, comments) {
+        try {
+          await db.update(ticketApprovals2).set({
+            status: decision,
+            approved_by: approverId,
+            approved_at: /* @__PURE__ */ new Date(),
+            comments
+          }).where(eq3(ticketApprovals2.ticket_id, ticketId));
+          const newTicketStatus = decision === "approved" ? "approved" : "rejected";
+          await db.update(tickets).set({
+            approval_status: decision,
+            status: newTicketStatus,
+            updated_at: /* @__PURE__ */ new Date()
+          }).where(eq3(tickets.id, ticketId));
+          const [updatedTicket] = await db.select().from(tickets).where(eq3(tickets.id, ticketId)).limit(1);
+          return updatedTicket;
+        } catch (error) {
+          console.error("Error processing approval:", error);
+          throw error;
+        }
+      }
+      // Get CAB approval history
+      static async getApprovalHistory(ticketId) {
+        try {
+          const history = await db.select().from(ticketApprovals2).where(eq3(ticketApprovals2.ticket_id, ticketId));
+          return history;
+        } catch (error) {
+          console.error("Error fetching approval history:", error);
+          throw error;
+        }
+      }
+      // Auto-route change based on type
+      static async autoRouteChange(ticketId) {
+        try {
+          const [ticket] = await db.select().from(tickets).where(eq3(tickets.id, ticketId)).limit(1);
+          if (!ticket) {
+            throw new Error("Ticket not found");
+          }
+          switch (ticket.change_type) {
+            case "standard":
+              await this.processApproval(ticketId, "system", "approved", "Auto-approved: Standard Change");
+              break;
+            case "normal":
+              const [defaultCAB] = await db.select().from(changeAdvisoryBoard).where(eq3(changeAdvisoryBoard.is_active, true)).limit(1);
+              if (defaultCAB) {
+                await this.submitForApproval(ticketId, defaultCAB.id, "system");
+              }
+              break;
+            case "emergency":
+              await this.submitForApproval(ticketId, "emergency-approval", "system");
+              break;
+            default:
+              const [cab] = await db.select().from(changeAdvisoryBoard).where(eq3(changeAdvisoryBoard.is_active, true)).limit(1);
+              if (cab) {
+                await this.submitForApproval(ticketId, cab.id, "system");
+              }
+          }
+          return true;
+        } catch (error) {
+          console.error("Error auto-routing change:", error);
+          throw error;
+        }
+      }
+    };
+    cabService = new CABService();
+  }
+});
+
 // shared/sla-schema.ts
 var sla_schema_exports = {};
 __export(sla_schema_exports, {
   slaBreaches: () => slaBreaches2,
   slaPolicies: () => slaPolicies2
 });
-import { pgTable as pgTable5, text as text5, timestamp as timestamp5, integer as integer4, uuid as uuid5, varchar as varchar4, boolean as boolean5 } from "drizzle-orm/pg-core";
+import { pgTable as pgTable6, text as text6, timestamp as timestamp6, integer as integer5, uuid as uuid6, varchar as varchar6, boolean as boolean6, json as json6 } from "drizzle-orm/pg-core";
 var slaPolicies2, slaBreaches2;
 var init_sla_schema = __esm({
   "shared/sla-schema.ts"() {
     "use strict";
-    slaPolicies2 = pgTable5("sla_policies", {
-      id: uuid5("id").primaryKey().defaultRandom(),
-      name: varchar4("name", { length: 100 }).notNull(),
-      description: text5("description"),
+    slaPolicies2 = pgTable6("sla_policies", {
+      id: uuid6("id").primaryKey().defaultRandom(),
+      name: varchar6("name", { length: 100 }).notNull(),
+      description: text6("description"),
       // Conditions
-      ticket_type: varchar4("ticket_type", { length: 20 }),
+      ticket_type: varchar6("ticket_type", { length: 20 }),
       // request, incident, problem, change
-      priority: varchar4("priority", { length: 20 }),
+      priority: varchar6("priority", { length: 20 }),
       // low, medium, high, critical
-      impact: varchar4("impact", { length: 20 }),
+      impact: varchar6("impact", { length: 20 }),
       // low, medium, high, critical
-      urgency: varchar4("urgency", { length: 20 }),
+      urgency: varchar6("urgency", { length: 20 }),
       // low, medium, high, critical
-      category: varchar4("category", { length: 100 }),
+      category: varchar6("category", { length: 100 }),
       // SLA Targets (in minutes)
-      response_time: integer4("response_time").notNull(),
+      response_time: integer5("response_time").notNull(),
       // Time to first response
-      resolution_time: integer4("resolution_time").notNull(),
+      resolution_time: integer5("resolution_time").notNull(),
       // Time to resolve
       // Business hours
-      business_hours_only: boolean5("business_hours_only").default(true),
-      business_start: varchar4("business_start", { length: 5 }).default("09:00"),
+      business_hours_only: boolean6("business_hours_only").default(true),
+      business_start: varchar6("business_start", { length: 5 }).default("09:00"),
       // HH:MM format
-      business_end: varchar4("business_end", { length: 5 }).default("17:00"),
+      business_end: varchar6("business_end", { length: 5 }).default("17:00"),
       // HH:MM format
-      business_days: varchar4("business_days", { length: 20 }).default("1,2,3,4,5"),
+      business_days: varchar6("business_days", { length: 20 }).default("1,2,3,4,5"),
       // 1=Monday, 7=Sunday
       // Status
-      is_active: boolean5("is_active").default(true),
+      is_active: boolean6("is_active").default(true),
       // Missing SLA fields
-      escalation_matrix: json("escalation_matrix").$type().default([]),
-      notification_rules: json("notification_rules").$type().default([]),
-      holiday_calendar_id: uuid5("holiday_calendar_id"),
-      timezone: varchar4("timezone", { length: 50 }).default("UTC"),
-      version: integer4("version").default(1),
-      approved_by: uuid5("approved_by"),
-      approved_at: timestamp5("approved_at"),
+      escalation_matrix: json6("escalation_matrix").$type().default([]),
+      notification_rules: json6("notification_rules").$type().default([]),
+      holiday_calendar_id: uuid6("holiday_calendar_id"),
+      timezone: varchar6("timezone", { length: 50 }).default("UTC"),
+      version: integer5("version").default(1),
+      approved_by: uuid6("approved_by"),
+      approved_at: timestamp6("approved_at"),
       // Metadata
-      created_at: timestamp5("created_at").defaultNow().notNull(),
-      updated_at: timestamp5("updated_at").defaultNow().notNull()
+      created_at: timestamp6("created_at").defaultNow().notNull(),
+      updated_at: timestamp6("updated_at").defaultNow().notNull()
     });
-    slaBreaches2 = pgTable5("sla_breaches", {
-      id: uuid5("id").primaryKey().defaultRandom(),
-      ticket_id: uuid5("ticket_id").notNull(),
-      sla_policy_id: uuid5("sla_policy_id").notNull(),
-      breach_type: varchar4("breach_type", { length: 20 }).notNull(),
+    slaBreaches2 = pgTable6("sla_breaches", {
+      id: uuid6("id").primaryKey().defaultRandom(),
+      ticket_id: uuid6("ticket_id").notNull(),
+      sla_policy_id: uuid6("sla_policy_id").notNull(),
+      breach_type: varchar6("breach_type", { length: 20 }).notNull(),
       // response, resolution
-      target_time: timestamp5("target_time").notNull(),
-      actual_time: timestamp5("actual_time"),
-      breach_duration: integer4("breach_duration"),
+      target_time: timestamp6("target_time").notNull(),
+      actual_time: timestamp6("actual_time"),
+      breach_duration: integer5("breach_duration"),
       // minutes over SLA
-      created_at: timestamp5("created_at").defaultNow().notNull()
+      created_at: timestamp6("created_at").defaultNow().notNull()
     });
   }
 });
@@ -4021,7 +4288,7 @@ __export(sla_policy_service_exports, {
   SLAPolicyService: () => SLAPolicyService,
   slaPolicyService: () => slaPolicyService
 });
-import { eq as eq3, and as and4, isNull as isNull2, desc as desc3 } from "drizzle-orm";
+import { eq as eq4, and as and5, isNull as isNull2, desc as desc3 } from "drizzle-orm";
 var SLAPolicyService, slaPolicyService;
 var init_sla_policy_service = __esm({
   "server/services/sla-policy-service.ts"() {
@@ -4033,23 +4300,23 @@ var init_sla_policy_service = __esm({
       async findMatchingSLAPolicy(ticket) {
         try {
           const exactMatch = await db.select().from(slaPolicies2).where(
-            and4(
-              eq3(slaPolicies2.is_active, true),
-              eq3(slaPolicies2.ticket_type, ticket.type),
-              eq3(slaPolicies2.priority, ticket.priority),
-              ticket.impact ? eq3(slaPolicies2.impact, ticket.impact) : isNull2(slaPolicies2.impact),
-              ticket.urgency ? eq3(slaPolicies2.urgency, ticket.urgency) : isNull2(slaPolicies2.urgency),
-              ticket.category ? eq3(slaPolicies2.category, ticket.category) : isNull2(slaPolicies2.category)
+            and5(
+              eq4(slaPolicies2.is_active, true),
+              eq4(slaPolicies2.ticket_type, ticket.type),
+              eq4(slaPolicies2.priority, ticket.priority),
+              ticket.impact ? eq4(slaPolicies2.impact, ticket.impact) : isNull2(slaPolicies2.impact),
+              ticket.urgency ? eq4(slaPolicies2.urgency, ticket.urgency) : isNull2(slaPolicies2.urgency),
+              ticket.category ? eq4(slaPolicies2.category, ticket.category) : isNull2(slaPolicies2.category)
             )
           ).orderBy(desc3(slaPolicies2.created_at)).limit(1);
           if (exactMatch.length > 0) {
             return exactMatch[0];
           }
           const partialMatch = await db.select().from(slaPolicies2).where(
-            and4(
-              eq3(slaPolicies2.is_active, true),
-              eq3(slaPolicies2.ticket_type, ticket.type),
-              eq3(slaPolicies2.priority, ticket.priority),
+            and5(
+              eq4(slaPolicies2.is_active, true),
+              eq4(slaPolicies2.ticket_type, ticket.type),
+              eq4(slaPolicies2.priority, ticket.priority),
               isNull2(slaPolicies2.impact),
               isNull2(slaPolicies2.urgency),
               isNull2(slaPolicies2.category)
@@ -4059,9 +4326,9 @@ var init_sla_policy_service = __esm({
             return partialMatch[0];
           }
           const priorityMatch = await db.select().from(slaPolicies2).where(
-            and4(
-              eq3(slaPolicies2.is_active, true),
-              eq3(slaPolicies2.priority, ticket.priority),
+            and5(
+              eq4(slaPolicies2.is_active, true),
+              eq4(slaPolicies2.priority, ticket.priority),
               isNull2(slaPolicies2.ticket_type),
               isNull2(slaPolicies2.impact),
               isNull2(slaPolicies2.urgency),
@@ -4220,7 +4487,7 @@ __export(knowledge_ai_service_exports, {
   KnowledgeAIService: () => KnowledgeAIService,
   knowledgeAIService: () => knowledgeAIService
 });
-import { eq as eq4, desc as desc4 } from "drizzle-orm";
+import { eq as eq5, desc as desc4 } from "drizzle-orm";
 import OpenAI from "openai";
 var openai, KnowledgeAIService, knowledgeAIService;
 var init_knowledge_ai_service = __esm({
@@ -4301,7 +4568,7 @@ This article addresses common IT issues and provides step-by-step solutions.
       async findRelevantArticles(ticket) {
         try {
           console.log("\u{1F50D} Finding relevant articles for ticket:", ticket.title);
-          const articles = await db.select().from(knowledgeBase).where(eq4(knowledgeBase.status, "published")).orderBy(desc4(knowledgeBase.helpful_votes));
+          const articles = await db.select().from(knowledgeBase).where(eq5(knowledgeBase.status, "published")).orderBy(desc4(knowledgeBase.helpful_votes));
           console.log(`\u{1F4DA} Found ${articles.length} published articles in database`);
           if (!articles.length) {
             console.log("\u274C No published articles found");
@@ -4424,7 +4691,7 @@ Format the response in markdown with proper headings and bullet points.`;
       /**
        * Extract meaningful keywords from text
        */
-      extractKeywords(text6) {
+      extractKeywords(text7) {
         const stopWords = /* @__PURE__ */ new Set([
           "the",
           "is",
@@ -4548,7 +4815,7 @@ Format the response in markdown with proper headings and bullet points.`;
           "troubleshooting",
           "troubleshoot"
         ];
-        const words = text6.toLowerCase().replace(/[^\w\s]/g, " ").split(/\s+/).filter((word) => word.length > 2 && !stopWords.has(word));
+        const words = text7.toLowerCase().replace(/[^\w\s]/g, " ").split(/\s+/).filter((word) => word.length > 2 && !stopWords.has(word));
         const priorityWords = words.filter((word) => techKeywords.includes(word));
         const otherWords = words.filter((word) => !techKeywords.includes(word) && !priorityWords.includes(word));
         return [...priorityWords, ...otherWords].slice(0, 20);
@@ -4633,8 +4900,8 @@ If the above steps don't resolve the issue:
           tags.add(ticket.category.toLowerCase().replace(/\s+/g, "-"));
         }
         tags.add(ticket.type.toLowerCase().replace(/\s+/g, "-"));
-        const text6 = `${ticket.title} ${ticket.description}`.toLowerCase();
-        const keywords = this.extractKeywords(text6);
+        const text7 = `${ticket.title} ${ticket.description}`.toLowerCase();
+        const keywords = this.extractKeywords(text7);
         keywords.slice(0, 5).forEach((keyword) => tags.add(keyword));
         tags.add("troubleshooting");
         tags.add("support");
@@ -4645,7 +4912,7 @@ If the above steps don't resolve the issue:
        * Categorize ticket based on content
        */
       categorizeTicket(ticket) {
-        const text6 = `${ticket.title} ${ticket.description}`.toLowerCase();
+        const text7 = `${ticket.title} ${ticket.description}`.toLowerCase();
         const categoryKeywords = {
           "Hardware": ["hardware", "device", "computer", "laptop", "desktop", "monitor", "keyboard", "mouse", "printer", "scanner", "disk", "memory", "ram", "cpu", "motherboard"],
           "Software": ["software", "application", "program", "install", "update", "crash", "error", "bug", "app", "exe", "installation"],
@@ -4659,7 +4926,7 @@ If the above steps don't resolve the issue:
         let bestMatch = "Other";
         let maxMatches = 0;
         for (const [category, keywords] of Object.entries(categoryKeywords)) {
-          const matches = keywords.filter((keyword) => text6.includes(keyword)).length;
+          const matches = keywords.filter((keyword) => text7.includes(keyword)).length;
           if (matches > maxMatches) {
             maxMatches = matches;
             bestMatch = category;
@@ -4671,7 +4938,7 @@ If the above steps don't resolve the issue:
         try {
           const { tags, category, limit } = params;
           console.log("Searching for related articles with:", { tags, category, limit });
-          let query = db.select().from(knowledgeBase).where(eq4(knowledgeBase.status, "published")).orderBy(desc4(knowledgeBase.helpful_votes), desc4(knowledgeBase.views));
+          let query = db.select().from(knowledgeBase).where(eq5(knowledgeBase.status, "published")).orderBy(desc4(knowledgeBase.helpful_votes), desc4(knowledgeBase.views));
           const allArticles = await query;
           console.log(`Found ${allArticles.length} total published articles`);
           if (tags.length === 0) {
@@ -4829,7 +5096,7 @@ __export(ticket_storage_exports, {
   TicketStorage: () => TicketStorage,
   ticketStorage: () => ticketStorage
 });
-import { eq as eq5, desc as desc5, and as and5, or as or5, sql as sql4, count as count3, ilike } from "drizzle-orm";
+import { eq as eq6, desc as desc5, and as and6, or as or5, sql as sql4, count as count3, ilike, like as like4 } from "drizzle-orm";
 var TicketStorage, ticketStorage;
 var init_ticket_storage = __esm({
   "server/services/ticket-storage.ts"() {
@@ -4839,14 +5106,15 @@ var init_ticket_storage = __esm({
     init_admin_schema();
     init_user_storage();
     init_schema();
+    init_cab_service();
     TicketStorage = class {
       // Generate unique ticket number
       async generateTicketNumber(type) {
         const year = (/* @__PURE__ */ new Date()).getFullYear();
         const prefix = type.toUpperCase().substring(0, 3);
         const [result] = await db.select({ count: count3() }).from(tickets).where(
-          and5(
-            eq5(tickets.type, type),
+          and6(
+            eq6(tickets.type, type),
             sql4`EXTRACT(YEAR FROM ${tickets.created_at}) = ${year}`
           )
         );
@@ -4954,9 +5222,15 @@ var init_ticket_storage = __esm({
             console.error("Error in knowledge base integration:", error);
           }
         }, 1e3);
-        console.log(
-          `Created ticket ${ticket_number}`
-        );
+        console.log(`Created ticket: ${newTicket.ticket_number}`);
+        if (newTicket.type === "change") {
+          try {
+            await cabService.autoRouteChange(newTicket.id);
+            console.log(`Change ticket ${newTicket.ticket_number} auto-routed for approval`);
+          } catch (error) {
+            console.error("Error auto-routing change ticket:", error);
+          }
+        }
         return newTicket;
       }
       async processKnowledgeBaseIntegration(ticketData) {
@@ -5080,24 +5354,24 @@ var init_ticket_storage = __esm({
         const offset = (page - 1) * limit;
         const conditions = [];
         if (filters.type) {
-          conditions.push(eq5(tickets.type, filters.type));
+          conditions.push(eq6(tickets.type, filters.type));
         }
         if (filters.status) {
-          conditions.push(eq5(tickets.status, filters.status));
+          conditions.push(eq6(tickets.status, filters.status));
         }
         if (filters.priority) {
-          conditions.push(eq5(tickets.priority, filters.priority));
+          conditions.push(eq6(tickets.priority, filters.priority));
         }
         if (filters.search) {
           conditions.push(
             or5(
-              like(tickets.title, `%${filters.search}%`),
-              like(tickets.description, `%${filters.search}%`),
-              like(tickets.ticket_number, `%${filters.search}%`)
+              like4(tickets.title, `%${filters.search}%`),
+              like4(tickets.description, `%${filters.search}%`),
+              like4(tickets.ticket_number, `%${filters.search}%`)
             )
           );
         }
-        const whereClause = conditions.length > 0 ? and5(...conditions) : void 0;
+        const whereClause = conditions.length > 0 ? and6(...conditions) : void 0;
         const [{ total }] = await db.select({ total: count3() }).from(tickets).where(whereClause);
         const data = await db.select().from(tickets).where(whereClause).orderBy(desc5(tickets.created_at)).limit(limit).offset(offset);
         return {
@@ -5109,7 +5383,7 @@ var init_ticket_storage = __esm({
         };
       }
       async getTicketById(id) {
-        const [ticket] = await db.select().from(tickets).where(eq5(tickets.id, id));
+        const [ticket] = await db.select().from(tickets).where(eq6(tickets.id, id));
         return ticket || null;
       }
       async updateTicket(id, updates, userEmail = "admin@company.com", comment) {
@@ -5162,7 +5436,7 @@ var init_ticket_storage = __esm({
           }
           if (updates.status === "resolved" && !updates.resolved_at) {
             updates.resolved_at = /* @__PURE__ */ new Date();
-            const [currentTicket2] = await db.select().from(tickets).where(eq5(tickets.id, id));
+            const [currentTicket2] = await db.select().from(tickets).where(eq6(tickets.id, id));
             if (currentTicket2?.sla_resolution_due) {
               const wasBreached = /* @__PURE__ */ new Date() > new Date(currentTicket2.sla_resolution_due);
               updates.sla_breached = wasBreached;
@@ -5195,7 +5469,7 @@ var init_ticket_storage = __esm({
             updates.sla_breached = /* @__PURE__ */ new Date() > slaResolutionDue;
           }
           updates.updated_at = /* @__PURE__ */ new Date();
-          const [updatedTicket] = await db.update(tickets).set(updates).where(eq5(tickets.id, id)).returning();
+          const [updatedTicket] = await db.update(tickets).set(updates).where(eq6(tickets.id, id)).returning();
           if (!updatedTicket) {
             return null;
           }
@@ -5261,7 +5535,7 @@ var init_ticket_storage = __esm({
         return [...new Set(tags)];
       }
       async deleteTicket(id) {
-        const result = await db.delete(tickets).where(eq5(tickets.id, id));
+        const result = await db.delete(tickets).where(eq6(tickets.id, id));
         return result.rowCount > 0;
       }
       // Comment Operations
@@ -5273,7 +5547,7 @@ var init_ticket_storage = __esm({
         return comment;
       }
       async getTicketComments(ticketId) {
-        return await db.select().from(ticketComments).where(eq5(ticketComments.ticket_id, ticketId)).orderBy(desc5(ticketComments.created_at));
+        return await db.select().from(ticketComments).where(eq6(ticketComments.ticket_id, ticketId)).orderBy(desc5(ticketComments.created_at));
       }
       // Knowledge Base Operations
       async createKBArticle(articleData) {
@@ -5284,20 +5558,20 @@ var init_ticket_storage = __esm({
         const offset = (page - 1) * limit;
         const conditions = [];
         if (filters.category) {
-          conditions.push(eq5(knowledgeBase.category, filters.category));
+          conditions.push(eq6(knowledgeBase.category, filters.category));
         }
         if (filters.status) {
-          conditions.push(eq5(knowledgeBase.status, filters.status));
+          conditions.push(eq6(knowledgeBase.status, filters.status));
         }
         if (filters.search) {
           conditions.push(
             or5(
-              like(knowledgeBase.title, `%${filters.search}%`),
-              like(knowledgeBase.content, `%${filters.search}%`)
+              like4(knowledgeBase.title, `%${filters.search}%`),
+              like4(knowledgeBase.content, `%${filters.search}%`)
             )
           );
         }
-        const whereClause = conditions.length > 0 ? and5(...conditions) : void 0;
+        const whereClause = conditions.length > 0 ? and6(...conditions) : void 0;
         const [{ total }] = await db.select({ total: count3() }).from(knowledgeBase).where(whereClause);
         const data = await db.select().from(knowledgeBase).where(whereClause).orderBy(desc5(knowledgeBase.created_at)).limit(limit).offset(offset);
         return {
@@ -5309,18 +5583,18 @@ var init_ticket_storage = __esm({
         };
       }
       async getKBArticleById(id) {
-        const [article] = await db.select().from(knowledgeBase).where(eq5(knowledgeBase.id, id));
+        const [article] = await db.select().from(knowledgeBase).where(eq6(knowledgeBase.id, id));
         return article || null;
       }
       async updateKBArticle(id, updates) {
         const [updatedArticle] = await db.update(knowledgeBase).set({
           ...updates,
           updated_at: /* @__PURE__ */ new Date()
-        }).where(eq5(knowledgeBase.id, id)).returning();
+        }).where(eq6(knowledgeBase.id, id)).returning();
         return updatedArticle || null;
       }
       async deleteKBArticle(id) {
-        const result = await db.delete(knowledgeBase).where(eq5(knowledgeBase.id, id));
+        const result = await db.delete(knowledgeBase).where(eq6(knowledgeBase.id, id));
         return result.rowCount > 0;
       }
       // Export functionality
@@ -5424,9 +5698,9 @@ var init_ticket_storage = __esm({
       // Device delete operation
       async deleteDevice(id) {
         try {
-          await db.delete(device_reports).where(eq5(device_reports.device_id, id));
-          await db.delete(alerts).where(eq5(alerts.device_id, id));
-          const result = await db.delete(devices).where(eq5(devices.id, id));
+          await db.delete(device_reports).where(eq6(device_reports.device_id, id));
+          await db.delete(alerts).where(eq6(alerts.device_id, id));
+          const result = await db.delete(devices).where(eq6(devices.id, id));
           return result.rowCount > 0;
         } catch (error) {
           console.error("Error deleting device:", error);
@@ -5997,8 +6271,8 @@ var init_patch_compliance_service = __esm({
                   if (patch.installed_on.DateTime) {
                     installDate = patch.installed_on.DateTime;
                   } else if (patch.installed_on.value) {
-                    const timestamp6 = patch.installed_on.value.replace(/\/Date\((\d+)\)\//, "$1");
-                    installDate = new Date(parseInt(timestamp6)).toLocaleDateString();
+                    const timestamp7 = patch.installed_on.value.replace(/\/Date\((\d+)\)\//, "$1");
+                    installDate = new Date(parseInt(timestamp7)).toLocaleDateString();
                   } else if (typeof patch.installed_on === "string") {
                     installDate = patch.installed_on;
                   }
@@ -6280,6 +6554,1056 @@ var init_patch_compliance_service = __esm({
       }
     };
     patchComplianceService = new PatchComplianceService();
+  }
+});
+
+// shared/system-config.ts
+var DEFAULT_SYSTEM_CONFIG, SystemConfigService, systemConfig, SystemConfigManager, systemConfigManager;
+var init_system_config = __esm({
+  "shared/system-config.ts"() {
+    "use strict";
+    DEFAULT_SYSTEM_CONFIG = {
+      alerts: {
+        thresholds: {
+          cpu: {
+            warning: 80,
+            high: 90,
+            critical: 95
+          },
+          memory: {
+            warning: 85,
+            high: 92,
+            critical: 98
+          },
+          disk: {
+            warning: 80,
+            high: 90,
+            critical: 95
+          },
+          network: {
+            errorRate: 5,
+            responseTime: 1e3
+          }
+        },
+        retryAttempts: 3,
+        timeoutMs: 3e4
+      },
+      network: {
+        scan: {
+          timeoutMs: 12e4,
+          retryAttempts: 2,
+          pingTimeout: 2e3,
+          portScanTimeout: 5e3
+        },
+        agents: {
+          heartbeatInterval: 3e4,
+          offlineThreshold: 9e4
+        }
+      },
+      tickets: {
+        sla: {
+          defaultResponseTime: 4 * 60 * 60 * 1e3,
+          // 4 hours
+          defaultResolutionTime: 24 * 60 * 60 * 1e3,
+          // 24 hours
+          escalationTime: 2 * 60 * 60 * 1e3
+          // 2 hours
+        },
+        priority: {
+          low: {
+            responseTime: 8 * 60 * 60 * 1e3,
+            // 8 hours
+            resolutionTime: 72 * 60 * 60 * 1e3
+            // 72 hours
+          },
+          medium: {
+            responseTime: 4 * 60 * 60 * 1e3,
+            // 4 hours
+            resolutionTime: 24 * 60 * 60 * 1e3
+            // 24 hours
+          },
+          high: {
+            responseTime: 2 * 60 * 60 * 1e3,
+            // 2 hours
+            resolutionTime: 8 * 60 * 60 * 1e3
+            // 8 hours
+          },
+          critical: {
+            responseTime: 30 * 60 * 1e3,
+            // 30 minutes
+            resolutionTime: 4 * 60 * 60 * 1e3
+            // 4 hours
+          }
+        }
+      },
+      performance: {
+        monitoring: {
+          intervalMs: 3e4,
+          retentionDays: 30,
+          batchSize: 100
+        }
+      },
+      security: {
+        session: {
+          timeoutMinutes: 60,
+          refreshThreshold: 10
+        },
+        passwordPolicy: {
+          minLength: 8,
+          requireSpecialChars: true,
+          requireNumbers: true
+        }
+      }
+    };
+    SystemConfigService = class {
+      config = DEFAULT_SYSTEM_CONFIG;
+      getConfig() {
+        return this.config;
+      }
+      updateConfig(updates) {
+        this.config = { ...this.config, ...updates };
+      }
+      getAlertThresholds() {
+        return this.config.alerts.thresholds;
+      }
+      getNetworkConfig() {
+        return this.config.network;
+      }
+      getTicketConfig() {
+        return this.config.tickets;
+      }
+      getPerformanceConfig() {
+        return this.config.performance;
+      }
+      getSecurityConfig() {
+        return this.config.security;
+      }
+    };
+    systemConfig = new SystemConfigService();
+    SystemConfigManager = class _SystemConfigManager {
+      static instance;
+      config = DEFAULT_SYSTEM_CONFIG;
+      configValidationRules = {
+        "alerts.thresholds.cpu.warning": { min: 50, max: 95 },
+        "alerts.thresholds.cpu.high": { min: 60, max: 98 },
+        "alerts.thresholds.cpu.critical": { min: 70, max: 100 },
+        "alerts.thresholds.memory.warning": { min: 60, max: 95 },
+        "alerts.thresholds.memory.high": { min: 70, max: 98 },
+        "alerts.thresholds.memory.critical": { min: 80, max: 100 },
+        "alerts.thresholds.disk.warning": { min: 70, max: 95 },
+        "alerts.thresholds.disk.high": { min: 80, max: 98 },
+        "alerts.thresholds.disk.critical": { min: 85, max: 100 }
+      };
+      // Private constructor to enforce singleton pattern
+      constructor() {
+      }
+      // Method to get the singleton instance
+      static getInstance() {
+        if (!_SystemConfigManager.instance) {
+          _SystemConfigManager.instance = new _SystemConfigManager();
+        }
+        return _SystemConfigManager.instance;
+      }
+      // Method to get the current system configuration
+      getConfig() {
+        return this.config;
+      }
+      // Method to update the system configuration with validation
+      updateConfig(newConfig) {
+        const errors = [];
+        try {
+          const validationErrors = this.validateConfiguration(newConfig);
+          if (validationErrors.length > 0) {
+            return { success: false, errors: validationErrors };
+          }
+          this.config = { ...this.config, ...newConfig };
+          console.log("System configuration updated successfully:", newConfig);
+          return { success: true, errors: [] };
+        } catch (error) {
+          console.error("Configuration update error:", error);
+          return { success: false, errors: [`Configuration update failed: ${error.message}`] };
+        }
+      }
+      // Private method to validate configuration against predefined rules
+      validateConfiguration(config) {
+        const errors = [];
+        if (config.alerts?.thresholds) {
+          const { cpu, memory, disk } = config.alerts.thresholds;
+          if (cpu) {
+            if (cpu.warning >= cpu.high) errors.push("CPU warning threshold must be less than high threshold");
+            if (cpu.high >= cpu.critical) errors.push("CPU high threshold must be less than critical threshold");
+            if (cpu.critical > 100) errors.push("CPU critical threshold cannot exceed 100%");
+          }
+          if (memory) {
+            if (memory.warning >= memory.high) errors.push("Memory warning threshold must be less than high threshold");
+            if (memory.high >= memory.critical) errors.push("Memory high threshold must be less than critical threshold");
+            if (memory.critical > 100) errors.push("Memory critical threshold cannot exceed 100%");
+          }
+          if (disk) {
+            if (disk.warning >= disk.high) errors.push("Disk warning threshold must be less than high threshold");
+            if (disk.high >= disk.critical) errors.push("Disk high threshold must be less than critical threshold");
+            if (disk.critical > 100) errors.push("Disk critical threshold cannot exceed 100%");
+          }
+        }
+        return errors;
+      }
+      // Method to get alert thresholds
+      getAlertThresholds() {
+        return this.config.alerts.thresholds;
+      }
+      // Method to get network configuration
+      getNetworkConfig() {
+        return this.config.network;
+      }
+      // Method to get ticket configuration
+      getTicketConfig() {
+        return this.config.tickets;
+      }
+      // Method to get performance configuration
+      getPerformanceConfig() {
+        return this.config.performance;
+      }
+      // Method to get security configuration
+      getSecurityConfig() {
+        return this.config.security;
+      }
+    };
+    systemConfigManager = SystemConfigManager.getInstance();
+  }
+});
+
+// server/utils/alert-correlation.ts
+import { eq as eq8, and as and8, gte as gte3, desc as desc7 } from "drizzle-orm";
+var AlertCorrelationEngine;
+var init_alert_correlation = __esm({
+  "server/utils/alert-correlation.ts"() {
+    "use strict";
+    init_db();
+    init_schema();
+    AlertCorrelationEngine = class {
+      static CORRELATION_WINDOW = 15 * 60 * 1e3;
+      // 15 minutes
+      static MIN_CORRELATION_SCORE = 0.7;
+      /**
+       * Find correlated alerts based on time, device proximity, and alert patterns
+       */
+      static async findCorrelatedAlerts(newAlert) {
+        try {
+          const windowStart = new Date(Date.now() - this.CORRELATION_WINDOW);
+          const recentAlerts = await db.select().from(systemAlerts).where(
+            and8(
+              eq8(systemAlerts.device_id, newAlert.device_id),
+              gte3(systemAlerts.created_at, windowStart),
+              eq8(systemAlerts.is_active, true)
+            )
+          ).orderBy(desc7(systemAlerts.created_at));
+          if (recentAlerts.length < 2) {
+            return null;
+          }
+          const correlationScore = this.calculateCorrelationScore(newAlert, recentAlerts);
+          if (correlationScore < this.MIN_CORRELATION_SCORE) {
+            return null;
+          }
+          const impactLevel = this.determineImpactLevel(recentAlerts);
+          const affectedServices = this.identifyAffectedServices(recentAlerts);
+          const rootCause = this.identifyRootCause(recentAlerts);
+          return {
+            id: `corr_${Date.now()}`,
+            correlatedAlerts: recentAlerts.map((a) => a.id),
+            rootCause,
+            impactLevel,
+            affectedServices,
+            correlationScore
+          };
+        } catch (error) {
+          console.error("Error in alert correlation:", error);
+          return null;
+        }
+      }
+      /**
+       * Calculate correlation score based on alert patterns
+       */
+      static calculateCorrelationScore(newAlert, existingAlerts) {
+        let score = 0;
+        const timeScores = existingAlerts.map((alert) => {
+          const timeDiff = Math.abs(new Date(newAlert.timestamp).getTime() - new Date(alert.created_at).getTime());
+          return Math.max(0, 1 - timeDiff / this.CORRELATION_WINDOW);
+        });
+        score += timeScores.reduce((sum2, s) => sum2 + s, 0) / existingAlerts.length * 0.4;
+        const severityLevels = ["info", "warning", "high", "critical"];
+        const newSeverityIndex = severityLevels.indexOf(newAlert.severity);
+        const avgSeverityIndex = existingAlerts.reduce((sum2, alert) => sum2 + severityLevels.indexOf(alert.severity), 0) / existingAlerts.length;
+        if (Math.abs(newSeverityIndex - avgSeverityIndex) <= 1) {
+          score += 0.3;
+        }
+        const categoryMatches = existingAlerts.filter((alert) => alert.category === newAlert.type).length;
+        score += categoryMatches / existingAlerts.length * 0.3;
+        return Math.min(score, 1);
+      }
+      /**
+       * Determine overall impact level
+       */
+      static determineImpactLevel(alerts2) {
+        const criticalCount = alerts2.filter((a) => a.severity === "critical").length;
+        const highCount = alerts2.filter((a) => a.severity === "high").length;
+        if (criticalCount > 2 || criticalCount > 0 && alerts2.length > 5) {
+          return "critical";
+        }
+        if (highCount > 3 || criticalCount > 0) {
+          return "high";
+        }
+        if (alerts2.length > 3) {
+          return "medium";
+        }
+        return "low";
+      }
+      /**
+       * Identify affected services based on alert metadata
+       */
+      static identifyAffectedServices(alerts2) {
+        const services = /* @__PURE__ */ new Set();
+        alerts2.forEach((alert) => {
+          if (alert.metadata?.service) {
+            services.add(alert.metadata.service);
+          }
+          if (alert.category === "performance") {
+            services.add("System Performance");
+          }
+          if (alert.category === "security") {
+            services.add("Security");
+          }
+          if (alert.category === "connectivity") {
+            services.add("Network Connectivity");
+          }
+        });
+        return Array.from(services);
+      }
+      /**
+       * Attempt to identify root cause from alert patterns
+       */
+      static identifyRootCause(alerts2) {
+        const categories = alerts2.map((a) => a.category);
+        const messages = alerts2.map((a) => a.message.toLowerCase());
+        if (categories.includes("connectivity") && categories.includes("performance")) {
+          return "Network connectivity issues causing performance degradation";
+        }
+        if (messages.some((m) => m.includes("cpu")) && messages.some((m) => m.includes("memory"))) {
+          return "System resource exhaustion - high CPU and memory usage";
+        }
+        if (messages.some((m) => m.includes("disk")) && messages.some((m) => m.includes("space"))) {
+          return "Storage capacity issues";
+        }
+        return void 0;
+      }
+      /**
+       * Suppress duplicate alerts based on correlation
+       */
+      static async suppressDuplicateAlerts(correlatedAlerts) {
+        try {
+          if (correlatedAlerts.length < 2) return;
+          const alertsToSuppress = correlatedAlerts.slice(1);
+          await db.update(systemAlerts).set({
+            is_active: false,
+            metadata: db.raw(`metadata || '{"suppressed": true, "suppression_reason": "correlated_duplicate"}'::jsonb`),
+            updated_at: /* @__PURE__ */ new Date()
+          }).where(
+            and8(
+              systemAlerts.id.in(alertsToSuppress),
+              eq8(systemAlerts.is_active, true)
+            )
+          );
+          console.log(`Suppressed ${alertsToSuppress.length} duplicate correlated alerts`);
+        } catch (error) {
+          console.error("Error suppressing duplicate alerts:", error);
+        }
+      }
+    };
+  }
+});
+
+// server/utils/alert-health-monitor.ts
+import { eq as eq9, gte as gte4, count as count4 } from "drizzle-orm";
+var AlertHealthMonitor;
+var init_alert_health_monitor = __esm({
+  "server/utils/alert-health-monitor.ts"() {
+    "use strict";
+    init_db();
+    init_schema();
+    AlertHealthMonitor = class {
+      static performanceMetrics = {
+        processingTimes: [],
+        errors: [],
+        lastCleanup: Date.now()
+      };
+      /**
+       * Record processing time for performance monitoring
+       */
+      static recordProcessingTime(processingTime) {
+        this.performanceMetrics.processingTimes.push(processingTime);
+        if (this.performanceMetrics.processingTimes.length > 1e3) {
+          this.performanceMetrics.processingTimes = this.performanceMetrics.processingTimes.slice(-1e3);
+        }
+      }
+      /**
+       * Record error for monitoring
+       */
+      static recordError(error) {
+        this.performanceMetrics.errors.push({
+          timestamp: Date.now(),
+          error
+        });
+        const oneDayAgo = Date.now() - 24 * 60 * 60 * 1e3;
+        this.performanceMetrics.errors = this.performanceMetrics.errors.filter((e) => e.timestamp > oneDayAgo);
+      }
+      /**
+       * Get current system health status
+       */
+      static async getSystemHealth() {
+        try {
+          const oneHourAgo = new Date(Date.now() - 60 * 60 * 1e3);
+          const [alertsLastHour] = await db.select({ count: count4() }).from(systemAlerts).where(gte4(systemAlerts.created_at, oneHourAgo));
+          const [activeAlerts] = await db.select({ count: count4() }).from(systemAlerts).where(eq9(systemAlerts.is_active, true));
+          const averageProcessingTime = this.performanceMetrics.processingTimes.length > 0 ? this.performanceMetrics.processingTimes.reduce((sum2, time) => sum2 + time, 0) / this.performanceMetrics.processingTimes.length : 0;
+          const recentErrors = this.performanceMetrics.errors.filter((e) => Date.now() - e.timestamp < 60 * 60 * 1e3);
+          const errorRate = recentErrors.length / Math.max(alertsLastHour.count, 1);
+          const metrics = {
+            alertsProcessedLastHour: alertsLastHour.count,
+            alertsCreatedLastHour: alertsLastHour.count,
+            averageProcessingTime,
+            errorRate,
+            activeAlertsCount: activeAlerts.count
+          };
+          const status = this.determineHealthStatus(metrics);
+          const recommendations = this.generateRecommendations(metrics);
+          return {
+            status,
+            metrics,
+            recommendations
+          };
+        } catch (error) {
+          console.error("Error getting alert system health:", error);
+          return {
+            status: "critical",
+            metrics: {
+              alertsProcessedLastHour: 0,
+              alertsCreatedLastHour: 0,
+              averageProcessingTime: 0,
+              errorRate: 1,
+              activeAlertsCount: 0
+            },
+            recommendations: ["Alert system health check failed - manual investigation required"]
+          };
+        }
+      }
+      /**
+       * Determine overall health status
+       */
+      static determineHealthStatus(metrics) {
+        if (metrics.errorRate > 0.1 || metrics.averageProcessingTime > 5e3 || metrics.activeAlertsCount > 1e3) {
+          return "critical";
+        }
+        if (metrics.errorRate > 0.05 || metrics.averageProcessingTime > 2e3 || metrics.activeAlertsCount > 500) {
+          return "degraded";
+        }
+        return "healthy";
+      }
+      /**
+       * Generate recommendations based on metrics
+       */
+      static generateRecommendations(metrics) {
+        const recommendations = [];
+        if (metrics.errorRate > 0.1) {
+          recommendations.push("High error rate detected - investigate alert processing errors");
+        }
+        if (metrics.averageProcessingTime > 5e3) {
+          recommendations.push("Slow alert processing detected - consider optimizing database queries");
+        }
+        if (metrics.activeAlertsCount > 1e3) {
+          recommendations.push("High number of active alerts - review alert resolution processes");
+        }
+        if (metrics.alertsProcessedLastHour > 1e3) {
+          recommendations.push("High alert volume - consider implementing alert aggregation");
+        }
+        if (recommendations.length === 0) {
+          recommendations.push("Alert system is operating normally");
+        }
+        return recommendations;
+      }
+      /**
+       * Clean up old metrics and perform maintenance
+       */
+      static performMaintenance() {
+        const now = Date.now();
+        if (now - this.performanceMetrics.lastCleanup > 60 * 60 * 1e3) {
+          this.performanceMetrics.processingTimes = this.performanceMetrics.processingTimes.slice(-1e3);
+          const oneDayAgo = now - 24 * 60 * 60 * 1e3;
+          this.performanceMetrics.errors = this.performanceMetrics.errors.filter((e) => e.timestamp > oneDayAgo);
+          this.performanceMetrics.lastCleanup = now;
+          console.log("Alert system maintenance completed");
+        }
+      }
+    };
+  }
+});
+
+// server/utils/alerts.ts
+var alerts_exports = {};
+__export(alerts_exports, {
+  AlertUtils: () => AlertUtils,
+  generateSystemAlerts: () => generateSystemAlerts,
+  processAlertsForDevice: () => processAlertsForDevice,
+  processBatchAlerts: () => processBatchAlerts
+});
+import { v4 as uuidv4 } from "uuid";
+import { eq as eq10, and as and9 } from "drizzle-orm";
+function getAlertTitle(category, message) {
+  if (message.includes("CPU")) return "High CPU Usage";
+  if (message.includes("Memory")) return "High Memory Usage";
+  if (message.includes("Disk")) return "High Disk Usage";
+  if (message.includes("offline")) return "Device Offline";
+  if (category === "security" && message.includes("USB")) return "USB Device Detected";
+  return "System Alert";
+}
+async function updateExistingAlert(alertId, updates) {
+  try {
+    await db.update(systemAlerts).set({
+      severity: updates.severity,
+      message: updates.message,
+      metadata: updates.metadata,
+      updated_at: /* @__PURE__ */ new Date(),
+      resolved: false
+      // Ensure it's marked as active if updated
+    }).where(eq10(systemAlerts.id, alertId));
+  } catch (error) {
+    console.error(`Error updating existing alert ${alertId}:`, error);
+  }
+}
+async function resolveImprovedAlerts(deviceData, existingAlerts) {
+  const now = /* @__PURE__ */ new Date();
+  const thresholds = systemConfig.getAlertThresholds();
+  for (const alert of existingAlerts) {
+    let shouldResolve = false;
+    const alertMessage = alert.message || "";
+    if (alertMessage.includes("CPU") && alert.severity !== AlertSeverity.OK) {
+      const cpuUsage = deviceData.metrics?.cpu_usage || deviceData.cpu_usage || deviceData.raw_data?.cpu_usage;
+      if (cpuUsage !== void 0 && cpuUsage < thresholds.cpu.warning - 5) {
+        shouldResolve = true;
+      }
+    }
+    if (alertMessage.includes("Memory") && alert.severity !== AlertSeverity.OK) {
+      const memoryUsage = deviceData.metrics?.memory_usage || deviceData.memory_usage || deviceData.raw_data?.memory_usage;
+      if (memoryUsage !== void 0 && memoryUsage < thresholds.memory.warning - 5) {
+        shouldResolve = true;
+      }
+    }
+    if (alertMessage.includes("Disk") && alert.severity !== AlertSeverity.OK) {
+      const diskUsage = deviceData.metrics?.disk_usage || deviceData.disk_usage || deviceData.raw_data?.disk_usage;
+      if (diskUsage !== void 0 && diskUsage < thresholds.disk.warning - 5) {
+        shouldResolve = true;
+      }
+    }
+    if (alertMessage.includes("offline") && deviceData.status === "online") {
+      shouldResolve = true;
+    }
+    if (shouldResolve && alert.is_active) {
+      console.log(`Auto-resolving alert ${alert.id} (${alert.severity}): ${alertMessage}`);
+      await db.update(systemAlerts).set({
+        is_active: false,
+        resolved: true,
+        resolved_at: now,
+        updated_at: now,
+        severity: AlertSeverity.OK,
+        metadata: {
+          ...alert.metadata,
+          resolution_reason: "auto_resolved",
+          resolved_at_timestamp: now.toISOString()
+        }
+      }).where(eq10(systemAlerts.id, alert.id));
+    }
+  }
+}
+async function generateSystemAlerts(deviceData) {
+  const processingStart = Date.now();
+  const alertsToCreate = [];
+  const now = /* @__PURE__ */ new Date();
+  const deviceId = deviceData.id;
+  const deviceHostname = deviceData.hostname || "Unknown";
+  const thresholds = systemConfig.getAlertThresholds();
+  const existingAlerts = await db.select().from(systemAlerts).where(
+    and9(
+      eq10(systemAlerts.device_id, deviceId),
+      eq10(systemAlerts.is_active, true)
+      // Only consider active alerts
+    )
+  );
+  const existingAlertMap = /* @__PURE__ */ new Map();
+  existingAlerts.forEach((alert) => {
+    const alertKey = `${alert.category}_${getAlertTitle(alert.category, alert.message)}`;
+    existingAlertMap.set(alertKey, alert);
+  });
+  console.log(`=== GENERATING ALERTS FOR DEVICE ${deviceHostname} (${deviceId}) ===`);
+  const cpuUsage = deviceData.metrics?.cpu_usage ?? deviceData.cpu_usage ?? deviceData.raw_data?.cpu_usage ?? deviceData.raw_data?.hardware?.cpu?.usage_percentage ?? deviceData.raw_data?.system_health?.metrics?.cpu_percent;
+  if (cpuUsage !== void 0 && typeof cpuUsage === "number") {
+    const cpuThresholds = thresholds.cpu;
+    const currentSeverity = AlertUtils.determineSeverity(cpuUsage, cpuThresholds);
+    const alertKey = `performance_${currentSeverity}_cpu_${deviceId}`;
+    const existingAlert = existingAlertMap.get(`performance_cpu_${deviceId}`);
+    if (currentSeverity !== AlertSeverity.OK) {
+      const message = AlertUtils.buildPerformanceMessage("cpu", cpuUsage, currentSeverity);
+      const metadata = AlertUtils.buildUpdateMetadata(existingAlert?.metadata || {}, "cpu", cpuUsage, currentSeverity);
+      if (!existingAlert) {
+        alertsToCreate.push({
+          id: uuidv4(),
+          device_id: deviceId,
+          type: "performance",
+          severity: currentSeverity,
+          title: `High CPU Usage`,
+          message,
+          timestamp: now,
+          acknowledged: false,
+          resolved: false,
+          metadata
+        });
+        console.log(`Created CPU alert (${currentSeverity}) for ${deviceHostname}: ${cpuUsage.toFixed(1)}%`);
+      } else if (AlertUtils.shouldUpdateAlert(existingAlert, cpuUsage, "cpu")) {
+        await updateExistingAlert(existingAlert.id, {
+          severity: currentSeverity,
+          message,
+          metadata
+        });
+        console.log(`Updated CPU alert for ${deviceHostname}: ${cpuUsage.toFixed(1)}%`);
+      }
+    } else if (existingAlert && existingAlert.severity !== AlertSeverity.OK) {
+      await db.update(systemAlerts).set({
+        is_active: false,
+        resolved: true,
+        resolved_at: now,
+        severity: AlertSeverity.OK,
+        metadata: { ...existingAlert.metadata, resolution_reason: "auto_resolved", resolved_at_timestamp: now.toISOString() }
+      }).where(eq10(systemAlerts.id, existingAlert.id));
+      console.log(`Resolved CPU alert for ${deviceHostname} due to improved performance.`);
+    }
+  }
+  const memoryUsage = deviceData.metrics?.memory_usage ?? deviceData.memory_usage ?? deviceData.raw_data?.memory_usage ?? deviceData.raw_data?.hardware?.memory?.usage_percentage ?? deviceData.raw_data?.system_health?.memory_pressure?.memory_usage_percent;
+  if (memoryUsage !== void 0 && typeof memoryUsage === "number") {
+    const memoryThresholds = thresholds.memory;
+    const currentSeverity = AlertUtils.determineSeverity(memoryUsage, memoryThresholds);
+    const alertKey = `performance_${currentSeverity}_memory_${deviceId}`;
+    const existingAlert = existingAlertMap.get(`performance_memory_${deviceId}`);
+    if (currentSeverity !== AlertSeverity.OK) {
+      const message = AlertUtils.buildPerformanceMessage("memory", memoryUsage, currentSeverity);
+      const metadata = AlertUtils.buildUpdateMetadata(existingAlert?.metadata || {}, "memory", memoryUsage, currentSeverity);
+      if (!existingAlert) {
+        alertsToCreate.push({
+          id: uuidv4(),
+          device_id: deviceId,
+          type: "performance",
+          severity: currentSeverity,
+          title: `High Memory Usage`,
+          message,
+          timestamp: now,
+          acknowledged: false,
+          resolved: false,
+          metadata
+        });
+        console.log(`Created Memory alert (${currentSeverity}) for ${deviceHostname}: ${memoryUsage.toFixed(1)}%`);
+      } else if (AlertUtils.shouldUpdateAlert(existingAlert, memoryUsage, "memory")) {
+        await updateExistingAlert(existingAlert.id, {
+          severity: currentSeverity,
+          message,
+          metadata
+        });
+        console.log(`Updated Memory alert for ${deviceHostname}: ${memoryUsage.toFixed(1)}%`);
+      }
+    } else if (existingAlert && existingAlert.severity !== AlertSeverity.OK) {
+      await db.update(systemAlerts).set({
+        is_active: false,
+        resolved: true,
+        resolved_at: now,
+        severity: AlertSeverity.OK,
+        metadata: { ...existingAlert.metadata, resolution_reason: "auto_resolved", resolved_at_timestamp: now.toISOString() }
+      }).where(eq10(systemAlerts.id, existingAlert.id));
+      console.log(`Resolved Memory alert for ${deviceHostname} due to improved performance.`);
+    }
+  }
+  const disks = deviceData.storage?.disks || deviceData.raw_data?.storage?.disks;
+  if (disks && Array.isArray(disks)) {
+    for (const disk of disks) {
+      const diskUsage = disk.usage?.percentage ?? disk.usage_percentage;
+      if (diskUsage !== void 0 && typeof diskUsage === "number") {
+        const diskThresholds = thresholds.disk;
+        const currentSeverity = AlertUtils.determineSeverity(diskUsage, diskThresholds);
+        const diskDeviceName = disk.device || disk.name || "Unknown";
+        const alertKey = `performance_${currentSeverity}_disk_${deviceId}_${diskDeviceName}`;
+        const existingAlert = existingAlerts.find(
+          (a) => a.metadata?.disk_device === diskDeviceName && a.category === "performance" && a.message.includes("Disk Usage")
+        );
+        if (currentSeverity !== AlertSeverity.OK) {
+          const message = AlertUtils.buildPerformanceMessage("disk", diskUsage, currentSeverity);
+          const metadata = AlertUtils.buildUpdateMetadata(existingAlert?.metadata || {}, "disk", diskUsage, currentSeverity);
+          metadata.disk_device = diskDeviceName;
+          if (!existingAlert) {
+            alertsToCreate.push({
+              id: uuidv4(),
+              device_id: deviceId,
+              type: "performance",
+              severity: currentSeverity,
+              title: `High Disk Usage`,
+              message: `Disk ${diskDeviceName} usage is at ${diskUsage.toFixed(1)}%`,
+              timestamp: now,
+              acknowledged: false,
+              resolved: false,
+              metadata
+            });
+            console.log(`Created Disk alert (${currentSeverity}) for ${deviceHostname} (Disk: ${diskDeviceName}): ${diskUsage.toFixed(1)}%`);
+          } else if (AlertUtils.shouldUpdateAlert(existingAlert, diskUsage, "disk")) {
+            await updateExistingAlert(existingAlert.id, {
+              severity: currentSeverity,
+              message: `Disk ${diskDeviceName} usage is at ${diskUsage.toFixed(1)}%`,
+              metadata
+            });
+            console.log(`Updated Disk alert for ${deviceHostname} (Disk: ${diskDeviceName}): ${diskUsage.toFixed(1)}%`);
+          }
+        } else if (existingAlert && existingAlert.severity !== AlertSeverity.OK) {
+          await db.update(systemAlerts).set({
+            is_active: false,
+            resolved: true,
+            resolved_at: now,
+            severity: AlertSeverity.OK,
+            metadata: { ...existingAlert.metadata, resolution_reason: "auto_resolved", resolved_at_timestamp: now.toISOString() }
+          }).where(eq10(systemAlerts.id, existingAlert.id));
+          console.log(`Resolved Disk alert for ${deviceHostname} (Disk: ${diskDeviceName}) due to improved performance.`);
+        }
+      }
+    }
+  }
+  if (deviceData.status === "offline") {
+    const alertKey = "connectivity_Device Offline";
+    const existingAlert = existingAlertMap.get(alertKey);
+    if (!existingAlert) {
+      const message = `Device ${deviceHostname} is offline`;
+      alertsToCreate.push({
+        id: uuidv4(),
+        device_id: deviceId,
+        type: "connectivity",
+        severity: AlertSeverity.CRITICAL,
+        // Offline is critical
+        title: "Device Offline",
+        message,
+        timestamp: now,
+        acknowledged: false,
+        resolved: false,
+        metadata: {
+          device_status: "offline",
+          hostname: deviceHostname,
+          alert_type: "connectivity_status"
+        }
+      });
+      console.log(`Created Offline alert for ${deviceHostname}`);
+    }
+  } else if (deviceData.status === "online" && existingAlertMap.has("connectivity_Device Offline")) {
+    const offlineAlert = existingAlertMap.get("connectivity_Device Offline");
+    if (offlineAlert && offlineAlert.is_active) {
+      await db.update(systemAlerts).set({
+        is_active: false,
+        resolved: true,
+        resolved_at: now,
+        severity: AlertSeverity.OK,
+        metadata: { ...offlineAlert.metadata, resolution_reason: "auto_resolved", resolved_at_timestamp: now.toISOString() }
+      }).where(eq10(systemAlerts.id, offlineAlert.id));
+      console.log(`Resolved Offline alert for ${deviceHostname} as it is now online.`);
+    }
+  }
+  if (deviceData.usb_devices && Array.isArray(deviceData.usb_devices) && deviceData.usb_devices.length > 0) {
+    const usbAlertKey = "security_USB Device Detected";
+    const existingUSBAlert = existingAlertMap.get(usbAlertKey);
+    if (!existingUSBAlert) {
+      const usbAlertData = AlertUtils.createUSBAlert(deviceId, deviceData.usb_devices);
+      alertsToCreate.push({
+        id: uuidv4(),
+        device_id: deviceId,
+        type: usbAlertData.category,
+        severity: usbAlertData.severity,
+        title: "USB Device Detected",
+        message: usbAlertData.message,
+        timestamp: now,
+        acknowledged: false,
+        resolved: false,
+        metadata: usbAlertData.metadata
+      });
+      console.log(`Created USB Device alert for ${deviceHostname} with ${deviceData.usb_devices.length} devices.`);
+    }
+  }
+  console.log(`=== RESOURCE SUMMARY FOR DEVICE ${deviceHostname} (${deviceId}) ===`);
+  const cpuVal = cpuUsage !== void 0 ? `${cpuUsage.toFixed(1)}%` : "N/A";
+  const memVal = memoryUsage !== void 0 ? `${memoryUsage.toFixed(1)}%` : "N/A";
+  const diskVals = disks?.map((d) => `${d.device || "Unknown"}: ${d.usage?.percentage ?? d.usage_percentage ?? "N/A"}%`).join(", ") || "N/A";
+  console.log(`CPU: ${cpuVal} (Thresholds: W:${thresholds.cpu.warning}%, H:${thresholds.cpu.high}%, C:${thresholds.cpu.critical}%)`);
+  console.log(`Memory: ${memVal} (Thresholds: W:${thresholds.memory.warning}%, H:${thresholds.memory.high}%, C:${thresholds.memory.critical}%)`);
+  console.log(`Disk: ${diskVals} (Thresholds: W:${thresholds.disk.warning}%, H:${thresholds.disk.high}%, C:${thresholds.disk.critical}%)`);
+  console.log(`Existing active alerts: ${existingAlerts.length}`);
+  console.log(`New alerts to create: ${alertsToCreate.length}`);
+  await resolveImprovedAlerts(deviceData, existingAlerts);
+  for (const alert of alertsToCreate) {
+    try {
+      const correlation = await AlertCorrelationEngine.findCorrelatedAlerts(alert);
+      if (correlation) {
+        console.log(`Found correlation for alert ${alert.title}: ${correlation.correlatedAlerts.length} related alerts`);
+        alert.metadata = {
+          ...alert.metadata,
+          correlation_id: correlation.id,
+          correlation_score: correlation.correlationScore,
+          impact_level: correlation.impactLevel,
+          affected_services: correlation.affectedServices
+        };
+        if (correlation.correlationScore > 0.8) {
+          await AlertCorrelationEngine.suppressDuplicateAlerts(correlation.correlatedAlerts);
+        }
+      }
+    } catch (correlationError) {
+      console.error("Correlation processing error:", correlationError);
+      AlertHealthMonitor.recordError(`Correlation error: ${correlationError.message}`);
+    }
+  }
+  const processingTime = Date.now() - processingStart;
+  AlertHealthMonitor.recordProcessingTime(processingTime);
+  AlertHealthMonitor.performMaintenance();
+  console.log(`=== FINAL ALERT GENERATION FOR DEVICE ${deviceHostname} (${deviceId}) ===`);
+  console.log(`Processing completed in ${processingTime}ms`);
+  return alertsToCreate;
+}
+function checkRateLimit(deviceId) {
+  const now = Date.now();
+  const rateData = alertRateLimit.get(deviceId);
+  if (!rateData || now - rateData.lastReset > RATE_LIMIT_WINDOW) {
+    alertRateLimit.set(deviceId, { count: 0, lastReset: now });
+    return true;
+  }
+  return rateData.count < MAX_ALERTS_PER_MINUTE;
+}
+function incrementRateLimit(deviceId) {
+  const rateData = alertRateLimit.get(deviceId);
+  if (rateData) {
+    rateData.count++;
+  }
+}
+async function processBatchAlerts(devicesData) {
+  const results = { processed: 0, created: 0, errors: [] };
+  const batchSize = 5;
+  for (let i = 0; i < devicesData.length; i += batchSize) {
+    const batch = devicesData.slice(i, i + batchSize);
+    const batchPromises = batch.map((deviceData) => processAlertsForDevice(deviceData));
+    try {
+      const batchResults = await Promise.allSettled(batchPromises);
+      batchResults.forEach((result, index) => {
+        results.processed++;
+        if (result.status === "fulfilled") {
+          results.created += result.value.length;
+        } else {
+          const deviceId = batch[index]?.id || "unknown";
+          results.errors.push(`Device ${deviceId}: ${result.reason}`);
+          console.error(`Batch processing error for device ${deviceId}:`, result.reason);
+        }
+      });
+    } catch (error) {
+      results.errors.push(`Batch processing error: ${error.message}`);
+      console.error("Critical batch processing error:", error);
+    }
+  }
+  console.log(`Batch processing complete: ${results.processed} processed, ${results.created} alerts created, ${results.errors.length} errors`);
+  return results;
+}
+async function processAlertsForDevice(deviceData) {
+  const correlationId = `${deviceData.id}_${Date.now()}`;
+  try {
+    if (!checkRateLimit(deviceData.id)) {
+      console.warn(`Rate limit exceeded for device ${deviceData.id}`);
+      return [];
+    }
+    console.log(`[${correlationId}] Alert processing start for device: ${deviceData.hostname || deviceData.id}`);
+    if (!deviceData.id) {
+      throw new Error("Device ID is required");
+    }
+    const alerts2 = await generateSystemAlerts(deviceData);
+    if (alerts2.length > 0) {
+      incrementRateLimit(deviceData.id);
+      const alertsToInsert = alerts2.map((alert) => ({
+        id: uuidv4(),
+        device_id: alert.device_id,
+        category: alert.type,
+        severity: alert.severity,
+        message: alert.message,
+        metadata: {
+          ...alert.metadata,
+          correlation_id: correlationId,
+          processing_time: Date.now()
+        },
+        is_active: true,
+        created_at: /* @__PURE__ */ new Date(),
+        updated_at: /* @__PURE__ */ new Date(),
+        resolved: false,
+        acknowledged: false
+      }));
+      try {
+        await db.insert(systemAlerts).values(alertsToInsert);
+        console.log(`[${correlationId}] Successfully created ${alerts2.length} alerts in batch`);
+      } catch (dbError) {
+        console.error(`[${correlationId}] Database error:`, dbError);
+        throw new Error(`Failed to insert alerts: ${dbError.message}`);
+      }
+    }
+    console.log(`[${correlationId}] Processing complete: ${alerts2.length} alerts created`);
+    return alerts2;
+  } catch (error) {
+    console.error(`[${correlationId}] Alert processing error:`, error);
+    throw error;
+  }
+}
+var AlertSeverity, AlertUtils, alertRateLimit, RATE_LIMIT_WINDOW, MAX_ALERTS_PER_MINUTE;
+var init_alerts = __esm({
+  "server/utils/alerts.ts"() {
+    "use strict";
+    init_db();
+    init_schema();
+    init_system_config();
+    init_alert_correlation();
+    init_alert_health_monitor();
+    AlertSeverity = {
+      WARNING: "warning",
+      HIGH: "high",
+      CRITICAL: "critical",
+      INFO: "info",
+      OK: "ok"
+    };
+    AlertUtils = class {
+      /**
+       * Create alert with standardized metadata
+       */
+      static createAlertData(deviceId, category, severity, message, metadata = {}) {
+        return {
+          device_id: deviceId,
+          category,
+          severity,
+          message,
+          metadata: {
+            ...metadata,
+            created_at: (/* @__PURE__ */ new Date()).toISOString(),
+            source: "system"
+          },
+          is_active: true,
+          triggered_at: /* @__PURE__ */ new Date()
+        };
+      }
+      /**
+       * Determine alert severity based on metric value and thresholds
+       */
+      static determineSeverity(value, thresholds) {
+        if (value >= thresholds.critical) return AlertSeverity.CRITICAL;
+        if (value >= thresholds.high) return AlertSeverity.HIGH;
+        if (value >= thresholds.warning) return AlertSeverity.WARNING;
+        return AlertSeverity.OK;
+      }
+      /**
+       * Build performance alert message
+       */
+      static buildPerformanceMessage(metric, value, severity) {
+        const metricDisplayNames = {
+          cpu: "CPU",
+          memory: "Memory",
+          disk: "Disk",
+          network: "Network Bandwidth"
+        };
+        const metricName = metricDisplayNames[metric] || metric;
+        const valueStr = typeof value === "number" ? value.toFixed(1) : String(value);
+        const severityMessages = {
+          [AlertSeverity.CRITICAL]: `Critical ${metricName} usage: ${valueStr}${metric === "network" ? "bps" : "%"}. Immediate attention required.`,
+          [AlertSeverity.HIGH]: `High ${metricName} usage: ${valueStr}${metric === "network" ? "bps" : "%"}. Performance degraded.`,
+          [AlertSeverity.WARNING]: `${metricName} usage elevated: ${valueStr}${metric === "network" ? "bps" : "%"}. Monitor closely.`
+        };
+        return severityMessages[severity] || `${metricName} usage: ${valueStr}${metric === "network" ? "bps" : "%"}`;
+      }
+      /**
+       * Check if alert should be updated based on value change or time elapsed
+       */
+      static shouldUpdateAlert(existingAlert, newValue, newSeverity, metric, updateThresholdMinutes = 30) {
+        const allThresholds = systemConfig.getAlertThresholds();
+        const thresholds = allThresholds[metric];
+        if (!thresholds) return false;
+        const lastValue = existingAlert.metadata?.[metric + "_usage"] || 0;
+        const valueChange = Math.abs(newValue - lastValue);
+        const timeSinceLastUpdate = (/* @__PURE__ */ new Date()).getTime() - new Date(existingAlert.metadata?.last_updated || existingAlert.triggered_at).getTime();
+        const minutesSinceUpdate = timeSinceLastUpdate / (1e3 * 60);
+        return existingAlert.severity !== newSeverity || valueChange > thresholds.warning * 0.1 || // Example: update if change is more than 10% of warning threshold
+        minutesSinceUpdate > updateThresholdMinutes;
+      }
+      /**
+       * Build alert update metadata
+       */
+      static buildUpdateMetadata(existingMetadata, metric, value, severity, existingAlert) {
+        try {
+          if (!metric || typeof metric !== "string") {
+            throw new Error("Invalid metric provided");
+          }
+          if (typeof value !== "number" || isNaN(value)) {
+            throw new Error("Invalid value provided");
+          }
+          const allThresholds = systemConfig.getAlertThresholds();
+          const thresholds = allThresholds[metric];
+          if (!thresholds) {
+            console.warn(`No thresholds found for metric: ${metric}`);
+          }
+          const threshold = thresholds ? thresholds[severity] : void 0;
+          const previousValue = existingMetadata?.[metric + "_usage"] || 0;
+          const valueChange = typeof value === "number" && typeof previousValue === "number" ? Math.abs(value - previousValue).toFixed(1) : "N/A";
+          let updateReason = "periodic_update";
+          if (existingAlert && existingAlert.severity !== severity) {
+            updateReason = "severity_change";
+          } else if (parseFloat(valueChange) > (thresholds?.warning * 0.1 || 3)) {
+            updateReason = "significant_change";
+          }
+          return {
+            ...existingMetadata,
+            [metric + "_usage"]: value,
+            metric,
+            last_updated: (/* @__PURE__ */ new Date()).toISOString(),
+            previous_value: previousValue,
+            value_change: valueChange,
+            update_reason: updateReason,
+            error_count: 0
+            // Reset error count on successful update
+          };
+        } catch (error) {
+          console.error("Error building update metadata:", error);
+          return {
+            ...existingMetadata,
+            error_count: (existingMetadata?.error_count || 0) + 1,
+            last_error: error.message,
+            last_error_time: (/* @__PURE__ */ new Date()).toISOString()
+          };
+        }
+      }
+      /**
+       * Create USB device alert data
+       */
+      static createUSBAlert(deviceId, usbDevices) {
+        const message = `USB device(s) detected - ${usbDevices.length} device(s) connected`;
+        return this.createAlertData(
+          deviceId,
+          "security",
+          AlertSeverity.INFO,
+          message,
+          {
+            usb_count: usbDevices.length,
+            devices: usbDevices.slice(0, 3),
+            // First 3 devices for reference
+            metric: "usb"
+          }
+        );
+      }
+    };
+    alertRateLimit = /* @__PURE__ */ new Map();
+    RATE_LIMIT_WINDOW = 6e4;
+    MAX_ALERTS_PER_MINUTE = 10;
   }
 });
 
@@ -6604,7 +7928,8 @@ var websocket_service_exports = {};
 __export(websocket_service_exports, {
   broadcastToAll: () => broadcastToAll,
   broadcastToChannel: () => broadcastToChannel,
-  webSocketService: () => webSocketService
+  webSocketService: () => webSocketService,
+  websocketService: () => websocketService
 });
 import WebSocket, { WebSocketServer } from "ws";
 function broadcastToChannel(channel, data) {
@@ -6613,7 +7938,7 @@ function broadcastToChannel(channel, data) {
 function broadcastToAll(data) {
   webSocketService.broadcastToAll(data);
 }
-var WebSocketService, webSocketService;
+var WebSocketService, webSocketService, websocketService;
 var init_websocket_service = __esm({
   "server/websocket-service.ts"() {
     "use strict";
@@ -6752,17 +8077,46 @@ var init_websocket_service = __esm({
             reject(new Error(`Command timeout after ${timeoutMs}ms`));
           }, timeoutMs);
           this.pendingCommands.set(requestId, { resolve, reject, timeout });
-          const message = {
-            type: "command",
-            requestId,
-            ...command
-          };
+          let message;
+          switch (command.command) {
+            case "networkScan":
+              console.log(`Forwarding networkScan command to agent ${agentId}:`, command.params);
+              if (command.params) {
+                message = {
+                  type: "command",
+                  requestId,
+                  command: "networkScan",
+                  params: {
+                    subnet: command.params.subnet,
+                    scan_type: command.params.scan_type || "ping",
+                    session_id: command.params.session_id
+                  }
+                };
+                console.log(`Sending networkScan command with params:`, message.params);
+              } else {
+                console.error(`networkScan command for agent ${agentId} requires params.`);
+                clearTimeout(timeout);
+                this.pendingCommands.delete(requestId);
+                reject(new Error("networkScan command requires params"));
+                return;
+              }
+              break;
+            // Add other command types here if needed
+            default:
+              message = {
+                type: "command",
+                requestId,
+                ...command
+              };
+              break;
+          }
           console.log(`Sending command to agent ${agentId}:`, message);
           connection.send(JSON.stringify(message));
         });
       }
     };
     webSocketService = new WebSocketService();
+    websocketService = webSocketService;
   }
 });
 
@@ -6841,19 +8195,120 @@ var init_redis_service = __esm({
   }
 });
 
+// server/routes/error-reporting-routes.ts
+var error_reporting_routes_exports = {};
+__export(error_reporting_routes_exports, {
+  default: () => error_reporting_routes_default
+});
+import express2 from "express";
+import { Pool as Pool2 } from "pg";
+var router3, error_reporting_routes_default;
+var init_error_reporting_routes = __esm({
+  "server/routes/error-reporting-routes.ts"() {
+    "use strict";
+    init_auth_middleware();
+    router3 = express2.Router();
+    router3.post("/error-reports", async (req, res) => {
+      try {
+        const {
+          errorId,
+          message,
+          stack,
+          componentStack,
+          context,
+          timestamp: timestamp7,
+          userAgent,
+          url,
+          retryCount
+        } = req.body;
+        const pool3 = new Pool2({
+          connectionString: process.env.DATABASE_URL
+        });
+        await pool3.query(`
+      INSERT INTO error_reports (
+        error_id, message, stack, component_stack, context,
+        timestamp, user_agent, url, retry_count, metadata
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      ON CONFLICT (error_id) DO UPDATE SET
+        retry_count = error_reports.retry_count + 1,
+        metadata = $10
+    `, [
+          errorId,
+          message,
+          stack,
+          componentStack,
+          context,
+          new Date(timestamp7),
+          userAgent,
+          url,
+          retryCount || 0,
+          JSON.stringify(req.body)
+        ]);
+        await pool3.end();
+        res.json({ success: true, errorId });
+      } catch (error) {
+        console.error("Error storing error report:", error);
+        res.status(500).json({ error: "Failed to store error report" });
+      }
+    });
+    router3.get("/error-reports", authenticateToken, async (req, res) => {
+      try {
+        const { limit = 50, resolved = "false" } = req.query;
+        const pool3 = new Pool2({
+          connectionString: process.env.DATABASE_URL
+        });
+        const result = await pool3.query(`
+      SELECT 
+        error_id, message, context, timestamp, retry_count,
+        resolved, resolved_at, created_at
+      FROM error_reports 
+      WHERE resolved = $1
+      ORDER BY created_at DESC 
+      LIMIT $2
+    `, [resolved === "true", parseInt(limit)]);
+        await pool3.end();
+        res.json(result.rows);
+      } catch (error) {
+        console.error("Error fetching error reports:", error);
+        res.status(500).json({ error: "Failed to fetch error reports" });
+      }
+    });
+    router3.put("/error-reports/:errorId/resolve", authenticateToken, async (req, res) => {
+      try {
+        const { errorId } = req.params;
+        const pool3 = new Pool2({
+          connectionString: process.env.DATABASE_URL
+        });
+        await pool3.query(`
+      UPDATE error_reports 
+      SET resolved = true, resolved_at = NOW()
+      WHERE error_id = $1
+    `, [errorId]);
+        await pool3.end();
+        res.json({ success: true });
+      } catch (error) {
+        console.error("Error resolving error report:", error);
+        res.status(500).json({ error: "Failed to resolve error report" });
+      }
+    });
+    error_reporting_routes_default = router3;
+  }
+});
+
 // server/routes/alert-routes.ts
 var alert_routes_exports = {};
 __export(alert_routes_exports, {
   default: () => alert_routes_default
 });
 import { Router as Router3 } from "express";
-var router3, alert_routes_default;
+var router4, alert_routes_default;
 var init_alert_routes = __esm({
   "server/routes/alert-routes.ts"() {
     "use strict";
     init_storage();
-    router3 = Router3();
-    router3.get("/", async (req, res) => {
+    init_alert_health_monitor();
+    router4 = Router3();
+    router4.get("/", async (req, res) => {
       try {
         console.log("Fetching alerts for user:", req.user?.email);
         const alerts2 = await storage.getAlerts();
@@ -6868,7 +8323,7 @@ var init_alert_routes = __esm({
         });
       }
     });
-    router3.get("/:id", async (req, res) => {
+    router4.get("/:id", async (req, res) => {
       try {
         const alertId = req.params.id;
         console.log(`Fetching alert: ${alertId}`);
@@ -6882,7 +8337,54 @@ var init_alert_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router3.post("/:id/resolve", async (req, res) => {
+    router4.post("/:id/read", async (req, res) => {
+      try {
+        const alertId = req.params.id;
+        const userId = req.user?.id || req.user?.email;
+        console.log(`User ${userId} marking alert as read: ${alertId}`);
+        if (!alertId) {
+          return res.status(400).json({
+            message: "Alert ID is required",
+            success: false
+          });
+        }
+        const alert = await storage.getAlertById(alertId);
+        if (!alert) {
+          return res.status(404).json({
+            message: "Alert not found",
+            alertId,
+            success: false
+          });
+        }
+        try {
+          await storage.markAlertAsRead(alertId, userId);
+          console.log(`Alert ${alertId} marked as read by ${userId}`);
+          res.json({
+            message: "Alert marked as read successfully",
+            alertId,
+            success: true,
+            readBy: userId,
+            readAt: (/* @__PURE__ */ new Date()).toISOString()
+          });
+        } catch (error) {
+          console.error(`Error marking alert as read ${alertId}:`, error);
+          res.status(500).json({
+            message: "Failed to mark alert as read",
+            error: error.message,
+            alertId,
+            success: false
+          });
+        }
+      } catch (error) {
+        console.error("Error in mark alert as read endpoint:", error);
+        res.status(500).json({
+          message: "Internal server error",
+          error: error.message,
+          success: false
+        });
+      }
+    });
+    router4.post("/:id/resolve", async (req, res) => {
       try {
         const alertId = req.params.id;
         const userId = req.user?.id || req.user?.email;
@@ -6948,7 +8450,19 @@ var init_alert_routes = __esm({
         });
       }
     });
-    alert_routes_default = router3;
+    router4.get("/health", async (req, res) => {
+      try {
+        const health = await AlertHealthMonitor.getSystemHealth();
+        res.json(health);
+      } catch (error) {
+        console.error("Error fetching alert system health:", error);
+        res.status(500).json({
+          message: "Error fetching system health",
+          error: error.message
+        });
+      }
+    });
+    alert_routes_default = router4;
   }
 });
 
@@ -6959,13 +8473,13 @@ __export(notification_routes_exports, {
 });
 import { Router as Router4 } from "express";
 import jwt4 from "jsonwebtoken";
-var router4, JWT_SECRET4, notification_routes_default;
+var router5, JWT_SECRET4, notification_routes_default;
 var init_notification_routes = __esm({
   "server/routes/notification-routes.ts"() {
     "use strict";
-    router4 = Router4();
+    router5 = Router4();
     JWT_SECRET4 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-    router4.get("/", async (req, res) => {
+    router5.get("/", async (req, res) => {
       try {
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -6976,9 +8490,9 @@ var init_notification_routes = __esm({
           const decoded = jwt4.verify(token, JWT_SECRET4);
           const userId = decoded.id;
           const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
-          const { desc: desc12 } = await import("drizzle-orm");
+          const { desc: desc13 } = await import("drizzle-orm");
           const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-          const ticketsList = await db5.select().from(tickets2).orderBy(desc12(tickets2.updated_at));
+          const ticketsList = await db5.select().from(tickets2).orderBy(desc13(tickets2.updated_at));
           const userTickets = ticketsList.filter(
             (ticket) => ticket.assigned_to === userId || ticket.requester_email === decoded.email
           );
@@ -7004,7 +8518,7 @@ var init_notification_routes = __esm({
         res.json([]);
       }
     });
-    router4.post("/:id/read", async (req, res) => {
+    router5.post("/:id/read", async (req, res) => {
       try {
         const notificationId = req.params.id;
         res.json({ message: "Notification marked as read" });
@@ -7013,7 +8527,7 @@ var init_notification_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router4.post("/mark-all-read", async (req, res) => {
+    router5.post("/mark-all-read", async (req, res) => {
       try {
         const userId = req.user.id;
         console.log(`Marking all notifications as read for user: ${userId}`);
@@ -7028,7 +8542,7 @@ var init_notification_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router4.delete("/:id", async (req, res) => {
+    router5.delete("/:id", async (req, res) => {
       try {
         const notificationId = req.params.id;
         res.json({ message: "Notification deleted" });
@@ -7037,7 +8551,7 @@ var init_notification_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    notification_routes_default = router4;
+    notification_routes_default = router5;
   }
 });
 
@@ -7242,13 +8756,13 @@ __export(automation_routes_exports, {
   default: () => automation_routes_default
 });
 import { Router as Router5 } from "express";
-var router5, automation_routes_default;
+var router6, automation_routes_default;
 var init_automation_routes = __esm({
   "server/routes/automation-routes.ts"() {
     "use strict";
     init_storage();
-    router5 = Router5();
-    router5.get("/software-packages", async (req, res) => {
+    router6 = Router5();
+    router6.get("/software-packages", async (req, res) => {
       try {
         const { automationService: automationService2 } = await Promise.resolve().then(() => (init_automation_service(), automation_service_exports));
         const packages = automationService2.getSoftwarePackages();
@@ -7258,7 +8772,7 @@ var init_automation_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router5.post("/deploy-software", async (req, res) => {
+    router6.post("/deploy-software", async (req, res) => {
       try {
         const { device_ids, package_id, scheduled_time } = req.body;
         if (!device_ids || !package_id) {
@@ -7282,7 +8796,7 @@ var init_automation_routes = __esm({
         res.status(500).json({ message: error.message || "Internal server error" });
       }
     });
-    router5.get("/deployment/:deploymentId", async (req, res) => {
+    router6.get("/deployment/:deploymentId", async (req, res) => {
       try {
         const { automationService: automationService2 } = await Promise.resolve().then(() => (init_automation_service(), automation_service_exports));
         const deployment = await automationService2.getDeploymentStatus(
@@ -7297,7 +8811,7 @@ var init_automation_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router5.post("/remediation/:deviceId", async (req, res) => {
+    router6.post("/remediation/:deviceId", async (req, res) => {
       try {
         const { issue_type, remediation_action } = req.body;
         const deviceId = req.params.deviceId;
@@ -7325,7 +8839,7 @@ var init_automation_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router5.get("/deployments", async (req, res) => {
+    router6.get("/deployments", async (req, res) => {
       try {
         const alerts2 = await storage.getActiveAlerts();
         const deployments = alerts2.filter(
@@ -7337,7 +8851,7 @@ var init_automation_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    automation_routes_default = router5;
+    automation_routes_default = router6;
   }
 });
 
@@ -7436,13 +8950,13 @@ For technical support, contact your system administrator.`;
       return baseInstructions;
   }
 }
-var router6, JWT_SECRET5, agent_download_routes_default;
+var router7, JWT_SECRET5, agent_download_routes_default;
 var init_agent_download_routes = __esm({
   "server/routes/agent-download-routes.ts"() {
     "use strict";
-    router6 = Router6();
+    router7 = Router6();
     JWT_SECRET5 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-    router6.get("/:platform", async (req, res) => {
+    router7.get("/:platform", async (req, res) => {
       try {
         const { platform } = req.params;
         console.log(`${platform} agent download requested - no auth required`);
@@ -7508,12 +9022,12 @@ var init_agent_download_routes = __esm({
         }
       }
     });
-    agent_download_routes_default = router6;
+    agent_download_routes_default = router7;
   }
 });
 
 // server/services/analytics-service.ts
-import { sql as sql6, desc as desc7, count as count4 } from "drizzle-orm";
+import { sql as sql6, desc as desc8, count as count5 } from "drizzle-orm";
 import {
   subDays,
   format
@@ -7571,7 +9085,7 @@ var init_analytics_service = __esm({
               totalSoftware = softwareResults.status === "fulfilled" ? softwareResults.value : 0;
               try {
                 detailedDevices = await Promise.race([
-                  db.select().from(devices).orderBy(desc7(devices.last_seen)).limit(50),
+                  db.select().from(devices).orderBy(desc8(devices.last_seen)).limit(50),
                   timeout
                 ]);
               } catch (detailError) {
@@ -7885,7 +9399,7 @@ var init_analytics_service = __esm({
           try {
             const reportLimit = isLargeDeployment ? 200 : 50;
             recentReports = await Promise.race([
-              db.select().from(device_reports).orderBy(desc7(device_reports.created_at)).limit(reportLimit),
+              db.select().from(device_reports).orderBy(desc8(device_reports.created_at)).limit(reportLimit),
               timeout
             ]);
             console.log(`Retrieved ${recentReports.length} recent reports`);
@@ -8021,19 +9535,19 @@ var init_analytics_service = __esm({
           );
           try {
             const totalUsersResult = await Promise.race([
-              db.select({ count: count4() }).from(users),
+              db.select({ count: count5() }).from(users),
               timeout
             ]);
             const totalUsers = totalUsersResult[0]?.count || 0;
             const activeUsersResult = await Promise.race([
-              db.select({ count: count4() }).from(users).where(
+              db.select({ count: count5() }).from(users).where(
                 sql6`${users.last_login} >= ${sql6.raw(`NOW() - INTERVAL '30 days'`)}`
               ),
               timeout
             ]);
             const activeUsers = activeUsersResult[0]?.count || 0;
             const usbConnectionsResult = await Promise.race([
-              db.select({ count: count4() }).from(usb_devices),
+              db.select({ count: count5() }).from(usb_devices),
               timeout
             ]);
             const usbConnections = usbConnectionsResult[0]?.count || 0;
@@ -8170,8 +9684,8 @@ var init_analytics_service = __esm({
             ["Type", "Count"]
           ];
           if (analytics.ticket_distribution?.by_type) {
-            Object.entries(analytics.ticket_distribution.by_type).forEach(([type, count6]) => {
-              analyticsData.push([type, count6]);
+            Object.entries(analytics.ticket_distribution.by_type).forEach(([type, count7]) => {
+              analyticsData.push([type, count7]);
             });
           }
           const analyticsWS = XLSX2.utils.aoa_to_sheet(analyticsData);
@@ -8606,7 +10120,7 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
       }
       async getDeviceHealthBatched(limit = 100) {
         try {
-          const recentReports = await db.select().from(device_reports).orderBy(desc7(device_reports.created_at)).limit(limit);
+          const recentReports = await db.select().from(device_reports).orderBy(desc8(device_reports.created_at)).limit(limit);
           return this.generateDeviceHealthData(recentReports);
         } catch (error) {
           console.warn("Batched device health query failed:", error);
@@ -8916,10 +10430,10 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
             spacing: { after: 100 }
           }),
           ...Object.entries(data.device_breakdown.by_os).map(
-            ([os2, count6]) => new Paragraph({
+            ([os2, count7]) => new Paragraph({
               children: [
                 new TextRun({ text: `  \u2022 ${os2}: `, size: 22 }),
-                new TextRun({ text: `${count6} devices`, bold: true, size: 22 })
+                new TextRun({ text: `${count7} devices`, bold: true, size: 22 })
               ],
               spacing: { after: 50 }
             })
@@ -8936,10 +10450,10 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
             spacing: { before: 200, after: 100 }
           }),
           ...Object.entries(data.device_breakdown.by_status).map(
-            ([status, count6]) => new Paragraph({
+            ([status, count7]) => new Paragraph({
               children: [
                 new TextRun({ text: `  \u2022 ${status}: `, size: 22 }),
-                new TextRun({ text: `${count6} devices`, bold: true, size: 22 })
+                new TextRun({ text: `${count7} devices`, bold: true, size: 22 })
               ],
               spacing: { after: 50 }
             })
@@ -9235,8 +10749,8 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
 `;
         csv += "DEVICE BREAKDOWN BY OS\n";
         csv += "Operating System,Count\n";
-        Object.entries(data.device_breakdown.by_os).forEach(([os2, count6]) => {
-          csv += `${os2},${count6}
+        Object.entries(data.device_breakdown.by_os).forEach(([os2, count7]) => {
+          csv += `${os2},${count7}
 `;
         });
         return csv;
@@ -9383,8 +10897,8 @@ ${csvData}`;
         content += "DEVICE BREAKDOWN\n";
         content += "-".repeat(20) + "\n";
         content += "By Operating System:\n";
-        Object.entries(data.device_breakdown.by_os).forEach(([os2, count6]) => {
-          content += `  \u2022 ${os2}: ${count6} devices
+        Object.entries(data.device_breakdown.by_os).forEach(([os2, count7]) => {
+          content += `  \u2022 ${os2}: ${count7} devices
 `;
         });
         return content;
@@ -9505,8 +11019,8 @@ ${csvData}`;
         if (data.by_os) {
           content += "DEVICES BY OPERATING SYSTEM\n";
           content += "-".repeat(25) + "\n";
-          Object.entries(data.by_os).forEach(([os2, count6]) => {
-            content += `  ${os2}: ${count6} devices
+          Object.entries(data.by_os).forEach(([os2, count7]) => {
+            content += `  ${os2}: ${count7} devices
 `;
           });
           content += "\n";
@@ -9514,8 +11028,8 @@ ${csvData}`;
         if (data.by_status) {
           content += "DEVICES BY STATUS\n";
           content += "-".repeat(25) + "\n";
-          Object.entries(data.by_status).forEach(([status, count6]) => {
-            content += `  ${status}: ${count6} devices
+          Object.entries(data.by_status).forEach(([status, count7]) => {
+            content += `  ${status}: ${count7} devices
 `;
           });
           content += "\n";
@@ -9937,10 +11451,10 @@ ${csvData}`;
         sheet.getCell(`A${startRow}`).font = { name: "Arial", size: 12, bold: true };
         startRow++;
         if (distribution.by_priority) {
-          Object.entries(distribution.by_priority).forEach(([priority, count6], index) => {
+          Object.entries(distribution.by_priority).forEach(([priority, count7], index) => {
             const row = startRow + index;
             sheet.getCell(`B${row}`).value = priority.charAt(0).toUpperCase() + priority.slice(1);
-            sheet.getCell(`C${row}`).value = count6;
+            sheet.getCell(`C${row}`).value = count7;
             sheet.getCell(`C${row}`).numFmt = "0";
           });
           startRow += Object.keys(distribution.by_priority).length + 1;
@@ -9949,10 +11463,10 @@ ${csvData}`;
           sheet.getCell(`A${startRow}`).value = "By Type:";
           sheet.getCell(`A${startRow}`).font = { name: "Arial", size: 12, bold: true };
           startRow++;
-          Object.entries(distribution.by_type).forEach(([type, count6], index) => {
+          Object.entries(distribution.by_type).forEach(([type, count7], index) => {
             const row = startRow + index;
             sheet.getCell(`B${row}`).value = type.charAt(0).toUpperCase() + type.slice(1);
-            sheet.getCell(`C${row}`).value = count6;
+            sheet.getCell(`C${row}`).value = count7;
             sheet.getCell(`C${row}`).numFmt = "0";
           });
         }
@@ -10176,7 +11690,7 @@ ${csvData}`;
       }
       generateValidPDF(textContent, reportType) {
         const title = this.getReportTitle(reportType);
-        const timestamp6 = format(/* @__PURE__ */ new Date(), "PPpp");
+        const timestamp7 = format(/* @__PURE__ */ new Date(), "PPpp");
         const reportDate = format(/* @__PURE__ */ new Date(), "MMMM dd, yyyy");
         let streamContent = `BT
 `;
@@ -10197,7 +11711,7 @@ ${csvData}`;
 (Report Date: ${reportDate}) Tj
 `;
         streamContent += `0 -15 Td
-(Generated: ${timestamp6}) Tj
+(Generated: ${timestamp7}) Tj
 `;
         streamContent += `0 -15 Td
 (Classification: Internal Use Only) Tj
@@ -10418,8 +11932,8 @@ ${xrefPos}
         content += `Software Packages: ${data.software_inventory.total_installed}\\par`;
         content += `\\par`;
         content += `{\\b DEVICE BREAKDOWN}\\par`;
-        Object.entries(data.device_breakdown.by_os).forEach(([os2, count6]) => {
-          content += `${os2}: ${count6} devices\\par`;
+        Object.entries(data.device_breakdown.by_os).forEach(([os2, count7]) => {
+          content += `${os2}: ${count7} devices\\par`;
         });
         return content;
       }
@@ -11069,7 +12583,7 @@ var init_performance_service = __esm({
 });
 
 // server/services/device-storage.ts
-import { eq as eq9, ilike as ilike2, and as and9, or as or7 } from "drizzle-orm";
+import { eq as eq13, ilike as ilike2, and as and12, or as or7 } from "drizzle-orm";
 var DeviceStorage, deviceStorage;
 var init_device_storage = __esm({
   "server/services/device-storage.ts"() {
@@ -11082,7 +12596,7 @@ var init_device_storage = __esm({
           let query = db.select().from(devices);
           const conditions = [];
           if (filters.status && filters.status !== "all") {
-            conditions.push(eq9(devices.status, filters.status));
+            conditions.push(eq13(devices.status, filters.status));
           }
           if (filters.search && filters.search.trim() !== "") {
             const searchTerm = `%${filters.search.trim()}%`;
@@ -11095,7 +12609,7 @@ var init_device_storage = __esm({
             );
           }
           if (conditions.length > 0) {
-            query = query.where(and9(...conditions));
+            query = query.where(and12(...conditions));
           }
           const result = await query;
           return result.map((device) => {
@@ -11123,7 +12637,7 @@ var init_device_storage = __esm({
       }
       async getDeviceById(id) {
         try {
-          const result = await db.select().from(devices).where(eq9(devices.id, id));
+          const result = await db.select().from(devices).where(eq13(devices.id, id));
           if (result.length === 0) {
             return null;
           }
@@ -11372,8 +12886,8 @@ __export(analytics_routes_exports, {
   default: () => analytics_routes_default
 });
 import { Router as Router7 } from "express";
-import { sql as sql8, desc as desc8 } from "drizzle-orm";
-var router7, authenticateToken2, analytics_routes_default;
+import { sql as sql8, desc as desc9 } from "drizzle-orm";
+var router8, authenticateToken2, analytics_routes_default;
 var init_analytics_routes = __esm({
   "server/routes/analytics-routes.ts"() {
     "use strict";
@@ -11386,7 +12900,7 @@ var init_analytics_routes = __esm({
     init_db();
     init_schema();
     init_ticket_schema();
-    router7 = Router7();
+    router8 = Router7();
     authenticateToken2 = async (req, res, next) => {
       const authHeader = req.headers["authorization"];
       const token = AuthUtils.extractTokenFromHeader(authHeader || "");
@@ -11410,7 +12924,7 @@ var init_analytics_routes = __esm({
         return ResponseUtils.forbidden(res, "Invalid token");
       }
     };
-    router7.get("/performance", authenticateToken2, async (req, res) => {
+    router8.get("/performance", authenticateToken2, async (req, res) => {
       try {
         const { timeRange = "7d" } = req.query;
         console.log(`Generating performance report for timeRange: ${timeRange}`);
@@ -11442,7 +12956,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router7.get("/availability", authenticateToken2, async (req, res) => {
+    router8.get("/availability", authenticateToken2, async (req, res) => {
       try {
         const { timeRange = "7d" } = req.query;
         console.log(`Generating availability report for timeRange: ${timeRange}`);
@@ -11474,7 +12988,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router7.get("/inventory", async (req, res) => {
+    router8.get("/inventory", async (req, res) => {
       try {
         console.log("Generating system inventory report");
         const data = await analyticsService.generateSystemInventory();
@@ -11503,7 +13017,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router7.get("/asset-inventory", async (req, res) => {
+    router8.get("/asset-inventory", async (req, res) => {
       try {
         console.log("Generating comprehensive asset inventory report");
         const data = await analyticsService.generateAssetInventoryReport();
@@ -11532,7 +13046,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router7.get("/ticket-analytics", async (req, res) => {
+    router8.get("/ticket-analytics", async (req, res) => {
       try {
         const { timeRange = "30d" } = req.query;
         console.log(`Generating ticket analytics report for ${timeRange}`);
@@ -11564,7 +13078,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router7.get("/system-health", async (req, res) => {
+    router8.get("/system-health", async (req, res) => {
       try {
         console.log("Generating comprehensive system health report");
         const data = await analyticsService.generateSystemHealthReport();
@@ -11593,7 +13107,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router7.get("/security-compliance", async (req, res) => {
+    router8.get("/security-compliance", async (req, res) => {
       try {
         console.log("Generating comprehensive security compliance report");
         const data = await analyticsService.generateSecurityComplianceReport();
@@ -11622,7 +13136,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router7.post("/generate", async (req, res) => {
+    router8.post("/generate", async (req, res) => {
       req.setTimeout(45e3);
       try {
         const { reportType, timeRange = "7d", format: format2 = "docx" } = req.body;
@@ -11761,7 +13275,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router7.get("/realtime", async (req, res) => {
+    router8.get("/realtime", async (req, res) => {
       req.setTimeout(2e3);
       try {
         console.log("Fetching real-time performance metrics...");
@@ -11789,7 +13303,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router7.get("/trends", async (req, res) => {
+    router8.get("/trends", async (req, res) => {
       try {
         const { metric = "cpu", timeRange = "7d" } = req.query;
         console.log(`Generating trend analysis for ${metric} over ${timeRange}`);
@@ -11809,7 +13323,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router7.get("/capacity", async (req, res) => {
+    router8.get("/capacity", async (req, res) => {
       try {
         console.log("Generating capacity planning recommendations...");
         const recommendations = await analyticsService.getCapacityRecommendations();
@@ -11825,7 +13339,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router7.get("/recent", async (req, res) => {
+    router8.get("/recent", async (req, res) => {
       req.setTimeout(5e3);
       try {
         console.log("Fetching recent reports from database...");
@@ -11876,7 +13390,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router7.get("/report/:id", async (req, res) => {
+    router8.get("/report/:id", async (req, res) => {
       try {
         const { id } = req.params;
         console.log(`Fetching report with ID: ${id}`);
@@ -11899,7 +13413,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router7.post("/comprehensive", async (req, res) => {
+    router8.post("/comprehensive", async (req, res) => {
       req.setTimeout(2e4);
       try {
         const {
@@ -12006,7 +13520,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router7.post("/enterprise-scale", async (req, res) => {
+    router8.post("/enterprise-scale", async (req, res) => {
       req.setTimeout(12e4);
       try {
         const {
@@ -12124,7 +13638,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router7.delete("/report/:id", async (req, res) => {
+    router8.delete("/report/:id", async (req, res) => {
       try {
         const { id } = req.params;
         console.log(`Deleting report with ID: ${id}`);
@@ -12147,7 +13661,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router7.post("/export-pdf", async (req, res) => {
+    router8.post("/export-pdf", async (req, res) => {
       try {
         const reportData = req.body;
         const htmlContent = `
@@ -12262,7 +13776,7 @@ var init_analytics_routes = __esm({
         res.status(500).json({ message: "Failed to generate PDF report" });
       }
     });
-    router7.get(
+    router8.get(
       "/performance/insights/:deviceId",
       authenticateToken2,
       async (req, res) => {
@@ -12280,7 +13794,7 @@ var init_analytics_routes = __esm({
         }
       }
     );
-    router7.get(
+    router8.get(
       "/performance/predictions/:deviceId",
       authenticateToken2,
       async (req, res) => {
@@ -12298,7 +13812,7 @@ var init_analytics_routes = __esm({
         }
       }
     );
-    router7.get("/performance/overview", async (req, res) => {
+    router8.get("/performance/overview", async (req, res) => {
       try {
         const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
         const devices2 = await storage3.getDevices();
@@ -12341,7 +13855,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router7.get("/performance/trends", async (req, res) => {
+    router8.get("/performance/trends", async (req, res) => {
       try {
         const { timeRange = "24h" } = req.query;
         const trends = {
@@ -12363,7 +13877,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router7.get("/health", async (req, res) => {
+    router8.get("/health", async (req, res) => {
       res.json({
         status: "ok",
         service: "analytics",
@@ -12376,14 +13890,14 @@ var init_analytics_routes = __esm({
         ]
       });
     });
-    router7.get("/test", async (req, res) => {
+    router8.get("/test", async (req, res) => {
       res.json({
         success: true,
         message: "Analytics routes are working",
         timestamp: (/* @__PURE__ */ new Date()).toISOString()
       });
     });
-    router7.get("/device/:deviceId/advanced", async (req, res) => {
+    router8.get("/device/:deviceId/advanced", async (req, res) => {
       try {
         const deviceId = req.params.deviceId;
         console.log(`Getting advanced analytics for device: ${deviceId}`);
@@ -12518,7 +14032,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router7.get("/performance/insights/:deviceId", async (req, res) => {
+    router8.get("/performance/insights/:deviceId", async (req, res) => {
       try {
         const deviceId = req.params.deviceId;
         console.log(`Getting performance insights for device: ${deviceId}`);
@@ -12532,7 +14046,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router7.get("/service-desk-report", async (req, res) => {
+    router8.get("/service-desk-report", async (req, res) => {
       try {
         const format2 = req.query.format || "json";
         const timeRange = req.query.timeRange || "30d";
@@ -12548,7 +14062,7 @@ var init_analytics_routes = __esm({
           `Generating Service Desk report in ${format2} format with filters:`,
           filters
         );
-        const ticketsQuery = db.select().from(tickets).orderBy(desc8(tickets.created_at)).limit(1e3);
+        const ticketsQuery = db.select().from(tickets).orderBy(desc9(tickets.created_at)).limit(1e3);
         let ticketsData = await ticketsQuery;
         if (filters.type && filters.type !== "all") {
           ticketsData = ticketsData.filter(
@@ -12663,7 +14177,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router7.get("/agents-detailed-report", async (req, res) => {
+    router8.get("/agents-detailed-report", async (req, res) => {
       try {
         const format2 = req.query.format || "json";
         const filters = {
@@ -12783,7 +14297,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router7.get("/tickets/metrics", async (req, res) => {
+    router8.get("/tickets/metrics", async (req, res) => {
       try {
         console.log("Analytics API - Fetching ticket metrics");
         const metrics = {
@@ -12816,7 +14330,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router7.get("/devices/health", async (req, res) => {
+    router8.get("/devices/health", async (req, res) => {
       try {
         const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
         const result = await db5.query(`
@@ -12839,7 +14353,7 @@ var init_analytics_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router7.get("/overview", async (req, res) => {
+    router8.get("/overview", async (req, res) => {
       try {
         const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
         const deviceResult = await db5.query(`
@@ -12899,7 +14413,7 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    router7.get("/devices", async (req, res) => {
+    router8.get("/devices", async (req, res) => {
       try {
         const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
         const devicesResult = await db5.query(`
@@ -12948,33 +14462,33 @@ var init_analytics_routes = __esm({
         });
       }
     });
-    analytics_routes_default = router7;
+    analytics_routes_default = router8;
   }
 });
 
 // server/routes/user-routes.ts
 var user_routes_exports = {};
 __export(user_routes_exports, {
-  userRoutes: () => router8
+  userRoutes: () => router9
 });
 import { Router as Router8 } from "express";
 import bcrypt2 from "bcrypt";
 import multer from "multer";
 import * as XLSX from "xlsx";
-var router8, upload;
+var router9, upload;
 var init_user_routes = __esm({
   "server/routes/user-routes.ts"() {
     "use strict";
     init_db();
     init_storage();
     init_auth_middleware();
-    router8 = Router8();
+    router9 = Router8();
     upload = multer({
       storage: multer.memoryStorage(),
       limits: { fileSize: 5 * 1024 * 124 }
       // 5MB limit
     });
-    router8.post("/import-end-users", upload.single("file"), async (req, res) => {
+    router9.post("/import-end-users", upload.single("file"), async (req, res) => {
       try {
         if (!req.file) {
           return res.status(400).json({ message: "No file uploaded" });
@@ -13099,7 +14613,7 @@ var init_user_routes = __esm({
         });
       }
     });
-    router8.get("/stats", async (req, res) => {
+    router9.get("/stats", async (req, res) => {
       try {
         const result = await pool.query(`
       SELECT 
@@ -13115,7 +14629,7 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router8.get("/", async (req, res) => {
+    router9.get("/", async (req, res) => {
       try {
         const { search, role, department, status, page = 1, limit = 50, sync_source } = req.query;
         console.log("GET /api/users - Enhanced query with filters:", { search, role, department, status, sync_source });
@@ -13264,7 +14778,7 @@ var init_user_routes = __esm({
         });
       }
     });
-    router8.get("/departments", async (req, res) => {
+    router9.get("/departments", async (req, res) => {
       try {
         const result = await pool.query(`
       SELECT DISTINCT department 
@@ -13279,7 +14793,7 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to fetch departments" });
       }
     });
-    router8.post("/bulk-ad-sync", async (req, res) => {
+    router9.post("/bulk-ad-sync", async (req, res) => {
       try {
         const { userEmails } = req.body;
         if (!userEmails || !Array.isArray(userEmails)) {
@@ -13318,7 +14832,7 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to perform bulk AD sync" });
       }
     });
-    router8.get("/:id", async (req, res) => {
+    router9.get("/:id", async (req, res) => {
       try {
         const result = await pool.query(`
       SELECT 
@@ -13339,7 +14853,7 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to fetch user" });
       }
     });
-    router8.post("/", async (req, res) => {
+    router9.post("/", async (req, res) => {
       try {
         const { email, name, first_name, last_name, role, password, department, phone } = req.body;
         if (!email || !name && !first_name) {
@@ -13403,7 +14917,7 @@ var init_user_routes = __esm({
         });
       }
     });
-    router8.put("/:id", async (req, res) => {
+    router9.put("/:id", async (req, res) => {
       try {
         console.log("PUT /api/users/:id - Updating user:", req.params.id);
         console.log("Request body:", req.body);
@@ -13491,7 +15005,7 @@ var init_user_routes = __esm({
         });
       }
     });
-    router8.delete("/:id", async (req, res) => {
+    router9.delete("/:id", async (req, res) => {
       try {
         const result = await pool.query(`
       UPDATE users 
@@ -13532,7 +15046,7 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to delete user" });
       }
     });
-    router8.post("/:id/lock", async (req, res) => {
+    router9.post("/:id/lock", async (req, res) => {
       try {
         const { reason } = req.body;
         const userId = req.params.id;
@@ -13591,7 +15105,7 @@ var init_user_routes = __esm({
         });
       }
     });
-    router8.post("/:id/unlock", async (req, res) => {
+    router9.post("/:id/unlock", async (req, res) => {
       try {
         const userId = req.params.id;
         console.log(`Attempting to unlock user ${userId}`);
@@ -13649,7 +15163,7 @@ var init_user_routes = __esm({
         });
       }
     });
-    router8.post("/change-password", async (req, res) => {
+    router9.post("/change-password", async (req, res) => {
       try {
         const { currentPassword, newPassword } = req.body;
         const authHeader = req.headers.authorization;
@@ -13692,7 +15206,7 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to change password" });
       }
     });
-    router8.post("/:id/lock", authenticateToken, async (req, res) => {
+    router9.post("/:id/lock", authenticateToken, async (req, res) => {
       try {
         const { id } = req.params;
         const { reason } = req.body;
@@ -13713,7 +15227,7 @@ var init_user_routes = __esm({
         res.status(500).json({ message: "Failed to lock user" });
       }
     });
-    router8.post("/:id/unlock", authenticateToken, async (req, res) => {
+    router9.post("/:id/unlock", authenticateToken, async (req, res) => {
       try {
         const { id } = req.params;
         const success = await storage.unlockUser(id);
@@ -13736,12 +15250,12 @@ var init_user_routes = __esm({
 // server/routes/knowledge-routes.ts
 var knowledge_routes_exports = {};
 __export(knowledge_routes_exports, {
-  knowledgeRoutes: () => router9
+  knowledgeRoutes: () => router10
 });
 import { Router as Router9 } from "express";
-import { eq as eq10, and as and10, or as or8, sql as sql9, desc as desc9, ilike as ilike3, count as count5, like as like5 } from "drizzle-orm";
+import { eq as eq14, and as and13, or as or8, sql as sql9, desc as desc10, ilike as ilike3, count as count6, like as like5 } from "drizzle-orm";
 import jwt6 from "jsonwebtoken";
-var router9, storage2, authenticateToken3;
+var router10, storage2, authenticateToken3;
 var init_knowledge_routes = __esm({
   "server/routes/knowledge-routes.ts"() {
     "use strict";
@@ -13749,7 +15263,7 @@ var init_knowledge_routes = __esm({
     init_ticket_schema();
     init_ticket_storage();
     init_knowledge_ai_service();
-    router9 = Router9();
+    router10 = Router9();
     storage2 = new TicketStorage();
     authenticateToken3 = (req, res, next) => {
       const authHeader = req.headers["authorization"];
@@ -13768,7 +15282,7 @@ var init_knowledge_routes = __esm({
         next();
       });
     };
-    router9.get("/", authenticateToken3, async (req, res) => {
+    router10.get("/", authenticateToken3, async (req, res) => {
       try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
@@ -13779,9 +15293,9 @@ var init_knowledge_routes = __esm({
         };
         console.log("KB Search filters:", filters);
         const conditions = [];
-        conditions.push(eq10(knowledgeBase.status, filters.status));
+        conditions.push(eq14(knowledgeBase.status, filters.status));
         if (filters.category && filters.category !== "all" && filters.category !== void 0) {
-          conditions.push(eq10(knowledgeBase.category, filters.category));
+          conditions.push(eq14(knowledgeBase.category, filters.category));
         }
         if (filters.search && filters.search.trim() !== "") {
           const searchTerm = `%${filters.search.toLowerCase()}%`;
@@ -13797,9 +15311,9 @@ var init_knowledge_routes = __esm({
             console.warn("Search filter error:", searchError);
           }
         }
-        const whereClause = conditions.length > 0 ? and10(...conditions) : void 0;
-        const [{ total }] = await db.select({ total: count5() }).from(knowledgeBase).where(whereClause);
-        const articles = await db.select().from(knowledgeBase).where(whereClause).orderBy(desc9(knowledgeBase.helpful_votes), desc9(knowledgeBase.views), desc9(knowledgeBase.created_at)).limit(limit).offset((page - 1) * limit);
+        const whereClause = conditions.length > 0 ? and13(...conditions) : void 0;
+        const [{ total }] = await db.select({ total: count6() }).from(knowledgeBase).where(whereClause);
+        const articles = await db.select().from(knowledgeBase).where(whereClause).orderBy(desc10(knowledgeBase.helpful_votes), desc10(knowledgeBase.views), desc10(knowledgeBase.created_at)).limit(limit).offset((page - 1) * limit);
         console.log(`Found ${articles.length} articles in database (total: ${total})`);
         const response = {
           data: articles,
@@ -13819,7 +15333,7 @@ var init_knowledge_routes = __esm({
         });
       }
     });
-    router9.get("/related", async (req, res) => {
+    router10.get("/related", async (req, res) => {
       try {
         const { tags, category, limit = "5", header, title } = req.query;
         console.log("Related articles request:", { tags, category, limit, header, title });
@@ -13833,14 +15347,14 @@ var init_knowledge_routes = __esm({
           if (searchWords.length > 0) {
             try {
               const exactMatches = await db.select().from(knowledgeBase).where(
-                and10(
-                  eq10(knowledgeBase.status, "published"),
+                and13(
+                  eq14(knowledgeBase.status, "published"),
                   or8(
                     ilike3(knowledgeBase.title, `%${searchTextLower}%`),
                     ilike3(knowledgeBase.content, `%${searchTextLower}%`)
                   )
                 )
-              ).orderBy(desc9(knowledgeBase.helpful_votes), desc9(knowledgeBase.views)).limit(parseInt(limit, 10));
+              ).orderBy(desc10(knowledgeBase.helpful_votes), desc10(knowledgeBase.views)).limit(parseInt(limit, 10));
               if (exactMatches.length > 0) {
                 console.log(`Found ${exactMatches.length} exact matches`);
                 return res.json(exactMatches);
@@ -13852,11 +15366,11 @@ var init_knowledge_routes = __esm({
                 )
               );
               const wordMatches = await db.select().from(knowledgeBase).where(
-                and10(
-                  eq10(knowledgeBase.status, "published"),
+                and13(
+                  eq14(knowledgeBase.status, "published"),
                   or8(...wordSearches)
                 )
-              ).orderBy(desc9(knowledgeBase.helpful_votes), desc9(knowledgeBase.views)).limit(parseInt(limit, 10));
+              ).orderBy(desc10(knowledgeBase.helpful_votes), desc10(knowledgeBase.views)).limit(parseInt(limit, 10));
               console.log(`Found ${wordMatches.length} word-based matches`);
               return res.json(wordMatches);
             } catch (searchError) {
@@ -13887,10 +15401,10 @@ var init_knowledge_routes = __esm({
         });
       }
     });
-    router9.get("/related/:ticketId", async (req, res) => {
+    router10.get("/related/:ticketId", async (req, res) => {
       try {
         const { ticketId } = req.params;
-        const ticket = await db.select().from(tickets).where(eq10(tickets.id, ticketId)).limit(1);
+        const ticket = await db.select().from(tickets).where(eq14(tickets.id, ticketId)).limit(1);
         if (!ticket.length) {
           return res.status(404).json({ error: "Ticket not found" });
         }
@@ -13912,45 +15426,45 @@ var init_knowledge_routes = __esm({
           );
           try {
             const exactMatches = await db.select().from(knowledgeBase).where(
-              and10(
-                eq10(knowledgeBase.status, "published"),
+              and13(
+                eq14(knowledgeBase.status, "published"),
                 or8(exactPhraseSearch, exactContentSearch)
               )
-            ).orderBy(desc9(knowledgeBase.helpful_votes), desc9(knowledgeBase.views)).limit(3);
+            ).orderBy(desc10(knowledgeBase.helpful_votes), desc10(knowledgeBase.views)).limit(3);
             relatedArticles.push(...exactMatches);
             console.log(`Found ${exactMatches.length} exact phrase matches`);
             if (relatedArticles.length < 5) {
               const remainingLimit = 5 - relatedArticles.length;
               const existingIds = relatedArticles.map((a) => a.id);
               const wordMatches = await db.select().from(knowledgeBase).where(
-                and10(
-                  eq10(knowledgeBase.status, "published"),
+                and13(
+                  eq14(knowledgeBase.status, "published"),
                   sql9`${knowledgeBase.id} NOT IN (${existingIds.length > 0 ? existingIds.map(() => "?").join(",") : "NULL"})`,
                   or8(
                     ...titleWordSearches,
                     ...contentWordSearches
                   )
                 )
-              ).orderBy(desc9(knowledgeBase.helpful_votes), desc9(knowledgeBase.views)).limit(remainingLimit);
+              ).orderBy(desc10(knowledgeBase.helpful_votes), desc10(knowledgeBase.views)).limit(remainingLimit);
               relatedArticles.push(...wordMatches);
               console.log(`Found ${wordMatches.length} additional word matches`);
             }
           } catch (searchError) {
             console.error("Header-based search failed:", searchError);
             relatedArticles = await db.select().from(knowledgeBase).where(
-              and10(
-                eq10(knowledgeBase.status, "published"),
+              and13(
+                eq14(knowledgeBase.status, "published"),
                 or8(
                   ilike3(knowledgeBase.title, `%${titleWords[0]}%`),
                   ilike3(knowledgeBase.content, `%${titleWords[0]}%`)
                 )
               )
-            ).orderBy(desc9(knowledgeBase.helpful_votes)).limit(5);
+            ).orderBy(desc10(knowledgeBase.helpful_votes)).limit(5);
           }
         }
         if (relatedArticles.length === 0) {
           console.log("No header-based matches found, returning top articles");
-          relatedArticles = await db.select().from(knowledgeBase).where(eq10(knowledgeBase.status, "published")).orderBy(desc9(knowledgeBase.helpful_votes), desc9(knowledgeBase.views)).limit(3);
+          relatedArticles = await db.select().from(knowledgeBase).where(eq14(knowledgeBase.status, "published")).orderBy(desc10(knowledgeBase.helpful_votes), desc10(knowledgeBase.views)).limit(3);
         }
         console.log(`Returning ${relatedArticles.length} related articles for ticket: "${ticketData.title}"`);
         relatedArticles.forEach((article, index) => {
@@ -13962,7 +15476,7 @@ var init_knowledge_routes = __esm({
         res.status(500).json({ error: "Failed to fetch related articles", details: error.message });
       }
     });
-    router9.get("/:id", authenticateToken3, async (req, res) => {
+    router10.get("/:id", authenticateToken3, async (req, res) => {
       try {
         const article = await storage2.getKBArticleById(req.params.id);
         if (!article) {
@@ -13974,7 +15488,7 @@ var init_knowledge_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router9.post("/", authenticateToken3, async (req, res) => {
+    router10.post("/", authenticateToken3, async (req, res) => {
       try {
         const { title, content, category } = req.body;
         const newArticle = {
@@ -14303,7 +15817,7 @@ __export(sla_escalation_service_exports, {
   SLAEscalationService: () => SLAEscalationService,
   slaEscalationService: () => slaEscalationService
 });
-import { eq as eq11, and as and11, not, inArray as inArray2 } from "drizzle-orm";
+import { eq as eq15, and as and14, not, inArray as inArray3 } from "drizzle-orm";
 var SLAEscalationService, slaEscalationService;
 var init_sla_escalation_service = __esm({
   "server/services/sla-escalation-service.ts"() {
@@ -14349,9 +15863,9 @@ var init_sla_escalation_service = __esm({
           console.log("\u{1F504} Starting SLA escalation check...");
           const now = /* @__PURE__ */ new Date();
           const openTickets = await db.select().from(tickets).where(
-            and11(
-              not(inArray2(tickets.status, ["resolved", "closed", "cancelled"])),
-              not(eq11(tickets.sla_resolution_due, null))
+            and14(
+              not(inArray3(tickets.status, ["resolved", "closed", "cancelled"])),
+              not(eq15(tickets.sla_resolution_due, null))
             )
           );
           console.log(`Found ${openTickets.length} open tickets to check`);
@@ -14359,7 +15873,7 @@ var init_sla_escalation_service = __esm({
             if (ticket.sla_resolution_due) {
               const isBreached = now > new Date(ticket.sla_resolution_due);
               if (isBreached !== ticket.sla_breached) {
-                await db.update(tickets).set({ sla_breached: isBreached, updated_at: now }).where(eq11(tickets.id, ticket.id));
+                await db.update(tickets).set({ sla_breached: isBreached, updated_at: now }).where(eq15(tickets.id, ticket.id));
               }
             }
           }
@@ -14473,7 +15987,7 @@ var init_sla_escalation_service = __esm({
             default:
               role = "manager";
           }
-          const [target] = await db.select().from(users).where(eq11(users.role, role)).limit(1);
+          const [target] = await db.select().from(users).where(eq15(users.role, role)).limit(1);
           return target;
         } catch (error) {
           console.error("Error getting escalation target:", error);
@@ -14528,7 +16042,7 @@ Action required: Immediate attention needed`;
       }
       async sendEscalationSummary(alerts2) {
         try {
-          const [managers] = await db.select().from(users).where(inArray2(users.role, ["manager", "admin"]));
+          const [managers] = await db.select().from(users).where(inArray3(users.role, ["manager", "admin"]));
           const summary = this.createEscalationSummary(alerts2);
           const dashboardData = await this.getSLADashboardData();
           for (const manager of managers) {
@@ -14571,9 +16085,9 @@ Please review and take appropriate action.`;
         try {
           const now = /* @__PURE__ */ new Date();
           const openTickets = await db.select().from(tickets).where(
-            and11(
-              not(inArray2(tickets.status, ["resolved", "closed", "cancelled"])),
-              not(eq11(tickets.sla_resolution_due, null))
+            and14(
+              not(inArray3(tickets.status, ["resolved", "closed", "cancelled"])),
+              not(eq15(tickets.sla_resolution_due, null))
             )
           );
           let breached = 0;
@@ -14629,7 +16143,7 @@ __export(sla_monitor_service_exports, {
   SLAMonitorService: () => SLAMonitorService,
   slaMonitorService: () => slaMonitorService
 });
-import { eq as eq12, not as not2, inArray as inArray3 } from "drizzle-orm";
+import { eq as eq16, not as not2, inArray as inArray4 } from "drizzle-orm";
 var SLAMonitorService, slaMonitorService;
 var init_sla_monitor_service = __esm({
   "server/services/sla-monitor-service.ts"() {
@@ -14677,7 +16191,7 @@ var init_sla_monitor_service = __esm({
                 sla_pause_reason: `Ticket moved to ${ticket.status} status`,
                 sla_paused_at: now,
                 updated_at: now
-              }).where(eq12(tickets2.id, ticket.id));
+              }).where(eq16(tickets2.id, ticket.id));
               console.log(`\u23F8\uFE0F  SLA paused for ticket ${ticket.ticket_number} (${ticket.status})`);
             } catch (error) {
               console.log(`\u26A0\uFE0F  Could not pause SLA for ticket ${ticket.ticket_number}, field may not exist yet`);
@@ -14693,7 +16207,7 @@ var init_sla_monitor_service = __esm({
                 sla_resumed_at: now,
                 sla_total_paused_time: totalPausedTime,
                 updated_at: now
-              }).where(eq12(tickets2.id, ticket.id));
+              }).where(eq16(tickets2.id, ticket.id));
               console.log(`\u25B6\uFE0F  SLA auto-resumed for ticket ${ticket.ticket_number} (moved to in_progress, paused for ${pauseDuration} minutes)`);
             } catch (error) {
               console.log(`\u26A0\uFE0F  Could not resume SLA for ticket ${ticket.ticket_number}, field may not exist yet`);
@@ -14707,7 +16221,7 @@ var init_sla_monitor_service = __esm({
           console.log("\u{1F50D} Checking for SLA breaches...");
           const now = /* @__PURE__ */ new Date();
           const openTickets = await db.select().from(tickets).where(
-            not2(inArray3(tickets.status, ["resolved", "closed", "cancelled"]))
+            not2(inArray4(tickets.status, ["resolved", "closed", "cancelled"]))
           );
           await this.handleSLAPauseResume(openTickets);
           let responseBreaches = 0;
@@ -14740,7 +16254,7 @@ var init_sla_monitor_service = __esm({
                   sla_response_due: slaTargets.responseDue,
                   sla_resolution_due: slaTargets.resolutionDue,
                   updated_at: now
-                }).where(eq12(tickets.id, ticket.id));
+                }).where(eq16(tickets.id, ticket.id));
                 ticket.response_due_at = slaTargets.responseDue;
                 ticket.resolve_due_at = slaTargets.resolutionDue;
                 ticket.sla_response_due = slaTargets.responseDue;
@@ -14778,7 +16292,7 @@ var init_sla_monitor_service = __esm({
             }
             if (needsUpdate) {
               updateData.updated_at = now;
-              await db.update(tickets).set(updateData).where(eq12(tickets.id, ticket.id));
+              await db.update(tickets).set(updateData).where(eq16(tickets.id, ticket.id));
               updates++;
               console.log(`\u26A0\uFE0F  SLA breach detected for ticket ${ticket.ticket_number} (Created: ${ticket.created_at})`);
             }
@@ -14824,8 +16338,8 @@ Immediate attention required!`;
           }
           const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const { users: users2 } = await Promise.resolve().then(() => (init_user_schema(), user_schema_exports));
-          const { eq: eq15 } = await import("drizzle-orm");
-          const managers = await db5.select().from(users2).where(eq15(users2.role, "manager"));
+          const { eq: eq19 } = await import("drizzle-orm");
+          const managers = await db5.select().from(users2).where(eq19(users2.role, "manager"));
           for (const manager of managers) {
             await notificationService.createNotification({
               user_email: manager.email,
@@ -14894,7 +16408,7 @@ Immediate attention required!`;
             }
             if (needsUpdate) {
               updateData.updated_at = now;
-              await db.update(tickets).set(updateData).where(eq12(tickets.id, ticket.id));
+              await db.update(tickets).set(updateData).where(eq16(tickets.id, ticket.id));
             }
           }
           const totalTicketsWithSLA = ticketsWithSLA.length;
@@ -14988,13 +16502,13 @@ function registerSLARoutes(app2) {
       const now = /* @__PURE__ */ new Date();
       const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-      const { eq: eq15 } = await import("drizzle-orm");
+      const { eq: eq19 } = await import("drizzle-orm");
       await db5.update(tickets2).set({
         sla_paused: true,
         sla_pause_reason: reason || "Manually paused",
         sla_paused_at: now,
         updated_at: now
-      }).where(eq15(tickets2.id, id));
+      }).where(eq19(tickets2.id, id));
       res.json({ message: "SLA paused successfully" });
     } catch (error) {
       console.error("Error pausing SLA:", error);
@@ -15007,8 +16521,8 @@ function registerSLARoutes(app2) {
       const now = /* @__PURE__ */ new Date();
       const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-      const { eq: eq15 } = await import("drizzle-orm");
-      const [ticket] = await db5.select().from(tickets2).where(eq15(tickets2.id, id));
+      const { eq: eq19 } = await import("drizzle-orm");
+      const [ticket] = await db5.select().from(tickets2).where(eq19(tickets2.id, id));
       if (!ticket || !ticket.sla_paused_at) {
         return res.status(400).json({ error: "Ticket SLA is not paused" });
       }
@@ -15022,7 +16536,7 @@ function registerSLARoutes(app2) {
         sla_resumed_at: now,
         sla_total_paused_time: totalPausedTime,
         updated_at: now
-      }).where(eq15(tickets2.id, id));
+      }).where(eq19(tickets2.id, id));
       res.json({
         message: "SLA resumed successfully",
         pausedFor: `${pauseDuration} minutes`,
@@ -15046,14 +16560,14 @@ function registerSLARoutes(app2) {
     try {
       const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-      const { not: not4, inArray: inArray5, or: or9, eq: eq15 } = await import("drizzle-orm");
+      const { not: not4, inArray: inArray6, or: or9, eq: eq19 } = await import("drizzle-orm");
       const breachedTickets = await db5.select().from(tickets2).where(
         and(
-          not4(inArray5(tickets2.status, ["resolved", "closed", "cancelled"])),
+          not4(inArray6(tickets2.status, ["resolved", "closed", "cancelled"])),
           or9(
-            eq15(tickets2.sla_response_breached, true),
-            eq15(tickets2.sla_resolution_breached, true),
-            eq15(tickets2.sla_breached, true)
+            eq19(tickets2.sla_response_breached, true),
+            eq19(tickets2.sla_resolution_breached, true),
+            eq19(tickets2.sla_breached, true)
           )
         )
       );
@@ -15116,7 +16630,7 @@ function registerSLARoutes(app2) {
     try {
       const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
-      const { eq: eq15, isNull: isNull3, not: not4, inArray: inArray5 } = await import("drizzle-orm");
+      const { eq: eq19, isNull: isNull3, not: not4, inArray: inArray6 } = await import("drizzle-orm");
       const ticketsToUpdate = await db5.select().from(tickets2).where(isNull3(tickets2.sla_resolution_due));
       let updated = 0;
       for (const ticket of ticketsToUpdate) {
@@ -15135,7 +16649,7 @@ function registerSLARoutes(app2) {
           due_date: slaResolutionDue,
           sla_breached: isBreached,
           updated_at: /* @__PURE__ */ new Date()
-        }).where(eq15(tickets2.id, ticket.id));
+        }).where(eq19(tickets2.id, ticket.id));
         updated++;
       }
       res.json({
@@ -15160,14 +16674,14 @@ function registerSLARoutes(app2) {
     }
   });
 }
-var router10, sla_routes_default;
+var router11, sla_routes_default;
 var init_sla_routes = __esm({
   "server/routes/sla-routes.ts"() {
     "use strict";
     init_sla_escalation_service();
     init_sla_monitor_service();
-    router10 = Router10();
-    router10.get("/dashboard", async (req, res) => {
+    router11 = Router10();
+    router11.get("/dashboard", async (req, res) => {
       try {
         const { slaEscalationService: slaEscalationService2 } = await Promise.resolve().then(() => (init_sla_escalation_service(), sla_escalation_service_exports));
         const data = await slaEscalationService2.getSLADashboardData();
@@ -15177,7 +16691,7 @@ var init_sla_routes = __esm({
         res.status(500).json({ error: "Failed to fetch SLA dashboard data" });
       }
     });
-    router10.get("/metrics", async (req, res) => {
+    router11.get("/metrics", async (req, res) => {
       try {
         const { slaMonitorService: slaMonitorService2 } = await Promise.resolve().then(() => (init_sla_monitor_service(), sla_monitor_service_exports));
         const metrics = await slaMonitorService2.getSLAMetrics();
@@ -15187,7 +16701,7 @@ var init_sla_routes = __esm({
         res.status(500).json({ error: "Failed to fetch SLA metrics" });
       }
     });
-    sla_routes_default = router10;
+    sla_routes_default = router11;
   }
 });
 
@@ -15197,7 +16711,7 @@ __export(sla_analysis_routes_exports, {
   default: () => sla_analysis_routes_default
 });
 import { Router as Router11 } from "express";
-import { eq as eq13, and as and13, not as not3, inArray as inArray4 } from "drizzle-orm";
+import { eq as eq17, and as and16, not as not3, inArray as inArray5 } from "drizzle-orm";
 async function validateSLACalculation(ticket) {
   try {
     const policy = await slaPolicyService.findMatchingSLAPolicy({
@@ -15299,7 +16813,7 @@ async function testFutureTicketSLA() {
     };
   }
 }
-var router11, sla_analysis_routes_default;
+var router12, sla_analysis_routes_default;
 var init_sla_analysis_routes = __esm({
   "server/routes/sla-analysis-routes.ts"() {
     "use strict";
@@ -15307,8 +16821,8 @@ var init_sla_analysis_routes = __esm({
     init_ticket_schema();
     init_sla_schema();
     init_sla_policy_service();
-    router11 = Router11();
-    router11.get("/api/sla/analysis", async (req, res) => {
+    router12 = Router11();
+    router12.get("/api/sla/analysis", async (req, res) => {
       try {
         const now = /* @__PURE__ */ new Date();
         const allTickets = await db.select().from(tickets);
@@ -15408,12 +16922,12 @@ var init_sla_analysis_routes = __esm({
         res.status(500).json({ error: "Failed to analyze SLA data" });
       }
     });
-    router11.post("/api/sla/fix-tickets", async (req, res) => {
+    router12.post("/api/sla/fix-tickets", async (req, res) => {
       try {
         const ticketsToFix = await db.select().from(tickets).where(
-          and13(
-            eq13(tickets.resolve_due_at, null),
-            not3(inArray4(tickets.status, ["resolved", "closed", "cancelled"]))
+          and16(
+            eq17(tickets.resolve_due_at, null),
+            not3(inArray5(tickets.status, ["resolved", "closed", "cancelled"]))
           )
         );
         let fixed = 0;
@@ -15446,7 +16960,7 @@ var init_sla_analysis_routes = __esm({
               sla_resolution_breached: isResolutionBreached,
               sla_breached: isResolutionBreached,
               updated_at: now
-            }).where(eq13(tickets.id, ticket.id));
+            }).where(eq17(tickets.id, ticket.id));
             fixed++;
           }
         }
@@ -15460,7 +16974,7 @@ var init_sla_analysis_routes = __esm({
         res.status(500).json({ error: "Failed to fix ticket SLA data" });
       }
     });
-    router11.post("/api/sla/check-breaches", async (req, res) => {
+    router12.post("/api/sla/check-breaches", async (req, res) => {
       try {
         const { slaMonitorService: slaMonitorService2 } = await Promise.resolve().then(() => (init_sla_monitor_service(), sla_monitor_service_exports));
         console.log("\u{1F50D} Manual SLA breach check initiated...");
@@ -15476,7 +16990,7 @@ var init_sla_analysis_routes = __esm({
         res.status(500).json({ error: "Failed to perform SLA check" });
       }
     });
-    sla_analysis_routes_default = router11;
+    sla_analysis_routes_default = router12;
   }
 });
 
@@ -16131,9 +17645,9 @@ var init_ai_service = __esm({
             return { strength: 0 };
           }
           const hourlyBuckets = new Array(24).fill(null).map(() => []);
-          timestamps.forEach((timestamp6, index) => {
-            if (timestamp6 && values[index] !== void 0) {
-              const hour = timestamp6.getHours();
+          timestamps.forEach((timestamp7, index) => {
+            if (timestamp7 && values[index] !== void 0) {
+              const hour = timestamp7.getHours();
               if (hour >= 0 && hour < 24) {
                 hourlyBuckets[hour].push(values[index]);
               }
@@ -16157,9 +17671,9 @@ var init_ai_service = __esm({
             return { strength: 0 };
           }
           const weeklyBuckets = new Array(7).fill(null).map(() => []);
-          timestamps.forEach((timestamp6, index) => {
-            if (timestamp6 && values[index] !== void 0) {
-              const dayOfWeek = timestamp6.getDay();
+          timestamps.forEach((timestamp7, index) => {
+            if (timestamp7 && values[index] !== void 0) {
+              const dayOfWeek = timestamp7.getDay();
               if (dayOfWeek >= 0 && dayOfWeek < 7) {
                 weeklyBuckets[dayOfWeek].push(values[index]);
               }
@@ -16381,15 +17895,15 @@ __export(ai_routes_exports, {
   default: () => ai_routes_default
 });
 import { Router as Router12 } from "express";
-var router12, ai_routes_default;
+var router13, ai_routes_default;
 var init_ai_routes = __esm({
   "server/routes/ai-routes.ts"() {
     "use strict";
     init_ai_service();
     init_ai_insights_storage();
     init_auth_middleware();
-    router12 = Router12();
-    router12.get("/insights/:deviceId", async (req, res) => {
+    router13 = Router12();
+    router13.get("/insights/:deviceId", async (req, res) => {
       const startTime = Date.now();
       try {
         const { deviceId } = req.params;
@@ -16460,7 +17974,7 @@ var init_ai_routes = __esm({
         res.status(500).json({ success: false, error: "Internal server error" });
       }
     });
-    router12.get("/recommendations/:deviceId", async (req, res) => {
+    router13.get("/recommendations/:deviceId", async (req, res) => {
       try {
         const { deviceId } = req.params;
         const recommendations = await aiService.getDeviceRecommendations(deviceId);
@@ -16470,7 +17984,7 @@ var init_ai_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    router12.post("/insights/batch", async (req, res) => {
+    router13.post("/insights/batch", async (req, res) => {
       try {
         const { deviceIds } = req.body;
         const results = [];
@@ -16488,7 +18002,7 @@ var init_ai_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    router12.get("/dashboard-insights", authenticateToken, async (req, res) => {
+    router13.get("/dashboard-insights", authenticateToken, async (req, res) => {
       try {
         const insights = {
           systemHealth: "good",
@@ -16514,7 +18028,7 @@ var init_ai_routes = __esm({
         });
       }
     });
-    router12.get("/article-suggestions/:ticketId", async (req, res) => {
+    router13.get("/article-suggestions/:ticketId", async (req, res) => {
       try {
         const ticketId = req.params.ticketId;
         const ticketStorage2 = await Promise.resolve().then(() => (init_ticket_storage(), ticket_storage_exports));
@@ -16563,7 +18077,7 @@ var init_ai_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    ai_routes_default = router12;
+    ai_routes_default = router13;
   }
 });
 
@@ -16573,12 +18087,12 @@ __export(audit_routes_exports, {
   default: () => audit_routes_default
 });
 import { Router as Router13 } from "express";
-var router13, audit_routes_default;
+var router14, audit_routes_default;
 var init_audit_routes = __esm({
   "server/routes/audit-routes.ts"() {
     "use strict";
-    router13 = Router13();
-    router13.get("/logs", async (req, res) => {
+    router14 = Router13();
+    router14.get("/logs", async (req, res) => {
       try {
         const { user, action, resource, startDate, endDate } = req.query;
         const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
@@ -16626,7 +18140,7 @@ var init_audit_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    router13.post("/logs", async (req, res) => {
+    router14.post("/logs", async (req, res) => {
       try {
         const { user_id, action, resource_type, resource_id, details, ip_address, user_agent } = req.body;
         const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
@@ -16641,7 +18155,7 @@ var init_audit_routes = __esm({
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    audit_routes_default = router13;
+    audit_routes_default = router14;
   }
 });
 
@@ -16651,14 +18165,14 @@ __export(security_routes_exports, {
   default: () => security_routes_default
 });
 import { Router as Router14 } from "express";
-var router14, security_routes_default;
+var router15, security_routes_default;
 var init_security_routes = __esm({
   "server/routes/security-routes.ts"() {
     "use strict";
     init_auth_middleware();
     init_storage();
-    router14 = Router14();
-    router14.get("/alerts", authenticateToken, async (req, res) => {
+    router15 = Router14();
+    router15.get("/alerts", authenticateToken, async (req, res) => {
       try {
         const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
         const securityAlerts = await db5.query(`
@@ -16679,7 +18193,7 @@ var init_security_routes = __esm({
         res.json([]);
       }
     });
-    router14.get("/vulnerabilities", authenticateToken, async (req, res) => {
+    router15.get("/vulnerabilities", authenticateToken, async (req, res) => {
       try {
         const { device_id } = req.query;
         if (!device_id) {
@@ -16724,7 +18238,7 @@ var init_security_routes = __esm({
         res.json([]);
       }
     });
-    router14.get("/compliance", authenticateToken, async (req, res) => {
+    router15.get("/compliance", authenticateToken, async (req, res) => {
       try {
         const { db: db5 } = await Promise.resolve().then(() => (init_db(), db_exports));
         const compliance = await db5.query(`
@@ -16751,7 +18265,7 @@ var init_security_routes = __esm({
         });
       }
     });
-    router14.get("/overview", authenticateToken, async (req, res) => {
+    router15.get("/overview", authenticateToken, async (req, res) => {
       try {
         console.log("Fetching security overview...");
         const mockOverview = {
@@ -16779,7 +18293,7 @@ var init_security_routes = __esm({
         });
       }
     });
-    security_routes_default = router14;
+    security_routes_default = router15;
   }
 });
 
@@ -16789,13 +18303,13 @@ __export(patch_routes_exports, {
   default: () => patch_routes_default
 });
 import { Router as Router15 } from "express";
-var router15, patch_routes_default;
+var router16, patch_routes_default;
 var init_patch_routes = __esm({
   "server/routes/patch-routes.ts"() {
     "use strict";
     init_patch_compliance_service();
-    router15 = Router15();
-    router15.get("/patch-compliance/dashboard", async (req, res) => {
+    router16 = Router15();
+    router16.get("/patch-compliance/dashboard", async (req, res) => {
       try {
         console.log("\u{1F4CA} Fetching patch compliance dashboard data...");
         console.log("Request timestamp:", (/* @__PURE__ */ new Date()).toISOString());
@@ -16914,7 +18428,7 @@ var init_patch_routes = __esm({
         }
       }
     });
-    router15.get("/patch-compliance/report/:deviceId?", async (req, res) => {
+    router16.get("/patch-compliance/report/:deviceId?", async (req, res) => {
       try {
         const { deviceId } = req.params;
         const reports = await patchComplianceService.getDashboardData();
@@ -16924,7 +18438,7 @@ var init_patch_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    router15.post("/patch-compliance/scan/:deviceId", async (req, res) => {
+    router16.post("/patch-compliance/scan/:deviceId", async (req, res) => {
       try {
         const { deviceId } = req.params;
         const result = await patchComplianceService.processPatchData(
@@ -16937,7 +18451,7 @@ var init_patch_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    router15.post("/patch-compliance/deploy", async (req, res) => {
+    router16.post("/patch-compliance/deploy", async (req, res) => {
       try {
         const deployment = req.body;
         const deploymentId = await patchComplianceService.createPatchDeployment(deployment);
@@ -16947,7 +18461,7 @@ var init_patch_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    router15.get("/patch-compliance/pending-applications", async (req, res) => {
+    router16.get("/patch-compliance/pending-applications", async (req, res) => {
       try {
         const pendingPatches = await patchComplianceService.getPendingApplicationPatches();
         res.json({ success: true, patches: pendingPatches });
@@ -16956,7 +18470,7 @@ var init_patch_routes = __esm({
         res.status(500).json({ success: false, error: error.message });
       }
     });
-    patch_routes_default = router15;
+    patch_routes_default = router16;
   }
 });
 
@@ -17185,7 +18699,7 @@ var init_ssh_server = __esm({
 });
 
 // server/index.ts
-import express3 from "express";
+import express4 from "express";
 
 // server/routes.ts
 init_storage();
@@ -17376,8 +18890,8 @@ function registerTicketRoutes(app2) {
 init_storage();
 import express from "express";
 function registerDeviceRoutes(app2, authenticateToken4) {
-  const router16 = express.Router();
-  router16.get("/api/devices/export/csv", async (req, res) => {
+  const router17 = express.Router();
+  router17.get("/api/devices/export/csv", async (req, res) => {
     try {
       const filters = {
         status: req.query.status,
@@ -17434,7 +18948,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       res.status(500).json({ error: "Failed to export devices" });
     }
   });
-  router16.get("/api/devices", authenticateToken4, async (req, res) => {
+  router17.get("/api/devices", authenticateToken4, async (req, res) => {
     try {
       console.log("Fetching devices - checking for agent activity...");
       let devices2 = [];
@@ -17555,7 +19069,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
-  router16.get("/api/devices/:id", authenticateToken4, async (req, res) => {
+  router17.get("/api/devices/:id", authenticateToken4, async (req, res) => {
     try {
       let device = await storage.getDevice(req.params.id);
       if (!device) {
@@ -17669,7 +19183,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
-  router16.get("/api/devices/:id/reports", async (req, res) => {
+  router17.get("/api/devices/:id/reports", async (req, res) => {
     try {
       const reports = await storage.getDeviceReports(req.params.id);
       console.log(`Device reports for device id ${req.params.id}:`, reports);
@@ -17679,7 +19193,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
-  router16.get("/api/devices/:id/usb-devices", async (req, res) => {
+  router17.get("/api/devices/:id/usb-devices", async (req, res) => {
     try {
       console.log(`Fetching USB devices for device: ${req.params.id}`);
       const usbDevices = await storage.getUSBDevicesForDevice(req.params.id);
@@ -17690,7 +19204,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
-  router16.get(
+  router17.get(
     "/api/devices/:id/performance-insights",
     authenticateToken4,
     async (req, res) => {
@@ -17715,7 +19229,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       }
     }
   );
-  router16.get(
+  router17.get(
     "/api/devices/:id/ai-insights",
     authenticateToken4,
     async (req, res) => {
@@ -17734,7 +19248,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       }
     }
   );
-  router16.get(
+  router17.get(
     "/api/devices/:id/ai-recommendations",
     authenticateToken4,
     async (req, res) => {
@@ -17753,7 +19267,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       }
     }
   );
-  router16.get("/api/debug/devices", authenticateToken4, async (req, res) => {
+  router17.get("/api/debug/devices", authenticateToken4, async (req, res) => {
     try {
       const devices2 = await storage.getDevices();
       const now = /* @__PURE__ */ new Date();
@@ -17790,7 +19304,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
-  router16.get("/api/dashboard/summary", authenticateToken4, async (req, res) => {
+  router17.get("/api/dashboard/summary", authenticateToken4, async (req, res) => {
     try {
       console.log("Fetching dashboard summary...");
       let devices2 = [];
@@ -17838,13 +19352,25 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       });
     }
   });
-  app2.use("/", router16);
+  app2.use("/", router17);
 }
 
 // server/routes/agent-routes.ts
 init_storage();
 init_enhanced_storage();
 init_patch_compliance_service();
+function extractMetrics(data) {
+  const memoryUsage = data.hardware?.memory?.usage_percentage || data.hardware?.memory?.percentage || data.system_health?.memory_pressure?.memory_usage_percent || 0;
+  const cpuUsage = data.hardware?.cpu?.usage_percentage || data.hardware?.cpu?.percentage || data.system_health?.metrics?.cpu_percent || 0;
+  const diskUsage = data.storage?.drives?.[0]?.usage_percentage || data.storage?.primary_drive?.usage_percentage || 0;
+  console.log(`Extracted metrics - CPU: ${cpuUsage}%, Memory: ${memoryUsage}%, Disk: ${diskUsage}%`);
+  return {
+    cpu_usage: cpuUsage,
+    memory_usage: memoryUsage,
+    disk_usage: diskUsage,
+    network_usage: data.network?.total_bytes_sent || 0
+  };
+}
 function registerAgentRoutes(app2, authenticateToken4, requireRole3) {
   app2.post(
     "/api/agents/:id/test-connectivity",
@@ -18118,7 +19644,7 @@ function registerAgentRoutes(app2, authenticateToken4, requireRole3) {
       console.log("\n=== PROCESSES (First 5 items) ===");
       console.log(JSON.stringify(reportData.processes?.slice(0, 5), null, 2));
       console.log(`Total Processes Count: ${reportData.processes?.length || 0}`);
-      console.log("\n=== USB DEVICES ===");
+      console.log("\n=== USBDEVICES ===");
       console.log(JSON.stringify(reportData.usb_devices, null, 2));
       console.log("\n=== VIRTUALIZATION INFO ===");
       console.log(JSON.stringify(reportData.virtualization, null, 2));
@@ -18173,50 +19699,11 @@ function registerAgentRoutes(app2, authenticateToken4, requireRole3) {
       if (!reportData.network || Object.keys(reportData.network).length === 0) {
         console.log("\u26A0\uFE0F  WARNING: Empty network data received from agent!");
       }
-      let cpuUsage = null;
-      let memoryUsage = null;
-      let diskUsage = null;
-      let networkIO = null;
-      if (reportData.hardware?.cpu?.usage_percent) {
-        cpuUsage = reportData.hardware.cpu.usage_percent.toString();
-      } else if (reportData.system_health?.cpu_usage) {
-        cpuUsage = reportData.system_health.cpu_usage.toString();
-      } else if (reportData.systemInfo?.cpu_usage) {
-        cpuUsage = reportData.systemInfo.cpu_usage.toString();
-      }
-      if (reportData.hardware?.memory?.percentage) {
-        memoryUsage = reportData.hardware.memory.percentage.toString();
-      } else if (reportData.system_health?.memory_usage) {
-        memoryUsage = reportData.system_health.memory_usage.toString();
-      } else if (reportData.systemInfo?.memory_usage) {
-        memoryUsage = reportData.systemInfo.memory_usage.toString();
-      }
-      if (reportData.storage?.disks && reportData.storage.disks.length > 0) {
-        const primaryDisk = reportData.storage.disks.find(
-          (disk) => disk.device === "C:\\" || disk.mountpoint === "C:\\"
-        ) || reportData.storage.disks[0];
-        if (primaryDisk?.percent) {
-          diskUsage = primaryDisk.percent.toString();
-        }
-      } else if (reportData.system_health?.disk_usage) {
-        diskUsage = reportData.system_health.disk_usage.toString();
-      } else if (reportData.systemInfo?.disk_usage) {
-        diskUsage = reportData.systemInfo.disk_usage.toString();
-      }
-      if (reportData.network?.io_counters?.bytes_sent) {
-        networkIO = reportData.network.io_counters.bytes_sent.toString();
-      } else if (reportData.network?.io_counters?.bytes_recv) {
-        networkIO = reportData.network.io_counters.bytes_recv.toString();
-      } else if (reportData.network?.total_bytes) {
-        networkIO = reportData.network.total_bytes.toString();
-      } else if (reportData.systemInfo?.network_interfaces) {
-        networkIO = reportData.systemInfo.network_interfaces.toString();
-      }
       console.log("=== METRICS EXTRACTION RESULTS ===");
-      console.log("CPU Usage:", cpuUsage, "- Source:", reportData.hardware?.cpu?.usage_percent ? "hardware.cpu.usage_percent" : reportData.system_health?.cpu_usage ? "system_health.cpu_usage" : "none");
-      console.log("Memory Usage:", memoryUsage, "- Source:", reportData.hardware?.memory?.percentage ? "hardware.memory.percentage" : reportData.system_health?.memory_usage ? "system_health.memory_usage" : "none");
-      console.log("Disk Usage:", diskUsage, "- Source:", reportData.storage?.disks?.length > 0 ? "storage.disks" : reportData.system_health?.disk_usage ? "system_health.disk_usage" : "none");
-      console.log("Network I/O:", networkIO, "- Source:", reportData.network?.io_counters ? "network.io_counters" : reportData.network?.total_bytes ? "network.total_bytes" : "none");
+      console.log("CPU Usage:", extractMetrics(reportData).cpu_usage);
+      console.log("Memory Usage:", extractMetrics(reportData).memory_usage);
+      console.log("Disk Usage:", extractMetrics(reportData).disk_usage);
+      console.log("Network I/O:", extractMetrics(reportData).network_usage);
       app2.get("/api/agents/diagnostics", authenticateToken4, async (req2, res2) => {
         try {
           const devices2 = await storage.getDevices();
@@ -18247,18 +19734,13 @@ function registerAgentRoutes(app2, authenticateToken4, requireRole3) {
           res2.status(500).json({ error: "Failed to get diagnostics" });
         }
       });
-      console.log("=== EXTRACTED METRICS ===");
-      console.log("CPU Usage:", cpuUsage);
-      console.log("Memory Usage:", memoryUsage);
-      console.log("Disk Usage:", diskUsage);
-      console.log("Network I/O:", networkIO);
       await storage.createDeviceReport({
         device_id: device.id,
-        cpu_usage: cpuUsage,
-        memory_usage: memoryUsage,
-        disk_usage: diskUsage,
-        network_io: networkIO,
-        raw_data: JSON.stringify(req.body)
+        cpu_usage: extractMetrics(reportData).cpu_usage,
+        memory_usage: extractMetrics(reportData).memory_usage,
+        disk_usage: extractMetrics(reportData).disk_usage,
+        network_io: extractMetrics(reportData).network_usage,
+        raw_data: JSON.stringify(reportData)
       });
       await storage.updateDevice(device.id, {
         status: "online",
@@ -18274,6 +19756,39 @@ function registerAgentRoutes(app2, authenticateToken4, requireRole3) {
         await patchComplianceService.processAgentReport(device.id, reportData);
       } catch (patchError) {
         console.error("Error processing patch data, continuing...", patchError);
+      }
+      try {
+        console.log("=== GENERATING SYSTEM ALERTS ===");
+        const { generateSystemAlerts: generateSystemAlerts2 } = await Promise.resolve().then(() => (init_alerts(), alerts_exports));
+        const deviceForAlerts = {
+          id: device.id,
+          hostname: device.hostname,
+          status: device.status,
+          metrics: extractMetrics(reportData),
+          raw_data: reportData
+        };
+        const generatedAlerts = await generateSystemAlerts2(deviceForAlerts);
+        if (generatedAlerts.length > 0) {
+          console.log(`Generated ${generatedAlerts.length} alerts for device ${device.hostname}`);
+          for (const alert of generatedAlerts) {
+            await storage.createAlert({
+              device_id: alert.device_id,
+              category: alert.type,
+              severity: alert.severity,
+              message: alert.message,
+              metadata: {
+                title: alert.title,
+                timestamp: alert.timestamp,
+                alert_type: "performance_threshold"
+              },
+              is_active: true
+            });
+          }
+        } else {
+          console.log(`No alerts generated for device ${device.hostname}`);
+        }
+      } catch (alertError) {
+        console.error("Error generating system alerts:", alertError);
       }
       console.log(`=== AGENT REPORT PROCESSED SUCCESSFULLY ===`);
       console.log(`Device ID: ${device.id}`);
@@ -18796,7 +20311,8 @@ router.post("/portal-login", (req, res, next) => {
 // server/services/network-scan-service.ts
 init_db();
 init_schema();
-import { eq as eq7, and as and7, isNotNull } from "drizzle-orm";
+init_system_config();
+import { eq as eq11, and as and10, isNotNull } from "drizzle-orm";
 var NetworkScanService = class {
   activeScanSessions = /* @__PURE__ */ new Map();
   DEFAULT_SUBNETS = [
@@ -18809,8 +20325,8 @@ var NetworkScanService = class {
   async getAvailableAgents() {
     try {
       const onlineAgents = await db.select().from(devices).where(
-        and7(
-          eq7(devices.status, "online"),
+        and10(
+          eq11(devices.status, "online"),
           isNotNull(devices.ip_address)
         )
       );
@@ -18869,27 +20385,43 @@ var NetworkScanService = class {
     return recommended;
   }
   isIPInRange(ip, range) {
-    if (range.includes("/")) {
-      const [networkIP, prefixLength] = range.split("/");
-      const prefix = parseInt(prefixLength);
-      const ipToInt = (ip2) => {
-        return ip2.split(".").reduce((acc, octet) => (acc << 8) + parseInt(octet), 0) >>> 0;
-      };
-      const mask = 4294967295 << 32 - prefix >>> 0;
-      const networkInt = ipToInt(networkIP) & mask;
-      const ipInt = ipToInt(ip) & mask;
-      return networkInt === ipInt;
-    } else if (range.includes("-")) {
-      const [startIP, endIP] = range.split("-");
-      const ipToInt = (ip2) => {
-        return ip2.split(".").reduce((acc, octet) => (acc << 8) + parseInt(octet), 0) >>> 0;
-      };
-      const targetInt = ipToInt(ip);
-      const startInt = ipToInt(startIP);
-      const endInt = ipToInt(endIP);
-      return targetInt >= startInt && targetInt <= endInt;
+    try {
+      if (range.includes("/")) {
+        const [networkIP, prefixLength] = range.split("/");
+        const prefix = parseInt(prefixLength);
+        if (prefix < 0 || prefix > 32) return false;
+        const ipToInt = (ip2) => {
+          const parts = ip2.split(".").map(Number);
+          if (parts.length !== 4 || parts.some((p) => p < 0 || p > 255)) return null;
+          return (parts[0] << 24) + (parts[1] << 16) + (parts[2] << 8) + parts[3];
+        };
+        const targetInt = ipToInt(ip);
+        const networkInt = ipToInt(networkIP);
+        if (targetInt === null || networkInt === null) return false;
+        const mask = 4294967295 << 32 - prefix >>> 0;
+        return (targetInt & mask) === (networkInt & mask);
+      } else if (range.includes("-")) {
+        const [startIP, endIP] = range.split("-").map((s) => s.trim());
+        const ipToInt = (ip2) => {
+          const parts = ip2.split(".").map(Number);
+          if (parts.length !== 4 || parts.some((p) => p < 0 || p > 255)) return null;
+          return (parts[0] << 24) + (parts[1] << 16) + (parts[2] << 8) + parts[3];
+        };
+        const targetInt = ipToInt(ip);
+        const startInt = ipToInt(startIP);
+        const endInt = ipToInt(endIP);
+        if (targetInt === null || startInt === null || endInt === null) return false;
+        return targetInt >= startInt && targetInt <= endInt;
+      } else if (range.includes("*")) {
+        const pattern = range.replace(/\*/g, "\\d{1,3}");
+        const regex = new RegExp(`^${pattern}$`);
+        return regex.test(ip);
+      }
+      return ip === range;
+    } catch (error) {
+      console.error(`Error checking IP range ${ip} in ${range}:`, error);
+      return false;
     }
-    return false;
   }
   findAgentsInIPRange(agents, ipRange) {
     return agents.filter((agent) => {
@@ -18900,15 +20432,35 @@ var NetworkScanService = class {
   async findBestAgentForIPRange(ipRange) {
     try {
       const onlineAgents = await db.select().from(devices).where(
-        and7(
-          eq7(devices.status, "online"),
+        and10(
+          eq11(devices.status, "online"),
           isNotNull(devices.ip_address)
         )
       );
+      console.log(`Searching for agents to scan IP range: ${ipRange}`);
+      console.log(`Available online agents: ${onlineAgents.length}`);
       const agentsInRange = this.findAgentsInIPRange(onlineAgents, ipRange);
       if (agentsInRange.length === 0) {
-        console.log(`No online agents found in IP range: ${ipRange}`);
-        return null;
+        console.log(`No online agents found directly in IP range: ${ipRange}`);
+        const fallbackAgents = this.findNearbyAgents(onlineAgents, ipRange);
+        if (fallbackAgents.length === 0) {
+          console.log(`No agents in same subnet for IP range: ${ipRange}. Using any available agent for cross-subnet scanning.`);
+          if (onlineAgents.length > 0) {
+            const anyAgent = onlineAgents.sort(
+              (a, b) => new Date(b.last_seen).getTime() - new Date(a.last_seen).getTime()
+            )[0];
+            console.log(`Selected cross-subnet agent ${anyAgent.hostname} (${anyAgent.ip_address}) for IP range: ${ipRange}`);
+            return anyAgent;
+          }
+          console.log(`No suitable agents found for IP range: ${ipRange}`);
+          return null;
+        }
+        console.log(`Using fallback agent selection: ${fallbackAgents.length} candidates`);
+        const bestAgent2 = fallbackAgents.sort(
+          (a, b) => new Date(b.last_seen).getTime() - new Date(a.last_seen).getTime()
+        )[0];
+        console.log(`Selected fallback agent ${bestAgent2.hostname} (${bestAgent2.ip_address}) for IP range: ${ipRange}`);
+        return bestAgent2;
       }
       const bestAgent = agentsInRange.sort(
         (a, b) => new Date(b.last_seen).getTime() - new Date(a.last_seen).getTime()
@@ -18919,6 +20471,23 @@ var NetworkScanService = class {
       console.error("Error finding agent for IP range:", error);
       return null;
     }
+  }
+  findNearbyAgents(agents, ipRange) {
+    let networkBase = "";
+    if (ipRange.includes("/")) {
+      networkBase = ipRange.split("/")[0].split(".").slice(0, 3).join(".");
+    } else if (ipRange.includes("-")) {
+      networkBase = ipRange.split("-")[0].split(".").slice(0, 3).join(".");
+    } else if (ipRange.includes("*")) {
+      networkBase = ipRange.replace(/\*/g, "").replace(/\.$/, "");
+    }
+    if (!networkBase) return agents;
+    const sameSubnetAgents = agents.filter((agent) => {
+      if (!agent.ip_address) return false;
+      const agentNetworkBase = agent.ip_address.split(".").slice(0, 3).join(".");
+      return agentNetworkBase === networkBase;
+    });
+    return sameSubnetAgents.length > 0 ? sameSubnetAgents : agents;
   }
   async initiateScan(config) {
     try {
@@ -18974,7 +20543,7 @@ var NetworkScanService = class {
           }
         }
         if (agentId) {
-          const agent = await db.select().from(devices).where(eq7(devices.id, agentId)).limit(1);
+          const agent = await db.select().from(devices).where(eq11(devices.id, agentId)).limit(1);
           if (agent.length > 0) {
             scanningAgents.push({
               subnet: ipRange,
@@ -19007,7 +20576,7 @@ var NetworkScanService = class {
         }
       }
       if (agentId) {
-        const agent = await db.select().from(devices).where(eq7(devices.id, agentId)).limit(1);
+        const agent = await db.select().from(devices).where(eq11(devices.id, agentId)).limit(1);
         if (agent.length > 0) {
           scanningAgents.push({
             subnet,
@@ -19029,58 +20598,56 @@ var NetworkScanService = class {
   async sendNetworkScanCommandsToAgents(sessionId, config, scanningAgents) {
     try {
       const session = this.activeScanSessions.get(sessionId);
-      if (!session) return;
+      if (!session) {
+        console.error(`Session ${sessionId} not found during agent communication`);
+        return;
+      }
       console.log(`Sending network scan commands to ${scanningAgents.length} agents`);
-      const { websocketService } = await Promise.resolve().then(() => (init_websocket_service(), websocket_service_exports));
+      this.cleanupOldSessions();
+      const { websocketService: websocketService2 } = (init_websocket_service(), __toCommonJS(websocket_service_exports));
+      if (!websocketService2) {
+        console.error("WebSocket service not available - no agents connected");
+        session.status = "failed";
+        session.completed_at = /* @__PURE__ */ new Date();
+        this.activeScanSessions.set(sessionId, session);
+        throw new Error("WebSocket service not available - cannot perform network scan");
+      }
       let completedScans = 0;
       const totalScans = scanningAgents.length;
       const allScanResults = [];
       for (const agent of scanningAgents) {
         try {
           console.log(`Requesting network scan from agent ${agent.hostname} (${agent.ip_address}) for subnet ${agent.subnet}`);
-          const scanResult = await websocketService.sendCommandToAgent(agent.agent_id, {
+          let timeoutMs = 12e4;
+          try {
+            const networkConfig = systemConfig.getNetworkConfig();
+            timeoutMs = networkConfig?.scan?.timeoutMs || 12e4;
+          } catch (configError) {
+            console.warn("Using default timeout due to config error:", configError);
+          }
+          console.log(`Sending networkScan command to agent ${agent.agent_id} with timeout ${timeoutMs}ms`);
+          const scanResult = await websocketService2.sendCommandToAgent(agent.agent_id, {
             command: "networkScan",
             params: {
               subnet: agent.subnet,
               scan_type: config.scan_type || "ping",
               session_id: sessionId
             }
-          }, 12e4);
+          }, timeoutMs);
           if (scanResult && scanResult.success && scanResult.data) {
             console.log(`Agent ${agent.hostname} completed network scan for ${agent.subnet}`);
-            const agentScanResults = this.processAgentScanResults(scanResult.data, agent);
-            allScanResults.push(...agentScanResults);
+            try {
+              const agentScanResults = this.processAgentScanResults(scanResult.data, agent);
+              allScanResults.push(...agentScanResults);
+              console.log(`Processed ${agentScanResults.length} real scan results from agent ${agent.hostname}`);
+            } catch (processError) {
+              console.error(`Error processing scan results from agent ${agent.hostname}:`, processError);
+            }
           } else {
-            console.error(`Agent ${agent.hostname} failed to scan subnet ${agent.subnet}:`, scanResult?.error);
-            allScanResults.push({
-              id: `failed-scan-${agent.subnet}`,
-              ip: agent.ip_address,
-              hostname: agent.hostname,
-              os: "Unknown",
-              mac_address: "Unknown",
-              status: "offline",
-              last_seen: /* @__PURE__ */ new Date(),
-              subnet: agent.subnet,
-              device_type: "Scan Failed",
-              ports_open: [],
-              response_time: 0
-            });
+            console.error(`Agent ${agent.hostname} failed to scan subnet ${agent.subnet}:`, scanResult?.error || "No response");
           }
         } catch (error) {
           console.error(`Error sending scan command to agent ${agent.hostname}:`, error);
-          allScanResults.push({
-            id: `error-scan-${agent.subnet}`,
-            ip: agent.ip_address,
-            hostname: agent.hostname,
-            os: "Unknown",
-            mac_address: "Unknown",
-            status: "offline",
-            last_seen: /* @__PURE__ */ new Date(),
-            subnet: agent.subnet,
-            device_type: "Agent Error",
-            ports_open: [],
-            response_time: 0
-          });
         }
         completedScans++;
         console.log(`Scan progress: ${completedScans}/${totalScans} agents completed`);
@@ -19093,8 +20660,8 @@ var NetworkScanService = class {
       console.log(`REAL network scan completed - Session: ${sessionId}`);
       console.log(`Total devices discovered: ${allScanResults.length}`);
       const subnetStats = config.subnets.map((subnet) => {
-        const count6 = allScanResults.filter((r) => r.subnet === subnet).length;
-        return `${subnet}: ${count6} devices`;
+        const count7 = allScanResults.filter((r) => r.subnet === subnet).length;
+        return `${subnet}: ${count7} devices`;
       });
       console.log("Real scan results by subnet:", subnetStats);
     } catch (error) {
@@ -19155,6 +20722,15 @@ var NetworkScanService = class {
   generateSessionId() {
     return `scan-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
+  cleanupOldSessions() {
+    const cutoffTime = new Date(Date.now() - 24 * 60 * 60 * 1e3);
+    for (const [sessionId, session] of this.activeScanSessions.entries()) {
+      if (session.started_at < cutoffTime || session.status === "completed" && session.completed_at && session.completed_at < cutoffTime) {
+        this.activeScanSessions.delete(sessionId);
+        console.log(`Cleaned up old scan session: ${sessionId}`);
+      }
+    }
+  }
   async getScanSessions() {
     return Array.from(this.activeScanSessions.values());
   }
@@ -19174,8 +20750,8 @@ var NetworkScanService = class {
   async getDefaultSubnets() {
     try {
       const onlineAgents = await db.select().from(devices).where(
-        and7(
-          eq7(devices.status, "online"),
+        and10(
+          eq11(devices.status, "online"),
           isNotNull(devices.ip_address)
         )
       );
@@ -19329,6 +20905,390 @@ function registerNetworkScanRoutes(app2) {
   });
 }
 
+// server/vnc-setup.js
+import { spawn } from "child_process";
+var VNCServer = class {
+  constructor() {
+    this.vncDisplay = ":1";
+    this.vncPort = 5901;
+    this.websockifyPort = 6080;
+    this.xvfbProcess = null;
+    this.vncProcess = null;
+    this.websockifyProcess = null;
+  }
+  async startXvfb() {
+    return new Promise((resolve, reject) => {
+      console.log("\u{1F5A5}\uFE0F Starting Xvfb virtual display...");
+      this.xvfbProcess = spawn("Xvfb", [
+        this.vncDisplay,
+        "-screen",
+        "0",
+        "1024x768x24",
+        "-ac",
+        "+extension",
+        "GLX",
+        "+render",
+        "-noreset"
+      ], {
+        stdio: "pipe",
+        env: { ...process.env, DISPLAY: this.vncDisplay }
+      });
+      this.xvfbProcess.on("error", (error) => {
+        console.error("\u274C Xvfb failed to start:", error.message);
+        reject(error);
+      });
+      this.xvfbProcess.stdout.on("data", (data) => {
+        console.log("Xvfb stdout:", data.toString());
+      });
+      this.xvfbProcess.stderr.on("data", (data) => {
+        console.log("Xvfb stderr:", data.toString());
+      });
+      setTimeout(() => {
+        console.log("\u2705 Xvfb started successfully");
+        resolve(true);
+      }, 2e3);
+    });
+  }
+  async startVNC() {
+    return new Promise((resolve, reject) => {
+      console.log("\u{1F512} Starting x11vnc server...");
+      this.vncProcess = spawn("x11vnc", [
+        "-display",
+        this.vncDisplay,
+        "-rfbport",
+        this.vncPort.toString(),
+        "-localhost",
+        "-nopw",
+        "-once",
+        "-shared",
+        "-forever"
+      ], {
+        stdio: "pipe",
+        env: { ...process.env, DISPLAY: this.vncDisplay }
+      });
+      this.vncProcess.on("error", (error) => {
+        console.error("\u274C x11vnc failed to start:", error.message);
+        reject(error);
+      });
+      this.vncProcess.stdout.on("data", (data) => {
+        const output = data.toString();
+        console.log("x11vnc:", output);
+        if (output.includes("PORT=")) {
+          console.log("\u2705 x11vnc started successfully");
+          resolve(true);
+        }
+      });
+      this.vncProcess.stderr.on("data", (data) => {
+        console.log("x11vnc stderr:", data.toString());
+      });
+      setTimeout(() => {
+        if (!this.vncProcess.killed) {
+          console.log("\u2705 x11vnc appears to be running");
+          resolve(true);
+        }
+      }, 1e4);
+    });
+  }
+  async startWebsockify() {
+    return new Promise((resolve, reject) => {
+      console.log("\u{1F310} Starting websockify proxy...");
+      this.websockifyProcess = spawn("websockify", [
+        "--web=/usr/share/novnc",
+        this.websockifyPort.toString(),
+        `localhost:${this.vncPort}`
+      ], {
+        stdio: "pipe"
+      });
+      this.websockifyProcess.on("error", (error) => {
+        console.error("\u274C Websockify failed to start:", error.message);
+        reject(error);
+      });
+      this.websockifyProcess.stdout.on("data", (data) => {
+        const output = data.toString();
+        console.log("websockify:", output);
+        if (output.includes("Listen")) {
+          console.log("\u2705 Websockify started successfully");
+          resolve(true);
+        }
+      });
+      this.websockifyProcess.stderr.on("data", (data) => {
+        console.log("websockify stderr:", data.toString());
+      });
+      setTimeout(() => {
+        console.log("\u2705 Websockify should be running");
+        resolve(true);
+      }, 5e3);
+    });
+  }
+  async startVNCServer() {
+    try {
+      console.log("\u{1F680} Starting VNC server setup...");
+      await this.startXvfb();
+      await this.startVNC();
+      await this.startWebsockify();
+      console.log("\u2705 VNC server fully operational!");
+      console.log(`\u{1F4F1} noVNC web interface: http://0.0.0.0:${this.websockifyPort}/vnc.html`);
+      console.log(`\u{1F517} VNC direct connection: 0.0.0.0:${this.vncPort}`);
+      console.log(`\u{1F504} Reverse tunnel endpoint: 0.0.0.0:5901 (for private networks)`);
+      console.log(`\u{1F4A1} For private IP endpoints, run: ssh -R 5901:localhost:${this.vncPort} itsm-user@0.0.0.0`);
+      return true;
+    } catch (error) {
+      console.error("\u274C Failed to start VNC server:", error);
+      this.cleanup();
+      return false;
+    }
+  }
+  cleanup() {
+    console.log("\u{1F9F9} Cleaning up VNC processes...");
+    if (this.websockifyProcess) {
+      this.websockifyProcess.kill();
+    }
+    if (this.vncProcess) {
+      this.vncProcess.kill();
+    }
+    if (this.xvfbProcess) {
+      this.xvfbProcess.kill();
+    }
+  }
+  getStatus() {
+    return {
+      xvfb: this.xvfbProcess && !this.xvfbProcess.killed,
+      vnc: this.vncProcess && !this.vncProcess.killed,
+      websockify: this.websockifyProcess && !this.websockifyProcess.killed,
+      ports: {
+        vnc: this.vncPort,
+        websockify: this.websockifyPort
+      }
+    };
+  }
+};
+var vnc_setup_default = VNCServer;
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const vncServer = new VNCServer();
+  vncServer.startVNCServer().then((success) => {
+    if (success) {
+      console.log("VNC server started successfully");
+      process.on("SIGINT", () => {
+        console.log("Received SIGINT, cleaning up...");
+        vncServer.cleanup();
+        process.exit(0);
+      });
+      process.on("SIGTERM", () => {
+        console.log("Received SIGTERM, cleaning up...");
+        vncServer.cleanup();
+        process.exit(0);
+      });
+    } else {
+      console.log("Failed to start VNC server");
+      process.exit(1);
+    }
+  }).catch((error) => {
+    console.error("Error starting VNC server:", error);
+    process.exit(1);
+  });
+}
+
+// server/routes/vnc-routes.ts
+init_auth_middleware();
+var vncServerInstance = null;
+function registerVNCRoutes(app2) {
+  app2.post("/api/vnc/start", authenticateToken, async (req, res) => {
+    try {
+      if (vncServerInstance && vncServerInstance.vncProcess) {
+        return res.json({
+          success: true,
+          message: "VNC server is already running",
+          websockify_url: "ws://0.0.0.0:6080/websockify",
+          novnc_url: "http://0.0.0.0:6080/vnc.html"
+        });
+      }
+      vncServerInstance = new vnc_setup_default();
+      const started = await vncServerInstance.startVNCServer();
+      if (started) {
+        res.json({
+          success: true,
+          message: "VNC server started successfully",
+          websockify_url: "ws://0.0.0.0:6080/websockify",
+          novnc_url: "http://0.0.0.0:6080/vnc.html",
+          vnc_port: 5900,
+          websockify_port: 6080
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: "Failed to start VNC server"
+        });
+      }
+    } catch (error) {
+      console.error("Error starting VNC server:", error);
+      res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message
+      });
+    }
+  });
+  app2.post("/api/vnc/stop", authenticateToken, async (req, res) => {
+    try {
+      if (vncServerInstance) {
+        vncServerInstance.stopVNCServer();
+        vncServerInstance = null;
+      }
+      res.json({
+        success: true,
+        message: "VNC server stopped"
+      });
+    } catch (error) {
+      console.error("Error stopping VNC server:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to stop VNC server",
+        error: error.message
+      });
+    }
+  });
+  app2.get("/api/vnc/status", authenticateToken, (req, res) => {
+    const isRunning = vncServerInstance && vncServerInstance.vncProcess;
+    res.json({
+      running: isRunning,
+      websockify_url: isRunning ? "ws://0.0.0.0:6080/websockify" : null,
+      novnc_url: isRunning ? "http://0.0.0.0:6080/vnc.html" : null,
+      vnc_port: isRunning ? 5900 : null,
+      websockify_port: isRunning ? 6080 : null,
+      reverse_tunnel_port: 5901,
+      reverse_tunnel_command: "ssh -R 5901:localhost:5900 itsm-user@0.0.0.0"
+    });
+  });
+  app2.post("/api/vnc/reverse-tunnel", authenticateToken, async (req, res) => {
+    try {
+      const { agent_id, agent_hostname } = req.body;
+      if (!vncServerInstance || !vncServerInstance.vncProcess) {
+        return res.status(400).json({
+          success: false,
+          message: "VNC server is not running. Start VNC server first."
+        });
+      }
+      const serverHost = req.get("host")?.split(":")[0] || process.env.REPL_SLUG + ".replit.dev";
+      const tunnelCommand = `ssh -R 5901:localhost:5900 -p 2222 itsm-user@${serverHost}`;
+      const instructions = [
+        {
+          step: 1,
+          title: "Install SSH Client (if not already installed)",
+          windows_command: "winget install Microsoft.OpenSSH.Beta",
+          description: "Install OpenSSH client on Windows endpoint"
+        },
+        {
+          step: 2,
+          title: "Create Reverse Tunnel",
+          command: tunnelCommand,
+          description: "Run this command on the Windows endpoint to create reverse tunnel"
+        },
+        {
+          step: 3,
+          title: "Keep Tunnel Alive",
+          command: `ssh -R 5901:localhost:5900 -N -f -p 2222 itsm-user@${serverHost}`,
+          description: "Use -N -f flags to run tunnel in background"
+        }
+      ];
+      res.json({
+        success: true,
+        agent_id,
+        agent_hostname,
+        tunnel_command: tunnelCommand,
+        local_vnc_url: "http://0.0.0.0:6080/vnc.html?host=localhost&port=5901",
+        instructions,
+        notes: [
+          "The tunnel creates a reverse connection from the endpoint back to this server",
+          "Once established, VNC traffic will flow through the SSH tunnel",
+          "This works even when the endpoint is behind NAT/firewall"
+        ]
+      });
+    } catch (error) {
+      console.error("Error generating reverse tunnel command:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to generate reverse tunnel command",
+        error: error.message
+      });
+    }
+  });
+}
+
+// server/routes/system-config-routes.ts
+init_system_config();
+function registerSystemConfigRoutes(app2, authenticateToken4) {
+  app2.get("/api/system/config", async (req, res) => {
+    try {
+      const config = systemConfig.getConfig();
+      res.json(config);
+    } catch (error) {
+      console.error("Error getting system config:", error);
+      res.status(500).json({ error: "Failed to get system configuration" });
+    }
+  });
+  app2.put("/api/system/config", async (req, res) => {
+    try {
+      const updates = req.body;
+      if (!isValidConfig(updates)) {
+        return res.status(400).json({ error: "Invalid configuration format" });
+      }
+      systemConfig.updateConfig(updates);
+      console.log("System configuration updated:", JSON.stringify(updates, null, 2));
+      res.json({
+        message: "Configuration updated successfully",
+        config: systemConfig.getConfig()
+      });
+    } catch (error) {
+      console.error("Error updating system config:", error);
+      res.status(500).json({ error: "Failed to update system configuration" });
+    }
+  });
+  app2.get("/api/system/config/:section", async (req, res) => {
+    try {
+      const section = req.params.section;
+      const config = systemConfig.getConfig();
+      if (!(section in config)) {
+        return res.status(404).json({ error: "Configuration section not found" });
+      }
+      res.json({ [section]: config[section] });
+    } catch (error) {
+      console.error("Error getting config section:", error);
+      res.status(500).json({ error: "Failed to get configuration section" });
+    }
+  });
+}
+function isValidConfig(config) {
+  try {
+    return config && typeof config === "object" && (config.alerts ? isValidAlertsConfig(config.alerts) : true) && (config.network ? isValidNetworkConfig(config.network) : true) && (config.tickets ? isValidTicketsConfig(config.tickets) : true);
+  } catch (error) {
+    return false;
+  }
+}
+function isValidAlertsConfig(alerts2) {
+  return alerts2 && typeof alerts2 === "object" && (!alerts2.thresholds || isValidThresholds(alerts2.thresholds));
+}
+function isValidThresholds(thresholds) {
+  return thresholds && typeof thresholds === "object" && (!thresholds.cpu || isValidThresholdValues(thresholds.cpu)) && (!thresholds.memory || isValidThresholdValues(thresholds.memory)) && (!thresholds.disk || isValidThresholdValues(thresholds.disk));
+}
+function isValidThresholdValues(values) {
+  return values && typeof values === "object" && (!values.warning || typeof values.warning === "number" && values.warning >= 0 && values.warning <= 100) && (!values.high || typeof values.high === "number" && values.high >= 0 && values.high <= 100) && (!values.critical || typeof values.critical === "number" && values.critical >= 0 && values.critical <= 100);
+}
+function isValidNetworkConfig(network) {
+  return network && typeof network === "object" && (!network.scan || isValidScanConfig(network.scan)) && (!network.agents || isValidAgentsConfig(network.agents));
+}
+function isValidScanConfig(scan) {
+  return scan && typeof scan === "object" && (!scan.timeoutMs || typeof scan.timeoutMs === "number" && scan.timeoutMs > 0) && (!scan.retryAttempts || typeof scan.retryAttempts === "number" && scan.retryAttempts >= 0);
+}
+function isValidAgentsConfig(agents) {
+  return agents && typeof agents === "object" && (!agents.heartbeatInterval || typeof agents.heartbeatInterval === "number" && agents.heartbeatInterval > 0) && (!agents.offlineThreshold || typeof agents.offlineThreshold === "number" && agents.offlineThreshold > 0);
+}
+function isValidTicketsConfig(tickets2) {
+  return tickets2 && typeof tickets2 === "object" && (!tickets2.sla || isValidSlaConfig(tickets2.sla));
+}
+function isValidSlaConfig(sla) {
+  return sla && typeof sla === "object" && (!sla.defaultResponseTime || typeof sla.defaultResponseTime === "number" && sla.defaultResponseTime > 0) && (!sla.defaultResolutionTime || typeof sla.defaultResolutionTime === "number" && sla.defaultResolutionTime > 0) && (!sla.escalationTime || typeof sla.escalationTime === "number" && sla.escalationTime > 0);
+}
+
 // server/services/security-service.ts
 init_storage();
 var SecurityService = class {
@@ -19393,16 +21353,16 @@ var SecurityService = class {
     return match ? match[1].toLowerCase() : "unknown";
   }
   categorizeUSBDevice(description) {
-    const desc12 = description.toLowerCase();
-    if (desc12.includes("mass storage") || desc12.includes("storage"))
+    const desc13 = description.toLowerCase();
+    if (desc13.includes("mass storage") || desc13.includes("storage"))
       return "mass_storage";
-    if (desc12.includes("keyboard")) return "keyboard";
-    if (desc12.includes("mouse")) return "mouse";
-    if (desc12.includes("webcam") || desc12.includes("camera")) return "webcam";
-    if (desc12.includes("wireless") || desc12.includes("wifi"))
+    if (desc13.includes("keyboard")) return "keyboard";
+    if (desc13.includes("mouse")) return "mouse";
+    if (desc13.includes("webcam") || desc13.includes("camera")) return "webcam";
+    if (desc13.includes("wireless") || desc13.includes("wifi"))
       return "wireless_adapter";
-    if (desc12.includes("audio") || desc12.includes("speaker")) return "audio";
-    if (desc12.includes("composite")) return "composite";
+    if (desc13.includes("audio") || desc13.includes("speaker")) return "audio";
+    if (desc13.includes("composite")) return "composite";
     return "unknown";
   }
   async checkSoftwareLicenseCompliance(deviceId, installedSoftware) {
@@ -19442,56 +21402,6 @@ var SecurityService = class {
           rawData = typeof latestReport.raw_data === "string" ? JSON.parse(latestReport.raw_data) : latestReport.raw_data;
         } catch (e) {
           continue;
-        }
-        const memoryUsage = parseFloat(latestReport.memory_usage) || rawData?.hardware?.memory?.usage_percentage;
-        if (memoryUsage && memoryUsage > 80) {
-          const existingAlerts = await storage.getActiveAlerts();
-          const hasMemoryAlert = existingAlerts.some(
-            (alert) => alert.device_id === device.id && alert.category === "performance" && alert.metadata?.metric === "memory"
-          );
-          if (!hasMemoryAlert) {
-            await storage.createAlert({
-              device_id: device.id,
-              category: "performance",
-              severity: memoryUsage > 90 ? "critical" : "high",
-              message: `High memory utilization detected: ${memoryUsage.toFixed(1)}%`,
-              metadata: {
-                metric: "memory",
-                value: memoryUsage,
-                threshold: 80,
-                device_hostname: device.hostname
-              },
-              is_active: true
-            });
-            console.log(
-              `Created memory alert for device ${device.hostname}: ${memoryUsage.toFixed(1)}%`
-            );
-          }
-        }
-        const cpuUsage = parseFloat(latestReport.cpu_usage) || rawData?.hardware?.cpu?.usage_percentage;
-        if (cpuUsage && cpuUsage > 85) {
-          const existingAlerts = await storage.getActiveAlerts();
-          const hasCpuAlert = existingAlerts.some(
-            (alert) => alert.device_id === device.id && alert.category === "performance" && alert.metadata?.metric === "cpu"
-          );
-          if (!hasCpuAlert) {
-            await storage.createAlert({
-              device_id: device.id,
-              category: "performance",
-              severity: cpuUsage > 95 ? "critical" : "high",
-              message: `High CPU utilization detected: ${cpuUsage.toFixed(1)}%`,
-              metadata: {
-                metric: "cpu",
-                value: cpuUsage,
-                threshold: 85,
-                device_hostname: device.hostname
-              },
-              is_active: true
-            });
-            console.log(
-              `Created CPU alert for device ${device.hostname}: ${cpuUsage.toFixed(1)}%`
-            );
-          }
         }
         const usbDevices = rawData?.usb_devices || [];
         if (usbDevices.length > 0) {
@@ -19700,6 +21610,95 @@ var SecurityService = class {
   }
 };
 var securityService = new SecurityService();
+
+// server/routes/cab-routes.ts
+init_cab_service();
+import { z as z3 } from "zod";
+var createCABSchema = z3.object({
+  name: z3.string().min(1),
+  description: z3.string().optional(),
+  chairperson_id: z3.string(),
+  members: z3.array(z3.string()),
+  meeting_frequency: z3.string().optional()
+});
+var approvalDecisionSchema = z3.object({
+  decision: z3.enum(["approved", "rejected"]),
+  comments: z3.string().optional(),
+  approver_id: z3.string()
+});
+function registerCABRoutes(app2) {
+  app2.get("/api/cab/boards", async (req, res) => {
+    try {
+      const boards = await CABService.getCABBoards();
+      res.json(boards);
+    } catch (error) {
+      console.error("Error fetching CAB boards:", error);
+      res.status(500).json({ error: "Failed to fetch CAB boards" });
+    }
+  });
+  app2.post("/api/cab/boards", async (req, res) => {
+    try {
+      const validatedData = createCABSchema.parse(req.body);
+      const board = await CABService.createCABBoard(validatedData);
+      res.status(201).json(board);
+    } catch (error) {
+      if (error instanceof z3.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      console.error("Error creating CAB board:", error);
+      res.status(500).json({ error: "Failed to create CAB board" });
+    }
+  });
+  app2.get("/api/cab/pending-changes", async (req, res) => {
+    try {
+      const cabId = req.query.cab_id;
+      const changes = await CABService.getPendingChanges(cabId);
+      res.json(changes);
+    } catch (error) {
+      console.error("Error fetching pending changes:", error);
+      res.status(500).json({ error: "Failed to fetch pending changes" });
+    }
+  });
+  app2.post("/api/cab/approval/:ticketId", async (req, res) => {
+    try {
+      const { ticketId } = req.params;
+      const validatedData = approvalDecisionSchema.parse(req.body);
+      const result = await CABService.processApproval(
+        ticketId,
+        validatedData.approver_id,
+        validatedData.decision,
+        validatedData.comments
+      );
+      res.json(result);
+    } catch (error) {
+      if (error instanceof z3.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      console.error("Error processing approval:", error);
+      res.status(500).json({ error: "Failed to process approval" });
+    }
+  });
+  app2.get("/api/cab/approval-history/:ticketId", async (req, res) => {
+    try {
+      const { ticketId } = req.params;
+      const history = await CABService.getApprovalHistory(ticketId);
+      res.json(history);
+    } catch (error) {
+      console.error("Error fetching approval history:", error);
+      res.status(500).json({ error: "Failed to fetch approval history" });
+    }
+  });
+  app2.post("/api/cab/auto-route/:ticketId", async (req, res) => {
+    try {
+      const { ticketId } = req.params;
+      await CABService.autoRouteChange(ticketId);
+      res.json({ message: "Change routed successfully" });
+    } catch (error) {
+      console.error("Error auto-routing change:", error);
+      res.status(500).json({ error: "Failed to route change" });
+    }
+  });
+}
 
 // server/routes.ts
 init_auth_middleware();
@@ -20252,7 +22251,18 @@ async function registerRoutes(app2) {
   registerTicketRoutes(app2);
   registerDeviceRoutes(app2, authenticateToken);
   registerAgentRoutes(app2, authenticateToken, requireRole);
-  registerNetworkScanRoutes(app2);
+  registerNetworkScanRoutes(app2, authenticateToken);
+  registerVNCRoutes(app2);
+  registerSystemConfigRoutes(app2);
+  registerCABRoutes(app2);
+  try {
+    const errorReportingRoutes = await Promise.resolve().then(() => (init_error_reporting_routes(), error_reporting_routes_exports));
+    if (errorReportingRoutes.default) {
+      app2.use("/api", errorReportingRoutes.default);
+    }
+  } catch (error) {
+    console.warn("Error reporting routes not available:", error.message);
+  }
   try {
     const alertRoutes2 = await Promise.resolve().then(() => (init_alert_routes(), alert_routes_exports));
     if (alertRoutes2.default) {
@@ -20325,49 +22335,54 @@ async function registerRoutes(app2) {
     }
   });
   try {
-    const analyticsRoutes = await Promise.resolve().then(() => (init_analytics_routes(), analytics_routes_exports));
-    if (analyticsRoutes.default) {
-      app2.use("/api/analytics", analyticsRoutes.default);
+    const { default: analyticsRoutes } = await Promise.resolve().then(() => (init_analytics_routes(), analytics_routes_exports));
+    if (analyticsRoutes) {
+      app2.use("/api/analytics", analyticsRoutes);
+      console.log("\u2705 Analytics routes registered");
     }
   } catch (error) {
     console.warn("Analytics routes not available:", error.message);
   }
   try {
-    const userRoutes = await Promise.resolve().then(() => (init_user_routes(), user_routes_exports));
-    if (userRoutes.default) {
-      app2.use("/api/users", authenticateToken, userRoutes.default);
+    const { default: userRoutes } = await Promise.resolve().then(() => (init_user_routes(), user_routes_exports));
+    if (userRoutes) {
+      app2.use("/api/users", authenticateToken, userRoutes);
+      console.log("\u2705 User routes registered");
     }
   } catch (error) {
     console.warn("User routes not available:", error.message);
   }
   try {
-    const knowledgeRoutes = await Promise.resolve().then(() => (init_knowledge_routes(), knowledge_routes_exports));
-    if (knowledgeRoutes.default) {
-      app2.use("/api/knowledge", authenticateToken, knowledgeRoutes.default);
+    const { default: knowledgeRoutes } = await Promise.resolve().then(() => (init_knowledge_routes(), knowledge_routes_exports));
+    if (knowledgeRoutes) {
+      app2.use("/api/knowledge", authenticateToken, knowledgeRoutes);
+      console.log("\u2705 Knowledge routes registered");
     }
   } catch (error) {
     console.warn("Knowledge routes not available:", error.message);
   }
   try {
-    const slaRoutes = await Promise.resolve().then(() => (init_sla_routes(), sla_routes_exports));
-    if (slaRoutes.default) {
-      app2.use("/api/sla", authenticateToken, slaRoutes.default);
+    const { default: slaRoutes } = await Promise.resolve().then(() => (init_sla_routes(), sla_routes_exports));
+    if (slaRoutes) {
+      app2.use("/api/sla", authenticateToken, slaRoutes);
+      console.log("\u2705 SLA routes registered");
     }
   } catch (error) {
     console.warn("SLA routes not available:", error.message);
   }
   try {
-    const slaAnalysisRoutes = await Promise.resolve().then(() => (init_sla_analysis_routes(), sla_analysis_routes_exports));
-    if (slaAnalysisRoutes.default) {
-      app2.use("/api/sla-analysis", authenticateToken, slaAnalysisRoutes.default);
+    const { default: slaAnalysisRoutes } = await Promise.resolve().then(() => (init_sla_analysis_routes(), sla_analysis_routes_exports));
+    if (slaAnalysisRoutes) {
+      app2.use("/api/sla-analysis", authenticateToken, slaAnalysisRoutes);
+      console.log("\u2705 SLA analysis routes registered");
     }
   } catch (error) {
     console.warn("SLA analysis routes not available:", error.message);
   }
   try {
-    const aiRoutes = await Promise.resolve().then(() => (init_ai_routes(), ai_routes_exports));
-    if (aiRoutes.default) {
-      app2.use("/api/ai", authenticateToken, aiRoutes.default);
+    const { default: aiRoutes } = await Promise.resolve().then(() => (init_ai_routes(), ai_routes_exports));
+    if (aiRoutes) {
+      app2.use("/api/ai", authenticateToken, aiRoutes);
       app2.get("/api/ai-insights", authenticateToken, async (req, res) => {
         try {
           const deviceDetails = {
@@ -20413,14 +22428,16 @@ async function registerRoutes(app2) {
           });
         }
       });
+      console.log("\u2705 AI routes registered");
     }
   } catch (error) {
     console.warn("AI routes not available:", error.message);
   }
   try {
-    const auditRoutes = await Promise.resolve().then(() => (init_audit_routes(), audit_routes_exports));
-    if (auditRoutes.default) {
-      app2.use("/api/audit", authenticateToken, requireRole(["admin", "manager"]), auditRoutes.default);
+    const { default: auditRoutes } = await Promise.resolve().then(() => (init_audit_routes(), audit_routes_exports));
+    if (auditRoutes) {
+      app2.use("/api/audit", authenticateToken, requireRole(["admin", "manager"]), auditRoutes);
+      console.log("\u2705 Audit routes registered");
     }
   } catch (error) {
     console.warn("Audit routes not available:", error.message);
@@ -20462,9 +22479,10 @@ async function registerRoutes(app2) {
     console.warn("Security routes not available:", error.message);
   }
   try {
-    const patchRoutes = await Promise.resolve().then(() => (init_patch_routes(), patch_routes_exports));
-    if (patchRoutes.default) {
-      app2.use("/api/patch", authenticateToken, patchRoutes.default);
+    const { default: patchRoutes } = await Promise.resolve().then(() => (init_patch_routes(), patch_routes_exports));
+    if (patchRoutes) {
+      app2.use("/api/patch", authenticateToken, patchRoutes);
+      console.log("\u2705 Patch routes registered");
     }
   } catch (error) {
     console.warn("Patch routes not available:", error.message);
@@ -20484,14 +22502,14 @@ async function registerRoutes(app2) {
 init_user_routes();
 
 // server/vite.ts
-import express2 from "express";
+import express3 from "express";
 import fs2 from "fs";
 import path2 from "path";
 import { createServer as createViteServer, createLogger } from "vite";
 var viteLogger = createLogger();
 function serveStatic(app2) {
   const distPath = path2.resolve(import.meta.dirname, "..", "dist", "public");
-  app2.use(express2.static(distPath));
+  app2.use(express3.static(distPath));
   app2.get("*", (_req, res) => {
     const indexPath = path2.resolve(distPath, "index.html");
     res.sendFile(indexPath);
@@ -20706,322 +22724,12 @@ init_db();
 init_ticket_schema();
 init_knowledge_routes();
 init_websocket_service();
-import { eq as eq14, desc as desc11 } from "drizzle-orm";
+import { eq as eq18, desc as desc12 } from "drizzle-orm";
 import expressWs from "express-ws";
-
-// server/vnc-setup.js
-import { spawn } from "child_process";
-var VNCServer = class {
-  constructor() {
-    this.vncDisplay = ":1";
-    this.vncPort = 5901;
-    this.websockifyPort = 6080;
-    this.xvfbProcess = null;
-    this.vncProcess = null;
-    this.websockifyProcess = null;
-  }
-  async startXvfb() {
-    return new Promise((resolve, reject) => {
-      console.log("\u{1F5A5}\uFE0F Starting Xvfb virtual display...");
-      this.xvfbProcess = spawn("Xvfb", [
-        this.vncDisplay,
-        "-screen",
-        "0",
-        "1024x768x24",
-        "-ac",
-        "+extension",
-        "GLX",
-        "+render",
-        "-noreset"
-      ], {
-        stdio: "pipe",
-        env: { ...process.env, DISPLAY: this.vncDisplay }
-      });
-      this.xvfbProcess.on("error", (error) => {
-        console.error("\u274C Xvfb failed to start:", error.message);
-        reject(error);
-      });
-      this.xvfbProcess.stdout.on("data", (data) => {
-        console.log("Xvfb stdout:", data.toString());
-      });
-      this.xvfbProcess.stderr.on("data", (data) => {
-        console.log("Xvfb stderr:", data.toString());
-      });
-      setTimeout(() => {
-        console.log("\u2705 Xvfb started successfully");
-        resolve(true);
-      }, 2e3);
-    });
-  }
-  async startVNC() {
-    return new Promise((resolve, reject) => {
-      console.log("\u{1F512} Starting x11vnc server...");
-      this.vncProcess = spawn("x11vnc", [
-        "-display",
-        this.vncDisplay,
-        "-rfbport",
-        this.vncPort.toString(),
-        "-localhost",
-        "-nopw",
-        "-once",
-        "-shared",
-        "-forever"
-      ], {
-        stdio: "pipe",
-        env: { ...process.env, DISPLAY: this.vncDisplay }
-      });
-      this.vncProcess.on("error", (error) => {
-        console.error("\u274C x11vnc failed to start:", error.message);
-        reject(error);
-      });
-      this.vncProcess.stdout.on("data", (data) => {
-        const output = data.toString();
-        console.log("x11vnc:", output);
-        if (output.includes("PORT=")) {
-          console.log("\u2705 x11vnc started successfully");
-          resolve(true);
-        }
-      });
-      this.vncProcess.stderr.on("data", (data) => {
-        console.log("x11vnc stderr:", data.toString());
-      });
-      setTimeout(() => {
-        if (!this.vncProcess.killed) {
-          console.log("\u2705 x11vnc appears to be running");
-          resolve(true);
-        }
-      }, 1e4);
-    });
-  }
-  async startWebsockify() {
-    return new Promise((resolve, reject) => {
-      console.log("\u{1F310} Starting websockify proxy...");
-      this.websockifyProcess = spawn("websockify", [
-        "--web=/usr/share/novnc",
-        this.websockifyPort.toString(),
-        `localhost:${this.vncPort}`
-      ], {
-        stdio: "pipe"
-      });
-      this.websockifyProcess.on("error", (error) => {
-        console.error("\u274C Websockify failed to start:", error.message);
-        reject(error);
-      });
-      this.websockifyProcess.stdout.on("data", (data) => {
-        const output = data.toString();
-        console.log("websockify:", output);
-        if (output.includes("Listen")) {
-          console.log("\u2705 Websockify started successfully");
-          resolve(true);
-        }
-      });
-      this.websockifyProcess.stderr.on("data", (data) => {
-        console.log("websockify stderr:", data.toString());
-      });
-      setTimeout(() => {
-        console.log("\u2705 Websockify should be running");
-        resolve(true);
-      }, 5e3);
-    });
-  }
-  async startVNCServer() {
-    try {
-      console.log("\u{1F680} Starting VNC server setup...");
-      await this.startXvfb();
-      await this.startVNC();
-      await this.startWebsockify();
-      console.log("\u2705 VNC server fully operational!");
-      console.log(`\u{1F4F1} noVNC web interface: http://0.0.0.0:${this.websockifyPort}/vnc.html`);
-      console.log(`\u{1F517} VNC direct connection: 0.0.0.0:${this.vncPort}`);
-      console.log(`\u{1F504} Reverse tunnel endpoint: 0.0.0.0:5901 (for private networks)`);
-      console.log(`\u{1F4A1} For private IP endpoints, run: ssh -R 5901:localhost:${this.vncPort} itsm-user@0.0.0.0`);
-      return true;
-    } catch (error) {
-      console.error("\u274C Failed to start VNC server:", error);
-      this.cleanup();
-      return false;
-    }
-  }
-  cleanup() {
-    console.log("\u{1F9F9} Cleaning up VNC processes...");
-    if (this.websockifyProcess) {
-      this.websockifyProcess.kill();
-    }
-    if (this.vncProcess) {
-      this.vncProcess.kill();
-    }
-    if (this.xvfbProcess) {
-      this.xvfbProcess.kill();
-    }
-  }
-  getStatus() {
-    return {
-      xvfb: this.xvfbProcess && !this.xvfbProcess.killed,
-      vnc: this.vncProcess && !this.vncProcess.killed,
-      websockify: this.websockifyProcess && !this.websockifyProcess.killed,
-      ports: {
-        vnc: this.vncPort,
-        websockify: this.websockifyPort
-      }
-    };
-  }
-};
-var vnc_setup_default = VNCServer;
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const vncServer = new VNCServer();
-  vncServer.startVNCServer().then((success) => {
-    if (success) {
-      console.log("VNC server started successfully");
-      process.on("SIGINT", () => {
-        console.log("Received SIGINT, cleaning up...");
-        vncServer.cleanup();
-        process.exit(0);
-      });
-      process.on("SIGTERM", () => {
-        console.log("Received SIGTERM, cleaning up...");
-        vncServer.cleanup();
-        process.exit(0);
-      });
-    } else {
-      console.log("Failed to start VNC server");
-      process.exit(1);
-    }
-  }).catch((error) => {
-    console.error("Error starting VNC server:", error);
-    process.exit(1);
-  });
-}
-
-// server/routes/vnc-routes.ts
-var vncServerInstance = null;
-function registerVNCRoutes(app2, authenticateToken4) {
-  app2.post("/api/vnc/start", authenticateToken4, async (req, res) => {
-    try {
-      if (vncServerInstance && vncServerInstance.vncProcess) {
-        return res.json({
-          success: true,
-          message: "VNC server is already running",
-          websockify_url: "ws://0.0.0.0:6080/websockify",
-          novnc_url: "http://0.0.0.0:6080/vnc.html"
-        });
-      }
-      vncServerInstance = new vnc_setup_default();
-      const started = await vncServerInstance.startVNCServer();
-      if (started) {
-        res.json({
-          success: true,
-          message: "VNC server started successfully",
-          websockify_url: "ws://0.0.0.0:6080/websockify",
-          novnc_url: "http://0.0.0.0:6080/vnc.html",
-          vnc_port: 5900,
-          websockify_port: 6080
-        });
-      } else {
-        res.status(500).json({
-          success: false,
-          message: "Failed to start VNC server"
-        });
-      }
-    } catch (error) {
-      console.error("Error starting VNC server:", error);
-      res.status(500).json({
-        success: false,
-        message: "Internal server error",
-        error: error.message
-      });
-    }
-  });
-  app2.post("/api/vnc/stop", authenticateToken4, async (req, res) => {
-    try {
-      if (vncServerInstance) {
-        vncServerInstance.stopVNCServer();
-        vncServerInstance = null;
-      }
-      res.json({
-        success: true,
-        message: "VNC server stopped"
-      });
-    } catch (error) {
-      console.error("Error stopping VNC server:", error);
-      res.status(500).json({
-        success: false,
-        message: "Failed to stop VNC server",
-        error: error.message
-      });
-    }
-  });
-  app2.get("/api/vnc/status", authenticateToken4, (req, res) => {
-    const isRunning = vncServerInstance && vncServerInstance.vncProcess;
-    res.json({
-      running: isRunning,
-      websockify_url: isRunning ? "ws://0.0.0.0:6080/websockify" : null,
-      novnc_url: isRunning ? "http://0.0.0.0:6080/vnc.html" : null,
-      vnc_port: isRunning ? 5900 : null,
-      websockify_port: isRunning ? 6080 : null,
-      reverse_tunnel_port: 5901,
-      reverse_tunnel_command: "ssh -R 5901:localhost:5900 itsm-user@0.0.0.0"
-    });
-  });
-  app2.post("/api/vnc/reverse-tunnel", authenticateToken4, async (req, res) => {
-    try {
-      const { agent_id, agent_hostname } = req.body;
-      if (!vncServerInstance || !vncServerInstance.vncProcess) {
-        return res.status(400).json({
-          success: false,
-          message: "VNC server is not running. Start VNC server first."
-        });
-      }
-      const serverHost = req.get("host")?.split(":")[0] || process.env.REPL_SLUG + ".replit.dev";
-      const tunnelCommand = `ssh -R 5901:localhost:5900 -p 2222 itsm-user@${serverHost}`;
-      const instructions = [
-        {
-          step: 1,
-          title: "Install SSH Client (if not already installed)",
-          windows_command: "winget install Microsoft.OpenSSH.Beta",
-          description: "Install OpenSSH client on Windows endpoint"
-        },
-        {
-          step: 2,
-          title: "Create Reverse Tunnel",
-          command: tunnelCommand,
-          description: "Run this command on the Windows endpoint to create reverse tunnel"
-        },
-        {
-          step: 3,
-          title: "Keep Tunnel Alive",
-          command: `ssh -R 5901:localhost:5900 -N -f -p 2222 itsm-user@${serverHost}`,
-          description: "Use -N -f flags to run tunnel in background"
-        }
-      ];
-      res.json({
-        success: true,
-        agent_id,
-        agent_hostname,
-        tunnel_command: tunnelCommand,
-        local_vnc_url: "http://0.0.0.0:6080/vnc.html?host=localhost&port=5901",
-        instructions,
-        notes: [
-          "The tunnel creates a reverse connection from the endpoint back to this server",
-          "Once established, VNC traffic will flow through the SSH tunnel",
-          "This works even when the endpoint is behind NAT/firewall"
-        ]
-      });
-    } catch (error) {
-      console.error("Error generating reverse tunnel command:", error);
-      res.status(500).json({
-        success: false,
-        message: "Failed to generate reverse tunnel command",
-        error: error.message
-      });
-    }
-  });
-}
-
-// server/index.ts
 init_auth_middleware();
 init_sla_escalation_service();
 import cors from "cors";
-var app = express3();
+var app = express4();
 var wsInstance = expressWs(app);
 app.use(cors({
   origin: process.env.NODE_ENV === "production" ? ["https://your-domain.com"] : ["http://localhost:5173", "http://127.0.0.1:5173", "http://0.0.0.0:5173"],
@@ -21030,8 +22738,8 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
 }));
 app.options("*", cors());
-app.use(express3.json({ limit: "50mb" }));
-app.use(express3.urlencoded({ extended: true, limit: "50mb" }));
+app.use(express4.json({ limit: "50mb" }));
+app.use(express4.urlencoded({ extended: true, limit: "50mb" }));
 app.use((err, req, res, next) => {
   console.error("Global error handler:", err);
   if (err.name === "ValidationError") {
@@ -21129,7 +22837,7 @@ app.use((req, res, next) => {
     const server = await registerRoutes(app);
     const { registerSLARoutes: registerSLARoutes2 } = await Promise.resolve().then(() => (init_sla_routes(), sla_routes_exports));
     registerSLARoutes2(app);
-    app.use("/api/users", router8);
+    app.use("/api/users", router9);
     registerVNCRoutes(app, authenticateToken);
     const { default: analyticsRoutes } = await Promise.resolve().then(() => (init_analytics_routes(), analytics_routes_exports));
     app.use("/api/analytics", analyticsRoutes);
@@ -21155,7 +22863,7 @@ app.use((req, res, next) => {
           status: req.query.status || "published"
         };
         console.log("KB API - Filters:", filters);
-        const articles = await db.select().from(knowledgeBase).where(eq14(knowledgeBase.status, filters.status)).orderBy(desc11(knowledgeBase.created_at));
+        const articles = await db.select().from(knowledgeBase).where(eq18(knowledgeBase.status, filters.status)).orderBy(desc12(knowledgeBase.created_at));
         console.log(`KB API - Found ${articles.length} articles in database`);
         let filteredArticles = articles;
         if (filters.search) {
@@ -21256,7 +22964,7 @@ app.use((req, res, next) => {
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    app.use("/api/knowledge", router9);
+    app.use("/api/knowledge", router10);
     app.get("/api/health", async (req, res) => {
       try {
         await db.execute(sql`SELECT 1`);
@@ -21411,7 +23119,7 @@ app.get("/api/dashboard/summary", authenticateToken, async (req, res) => {
     });
   }
 });
-var alertRoutes = express3.Router();
+var alertRoutes = express4.Router();
 alertRoutes.get("/", async (req, res) => {
   try {
     const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
@@ -21425,5 +23133,6 @@ alertRoutes.get("/", async (req, res) => {
 app.use("/api/alerts", authenticateToken, alertRoutes);
 var index_default = app;
 export {
-  index_default as default
+  index_default as default,
+  webSocketService as websocketService
 };
