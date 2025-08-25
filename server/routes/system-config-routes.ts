@@ -2,7 +2,7 @@
 import type { Express } from "express";
 import { systemConfig } from "../../shared/system-config";
 
-export function registerSystemConfigRoutes(app: Express) {
+export function registerSystemConfigRoutes(app: Express, authenticateToken: any) {
   // Get current system configuration
   app.get("/api/system/config", async (req, res) => {
     try {

@@ -392,9 +392,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerTicketRoutes(app);
   registerDeviceRoutes(app, authenticateToken);
   registerAgentRoutes(app, authenticateToken, requireRole);
-  registerNetworkScanRoutes(app);
-  registerVNCRoutes(app);
-  registerSystemConfigRoutes(app);
+  registerNetworkScanRoutes(app, authenticateToken);
+  registerVNCRoutes(app, authenticateToken);
+  registerSystemConfigRoutes(app, authenticateToken);
 
   // Register additional modular routes with error handling
   try {
