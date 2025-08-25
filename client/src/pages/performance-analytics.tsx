@@ -45,7 +45,6 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { formatDistanceToNow, format, subDays, subHours } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { XCircle, HardDrive, AlertCircle } from "lucide-react";
 import { ALERT_THRESHOLDS } from "@shared/alert-thresholds";
 
 // Fallback alert thresholds
