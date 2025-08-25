@@ -1191,23 +1191,27 @@ class SystemCollector:
             # Initialize device discovery
             unique_devices = {}
 
-            # Method 1: Ping sweep of the subnet
+            # Method 1: ARP table scan (fastest and most reliable)
+            arp_devices = self._discover_devices_arp_table_enhanced(unique_devices)
+            self.logger.info(f"Enhanced ARP table scan found {arp_devices} devices")
+
+            # Method 2: Ping sweep of the subnet
             ping_devices = self._discover_devices_ping_sweep(target_subnet, unique_devices)
-            self.logger.info(f"Ping sweep found {ping_devices} devices")
+            self.logger.info(f"Ping sweep found {ping_devices} additional devices")
 
-            # Method 2: ARP table scan
-            arp_devices = self._discover_devices_arp_table(unique_devices)
-            self.logger.info(f"ARP table scan found {arp_devices} additional devices")
+            # Method 3: Network connections analysis
+            conn_devices = self._discover_devices_network_connections(unique_devices)
+            self.logger.info(f"Network connections found {conn_devices} additional devices")
 
-            # Method 3: DHCP client scan (Windows specific)
+            # Method 4: DHCP client scan (Windows specific)
             dhcp_devices = 0
             if self._is_windows():
                 dhcp_devices = self._discover_devices_dhcp_clients(unique_devices)
                 self.logger.info(f"DHCP client scan found {dhcp_devices} additional devices")
 
-            # Method 4: Network connections
-            conn_devices = self._discover_devices_network_connections(unique_devices)
-            self.logger.info(f"Network connections found {conn_devices} additional devices")
+            # Method 5: Router/Gateway device discovery
+            gateway_devices = self._discover_gateway_devices(unique_devices)
+            self.logger.info(f"Gateway discovery found {gateway_devices} additional devices")
 
             # Method 5: Advanced scanning for full scan
             if scan_type == 'full':
@@ -1246,6 +1250,202 @@ class SystemCollector:
                 'local_ip': local_ip if 'local_ip' in locals() else 'unknown',
                 'target_subnet': subnet
             }
+
+    def _discover_devices_arp_table_enhanced(self, unique_devices):
+        """Enhanced ARP table discovery with better parsing"""
+        discovered_count = 0
+        
+        try:
+            if self._is_windows():
+                # Windows ARP table parsing
+                result = subprocess.run(['arp', '-a'], capture_output=True, text=True, timeout=15)
+                for line in result.stdout.split('\n'):
+                    if 'dynamic' in line.lower() or 'static' in line.lower():
+                        parts = line.split()
+                        if len(parts) >= 3:
+                            ip = parts[0].strip()
+                            mac = parts[1].replace('-', ':') if '-' in parts[1] else parts[1]
+                            
+                            if self._is_valid_ip_format(ip) and self._is_valid_mac_format(mac):
+                                device_key = ip
+                                if device_key not in unique_devices:
+                                    device_info = {
+                                        'ip': ip,
+                                        'mac_address': mac,
+                                        'hostname': self._safe_hostname_lookup(ip),
+                                        'status': 'connected',
+                                        'discovery_method': 'ARP_Enhanced',
+                                        'device_type': self._classify_device_by_ip(ip),
+                                        'os': 'Unknown',
+                                        'response_time': 0
+                                    }
+                                    unique_devices[device_key] = device_info
+                                    discovered_count += 1
+                                    
+            else:
+                # Linux/Unix ARP table parsing
+                result = subprocess.run(['arp', '-a'], capture_output=True, text=True, timeout=15)
+                for line in result.stdout.split('\n'):
+                    # Parse format: hostname (ip) at mac [ether] on interface
+                    if '(' in line and ')' in line and ' at ' in line:
+                        try:
+                            ip_part = line.split('(')[1].split(')')[0].strip()
+                            mac_part = line.split(' at ')[1].split()[0].strip()
+                            
+                            if self._is_valid_ip_format(ip_part) and self._is_valid_mac_format(mac_part):
+                                device_key = ip_part
+                                if device_key not in unique_devices:
+                                    device_info = {
+                                        'ip': ip_part,
+                                        'mac_address': mac_part,
+                                        'hostname': self._safe_hostname_lookup(ip_part),
+                                        'status': 'connected',
+                                        'discovery_method': 'ARP_Enhanced',
+                                        'device_type': self._classify_device_by_ip(ip_part),
+                                        'os': 'Unknown',
+                                        'response_time': 0
+                                    }
+                                    unique_devices[device_key] = device_info
+                                    discovered_count += 1
+                        except Exception as parse_error:
+                            self.logger.debug(f"Error parsing ARP line '{line}': {parse_error}")
+                            continue
+                            
+        except Exception as e:
+            self.logger.error(f"Enhanced ARP table scan failed: {e}")
+            
+        return discovered_count
+
+    def _discover_gateway_devices(self, unique_devices):
+        """Discover gateway and router devices"""
+        discovered_count = 0
+        
+        try:
+            # Get default gateway
+            gateway_ip = self._get_default_gateway_ip()
+            if gateway_ip and self._is_valid_ip_format(gateway_ip):
+                device_key = gateway_ip
+                if device_key not in unique_devices:
+                    device_info = {
+                        'ip': gateway_ip,
+                        'mac_address': self._get_mac_for_ip(gateway_ip),
+                        'hostname': self._safe_hostname_lookup(gateway_ip),
+                        'status': 'connected',
+                        'discovery_method': 'Gateway_Discovery',
+                        'device_type': 'Router/Gateway',
+                        'os': 'Network OS',
+                        'response_time': self._ping_response_time(gateway_ip)
+                    }
+                    unique_devices[device_key] = device_info
+                    discovered_count += 1
+                    
+        except Exception as e:
+            self.logger.error(f"Gateway discovery failed: {e}")
+            
+        return discovered_count
+
+    def _get_default_gateway_ip(self):
+        """Get the default gateway IP address"""
+        try:
+            if self._is_windows():
+                result = subprocess.run(['ipconfig'], capture_output=True, text=True, timeout=10)
+                for line in result.stdout.split('\n'):
+                    if 'Default Gateway' in line and ':' in line:
+                        gateway = line.split(':')[1].strip()
+                        if gateway and gateway != '':
+                            return gateway
+            else:
+                result = subprocess.run(['ip', 'route', 'show', 'default'], capture_output=True, text=True, timeout=10)
+                if result.returncode == 0:
+                    for line in result.stdout.split('\n'):
+                        if 'default via' in line:
+                            parts = line.split()
+                            if len(parts) >= 3:
+                                return parts[2]
+        except Exception as e:
+            self.logger.debug(f"Could not get default gateway: {e}")
+        return None
+
+    def _get_mac_for_ip(self, ip):
+        """Get MAC address for specific IP"""
+        try:
+            if self._is_windows():
+                result = subprocess.run(['arp', '-a', ip], capture_output=True, text=True, timeout=5)
+                for line in result.stdout.split('\n'):
+                    if ip in line:
+                        parts = line.split()
+                        if len(parts) >= 2:
+                            return parts[1].replace('-', ':')
+            else:
+                result = subprocess.run(['arp', ip], capture_output=True, text=True, timeout=5)
+                for line in result.stdout.split('\n'):
+                    if ip in line and ':' in line:
+                        parts = line.split()
+                        for part in parts:
+                            if ':' in part and len(part) == 17:
+                                return part
+        except Exception:
+            pass
+        return 'Unknown'
+
+    def _ping_response_time(self, ip):
+        """Get ping response time for IP"""
+        try:
+            if self._is_windows():
+                result = subprocess.run(['ping', '-n', '1', ip], capture_output=True, text=True, timeout=5)
+                for line in result.stdout.split('\n'):
+                    if 'time=' in line.lower():
+                        time_part = line.split('time=')[1].split('ms')[0].strip()
+                        return int(float(time_part.replace('<', '')))
+            else:
+                result = subprocess.run(['ping', '-c', '1', ip], capture_output=True, text=True, timeout=5)
+                for line in result.stdout.split('\n'):
+                    if 'time=' in line:
+                        time_part = line.split('time=')[1].split()[0]
+                        return int(float(time_part))
+        except Exception:
+            pass
+        return 0
+
+    def _is_valid_ip_format(self, ip):
+        """Validate IP address format"""
+        try:
+            parts = ip.split('.')
+            return len(parts) == 4 and all(0 <= int(part) <= 255 for part in parts)
+        except:
+            return False
+
+    def _is_valid_mac_format(self, mac):
+        """Validate MAC address format"""
+        import re
+        return bool(re.match(r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$', mac))
+
+    def _classify_device_by_ip(self, ip):
+        """Classify device type based on IP address patterns"""
+        try:
+            last_octet = int(ip.split('.')[-1])
+            if last_octet == 1 or last_octet == 254:
+                return 'Router/Gateway'
+            elif 2 <= last_octet <= 10:
+                return 'Network Infrastructure'
+            elif 100 <= last_octet <= 150:
+                return 'Printer/Scanner'
+            elif 200 <= last_octet <= 220:
+                return 'IoT Device'
+            else:
+                return 'Workstation'
+        except:
+            return 'Unknown'
+
+    def _safe_hostname_lookup(self, ip):
+        """Safe hostname lookup with timeout and fallback"""
+        try:
+            import socket
+            socket.setdefaulttimeout(2)  # 2 second timeout
+            hostname = socket.gethostbyaddr(ip)[0]
+            return hostname if hostname else f"device-{ip.split('.')[-1]}"
+        except:
+            return f"device-{ip.split('.')[-1]}"
 
     def _get_local_ip(self):
         """Get local IP address"""

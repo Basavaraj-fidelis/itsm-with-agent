@@ -495,6 +495,12 @@ class NetworkScanService {
       }
 
       console.log(`Sending network scan commands to ${scanningAgents.length} agents`);
+      console.log('Scanning agents details:', scanningAgents.map(a => ({
+        hostname: a.hostname,
+        ip: a.ip_address,
+        subnet: a.subnet,
+        agent_id: a.agent_id
+      })));
 
       // Clean up old sessions before starting new scan
       this.cleanupOldSessions();
@@ -595,6 +601,12 @@ class NetworkScanService {
   private processAgentScanResults(agentData: any, scanningAgent: any): NetworkScanResult[] {
     const results: NetworkScanResult[] = [];
 
+    console.log('Processing agent scan results:', {
+      agent: scanningAgent.hostname,
+      dataKeys: Object.keys(agentData || {}),
+      discoveredDevicesCount: agentData?.discovered_devices?.length || 0
+    });
+
     // Add the scanning agent itself first
     results.push({
       id: scanningAgent.agent_id,
@@ -612,7 +624,17 @@ class NetworkScanService {
 
     // Process discovered devices from agent's network scan
     if (agentData.discovered_devices && Array.isArray(agentData.discovered_devices)) {
+      console.log(`Processing ${agentData.discovered_devices.length} discovered devices from agent ${scanningAgent.hostname}`);
+      
       agentData.discovered_devices.forEach((device: any, index: number) => {
+        console.log(`Device ${index}:`, {
+          ip: device.ip,
+          hostname: device.hostname,
+          mac: device.mac_address,
+          status: device.status,
+          type: device.device_type
+        });
+        
         if (device.ip && device.ip !== scanningAgent.ip_address) {
           results.push({
             id: `agent-discovered-${scanningAgent.agent_id}-${index}`,
@@ -629,8 +651,11 @@ class NetworkScanService {
           });
         }
       });
+    } else {
+      console.log('No discovered_devices array found in agent data');
     }
 
+    console.log(`Processed ${results.length} total results from agent ${scanningAgent.hostname}`);
     return results;
   }
 

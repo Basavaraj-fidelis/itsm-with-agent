@@ -89,7 +89,7 @@ export default function NetworkScan() {
 
       const results = await Promise.allSettled(promises);
       const failedCount = results.filter(result => result.status === 'rejected').length;
-      
+
       if (failedCount > 0) {
         console.warn(`${failedCount} out of 3 initial data loads failed`);
       }

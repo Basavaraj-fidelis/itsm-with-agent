@@ -419,29 +419,51 @@ class NetworkModule(BaseModule):
         return datetime.datetime.now().isoformat()
     
     def _ping_scan(self, subnet: str) -> List[Dict[str, Any]]:
-        """Perform ping scan on subnet"""
+        """Perform comprehensive ping scan on subnet"""
         discovered_devices = []
         
         try:
             # Parse IP range
             ip_list = self._parse_ip_range(subnet)
+            self.logger.info(f"Ping scanning {len(ip_list)} IPs in range: {subnet}")
             
-            for ip in ip_list[:50]:  # Limit to 50 IPs for performance
-                if self._ping_host(ip):
-                    device_info = {
-                        'ip': ip,
-                        'hostname': self._get_hostname_from_ip(ip),
-                        'status': 'online',
-                        'mac_address': self._get_mac_from_ip(ip),
-                        'response_time': self._get_ping_time(ip),
-                        'device_type': self._guess_device_type(ip),
-                        'os': 'Unknown'
-                    }
-                    discovered_devices.append(device_info)
-                    
+            # Use threading for faster scanning
+            import threading
+            import concurrent.futures
+            
+            def scan_ip(ip):
+                try:
+                    if self._ping_host(ip):
+                        device_info = {
+                            'ip': ip,
+                            'hostname': self._get_hostname_from_ip(ip),
+                            'status': 'online',
+                            'mac_address': self._get_mac_from_ip(ip),
+                            'response_time': self._get_ping_time(ip),
+                            'device_type': self._guess_device_type(ip),
+                            'os': self._detect_os_simple(ip)
+                        }
+                        return device_info
+                except Exception as e:
+                    self.logger.debug(f"Error scanning IP {ip}: {e}")
+                return None
+            
+            # Scan with thread pool for better performance
+            with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+                # Limit to reasonable number for testing
+                scan_ips = ip_list[:100] if len(ip_list) > 100 else ip_list
+                future_to_ip = {executor.submit(scan_ip, ip): ip for ip in scan_ips}
+                
+                for future in concurrent.futures.as_completed(future_to_ip):
+                    result = future.result()
+                    if result:
+                        discovered_devices.append(result)
+                        self.logger.info(f"Found device: {result['ip']} ({result['hostname']})")
+                        
         except Exception as e:
             self.logger.error(f"Error in ping scan: {e}")
         
+        self.logger.info(f"Ping scan completed. Found {len(discovered_devices)} devices.")
         return discovered_devices
     
     def _port_scan(self, subnet: str) -> List[Dict[str, Any]]:
@@ -530,7 +552,7 @@ class NetworkModule(BaseModule):
             if self.is_windows:
                 result = subprocess.run(['arp', '-a', ip], capture_output=True, text=True, timeout=5)
                 for line in result.stdout.split('\n'):
-                    if ip in line and 'dynamic' in line.lower():
+                    if ip in line and ('dynamic' in line.lower() or 'static' in line.lower()):
                         parts = line.split()
                         for part in parts:
                             if '-' in part and len(part) == 17:
@@ -546,6 +568,99 @@ class NetworkModule(BaseModule):
         except Exception:
             pass
         return "Unknown"
+    
+    def _scan_arp_table(self) -> List[Dict[str, Any]]:
+        """Scan complete ARP table for all devices"""
+        discovered_devices = []
+        
+        try:
+            if self.is_windows:
+                result = subprocess.run(['arp', '-a'], capture_output=True, text=True, timeout=10)
+                for line in result.stdout.split('\n'):
+                    if 'dynamic' in line.lower() or 'static' in line.lower():
+                        parts = line.split()
+                        if len(parts) >= 3:
+                            ip = parts[0]
+                            mac = parts[1].replace('-', ':') if '-' in parts[1] else parts[1]
+                            if self._is_valid_ip(ip) and self._is_valid_mac(mac):
+                                device_info = {
+                                    'ip': ip,
+                                    'hostname': self._get_hostname_from_ip(ip),
+                                    'status': 'online',
+                                    'mac_address': mac,
+                                    'response_time': 0,
+                                    'device_type': self._guess_device_type(ip),
+                                    'os': 'Unknown',
+                                    'discovery_method': 'ARP Table'
+                                }
+                                discovered_devices.append(device_info)
+            else:
+                result = subprocess.run(['arp', '-a'], capture_output=True, text=True, timeout=10)
+                for line in result.stdout.split('\n'):
+                    if '(' in line and ')' in line and ':' in line:
+                        parts = line.split()
+                        if len(parts) >= 4:
+                            ip = parts[1].strip('()')
+                            mac = parts[3]
+                            if self._is_valid_ip(ip) and self._is_valid_mac(mac):
+                                device_info = {
+                                    'ip': ip,
+                                    'hostname': self._get_hostname_from_ip(ip),
+                                    'status': 'online',
+                                    'mac_address': mac,
+                                    'response_time': 0,
+                                    'device_type': self._guess_device_type(ip),
+                                    'os': 'Unknown',
+                                    'discovery_method': 'ARP Table'
+                                }
+                                discovered_devices.append(device_info)
+                                
+        except Exception as e:
+            self.logger.error(f"Error scanning ARP table: {e}")
+            
+        return discovered_devices
+    
+    def _is_valid_ip(self, ip: str) -> bool:
+        """Validate IP address format"""
+        try:
+            parts = ip.split('.')
+            return len(parts) == 4 and all(0 <= int(part) <= 255 for part in parts)
+        except:
+            return False
+    
+    def _is_valid_mac(self, mac: str) -> bool:
+        """Validate MAC address format"""
+        import re
+        return bool(re.match(r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$', mac))
+    
+    def _detect_os_simple(self, ip: str) -> str:
+        """Simple OS detection based on ping TTL"""
+        try:
+            if self.is_windows:
+                result = subprocess.run(['ping', '-n', '1', ip], capture_output=True, text=True, timeout=3)
+                for line in result.stdout.split('\n'):
+                    if 'TTL=' in line:
+                        ttl = int(line.split('TTL=')[1].split()[0])
+                        if ttl <= 64:
+                            return 'Linux/Unix'
+                        elif ttl <= 128:
+                            return 'Windows'
+                        else:
+                            return 'Network Device'
+            else:
+                result = subprocess.run(['ping', '-c', '1', ip], capture_output=True, text=True, timeout=3)
+                for line in result.stdout.split('\n'):
+                    if 'ttl=' in line:
+                        ttl = int(line.split('ttl=')[1].split()[0])
+                        if ttl <= 64:
+                            return 'Linux/Unix'
+                        elif ttl <= 128:
+                            return 'Windows'
+                        else:
+                            return 'Network Device'
+        except:
+            pass
+        return 'Unknown'
     
     def _get_ping_time(self, ip: str) -> int:
         """Get ping response time"""
