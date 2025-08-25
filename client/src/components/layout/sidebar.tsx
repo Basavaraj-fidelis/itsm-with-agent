@@ -23,6 +23,7 @@ import {
   Network,
   Scan,
   ArrowLeft,
+  GitBranch,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -249,6 +250,7 @@ export function Sidebar() {
         activeColor: "bg-amber-50 border-amber-200 text-amber-700",
         description: "Analyze performance metrics",
       },
+      { name: "SLA Analysis", href: "/sla-analysis", icon: CheckCircle },
     ];
 
     const adminNavigation = [

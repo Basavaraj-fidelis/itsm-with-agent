@@ -66,3 +66,21 @@ export type Release = typeof releases.$inferSelect;
 export type NewRelease = typeof releases.$inferInsert;
 export type ChangeImpactAssessment = typeof changeImpactAssessment.$inferSelect;
 export type NewChangeImpactAssessment = typeof changeImpactAssessment.$inferInsert;
+
+// Ticket Approvals
+export const ticketApprovals = pgTable("ticket_approvals", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ticket_id: uuid("ticket_id").notNull(),
+  approver_type: varchar("approver_type", { length: 20 }).notNull(), // cab, manager, emergency
+  approver_id: varchar("approver_id", { length: 100 }).notNull(),
+  status: varchar("status", { length: 20 }).default("pending"), // pending, approved, rejected
+  submitted_by: varchar("submitted_by", { length: 100 }).notNull(),
+  submitted_at: timestamp("submitted_at").defaultNow().notNull(),
+  approved_by: varchar("approved_by", { length: 100 }),
+  approved_at: timestamp("approved_at"),
+  comments: text("comments"),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type TicketApproval = typeof ticketApprovals.$inferSelect;
+export type NewTicketApproval = typeof ticketApprovals.$inferInsert;

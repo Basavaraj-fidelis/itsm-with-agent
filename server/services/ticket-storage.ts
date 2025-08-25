@@ -11,9 +11,11 @@ import {
   type NewKnowledgeBaseArticle,
 } from "@shared/ticket-schema";
 import { auditLog } from "@shared/admin-schema";
-import { eq, desc, and, or, sql, count, asc, ilike } from 'drizzle-orm';
+import { eq, desc, and, or, sql, count, asc, ilike, like } from 'drizzle-orm';
 import { userStorage } from "./user-storage";
 import { device_reports, alerts, devices } from "../../shared/schema";
+import { workflowService } from "./workflow-service";
+import { cabService } from "./cab-service";
 
 interface TicketFilters {
   type?: string;
@@ -175,9 +177,19 @@ export class TicketStorage {
       }
     }, 1000); // 1 second delay to ensure ticket is fully created
 
-    console.log(
-      `Created ticket ${ticket_number}`,
-    );
+    console.log(`Created ticket: ${newTicket.ticket_number}`);
+
+    // Auto-route change tickets for approval
+    if (newTicket.type === "change") {
+      try {
+        await cabService.autoRouteChange(newTicket.id);
+        console.log(`Change ticket ${newTicket.ticket_number} auto-routed for approval`);
+      } catch (error) {
+        console.error("Error auto-routing change ticket:", error);
+        // Don't fail ticket creation if routing fails
+      }
+    }
+
     return newTicket;
   }
 
@@ -540,7 +552,7 @@ export class TicketStorage {
 
   private extractTagsFromTitle(title: string): string[] {
     const commonTechWords = [
-      'password', 'login', 'network', 'wifi', 'internet', 'email', 'printer', 
+      'password', 'login', 'network', 'wifi', 'internet', 'email', 'printer',
       'mouse', 'keyboard', 'screen', 'monitor', 'computer', 'laptop', 'software',
       'hardware', 'application', 'browser', 'chrome', 'firefox', 'windows',
       'mac', 'phone', 'mobile', 'vpn', 'security', 'virus', 'malware',
@@ -549,8 +561,8 @@ export class TicketStorage {
     ];
 
     const words = title.toLowerCase().split(/\s+/);
-    const tags = words.filter(word => 
-      word.length > 3 && 
+    const tags = words.filter(word =>
+      word.length > 3 &&
       commonTechWords.includes(word)
     );
 
@@ -880,7 +892,7 @@ async function getRelatedArticles(ticketId: string) {
 
     // If no category matches, try text search
     if (relatedArticles.length === 0) {
-      const textSearchConditions = searchTags.slice(0, 2).map(tag => 
+      const textSearchConditions = searchTags.slice(0, 2).map(tag =>
         or(
           ilike(knowledgeBase.title, `%${tag}%`),
           ilike(knowledgeBase.content, `%${tag}%`)

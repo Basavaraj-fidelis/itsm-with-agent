@@ -24,14 +24,12 @@ import VNCPage from "@/pages/vnc";
 import RDPPage from "@/pages/rdp";
 import SSHPage from "@/pages/ssh";
 import EndUserPortal from "./pages/end-user-portal";
-import NotFound from "@/pages/not-found";
 import ITSMComparison from "@/pages/itsm-comparison";
 import PatchCompliancePage from "@/pages/patch-compliance";
 import PerformanceAnalytics from "./pages/performance-analytics";
 import SLAAnalysis from "./pages/sla-analysis";
-import SLAManagement from "./pages/sla-management";
-import { ErrorBoundary } from './components/ui/error-boundary';
-import { DashboardErrorBoundary } from './components/ui/dashboard-error-boundary';
+import CABDashboard from "@/pages/cab-dashboard";
+import NotFound from "@/pages/not-found";
 import NetworkScan from "./pages/network-scan";
 import SecurityDashboard from "./pages/security-dashboard";
 
@@ -270,7 +268,7 @@ export default function App() {
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>
-            
+
             <Route path="/security">
               <ProtectedRoute>
                 <AuthenticatedLayout>
@@ -283,18 +281,21 @@ export default function App() {
               <EndUserPortal />
             </Route>
 
-
-
-
-            {/* Default redirect */}
-            <Route path="/">
-              {isAuthenticated ? <Redirect to="/dashboard" /> : <Redirect to="/login" />}
+            <Route path="/sla-analysis">
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <SLAAnalysis />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
             </Route>
-
-            {/* 404 route */}
-            <Route>
-              <NotFound />
+            <Route path="/cab-dashboard">
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <CABDashboard />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
             </Route>
+            <Route path="*" element={<NotFound />} />
           </Switch>
         </Router>
         <Toaster />
