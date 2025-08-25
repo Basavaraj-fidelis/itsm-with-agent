@@ -1,4 +1,3 @@
-
 import express from 'express';
 import { Pool } from 'pg';
 import { authenticateToken } from '../middleware/auth-middleware';
@@ -52,7 +51,7 @@ router.post('/error-reports', async (req, res) => {
 router.get('/error-reports', authenticateToken, async (req, res) => {
   try {
     const { limit = 50, resolved = 'false' } = req.query;
-    
+
     const pool = new Pool({
       connectionString: process.env.DATABASE_URL,
     });
@@ -80,7 +79,7 @@ router.get('/error-reports', authenticateToken, async (req, res) => {
 router.put('/error-reports/:errorId/resolve', authenticateToken, async (req, res) => {
   try {
     const { errorId } = req.params;
-    
+
     const pool = new Pool({
       connectionString: process.env.DATABASE_URL,
     });

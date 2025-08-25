@@ -52,9 +52,13 @@ const queryClient = new QueryClient({
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen bg-neutral-100 dark:bg-neutral-950">
-      <Sidebar />
+      <DashboardErrorBoundary>
+        <Sidebar />
+      </DashboardErrorBoundary>
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
+        <DashboardErrorBoundary>
+          <Header />
+        </DashboardErrorBoundary>
         <main className="flex-1 overflow-auto bg-neutral-50 dark:bg-neutral-900">
           {children}
         </main>
@@ -76,6 +80,24 @@ export default function App() {
     } else {
       setIsAuthenticated(false);
     }
+
+    // Global error handler for unhandled promise rejections
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.warn('Unhandled promise rejection:', event.reason);
+      
+      // Prevent the default browser error reporting
+      if (event.reason?.message?.includes('Failed to fetch') || 
+          event.reason?.message?.includes('NetworkError') ||
+          event.reason?.message?.includes('Load failed')) {
+        event.preventDefault();
+      }
+    };
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
   }, []);
 
   // Show loading while checking authentication
@@ -296,7 +318,9 @@ export default function App() {
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>
-            <Route path="*" element={<NotFound />} />
+            <Route path="*">
+              <NotFound />
+            </Route>
           </Switch>
         </Router>
         <Toaster />

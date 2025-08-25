@@ -24,6 +24,7 @@ import {
   Scan,
   ArrowLeft,
   GitBranch,
+  CheckCircle,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
