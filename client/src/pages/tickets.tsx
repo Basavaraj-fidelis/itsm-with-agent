@@ -88,6 +88,8 @@ const statusColors = {
   resolved: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
   closed: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
   cancelled: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+  approved: "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200",
+  rejected: "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200",
 };
 
 const typeIcons = {
@@ -1150,7 +1152,7 @@ export default function Tickets() {
           setSelectedType("all");
           setSelectedPriority("all");
           // Filter to show only open tickets
-          setStatusFilter("all");
+          setSelectedStatus("all"); // Assuming 'all' means open by default in this context, adjust if needed
         }}
       >
         <CardContent className="p-6">
@@ -1396,6 +1398,10 @@ export default function Tickets() {
           return "destructive";
         case "on_hold":
           return "secondary";
+        case "approved":
+          return "success";
+        case "rejected":
+          return "destructive";
         default:
           return "default";
       }
@@ -1428,6 +1434,8 @@ export default function Tickets() {
               <SelectItem value="on_hold">On Hold</SelectItem>
               <SelectItem value="resolved">Resolved</SelectItem>
               <SelectItem value="closed">Closed</SelectItem>
+              <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
             </SelectContent>
           </Select>
 
@@ -1486,8 +1494,8 @@ export default function Tickets() {
             Clear All Filters
           </Button>
 
-          <Button 
-              variant="outline" 
+          <Button
+              variant="outline"
               size="sm"
               onClick={handleDownloadTicketsCSV}
               disabled={loading}
@@ -1497,8 +1505,8 @@ export default function Tickets() {
               {loading ? "Exporting..." : "Export CSV"}
             </Button>
 
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={handleDownloadFullReport}
               disabled={loading}
@@ -2175,8 +2183,9 @@ export default function Tickets() {
   );
 
   const renderTypeSpecificStatusCards = (ticketType: string) => {
-    const typeData = getStatusCountsByType();
-    const data = typeData[ticketType];
+    const statusCounts = getStatusCountsByType();
+
+    const data = statusCounts[ticketType];
 
     if (!data) return null;
 
@@ -2226,6 +2235,8 @@ export default function Tickets() {
             "on_hold",
             "resolved",
             "closed",
+            "approved",
+            "rejected",
           ]
             .filter((status) => (data.statuses[status] || 0) > 0)
             .map((status) => {
@@ -2260,7 +2271,11 @@ export default function Tickets() {
                                     ? "bg-indigo-500"
                                     : status === "resolved"
                                       ? "bg-green-500"
-                                      : "bg-gray-500"
+                                      : status === "closed"
+                                        ? "bg-gray-500"
+                                        : status === "approved"
+                                          ? "bg-teal-500"
+                                          : "bg-pink-500"
                         }`}
                       />
                       <span
@@ -2283,7 +2298,7 @@ export default function Tickets() {
                       >
                         {status.replace("_", " ")}
                       </p>
-                      
+
                     </div>
                   </CardContent>
                 </Card>

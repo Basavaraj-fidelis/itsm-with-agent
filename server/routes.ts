@@ -488,54 +488,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   try {
-    const analyticsRoutes = await import("./routes/analytics-routes");
-    if (analyticsRoutes.default) {
-      app.use("/api/analytics", analyticsRoutes.default);
+    const { default: analyticsRoutes } = await import("./routes/analytics-routes");
+    if (analyticsRoutes) {
+      app.use("/api/analytics", analyticsRoutes);
+      console.log("✅ Analytics routes registered");
     }
   } catch (error) {
     console.warn("Analytics routes not available:", error.message);
   }
 
   try {
-    const userRoutes = await import("./routes/user-routes");
-    if (userRoutes.default) {
-      app.use("/api/users", authenticateToken, userRoutes.default);
+    const { default: userRoutes } = await import("./routes/user-routes");
+    if (userRoutes) {
+      app.use("/api/users", authenticateToken, userRoutes);
+      console.log("✅ User routes registered");
     }
   } catch (error) {
     console.warn("User routes not available:", error.message);
   }
 
   try {
-    const knowledgeRoutes = await import("./routes/knowledge-routes");
-    if (knowledgeRoutes.default) {
-      app.use("/api/knowledge", authenticateToken, knowledgeRoutes.default);
+    const { default: knowledgeRoutes } = await import("./routes/knowledge-routes");
+    if (knowledgeRoutes) {
+      app.use("/api/knowledge", authenticateToken, knowledgeRoutes);
+      console.log("✅ Knowledge routes registered");
     }
   } catch (error) {
     console.warn("Knowledge routes not available:", error.message);
   }
 
   try {
-    const slaRoutes = await import("./routes/sla-routes");
-    if (slaRoutes.default) {
-      app.use("/api/sla", authenticateToken, slaRoutes.default);
+    const { default: slaRoutes } = await import("./routes/sla-routes");
+    if (slaRoutes) {
+      app.use("/api/sla", authenticateToken, slaRoutes);
+      console.log("✅ SLA routes registered");
     }
   } catch (error) {
     console.warn("SLA routes not available:", error.message);
   }
 
   try {
-    const slaAnalysisRoutes = await import("./routes/sla-analysis-routes");
-    if (slaAnalysisRoutes.default) {
-      app.use("/api/sla-analysis", authenticateToken, slaAnalysisRoutes.default);
+    const { default: slaAnalysisRoutes } = await import("./routes/sla-analysis-routes");
+    if (slaAnalysisRoutes) {
+      app.use("/api/sla-analysis", authenticateToken, slaAnalysisRoutes);
+      console.log("✅ SLA analysis routes registered");
     }
   } catch (error) {
     console.warn("SLA analysis routes not available:", error.message);
   }
 
   try {
-    const aiRoutes = await import("./routes/ai-routes");
-    if (aiRoutes.default) {
-      app.use("/api/ai", authenticateToken, aiRoutes.default);
+    const { default: aiRoutes } = await import("./routes/ai-routes");
+    if (aiRoutes) {
+      app.use("/api/ai", authenticateToken, aiRoutes);
       // Also register the ai-insights endpoint at the root API level
       app.get("/api/ai-insights", authenticateToken, async (req, res) => {
         try {
@@ -584,15 +589,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       });
+      console.log("✅ AI routes registered");
     }
   } catch (error) {
     console.warn("AI routes not available:", error.message);
   }
 
   try {
-    const auditRoutes = await import("./routes/audit-routes");
-    if (auditRoutes.default) {
-      app.use("/api/audit", authenticateToken, requireRole(["admin", "manager"]), auditRoutes.default);
+    const { default: auditRoutes } = await import("./routes/audit-routes");
+    if (auditRoutes) {
+      app.use("/api/audit", authenticateToken, requireRole(["admin", "manager"]), auditRoutes);
+      console.log("✅ Audit routes registered");
     }
   } catch (error) {
     console.warn("Audit routes not available:", error.message);
@@ -639,9 +646,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   try {
-    const patchRoutes = await import("./routes/patch-routes");
-    if (patchRoutes.default) {
-      app.use("/api/patch", authenticateToken, patchRoutes.default);
+    const { default: patchRoutes } = await import("./routes/patch-routes");
+    if (patchRoutes) {
+      app.use("/api/patch", authenticateToken, patchRoutes);
+      console.log("✅ Patch routes registered");
     }
   } catch (error) {
     console.warn("Patch routes not available:", error.message);

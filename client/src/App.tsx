@@ -33,6 +33,7 @@ import CABDashboard from "@/pages/cab-dashboard";
 import NotFound from "@/pages/not-found";
 import NetworkScan from "./pages/network-scan";
 import SecurityDashboard from "./pages/security-dashboard";
+import AutomationCenter from "@/pages/automation-center";
 
 
 // Layout
@@ -84,7 +85,7 @@ export default function App() {
     // Global error handler for unhandled promise rejections
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       console.warn('Unhandled promise rejection:', event.reason);
-      
+
       // Prevent the default browser error reporting
       if (event.reason?.message?.includes('Failed to fetch') || 
           event.reason?.message?.includes('NetworkError') ||
@@ -312,6 +313,20 @@ export default function App() {
               </ProtectedRoute>
             </Route>
             <Route path="/cab-dashboard">
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <CABDashboard />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            </Route>
+            <Route path="/automation-center">
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <AutomationCenter />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            </Route>
+            <Route path="/reports">
               <ProtectedRoute>
                 <AuthenticatedLayout>
                   <CABDashboard />

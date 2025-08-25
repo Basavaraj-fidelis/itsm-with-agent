@@ -252,6 +252,27 @@ export function Sidebar() {
         description: "Analyze performance metrics",
       },
       { name: "SLA Analysis", href: "/sla-analysis", icon: CheckCircle },
+      {
+        name: "Automation Center",
+        icon: GitBranch,
+        href: "/automation-center",
+        badge: "",
+        description: "Automate IT operations"
+      },
+      {
+        name: "CAB Dashboard",
+        icon: CheckCircle,
+        href: "/cab-dashboard",
+        badge: "",
+        description: "Change Advisory Board"
+      },
+      {
+        name: "Reports",
+        icon: FileText,
+        href: "/reports",
+        badge: "",
+        description: "Generate insights and reports"
+      }
     ];
 
     const adminNavigation = [

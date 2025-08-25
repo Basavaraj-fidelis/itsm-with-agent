@@ -219,8 +219,8 @@ export default function CreateTicket() {
             <Card
               key={type}
               className={`cursor-pointer transition-all duration-200 hover:shadow-md border-2 ${
-                formData.type === type 
-                  ? `bg-gradient-to-br ${typeColors[type as keyof typeof typeColors]} border-current` 
+                formData.type === type
+                  ? `bg-gradient-to-br ${typeColors[type as keyof typeof typeColors]} border-current`
                   : "border-gray-200 hover:border-gray-300"
               }`}
               onClick={() => updateFormData("type", type)}
@@ -612,8 +612,8 @@ export default function CreateTicket() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => setLocation('/tickets')}
             className="border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 transition-colors"
           >
