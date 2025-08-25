@@ -179,6 +179,7 @@ class WebSocketService {
 }
 
 export const webSocketService = new WebSocketService();
+export const websocketService = webSocketService; // Alternative export name
 
 // Export function for use in other services
 export function broadcastToChannel(channel: string, data: any): void {

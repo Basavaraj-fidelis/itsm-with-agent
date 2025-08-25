@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Search, 
   Download, 
@@ -77,7 +77,7 @@ export default function NetworkScan() {
         loadAvailableAgents().catch(err => console.error('Failed to load agents:', err)),
         loadDefaultSubnets().catch(err => console.error('Failed to load subnets:', err))
       ];
-      
+
       await Promise.allSettled(promises);
     } catch (error) {
       console.error('Error loading initial data:', error);
@@ -95,7 +95,7 @@ export default function NetworkScan() {
       if (response.ok) {
         const data = await response.json();
         setSessions(data);
-        
+
         // Auto-select the most recent session
         if (data.length > 0) {
           const latest = data.sort((a: ScanSession, b: ScanSession) => 
@@ -223,7 +223,7 @@ export default function NetworkScan() {
 
         // Refresh sessions and set current session
         await loadScanSessions();
-        
+
         // Poll for completion
         pollScanProgress(data.session_id);
       } else {
@@ -244,7 +244,7 @@ export default function NetworkScan() {
   const pollScanProgress = async (sessionId: string) => {
     let pollCount = 0;
     const maxPolls = 150; // 5 minutes max (150 * 2 seconds)
-    
+
     const checkProgress = async () => {
       try {
         if (pollCount >= maxPolls) {
@@ -256,13 +256,13 @@ export default function NetworkScan() {
           });
           return;
         }
-        
+
         pollCount++;
         const response = await fetch(`/api/network-scan/sessions/${sessionId}`);
         if (response.ok) {
           const session = await response.json();
           setCurrentSession(session);
-          
+
           if (session.status === 'completed') {
             await loadScanResults(sessionId).catch(err => {
               console.error('Error loading results after completion:', err);
@@ -283,7 +283,7 @@ export default function NetworkScan() {
             });
             return;
           }
-          
+
           // Continue polling if still running
           setTimeout(() => checkProgress().catch(err => {
             console.error('Error in polling cycle:', err);
@@ -364,16 +364,16 @@ export default function NetworkScan() {
       result.ip.toLowerCase().includes(searchTerm.toLowerCase()) ||
       result.hostname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       result.os?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = statusFilter === 'all' || result.status === statusFilter;
     const matchesSubnet = subnetFilter === 'all' || result.subnet === subnetFilter;
-    
+
     return matchesSearch && matchesStatus && matchesSubnet;
   });
 
   const getSubnetStats = () => {
     const stats: Record<string, { total: number; online: number }> = {};
-    
+
     scanResults.forEach(result => {
       if (!stats[result.subnet]) {
         stats[result.subnet] = { total: 0, online: 0 };
@@ -383,7 +383,7 @@ export default function NetworkScan() {
         stats[result.subnet].online++;
       }
     });
-    
+
     return stats;
   };
 
@@ -579,6 +579,24 @@ export default function NetworkScan() {
                 </Button>
               </div>
 
+              {isScanning && (
+                <Alert>
+                  <AlertDescription>
+                    Network scan in progress... This may take a few minutes.
+                    {scanResults.some(r => r.device_type?.includes('Error')) && 
+                      " Note: Some agents may not be responding properly."}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {scanResults.some(r => r.device_type?.includes('WebSocket')) && (
+                <Alert variant="destructive">
+                  <AlertDescription>
+                    WebSocket service error detected. Please ensure agents are properly connected and try again.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {currentSession && currentSession.status === 'running' && (
                 <Card>
                   <CardContent className="pt-6">
@@ -591,7 +609,7 @@ export default function NetworkScan() {
                       <div className="text-xs text-muted-foreground">
                         Started: {new Date(currentSession.started_at).toLocaleString()}
                       </div>
-                      
+
                       {currentSession.scanning_agents && currentSession.scanning_agents.length > 0 && (
                         <div className="space-y-2">
                           <div className="text-sm font-medium">Selected Scanning Agents:</div>

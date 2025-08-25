@@ -12,6 +12,7 @@ import { knowledgeRoutes } from "./routes/knowledge-routes";
 import { initAIService } from './services/ai-service';
 import { init as initSlaEscalationService } from './services/sla-escalation-service';
 import { webSocketService } from './websocket-service';
+export { webSocketService as websocketService };
 import expressWs from "express-ws";
 import cors from 'cors';
 import { registerAgentRoutes } from "./routes/agent-routes";

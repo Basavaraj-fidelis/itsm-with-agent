@@ -443,16 +443,41 @@ class NetworkScanService {
 
       let websocketService;
       try {
-        const wsModule = await import('../websocket-service');
-        websocketService = wsModule.websocketService;
+        // Try multiple import paths to ensure we get the correct service
+        try {
+          const wsModule = await import('../websocket-service');
+          websocketService = wsModule.webSocketService || wsModule.websocketService;
+        } catch {
+          // Fallback to index import
+          const indexModule = await import('../index');
+          websocketService = indexModule.websocketService;
+        }
         
         if (!websocketService) {
-          throw new Error('WebSocket service not initialized');
+          throw new Error('WebSocket service not available - no agents connected');
         }
       } catch (importError) {
         console.error('Failed to import WebSocket service:', importError);
+        
+        // Add fallback results for when WebSocket is not available
+        const fallbackResults: NetworkScanResult[] = [{
+          id: `websocket-error-${sessionId}`,
+          ip: scanningAgents[0]?.ip_address || 'Unknown',
+          hostname: 'WebSocket Error',
+          os: 'Unknown',
+          mac_address: 'Unknown',
+          status: 'offline',
+          last_seen: new Date(),
+          subnet: scanningAgents[0]?.subnet || 'Unknown',
+          device_type: 'Service Error - WebSocket not initialized',
+          ports_open: [],
+          response_time: 0
+        }];
+        
+        session.scanResults = fallbackResults;
         session.status = 'failed';
         session.completed_at = new Date();
+        session.total_discovered = 1;
         this.activeScanSessions.set(sessionId, session);
         return;
       }
