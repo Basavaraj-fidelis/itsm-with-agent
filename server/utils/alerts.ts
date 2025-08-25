@@ -124,30 +124,56 @@ export class AlertUtils {
     existingMetadata: any,
     metric: string,
     value: number,
-    severity: string // Added severity to determine update reason
+    severity: string,
+    existingAlert?: any
   ) {
-    const allThresholds = systemConfig.getAlertThresholds();
-    const thresholds = allThresholds[metric as keyof typeof allThresholds];
-    const threshold = thresholds ? thresholds[severity as keyof typeof thresholds] : undefined;
-    const previousValue = existingMetadata?.[metric + "_usage"] || 0;
-    const valueChange = typeof value === 'number' && typeof previousValue === 'number' ? Math.abs(value - previousValue).toFixed(1) : 'N/A';
+    try {
+      // Validate inputs
+      if (!metric || typeof metric !== 'string') {
+        throw new Error('Invalid metric provided');
+      }
+      if (typeof value !== 'number' || isNaN(value)) {
+        throw new Error('Invalid value provided');
+      }
 
-    let updateReason = 'periodic_update';
-    if (existingAlert.severity !== severity) {
+      const allThresholds = systemConfig.getAlertThresholds();
+      const thresholds = allThresholds[metric as keyof typeof allThresholds];
+      
+      if (!thresholds) {
+        console.warn(`No thresholds found for metric: ${metric}`);
+      }
+
+      const threshold = thresholds ? thresholds[severity as keyof typeof thresholds] : undefined;
+      const previousValue = existingMetadata?.[metric + "_usage"] || 0;
+      const valueChange = typeof value === 'number' && typeof previousValue === 'number' ? 
+        Math.abs(value - previousValue).toFixed(1) : 'N/A';
+
+      let updateReason = 'periodic_update';
+      if (existingAlert && existingAlert.severity !== severity) {
         updateReason = 'severity_change';
-    } else if (parseFloat(valueChange) > (thresholds?.warning * 0.1 || 3)) { // Use a small threshold for significant change
+      } else if (parseFloat(valueChange) > (thresholds?.warning * 0.1 || 3)) {
         updateReason = 'significant_change';
-    }
+      }
 
-    return {
-      ...existingMetadata,
-      [metric + "_usage"]: value,
-      metric: metric,
-      last_updated: new Date().toISOString(),
-      previous_value: previousValue,
-      value_change: valueChange,
-      update_reason: updateReason
-    };
+      return {
+        ...existingMetadata,
+        [metric + "_usage"]: value,
+        metric: metric,
+        last_updated: new Date().toISOString(),
+        previous_value: previousValue,
+        value_change: valueChange,
+        update_reason: updateReason,
+        error_count: 0 // Reset error count on successful update
+      };
+    } catch (error) {
+      console.error('Error building update metadata:', error);
+      return {
+        ...existingMetadata,
+        error_count: (existingMetadata?.error_count || 0) + 1,
+        last_error: error.message,
+        last_error_time: new Date().toISOString()
+      };
+    }
   }
 
   /**
@@ -278,8 +304,13 @@ async function resolveImprovedAlerts(deviceData: any, existingAlerts: any[]) {
   }
 }
 
+// Import correlation and health monitoring
+import { AlertCorrelationEngine } from './alert-correlation';
+import { AlertHealthMonitor } from './alert-health-monitor';
+
 // Main function to generate system alerts for a given device
 export async function generateSystemAlerts(deviceData: any): Promise<Alert[]> {
+  const processingStart = Date.now();
   const alertsToCreate: Alert[] = [];
   const now = new Date();
   const deviceId = deviceData.id;
@@ -536,18 +567,71 @@ export async function generateSystemAlerts(deviceData: any): Promise<Alert[]> {
   // Auto-resolve alerts based on current device state
   await resolveImprovedAlerts(deviceData, existingAlerts);
 
+  // Process alert correlation for new alerts
+  for (const alert of alertsToCreate) {
+    try {
+      const correlation = await AlertCorrelationEngine.findCorrelatedAlerts(alert);
+      if (correlation) {
+        console.log(`Found correlation for alert ${alert.title}: ${correlation.correlatedAlerts.length} related alerts`);
+        
+        // Add correlation info to metadata
+        alert.metadata = {
+          ...alert.metadata,
+          correlation_id: correlation.id,
+          correlation_score: correlation.correlationScore,
+          impact_level: correlation.impactLevel,
+          affected_services: correlation.affectedServices
+        };
+
+        // Suppress duplicates if correlation score is high
+        if (correlation.correlationScore > 0.8) {
+          await AlertCorrelationEngine.suppressDuplicateAlerts(correlation.correlatedAlerts);
+        }
+      }
+    } catch (correlationError) {
+      console.error('Correlation processing error:', correlationError);
+      AlertHealthMonitor.recordError(`Correlation error: ${correlationError.message}`);
+    }
+  }
+
+  // Record processing time for monitoring
+  const processingTime = Date.now() - processingStart;
+  AlertHealthMonitor.recordProcessingTime(processingTime);
+
+  // Perform maintenance if needed
+  AlertHealthMonitor.performMaintenance();
+
   console.log(`=== FINAL ALERT GENERATION FOR DEVICE ${deviceHostname} (${deviceId}) ===`);
+  console.log(`Processing completed in ${processingTime}ms`);
 
   return alertsToCreate;
 }
 
-// Mock storage and generateAlertsForDevice for demonstration purposes
-// In a real scenario, these would be imported from their respective modules.
+// Real database storage implementation
 const storage = {
   createAlert: async (alertData: any) => {
-    console.log('Simulating alert creation in DB:', alertData);
-    // In a real application, you would insert into the systemAlerts table
-    // await db.insert(systemAlerts).values({...alertData, id: uuidv4()});
+    try {
+      console.log('Creating alert in DB:', alertData.message);
+      const alertId = uuidv4();
+      await db.insert(systemAlerts).values({
+        id: alertId,
+        device_id: alertData.device_id,
+        category: alertData.category,
+        severity: alertData.severity,
+        message: alertData.message,
+        metadata: alertData.metadata || {},
+        is_active: alertData.is_active || true,
+        created_at: new Date(),
+        updated_at: new Date(),
+        resolved: alertData.resolved || false,
+        acknowledged: alertData.acknowledged || false
+      });
+      console.log(`Alert ${alertId} created successfully in database`);
+      return { id: alertId, success: true };
+    } catch (error) {
+      console.error('Error creating alert in database:', error);
+      throw new Error(`Failed to create alert: ${error.message}`);
+    }
   }
 };
 
@@ -561,51 +645,125 @@ async function generateAlertsForDevice(deviceData: any): Promise<Alert[]> {
   return generatedAlerts;
 }
 
+// Rate limiting map to prevent alert spam
+const alertRateLimit = new Map<string, { count: number; lastReset: number }>();
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const MAX_ALERTS_PER_MINUTE = 10;
+
+/**
+ * Check if device has exceeded rate limit for alert generation
+ */
+function checkRateLimit(deviceId: string): boolean {
+  const now = Date.now();
+  const rateData = alertRateLimit.get(deviceId);
+  
+  if (!rateData || now - rateData.lastReset > RATE_LIMIT_WINDOW) {
+    alertRateLimit.set(deviceId, { count: 0, lastReset: now });
+    return true;
+  }
+  
+  return rateData.count < MAX_ALERTS_PER_MINUTE;
+}
+
+/**
+ * Increment rate limit counter
+ */
+function incrementRateLimit(deviceId: string): void {
+  const rateData = alertRateLimit.get(deviceId);
+  if (rateData) {
+    rateData.count++;
+  }
+}
+
+/**
+ * Batch process alerts for multiple devices
+ */
+export async function processBatchAlerts(devicesData: any[]): Promise<{ processed: number; created: number; errors: string[] }> {
+  const results = { processed: 0, created: 0, errors: [] as string[] };
+  const batchSize = 5; // Process 5 devices at a time
+  
+  for (let i = 0; i < devicesData.length; i += batchSize) {
+    const batch = devicesData.slice(i, i + batchSize);
+    const batchPromises = batch.map(deviceData => processAlertsForDevice(deviceData));
+    
+    try {
+      const batchResults = await Promise.allSettled(batchPromises);
+      
+      batchResults.forEach((result, index) => {
+        results.processed++;
+        if (result.status === 'fulfilled') {
+          results.created += result.value.length;
+        } else {
+          const deviceId = batch[index]?.id || 'unknown';
+          results.errors.push(`Device ${deviceId}: ${result.reason}`);
+          console.error(`Batch processing error for device ${deviceId}:`, result.reason);
+        }
+      });
+    } catch (error) {
+      results.errors.push(`Batch processing error: ${error.message}`);
+      console.error('Critical batch processing error:', error);
+    }
+  }
+  
+  console.log(`Batch processing complete: ${results.processed} processed, ${results.created} alerts created, ${results.errors.length} errors`);
+  return results;
+}
+
 export async function processAlertsForDevice(deviceData: any): Promise<any[]> {
+  const correlationId = `${deviceData.id}_${Date.now()}`;
+  
   try {
-    console.log(`\n=== ALERT PROCESSING START FOR DEVICE: ${deviceData.hostname || deviceData.id} ===`);
-    // Log key metrics for context
-    const cpuUsage = deviceData.metrics?.cpu_usage ?? deviceData.cpu_usage ?? deviceData.raw_data?.cpu_usage ?? deviceData.raw_data?.hardware?.cpu?.usage_percentage;
-    const memoryUsage = deviceData.metrics?.memory_usage ?? deviceData.memory_usage ?? deviceData.raw_data?.memory_usage ?? deviceData.raw_data?.hardware?.memory?.usage_percentage;
-    const diskUsage = deviceData.storage?.disks?.[0]?.usage?.percentage ?? deviceData.storage?.disks?.[0]?.usage_percentage ?? deviceData.raw_data?.storage?.disks?.[0]?.usage_percentage;
-    const thresholds = systemConfig.getAlertThresholds();
-
-    console.log(`Device Metrics: CPU=${cpuUsage !== undefined ? cpuUsage.toFixed(1) + '%' : 'N/A'}, Memory=${memoryUsage !== undefined ? memoryUsage.toFixed(1) + '%' : 'N/A'}, Disk=${diskUsage !== undefined ? diskUsage.toFixed(1) + '%' : 'N/A'}`);
-    console.log(`Thresholds: CPU(W:${thresholds.cpu.warning}%, H:${thresholds.cpu.high}%, C:${thresholds.cpu.critical}%), Memory(W:${thresholds.memory.warning}%, H:${thresholds.memory.high}%, C:${thresholds.memory.critical}%), Disk(W:${thresholds.disk.warning}%, H:${thresholds.disk.high}%, C:${thresholds.disk.critical}%)`);
-    console.log(`Device Status: ${deviceData.status}`);
-
-    const alerts = await generateAlertsForDevice(deviceData);
-
-    console.log(`Generated ${alerts.length} alerts for device ${deviceData.hostname || deviceData.id}`);
-
-    if (alerts.length > 0) {
-      // Store alerts in database
-      for (const alert of alerts) {
-        console.log(`Creating alert: ${alert.title} [${alert.severity}] - ${alert.message}`);
-        // Ensure alert object conforms to the expected schema for storage.createAlert
-        await storage.createAlert({
-          device_id: alert.device_id,
-          category: alert.type,
-          severity: alert.severity,
-          message: alert.message,
-          metadata: alert.metadata || {},
-          is_active: true, // New alerts are active
-          created_at: new Date(),
-          updated_at: new Date(),
-          resolved: false,
-          acknowledged: false,
-          title: alert.title
-        });
-        console.log(`Alert added to storage queue.`);
-      }
-    } else {
-      console.log(`No new alerts generated for device ${deviceData.hostname || deviceData.id}. Checking for resolution.`);
+    // Rate limiting check
+    if (!checkRateLimit(deviceData.id)) {
+      console.warn(`Rate limit exceeded for device ${deviceData.id}`);
+      return [];
     }
 
-    console.log(`=== ALERT PROCESSING END FOR DEVICE: ${deviceData.hostname || deviceData.id} ===`);
+    console.log(`[${correlationId}] Alert processing start for device: ${deviceData.hostname || deviceData.id}`);
+    
+    // Validate device data
+    if (!deviceData.id) {
+      throw new Error('Device ID is required');
+    }
+
+    const alerts = await generateSystemAlerts(deviceData);
+
+    if (alerts.length > 0) {
+      incrementRateLimit(deviceData.id);
+      
+      // Batch insert alerts using transaction
+      const alertsToInsert = alerts.map(alert => ({
+        id: uuidv4(),
+        device_id: alert.device_id,
+        category: alert.type,
+        severity: alert.severity,
+        message: alert.message,
+        metadata: {
+          ...alert.metadata,
+          correlation_id: correlationId,
+          processing_time: Date.now()
+        },
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+        resolved: false,
+        acknowledged: false
+      }));
+
+      try {
+        await db.insert(systemAlerts).values(alertsToInsert);
+        console.log(`[${correlationId}] Successfully created ${alerts.length} alerts in batch`);
+      } catch (dbError) {
+        console.error(`[${correlationId}] Database error:`, dbError);
+        throw new Error(`Failed to insert alerts: ${dbError.message}`);
+      }
+    }
+
+    console.log(`[${correlationId}] Processing complete: ${alerts.length} alerts created`);
     return alerts;
+    
   } catch (error) {
-    console.error('Error processing alerts for device:', error);
-    return [];
+    console.error(`[${correlationId}] Alert processing error:`, error);
+    throw error; // Re-throw for batch processing error handling
   }
 }

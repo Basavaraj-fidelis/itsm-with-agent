@@ -1,4 +1,3 @@
-
 export interface SystemConfig {
   alerts: {
     thresholds: {
@@ -115,19 +114,19 @@ export const DEFAULT_SYSTEM_CONFIG: SystemConfig = {
       escalationTime: 2 * 60 * 60 * 1000 // 2 hours
     },
     priority: {
-      low: { 
+      low: {
         responseTime: 8 * 60 * 60 * 1000, // 8 hours
         resolutionTime: 72 * 60 * 60 * 1000 // 72 hours
       },
-      medium: { 
+      medium: {
         responseTime: 4 * 60 * 60 * 1000, // 4 hours
         resolutionTime: 24 * 60 * 60 * 1000 // 24 hours
       },
-      high: { 
+      high: {
         responseTime: 2 * 60 * 60 * 1000, // 2 hours
         resolutionTime: 8 * 60 * 60 * 1000 // 8 hours
       },
-      critical: { 
+      critical: {
         responseTime: 30 * 60 * 1000, // 30 minutes
         resolutionTime: 4 * 60 * 60 * 1000 // 4 hours
       }
@@ -187,3 +186,115 @@ class SystemConfigService {
 }
 
 export const systemConfig = new SystemConfigService();
+
+// System configuration manager with validation and update capabilities
+export class SystemConfigManager {
+  private static instance: SystemConfigManager;
+  private config: SystemConfig = DEFAULT_SYSTEM_CONFIG;
+  private configValidationRules = {
+    'alerts.thresholds.cpu.warning': { min: 50, max: 95 },
+    'alerts.thresholds.cpu.high': { min: 60, max: 98 },
+    'alerts.thresholds.cpu.critical': { min: 70, max: 100 },
+    'alerts.thresholds.memory.warning': { min: 60, max: 95 },
+    'alerts.thresholds.memory.high': { min: 70, max: 98 },
+    'alerts.thresholds.memory.critical': { min: 80, max: 100 },
+    'alerts.thresholds.disk.warning': { min: 70, max: 95 },
+    'alerts.thresholds.disk.high': { min: 80, max: 98 },
+    'alerts.thresholds.disk.critical': { min: 85, max: 100 }
+  };
+
+  // Private constructor to enforce singleton pattern
+  private constructor() {}
+
+  // Method to get the singleton instance
+  public static getInstance(): SystemConfigManager {
+    if (!SystemConfigManager.instance) {
+      SystemConfigManager.instance = new SystemConfigManager();
+    }
+    return SystemConfigManager.instance;
+  }
+
+  // Method to get the current system configuration
+  getConfig(): SystemConfig {
+    return this.config;
+  }
+
+  // Method to update the system configuration with validation
+  updateConfig(newConfig: Partial<SystemConfig>): { success: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    try {
+      // Validate configuration changes
+      const validationErrors = this.validateConfiguration(newConfig);
+      if (validationErrors.length > 0) {
+        return { success: false, errors: validationErrors };
+      }
+
+      this.config = { ...this.config, ...newConfig };
+      console.log('System configuration updated successfully:', newConfig);
+      return { success: true, errors: [] };
+
+    } catch (error) {
+      console.error('Configuration update error:', error);
+      return { success: false, errors: [`Configuration update failed: ${error.message}`] };
+    }
+  }
+
+  // Private method to validate configuration against predefined rules
+  private validateConfiguration(config: Partial<SystemConfig>): string[] {
+    const errors: string[] = [];
+
+    // Validate threshold hierarchies
+    if (config.alerts?.thresholds) {
+      const { cpu, memory, disk } = config.alerts.thresholds;
+
+      if (cpu) {
+        if (cpu.warning >= cpu.high) errors.push('CPU warning threshold must be less than high threshold');
+        if (cpu.high >= cpu.critical) errors.push('CPU high threshold must be less than critical threshold');
+        if (cpu.critical > 100) errors.push('CPU critical threshold cannot exceed 100%');
+      }
+
+      if (memory) {
+        if (memory.warning >= memory.high) errors.push('Memory warning threshold must be less than high threshold');
+        if (memory.high >= memory.critical) errors.push('Memory high threshold must be less than critical threshold');
+        if (memory.critical > 100) errors.push('Memory critical threshold cannot exceed 100%');
+      }
+
+      if (disk) {
+        if (disk.warning >= disk.high) errors.push('Disk warning threshold must be less than high threshold');
+        if (disk.high >= disk.critical) errors.push('Disk high threshold must be less than critical threshold');
+        if (disk.critical > 100) errors.push('Disk critical threshold cannot exceed 100%');
+      }
+    }
+
+    return errors;
+  }
+
+  // Method to get alert thresholds
+  getAlertThresholds(): SystemConfig['alerts']['thresholds'] {
+    return this.config.alerts.thresholds;
+  }
+
+  // Method to get network configuration
+  getNetworkConfig(): SystemConfig['network'] {
+    return this.config.network;
+  }
+
+  // Method to get ticket configuration
+  getTicketConfig(): SystemConfig['tickets'] {
+    return this.config.tickets;
+  }
+
+  // Method to get performance configuration
+  getPerformanceConfig(): SystemConfig['performance'] {
+    return this.config.performance;
+  }
+
+  // Method to get security configuration
+  getSecurityConfig(): SystemConfig['security'] {
+    return this.config.security;
+  }
+}
+
+// Singleton instance of the SystemConfigManager
+export const systemConfigManager = SystemConfigManager.getInstance();

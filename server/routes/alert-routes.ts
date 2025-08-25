@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { storage } from "../storage";
+import { AlertHealthMonitor } from "../utils/alert-health-monitor";
 
 const router = Router();
 
@@ -166,6 +167,20 @@ router.post("/:id/resolve", async (req, res) => {
       message: "Internal server error",
       error: error.message,
       success: false,
+    });
+  }
+});
+
+// Get alert system health
+router.get("/health", async (req, res) => {
+  try {
+    const health = await AlertHealthMonitor.getSystemHealth();
+    res.json(health);
+  } catch (error) {
+    console.error("Error fetching alert system health:", error);
+    res.status(500).json({
+      message: "Error fetching system health",
+      error: error.message
     });
   }
 });
