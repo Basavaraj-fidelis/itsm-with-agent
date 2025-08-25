@@ -320,14 +320,51 @@ export class UserStorage {
   }
 
   async getNextAvailableTechnician(): Promise<User | null> {
-    // Simple round-robin assignment - get technician with least active tickets
+    // Get all active technicians
     const technicians = await this.getActiveTechnicians();
 
     if (technicians.length === 0) return null;
 
-    // For now, return the first available technician
-    // In a real implementation, you'd check ticket workload
-    return technicians[0];
+    // Get ticket counts for each technician to implement round-robin
+    const { tickets } = await import("@shared/ticket-schema");
+    const { eq, count, and, not, inArray } = await import("drizzle-orm");
+    
+    const ticketCounts = await db
+      .select({
+        assigned_to: tickets.assigned_to,
+        count: count()
+      })
+      .from(tickets)
+      .where(
+        and(
+          not(inArray(tickets.status, ["resolved", "closed", "cancelled"])),
+          inArray(tickets.assigned_to, technicians.map(t => t.email))
+        )
+      )
+      .groupBy(tickets.assigned_to);
+
+    // Create a map of technician email to ticket count
+    const countMap = new Map<string, number>();
+    ticketCounts.forEach(tc => {
+      if (tc.assigned_to) {
+        countMap.set(tc.assigned_to, tc.count);
+      }
+    });
+
+    // Find technician with least tickets
+    let selectedTechnician = technicians[0];
+    let minTickets = countMap.get(selectedTechnician.email) || 0;
+
+    for (const technician of technicians) {
+      const ticketCount = countMap.get(technician.email) || 0;
+      if (ticketCount < minTickets) {
+        minTickets = ticketCount;
+        selectedTechnician = technician;
+      }
+    }
+
+    console.log(`Assigning ticket to ${selectedTechnician.email} (current load: ${minTickets} tickets)`);
+    return selectedTechnician;
   }
 
   // User Activity Tracking

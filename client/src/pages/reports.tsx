@@ -1,31 +1,15 @@
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  BarChart3, 
-  Download, 
-  RefreshCw, 
-  TrendingUp, 
-  TrendingDown,
-  Server,
-  AlertCircle,
-  CheckCircle,
-  HardDrive,
-  MemoryStick,
-  Cpu,
-  Calendar,
-  FileText,
-  PieChart,
-  Activity,
-  Eye,
-  Maximize2,
-  Filter
-} from "lucide-react";
-import { formatDistanceToNow, format } from "date-fns";
+import React, { useState, useEffect } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { BarChart3, FileText, Download, Calendar as CalendarIcon, Filter, TrendingUp, Users, Server, AlertTriangle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -225,6 +209,7 @@ export default function Reports() {
   const [recentReports, setRecentReports] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [expandedChart, setExpandedChart] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const reportTypes = [
     { value: "performance", label: "Performance Summary", icon: BarChart3, description: "System performance metrics and trends" },
@@ -1652,11 +1637,19 @@ export default function Reports() {
                   </p>
                 </div>
                 <div className="flex space-x-2">
-                  <Button variant="outline" onClick={downloadReport} className="flex items-center space-x-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={downloadReport} 
+                    className="flex items-center space-x-2"
+                  >
                     <Download className="h-4 w-4" />
                     <span>Download JSON</span>
                   </Button>
-                  <Button variant="outline" onClick={() => window.print()} className="flex items-center space-x-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => window.print()} 
+                    className="flex items-center space-x-2"
+                  >
                     <Eye className="h-4 w-4" />
                     <span>Print View</span>
                   </Button>

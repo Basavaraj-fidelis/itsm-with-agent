@@ -1,22 +1,30 @@
-
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Shield, 
-  AlertTriangle, 
-  Usb, 
-  Key, 
-  Bug,
-  Download,
-  Eye,
-  CheckCircle,
-  XCircle
-} from "lucide-react";
+import React, { useState, useEffect, useMemo } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertTriangle, Shield, ShieldCheck, ShieldAlert, Lock, Unlock, Eye, EyeOff, Activity, TrendingUp, TrendingDown, Users, Server, Wifi } from 'lucide-react';
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+
+// Define alert level constants
+const ALERT_LEVELS = {
+  CRITICAL: 'critical',
+  HIGH: 'high',
+  MEDIUM: 'medium',
+  LOW: 'low'
+};
+
+const getAlertLevel = (severity: string) => {
+  switch (severity?.toLowerCase()) {
+    case 'critical': return ALERT_LEVELS.CRITICAL;
+    case 'high': return ALERT_LEVELS.HIGH;
+    case 'medium': return ALERT_LEVELS.MEDIUM;
+    case 'low': return ALERT_LEVELS.LOW;
+    default: return ALERT_LEVELS.LOW;
+  }
+};
+
 
 export default function SecurityDashboard() {
   const [selectedDevice, setSelectedDevice] = useState("");
@@ -80,7 +88,7 @@ export default function SecurityDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {alertsLoading ? "..." : (alerts?.filter(a => a.severity === "critical" || a.severity === "high").length || 0)}
+              {alertsLoading ? "..." : (alerts?.filter(a => getAlertLevel(a.severity) === ALERT_LEVELS.CRITICAL || getAlertLevel(a.severity) === ALERT_LEVELS.HIGH).length || 0)}
             </div>
             <p className="text-xs text-muted-foreground">Critical/High severity from database</p>
           </CardContent>
@@ -106,7 +114,7 @@ export default function SecurityDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">
-              {alertsLoading ? "..." : (alerts?.filter(a => a.category === "compliance").length || 0)}
+              {alertsLoading ? "..." : (alerts?.filter(a => getAlertLevel(a.category) === ALERT_LEVELS.MEDIUM).length || 0)}
             </div>
             <p className="text-xs text-muted-foreground">Compliance violations from database</p>
           </CardContent>
@@ -139,7 +147,7 @@ export default function SecurityDashboard() {
             <Select value={selectedDevice} onValueChange={setSelectedDevice} disabled={devicesLoading || devicesError}>
               <SelectTrigger>
                 <SelectValue placeholder={
-                  devicesLoading ? "Loading devices..." : 
+                  devicesLoading ? "Loading devices..." :
                   devicesError ? "Error loading devices" :
                   devices?.length === 0 ? "No devices available" :
                   "Select a device to analyze"
@@ -187,9 +195,9 @@ export default function SecurityDashboard() {
                             <div className="space-y-2 mt-2">
                               {vuln.cve_matches.map((cve: any, cveIndex: number) => (
                                 <div key={cveIndex} className="flex items-center gap-2">
-                                  <Badge variant={cve.severity === "critical" ? "destructive" : 
-                                                cve.severity === "high" ? "destructive" : 
-                                                cve.severity === "medium" ? "secondary" : "outline"}>
+                                  <Badge variant={getAlertLevel(cve.severity) === ALERT_LEVELS.CRITICAL ? "destructive" :
+                                                getAlertLevel(cve.severity) === ALERT_LEVELS.HIGH ? "destructive" :
+                                                getAlertLevel(cve.severity) === ALERT_LEVELS.MEDIUM ? "secondary" : "outline"}>
                                     {cve.severity.toUpperCase()}
                                   </Badge>
                                   <span className="text-sm">{cve.cve_id}</span>
@@ -230,7 +238,7 @@ export default function SecurityDashboard() {
               {alerts.map((alert: any) => (
                 <div key={alert.id} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center gap-3">
-                    {alert.severity === "critical" || alert.severity === "high" ? 
+                    {getAlertLevel(alert.severity) === ALERT_LEVELS.CRITICAL || getAlertLevel(alert.severity) === ALERT_LEVELS.HIGH ?
                       <XCircle className="w-5 h-5 text-red-500" /> :
                       <AlertTriangle className="w-5 h-5 text-yellow-500" />
                     }
@@ -241,8 +249,8 @@ export default function SecurityDashboard() {
                       </p>
                     </div>
                   </div>
-                  <Badge variant={alert.severity === "critical" ? "destructive" : 
-                                alert.severity === "high" ? "destructive" : "secondary"}>
+                  <Badge variant={getAlertLevel(alert.severity) === ALERT_LEVELS.CRITICAL ? "destructive" :
+                                getAlertLevel(alert.severity) === ALERT_LEVELS.HIGH ? "destructive" : "secondary"}>
                     {alert.severity}
                   </Badge>
                 </div>

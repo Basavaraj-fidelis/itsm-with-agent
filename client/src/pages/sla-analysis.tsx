@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertTriangle, CheckCircle, Clock, XCircle, RefreshCw, Play, FileText } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Clock, AlertTriangle, CheckCircle, TrendingUp, TrendingDown, Calendar, BarChart3 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
 
 interface SLAAnalysis {
@@ -34,33 +35,46 @@ export default function SLAAnalysisPage() {
   const [analysis, setAnalysis] = useState<SLAAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [fixing, setFixing] = useState(false);
+  const [isFixing, setIsFixing] = useState(false); // Renamed from 'fixing' for clarity
+  const { toast } = useToast();
 
   const fetchAnalysis = async () => {
     try {
       setLoading(true);
+      setError(null); // Clear previous errors
       const response = await api.get('/api/sla/analysis');
       setAnalysis(response.data);
-      setError(null);
     } catch (err) {
       console.error('Error fetching SLA analysis:', err);
       setError('Failed to fetch SLA analysis');
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch SLA analysis.',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const fixTickets = async () => {
+  const fixTicketSLA = async () => {
+    setIsFixing(true);
     try {
-      setFixing(true);
       const response = await api.post('/api/sla/fix-tickets');
-      alert(`Fixed SLA data for ${response.data.ticketsFixed} tickets`);
+      toast({
+        title: 'Success',
+        description: `Fixed SLA data for ${response.data.ticketsFixed} tickets`,
+      });
       await fetchAnalysis(); // Refresh data
     } catch (err) {
       console.error('Error fixing tickets:', err);
-      alert('Failed to fix ticket SLA data');
+      toast({
+        title: 'Error',
+        description: 'Failed to fix ticket SLA data.',
+        variant: 'destructive',
+      });
     } finally {
-      setFixing(false);
+      setIsFixing(false);
     }
   };
 
@@ -89,7 +103,7 @@ export default function SLAAnalysisPage() {
     return (
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-center min-h-64">
-          <RefreshCw className="h-8 w-8 animate-spin" />
+          <Clock className="h-8 w-8 animate-spin" /> {/* Changed icon to Clock */}
           <span className="ml-2">Analyzing SLA data...</span>
         </div>
       </div>
@@ -102,10 +116,10 @@ export default function SLAAnalysisPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center text-red-600">
-              <XCircle className="h-12 w-12 mx-auto mb-4" />
+              <AlertTriangle className="h-12 w-12 mx-auto mb-4" /> {/* Changed icon to AlertTriangle */}
               <p>{error}</p>
               <Button onClick={fetchAnalysis} className="mt-4">
-                <RefreshCw className="h-4 w-4 mr-2" />
+                <Clock className="h-4 w-4 mr-2" /> {/* Changed icon to Clock */}
                 Try Again
               </Button>
             </div>
@@ -118,13 +132,13 @@ export default function SLAAnalysisPage() {
   if (!analysis) return null;
 
   const { summary, ticketDetails, slaValidation, futureTicketTest } = analysis.analysis;
-  const [analysisData, setAnalysisData] = useState(analysis);
+  // const [analysisData, setAnalysisData] = useState(analysis); // This state is not used, removed.
 
-  const fixTicketSLA = async () => {
-    // Logic for fixing ticket SLA
-  }
+  // const fixTicketSLA = async () => { // This function was duplicated, using the one above.
+  //   // Logic for fixing ticket SLA
+  // }
 
-  const isFixing = false;
+  // const isFixing = false; // This was a hardcoded false, using the state variable 'isFixing'
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -137,20 +151,20 @@ export default function SLAAnalysisPage() {
         </div>
         <div className="space-x-2">
           <Button onClick={fetchAnalysis} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
+            <Clock className="h-4 w-4 mr-2" /> {/* Changed icon to Clock */}
             Refresh
           </Button>
-          
-            <Button 
+
+            <Button
               onClick={fixTicketSLA}
               disabled={isFixing}
               className="bg-orange-600 hover:bg-orange-700"
             >
-              {isFixing ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+              {isFixing ? <Clock className="mr-2 h-4 w-4 animate-spin" /> : <Clock className="mr-2 h-4 w-4" />} {/* Changed icon to Clock */}
               Fix Ticket SLA Data
             </Button>
 
-            <Button 
+            <Button
               onClick={async () => {
                 try {
                   const response = await fetch('/api/sla/force-breach-check', {
@@ -163,15 +177,26 @@ export default function SLAAnalysisPage() {
                   if (response.ok) {
                     const result = await response.json();
                     console.log('Force breach check result:', result);
+                    toast({
+                      title: 'Success',
+                      description: 'Force breach check completed.',
+                    });
                     // Refresh the analysis
-                    const analysisResponse = await fetch('/api/sla/analysis');
-                    if (analysisResponse.ok) {
-                      const analysisData = await analysisResponse.json();
-                      setAnalysisData(analysisData);
-                    }
+                    await fetchAnalysis();
+                  } else {
+                    toast({
+                      title: 'Error',
+                      description: 'Failed to force breach check.',
+                      variant: 'destructive',
+                    });
                   }
                 } catch (error) {
                   console.error('Error forcing breach check:', error);
+                  toast({
+                    title: 'Error',
+                    description: 'An unexpected error occurred during force breach check.',
+                    variant: 'destructive',
+                  });
                 }
               }}
               className="bg-red-600 hover:bg-red-700"
@@ -187,7 +212,7 @@ export default function SLAAnalysisPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Tickets</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <Calendar className="h-4 w-4 text-muted-foreground" /> {/* Changed icon to Calendar */}
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{summary.totalTickets}</div>
@@ -200,7 +225,7 @@ export default function SLAAnalysisPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">SLA Breached</CardTitle>
-            <XCircle className="h-4 w-4 text-red-500" />
+            <AlertTriangle className="h-4 w-4 text-red-500" /> {/* Changed icon to AlertTriangle */}
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">{summary.slaBreached}</div>
@@ -226,11 +251,11 @@ export default function SLAAnalysisPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">SLA Coverage</CardTitle>
-            <Clock className="h-4 w-4 text-blue-500" />
+            <TrendingUp className="h-4 w-4 text-blue-500" /> {/* Changed icon to TrendingUp */}
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {Math.round((slaValidation.ticketsWithSLA / summary.totalTickets) * 100)}%
+              {summary.totalTickets > 0 ? Math.round((slaValidation.ticketsWithSLA / summary.totalTickets) * 100) : 0}%
             </div>
             <p className="text-xs text-muted-foreground">
               {slaValidation.ticketsWithSLA} of {summary.totalTickets} tickets
@@ -286,8 +311,8 @@ export default function SLAAnalysisPage() {
                         <TableCell>{ticket.slaPolicy || 'No Policy'}</TableCell>
                         <TableCell>{ticket.currentSLAStatus}</TableCell>
                         <TableCell>
-                          {ticket.resolutionDue ? 
-                            new Date(ticket.resolutionDue).toLocaleString() : 
+                          {ticket.resolutionDue ?
+                            new Date(ticket.resolutionDue).toLocaleString() :
                             'Not Set'
                           }
                         </TableCell>
@@ -338,8 +363,8 @@ export default function SLAAnalysisPage() {
                     </div>
                     <div className="mt-2 text-sm">
                       <span className="font-medium">Business Hours:</span> {
-                        policy.business_hours_only ? 
-                        `${policy.business_start}-${policy.business_end}` : 
+                        policy.business_hours_only ?
+                        `${policy.business_start}-${policy.business_end}` :
                         '24/7'
                       }
                     </div>
@@ -372,7 +397,9 @@ export default function SLAAnalysisPage() {
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-blue-600">
-                      {Math.round((slaValidation.ticketsWithSLA / (slaValidation.ticketsWithSLA + slaValidation.ticketsWithoutSLA)) * 100)}%
+                      {slaValidation.ticketsWithSLA + slaValidation.ticketsWithoutSLA > 0 ?
+                        Math.round((slaValidation.ticketsWithSLA / (slaValidation.ticketsWithSLA + slaValidation.ticketsWithoutSLA)) * 100) : 0
+                      }%
                     </div>
                     <p className="text-sm text-muted-foreground">Coverage Rate</p>
                   </div>
@@ -385,8 +412,8 @@ export default function SLAAnalysisPage() {
                       <h4 className="font-medium text-yellow-800">Action Required</h4>
                     </div>
                     <p className="text-yellow-700 mt-1">
-                      {slaValidation.ticketsWithoutSLA} tickets are missing SLA data. 
-                      Click "Fix Missing SLA" to automatically apply SLA policies.
+                      {slaValidation.ticketsWithoutSLA} tickets are missing SLA data.
+                      Click "Fix Ticket SLA Data" to automatically apply SLA policies.
                     </p>
                   </div>
                 )}
@@ -409,7 +436,7 @@ export default function SLAAnalysisPage() {
                   <div className="flex items-center justify-between">
                     <h4 className="font-medium">Test Results</h4>
                     <Badge variant={
-                      futureTicketTest.summary?.passed === futureTicketTest.summary?.totalTests ? 
+                      futureTicketTest.summary?.passed === futureTicketTest.summary?.totalTests ?
                       "default" : "destructive"
                     }>
                       {futureTicketTest.summary?.passed || 0} / {futureTicketTest.summary?.totalTests || 0} Passed
@@ -431,8 +458,8 @@ export default function SLAAnalysisPage() {
                         </div>
                         {result.willWork ? (
                           <div className="text-xs text-muted-foreground">
-                            Policy: {result.policy} | 
-                            Response: {result.responseTime}m | 
+                            Policy: {result.policy} |
+                            Response: {result.responseTime}m |
                             Resolution: {result.resolutionTime}m
                           </div>
                         ) : (
