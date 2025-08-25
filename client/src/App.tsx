@@ -87,7 +87,7 @@ export default function App() {
       console.warn('Unhandled promise rejection:', event.reason);
 
       // Prevent the default browser error reporting
-      if (event.reason?.message?.includes('Failed to fetch') || 
+      if (event.reason?.message?.includes('Failed to fetch') ||
           event.reason?.message?.includes('NetworkError') ||
           event.reason?.message?.includes('Load failed')) {
         event.preventDefault();
@@ -326,14 +326,7 @@ export default function App() {
                 </AuthenticatedLayout>
               </ProtectedRoute>
             </Route>
-            <Route path="/reports">
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <CABDashboard />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-            
+
             {/* Root path redirect - must be before wildcard */}
             <Route path="/" exact>
               {isAuthenticated ? (
@@ -342,7 +335,7 @@ export default function App() {
                 <Redirect to="/login" />
               )}
             </Route>
-            
+
             <Route path="*">
               <NotFound />
             </Route>

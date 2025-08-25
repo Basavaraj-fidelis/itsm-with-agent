@@ -3,7 +3,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertTriangle, Shield, ShieldCheck, ShieldAlert, Lock, Unlock, Eye, EyeOff, Activity, TrendingUp, TrendingDown, Users, Server, Wifi } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertTriangle, Shield, ShieldCheck, ShieldAlert, Lock, Unlock, Eye, EyeOff, Activity, TrendingUp, TrendingDown, Users, Server, Wifi, Download, XCircle, CheckCircle, Bug, Key, Usb } from 'lucide-react';
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 

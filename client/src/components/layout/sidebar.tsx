@@ -251,28 +251,35 @@ export function Sidebar() {
         activeColor: "bg-amber-50 border-amber-200 text-amber-700",
         description: "Analyze performance metrics",
       },
-      { name: "SLA Analysis", href: "/sla-analysis", icon: CheckCircle },
+      {
+        name: "SLA Analysis",
+        href: "/sla-analysis",
+        icon: CheckCircle,
+        roles: ["manager", "admin"],
+        iconColor: "text-purple-500",
+        activeColor: "bg-purple-50 border-purple-200 text-purple-700",
+        description: "Service level analysis",
+      },
       {
         name: "Automation Center",
-        icon: GitBranch,
         href: "/automation-center",
-        badge: "",
-        description: "Automate IT operations"
+        icon: GitBranch,
+        current: location === "/automation-center",
+        roles: ["admin", "manager"],
+        iconColor: "text-cyan-500",
+        activeColor: "bg-cyan-50 border-cyan-200 text-cyan-700",
+        description: "Automate IT operations",
       },
       {
         name: "CAB Dashboard",
-        icon: CheckCircle,
         href: "/cab-dashboard",
-        badge: "",
-        description: "Change Advisory Board"
+        icon: Users,
+        current: location === "/cab-dashboard",
+        roles: ["admin", "manager"],
+        iconColor: "text-rose-500",
+        activeColor: "bg-rose-50 border-rose-200 text-rose-700",
+        description: "Change Advisory Board",
       },
-      {
-        name: "Reports",
-        icon: FileText,
-        href: "/reports",
-        badge: "",
-        description: "Generate insights and reports"
-      }
     ];
 
     const adminNavigation = [
