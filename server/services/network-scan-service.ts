@@ -80,18 +80,48 @@ class NetworkScanService {
     const subnets: Record<string, any[]> = {};
 
     agents.forEach(agent => {
-      if (agent.ip_address) {
-        const subnet = this.getSubnetFromIP(agent.ip_address);
-        if (!subnets[subnet]) {
-          subnets[subnet] = [];
+      // Try to find a local IP address from agent data
+      let localIP = null;
+      
+      // Check if agent has local IP in system_info
+      if (agent.system_info && typeof agent.system_info === 'object') {
+        const systemInfo = typeof agent.system_info === 'string' 
+          ? JSON.parse(agent.system_info) 
+          : agent.system_info;
+          
+        // Look for local IP addresses in network interfaces
+        if (systemInfo.network_interfaces) {
+          for (const iface of systemInfo.network_interfaces) {
+            if (iface.ip_address && !this.isPublicIP(iface.ip_address) && iface.ip_address !== '127.0.0.1') {
+              localIP = iface.ip_address;
+              break;
+            }
+          }
         }
-        subnets[subnet].push({
-          id: agent.id,
-          hostname: agent.hostname,
-          ip_address: agent.ip_address,
-          last_seen: agent.last_seen,
-          os_name: agent.os_name
-        });
+        
+        // Fallback to primary_ip_address if it's local
+        if (!localIP && systemInfo.primary_ip_address && !this.isPublicIP(systemInfo.primary_ip_address)) {
+          localIP = systemInfo.primary_ip_address;
+        }
+      }
+      
+      // Use local IP if found, otherwise use stored ip_address if it's not public
+      const ipToUse = localIP || (!this.isPublicIP(agent.ip_address || '') ? agent.ip_address : null);
+      
+      if (ipToUse) {
+        const subnet = this.getSubnetFromIP(ipToUse);
+        if (subnet !== 'unknown') {
+          if (!subnets[subnet]) {
+            subnets[subnet] = [];
+          }
+          subnets[subnet].push({
+            id: agent.id,
+            hostname: agent.hostname,
+            ip_address: ipToUse, // Use the local IP
+            last_seen: agent.last_seen,
+            os_name: agent.os_name
+          });
+        }
       }
     });
 
@@ -99,11 +129,39 @@ class NetworkScanService {
   }
 
   private getSubnetFromIP(ip: string): string {
+    // Skip public IPs and use only private/local IPs for subnet detection
+    if (this.isPublicIP(ip)) {
+      return 'unknown';
+    }
+    
     const parts = ip.split('.');
     if (parts.length >= 3) {
       return `${parts[0]}.${parts[1]}.${parts[2]}.0/24`;
     }
     return 'unknown';
+  }
+
+  private isPublicIP(ip: string): boolean {
+    const parts = ip.split('.').map(Number);
+    if (parts.length !== 4) return false;
+    
+    // Check for private IP ranges
+    // 10.0.0.0/8
+    if (parts[0] === 10) return false;
+    
+    // 172.16.0.0/12
+    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return false;
+    
+    // 192.168.0.0/16
+    if (parts[0] === 192 && parts[1] === 168) return false;
+    
+    // 169.254.0.0/16 (link-local)
+    if (parts[0] === 169 && parts[1] === 254) return false;
+    
+    // 127.0.0.0/8 (loopback)
+    if (parts[0] === 127) return false;
+    
+    return true; // It's a public IP
   }
 
   private selectRecommendedAgents(agentsBySubnet: Record<string, any[]>) {
