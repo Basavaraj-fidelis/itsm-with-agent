@@ -98,7 +98,8 @@ export class AlertUtils {
     metric: string, // Added metric to get appropriate thresholds
     updateThresholdMinutes: number = 30
   ): boolean {
-    const thresholds = systemConfig.getAlertThresholds()[metric as keyof typeof systemConfig.getAlertThresholds()];
+    const allThresholds = systemConfig.getAlertThresholds();
+    const thresholds = allThresholds[metric as keyof typeof allThresholds];
     if (!thresholds) return false; // No thresholds found for this metric
 
     const lastValue = existingAlert.metadata?.[metric + "_usage"] || 0;
@@ -125,7 +126,8 @@ export class AlertUtils {
     value: number,
     severity: string // Added severity to determine update reason
   ) {
-    const thresholds = systemConfig.getAlertThresholds()[metric as keyof typeof systemConfig.getAlertThresholds()];
+    const allThresholds = systemConfig.getAlertThresholds();
+    const thresholds = allThresholds[metric as keyof typeof allThresholds];
     const threshold = thresholds ? thresholds[severity as keyof typeof thresholds] : undefined;
     const previousValue = existingMetadata?.[metric + "_usage"] || 0;
     const valueChange = typeof value === 'number' && typeof previousValue === 'number' ? Math.abs(value - previousValue).toFixed(1) : 'N/A';
@@ -189,7 +191,8 @@ function shouldUpdateAlert(existingAlert: any, currentValue: number, metric: str
   const minutesSinceUpdate = timeSinceLastUpdate / (1000 * 60);
 
   // Use a more dynamic threshold based on the metric's warning level
-  const thresholds = systemConfig.getAlertThresholds()[metric as keyof typeof systemConfig.getAlertThresholds()];
+  const allThresholds = systemConfig.getAlertThresholds();
+  const thresholds = allThresholds[metric as keyof typeof allThresholds];
   const updateThreshold = thresholds ? thresholds.warning * 0.1 : 5; // 10% of warning threshold, default 5
 
   // Update if value changed significantly or enough time has passed
