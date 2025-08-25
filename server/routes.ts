@@ -396,10 +396,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerNetworkScanRoutes(app, authenticateToken);
   registerVNCRoutes(app);
   registerSystemConfigRoutes(app);
-  registerErrorReportingRoutes(app);
   registerCABRoutes(app);
 
   // Register additional modular routes with error handling
+  try {
+    const errorReportingRoutes = await import("./routes/error-reporting-routes");
+    if (errorReportingRoutes.default) {
+      app.use("/api", errorReportingRoutes.default);
+    }
+  } catch (error) {
+    console.warn("Error reporting routes not available:", error.message);
+  }
+
   try {
     const alertRoutes = await import("./routes/alert-routes");
     if (alertRoutes.default) {

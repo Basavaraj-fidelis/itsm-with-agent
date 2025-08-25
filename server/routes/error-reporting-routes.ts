@@ -1,6 +1,7 @@
 
 import express from 'express';
 import { Pool } from 'pg';
+import { authenticateToken } from '../middleware/auth-middleware';
 
 const router = express.Router();
 
@@ -48,7 +49,7 @@ router.post('/error-reports', async (req, res) => {
 });
 
 // Get error reports (for admin dashboard)
-router.get('/error-reports', async (req, res) => {
+router.get('/error-reports', authenticateToken, async (req, res) => {
   try {
     const { limit = 50, resolved = 'false' } = req.query;
     
@@ -76,7 +77,7 @@ router.get('/error-reports', async (req, res) => {
 });
 
 // Mark error as resolved
-router.put('/error-reports/:errorId/resolve', async (req, res) => {
+router.put('/error-reports/:errorId/resolve', authenticateToken, async (req, res) => {
   try {
     const { errorId } = req.params;
     

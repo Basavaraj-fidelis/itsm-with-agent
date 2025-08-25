@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,12 +43,21 @@ export default function CABDashboard() {
   const queryClient = useQueryClient();
 
   // Fetch pending changes
-  const { data: pendingChanges, isLoading } = useQuery({
+  const { data: pendingChanges, isLoading, refetch } = useQuery({
     queryKey: ["cab-pending-changes"],
     queryFn: async () => {
       const response = await fetch("/api/cab/pending-changes");
-      if (!response.ok) throw new Error("Failed to fetch pending changes");
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
       return response.json() as Promise<PendingChange[]>;
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to fetch pending changes",
+        variant: "destructive",
+      });
     }
   });
 
@@ -58,8 +66,17 @@ export default function CABDashboard() {
     queryKey: ["cab-boards"],
     queryFn: async () => {
       const response = await fetch("/api/cab/boards");
-      if (!response.ok) throw new Error("Failed to fetch CAB boards");
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
       return response.json() as Promise<CABBoard[]>;
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to fetch CAB boards",
+        variant: "destructive",
+      });
     }
   });
 
@@ -81,8 +98,10 @@ export default function CABDashboard() {
           approver_id: "current-user" // In real app, get from auth context
         })
       });
-      
-      if (!response.ok) throw new Error("Failed to process approval");
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -106,7 +125,7 @@ export default function CABDashboard() {
 
   const handleApprovalSubmit = () => {
     if (!selectedChange || !approvalDecision) return;
-    
+
     processApprovalMutation.mutate({
       ticketId: selectedChange.id,
       decision: approvalDecision,
@@ -212,7 +231,7 @@ export default function CABDashboard() {
                       <div>
                         <Label className="text-xs text-muted-foreground">Planned Date</Label>
                         <p className="font-medium text-sm">
-                          {change.planned_implementation_date 
+                          {change.planned_implementation_date
                             ? new Date(change.planned_implementation_date).toLocaleDateString()
                             : "TBD"
                           }
@@ -226,7 +245,7 @@ export default function CABDashboard() {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="mb-4">
                       <Label className="text-xs text-muted-foreground">Description</Label>
                       <p className="text-sm mt-1 line-clamp-2">{change.description}</p>
@@ -269,7 +288,7 @@ export default function CABDashboard() {
                                 </Badge>
                               </div>
                             </div>
-                            
+
                             <div>
                               <Label className="font-medium">Description</Label>
                               <p className="text-sm mt-1 bg-muted p-3 rounded">{change.description}</p>
@@ -315,10 +334,10 @@ export default function CABDashboard() {
                               <Button variant="outline" onClick={() => setSelectedChange(null)}>
                                 Cancel
                               </Button>
-                              <Button 
+                              <Button
                                 onClick={handleApprovalSubmit}
                                 disabled={!approvalDecision || processApprovalMutation.isPending}
-                                className={approvalDecision === "approved" ? "bg-green-600 hover:bg-green-700" : 
+                                className={approvalDecision === "approved" ? "bg-green-600 hover:bg-green-700" :
                                           approvalDecision === "rejected" ? "bg-red-600 hover:bg-red-700" : ""}
                               >
                                 {processApprovalMutation.isPending ? "Processing..." : "Submit Decision"}
