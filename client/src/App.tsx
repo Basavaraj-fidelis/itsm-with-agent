@@ -1,345 +1,159 @@
-import React, { useEffect, useState, lazy } from "react";
-import { Router, Route, Switch, Redirect } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { DashboardErrorBoundary } from "@/components/ui/dashboard-error-boundary";
-import { ProtectedRoute, AuthProvider } from "@/components/auth/protected-route";
+import React, { Suspense } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { Toaster } from './components/ui/toaster';
+import { ThemeProvider } from './components/theme-provider';
+import ProtectedRoute from './components/auth/protected-route';
+import { LoadingSpinner } from './components/ui/loading-spinner';
+import { ErrorBoundary } from './components/ui/error-boundary';
 
-// Import pages
-import Login from "@/pages/login";
-import Signup from "@/pages/signup";
-import Dashboard from "@/pages/dashboard";
-import Agents from "@/pages/agents";
-import AgentDetail from "@/pages/agent-detail";
-import Alerts from "@/pages/alerts";
-import TicketDetail from "@/pages/ticket-detail";
-import CreateTicket from "@/pages/create-ticket";
-import Tickets from "@/pages/tickets";
-import KnowledgeBase from "@/pages/knowledge-base";
-import NewArticle from "@/pages/new-article";
-import Notifications from "@/pages/notifications";
-import Profile from "@/pages/profile";
-import Users from "@/pages/users";
-import Settings from "@/pages/settings";
-import VNCPage from "@/pages/vnc";
-import RDPPage from "@/pages/rdp";
-import SSHPage from "@/pages/ssh";
-import EndUserPortal from "./pages/end-user-portal";
-import ITSMComparison from "@/pages/itsm-comparison";
-import PatchCompliancePage from "@/pages/patch-compliance";
-import PerformanceAnalytics from "./pages/performance-analytics";
-import SLAAnalysis from "./pages/sla-analysis";
-import CABDashboard from "@/pages/cab-dashboard";
-import NotFound from "@/pages/not-found";
-import NetworkScan from "./pages/network-scan";
-import SecurityDashboard from "./pages/security-dashboard";
-import AutomationCenter from "@/pages/automation-center";
-
-
-// Layout
-import Sidebar from "@/components/layout/sidebar";
-import Header from "@/components/layout/header";
+// Lazy load components
+const Login = React.lazy(() => import('./pages/login'));
+const Dashboard = React.lazy(() => import('./pages/dashboard'));
+const Agents = React.lazy(() => import('./pages/agents'));
+const AgentDetail = React.lazy(() => import('./pages/agent-detail'));
+const Tickets = React.lazy(() => import('./pages/tickets'));
+const TicketDetail = React.lazy(() => import('./pages/ticket-detail'));
+const CreateTicket = React.lazy(() => import('./pages/create-ticket'));
+const Alerts = React.lazy(() => import('./pages/alerts'));
+const Settings = React.lazy(() => import('./pages/settings'));
+const Users = React.lazy(() => import('./pages/users'));
+const KnowledgeBase = React.lazy(() => import('./pages/knowledge-base'));
+const Reports = React.lazy(() => import('./pages/reports'));
+const SecurityDashboard = React.lazy(() => import('./pages/security-dashboard'));
+const PerformanceAnalytics = React.lazy(() => import('./pages/performance-analytics'));
+const SLAManagement = React.lazy(() => import('./pages/sla-management'));
+const EndUserPortal = React.lazy(() => import('./pages/end-user-portal'));
+const NotFound = React.lazy(() => import('./pages/not-found'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: (failureCount, error: any) => {
+        if (error?.status === 404 || error?.status === 401) {
+          return false;
+        }
+        return failureCount < 3;
+      },
       refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+    mutations: {
+      retry: false,
     },
   },
 });
 
-// Layout wrapper for authenticated pages
-function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
+function App() {
   return (
-    <div className="flex h-screen bg-neutral-100 dark:bg-neutral-950">
-      <DashboardErrorBoundary>
-        <Sidebar />
-      </DashboardErrorBoundary>
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <DashboardErrorBoundary>
-          <Header />
-        </DashboardErrorBoundary>
-        <main className="flex-1 overflow-auto bg-neutral-50 dark:bg-neutral-900">
-          {children}
-        </main>
-      </div>
-    </div>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider defaultTheme="light" storageKey="app-theme">
+          <Router>
+            <div className="min-h-screen bg-background">
+              <Suspense fallback={<LoadingSpinner />}>
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/portal" element={<EndUserPortal />} />
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+                  {/* Protected Routes */}
+                  <Route path="/dashboard" element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/agents" element={
+                    <ProtectedRoute>
+                      <Agents />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/agents/:id" element={
+                    <ProtectedRoute>
+                      <AgentDetail />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/tickets" element={
+                    <ProtectedRoute>
+                      <Tickets />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/tickets/:id" element={
+                    <ProtectedRoute>
+                      <TicketDetail />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/create-ticket" element={
+                    <ProtectedRoute>
+                      <CreateTicket />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/alerts" element={
+                    <ProtectedRoute>
+                      <Alerts />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/settings" element={
+                    <ProtectedRoute>
+                      <Settings />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/users" element={
+                    <ProtectedRoute>
+                      <Users />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/knowledge-base" element={
+                    <ProtectedRoute>
+                      <KnowledgeBase />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/reports" element={
+                    <ProtectedRoute>
+                      <Reports />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/security" element={
+                    <ProtectedRoute>
+                      <SecurityDashboard />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/performance" element={
+                    <ProtectedRoute>
+                      <PerformanceAnalytics />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/sla" element={
+                    <ProtectedRoute>
+                      <SLAManagement />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+              <Toaster />
+            </div>
+          </Router>
+        </ThemeProvider>
+        <ReactQueryDevtools initialIsOpen={false} />
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
-export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    // Check for authentication token on app load
-    const token = localStorage.getItem('auth_token');
-    const user = localStorage.getItem('user');
-
-    if (token && user) {
-      setIsAuthenticated(true);
-    } else {
-      setIsAuthenticated(false);
-    }
-
-    // Global error handler for unhandled promise rejections
-    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      console.warn('Unhandled promise rejection:', event.reason);
-
-      // Prevent the default browser error reporting
-      if (event.reason?.message?.includes('Failed to fetch') || 
-          event.reason?.message?.includes('NetworkError') ||
-          event.reason?.message?.includes('Load failed')) {
-        event.preventDefault();
-      }
-    };
-
-    window.addEventListener('unhandledrejection', handleUnhandledRejection);
-
-    return () => {
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
-    };
-  }, []);
-
-  // Show loading while checking authentication
-  if (isAuthenticated === null) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router>
-          <Switch>
-            {/* Public routes */}
-            <Route path="/login">
-              <Login />
-            </Route>
-            <Route path="/signup">
-              <Signup />
-            </Route>
-
-            {/* Protected routes */}
-            <Route path="/dashboard">
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <DashboardErrorBoundary>
-                    <Dashboard />
-                  </DashboardErrorBoundary>
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-
-            <Route path="/agents/:id">
-              <ProtectedRoute requiredRole={["admin", "manager", "technician"]}>
-                <AuthenticatedLayout>
-                  <AgentDetail />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-
-            <Route path="/agents">
-              <ProtectedRoute requiredRole={["admin", "manager", "technician"]}>
-                <AuthenticatedLayout>
-                  <Agents />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-
-            <Route path="/alerts">
-              <ProtectedRoute requiredRole={["admin", "manager", "technician"]}>
-                <AuthenticatedLayout>
-                  <Alerts />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-
-            <Route path="/tickets">
-              <ProtectedRoute requiredRole={["admin", "manager", "technician"]}>
-                <AuthenticatedLayout>
-                  <Tickets />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-            <Route path="/tickets/:id">
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <TicketDetail />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-             <Route path="/create-ticket">
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <CreateTicket />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-
-            <Route path="/knowledge-base">
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <KnowledgeBase />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-
-            <Route path="/knowledge-base/new">
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <NewArticle />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-            <Route path="/knowledge-base/:articleId">
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <KnowledgeBase />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-
-            <Route path="/users">
-              <ProtectedRoute requiredRole={["admin", "manager"]}>
-                <AuthenticatedLayout>
-                  <Users />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-
-
-
-
-
-            <Route path="/settings/:section?">
-              <ProtectedRoute requiredRole={["admin", "manager"]}>
-                <AuthenticatedLayout>
-                  <Settings />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-
-            <Route path="/profile">
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <Profile />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-
-             <Route path="/notifications">
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <Notifications />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-
-
-            <Route path="/vnc">
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <VNCPage />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-             <Route path="/rdp">
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <RDPPage />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-            <Route path="/ssh">
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <SSHPage />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-
-            <Route path="/patch-compliance">
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <PatchCompliancePage />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-            <Route path="/network-scan">
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <NetworkScan />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-
-             <Route path="/performance-analytics">
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <PerformanceAnalytics />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-
-            <Route path="/security-dashboard">
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <SecurityDashboard />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-
-            <Route path="/security">
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <SecurityDashboard />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-
-            <Route path="/portal">
-              <EndUserPortal />
-            </Route>
-
-            <Route path="/sla-analysis">
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <SLAAnalysis />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-            <Route path="/cab-dashboard">
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <CABDashboard />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-            <Route path="/automation-center">
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <AutomationCenter />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-            <Route path="/reports">
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <CABDashboard />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            </Route>
-            <Route path="*">
-              <NotFound />
-            </Route>
-          </Switch>
-        </Router>
-        <Toaster />
-      </AuthProvider>
-    </QueryClientProvider>
-  );
-}
+export default App;

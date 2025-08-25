@@ -44,6 +44,11 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use((err: any, req: any, res: any, next: any) => {
   console.error('Global error handler:', err);
 
+  // Don't send error responses if headers were already sent
+  if (res.headersSent) {
+    return next(err);
+  }
+
   if (err.name === 'ValidationError') {
     return res.status(400).json({ 
       error: 'Validation Error', 
@@ -56,6 +61,11 @@ app.use((err: any, req: any, res: any, next: any) => {
       error: 'Unauthorized', 
       message: 'Invalid token' 
     });
+  }
+
+  if (err.code === 'ECONNRESET' || err.code === 'EPIPE') {
+    console.log('Client connection closed');
+    return;
   }
 
   res.status(500).json({ 

@@ -4,7 +4,7 @@ import { QueryClient } from '@tanstack/react-query';
 export interface DashboardSummary {
   total_devices: number;
   online_devices: number;
-  offline_devices: number;
+  offline_devices: 0;
   active_alerts: number;
 }
 
@@ -46,78 +46,63 @@ export interface Alert {
   device_hostname?: string;
 }
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://0.0.0.0:5000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 class ApiClient {
   private baseURL: string;
 
   constructor() {
-    // Use /api prefix for relative API calls
-    this.baseURL = "/api";
+    this.baseURL = API_BASE_URL;
   }
 
-  private async request(
+  private async request<T>(
     endpoint: string,
     options: RequestInit = {}
-  ): Promise<Response> {
-    // Ensure endpoint starts with /api
-    const url = endpoint.startsWith('/api') ? endpoint : `${this.baseURL}${endpoint}`;
-
-    // Get auth token from localStorage
-    const token = getAuthToken();
+  ): Promise<T> {
+    const url = `${this.baseURL}${endpoint}`;
 
     const config: RequestInit = {
-      timeout: 10000, // 10 second timeout
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
         ...options.headers,
       },
       ...options,
     };
 
-    console.log(`API Request: ${url}`);
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers = {
+        ...config.headers,
+        Authorization: `Bearer ${token}`,
+      };
+    }
 
     try {
-      // Create timeout promise
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Request timeout')), 10000);
-      });
+      const response = await fetch(url, config);
 
-      const fetchPromise = fetch(url, config);
-      const response = await Promise.race([fetchPromise, timeoutPromise]);
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error(`API Error ${response.status}:`, errorData);
 
-      console.log(`API Response: ${response.status} ${response.statusText}`);
-
-      // Handle authentication errors
-      if (response.status === 401) {
-        console.warn('Authentication failed, clearing token');
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('token');
-        if (window.location.pathname !== '/login') {
+        if (response.status === 401) {
+          localStorage.removeItem('token');
           window.location.href = '/login';
+          throw new Error('Authentication required');
         }
-        throw new Error('Authentication required');
+
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorData}`);
       }
 
-      // Handle server errors gracefully
-      if (response.status >= 500) {
-        console.error(`Server error: ${response.status} for ${url}`);
-        throw new Error(`Server error: ${response.status}`);
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return response.json();
+      } else {
+        return response.text() as unknown as T;
       }
-
-      return response;
     } catch (error) {
-      console.error(`API Request failed for ${url}:`, error);
-
-      // Handle specific error types
-      if (error instanceof Error) {
-        if (error.message.includes('timeout') || error.message.includes('Request timeout')) {
-          throw new Error('Request timed out. Please try again.');
-        }
-        if (error.message.includes('fetch') || error.name === 'TypeError') {
-          throw new Error('Network connection failed. Please check your connection.');
-        }
+      console.error('Handled API error:', (error as Error).message);
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        throw new Error('Network error - please check your connection');
       }
       throw error;
     }
@@ -181,8 +166,6 @@ const getAuthToken = () => {
 const clearAuthToken = () => {
   localStorage.removeItem('auth_token');
 }
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://0.0.0.0:5000';
 
 // Enhanced global error handler for unhandled promise rejections
 let errorCount = 0;
