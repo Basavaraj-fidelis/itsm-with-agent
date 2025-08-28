@@ -1,0 +1,40 @@
+Uncaught TypeError: users?.map is not a function
+    at CABDashboard (cab-dashboard.tsx:596:33)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=f3343dc1:11548:26)
+    at updateFunctionComponent (chunk-RPCDYKBN.js?v=f3343dc1:14582:28)
+    at beginWork (chunk-RPCDYKBN.js?v=f3343dc1:15924:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=f3343dc1:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=f3343dc1:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=f3343dc1:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=f3343dc1:19765:15)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=f3343dc1:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=f3343dc1:19137:13)
+chunk-RPCDYKBN.js?v=f3343dc1:14032 The above error occurred in the <CABDashboard> component:
+
+    at CABDashboard (https://6f16feae-6630-415d-896e-d8d2aa5dee29-00-2qo9yjumqsqka.sisko.replit.dev/src/pages/cab-dashboard.tsx:33:47)
+    at main
+    at div
+    at div
+    at AuthenticatedLayout (https://6f16feae-6630-415d-896e-d8d2aa5dee29-00-2qo9yjumqsqka.sisko.replit.dev/src/App.tsx:62:32)
+    at ProtectedRoute (https://6f16feae-6630-415d-896e-d8d2aa5dee29-00-2qo9yjumqsqka.sisko.replit.dev/src/components/auth/protected-route.tsx:76:3)
+    at Route (https://6f16feae-6630-415d-896e-d8d2aa5dee29-00-2qo9yjumqsqka.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f3343dc1:206:16)
+    at Switch (https://6f16feae-6630-415d-896e-d8d2aa5dee29-00-2qo9yjumqsqka.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f3343dc1:262:17)
+    at Router (https://6f16feae-6630-415d-896e-d8d2aa5dee29-00-2qo9yjumqsqka.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f3343dc1:161:17)
+    at AuthProvider (https://6f16feae-6630-415d-896e-d8d2aa5dee29-00-2qo9yjumqsqka.sisko.replit.dev/src/components/auth/protected-route.tsx:36:32)
+    at QueryClientProvider (https://6f16feae-6630-415d-896e-d8d2aa5dee29-00-2qo9yjumqsqka.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=f3343dc1:2933:3)
+    at App (https://6f16feae-6630-415d-896e-d8d2aa5dee29-00-2qo9yjumqsqka.sisko.replit.dev/src/App.tsx:102:49)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-RPCDYKBN.js?v=f3343dc1:14032
+chunk-RPCDYKBN.js?v=f3343dc1:9129 Uncaught TypeError: users?.map is not a function
+    at CABDashboard (cab-dashboard.tsx:596:33)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=f3343dc1:11548:26)
+    at updateFunctionComponent (chunk-RPCDYKBN.js?v=f3343dc1:14582:28)
+    at beginWork (chunk-RPCDYKBN.js?v=f3343dc1:15924:22)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=f3343dc1:19753:22)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=f3343dc1:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=f3343dc1:19137:13)
+    at renderRootSync (chunk-RPCDYKBN.js?v=f3343dc1:19116:15)
+    at recoverFromConcurrentError (chunk-RPCDYKBN.js?v=f3343dc1:18736:28)
+    at performSyncWorkOnRoot (chunk-RPCDYKBN.js?v=f3343dc1:18879:28)
