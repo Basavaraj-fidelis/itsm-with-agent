@@ -154,25 +154,66 @@ function PerformanceAnalyticsContent() {
     refetch: refetchInsights,
   } = useQuery({
     queryKey: ["performance-insights", selectedDevice],
-    queryFn: () => api.getPerformanceInsights(selectedDevice),
+    queryFn: async () => {
+      try {
+        return await api.getPerformanceInsights(selectedDevice);
+      } catch (error) {
+        console.warn('Performance insights failed:', error);
+        return {
+          top_cpu_consumers: [],
+          top_memory_consumers: [],
+          total_processes: 0,
+          system_load_analysis: {
+            high_cpu_processes: 0,
+            high_memory_processes: 0,
+          },
+        };
+      }
+    },
     enabled: !!selectedDevice,
-    retry: 1,
+    retry: 0,
     refetchInterval: autoRefresh && selectedDevice ? refreshInterval : false,
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
   });
 
   const { data: predictions, isError: predictionsError } = useQuery({
     queryKey: ["performance-predictions", selectedDevice],
-    queryFn: () => api.getPerformancePredictions(selectedDevice),
+    queryFn: async () => {
+      try {
+        return await api.getPerformancePredictions(selectedDevice);
+      } catch (error) {
+        console.warn('Performance predictions failed:', error);
+        return [];
+      }
+    },
     enabled: !!selectedDevice,
-    retry: 1,
+    retry: 0,
+    refetchOnWindowFocus: false,
+    staleTime: 60000,
   });
 
   const { data: advancedAnalytics, isError: advancedError } = useQuery({
     queryKey: ["advanced-analytics", selectedDevice],
-    queryFn: () => api.getAdvancedDeviceAnalytics(selectedDevice),
+    queryFn: async () => {
+      try {
+        return await api.getAdvancedDeviceAnalytics(selectedDevice);
+      } catch (error) {
+        console.warn('Advanced analytics failed:', error);
+        return {
+          performance_trends: { cpu_trend: [], memory_trend: [], disk_trend: [] },
+          system_health: { uptime_percentage: 0, avg_response_time: 0, error_rate: 0, availability_score: 0 },
+          capacity_analysis: { cpu_utilization_forecast: "Unknown", memory_growth_rate: "Unknown", disk_space_projection: "Unknown", network_bandwidth_usage: "Unknown" },
+          security_metrics: { last_patch_update: null, security_score: 0, vulnerabilities_count: 0, compliance_status: "Unknown" },
+          alerts_summary: { critical: 0, warning: 0, info: 0, last_alert: "Unknown" }
+        };
+      }
+    },
     enabled: !!selectedDevice,
-    retry: 1,
+    retry: 0,
     refetchInterval: autoRefresh && selectedDevice ? refreshInterval : false,
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
   });
 
   const {
@@ -181,9 +222,26 @@ function PerformanceAnalyticsContent() {
     error: overviewError,
   } = useQuery({
     queryKey: ["performance", "overview"],
-    queryFn: () => api.getPerformanceOverview(),
-    retry: 1,
+    queryFn: async () => {
+      try {
+        return await api.getPerformanceOverview();
+      } catch (error) {
+        console.warn('Performance overview failed:', error);
+        return {
+          totalDevices: 0,
+          onlineDevices: 0,
+          avgCpuUsage: 0,
+          avgMemoryUsage: 0,
+          avgDiskUsage: 0,
+          criticalDevices: 0,
+          performanceAlerts: 0
+        };
+      }
+    },
+    retry: 0,
     retryDelay: 1000,
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
   });
 
   // Set first device as default when devices load

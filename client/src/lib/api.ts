@@ -158,10 +158,35 @@ class ApiClient {
   async getAdvancedDeviceAnalytics(deviceId: string): Promise<any> {
     try {
       const response = await this.request(`/analytics/device/${deviceId}/advanced`);
-      return response;
+      if (!response.ok) {
+        console.error('Advanced analytics API error:', response.status);
+
+        // Return fallback data instead of throwing
+        return {
+          performance_trends: { cpu_trend: [], memory_trend: [], disk_trend: [] },
+          system_health: { uptime_percentage: 0, avg_response_time: 0, error_rate: 0, availability_score: 0 },
+          capacity_analysis: { cpu_utilization_forecast: "Unknown", memory_growth_rate: "Unknown", disk_space_projection: "Unknown", network_bandwidth_usage: "Unknown" },
+          security_metrics: { last_patch_update: null, security_score: 0, vulnerabilities_count: 0, compliance_status: "Unknown" },
+          alerts_summary: { critical: 0, warning: 0, info: 0, last_alert: "Unknown" }
+        };
+      }
+      const data = await response.json();
+      return data || {
+        performance_trends: { cpu_trend: [], memory_trend: [], disk_trend: [] },
+        system_health: { uptime_percentage: 0, avg_response_time: 0, error_rate: 0, availability_score: 0 },
+        capacity_analysis: { cpu_utilization_forecast: "Unknown", memory_growth_rate: "Unknown", disk_space_projection: "Unknown", network_bandwidth_usage: "Unknown" },
+        security_metrics: { last_patch_update: null, security_score: 0, vulnerabilities_count: 0, compliance_status: "Unknown" },
+        alerts_summary: { critical: 0, warning: 0, info: 0, last_alert: "Unknown" }
+      };
     } catch (error) {
-      console.error('Error fetching advanced device analytics:', error);
-      throw error;
+      console.error('Advanced analytics fetch error:', error);
+      return {
+        performance_trends: { cpu_trend: [], memory_trend: [], disk_trend: [] },
+        system_health: { uptime_percentage: 0, avg_response_time: 0, error_rate: 0, availability_score: 0 },
+        capacity_analysis: { cpu_utilization_forecast: "Unknown", memory_growth_rate: "Unknown", disk_space_projection: "Unknown", network_bandwidth_usage: "Unknown" },
+        security_metrics: { last_patch_update: null, security_score: 0, vulnerabilities_count: 0, compliance_status: "Unknown" },
+        alerts_summary: { critical: 0, warning: 0, info: 0, last_alert: "Unknown" }
+      };
     }
   }
 }

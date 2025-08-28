@@ -3222,6 +3222,185 @@ smartphones
 
   // Database connection instance
   private db = db;
+
+  // Helper to update device last seen and status (for database storage)
+  private async updateDeviceLastSeen(deviceId: string): Promise<void> {
+    try {
+      const now = new Date();
+      const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+      
+      // Fetch current device status
+      const currentDevice = await this.getDevice(deviceId);
+      if (!currentDevice) {
+        console.warn(`Device ${deviceId} not found for last seen update.`);
+        return;
+      }
+
+      // Update status based on last seen time
+      let newStatus = currentDevice.status;
+      if (currentDevice.last_seen && new Date(currentDevice.last_seen) < fiveMinutesAgo) {
+        newStatus = "offline";
+      } else {
+        newStatus = "online"; // Assume online if report is being saved
+      }
+
+      await this.updateDevice(deviceId, {
+        last_seen: now,
+        status: newStatus,
+      });
+
+    } catch (error) {
+      console.error(`Error updating last seen for device ${deviceId}:`, error);
+    }
+  }
+
+  // saveDeviceReport method is directly implemented here for DatabaseStorage
+  async saveDeviceReport(deviceId: string, data: any): Promise<void> {
+    try {
+      console.log('Saving device report for:', deviceId);
+
+      // Extract basic metrics with comprehensive error handling and fallbacks
+      let cpuUsage = null;
+      let memoryUsage = null;
+      let diskUsage = null;
+      let networkIo = 0;
+
+      // Enhanced CPU extraction with multiple fallbacks
+      if (data.system_health?.cpu_usage !== undefined && data.system_health.cpu_usage !== null) {
+        cpuUsage = parseFloat(data.system_health.cpu_usage);
+        console.log('CPU from system_health:', cpuUsage);
+      } else if (data.hardware?.cpu?.usage_percent !== undefined && data.hardware.cpu.usage_percent !== null) {
+        cpuUsage = parseFloat(data.hardware.cpu.usage_percent);
+        console.log('CPU from hardware.cpu:', cpuUsage);
+      } else if (data.cpu_usage !== undefined && data.cpu_usage !== null) {
+        cpuUsage = parseFloat(data.cpu_usage);
+        console.log('CPU from direct field:', cpuUsage);
+      } else if (data.hardware?.cpu && data.hardware.cpu.percent !== undefined) {
+        cpuUsage = parseFloat(data.hardware.cpu.percent);
+        console.log('CPU from hardware.cpu.percent:', cpuUsage);
+      }
+
+      // Enhanced Memory extraction with multiple fallbacks
+      if (data.system_health?.memory_usage !== undefined && data.system_health.memory_usage !== null) {
+        memoryUsage = parseFloat(data.system_health.memory_usage);
+        console.log('Memory from system_health:', memoryUsage);
+      } else if (data.hardware?.memory?.percentage !== undefined && data.hardware.memory.percentage !== null) {
+        memoryUsage = parseFloat(data.hardware.memory.percentage);
+        console.log('Memory from hardware.memory:', memoryUsage);
+      } else if (data.memory_usage !== undefined && data.memory_usage !== null) {
+        memoryUsage = parseFloat(data.memory_usage);
+        console.log('Memory from direct field:', memoryUsage);
+      } else if (data.hardware?.memory && data.hardware.memory.percent !== undefined) {
+        memoryUsage = parseFloat(data.hardware.memory.percent);
+        console.log('Memory from hardware.memory.percent:', memoryUsage);
+      }
+
+      // Enhanced Disk extraction with multiple fallbacks
+      if (data.storage?.disks && Array.isArray(data.storage.disks) && data.storage.disks.length > 0) {
+        // Find C:\ drive first (Windows), then / (Linux), then any drive
+        const primaryDisk = data.storage.disks.find(disk => 
+          disk.device === 'C:\\' || disk.mountpoint === 'C:\\'
+        ) || data.storage.disks.find(disk => 
+          disk.mountpoint === '/' || disk.device === '/'
+        ) || data.storage.disks[0];
+
+        if (primaryDisk) {
+          if (primaryDisk.percent !== undefined && primaryDisk.percent !== null) {
+            diskUsage = parseFloat(primaryDisk.percent);
+            console.log('Disk from storage.disks.percent:', diskUsage);
+          } else if (primaryDisk.usage_percent !== undefined) {
+            diskUsage = parseFloat(primaryDisk.usage_percent);
+            console.log('Disk from storage.disks.usage_percent:', diskUsage);
+          } else if (primaryDisk.used && primaryDisk.total) {
+            diskUsage = (parseFloat(primaryDisk.used) / parseFloat(primaryDisk.total)) * 100;
+            console.log('Disk calculated from used/total:', diskUsage);
+          }
+        }
+      } else if (data.disk_usage !== undefined && data.disk_usage !== null) {
+        diskUsage = parseFloat(data.disk_usage);
+        console.log('Disk from direct field:', diskUsage);
+      }
+
+      // Enhanced Network I/O extraction
+      if (data.network?.io_counters) {
+        const bytesSent = parseInt(data.network.io_counters.bytes_sent || 0);
+        const bytesRecv = parseInt(data.network.io_counters.bytes_recv || 0);
+        networkIo = bytesSent + bytesRecv;
+        console.log('Network I/O from io_counters:', networkIo);
+      } else if (data.network_io !== undefined) {
+        networkIo = parseInt(data.network_io || 0);
+        console.log('Network I/O from direct field:', networkIo);
+      }
+
+      // Validate extracted values
+      if (cpuUsage !== null && (isNaN(cpuUsage) || cpuUsage < 0 || cpuUsage > 100)) {
+        console.warn('Invalid CPU usage value:', cpuUsage, 'setting to null');
+        cpuUsage = null;
+      }
+      if (memoryUsage !== null && (isNaN(memoryUsage) || memoryUsage < 0 || memoryUsage > 100)) {
+        console.warn('Invalid memory usage value:', memoryUsage, 'setting to null');
+        memoryUsage = null;
+      }
+      if (diskUsage !== null && (isNaN(diskUsage) || diskUsage < 0 || diskUsage > 100)) {
+        console.warn('Invalid disk usage value:', diskUsage, 'setting to null');
+        diskUsage = null;
+      }
+
+      console.log('Final extracted metrics:', {
+        cpu_usage: cpuUsage,
+        memory_usage: memoryUsage,
+        disk_usage: diskUsage,
+        network_io: networkIo
+      });
+
+      const reportData = {
+        device_id: deviceId,
+        raw_data: data,
+        cpu_usage: cpuUsage,
+        memory_usage: memoryUsage,
+        disk_usage: diskUsage,
+        network_io: networkIo,
+        collected_at: new Date(),
+        created_at: new Date()
+      };
+
+      await this.pool.query(
+        `INSERT INTO device_reports (device_id, raw_data, cpu_usage, memory_usage, disk_usage, network_io, collected_at, created_at) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [reportData.device_id, reportData.raw_data, reportData.cpu_usage, reportData.memory_usage, 
+         reportData.disk_usage, reportData.network_io, reportData.collected_at, reportData.created_at]
+      );
+
+      // Update device's latest report info
+      await this.updateDeviceLastSeen(deviceId);
+
+      console.log(`Device report saved successfully for ${deviceId} with metrics:`, {
+        cpu: cpuUsage, 
+        memory: memoryUsage, 
+        disk: diskUsage, 
+        network: networkIo
+      });
+
+      // Update performance baselines if we have valid metrics
+      if (cpuUsage !== null || memoryUsage !== null || diskUsage !== null) {
+        try {
+          const { performanceService } = await import('./services/performance-service');
+          await performanceService.updateBaselines(deviceId, {
+            cpu_usage: cpuUsage,
+            memory_usage: memoryUsage,
+            disk_usage: diskUsage
+          });
+        } catch (perfError) {
+          console.warn('Failed to update performance baselines:', perfError);
+        }
+      }
+
+    } catch (error) {
+      console.error('Error saving device report:', error);
+      throw error;
+    }
+  }
+
 }
 
 // Create storage instance

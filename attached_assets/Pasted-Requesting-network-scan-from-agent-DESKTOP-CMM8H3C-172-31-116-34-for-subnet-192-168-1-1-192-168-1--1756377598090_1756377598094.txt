@@ -1,0 +1,37 @@
+Requesting network scan from agent DESKTOP-CMM8H3C (172.31.116.34) for subnet 192.168.1.1-192.168.1.100
+Sending networkScan command to agent f7f5ac23-fa74-4e1b-8e46-d134d3480948 with timeout 120000ms
+Attempting to send command to agent f7f5ac23-fa74-4e1b-8e46-d134d3480948
+Available agent connections: 
+Total connected agents: 0
+Agent f7f5ac23-fa74-4e1b-8e46-d134d3480948 is not found in agent connections
+This likely means the agent is not connected via WebSocket
+Error sending scan command to agent DESKTOP-CMM8H3C: Error: Agent f7f5ac23-fa74-4e1b-8e46-d134d3480948 is not connected
+    at <anonymous> (/home/runner/workspace/server/websocket-service.ts:173:16)
+    at new Promise (<anonymous>)
+    at WebSocketService.sendCommandToAgent (/home/runner/workspace/server/websocket-service.ts:163:12)
+    at NetworkScanService.sendNetworkScanCommandsToAgents (/home/runner/workspace/server/services/network-scan-service.ts:539:53)
+    at async NetworkScanService.queueScanCommands (/home/runner/workspace/server/services/network-scan-service.ts:486:5)
+    at async NetworkScanService.initiateScan (/home/runner/workspace/server/services/network-scan-service.ts:371:7)
+    at async <anonymous> (/home/runner/workspace/server/routes/network-scan-routes.ts:40:22)
+Scan progress: 1/1 agents completed
+REAL network scan completed - Session: scan-1756377063315-ncuwp39e6
+Total devices discovered: 0
+Real scan results by subnet: []
+Network scan initiated - Session: scan-1756377063315-ncuwp39e6
+Scanning subnets: 
+Using agents: [
+  {
+    subnet: '192.168.1.1-192.168.1.100',
+    agent_id: 'f7f5ac23-fa74-4e1b-8e46-d134d3480948',
+    hostname: 'DESKTOP-CMM8H3C',
+    ip_address: '172.31.116.34',
+    scan_type: 'custom_range'
+  }
+]
+10:31:03 AM [express] POST /api/network-scan/initiate 200 in 129ms :: {"session_id":"scan-17563770633…
+10:31:03 AM [express] GET /api/network-scan/sessions 200 in 0ms :: [{"id":"scan-1756377039266-7plsl5a…
+10:31:03 AM [express] GET /api/network-scan/sessions/scan-1756377063315-ncuwp39e6/results 200 in 1ms …
+10:31:03 AM [express] GET /api/network-scan/sessions/scan-1756377063315-ncuwp39e6 200 in 0ms :: {"id"…
+10:31:03 AM [express] GET /api/network-scan/sessions/scan-1756377063315-ncuwp39e6/results 304 in 1ms …
+10:31:03 AM [express] GET /api/network-scan/sessions 304 in 0ms :: [{"id":"scan-1756377039266-7plsl5a…
+10:31:03 AM [express] GET /api/network-scan/sessions/scan-1756377063315-ncuwp39e6/results 304 in 0ms …

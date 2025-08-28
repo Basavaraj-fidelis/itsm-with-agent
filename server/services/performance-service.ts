@@ -332,39 +332,72 @@ class PerformanceService {
         reportTime: report.collected_at,
         cpu: report.cpu_usage,
         memory: report.memory_usage,
+        hasSystemHealth: !!rawData?.system_health,
+        hasHardware: !!rawData?.hardware,
       });
+
+      // First try to extract system-level metrics from raw_data if not in report columns
+      let systemCpuUsage = parseFloat(report.cpu_usage || "0");
+      let systemMemoryUsage = parseFloat(report.memory_usage || "0");
+      let systemDiskUsage = parseFloat(report.disk_usage || "0");
+
+      // If report columns are null/0, extract from raw_data
+      if (systemCpuUsage === 0 && rawData?.system_health?.cpu_usage) {
+        systemCpuUsage = parseFloat(rawData.system_health.cpu_usage);
+        console.log(`Extracted CPU from system_health: ${systemCpuUsage}`);
+      } else if (systemCpuUsage === 0 && rawData?.hardware?.cpu?.usage_percent) {
+        systemCpuUsage = parseFloat(rawData.hardware.cpu.usage_percent);
+        console.log(`Extracted CPU from hardware: ${systemCpuUsage}`);
+      }
+
+      if (systemMemoryUsage === 0 && rawData?.system_health?.memory_usage) {
+        systemMemoryUsage = parseFloat(rawData.system_health.memory_usage);
+        console.log(`Extracted Memory from system_health: ${systemMemoryUsage}`);
+      } else if (systemMemoryUsage === 0 && rawData?.hardware?.memory?.percentage) {
+        systemMemoryUsage = parseFloat(rawData.hardware.memory.percentage);
+        console.log(`Extracted Memory from hardware: ${systemMemoryUsage}`);
+      }
+
+      if (systemDiskUsage === 0 && rawData?.storage?.disks?.[0]?.percent) {
+        systemDiskUsage = parseFloat(rawData.storage.disks[0].percent);
+        console.log(`Extracted Disk from storage: ${systemDiskUsage}`);
+      }
 
       // Extract process information from raw_data
       const processes = rawData?.processes || rawData?.running_processes || [];
 
-      if (processes.length === 0) {
-        console.log(`No process data found for device ${deviceId}`);
+      console.log(`Found ${processes.length} processes for device ${deviceId}`, {
+        systemCpu: systemCpuUsage,
+        systemMemory: systemMemoryUsage,
+        systemDisk: systemDiskUsage,
+      });
 
-        // If no processes but we have system metrics, create basic insights
-        if (report.cpu_usage || report.memory_usage) {
+      // If no processes but we have system metrics, create basic insights with extracted values
+      if (processes.length === 0) {
+        console.log(`No process data found for device ${deviceId}, using system metrics`);
+
+        if (systemCpuUsage > 0 || systemMemoryUsage > 0) {
           return {
             top_cpu_consumers: [
               {
                 name: "System Total",
-                cpu_percent: parseFloat(report.cpu_usage || "0"),
-                memory_percent: parseFloat(report.memory_usage || "0"),
+                cpu_percent: systemCpuUsage,
+                memory_percent: systemMemoryUsage,
                 pid: 0,
               },
             ],
             top_memory_consumers: [
               {
                 name: "System Total",
-                cpu_percent: parseFloat(report.cpu_usage || "0"),
-                memory_percent: parseFloat(report.memory_usage || "0"),
+                cpu_percent: systemCpuUsage,
+                memory_percent: systemMemoryUsage,
                 pid: 0,
               },
             ],
             total_processes: 0,
             system_load_analysis: {
-              high_cpu_processes:
-                parseFloat(report.cpu_usage || "0") > 80 ? 1 : 0,
-              high_memory_processes:
-                parseFloat(report.memory_usage || "0") > 85 ? 1 : 0,
+              high_cpu_processes: systemCpuUsage > 80 ? 1 : 0,
+              high_memory_processes: systemMemoryUsage > 85 ? 1 : 0,
             },
           };
         }
@@ -372,47 +405,41 @@ class PerformanceService {
         return this.getDefaultInsights();
       }
 
-      console.log(`Found ${processes.length} processes for device ${deviceId}`);
-
       // Sort processes by CPU usage
       const cpuSorted = processes
-        .filter(
-          (p) =>
-            p.cpu_percent !== undefined &&
-            p.cpu_percent !== null &&
-            parseFloat(p.cpu_percent.toString()) > 0,
-        )
-        .sort(
-          (a, b) =>
-            parseFloat(b.cpu_percent.toString()) -
-            parseFloat(a.cpu_percent.toString()),
-        )
+        .filter((p) => {
+          const cpuPercent = parseFloat(p.cpu_percent?.toString() || "0");
+          return cpuPercent > 0;
+        })
+        .sort((a, b) => {
+          const aCpu = parseFloat(a.cpu_percent?.toString() || "0");
+          const bCpu = parseFloat(b.cpu_percent?.toString() || "0");
+          return bCpu - aCpu;
+        })
         .slice(0, 10);
 
       // Sort processes by memory usage
       const memorySorted = processes
-        .filter(
-          (p) =>
-            p.memory_percent !== undefined &&
-            p.memory_percent !== null &&
-            parseFloat(p.memory_percent.toString()) > 0,
-        )
-        .sort(
-          (a, b) =>
-            parseFloat(b.memory_percent.toString()) -
-            parseFloat(a.memory_percent.toString()),
-        )
+        .filter((p) => {
+          const memPercent = parseFloat(p.memory_percent?.toString() || "0");
+          return memPercent > 0;
+        })
+        .sort((a, b) => {
+          const aMem = parseFloat(a.memory_percent?.toString() || "0");
+          const bMem = parseFloat(b.memory_percent?.toString() || "0");
+          return bMem - aMem;
+        })
         .slice(0, 10);
 
       const insights = {
         top_cpu_consumers: cpuSorted.map((p) => ({
-          name: p.name || p.process_name || "Unknown",
+          name: p.name || p.process_name || "Unknown Process",
           cpu_percent: parseFloat(p.cpu_percent?.toString() || "0"),
           memory_percent: parseFloat(p.memory_percent?.toString() || "0"),
           pid: parseInt(p.pid?.toString() || "0"),
         })),
         top_memory_consumers: memorySorted.map((p) => ({
-          name: p.name || p.process_name || "Unknown",
+          name: p.name || p.process_name || "Unknown Process",
           cpu_percent: parseFloat(p.cpu_percent?.toString() || "0"),
           memory_percent: parseFloat(p.memory_percent?.toString() || "0"),
           pid: parseInt(p.pid?.toString() || "0"),
@@ -426,12 +453,18 @@ class PerformanceService {
             (p) => parseFloat(p.memory_percent?.toString() || "0") > 10,
           ).length,
         },
+        system_metrics: {
+          cpu_usage: systemCpuUsage,
+          memory_usage: systemMemoryUsage,
+          disk_usage: systemDiskUsage,
+        },
       };
 
       console.log(`Performance insights for device ${deviceId}:`, {
         topCpuCount: insights.top_cpu_consumers.length,
         topMemoryCount: insights.top_memory_consumers.length,
         totalProcesses: insights.total_processes,
+        systemMetrics: insights.system_metrics,
       });
 
       return insights;
