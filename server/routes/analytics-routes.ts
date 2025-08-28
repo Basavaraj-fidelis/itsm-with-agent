@@ -465,38 +465,28 @@ router.post("/generate", async (req, res) => {
 
 // Get real-time performance metrics - remove authentication requirement
 router.get("/realtime", async (req, res) => {
-  // Set very short timeout for real-time data
-  req.setTimeout(2000); // 2 seconds only
+  // Set timeout for real-time data
+  req.setTimeout(10000); // 10 seconds
 
   try {
-    console.log("Fetching real-time performance metrics...");
+    console.log("Fetching real-time performance metrics from database...");
 
-    // Add timeout promise to prevent hanging
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error("Realtime metrics timeout")), 1500);
-    });
-
-    const metricsPromise = analyticsService.getRealTimeMetrics();
-    const metrics = await Promise.race([metricsPromise, timeoutPromise]);
+    const metrics = await analyticsService.getRealTimeMetrics();
 
     res.json({
       success: true,
       metrics,
+      data_source: 'database',
+      timestamp: new Date()
     });
   } catch (error) {
     console.error("Error fetching real-time metrics:", error);
-
-    // Return mock data on error to prevent UI breaking
-    res.json({
-      success: true,
-      metrics: {
-        timestamp: new Date(),
-        cpu_usage: 45.2,
-        memory_usage: 62.8,
-        disk_usage: 78.3,
-        active_devices: 12,
-        alerts_last_hour: 1,
-      },
+    
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch real-time metrics",
+      message: error.message,
+      data_source: 'error'
     });
   }
 });
@@ -1070,12 +1060,19 @@ router.get(
       const insights =
         await performanceService.getApplicationPerformanceInsights(deviceId);
 
-      res.json(insights);
+      res.json({
+        success: true,
+        data: insights,
+        device_id: deviceId,
+        generated_at: new Date()
+      });
     } catch (error) {
       console.error("Error getting performance insights:", error);
       res.status(500).json({
+        success: false,
         error: "Failed to get performance insights",
         message: error.message,
+        device_id: req.params.deviceId
       });
     }
   },
@@ -1110,12 +1107,16 @@ router.get(
 // System performance overview - no authentication required for basic overview
 router.get("/performance/overview", async (req, res) => {
   try {
+    console.log("Getting performance overview with real device data...");
+
     const { storage } = await import("../storage");
 
     // Get all devices with latest performance data
     const devices = await storage.getDevices();
 
-    // Calculate performance metrics
+    console.log(`Found ${devices.length} devices for performance overview`);
+
+    // Calculate performance metrics from real data
     const performanceOverview = {
       totalDevices: devices.length,
       onlineDevices: devices.filter((d) => d.status === "online").length,
@@ -1124,29 +1125,38 @@ router.get("/performance/overview", async (req, res) => {
       avgDiskUsage: 0,
       criticalDevices: 0,
       performanceAlerts: 0,
+      devicesWithData: 0,
+      lastUpdated: new Date()
     };
 
-    // Calculate averages and critical counts
-    const onlineDevices = devices.filter((d) => d.status === "online");
-    if (onlineDevices.length > 0) {
-      const cpuSum = onlineDevices.reduce(
-        (sum, d) => sum + parseFloat(d.latest_report?.cpu_usage || "0"),
-        0,
-      );
-      const memSum = onlineDevices.reduce(
-        (sum, d) => sum + parseFloat(d.latest_report?.memory_usage || "0"),
-        0,
-      );
-      const diskSum = onlineDevices.reduce(
-        (sum, d) => sum + parseFloat(d.latest_report?.disk_usage || "0"),
-        0,
-      );
+    // Calculate averages and critical counts from devices with actual data
+    const devicesWithReports = devices.filter((d) => d.latest_report && (
+      parseFloat(d.latest_report?.cpu_usage || "0") > 0 ||
+      parseFloat(d.latest_report?.memory_usage || "0") > 0 ||
+      parseFloat(d.latest_report?.disk_usage || "0") > 0
+    ));
 
-      performanceOverview.avgCpuUsage = cpuSum / onlineDevices.length;
-      performanceOverview.avgMemoryUsage = memSum / onlineDevices.length;
-      performanceOverview.avgDiskUsage = diskSum / onlineDevices.length;
+    performanceOverview.devicesWithData = devicesWithReports.length;
 
-      performanceOverview.criticalDevices = onlineDevices.filter(
+    if (devicesWithReports.length > 0) {
+      const cpuValues = devicesWithReports
+        .map(d => parseFloat(d.latest_report?.cpu_usage || "0"))
+        .filter(v => v > 0);
+      const memoryValues = devicesWithReports
+        .map(d => parseFloat(d.latest_report?.memory_usage || "0"))
+        .filter(v => v > 0);
+      const diskValues = devicesWithReports
+        .map(d => parseFloat(d.latest_report?.disk_usage || "0"))
+        .filter(v => v > 0);
+
+      performanceOverview.avgCpuUsage = cpuValues.length > 0 ? 
+        Math.round((cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length) * 10) / 10 : 0;
+      performanceOverview.avgMemoryUsage = memoryValues.length > 0 ? 
+        Math.round((memoryValues.reduce((a, b) => a + b, 0) / memoryValues.length) * 10) / 10 : 0;
+      performanceOverview.avgDiskUsage = diskValues.length > 0 ? 
+        Math.round((diskValues.reduce((a, b) => a + b, 0) / diskValues.length) * 10) / 10 : 0;
+
+      performanceOverview.criticalDevices = devicesWithReports.filter(
         (d) =>
           parseFloat(d.latest_report?.cpu_usage || "0") > 90 ||
           parseFloat(d.latest_report?.memory_usage || "0") > 90 ||
@@ -1154,12 +1164,24 @@ router.get("/performance/overview", async (req, res) => {
       ).length;
     }
 
+    console.log("Performance overview calculated:", {
+      totalDevices: performanceOverview.totalDevices,
+      devicesWithData: performanceOverview.devicesWithData,
+      avgCpu: performanceOverview.avgCpuUsage,
+      avgMemory: performanceOverview.avgMemoryUsage,
+      criticalDevices: performanceOverview.criticalDevices
+    });
+
     res.json(performanceOverview);
   } catch (error) {
     console.error("Error getting performance overview:", error);
     res.status(500).json({
+      success: false,
       error: "Failed to get performance overview",
       message: error.message,
+      totalDevices: 0,
+      onlineDevices: 0,
+      devicesWithData: 0
     });
   }
 });
@@ -1781,3 +1803,86 @@ router.get('/devices', async (req, res) => {
 });
 
 export default router;
+<file_path>server/routes/analytics-routes.ts</file_path>
+<line_number>2000</line_number>
+
+// Data quality verification endpoint
+router.get("/data-quality", async (req, res) => {
+  try {
+    console.log("Checking data quality for analytics...");
+
+    // Check device count
+    const deviceCount = await db.select({ count: sql`count(*)` }).from(devices);
+    const totalDevices = Number(deviceCount[0]?.count) || 0;
+
+    // Check recent reports
+    const recentReports = await db.select({ 
+      count: sql`count(*)`,
+      device_count: sql`count(distinct device_id)`
+    })
+    .from(device_reports)
+    .where(sql`${device_reports.created_at} >= NOW() - INTERVAL '1 hour'`);
+
+    const recentReportCount = Number(recentReports[0]?.count) || 0;
+    const devicesReporting = Number(recentReports[0]?.device_count) || 0;
+
+    // Check for actual performance data
+    const performanceData = await db.select({
+      cpu_reports: sql`count(case when cpu_usage is not null and cpu_usage > 0 then 1 end)`,
+      memory_reports: sql`count(case when memory_usage is not null and memory_usage > 0 then 1 end)`,
+      disk_reports: sql`count(case when disk_usage is not null and disk_usage > 0 then 1 end)`
+    })
+    .from(device_reports)
+    .where(sql`${device_reports.created_at} >= NOW() - INTERVAL '24 hours'`);
+
+    const cpuReports = Number(performanceData[0]?.cpu_reports) || 0;
+    const memoryReports = Number(performanceData[0]?.memory_reports) || 0;
+    const diskReports = Number(performanceData[0]?.disk_reports) || 0;
+
+    const dataQuality = {
+      devices: {
+        total_registered: totalDevices,
+        recently_reporting: devicesReporting,
+        reporting_percentage: totalDevices > 0 ? (devicesReporting / totalDevices) * 100 : 0
+      },
+      reports: {
+        last_hour: recentReportCount,
+        with_cpu_data: cpuReports,
+        with_memory_data: memoryReports,
+        with_disk_data: diskReports
+      },
+      data_freshness: {
+        has_recent_data: recentReportCount > 0,
+        has_performance_metrics: cpuReports > 0 || memoryReports > 0 || diskReports > 0,
+        coverage_score: totalDevices > 0 ? (devicesReporting / totalDevices) * 100 : 0
+      },
+      recommendations: []
+    };
+
+    // Add recommendations
+    if (dataQuality.devices.reporting_percentage < 50) {
+      dataQuality.recommendations.push("Low device reporting rate - check agent connectivity");
+    }
+    if (!dataQuality.data_freshness.has_recent_data) {
+      dataQuality.recommendations.push("No recent data - agents may not be sending reports");
+    }
+    if (!dataQuality.data_freshness.has_performance_metrics) {
+      dataQuality.recommendations.push("No performance metrics - check agent data collection");
+    }
+
+    console.log("Data quality check completed:", dataQuality);
+
+    res.json({
+      success: true,
+      data_quality: dataQuality,
+      checked_at: new Date()
+    });
+  } catch (error) {
+    console.error("Error checking data quality:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to check data quality",
+      message: error.message
+    });
+  }
+});

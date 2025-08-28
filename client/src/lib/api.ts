@@ -349,45 +349,18 @@ export const api = {
 
   getPerformancePredictions: async (deviceId: string) => {
     const response = await apiClient.get(`/api/analytics/performance/predictions/${deviceId}`);
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Performance predictions API error:', response.status, errorText);
-      throw new Error(`Failed to fetch performance predictions: ${response.status} ${errorText}`);
-    }
-    return await response.json();
+    return response;
   },
 
-  getPerformanceOverview: async () => {
+  async getPerformanceOverview() {
     try {
-      const response = await apiClient.get("/api/analytics/performance/overview");
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Performance overview API error:', response.status, errorText);
-
-        // Return fallback data instead of throwing
-        return {
-          totalDevices: 0,
-          onlineDevices: 0,
-          avgCpuUsage: 0,
-          avgMemoryUsage: 0,
-          avgDiskUsage: 0,
-          criticalDevices: 0,
-          performanceAlerts: 0
-        };
-      }
-      return await response.json();
+      console.log("Fetching performance overview...");
+      const response = await this.makeRequest('/api/analytics/performance/overview');
+      console.log("Performance overview response:", response);
+      return response;
     } catch (error) {
-      console.error('Performance overview fetch error:', error);
-      // Return fallback data on network error
-      return {
-        totalDevices: 0,
-        onlineDevices: 0,
-        avgCpuUsage: 0,
-        avgMemoryUsage: 0,
-        avgDiskUsage: 0,
-        criticalDevices: 0,
-        performanceAlerts: 0
-      };
+      console.error("Error fetching performance overview:", error);
+      throw error;
     }
   },
 

@@ -884,7 +884,7 @@ class AnalyticsService {
     reportType: string,
   ): Promise<string | Buffer> {
     console.log(`Exporting report - Format: ${format}, Type: ${reportType}`);
-    
+
     if (format === "csv") {
       return this.convertToEnhancedCSV(reportData, reportType);
     } else if (format === "docx") {
@@ -903,10 +903,10 @@ class AnalyticsService {
   private async convertToExcel(data: any, reportType: string): Promise<Buffer> {
     try {
       const XLSX = require('xlsx');
-      
+
       // Create a new workbook
       const workbook = XLSX.utils.book_new();
-      
+
       // Add metadata
       workbook.Props = {
         Title: this.getReportTitle(reportType),
@@ -938,7 +938,7 @@ class AnalyticsService {
 
   private addServiceDeskSheetsToWorkbook(workbook: any, data: any) {
     const XLSX = require('xlsx');
-    
+
     // Summary Sheet
     const summaryData = [
       ['Service Desk Report Summary'],
@@ -950,7 +950,7 @@ class AnalyticsService {
       ['SLA Compliance', `${data.summary?.analytics?.sla_performance?.sla_compliance_rate || 0}%`],
       ['Avg Resolution Time', `${data.summary?.analytics?.summary?.avg_resolution_time || 0} hours`]
     ];
-    
+
     const summaryWS = XLSX.utils.aoa_to_sheet(summaryData);
     XLSX.utils.book_append_sheet(workbook, summaryWS, 'Summary');
 
@@ -959,7 +959,7 @@ class AnalyticsService {
       const ticketsData = [
         ['Ticket Number', 'Type', 'Title', 'Priority', 'Status', 'Requester', 'Assigned To', 'Created', 'Due Date']
       ];
-      
+
       data.tickets.forEach((ticket: any) => {
         ticketsData.push([
           ticket.ticket_number || '',
@@ -973,7 +973,7 @@ class AnalyticsService {
           ticket.due_date ? new Date(ticket.due_date).toLocaleDateString() : ''
         ]);
       });
-      
+
       const ticketsWS = XLSX.utils.aoa_to_sheet(ticketsData);
       XLSX.utils.book_append_sheet(workbook, ticketsWS, 'Tickets');
     }
@@ -1007,7 +1007,7 @@ class AnalyticsService {
 
   private addAgentsSheetsToWorkbook(workbook: any, data: any) {
     const XLSX = require('xlsx');
-    
+
     // Summary Sheet
     const summaryData = [
       ['Managed Systems Report'],
@@ -1021,7 +1021,7 @@ class AnalyticsService {
       ['Warning Systems', data.health_summary?.warning || 0],
       ['Critical Systems', data.health_summary?.critical || 0]
     ];
-    
+
     const summaryWS = XLSX.utils.aoa_to_sheet(summaryData);
     XLSX.utils.book_append_sheet(workbook, summaryWS, 'Summary');
 
@@ -1030,7 +1030,7 @@ class AnalyticsService {
       const agentsData = [
         ['Hostname', 'Status', 'OS', 'IP Address', 'CPU %', 'Memory %', 'Disk %', 'Last Seen', 'Assigned User']
       ];
-      
+
       data.agents.forEach((agent: any) => {
         agentsData.push([
           agent.hostname || '',
@@ -1044,7 +1044,7 @@ class AnalyticsService {
           agent.assigned_user || ''
         ]);
       });
-      
+
       const agentsWS = XLSX.utils.aoa_to_sheet(agentsData);
       XLSX.utils.book_append_sheet(workbook, agentsWS, 'Agent Details');
     }
@@ -1052,7 +1052,7 @@ class AnalyticsService {
 
   private addGenericSheetsToWorkbook(workbook: any, data: any, reportType: string) {
     const XLSX = require('xlsx');
-    
+
     // Convert data to sheet format
     const jsonData = typeof data === 'string' ? JSON.parse(data) : data;
     const ws = XLSX.utils.json_to_sheet([jsonData]);
@@ -1062,7 +1062,7 @@ class AnalyticsService {
   private async convertToEnhancedPDF(data: any, reportType: string): Promise<Buffer> {
     try {
       console.log("Generating enhanced PDF document with actual data...");
-      
+
       // Create comprehensive PDF content with actual data
       let pdfContent = `%PDF-1.4
 1 0 obj
@@ -2114,9 +2114,6 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
       new Paragraph({
         text: `Missing Critical Patches: ${data.patch_compliance.missing_critical}`,
       }),
-      new Paragraph({
-        text: `Missing Important Patches: ${data.patch_compliance.missing_important}`,
-      }),
       new Paragraph({ text: "" }),
 
       new Paragraph({
@@ -2506,7 +2503,7 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
     return content;
   }
 
- 
+
 
   private addPerformanceAnalyticsToExcel(sheet: any, data: any, startRow: number): void {
     // Key Performance Metrics Section
@@ -2636,7 +2633,7 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
     });
 
     const headers = ['Metric', 'Current Value', 'Trend', 'Status', 'Threshold'];
-    
+
     headers.forEach((header, index) => {
       const cell = detailsSheet.getCell(1, index + 1);
       cell.value = header;
@@ -2659,7 +2656,7 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
         const cell = detailsSheet.getCell(row, colIndex + 1);
         cell.value = value;
         cell.font = { name: 'Arial', size: 10 };
-        
+
         if (index % 2 === 0) {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
         }
@@ -2677,7 +2674,7 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
     });
 
     const headers = ['Device', 'Health Score', 'CPU %', 'Memory %', 'Disk %', 'Status'];
-    
+
     headers.forEach((header, index) => {
       const cell = detailsSheet.getCell(1, index + 1);
       cell.value = header;
@@ -2702,7 +2699,7 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
         const cell = detailsSheet.getCell(row, colIndex + 1);
         cell.value = value;
         cell.font = { name: 'Arial', size: 10 };
-        
+
         if (index % 2 === 0) {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
         }
@@ -2720,13 +2717,19 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
     });
 
     const headers = ['Hostname', 'OS', 'Status', 'IP Address', 'Last Seen', 'Assigned User'];
-    
+
     headers.forEach((header, index) => {
       const cell = detailsSheet.getCell(1, index + 1);
       cell.value = header;
       cell.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFF' } };
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'DC3545' } };
       cell.alignment = { horizontal: 'center' };
+      cell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' }
+      };
     });
 
     const devices = data.detailed_devices || [];
@@ -2745,13 +2748,21 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
         const cell = detailsSheet.getCell(row, colIndex + 1);
         cell.value = value;
         cell.font = { name: 'Arial', size: 10 };
-        
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'E0E0E0' } },
+          left: { style: 'thin', color: { argb: 'E0E0E0' } },
+          bottom: { style: 'thin', color: { argb: 'E0E0E0' } },
+          right: { style: 'thin', color: { argb: 'E0E0E0' } }
+        };
+
+        // Alternate row background
         if (index % 2 === 0) {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
         }
       });
     });
 
+    // Auto-fit columns
     detailsSheet.columns.forEach(column => {
       column.width = 15;
     });
@@ -2763,7 +2774,7 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
     });
 
     const headers = ['Security Area', 'Compliant', 'Non-Compliant', 'Compliance Rate', 'Risk Level'];
-    
+
     headers.forEach((header, index) => {
       const cell = detailsSheet.getCell(1, index + 1);
       cell.value = header;
@@ -2785,7 +2796,7 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
         const cell = detailsSheet.getCell(row, colIndex + 1);
         cell.value = value;
         cell.font = { name: 'Arial', size: 10 };
-        
+
         if (index % 2 === 0) {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
         }
@@ -2803,7 +2814,7 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
     });
 
     const headers = ['Property', 'Value', 'Type', 'Last Updated'];
-    
+
     headers.forEach((header, index) => {
       const cell = detailsSheet.getCell(1, index + 1);
       cell.value = header;
@@ -2827,7 +2838,7 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
         const cell = detailsSheet.getCell(row, colIndex + 1);
         cell.value = value;
         cell.font = { name: 'Arial', size: 10 };
-        
+
         if (index % 2 === 0) {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8F9FA' } };
         }
@@ -3503,15 +3514,84 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
   }
 
   async getRealTimeMetrics(): Promise<any> {
-    const healthData = await this.generateSystemHealthReport();
-    return {
-      timestamp: new Date(),
-      cpu_usage: healthData.performance_metrics.avg_cpu_usage,
-      memory_usage: healthData.performance_metrics.avg_memory_usage,
-      disk_usage: healthData.performance_metrics.avg_disk_usage,
-      active_devices: healthData.overall_health.active_devices,
-      alerts_last_hour: healthData.overall_health.critical_alerts,
-    };
+    try {
+      console.log("Fetching real-time performance metrics from database");
+
+      // Get device count
+      const deviceCountResult = await db.select({ count: sql`count(*)` }).from(devices);
+      const totalDevices = Number(deviceCountResult[0]?.count) || 0;
+
+      // Get online devices
+      const onlineDevicesResult = await db.select({ count: sql`count(*)` })
+        .from(devices)
+        .where(eq(devices.status, 'online'));
+      const onlineCount = Number(onlineDevicesResult[0]?.count) || 0;
+
+      // Get the most recent reports for each device (last 2 hours for better data coverage)
+      const recentReports = await db.select({
+        device_id: device_reports.device_id,
+        cpu_usage: device_reports.cpu_usage,
+        memory_usage: device_reports.memory_usage,
+        disk_usage: device_reports.disk_usage,
+        created_at: device_reports.created_at
+      })
+        .from(device_reports)
+        .where(sql`${device_reports.created_at} >= NOW() - INTERVAL '2 hours'`)
+        .orderBy(desc(device_reports.created_at))
+        .limit(200);
+
+      console.log(`Found ${recentReports.length} recent reports for real-time metrics`);
+
+      // Get unique latest report per device
+      const latestReportsByDevice = new Map();
+      recentReports.forEach(report => {
+        if (!latestReportsByDevice.has(report.device_id) || 
+            new Date(report.created_at) > new Date(latestReportsByDevice.get(report.device_id).created_at)) {
+          latestReportsByDevice.set(report.device_id, report);
+        }
+      });
+
+      const latestReports = Array.from(latestReportsByDevice.values());
+
+      // Calculate averages from actual latest data per device
+      const cpuValues = latestReports
+        .map(r => parseFloat(r.cpu_usage || '0'))
+        .filter(v => v > 0 && v <= 100);
+      const memoryValues = latestReports
+        .map(r => parseFloat(r.memory_usage || '0'))
+        .filter(v => v > 0 && v <= 100);
+      const diskValues = latestReports
+        .map(r => parseFloat(r.disk_usage || '0'))
+        .filter(v => v > 0 && v <= 100);
+
+      const avgCpu = cpuValues.length > 0 ? cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length : 0;
+      const avgMemory = memoryValues.length > 0 ? memoryValues.reduce((a, b) => a + b, 0) / memoryValues.length : 0;
+      const avgDisk = diskValues.length > 0 ? diskValues.reduce((a, b) => a + b, 0) / diskValues.length : 0;
+
+      // Get recent alerts count
+      const recentAlertsResult = await db.select({ count: sql`count(*)` })
+        .from(alerts)
+        .where(sql`${alerts.triggered_at} >= NOW() - INTERVAL '1 hour'`);
+      const alertsCount = Number(recentAlertsResult[0]?.count) || 0;
+
+      const metrics = {
+        timestamp: new Date(),
+        cpu_usage: Math.round(avgCpu * 10) / 10,
+        memory_usage: Math.round(avgMemory * 10) / 10,
+        disk_usage: Math.round(avgDisk * 10) / 10,
+        active_devices: onlineCount,
+        total_devices: totalDevices,
+        alerts_last_hour: alertsCount,
+        devices_with_data: latestReports.length,
+        data_freshness: latestReports.length > 0 ? 'live' : 'no_recent_data'
+      };
+
+      console.log("Real-time metrics calculated:", metrics);
+      return metrics;
+    } catch (error) {
+      console.error("Error fetching real-time metrics:", error);
+      throw error; // Don't fall back to mock data
+    }
   }
 
   async getTrendAnalysis(metric: string, timeRange: string): Promise<any> {
