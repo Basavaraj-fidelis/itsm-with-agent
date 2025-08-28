@@ -1,5 +1,5 @@
 
-import { createCABTables } from './server/migrations/create-cab-tables.ts';
+import { createCABTables } from './server/migrations/create-cab-tables.js';
 
 async function runMigration() {
   try {
