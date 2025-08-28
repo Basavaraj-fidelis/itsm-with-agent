@@ -3800,7 +3800,34 @@ var init_user_storage = __esm({
       async getNextAvailableTechnician() {
         const technicians = await this.getActiveTechnicians();
         if (technicians.length === 0) return null;
-        return technicians[0];
+        const { tickets: tickets2 } = await Promise.resolve().then(() => (init_ticket_schema(), ticket_schema_exports));
+        const { eq: eq19, count: count7, and: and17, not: not4, inArray: inArray6 } = await import("drizzle-orm");
+        const ticketCounts = await db.select({
+          assigned_to: tickets2.assigned_to,
+          count: count7()
+        }).from(tickets2).where(
+          and17(
+            not4(inArray6(tickets2.status, ["resolved", "closed", "cancelled"])),
+            inArray6(tickets2.assigned_to, technicians.map((t) => t.email))
+          )
+        ).groupBy(tickets2.assigned_to);
+        const countMap = /* @__PURE__ */ new Map();
+        ticketCounts.forEach((tc) => {
+          if (tc.assigned_to) {
+            countMap.set(tc.assigned_to, tc.count);
+          }
+        });
+        let selectedTechnician = technicians[0];
+        let minTickets = countMap.get(selectedTechnician.email) || 0;
+        for (const technician of technicians) {
+          const ticketCount = countMap.get(technician.email) || 0;
+          if (ticketCount < minTickets) {
+            minTickets = ticketCount;
+            selectedTechnician = technician;
+          }
+        }
+        console.log(`Assigning ticket to ${selectedTechnician.email} (current load: ${minTickets} tickets)`);
+        return selectedTechnician;
       }
       // User Activity Tracking
       async logUserActivity(userId, activityType, description, ipAddress, userAgent, metadata) {
@@ -7962,8 +7989,17 @@ var init_websocket_service = __esm({
                 this.unsubscribeFromChannel(ws, data.channel);
               }
               if (data.type === "agent-connect" && data.agentId) {
-                console.log(`Agent connected: ${data.agentId}`);
+                console.log(`Agent registration received - ID: ${data.agentId}, Capabilities: ${data.capabilities?.join(", ")}`);
                 this.agentConnections.set(data.agentId, ws);
+                console.log(`Agent ${data.agentId} registered successfully. Total connected agents: ${this.agentConnections.size}`);
+                const confirmationMessage = {
+                  type: "connection-confirmed",
+                  agentId: data.agentId,
+                  timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+                  status: "registered"
+                };
+                ws.send(JSON.stringify(confirmationMessage));
+                console.log(`Sent connection confirmation to agent ${data.agentId}`);
               }
               if (data.type === "command-response" && data.requestId) {
                 const commandInfo = this.pendingCommands.get(data.requestId);
@@ -8065,9 +8101,19 @@ var init_websocket_service = __esm({
       async sendCommandToAgent(agentId, command, timeoutMs = 3e4) {
         return new Promise((resolve, reject) => {
           const connection = this.agentConnections.get(agentId);
-          if (!connection || connection.readyState !== WebSocket.OPEN) {
-            console.error(`Agent ${agentId} is not connected or connection not ready`);
+          console.log(`Attempting to send command to agent ${agentId}`);
+          console.log(`Available agent connections: ${Array.from(this.agentConnections.keys()).join(", ")}`);
+          console.log(`Total connected agents: ${this.agentConnections.size}`);
+          if (!connection) {
+            console.error(`Agent ${agentId} is not found in agent connections`);
+            console.error(`This likely means the agent is not connected via WebSocket`);
             reject(new Error(`Agent ${agentId} is not connected`));
+            return;
+          }
+          if (connection.readyState !== WebSocket.OPEN) {
+            console.error(`Agent ${agentId} connection is not ready. State: ${connection.readyState}`);
+            console.error(`WebSocket states: CONNECTING=0, OPEN=1, CLOSING=2, CLOSED=3`);
+            reject(new Error(`Agent ${agentId} connection is not ready`));
             return;
           }
           const requestId = `cmd_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -20345,28 +20391,60 @@ var NetworkScanService = class {
   groupAgentsBySubnet(agents) {
     const subnets = {};
     agents.forEach((agent) => {
-      if (agent.ip_address) {
-        const subnet = this.getSubnetFromIP(agent.ip_address);
-        if (!subnets[subnet]) {
-          subnets[subnet] = [];
+      let localIP = null;
+      if (agent.system_info && typeof agent.system_info === "object") {
+        const systemInfo = typeof agent.system_info === "string" ? JSON.parse(agent.system_info) : agent.system_info;
+        if (systemInfo.network_interfaces) {
+          for (const iface of systemInfo.network_interfaces) {
+            if (iface.ip_address && !this.isPublicIP(iface.ip_address) && iface.ip_address !== "127.0.0.1") {
+              localIP = iface.ip_address;
+              break;
+            }
+          }
         }
-        subnets[subnet].push({
-          id: agent.id,
-          hostname: agent.hostname,
-          ip_address: agent.ip_address,
-          last_seen: agent.last_seen,
-          os_name: agent.os_name
-        });
+        if (!localIP && systemInfo.primary_ip_address && !this.isPublicIP(systemInfo.primary_ip_address)) {
+          localIP = systemInfo.primary_ip_address;
+        }
+      }
+      const ipToUse = localIP || (!this.isPublicIP(agent.ip_address || "") ? agent.ip_address : null);
+      if (ipToUse) {
+        const subnet = this.getSubnetFromIP(ipToUse);
+        if (subnet !== "unknown") {
+          if (!subnets[subnet]) {
+            subnets[subnet] = [];
+          }
+          subnets[subnet].push({
+            id: agent.id,
+            hostname: agent.hostname,
+            ip_address: ipToUse,
+            // Use the local IP
+            last_seen: agent.last_seen,
+            os_name: agent.os_name
+          });
+        }
       }
     });
     return subnets;
   }
   getSubnetFromIP(ip) {
+    if (this.isPublicIP(ip)) {
+      return "unknown";
+    }
     const parts = ip.split(".");
     if (parts.length >= 3) {
       return `${parts[0]}.${parts[1]}.${parts[2]}.0/24`;
     }
     return "unknown";
+  }
+  isPublicIP(ip) {
+    const parts = ip.split(".").map(Number);
+    if (parts.length !== 4) return false;
+    if (parts[0] === 10) return false;
+    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return false;
+    if (parts[0] === 192 && parts[1] === 168) return false;
+    if (parts[0] === 169 && parts[1] === 254) return false;
+    if (parts[0] === 127) return false;
+    return true;
   }
   selectRecommendedAgents(agentsBySubnet) {
     const recommended = [];
@@ -20603,8 +20681,15 @@ var NetworkScanService = class {
         return;
       }
       console.log(`Sending network scan commands to ${scanningAgents.length} agents`);
+      console.log("Scanning agents details:", scanningAgents.map((a) => ({
+        hostname: a.hostname,
+        ip: a.ip_address,
+        subnet: a.subnet,
+        agent_id: a.agent_id
+      })));
       this.cleanupOldSessions();
-      const { websocketService: websocketService2 } = (init_websocket_service(), __toCommonJS(websocket_service_exports));
+      const websocketModule = await Promise.resolve().then(() => (init_websocket_service(), websocket_service_exports));
+      const websocketService2 = websocketModule.websocketService;
       if (!websocketService2) {
         console.error("WebSocket service not available - no agents connected");
         session.status = "failed";
@@ -20676,6 +20761,11 @@ var NetworkScanService = class {
   }
   processAgentScanResults(agentData, scanningAgent) {
     const results = [];
+    console.log("Processing agent scan results:", {
+      agent: scanningAgent.hostname,
+      dataKeys: Object.keys(agentData || {}),
+      discoveredDevicesCount: agentData?.discovered_devices?.length || 0
+    });
     results.push({
       id: scanningAgent.agent_id,
       ip: scanningAgent.ip_address,
@@ -20691,7 +20781,15 @@ var NetworkScanService = class {
       response_time: 1
     });
     if (agentData.discovered_devices && Array.isArray(agentData.discovered_devices)) {
+      console.log(`Processing ${agentData.discovered_devices.length} discovered devices from agent ${scanningAgent.hostname}`);
       agentData.discovered_devices.forEach((device, index) => {
+        console.log(`Device ${index}:`, {
+          ip: device.ip,
+          hostname: device.hostname,
+          mac: device.mac_address,
+          status: device.status,
+          type: device.device_type
+        });
         if (device.ip && device.ip !== scanningAgent.ip_address) {
           results.push({
             id: `agent-discovered-${scanningAgent.agent_id}-${index}`,
@@ -20708,7 +20806,10 @@ var NetworkScanService = class {
           });
         }
       });
+    } else {
+      console.log("No discovered_devices array found in agent data");
     }
+    console.log(`Processed ${results.length} total results from agent ${scanningAgent.hostname}`);
     return results;
   }
   inferDeviceTypeFromIP(ip) {
