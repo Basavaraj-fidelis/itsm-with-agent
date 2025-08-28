@@ -231,7 +231,7 @@ export default function AgentDetail() {
                   'Content-Type': 'application/json'
                 }
               });
-              
+
               if (vncStartResponse.ok) {
                 const vncData = await vncStartResponse.json();
                 console.log('VNC server started:', vncData);
@@ -245,15 +245,15 @@ export default function AgentDetail() {
               // Show reverse tunnel instructions
               const tunnelInstructions = `
                 REVERSE TUNNEL REQUIRED FOR PRIVATE IP
-                
+
                 1. On the Windows endpoint (${agent.hostname}), run:
                    ${connection_info.reverse_tunnel_command}
-                
+
                 2. Keep the SSH connection alive during your VNC session
-                
+
                 3. Once tunnel is established, VNC will be accessible via the tunnel
               `;
-              
+
               if (confirm(`This endpoint has a private IP address and requires a reverse SSH tunnel.\n\n${tunnelInstructions}\n\nWould you like to continue and open the VNC client?`)) {
                 // Use localhost:5901 for reverse tunnel connection
                 const vncUrl = `/vnc?host=localhost&port=5901&vncport=5901&deviceName=${encodeURIComponent(agent.hostname)}&reversetunnel=true&timestamp=${Date.now()}`;
@@ -272,7 +272,7 @@ export default function AgentDetail() {
                 "width=1400,height=900,scrollbars=yes,resizable=yes",
               );
             }
-            
+
             await logConnectionAttempt(
               connectionType,
               true,
@@ -506,6 +506,42 @@ export default function AgentDetail() {
                       <span className="text-red-600">No recent data</span>
                     </div>
                   )}
+
+                  {/* Device Status */}
+                  <div className="flex items-center space-x-2">
+                    {(() => {
+                      const lastSeen = device?.last_seen ? new Date(device.last_seen) : null;
+                      const now = new Date();
+                      const minutesOld = lastSeen ? Math.floor((now.getTime() - lastSeen.getTime()) / (1000 * 60)) : null;
+
+                      let statusColor = "bg-gray-500";
+                      let statusText = "Unknown";
+
+                      if (minutesOld !== null) {
+                        if (minutesOld <= 10) {
+                          statusColor = "bg-green-500";
+                          statusText = "Online";
+                        } else if (minutesOld <= 60) {
+                          statusColor = "bg-orange-500";
+                          statusText = "Warning";
+                        } else {
+                          statusColor = "bg-red-500";
+                          statusText = "Offline";
+                        }
+                      }
+
+                      return (
+                        <>
+                          <div className={`w-3 h-3 rounded-full ${statusColor}`}></div>
+                          <span className="capitalize font-medium">{statusText}</span>
+                          <span className="text-gray-500">
+                            • Last seen{" "}
+                            {lastSeen ? lastSeen.toLocaleString() : "Never"}
+                          </span>
+                        </>
+                      );
+                    })()}
+                  </div>
 
                   <span>
                     Last seen{" "}
