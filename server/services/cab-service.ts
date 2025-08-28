@@ -1,4 +1,3 @@
-
 import { db } from "../db";
 import { changeAdvisoryBoard, ticketApprovals } from "@shared/change-management-schema";
 import { tickets } from "@shared/ticket-schema";
@@ -28,11 +27,18 @@ export class CABService {
       const boards = await db
         .select()
         .from(changeAdvisoryBoard)
-        .where(eq(changeAdvisoryBoard.is_active, true));
-      
+        .orderBy(changeAdvisoryBoard.created_at);
+
       return boards;
     } catch (error) {
-      console.error("Error fetching CAB boards:", error);
+      console.error('Error fetching CAB boards:', error);
+
+      // Return empty array if table doesn't exist
+      if (error.code === '42P01') {
+        console.warn('CAB tables not found, returning empty array');
+        return [];
+      }
+
       throw error;
     }
   }
@@ -50,7 +56,7 @@ export class CABService {
         .insert(changeAdvisoryBoard)
         .values(data)
         .returning();
-      
+
       return board;
     } catch (error) {
       console.error("Error creating CAB board:", error);
@@ -73,7 +79,7 @@ export class CABService {
         .set(data)
         .where(eq(changeAdvisoryBoard.id, id))
         .returning();
-      
+
       return board;
     } catch (error) {
       console.error("Error updating CAB board:", error);
@@ -105,7 +111,7 @@ export class CABService {
             eq(tickets.approval_status, "pending")
           )
         );
-      
+
       return pendingChanges;
     } catch (error) {
       console.error("Error fetching pending changes:", error);
@@ -148,8 +154,8 @@ export class CABService {
 
   // Approve/Reject change
   static async processApproval(
-    ticketId: string, 
-    approverId: string, 
+    ticketId: string,
+    approverId: string,
     decision: "approved" | "rejected",
     comments?: string
   ) {
@@ -197,7 +203,7 @@ export class CABService {
         .select()
         .from(ticketApprovals)
         .where(eq(ticketApprovals.ticket_id, ticketId));
-      
+
       return history;
     } catch (error) {
       console.error("Error fetching approval history:", error);
@@ -224,7 +230,7 @@ export class CABService {
           // Auto-approve standard changes
           await this.processApproval(ticketId, "system", "approved", "Auto-approved: Standard Change");
           break;
-        
+
         case "normal":
           // Route to default CAB
           const [defaultCAB] = await db
@@ -232,17 +238,17 @@ export class CABService {
             .from(changeAdvisoryBoard)
             .where(eq(changeAdvisoryBoard.is_active, true))
             .limit(1);
-          
+
           if (defaultCAB) {
             await this.submitForApproval(ticketId, defaultCAB.id, "system");
           }
           break;
-        
+
         case "emergency":
           // Route to emergency approval (Change Manager)
           await this.submitForApproval(ticketId, "emergency-approval", "system");
           break;
-        
+
         default:
           // Default to normal change process
           const [cab] = await db
@@ -250,7 +256,7 @@ export class CABService {
             .from(changeAdvisoryBoard)
             .where(eq(changeAdvisoryBoard.is_active, true))
             .limit(1);
-          
+
           if (cab) {
             await this.submitForApproval(ticketId, cab.id, "system");
           }

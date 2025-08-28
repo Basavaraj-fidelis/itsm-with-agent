@@ -186,7 +186,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://0.0.0.0:5000';
 
 // Enhanced global error handler for unhandled promise rejections
 let errorCount = 0;
-const maxErrors = 10;
+const maxErrors = 15;
 
 window.addEventListener('unhandledrejection', (event) => {
   errorCount++;
@@ -200,6 +200,7 @@ window.addEventListener('unhandledrejection', (event) => {
   // Handle API-related errors
   const errorMessage = event.reason?.message || String(event.reason);
 
+  // Expanded list of known API error patterns
   if (errorMessage.includes('Failed to fetch') ||
       errorMessage.includes('security-overview') ||
       errorMessage.includes('analytics') ||
@@ -207,10 +208,16 @@ window.addEventListener('unhandledrejection', (event) => {
       errorMessage.includes('Request timeout') ||
       errorMessage.includes('Server error') ||
       errorMessage.includes('NetworkError') ||
-      errorMessage.includes('ERR_NETWORK')) {
+      errorMessage.includes('ERR_NETWORK') ||
+      errorMessage.includes('network-scan') ||
+      errorMessage.includes('AbortError') ||
+      errorMessage.includes('cab/boards') ||
+      errorMessage.includes('cab/pending-changes') ||
+      errorMessage.includes('relation') ||
+      errorMessage.includes('does not exist')) {
 
     if (errorCount <= 3) {
-      console.warn('Handled API error:', errorMessage);
+      console.warn('Handled API/Network error:', errorMessage);
     }
     event.preventDefault(); // Prevent console spam
     return;

@@ -72,32 +72,33 @@ export default function NetworkScan() {
 
   const loadInitialData = async () => {
     try {
-      const promises = [
-        loadScanSessions().catch(err => {
-          console.error('Failed to load sessions:', err);
-          return null;
-        }),
-        loadAvailableAgents().catch(err => {
-          console.error('Failed to load agents:', err);
-          return null;
-        }),
-        loadDefaultSubnets().catch(err => {
-          console.error('Failed to load subnets:', err);
-          return null;
-        })
-      ];
+      // Use Promise.allSettled to handle all rejections properly
+      const results = await Promise.allSettled([
+        loadScanSessions(),
+        loadAvailableAgents(),
+        loadDefaultSubnets()
+      ]);
 
-      const results = await Promise.allSettled(promises);
-      const failedCount = results.filter(result => result.status === 'rejected').length;
+      // Count successful vs failed operations
+      const successful = results.filter(result => result.status === 'fulfilled').length;
+      const failed = results.filter(result => result.status === 'rejected').length;
 
-      if (failedCount > 0) {
-        console.warn(`${failedCount} out of 3 initial data loads failed`);
+      if (failed > 0) {
+        console.warn(`Network scan data loading: ${successful}/3 successful, ${failed}/3 failed`);
+        // Don't show error toast unless all operations fail
+        if (successful === 0) {
+          toast({
+            title: "Warning",
+            description: "Could not load network scan data. Please check your connection.",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
-      console.error('Error loading initial data:', error);
+      console.error('Critical error in loadInitialData:', error);
       toast({
         title: "Error",
-        description: "Failed to load network scan data",
+        description: "Network scan initialization failed",
         variant: "destructive",
       });
     }
@@ -105,82 +106,143 @@ export default function NetworkScan() {
 
   const loadScanSessions = async () => {
     try {
-      const response = await fetch('/api/network-scan/sessions');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+      const response = await fetch('/api/network-scan/sessions', {
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      clearTimeout(timeoutId);
+
       if (response.ok) {
         const data = await response.json();
-        setSessions(data);
+        setSessions(Array.isArray(data) ? data : []);
 
         // Auto-select the most recent session
-        if (data.length > 0) {
+        if (Array.isArray(data) && data.length > 0) {
           const latest = data.sort((a: ScanSession, b: ScanSession) => 
             new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
           )[0];
           setCurrentSession(latest);
-          await loadScanResults(latest.id).catch(err => {
-            console.error('Error loading results for latest session:', err);
-          });
+          
+          try {
+            await loadScanResults(latest.id);
+          } catch (err) {
+            console.warn('Could not load results for latest session:', err);
+          }
         }
       } else {
-        console.error('Failed to load scan sessions:', response.status, response.statusText);
+        console.warn(`Scan sessions API returned ${response.status}: ${response.statusText}`);
+        setSessions([]);
       }
     } catch (error) {
-      console.error('Error loading scan sessions:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load scan sessions",
-        variant: "destructive",
-      });
+      if (error.name === 'AbortError') {
+        console.warn('Scan sessions request timed out');
+      } else {
+        console.warn('Network scan sessions unavailable:', error.message);
+      }
+      setSessions([]);
     }
   };
 
   const loadAvailableAgents = async () => {
     try {
-      const response = await fetch('/api/network-scan/agents');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+      const response = await fetch('/api/network-scan/agents', {
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      clearTimeout(timeoutId);
+
       if (response.ok) {
         const data = await response.json();
-        setAvailableAgents(data);
+        setAvailableAgents(data || { total_agents: 0, agents_by_subnet: {}, recommended_scanning_agents: [] });
+      } else {
+        console.warn(`Available agents API returned ${response.status}: ${response.statusText}`);
+        setAvailableAgents(null);
       }
     } catch (error) {
-      console.error('Error loading available agents:', error);
+      if (error.name === 'AbortError') {
+        console.warn('Available agents request timed out');
+      } else {
+        console.warn('Available agents data unavailable:', error.message);
+      }
+      setAvailableAgents(null);
     }
   };
 
   const loadDefaultSubnets = async () => {
     try {
-      const response = await fetch('/api/network-scan/subnets');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+      const response = await fetch('/api/network-scan/subnets', {
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      clearTimeout(timeoutId);
+
       if (response.ok) {
         const data = await response.json();
-        setDefaultSubnets(data);
-        setSelectedSubnets(data.map((s: any) => s.range));
+        const subnets = Array.isArray(data) ? data : [];
+        setDefaultSubnets(subnets);
+        setSelectedSubnets(subnets.map((s: any) => s.range));
+      } else {
+        console.warn(`Default subnets API returned ${response.status}: ${response.statusText}`);
+        setDefaultSubnets([]);
+        setSelectedSubnets([]);
       }
     } catch (error) {
-      console.error('Error loading default subnets:', error);
+      if (error.name === 'AbortError') {
+        console.warn('Default subnets request timed out');
+      } else {
+        console.warn('Default subnets data unavailable:', error.message);
+      }
+      setDefaultSubnets([]);
+      setSelectedSubnets([]);
     }
   };
 
   const loadScanResults = async (sessionId: string) => {
     try {
-      const response = await fetch(`/api/network-scan/sessions/${sessionId}/results`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const response = await fetch(`/api/network-scan/sessions/${sessionId}/results`, {
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      clearTimeout(timeoutId);
+
       if (response.ok) {
         const data = await response.json();
         setScanResults(Array.isArray(data) ? data : []);
       } else {
-        console.error('Failed to load scan results:', response.status, response.statusText);
+        console.warn(`Scan results API returned ${response.status} for session ${sessionId}`);
         setScanResults([]);
-        toast({
-          title: "Warning",
-          description: "Could not load scan results for this session",
-          variant: "destructive",
-        });
       }
     } catch (error) {
-      console.error('Error loading scan results:', error);
+      if (error.name === 'AbortError') {
+        console.warn(`Scan results request timed out for session ${sessionId}`);
+      } else {
+        console.warn(`Could not load scan results for session ${sessionId}:`, error.message);
+      }
       setScanResults([]);
-      toast({
-        title: "Error",
-        description: "Failed to load scan results",
-        variant: "destructive",
-      });
     }
   };
 

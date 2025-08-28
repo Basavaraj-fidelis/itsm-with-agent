@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,7 +66,7 @@ export default function CABDashboard() {
     members: [],
     meeting_frequency: 'Weekly'
   });
-  
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -593,7 +592,7 @@ export default function CABDashboard() {
                         <SelectValue placeholder="Select chairperson" />
                       </SelectTrigger>
                       <SelectContent>
-                        {users?.map(user => (
+                        {Array.isArray(users) && users.map(user => (
                           <SelectItem key={user.id} value={user.id}>
                             {user.name} ({user.email})
                           </SelectItem>
@@ -611,7 +610,7 @@ export default function CABDashboard() {
                             <SelectValue placeholder="Add member" />
                           </SelectTrigger>
                           <SelectContent>
-                            {users?.filter(user => !newCAB.members.includes(user.id)).map(user => (
+                            {Array.isArray(users) && users.filter(user => !newCAB.members.includes(user.id)).map(user => (
                               <SelectItem key={user.id} value={user.id}>
                                 {user.name} ({user.email})
                               </SelectItem>
@@ -619,7 +618,7 @@ export default function CABDashboard() {
                           </SelectContent>
                         </Select>
                       </div>
-                      
+
                       <div className="space-y-1">
                         {newCAB.members.map(memberId => (
                           <div key={memberId} className="flex items-center justify-between bg-muted p-2 rounded">
@@ -685,7 +684,7 @@ export default function CABDashboard() {
                       <p className="font-medium text-sm">{cab.members.length} member(s)</p>
                     </div>
                   </div>
-                  
+
                   <div className="mt-4">
                     <Label className="text-xs text-muted-foreground">CAB Members</Label>
                     <div className="mt-2 space-y-1">
@@ -758,7 +757,7 @@ export default function CABDashboard() {
                       <SelectValue placeholder="Select chairperson" />
                     </SelectTrigger>
                     <SelectContent>
-                      {users?.map(user => (
+                      {Array.isArray(users) && users.map(user => (
                         <SelectItem key={user.id} value={user.id}>
                           {user.name} ({user.email})
                         </SelectItem>
@@ -776,7 +775,7 @@ export default function CABDashboard() {
                           <SelectValue placeholder="Add member" />
                         </SelectTrigger>
                         <SelectContent>
-                          {users?.filter(user => !newCAB.members.includes(user.id)).map(user => (
+                          {Array.isArray(users) && users.filter(user => !newCAB.members.includes(user.id)).map(user => (
                             <SelectItem key={user.id} value={user.id}>
                               {user.name} ({user.email})
                             </SelectItem>
@@ -784,7 +783,7 @@ export default function CABDashboard() {
                         </SelectContent>
                       </Select>
                     </div>
-                    
+
                     <div className="space-y-1">
                       {newCAB.members.map(memberId => (
                         <div key={memberId} className="flex items-center justify-between bg-muted p-2 rounded">
