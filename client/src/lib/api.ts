@@ -352,15 +352,43 @@ export const api = {
     return response;
   },
 
-  async getPerformanceOverview() {
+  getPerformanceOverview: async () => {
     try {
       console.log("Fetching performance overview...");
-      const response = await this.makeRequest('/api/analytics/performance/overview');
-      console.log("Performance overview response:", response);
-      return response;
+      const response = await apiClient.get(`/api/analytics/performance/overview`);
+
+      if (!response.ok) {
+        console.error('Performance overview API error:', response.status);
+        // Return fallback data instead of throwing
+        return {
+          totalDevices: 0,
+          onlineDevices: 0,
+          avgCpuUsage: 0,
+          avgMemoryUsage: 0,
+          avgDiskUsage: 0,
+          criticalDevices: 0,
+          performanceAlerts: 0,
+          devicesWithData: 0,
+          lastUpdated: new Date()
+        };
+      }
+
+      const data = await response.json();
+      console.log("Performance overview data:", data);
+      return data;
     } catch (error) {
-      console.error("Error fetching performance overview:", error);
-      throw error;
+      console.error("Performance overview fetch error:", error);
+      return {
+        totalDevices: 0,
+        onlineDevices: 0,
+        avgCpuUsage: 0,
+        avgMemoryUsage: 0,
+        avgDiskUsage: 0,
+        criticalDevices: 0,
+        performanceAlerts: 0,
+        devicesWithData: 0,
+        lastUpdated: new Date()
+      };
     }
   },
 

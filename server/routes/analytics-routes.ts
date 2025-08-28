@@ -485,7 +485,7 @@ router.get("/realtime", async (req, res) => {
     res.status(500).json({
       success: false,
       error: "Failed to fetch real-time metrics",
-      message: error.message,
+      message: error instanceof Error ? error.message : "Unknown error",
       data_source: 'error'
     });
   }
