@@ -99,8 +99,8 @@ class ITSMAgent:
         # Setup rotating file handler
         log_file = log_dir / 'itsm_agent.log'
         handler = RotatingFileHandler(
-            log_file, 
-            maxBytes=log_max_size, 
+            log_file,
+            maxBytes=log_max_size,
             backupCount=log_backup_count
         )
 
@@ -180,6 +180,17 @@ class ITSMAgent:
             system_info = self.system_collector.collect_all()
 
             self.logger.info(f"Collected information for {len(system_info)} categories")
+
+            # Ensure performance metrics are properly formatted
+            if 'hardware' in system_info and 'cpu' in system_info['hardware']:
+                cpu_data = system_info['hardware']['cpu']
+                if 'usage' not in cpu_data and 'cpu_percent' in cpu_data:
+                    cpu_data['usage'] = cpu_data['cpu_percent']
+
+            if 'hardware' in system_info and 'memory' in system_info['hardware']:
+                memory_data = system_info['hardware']['memory']
+                if 'usage_percentage' not in memory_data and 'percent' in memory_data:
+                    memory_data['usage_percentage'] = memory_data['percent']
 
             # Report to API
             success = self.api_client.report_system_info(system_info)

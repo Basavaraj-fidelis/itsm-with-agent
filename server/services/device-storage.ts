@@ -1,4 +1,3 @@
-
 import { db } from "../db";
 import { devices } from "../../shared/schema";
 import { eq, ilike, and, or } from "drizzle-orm";
@@ -13,13 +12,13 @@ export class DeviceStorage {
   async getAllDevices(filters: DeviceFilters = {}) {
     try {
       let query = db.select().from(devices);
-      
+
       const conditions = [];
-      
+
       if (filters.status && filters.status !== "all") {
         conditions.push(eq(devices.status, filters.status));
       }
-      
+
       if (filters.search && filters.search.trim() !== "") {
         const searchTerm = `%${filters.search.trim()}%`;
         conditions.push(
@@ -30,16 +29,16 @@ export class DeviceStorage {
           )
         );
       }
-      
+
       if (conditions.length > 0) {
         query = query.where(and(...conditions));
       }
-      
+
       const result = await query;
-      
+
       return result.map(device => {
         let parsedLatestReport = null;
-        
+
         // Parse latest_report if it exists
         if (device.latest_report) {
           try {
@@ -50,7 +49,7 @@ export class DeviceStorage {
             parsedLatestReport = device.latest_report;
           }
         }
-        
+
         return {
           ...device,
           latest_report: parsedLatestReport,
@@ -64,15 +63,15 @@ export class DeviceStorage {
       throw error;
     }
   }
-  
+
   async getDeviceById(id: string) {
     try {
       const result = await db.select().from(devices).where(eq(devices.id, id));
-      
+
       if (result.length === 0) {
         return null;
       }
-      
+
       const device = result[0];
       return {
         ...device,

@@ -1216,157 +1216,54 @@ router.get("/test", async (req, res) => {
 });
 
 // Get advanced device analytics
-router.get("/device/:deviceId/advanced", async (req: any, res: any) => {
+router.get('/device/:deviceId/advanced', authenticateToken, async (req, res) => {
   try {
-    const deviceId = req.params.deviceId;
-    console.log(`Getting advanced analytics for device: ${deviceId}`);
+    const { deviceId } = req.params;
 
-    // Get device information first
-    const { storage } = await import("../storage");
-
-    let device;
-    let reports = [];
-
-    try {
-      device = await storage.getDevice(deviceId);
-    } catch (storageError) {
-      console.error("Storage error getting device:", storageError);
-      // Return mock data if storage fails
-      return res.json({
-        performance_trends: {
-          cpu_trend: [],
-          memory_trend: [],
-          disk_trend: []
-        },
-        system_health: {
-          uptime_percentage: 0,
-          avg_response_time: 0,
-          error_rate: 0,
-          availability_score: 0
-        },
-        capacity_analysis: {
-          cpu_utilization_forecast: "No data available",
-          memory_growth_rate: "No data available",
-          disk_space_projection: "No data available",
-          network_bandwidth_usage: "No data available"
-        },
-        security_metrics: {
-          last_patch_update: null,
-          security_score: 0,
-          vulnerabilities_count: 0,
-          compliance_status: "Unknown"
-        },
-        alerts_summary: {
-          critical: 0,
-          warning: 0,
-          info: 0,
-          last_alert: "Never"
-        }
-      });
-    }
-
+    // Get basic device info
+    const device = await reportsStorage.getDevice(deviceId); // Assuming reportsStorage has getDevice
     if (!device) {
-      return res.status(404).json({
-        error: "Device not found"
-      });
+      return res.status(404).json({ error: 'Device not found' });
     }
 
-    try {
-      reports = await storage.getDeviceReports(deviceId, 24);
-    } catch (reportsError) {
-      console.error("Error getting device reports:", reportsError);
-      reports = [];
-    }
+    // Get report count and status
+    const reportsCount = await reportsStorage.getDeviceReportsCount(deviceId); // Assuming reportsStorage has getDeviceReportsCount
+    const deviceStatus = device.status || 'unknown';
 
-    // Calculate advanced metrics with safe data handling
-    const advancedMetrics = {
-      performance_trends: {
-        cpu_trend: reports.length > 0 ? 
-          reports.slice(0, 12).map(r => ({
-            timestamp: r.created_at || new Date(),
-            value: parseFloat(r.cpu_usage || "0")
-          })) : [],
-        memory_trend: reports.length > 0 ? 
-          reports.slice(0, 12).map(r => ({
-            timestamp: r.created_at || new Date(),
-            value: parseFloat(r.memory_usage || "0")
-          })) : [],
-        disk_trend: reports.length > 0 ? 
-          reports.slice(0, 12).map(r => ({
-            timestamp: r.created_at || new Date(),
-            value: parseFloat(r.disk_usage || "0")
-          })) : []
-      },
-      system_health: {
-        uptime_percentage: device.status === 'online' ? 98.5 : 0,
-        avg_response_time: device.status === 'online' ? 45.2 : 0,
-        error_rate: device.status === 'online' ? 0.02 : 1,
-        availability_score: device.status === 'online' ? 99.1 : 0
-      },
-      capacity_analysis: {
-        cpu_utilization_forecast: device.status === 'online' ? "Stable" : "Offline",
-        memory_growth_rate: device.status === 'online' ? "+2.3% monthly" : "No data",
-        disk_space_projection: device.status === 'online' ? "75% full by Q3 2025" : "No data",
-        network_bandwidth_usage: device.status === 'online' ? "Normal" : "Offline"
-      },
-      security_metrics: {
-        last_patch_update: device.latest_report?.collected_at || device.last_seen,
-        security_score: device.status === 'online' ? 85 : 0,
-        vulnerabilities_count: device.status === 'online' ? 2 : 0,
-        compliance_status: device.status === 'online' ? "Compliant" : "Unknown"
-      },
-      alerts_summary: {
-        critical: 0,
-        warning: device.status === 'offline' ? 1 : 0,
-        info: 3,
-        last_alert: device.status === 'offline' ? "Device offline" : "2 hours ago"
-      }
-    };
+    // Get WebSocket connection status
+    const wsService = req.app.get('wsService');
+    const connectionStatus = wsService ? wsService.getConnectionStatus() : null;
+    const isWebSocketConnected = connectionStatus?.connectedAgents?.includes(deviceId) || false;
 
     console.log(`Returning advanced metrics for device ${deviceId}:`, {
       hasDevice: !!device,
-      reportsCount: reports.length,
-      deviceStatus: device.status
+      reportsCount,
+      deviceStatus,
+      isWebSocketConnected
     });
 
-    res.json(advancedMetrics);
-  } catch (error: any) {
-    console.error("Error getting advanced device analytics:", error);
+    const response = {
+      device: {
+        id: device.id,
+        hostname: device.hostname,
+        ip_address: device.ip_address,
+        status: deviceStatus,
+        last_seen: device.last_seen,
+        agent_version: device.agent_version,
+        websocket_connected: isWebSocketConnected
+      },
+      reports_count: reportsCount,
+      connection_status: deviceStatus,
+      websocket_status: isWebSocketConnected ? 'connected' : 'disconnected'
+    };
 
-    // Return safe fallback data instead of 500 error
-    res.json({
-      performance_trends: {
-        cpu_trend: [],
-        memory_trend: [],
-        disk_trend: []
-      },
-      system_health: {
-        uptime_percentage: 0,
-        avg_response_time: 0,
-        error_rate: 1,
-        availability_score: 0
-      },
-      capacity_analysis: {
-        cpu_utilization_forecast: "Error loading data",
-        memory_growth_rate: "Error loading data",
-        disk_space_projection: "Error loading data",
-        network_bandwidth_usage: "Error loading data"
-      },
-      security_metrics: {
-        last_patch_update: null,
-        security_score: 0,
-        vulnerabilities_count: 0,
-        compliance_status: "Error"
-      },
-      alerts_summary: {
-        critical: 0,
-        warning: 0,
-        info: 0,
-        last_alert: "Error loading alerts"
-      }
-    });
+    res.json(response);
+  } catch (error) {
+    console.error('Error getting advanced device analytics:', error);
+    res.status(500).json({ error: 'Failed to get device analytics' });
   }
 });
+
 
 // Get performance insights for a specific device
 router.get("/performance/insights/:deviceId", async (req: any, res: any) => {

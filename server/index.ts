@@ -21,6 +21,7 @@ import { registerAnalyticsRoutes } from "./routes/analytics-routes";
 import { registerSecurityRoutes } from "./routes/security-routes";
 import { registerVNCRoutes } from "./routes/vnc-routes";
 import { authenticateToken, requireRole } from "./middleware/auth-middleware";
+import url from 'url'; // Import url module
 
 const app = express();
 const wsInstance = expressWs(app);
