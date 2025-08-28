@@ -481,7 +481,7 @@ router.get("/realtime", async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching real-time metrics:", error);
-    
+
     res.status(500).json({
       success: false,
       error: "Failed to fetch real-time metrics",
@@ -1802,10 +1802,6 @@ router.get('/devices', async (req, res) => {
   }
 });
 
-export default router;
-<file_path>server/routes/analytics-routes.ts</file_path>
-<line_number>2000</line_number>
-
 // Data quality verification endpoint
 router.get("/data-quality", async (req, res) => {
   try {
@@ -1886,3 +1882,5 @@ router.get("/data-quality", async (req, res) => {
     });
   }
 });
+
+export default router;

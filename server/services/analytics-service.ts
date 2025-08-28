@@ -902,11 +902,11 @@ class AnalyticsService {
         .map(r => parseFloat(r.disk_usage || "0"))
         .filter(v => v > 0);
 
-      const avgCpu = cpuValues.length > 0 ? 
+      const avgCpu = cpuValues.length > 0 ?
         cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length : 0;
-      const avgMemory = memoryValues.length > 0 ? 
+      const avgMemory = memoryValues.length > 0 ?
         memoryValues.reduce((a, b) => a + b, 0) / memoryValues.length : 0;
-      const avgDisk = diskValues.length > 0 ? 
+      const avgDisk = diskValues.length > 0 ?
         diskValues.reduce((a, b) => a + b, 0) / diskValues.length : 0;
 
       // Get device counts
@@ -937,7 +937,7 @@ class AnalyticsService {
       return metrics;
     } catch (error) {
       console.error("Error getting real-time metrics:", error);
-      
+
       // Return fallback data instead of throwing
       return {
         cpu_usage: 0,
@@ -982,11 +982,11 @@ class AnalyticsService {
         .map(r => parseFloat(r.disk_usage || "0"))
         .filter(v => v > 0);
 
-      const avgCpu = cpuValues.length > 0 ? 
+      const avgCpu = cpuValues.length > 0 ?
         cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length : 0;
-      const avgMemory = memoryValues.length > 0 ? 
+      const avgMemory = memoryValues.length > 0 ?
         memoryValues.reduce((a, b) => a + b, 0) / memoryValues.length : 0;
-      const avgDisk = diskValues.length > 0 ? 
+      const avgDisk = diskValues.length > 0 ?
         diskValues.reduce((a, b) => a + b, 0) / diskValues.length : 0;
 
       // Get device information
@@ -1030,7 +1030,7 @@ class AnalyticsService {
         data_points: 0,
         trends: {
           cpu_trend: "unknown",
-          memory_trend: "unknown", 
+          memory_trend: "unknown",
           disk_trend: "unknown"
         }
       };
@@ -1081,7 +1081,7 @@ class AnalyticsService {
       console.log("Generating system inventory...");
 
       const devices = await db.select().from(devices);
-      
+
       // Group by OS
       const byOS = devices.reduce((acc: any, device) => {
         const os = device.os_name || "Unknown";
@@ -1175,7 +1175,7 @@ class AnalyticsService {
           },
           {
             type: "Memory Monitoring",
-            urgency: "Low", 
+            urgency: "Low",
             description: "Monitor memory usage trends for capacity planning"
           }
         ],
@@ -1625,7 +1625,7 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
             },
             {
               id: "Heading2",
-              name: "Heading 2", 
+              name: "Heading 2",
               basedOn: "Normal",
               next: "Normal",
               quickFormat: true,
@@ -1788,7 +1788,7 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
   // Batch processing methods for large deployments
   private async getBatchedDeviceBreakdown(field: string, timeout: Promise<never>): Promise<any[]> {
     try {
-      const query = field === 'os_name' 
+      const query = field === 'os_name'
         ? db.select({
             os_name: devices.os_name,
             count: sql`count(*)`,
@@ -3356,7 +3356,7 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
 
     // Headers
     const headers = [
-      'Ticket Number', 'Type', 'Title', 'Priority', 'Status', 
+      'Ticket Number', 'Type', 'Title', 'Priority', 'Status',
       'Assigned To', 'Created', 'Due Date', 'SLA Breached'
     ];
 
@@ -3433,7 +3433,7 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
 
     // Headers
     const headers = [
-      'Hostname', 'IP Address', 'OS', 'Status', 'CPU %', 
+      'Hostname', 'IP Address', 'OS', 'Status', 'CPU %',
       'Memory %', 'Disk %', 'Last Seen', 'Assigned User'
     ];
 
@@ -3698,16 +3698,14 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
 
   // Helper methods for enhanced Word document formatting
   private createInfoBox(items: string[]): Paragraph {
+    const boxContent = items.map(item => new TextRun({
+      text: `${item}\n`,
+      size: 20,
+      color: "333333"
+    }));
+
     return new Paragraph({
-      children: [
-        new TextRun({ text: "", break: 1 }),
-        ...items.map(item => new TextRun({
-          text: `• ${item}`,
-          size: 20,
-          color: "444444",
-          break: 1,
-        })),
-      ],
+      children: boxContent,
       spacing: { before: 200, after: 200 },
       shading: {
         fill: "F8F9FA",
@@ -3747,32 +3745,21 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
   }
 
   private generateConclusions(data: any, reportType: string): Paragraph {
-    let conclusionText = "";
-
-    switch (reportType) {
-      case "performance":
-        conclusionText = "Based on performance analysis, the system demonstrates stable operation with opportunities for optimization in high-utilization areas. Recommend implementing capacity planning for projected growth and proactive monitoring for critical resource thresholds.";
-        break;
-      case "system-health":
-        conclusionText = "System health indicators show robust operational status with targeted areas for improvement. Implement preventive maintenance schedules and enhanced monitoring for sustained performance excellence.";
-        break;
-      case "asset-inventory":
-        conclusionText = "Asset management reveals comprehensive coverage with opportunities to enhance compliance rates. Recommend implementing automated patch management and software license optimization strategies.";
-        break;
-      default:
-        conclusionText = "This analysis provides actionable insights for system optimization and strategic infrastructure planning. Regular monitoring and proactive maintenance will ensure continued operational excellence.";
-    }
+    const recommendations = [
+      "Implement regular monitoring and maintenance schedules",
+      "Establish proactive alerting for critical system metrics",
+      "Review and optimize resource allocation based on usage patterns",
+      "Enhance documentation and knowledge sharing procedures"
+    ];
 
     return new Paragraph({
       children: [
         new TextRun({
-          text: conclusionText,
+          text: "Based on the analysis presented in this report, we recommend implementing the following actions to maintain and improve system performance:\n\n" +
+                recommendations.map((rec, i) => `${i + 1}. ${rec}`).join('\n'),
           size: 22,
-          color: "333333",
-        }),
-      ],
-      spacing: { after: 300 },
-      indent: { left: 200, right: 200 },
+        })
+      ]
     });
   }
 
@@ -3887,7 +3874,7 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
       // Get unique latest report per device
       const latestReportsByDevice = new Map();
       recentReports.forEach(report => {
-        if (!latestReportsByDevice.has(report.device_id) || 
+        if (!latestReportsByDevice.has(report.device_id) ||
             new Date(report.created_at) > new Date(latestReportsByDevice.get(report.device_id).created_at)) {
           latestReportsByDevice.set(report.device_id, report);
         }
