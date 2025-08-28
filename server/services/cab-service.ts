@@ -58,6 +58,29 @@ export class CABService {
     }
   }
 
+  // Update CAB board
+  static async updateCABBoard(id: string, data: {
+    name?: string;
+    description?: string;
+    chairperson_id?: string;
+    members?: string[];
+    meeting_frequency?: string;
+    is_active?: boolean;
+  }) {
+    try {
+      const [board] = await db
+        .update(changeAdvisoryBoard)
+        .set(data)
+        .where(eq(changeAdvisoryBoard.id, id))
+        .returning();
+      
+      return board;
+    } catch (error) {
+      console.error("Error updating CAB board:", error);
+      throw error;
+    }
+  }
+
   // Get pending change requests for CAB approval
   static async getPendingChanges(cabId?: string) {
     try {

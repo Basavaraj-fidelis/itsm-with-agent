@@ -95,6 +95,9 @@ export default function CreateTicket() {
     impact: "medium",
     urgency: "medium",
     known_error: false,
+    change_type: '',
+    risk_level: '',
+    planned_implementation_date: ''
   });
 
   // Predefined categories based on ticket type
@@ -158,6 +161,11 @@ export default function CreateTicket() {
     if (formData.type === "change" && !formData.change_type) {
       newErrors.change_type = "Change type is required for change requests";
     }
+    // Additional validation for change tickets
+    if (formData.type === 'change' && !formData.risk_level) {
+      newErrors.risk_level = "Risk level is required for change requests";
+    }
+
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -467,13 +475,13 @@ export default function CreateTicket() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="risk_level" className="text-sm font-medium">
-                    Risk Level
+                    Risk Level <span className="text-red-500">*</span>
                   </Label>
                   <Select
                     value={formData.risk_level}
                     onValueChange={(value) => updateFormData("risk_level", value)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={errors.risk_level ? "border-red-500" : ""}>
                       <SelectValue placeholder="Select risk level" />
                     </SelectTrigger>
                     <SelectContent>
@@ -482,6 +490,7 @@ export default function CreateTicket() {
                       <SelectItem value="high">High - Significant risk</SelectItem>
                     </SelectContent>
                   </Select>
+                  {errors.risk_level && <p className="text-red-600 text-xs">{errors.risk_level}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="scheduled_start" className="text-sm font-medium">

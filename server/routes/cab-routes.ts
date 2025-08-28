@@ -45,6 +45,22 @@ export function registerCABRoutes(app: Express) {
     }
   });
 
+  // Update CAB board
+  app.put("/api/cab/boards/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = createCABSchema.partial().parse(req.body);
+      const board = await CABService.updateCABBoard(id, validatedData);
+      res.json(board);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      console.error("Error updating CAB board:", error);
+      res.status(500).json({ error: "Failed to update CAB board" });
+    }
+  });
+
   // Get pending changes for approval
   app.get("/api/cab/pending-changes", async (req, res) => {
     try {

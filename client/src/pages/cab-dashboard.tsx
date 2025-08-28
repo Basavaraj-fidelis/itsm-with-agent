@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,8 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle, XCircle, Clock, AlertTriangle, Users, Calendar, FileText } from "lucide-react";
+import { CheckCircle, XCircle, Clock, AlertTriangle, Users, Calendar, FileText, Plus, Trash2, Edit, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface PendingChange {
@@ -33,17 +35,56 @@ interface CABBoard {
   members: string[];
   meeting_frequency?: string;
   is_active: boolean;
+  created_at: string;
+}
+
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+}
+
+interface NewCABBoard {
+  name: string;
+  description: string;
+  chairperson_id: string;
+  members: string[];
+  meeting_frequency: string;
 }
 
 export default function CABDashboard() {
   const [selectedChange, setSelectedChange] = useState<PendingChange | null>(null);
   const [approvalComments, setApprovalComments] = useState("");
   const [approvalDecision, setApprovalDecision] = useState<"approved" | "rejected" | "">("");
+  const [showCreateCAB, setShowCreateCAB] = useState(false);
+  const [showEditCAB, setShowEditCAB] = useState(false);
+  const [selectedCAB, setSelectedCAB] = useState<CABBoard | null>(null);
+  const [newCAB, setNewCAB] = useState<NewCABBoard>({
+    name: '',
+    description: '',
+    chairperson_id: '',
+    members: [],
+    meeting_frequency: 'Weekly'
+  });
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Fetch all users for CAB member selection
+  const { data: users } = useQuery({
+    queryKey: ["users"],
+    queryFn: async () => {
+      const response = await fetch("/api/users");
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      return response.json() as Promise<User[]>;
+    }
+  });
+
   // Fetch pending changes
-  const { data: pendingChanges, isLoading, refetch } = useQuery({
+  const { data: pendingChanges, isLoading } = useQuery({
     queryKey: ["cab-pending-changes"],
     queryFn: async () => {
       const response = await fetch("/api/cab/pending-changes");
@@ -51,18 +92,11 @@ export default function CABDashboard() {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       return response.json() as Promise<PendingChange[]>;
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to fetch pending changes",
-        variant: "destructive",
-      });
     }
   });
 
   // Fetch CAB boards
-  const { data: cabBoards } = useQuery({
+  const { data: cabBoards, refetch: refetchCABs } = useQuery({
     queryKey: ["cab-boards"],
     queryFn: async () => {
       const response = await fetch("/api/cab/boards");
@@ -70,12 +104,79 @@ export default function CABDashboard() {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       return response.json() as Promise<CABBoard[]>;
+    }
+  });
+
+  // Create CAB board mutation
+  const createCABMutation = useMutation({
+    mutationFn: async (cabData: NewCABBoard) => {
+      const response = await fetch("/api/cab/boards", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(cabData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "CAB board created successfully"
+      });
+      refetchCABs();
+      setShowCreateCAB(false);
+      setNewCAB({
+        name: '',
+        description: '',
+        chairperson_id: '',
+        members: [],
+        meeting_frequency: 'Weekly'
+      });
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to fetch CAB boards",
-        variant: "destructive",
+        description: `Failed to create CAB board: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Update CAB board mutation
+  const updateCABMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<NewCABBoard> }) => {
+      const response = await fetch(`/api/cab/boards/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "CAB board updated successfully"
+      });
+      refetchCABs();
+      setShowEditCAB(false);
+      setSelectedCAB(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to update CAB board: ${error.message}`,
+        variant: "destructive"
       });
     }
   });
@@ -95,7 +196,7 @@ export default function CABDashboard() {
         body: JSON.stringify({
           decision,
           comments,
-          approver_id: "current-user" // In real app, get from auth context
+          approver_id: "current-user"
         })
       });
 
@@ -131,6 +232,68 @@ export default function CABDashboard() {
       decision: approvalDecision,
       comments: approvalComments
     });
+  };
+
+  const handleCreateCAB = () => {
+    if (!newCAB.name || !newCAB.chairperson_id) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    createCABMutation.mutate(newCAB);
+  };
+
+  const handleEditCAB = (cab: CABBoard) => {
+    setSelectedCAB(cab);
+    setNewCAB({
+      name: cab.name,
+      description: cab.description || '',
+      chairperson_id: cab.chairperson_id,
+      members: cab.members,
+      meeting_frequency: cab.meeting_frequency || 'Weekly'
+    });
+    setShowEditCAB(true);
+  };
+
+  const handleUpdateCAB = () => {
+    if (!selectedCAB || !newCAB.name || !newCAB.chairperson_id) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    updateCABMutation.mutate({
+      id: selectedCAB.id,
+      data: newCAB
+    });
+  };
+
+  const addMemberToCAB = (userId: string) => {
+    if (!newCAB.members.includes(userId)) {
+      setNewCAB(prev => ({
+        ...prev,
+        members: [...prev.members, userId]
+      }));
+    }
+  };
+
+  const removeMemberFromCAB = (userId: string) => {
+    setNewCAB(prev => ({
+      ...prev,
+      members: prev.members.filter(id => id !== userId)
+    }));
+  };
+
+  const getUserName = (userId: string) => {
+    const user = users?.find(u => u.id === userId);
+    return user ? `${user.name} (${user.email})` : userId;
   };
 
   const getRiskBadgeColor = (riskLevel: string) => {
@@ -366,16 +529,290 @@ export default function CABDashboard() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="boards">
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-center space-y-2">
-                <Users className="w-12 h-12 text-muted-foreground mx-auto" />
-                <h3 className="font-medium">CAB Management</h3>
-                <p className="text-sm text-muted-foreground">Manage Change Advisory Board settings</p>
+        <TabsContent value="boards" className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">CAB Management</h2>
+            <Dialog open={showCreateCAB} onOpenChange={setShowCreateCAB}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create CAB Board
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Create New CAB Board</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="cab-name">CAB Name *</Label>
+                      <Input
+                        id="cab-name"
+                        value={newCAB.name}
+                        onChange={(e) => setNewCAB(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="Enter CAB board name"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="meeting-frequency">Meeting Frequency</Label>
+                      <Select
+                        value={newCAB.meeting_frequency}
+                        onValueChange={(value) => setNewCAB(prev => ({ ...prev, meeting_frequency: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Daily">Daily</SelectItem>
+                          <SelectItem value="Weekly">Weekly</SelectItem>
+                          <SelectItem value="Bi-weekly">Bi-weekly</SelectItem>
+                          <SelectItem value="Monthly">Monthly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={newCAB.description}
+                      onChange={(e) => setNewCAB(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Enter CAB board description"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="chairperson">Chairperson *</Label>
+                    <Select
+                      value={newCAB.chairperson_id}
+                      onValueChange={(value) => setNewCAB(prev => ({ ...prev, chairperson_id: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select chairperson" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {users?.map(user => (
+                          <SelectItem key={user.id} value={user.id}>
+                            {user.name} ({user.email})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label>CAB Members</Label>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Select onValueChange={addMemberToCAB}>
+                          <SelectTrigger className="flex-1">
+                            <SelectValue placeholder="Add member" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {users?.filter(user => !newCAB.members.includes(user.id)).map(user => (
+                              <SelectItem key={user.id} value={user.id}>
+                                {user.name} ({user.email})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        {newCAB.members.map(memberId => (
+                          <div key={memberId} className="flex items-center justify-between bg-muted p-2 rounded">
+                            <span className="text-sm">{getUserName(memberId)}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeMemberFromCAB(memberId)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline" onClick={() => setShowCreateCAB(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleCreateCAB} disabled={createCABMutation.isPending}>
+                      {createCABMutation.isPending ? "Creating..." : "Create CAB Board"}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <div className="grid gap-4">
+            {cabBoards?.map((cab) => (
+              <Card key={cab.id}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-lg">{cab.name}</CardTitle>
+                      <p className="text-sm text-muted-foreground">{cab.description}</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Badge variant={cab.is_active ? "default" : "secondary"}>
+                        {cab.is_active ? "Active" : "Inactive"}
+                      </Badge>
+                      <Button variant="outline" size="sm" onClick={() => handleEditCAB(cab)}>
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Chairperson</Label>
+                      <p className="font-medium text-sm">{getUserName(cab.chairperson_id)}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Meeting Frequency</Label>
+                      <p className="font-medium text-sm">{cab.meeting_frequency || 'Not set'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Members</Label>
+                      <p className="font-medium text-sm">{cab.members.length} member(s)</p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4">
+                    <Label className="text-xs text-muted-foreground">CAB Members</Label>
+                    <div className="mt-2 space-y-1">
+                      {cab.members.map(memberId => (
+                        <Badge key={memberId} variant="outline" className="mr-2 mb-1">
+                          <UserPlus className="w-3 h-3 mr-1" />
+                          {getUserName(memberId)}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Edit CAB Dialog */}
+          <Dialog open={showEditCAB} onOpenChange={setShowEditCAB}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Edit CAB Board</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-cab-name">CAB Name *</Label>
+                    <Input
+                      id="edit-cab-name"
+                      value={newCAB.name}
+                      onChange={(e) => setNewCAB(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="Enter CAB board name"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-meeting-frequency">Meeting Frequency</Label>
+                    <Select
+                      value={newCAB.meeting_frequency}
+                      onValueChange={(value) => setNewCAB(prev => ({ ...prev, meeting_frequency: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Daily">Daily</SelectItem>
+                        <SelectItem value="Weekly">Weekly</SelectItem>
+                        <SelectItem value="Bi-weekly">Bi-weekly</SelectItem>
+                        <SelectItem value="Monthly">Monthly</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-description">Description</Label>
+                  <Textarea
+                    id="edit-description"
+                    value={newCAB.description}
+                    onChange={(e) => setNewCAB(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Enter CAB board description"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-chairperson">Chairperson *</Label>
+                  <Select
+                    value={newCAB.chairperson_id}
+                    onValueChange={(value) => setNewCAB(prev => ({ ...prev, chairperson_id: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select chairperson" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users?.map(user => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.name} ({user.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>CAB Members</Label>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Select onValueChange={addMemberToCAB}>
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="Add member" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {users?.filter(user => !newCAB.members.includes(user.id)).map(user => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {user.name} ({user.email})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      {newCAB.members.map(memberId => (
+                        <div key={memberId} className="flex items-center justify-between bg-muted p-2 rounded">
+                          <span className="text-sm">{getUserName(memberId)}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeMemberFromCAB(memberId)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-2">
+                  <Button variant="outline" onClick={() => setShowEditCAB(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleUpdateCAB} disabled={updateCABMutation.isPending}>
+                    {updateCABMutation.isPending ? "Updating..." : "Update CAB Board"}
+                  </Button>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
       </Tabs>
     </div>
