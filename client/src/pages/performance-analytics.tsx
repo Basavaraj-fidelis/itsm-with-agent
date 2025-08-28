@@ -224,24 +224,20 @@ function PerformanceAnalyticsContent() {
     queryKey: ["performance", "overview"],
     queryFn: async () => {
       try {
-        return await api.getPerformanceOverview();
+        const data = await api.getPerformanceOverview();
+        console.log('Performance overview data received:', data);
+        return data;
       } catch (error) {
-        console.warn('Performance overview failed:', error);
-        return {
-          totalDevices: 0,
-          onlineDevices: 0,
-          avgCpuUsage: 0,
-          avgMemoryUsage: 0,
-          avgDiskUsage: 0,
-          criticalDevices: 0,
-          performanceAlerts: 0
-        };
+        console.error('Performance overview failed:', error);
+        // Don't return fallback data here, let React Query handle the error
+        throw error;
       }
     },
-    retry: 0,
+    retry: 2,
     retryDelay: 1000,
     refetchOnWindowFocus: false,
     staleTime: 30000,
+    refetchInterval: autoRefresh ? refreshInterval : false,
   });
 
   // Set first device as default when devices load
@@ -417,6 +413,22 @@ function PerformanceAnalyticsContent() {
           <p className="text-red-600 text-sm mt-1">
             Unable to load performance data. Please try again later.
           </p>
+          <div className="mt-2">
+            <button 
+              onClick={() => window.location.reload()} 
+              className="text-xs bg-red-600 text-white px-2 py-1 rounded"
+            >
+              Reload Page
+            </button>
+          </div>
+          {process.env.NODE_ENV === 'development' && (
+            <details className="mt-2 text-xs">
+              <summary>Error Details</summary>
+              <pre className="mt-1 whitespace-pre-wrap">
+                {overviewError instanceof Error ? overviewError.message : String(overviewError)}
+              </pre>
+            </details>
+          )}
         </div>
       </div>
     );

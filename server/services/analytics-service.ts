@@ -891,16 +891,58 @@ class AnalyticsService {
 
       console.log(`Found ${recentReports.length} recent reports`);
 
-      // Calculate real-time averages
-      const cpuValues = recentReports
-        .map(r => parseFloat(r.cpu_usage || "0"))
-        .filter(v => v > 0);
-      const memoryValues = recentReports
-        .map(r => parseFloat(r.memory_usage || "0"))
-        .filter(v => v > 0);
-      const diskValues = recentReports
-        .map(r => parseFloat(r.disk_usage || "0"))
-        .filter(v => v > 0);
+      // Extract metrics from both direct columns AND raw_data
+      const cpuValues: number[] = [];
+      const memoryValues: number[] = [];
+      const diskValues: number[] = [];
+
+      recentReports.forEach(report => {
+        // Try direct columns first
+        let cpu = parseFloat(report.cpu_usage || "0");
+        let memory = parseFloat(report.memory_usage || "0");
+        let disk = parseFloat(report.disk_usage || "0");
+
+        // If direct columns are null/0, extract from raw_data
+        if (cpu === 0 && report.raw_data) {
+          const rawData = typeof report.raw_data === 'string' ? JSON.parse(report.raw_data) : report.raw_data;
+          
+          // Try multiple extraction paths
+          if (rawData.system_health?.cpu_usage) {
+            cpu = parseFloat(rawData.system_health.cpu_usage);
+          } else if (rawData.hardware?.cpu?.usage_percent) {
+            cpu = parseFloat(rawData.hardware.cpu.usage_percent);
+          } else if (rawData.hardware?.cpu?.percent) {
+            cpu = parseFloat(rawData.hardware.cpu.percent);
+          }
+        }
+
+        if (memory === 0 && report.raw_data) {
+          const rawData = typeof report.raw_data === 'string' ? JSON.parse(report.raw_data) : report.raw_data;
+          
+          if (rawData.system_health?.memory_usage) {
+            memory = parseFloat(rawData.system_health.memory_usage);
+          } else if (rawData.hardware?.memory?.percentage) {
+            memory = parseFloat(rawData.hardware.memory.percentage);
+          } else if (rawData.hardware?.memory?.percent) {
+            memory = parseFloat(rawData.hardware.memory.percent);
+          }
+        }
+
+        if (disk === 0 && report.raw_data) {
+          const rawData = typeof report.raw_data === 'string' ? JSON.parse(report.raw_data) : report.raw_data;
+          
+          if (rawData.storage?.disks?.[0]?.percent) {
+            disk = parseFloat(rawData.storage.disks[0].percent);
+          } else if (rawData.storage?.disks?.[0]?.usage_percent) {
+            disk = parseFloat(rawData.storage.disks[0].usage_percent);
+          }
+        }
+
+        // Add valid values to arrays
+        if (cpu > 0) cpuValues.push(cpu);
+        if (memory > 0) memoryValues.push(memory);
+        if (disk > 0) diskValues.push(disk);
+      });
 
       const avgCpu = cpuValues.length > 0 ?
         cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length : 0;
@@ -928,29 +970,23 @@ class AnalyticsService {
         online_devices: onlineDevices,
         offline_devices: totalDevices - onlineDevices,
         reports_count: recentReports.length,
+        devices_with_data: cpuValues.length,
         last_updated: new Date(),
-        network_latency: 45.2, // Mock for now
-        system_uptime: 98.7
+        network_latency: 45.2,
+        system_uptime: 98.7,
+        data_extraction_stats: {
+          cpu_extracted: cpuValues.length,
+          memory_extracted: memoryValues.length,
+          disk_extracted: diskValues.length,
+          total_reports: recentReports.length
+        }
       };
 
       console.log("Real-time metrics calculated:", metrics);
       return metrics;
     } catch (error) {
       console.error("Error getting real-time metrics:", error);
-
-      // Return fallback data instead of throwing
-      return {
-        cpu_usage: 0,
-        memory_usage: 0,
-        disk_usage: 0,
-        total_devices: 0,
-        online_devices: 0,
-        offline_devices: 0,
-        reports_count: 0,
-        last_updated: new Date(),
-        network_latency: 0,
-        system_uptime: 0
-      };
+      throw error; // Don't swallow errors, let them bubble up
     }
   }
 

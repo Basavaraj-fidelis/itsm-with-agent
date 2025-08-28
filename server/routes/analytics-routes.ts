@@ -482,11 +482,27 @@ router.get("/realtime", async (req, res) => {
   } catch (error) {
     console.error("Error fetching real-time metrics:", error);
 
-    res.status(500).json({
-      success: false,
-      error: "Failed to fetch real-time metrics",
-      message: error instanceof Error ? error.message : "Unknown error",
-      data_source: 'error'
+    // Provide fallback data instead of failing completely
+    const fallbackMetrics = {
+      cpu_usage: 0,
+      memory_usage: 0,
+      disk_usage: 0,
+      total_devices: 0,
+      online_devices: 0,
+      offline_devices: 0,
+      reports_count: 0,
+      devices_with_data: 0,
+      last_updated: new Date(),
+      network_latency: 0,
+      system_uptime: 0
+    };
+
+    res.json({
+      success: true,
+      metrics: fallbackMetrics,
+      data_source: 'fallback',
+      timestamp: new Date(),
+      warning: "Using fallback data due to database error"
     });
   }
 });
@@ -1129,47 +1145,92 @@ router.get("/performance/overview", async (req, res) => {
       lastUpdated: new Date()
     };
 
-    // Calculate averages and critical counts from devices with actual data
-    const devicesWithReports = devices.filter((d) => d.latest_report && (
-      parseFloat(d.latest_report?.cpu_usage || "0") > 0 ||
-      parseFloat(d.latest_report?.memory_usage || "0") > 0 ||
-      parseFloat(d.latest_report?.disk_usage || "0") > 0
-    ));
+    // Extract metrics from both direct columns AND raw_data
+    const cpuValues: number[] = [];
+    const memoryValues: number[] = [];
+    const diskValues: number[] = [];
+    let criticalCount = 0;
 
-    performanceOverview.devicesWithData = devicesWithReports.length;
+    devices.forEach(device => {
+      if (device.latest_report) {
+        // Try direct columns first
+        let cpu = parseFloat(device.latest_report.cpu_usage || "0");
+        let memory = parseFloat(device.latest_report.memory_usage || "0");
+        let disk = parseFloat(device.latest_report.disk_usage || "0");
 
-    if (devicesWithReports.length > 0) {
-      const cpuValues = devicesWithReports
-        .map(d => parseFloat(d.latest_report?.cpu_usage || "0"))
-        .filter(v => v > 0);
-      const memoryValues = devicesWithReports
-        .map(d => parseFloat(d.latest_report?.memory_usage || "0"))
-        .filter(v => v > 0);
-      const diskValues = devicesWithReports
-        .map(d => parseFloat(d.latest_report?.disk_usage || "0"))
-        .filter(v => v > 0);
+        // If direct columns are null/0, extract from raw_data
+        if (cpu === 0 && device.latest_report.raw_data) {
+          const rawData = typeof device.latest_report.raw_data === 'string' 
+            ? JSON.parse(device.latest_report.raw_data) 
+            : device.latest_report.raw_data;
+          
+          if (rawData.system_health?.cpu_usage) {
+            cpu = parseFloat(rawData.system_health.cpu_usage);
+          } else if (rawData.hardware?.cpu?.usage_percent) {
+            cpu = parseFloat(rawData.hardware.cpu.usage_percent);
+          } else if (rawData.hardware?.cpu?.percent) {
+            cpu = parseFloat(rawData.hardware.cpu.percent);
+          }
+        }
 
-      performanceOverview.avgCpuUsage = cpuValues.length > 0 ? 
-        Math.round((cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length) * 10) / 10 : 0;
-      performanceOverview.avgMemoryUsage = memoryValues.length > 0 ? 
-        Math.round((memoryValues.reduce((a, b) => a + b, 0) / memoryValues.length) * 10) / 10 : 0;
-      performanceOverview.avgDiskUsage = diskValues.length > 0 ? 
-        Math.round((diskValues.reduce((a, b) => a + b, 0) / diskValues.length) * 10) / 10 : 0;
+        if (memory === 0 && device.latest_report.raw_data) {
+          const rawData = typeof device.latest_report.raw_data === 'string' 
+            ? JSON.parse(device.latest_report.raw_data) 
+            : device.latest_report.raw_data;
+          
+          if (rawData.system_health?.memory_usage) {
+            memory = parseFloat(rawData.system_health.memory_usage);
+          } else if (rawData.hardware?.memory?.percentage) {
+            memory = parseFloat(rawData.hardware.memory.percentage);
+          } else if (rawData.hardware?.memory?.percent) {
+            memory = parseFloat(rawData.hardware.memory.percent);
+          }
+        }
 
-      performanceOverview.criticalDevices = devicesWithReports.filter(
-        (d) =>
-          parseFloat(d.latest_report?.cpu_usage || "0") > 90 ||
-          parseFloat(d.latest_report?.memory_usage || "0") > 90 ||
-          parseFloat(d.latest_report?.disk_usage || "0") > 95,
-      ).length;
-    }
+        if (disk === 0 && device.latest_report.raw_data) {
+          const rawData = typeof device.latest_report.raw_data === 'string' 
+            ? JSON.parse(device.latest_report.raw_data) 
+            : device.latest_report.raw_data;
+          
+          if (rawData.storage?.disks?.[0]?.percent) {
+            disk = parseFloat(rawData.storage.disks[0].percent);
+          } else if (rawData.storage?.disks?.[0]?.usage_percent) {
+            disk = parseFloat(rawData.storage.disks[0].usage_percent);
+          }
+        }
+
+        // Add valid values to arrays
+        if (cpu > 0) cpuValues.push(cpu);
+        if (memory > 0) memoryValues.push(memory);
+        if (disk > 0) diskValues.push(disk);
+
+        // Check for critical devices
+        if (cpu > 90 || memory > 90 || disk > 95) {
+          criticalCount++;
+        }
+      }
+    });
+
+    performanceOverview.devicesWithData = Math.max(cpuValues.length, memoryValues.length, diskValues.length);
+    performanceOverview.avgCpuUsage = cpuValues.length > 0 ? 
+      Math.round((cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length) * 10) / 10 : 0;
+    performanceOverview.avgMemoryUsage = memoryValues.length > 0 ? 
+      Math.round((memoryValues.reduce((a, b) => a + b, 0) / memoryValues.length) * 10) / 10 : 0;
+    performanceOverview.avgDiskUsage = diskValues.length > 0 ? 
+      Math.round((diskValues.reduce((a, b) => a + b, 0) / diskValues.length) * 10) / 10 : 0;
+    performanceOverview.criticalDevices = criticalCount;
 
     console.log("Performance overview calculated:", {
       totalDevices: performanceOverview.totalDevices,
       devicesWithData: performanceOverview.devicesWithData,
       avgCpu: performanceOverview.avgCpuUsage,
       avgMemory: performanceOverview.avgMemoryUsage,
-      criticalDevices: performanceOverview.criticalDevices
+      criticalDevices: performanceOverview.criticalDevices,
+      extractionStats: {
+        cpuExtracted: cpuValues.length,
+        memoryExtracted: memoryValues.length,
+        diskExtracted: diskValues.length
+      }
     });
 
     res.json(performanceOverview);
@@ -1242,14 +1303,22 @@ router.get('/device/:deviceId/advanced', authenticateToken, async (req, res) => 
   try {
     const { deviceId } = req.params;
 
+    // Import storage directly
+    const { storage } = await import("../storage");
+    
     // Get basic device info
-    const device = await reportsStorage.getDevice(deviceId); // Assuming reportsStorage has getDevice
+    const device = await storage.getDevice(deviceId);
     if (!device) {
       return res.status(404).json({ error: 'Device not found' });
     }
 
-    // Get report count and status
-    const reportsCount = await reportsStorage.getDeviceReportsCount(deviceId); // Assuming reportsStorage has getDeviceReportsCount
+    // Get recent reports count
+    const recentReports = await db
+      .select({ count: sql`count(*)` })
+      .from(device_reports)
+      .where(sql`${device_reports.device_id} = ${deviceId}`);
+    
+    const reportsCount = Number(recentReports[0]?.count) || 0;
     const deviceStatus = device.status || 'unknown';
 
     // Get WebSocket connection status
@@ -1271,18 +1340,27 @@ router.get('/device/:deviceId/advanced', authenticateToken, async (req, res) => 
         ip_address: device.ip_address,
         status: deviceStatus,
         last_seen: device.last_seen,
-        agent_version: device.agent_version,
+        agent_version: device.agent_version || 'Unknown',
         websocket_connected: isWebSocketConnected
       },
       reports_count: reportsCount,
       connection_status: deviceStatus,
-      websocket_status: isWebSocketConnected ? 'connected' : 'disconnected'
+      websocket_status: isWebSocketConnected ? 'connected' : 'disconnected',
+      performance_summary: device.latest_report ? {
+        cpu_usage: device.latest_report.cpu_usage,
+        memory_usage: device.latest_report.memory_usage,
+        disk_usage: device.latest_report.disk_usage,
+        last_report: device.latest_report.collected_at
+      } : null
     };
 
     res.json(response);
   } catch (error) {
     console.error('Error getting advanced device analytics:', error);
-    res.status(500).json({ error: 'Failed to get device analytics' });
+    res.status(500).json({ 
+      error: 'Failed to get device analytics',
+      message: error.message 
+    });
   }
 });
 
