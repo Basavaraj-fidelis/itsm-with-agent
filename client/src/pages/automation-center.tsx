@@ -6,11 +6,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  Cog, 
-  Download, 
-  Play, 
-  Package, 
+import {
+  Cog,
+  Download,
+  Play,
+  Package,
   Clock,
   CheckCircle,
   XCircle,
@@ -33,22 +33,49 @@ export default function AutomationCenter() {
     queryFn: () => api.get("/api/devices").then(res => res.data)
   });
 
-  const { data: packages, isError: packagesError } = useQuery({
+  const { data: packages = [], isError: packagesError } = useQuery({
     queryKey: ["software-packages"],
-    queryFn: () => api.get("/api/automation/software-packages").then(res => res.data),
-    retry: 1,
-    onError: (error) => {
-      console.error("Error fetching software packages:", error);
-    }
+    queryFn: async () => {
+      try {
+        const response = await fetch("/api/automation/software-packages", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          },
+        });
+        if (!response.ok) {
+          console.error("Software packages API error:", response.status);
+          return [];
+        }
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error("Failed to fetch packages:", error);
+        return [];
+      }
+    },
   });
 
-  const { data: deployments, isError: deploymentsError } = useQuery({
+  const { data: deployments = [], isError: deploymentsError } = useQuery({
     queryKey: ["deployments"],
-    queryFn: () => api.get("/api/automation/deployments").then(res => res.data),
-    retry: 1,
-    onError: (error) => {
-      console.error("Error fetching deployments:", error);
-    }
+    queryFn: async () => {
+      try {
+        const response = await fetch("/api/automation/deployments", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          },
+        });
+        if (!response.ok) {
+          console.error("Deployments API error:", response.status);
+          return [];
+        }
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error("Failed to fetch deployments:", error);
+        return [];
+      }
+    },
+    refetchInterval: 5000,
   });
 
   const deployMutation = useMutation({
@@ -73,8 +100,8 @@ export default function AutomationCenter() {
   });
 
   const handleDeviceToggle = (deviceId: string) => {
-    setSelectedDevices(prev => 
-      prev.includes(deviceId) 
+    setSelectedDevices(prev =>
+      prev.includes(deviceId)
         ? prev.filter(id => id !== deviceId)
         : [...prev, deviceId]
     );
@@ -225,8 +252,8 @@ export default function AutomationCenter() {
             </div>
           </div>
 
-          <Button 
-            onClick={handleDeploy} 
+          <Button
+            onClick={handleDeploy}
             disabled={deployMutation.isPending || !selectedPackage || selectedDevices.length === 0}
             className="w-full"
           >
@@ -254,7 +281,7 @@ export default function AutomationCenter() {
               {deployments.slice(0, 10).map((deployment: any) => (
                 <div key={deployment.id} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center gap-3">
-                    {deployment.metadata?.status === "completed" ? 
+                    {deployment.metadata?.status === "completed" ?
                       <CheckCircle className="w-5 h-5 text-green-500" /> :
                       deployment.metadata?.status === "failed" ?
                       <XCircle className="w-5 h-5 text-red-500" /> :
@@ -263,7 +290,7 @@ export default function AutomationCenter() {
                     <div>
                       <p className="font-medium">{deployment.message}</p>
                       <p className="text-sm text-muted-foreground">
-                        {deployment.metadata?.package_info?.name} - 
+                        {deployment.metadata?.package_info?.name} -
                         Progress: {deployment.metadata?.progress_percentage || 0}%
                       </p>
                     </div>

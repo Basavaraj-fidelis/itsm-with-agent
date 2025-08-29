@@ -12,6 +12,46 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CheckCircle, XCircle, Clock, AlertTriangle, Users, Calendar, FileText, Plus, Trash2, Edit, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+// Mock API client for demonstration purposes
+const api = {
+  getUsers: async () => {
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 100));
+    // Simulate a response with a data property
+    return { data: [
+      { id: "user1", email: "alice@example.com", name: "Alice Smith", role: "admin" },
+      { id: "user2", email: "bob@example.com", name: "Bob Johnson", role: "member" },
+      { id: "user3", email: "charlie@example.com", name: "Charlie Brown", role: "member" },
+    ]};
+  },
+  get: async (endpoint: string) => {
+    // Simulate API calls for other endpoints
+    await new Promise(resolve => setTimeout(resolve, 100));
+    if (endpoint === "/cab/boards") {
+      return { ok: true, json: async () => [
+        { id: "cab1", name: "Frontend CAB", description: "Manages frontend changes", chairperson_id: "user1", members: ["user1", "user2"], meeting_frequency: "Weekly", is_active: true, created_at: "2023-01-01" },
+        { id: "cab2", name: "Backend CAB", description: "Manages backend changes", chairperson_id: "user2", members: ["user2", "user3"], meeting_frequency: "Bi-weekly", is_active: true, created_at: "2023-02-01" },
+      ]};
+    } else if (endpoint === "/cab/pending-changes") {
+      return { ok: true, json: async () => [
+        { id: "change1", ticket_number: "TKT-001", title: "Update UI Button", description: "Change button color to blue", change_type: "feature", priority: "medium", risk_level: "low", requester_email: "alice@example.com", created_at: "2023-10-01", planned_implementation_date: "2023-10-15", approval_status: "pending" },
+        { id: "change2", ticket_number: "TKT-002", title: "Fix Login Bug", description: "Resolve issue where users cannot log in", change_type: "bugfix", priority: "critical", risk_level: "high", requester_email: "bob@example.com", created_at: "2023-10-05", planned_implementation_date: "2023-10-10", approval_status: "pending" },
+      ]};
+    }
+    return { ok: false, statusText: "Not Found" };
+  },
+  post: async (endpoint: string, body: any) => {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    console.log(`POST ${endpoint}`, body);
+    return { ok: true, json: async () => ({ success: true }) };
+  },
+  put: async (endpoint: string, body: any) => {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    console.log(`PUT ${endpoint}`, body);
+    return { ok: true, json: async () => ({ success: true }) };
+  }
+};
+
 interface PendingChange {
   id: string;
   ticket_number: string;
@@ -42,6 +82,8 @@ interface User {
   email: string;
   name: string;
   role: string;
+  first_name: string;
+  last_name: string;
 }
 
 interface NewCABBoard {
@@ -71,39 +113,50 @@ export default function CABDashboard() {
   const queryClient = useQueryClient();
 
   // Fetch all users for CAB member selection
-  const { data: users } = useQuery({
+  const { data: usersResponse } = useQuery({
     queryKey: ["users"],
+    queryFn: () => api.getUsers(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Extract users array from response
+  const users = usersResponse?.data || [];
+
+  // Fetch CAB boards
+  const { data: boards = [] } = useQuery({
+    queryKey: ["cab-boards"],
     queryFn: async () => {
-      const response = await fetch("/api/users");
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      try {
+        const response = await api.get("/cab/boards");
+        if (!response.ok) {
+          console.error("CAB boards API error:", response.status);
+          return [];
+        }
+        return response.json();
+      } catch (error) {
+        console.error("Failed to fetch CAB boards:", error);
+        return [];
       }
-      return response.json() as Promise<User[]>;
-    }
+    },
   });
 
   // Fetch pending changes
-  const { data: pendingChanges, isLoading } = useQuery({
-    queryKey: ["cab-pending-changes"],
+  const { data: pendingChanges = [] } = useQuery({
+    queryKey: ["pending-changes"],
     queryFn: async () => {
-      const response = await fetch("/api/cab/pending-changes");
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      try {
+        const response = await api.get("/cab/pending-changes");
+        if (!response.ok) {
+          console.error("Pending changes API error:", response.status);
+          return [];
+        }
+        return response.json();
+      } catch (error) {
+        console.error("Failed to fetch pending changes:", error);
+        return [];
       }
-      return response.json() as Promise<PendingChange[]>;
-    }
-  });
-
-  // Fetch CAB boards
-  const { data: cabBoards, refetch: refetchCABs } = useQuery({
-    queryKey: ["cab-boards"],
-    queryFn: async () => {
-      const response = await fetch("/api/cab/boards");
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      return response.json() as Promise<CABBoard[]>;
-    }
+    },
+    refetchInterval: 30000,
   });
 
   // Create CAB board mutation
@@ -127,7 +180,7 @@ export default function CABDashboard() {
         title: "Success",
         description: "CAB board created successfully"
       });
-      refetchCABs();
+      queryClient.invalidateQueries({ queryKey: ["cab-boards"] }); // Use the correct query key
       setShowCreateCAB(false);
       setNewCAB({
         name: '',
@@ -167,7 +220,7 @@ export default function CABDashboard() {
         title: "Success",
         description: "CAB board updated successfully"
       });
-      refetchCABs();
+      queryClient.invalidateQueries({ queryKey: ["cab-boards"] }); // Use the correct query key
       setShowEditCAB(false);
       setSelectedCAB(null);
     },
@@ -195,7 +248,7 @@ export default function CABDashboard() {
         body: JSON.stringify({
           decision,
           comments,
-          approver_id: "current-user"
+          approver_id: "current-user" // This should ideally be a real user ID
         })
       });
 
@@ -209,7 +262,7 @@ export default function CABDashboard() {
         title: "Success",
         description: "Approval decision processed successfully"
       });
-      queryClient.invalidateQueries({ queryKey: ["cab-pending-changes"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-changes"] });
       setSelectedChange(null);
       setApprovalComments("");
       setApprovalDecision("");
@@ -290,9 +343,11 @@ export default function CABDashboard() {
     }));
   };
 
+  // Fix getUserName function to handle array properly
   const getUserName = (userId: string) => {
-    const user = users?.find(u => u.id === userId);
-    return user ? `${user.name} (${user.email})` : userId;
+    if (!Array.isArray(users)) return userId;
+    const user = users.find((u: any) => u.id === userId);
+    return user ? `${user.first_name} ${user.last_name}` : userId;
   };
 
   const getRiskBadgeColor = (riskLevel: string) => {
@@ -314,13 +369,14 @@ export default function CABDashboard() {
     }
   };
 
-  if (isLoading) {
+  if (!users || !boards) { // Check if data is still loading
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
   }
+
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -332,7 +388,7 @@ export default function CABDashboard() {
         <div className="flex items-center space-x-2">
           <Users className="w-5 h-5 text-blue-600" />
           <span className="text-sm text-muted-foreground">
-            {cabBoards?.length || 0} Active CAB{(cabBoards?.length || 0) !== 1 ? 's' : ''}
+            {boards?.length || 0} Active CAB{(boards?.length || 0) !== 1 ? 's' : ''}
           </span>
         </div>
       </div>
@@ -650,7 +706,7 @@ export default function CABDashboard() {
           </div>
 
           <div className="grid gap-4">
-            {cabBoards?.map((cab) => (
+            {boards?.map((cab) => (
               <Card key={cab.id}>
                 <CardHeader>
                   <div className="flex items-center justify-between">

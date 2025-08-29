@@ -155,13 +155,11 @@ class ApiClient {
     }
   }
 
-  async getAdvancedDeviceAnalytics(deviceId: string): Promise<any> {
+  getAdvancedDeviceAnalytics: async (deviceId: string) => {
     try {
       const response = await this.request(`/analytics/device/${deviceId}/advanced`);
       if (!response.ok) {
         console.error('Advanced analytics API error:', response.status);
-
-        // Return fallback data instead of throwing
         return {
           performance_trends: { cpu_trend: [], memory_trend: [], disk_trend: [] },
           system_health: { uptime_percentage: 0, avg_response_time: 0, error_rate: 0, availability_score: 0 },
