@@ -185,9 +185,11 @@ class WindowsCollector:
             return {}
 
     def get_usb_devices(self):
-        """Get USB storage devices on Windows"""
+        """Get USB storage devices on Windows with deduplication"""
         try:
             usb_devices = []
+            seen_serials = set()
+            seen_descriptions = set()
             
             # Get USB storage devices only
             cmd = [
@@ -211,13 +213,35 @@ class WindowsCollector:
                     desc = dev.get('FriendlyName', '').strip()
                     device_id = dev.get('InstanceId', '').strip()
                     if desc and self._is_storage_device(desc, device_id):
+                        # Extract serial number for deduplication
+                        serial = self._extract_serial_from_device_id(device_id)
+                        
+                        # Skip if we've already seen this device (by serial or description)
+                        if serial and serial in seen_serials:
+                            continue
+                        if desc in seen_descriptions:
+                            continue
+                            
+                        # Extract vendor and product info
+                        vendor_id = self._extract_vendor_id_from_device_id(device_id)
+                        product_id = self._extract_product_id_from_device_id(device_id)
+                        manufacturer = self._extract_manufacturer_from_desc(desc)
+                        
                         usb_devices.append({
-                            'description': desc, 
+                            'description': desc,
                             'device_id': device_id,
-                            'device_type': 'USB Storage'
+                            'device_type': 'USB Storage',
+                            'vendor_id': vendor_id,
+                            'product_id': product_id,
+                            'manufacturer': manufacturer,
+                            'serial_number': serial
                         })
+                        
+                        if serial:
+                            seen_serials.add(serial)
+                        seen_descriptions.add(desc)
             
-            # Also check for removable drives
+            # Also check for removable drives, but only add if not already found
             try:
                 drive_cmd = [
                     "powershell",
@@ -233,17 +257,24 @@ class WindowsCollector:
                     drives = json.loads(drive_result.stdout)
                     if isinstance(drives, dict):
                         drives = [drives]
-                    for drive in drives:
-                        device_id = drive.get('DeviceID', '')
-                        volume_name = drive.get('VolumeName', 'Removable Drive')
-                        size = drive.get('Size', 0)
-                        if device_id:
-                            size_gb = round(int(size) / (1024**3), 2) if size else 0
-                            usb_devices.append({
-                                'description': f"{volume_name} ({device_id}) - {size_gb}GB",
-                                'device_id': f"REMOVABLE_{device_id}",
-                                'device_type': 'Removable Storage'
-                            })
+                    
+                    # Only add removable drives if we don't have any USB storage devices yet
+                    if not usb_devices:
+                        for drive in drives:
+                            device_id = drive.get('DeviceID', '')
+                            volume_name = drive.get('VolumeName', 'Removable Drive')
+                            size = drive.get('Size', 0)
+                            if device_id:
+                                size_gb = round(int(size) / (1024**3), 2) if size else 0
+                                usb_devices.append({
+                                    'description': f"{volume_name} ({device_id}) - {size_gb}GB",
+                                    'device_id': f"REMOVABLE_{device_id}",
+                                    'device_type': 'Removable Storage',
+                                    'vendor_id': 'unknown',
+                                    'product_id': 'unknown',
+                                    'manufacturer': 'Unknown',
+                                    'serial_number': None
+                                })
             except Exception as e:
                 self.logger.debug(f"Error getting removable drives: {e}")
             
@@ -285,6 +316,51 @@ class WindowsCollector:
             return True
         
         return False
+
+    def _extract_serial_from_device_id(self, device_id):
+        """Extract serial number from device ID"""
+        try:
+            # Look for serial in various formats
+            if '\\' in device_id:
+                parts = device_id.split('\\')
+                for part in parts:
+                    if len(part) > 8 and not any(x in part.upper() for x in ['VID_', 'PID_', 'REV_', 'DISK&', 'USB&']):
+                        # This might be a serial number
+                        return part
+            return None
+        except Exception:
+            return None
+
+    def _extract_vendor_id_from_device_id(self, device_id):
+        """Extract vendor ID from device ID"""
+        try:
+            import re
+            match = re.search(r'VID_([0-9A-F]{4})', device_id, re.IGNORECASE)
+            return match.group(1).lower() if match else 'unknown'
+        except Exception:
+            return 'unknown'
+
+    def _extract_product_id_from_device_id(self, device_id):
+        """Extract product ID from device ID"""
+        try:
+            import re
+            match = re.search(r'PID_([0-9A-F]{4})', device_id, re.IGNORECASE)
+            return match.group(1).lower() if match else 'unknown'
+        except Exception:
+            return 'unknown'
+
+    def _extract_manufacturer_from_desc(self, description):
+        """Extract manufacturer from description"""
+        try:
+            # Common manufacturer names
+            manufacturers = ['SanDisk', 'Kingston', 'Samsung', 'Toshiba', 'Sony', 'Lexar', 'PNY', 'Corsair', 'HP', 'Dell']
+            desc_upper = description.upper()
+            for mfg in manufacturers:
+                if mfg.upper() in desc_upper:
+                    return mfg
+            return 'Unknown'
+        except Exception:
+            return 'Unknown'
 
     def get_security_info(self):
         """Get Windows security information"""

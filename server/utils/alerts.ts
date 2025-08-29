@@ -547,9 +547,45 @@ export async function generateSystemAlerts(deviceData: any): Promise<Alert[]> {
   }
 
   if (usbDevices.length > 0) {
+    // Deduplicate USB devices first
+    const deduplicatedDevices = [];
+    const seenSerials = new Set();
+    const seenDescriptions = new Set();
+    
+    for (const device of usbDevices) {
+      const serial = device.serial_number;
+      const desc = device.description || 'Unknown USB Device';
+      
+      // Skip if we've seen this serial or very similar description
+      if (serial && seenSerials.has(serial)) {
+        continue;
+      }
+      
+      // Check for similar descriptions (same device appearing multiple times)
+      const normalizedDesc = desc.toLowerCase().replace(/[^a-z0-9]/g, '');
+      let isDuplicate = false;
+      for (const seenDesc of seenDescriptions) {
+        const normalizedSeen = seenDesc.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (normalizedDesc.includes(normalizedSeen) || normalizedSeen.includes(normalizedDesc)) {
+          isDuplicate = true;
+          break;
+        }
+      }
+      
+      if (!isDuplicate) {
+        deduplicatedDevices.push(device);
+        if (serial) {
+          seenSerials.add(serial);
+        }
+        seenDescriptions.add(desc);
+      }
+    }
+
     // Filter for mass storage devices (removable drives, flash drives, etc.)
-    const massStorageDevices = usbDevices.filter(device => 
+    const massStorageDevices = deduplicatedDevices.filter(device => 
       device.device_type === 'mass_storage' || 
+      device.device_type === 'USB Storage' ||
+      device.device_type === 'Removable Storage' ||
       device.description?.toLowerCase().includes('storage') ||
       device.description?.toLowerCase().includes('drive') ||
       device.description?.toLowerCase().includes('flash') ||

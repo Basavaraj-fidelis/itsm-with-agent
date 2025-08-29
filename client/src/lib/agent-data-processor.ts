@@ -482,7 +482,51 @@ export class AgentDataProcessor {
 
     for (const location of possibleLocations) {
       if (location && Array.isArray(location) && location.length > 0) {
-        return location;
+        // USB Devices Processing with deduplication
+        const usbDevices = location;
+        const deduplicatedDevices = [];
+        const seenSerials = new Set();
+        const seenDescriptions = new Set();
+
+        for (const device of usbDevices) {
+          const serial = device.serial_number;
+          const desc = device.description || 'Unknown USB Device';
+
+          // Skip if we've seen this serial or very similar description
+          if (serial && seenSerials.has(serial)) {
+            continue;
+          }
+
+          // Check for similar descriptions (same device appearing multiple times)
+          const normalizedDesc = desc.toLowerCase().replace(/[^a-z0-9]/g, '');
+          let isDuplicate = false;
+          for (const seenDesc of seenDescriptions) {
+            const normalizedSeen = seenDesc.toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (normalizedDesc.includes(normalizedSeen) || normalizedSeen.includes(normalizedDesc)) {
+              isDuplicate = true;
+              break;
+            }
+          }
+
+          if (!isDuplicate) {
+            deduplicatedDevices.push({
+              description: desc,
+              type: device.device_type || 'Unknown',
+              vendor: device.manufacturer || device.vendor || 'Unknown',
+              vendor_id: device.vendor_id || 'unknown',
+              product_id: device.product_id || 'unknown',
+              serial_number: serial || 'N/A',
+              id: device.device_id || device.id || 'Unknown'
+            });
+
+            if (serial) {
+              seenSerials.add(serial);
+            }
+            seenDescriptions.add(desc);
+          }
+        }
+
+        return deduplicatedDevices;
       }
     }
     return [];
