@@ -876,52 +876,90 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
               </Card>
 
               {/* USB Devices */}
-              {processedData?.usb && (
+              {(processedData?.usb || usbDevices?.length > 0) && (
                 <div className="space-y-4">
                   <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100 flex items-center">
                     <Usb className="w-5 h-5 mr-2" />
-                    USB Devices ({processedData.usb.total_devices})
+                    USB Devices ({processedData?.usb?.total_devices || usbDevices.length})
                   </h4>
                   <div className="grid grid-cols-1 gap-4">
-                    {processedData.usb.devices.map((device: any, index: number) => (
-                      <div key={index} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h5 className="font-medium text-gray-900 dark:text-gray-100">{device.description}</h5>
-                            <div className="space-y-2 mt-2">
-                              <div className="grid grid-cols-2 gap-4 text-sm">
-                                <div>
-                                  <span className="text-gray-500 dark:text-gray-400">Type:</span>
-                                  <span className="ml-2 text-gray-900 dark:text-gray-100">{device.type}</span>
-                                </div>
-                                <div>
-                                  <span className="text-gray-500 dark:text-gray-400">Manufacturer:</span>
-                                  <span className="ml-2 text-gray-900 dark:text-gray-100">{device.vendor}</span>
-                                </div>
-                                {device.vendor_id && device.vendor_id !== 'unknown' && (
+                    {(processedData?.usb?.devices || usbDevices).map((device: any, index: number) => {
+                      // Extract vendor/product IDs if not already present
+                      const vendorId = device.vendor_id || AgentDataProcessor.extractVendorIdFromDeviceId(device.device_id) || 'unknown';
+                      const productId = device.product_id || AgentDataProcessor.extractProductIdFromDeviceId(device.device_id) || 'unknown';
+                      const vendor = device.vendor || device.manufacturer || AgentDataProcessor.getVendorNameFromId(vendorId) || 'Unknown';
+                      
+                      return (
+                        <div key={index} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h5 className="font-medium text-gray-900 dark:text-gray-100">
+                                  {device.description || 'Unknown USB Device'}
+                                </h5>
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                  device.device_type === 'USB Storage' || device.device_type === 'Removable Storage' 
+                                    ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300'
+                                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
+                                }`}>
+                                  {device.device_type === 'USB Storage' ? 'Storage' : 
+                                   device.device_type === 'Removable Storage' ? 'Removable' :
+                                   device.type || 'Other'}
+                                </span>
+                              </div>
+                              <div className="space-y-2">
+                                <div className="grid grid-cols-2 gap-4 text-sm">
                                   <div>
-                                    <span className="text-gray-500 dark:text-gray-400">Vendor ID:</span>
-                                    <span className="ml-2 text-gray-900 dark:text-gray-100">{device.vendor_id}</span>
+                                    <span className="text-gray-500 dark:text-gray-400">Manufacturer:</span>
+                                    <span className="ml-2 text-gray-900 dark:text-gray-100 font-mono">
+                                      {vendor}
+                                    </span>
                                   </div>
-                                )}
-                                {device.product_id && device.product_id !== 'unknown' && (
                                   <div>
-                                    <span className="text-gray-500 dark:text-gray-400">Product ID:</span>
-                                    <span className="ml-2 text-gray-900 dark:text-gray-100">{device.product_id}</span>
+                                    <span className="text-gray-500 dark:text-gray-400">Device Type:</span>
+                                    <span className="ml-2 text-gray-900 dark:text-gray-100">
+                                      {device.device_type || device.type || 'Unknown'}
+                                    </span>
                                   </div>
-                                )}
-                                {device.serial_number && device.serial_number !== 'N/A' && (
-                                  <div>
-                                    <span className="text-gray-500 dark:text-gray-400">Serial:</span>
-                                    <span className="ml-2 text-gray-900 dark:text-gray-100">{device.serial_number}</span>
+                                  {vendorId && vendorId !== 'unknown' && (
+                                    <div>
+                                      <span className="text-gray-500 dark:text-gray-400">Vendor ID:</span>
+                                      <span className="ml-2 text-gray-900 dark:text-gray-100 font-mono">
+                                        {vendorId.toUpperCase()}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {productId && productId !== 'unknown' && (
+                                    <div>
+                                      <span className="text-gray-500 dark:text-gray-400">Product ID:</span>
+                                      <span className="ml-2 text-gray-900 dark:text-gray-100 font-mono">
+                                        {productId.toUpperCase()}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {device.serial_number && device.serial_number !== 'N/A' && (
+                                    <div className="col-span-2">
+                                      <span className="text-gray-500 dark:text-gray-400">Serial Number:</span>
+                                      <span className="ml-2 text-gray-900 dark:text-gray-100 font-mono text-xs">
+                                        {device.serial_number}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                                {device.device_id && (
+                                  <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                                    <span className="text-gray-500 dark:text-gray-400 text-xs">Device ID:</span>
+                                    <div className="text-gray-700 dark:text-gray-300 font-mono text-xs mt-1 break-all">
+                                      {device.device_id}
+                                    </div>
                                   </div>
                                 )}
                               </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

@@ -509,16 +509,7 @@ export class AgentDataProcessor {
           }
 
           if (!isDuplicate) {
-            deduplicatedDevices.push({
-              description: desc,
-              type: device.device_type || 'Unknown',
-              vendor: device.manufacturer || device.vendor || 'Unknown',
-              vendor_id: device.vendor_id || 'unknown',
-              product_id: device.product_id || 'unknown',
-              serial_number: serial || 'N/A',
-              id: device.device_id || device.id || 'Unknown'
-            });
-
+            deduplicatedDevices.push(device);
             if (serial) {
               seenSerials.add(serial);
             }
@@ -526,10 +517,100 @@ export class AgentDataProcessor {
           }
         }
 
-        return deduplicatedDevices;
+        // Process and enhance USB devices
+        return deduplicatedDevices.map(device => ({
+          ...device,
+          type: this.categorizeUSBDevice(device),
+          vendor: device.manufacturer || device.vendor || this.getVendorNameFromId(device.vendor_id || this.extractVendorIdFromDeviceId(device.device_id)) || 'Unknown',
+          vendor_id: device.vendor_id || this.extractVendorIdFromDeviceId(device.device_id) || 'unknown',
+          product_id: device.product_id || this.extractProductIdFromDeviceId(device.device_id) || 'unknown',
+          serial_number: device.serial_number || this.extractSerialFromDeviceId(device.device_id) || 'N/A'
+        }));
       }
     }
+
     return [];
+  }
+
+  private static extractVendorIdFromDeviceId(deviceId: string): string {
+    if (!deviceId) return 'unknown';
+    // Handle different USB device ID formats
+    const vidMatch = deviceId.match(/VID_([0-9A-F]{4})/i);
+    if (vidMatch) return vidMatch[1].toLowerCase();
+
+    // Handle USBSTOR format
+    const usbstorMatch = deviceId.match(/VEN_([^&]+)/i);
+    if (usbstorMatch) return usbstorMatch[1].toLowerCase();
+
+    return 'unknown';
+  }
+
+  private static extractProductIdFromDeviceId(deviceId: string): string {
+    if (!deviceId) return 'unknown';
+    // Handle different USB device ID formats
+    const pidMatch = deviceId.match(/PID_([0-9A-F]{4})/i);
+    if (pidMatch) return pidMatch[1].toLowerCase();
+
+    // Handle USBSTOR format
+    const prodMatch = deviceId.match(/PROD_([^&]+)/i);
+    if (prodMatch) return prodMatch[1].toLowerCase();
+
+    return 'unknown';
+  }
+
+  private static extractSerialFromDeviceId(deviceId: string): string {
+    if (!deviceId) return 'N/A';
+    // Extract serial from device ID patterns
+    const serialMatch = deviceId.match(/\\([0-9A-F]+)&?[0-9]*$/i);
+    return serialMatch ? serialMatch[1] : 'N/A';
+  }
+
+  private static getVendorNameFromId(vendorId: string): string {
+    const vendors: { [key: string]: string } = {
+      '346d': 'Generic USB',
+      'vendorco': 'VendorCo',
+      '0781': 'SanDisk',
+      '058f': 'Alcor Micro',
+      '0951': 'Kingston Technology',
+      '090c': 'Silicon Motion',
+      '13fe': 'Kingston Technology',
+      '1f75': 'Innostor Technology',
+      '0930': 'Toshiba',
+      '05e3': 'Genesys Logic',
+      '152d': 'JMicron Technology',
+      '174c': 'ASMedia Technology',
+      '0bda': 'Realtek Semiconductor'
+    };
+
+    return vendors[vendorId?.toLowerCase()] || 'Unknown';
+  }
+
+  private static categorizeUSBDevice(device: any): string {
+    const description = device.description?.toLowerCase() || '';
+    const type = device.device_type?.toLowerCase() || '';
+
+    if (type.includes('storage') || description.includes('disk') || description.includes('removable')) {
+      return 'Storage';
+    }
+    if (description.includes('keyboard')) {
+      return 'Input Device';
+    }
+    if (description.includes('mouse')) {
+      return 'Input Device';
+    }
+    if (description.includes('camera') || description.includes('webcam')) {
+      return 'Multimedia Device';
+    }
+    if (description.includes('audio') || description.includes('speaker') || description.includes('microphone')) {
+      return 'Audio Device';
+    }
+    if (description.includes('network') || description.includes('ethernet') || description.includes('wifi')) {
+      return 'Network Device';
+    }
+    if (description.includes('hub')) {
+      return 'Hub';
+    }
+    return 'Unknown';
   }
 
   static extractProcesses(rawData: any): any[] {

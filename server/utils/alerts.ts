@@ -138,7 +138,7 @@ export class AlertUtils {
 
       const allThresholds = systemConfig.getAlertThresholds();
       const thresholds = allThresholds[metric as keyof typeof allThresholds];
-      
+
       if (!thresholds) {
         console.warn(`No thresholds found for metric: ${metric}`);
       }
@@ -254,7 +254,7 @@ async function resolveImprovedAlerts(deviceData: any, existingAlerts: any[]) {
 
     // Resolve CPU alerts if usage is now below threshold (with hysteresis)
     if (alertMessage.includes('CPU') && alert.severity !== AlertSeverity.OK) {
-      const cpuUsage = deviceData.metrics?.cpu_usage || deviceData.cpu_usage || deviceData.raw_data?.cpu_usage;
+      const cpuUsage = deviceData.metrics?.cpu_usage || deviceData.cpu_usage || deviceData.raw_data?.cpu_usage || deviceData.raw_data?.hardware?.cpu?.usage_percentage || deviceData.raw_data?.system_health?.metrics?.cpu_percent;
       if (cpuUsage !== undefined && cpuUsage < thresholds.cpu.warning - 5) { // Hysteresis of 5%
         shouldResolve = true;
       }
@@ -262,7 +262,7 @@ async function resolveImprovedAlerts(deviceData: any, existingAlerts: any[]) {
 
     // Resolve memory alerts if usage is now below threshold (with hysteresis)
     if (alertMessage.includes('Memory') && alert.severity !== AlertSeverity.OK) {
-      const memoryUsage = deviceData.metrics?.memory_usage || deviceData.memory_usage || deviceData.raw_data?.memory_usage;
+      const memoryUsage = deviceData.metrics?.memory_usage || deviceData.memory_usage || deviceData.raw_data?.memory_usage || deviceData.raw_data?.hardware?.memory?.usage_percentage || deviceData.raw_data?.system_health?.memory_pressure?.memory_usage_percent;
       if (memoryUsage !== undefined && memoryUsage < thresholds.memory.warning - 5) { // Hysteresis of 5%
         shouldResolve = true;
       }
@@ -283,7 +283,7 @@ async function resolveImprovedAlerts(deviceData: any, existingAlerts: any[]) {
     }
 
     if (shouldResolve && alert.is_active) {
-      console.log(`Auto-resolving alert ${alert.id} (${alert.severity}): ${alertMessage}`);
+      console.log(`Auto-resolving alert ${alert.id} (${alert.severity}): ${alert.message}`);
 
       await db
         .update(systemAlerts)
@@ -344,7 +344,7 @@ export async function generateSystemAlerts(deviceData: any): Promise<Alert[]> {
   if (cpuUsage !== undefined && typeof cpuUsage === 'number') {
     const cpuThresholds = thresholds.cpu;
     const currentSeverity = AlertUtils.determineSeverity(cpuUsage, cpuThresholds);
-    const alertKey = `performance_${currentSeverity}_cpu_${deviceId}`;
+    const alertKey = `performance_cpu_${deviceId}`;
     const existingAlert = existingAlertMap.get(`performance_cpu_${deviceId}`); // Look for any CPU alert regardless of severity
 
     if (currentSeverity !== AlertSeverity.OK) {
@@ -391,8 +391,14 @@ export async function generateSystemAlerts(deviceData: any): Promise<Alert[]> {
   if (memoryUsage !== undefined && typeof memoryUsage === 'number') {
     const memoryThresholds = thresholds.memory;
     const currentSeverity = AlertUtils.determineSeverity(memoryUsage, memoryThresholds);
-    const alertKey = `performance_memory_${deviceId}`;
-    const existingAlert = existingAlertMap.get(alertKey);
+    
+    // Fix memory alert deduplication logic
+    const existingAlert = existingAlerts.find(a => 
+      a.device_id === deviceId && 
+      a.category === 'performance' && 
+      a.message.includes('Memory Usage') &&
+      a.is_active === true
+    );
 
     console.log(`Memory Alert Check - Device: ${deviceHostname}, Usage: ${memoryUsage}%, Severity: ${currentSeverity}, Thresholds: W:${memoryThresholds.warning}%, H:${memoryThresholds.high}%, C:${memoryThresholds.critical}%`);
 
@@ -534,7 +540,7 @@ export async function generateSystemAlerts(deviceData: any): Promise<Alert[]> {
   // --- Security Alerts ---
   // USB Device Detection - Check multiple possible locations
   let usbDevices = [];
-  
+
   // Check various possible locations for USB data
   if (deviceData.usb_devices && Array.isArray(deviceData.usb_devices)) {
     usbDevices = deviceData.usb_devices;
@@ -551,16 +557,16 @@ export async function generateSystemAlerts(deviceData: any): Promise<Alert[]> {
     const deduplicatedDevices = [];
     const seenSerials = new Set();
     const seenDescriptions = new Set();
-    
+
     for (const device of usbDevices) {
       const serial = device.serial_number;
       const desc = device.description || 'Unknown USB Device';
-      
+
       // Skip if we've seen this serial or very similar description
       if (serial && seenSerials.has(serial)) {
         continue;
       }
-      
+
       // Check for similar descriptions (same device appearing multiple times)
       const normalizedDesc = desc.toLowerCase().replace(/[^a-z0-9]/g, '');
       let isDuplicate = false;
@@ -571,7 +577,7 @@ export async function generateSystemAlerts(deviceData: any): Promise<Alert[]> {
           break;
         }
       }
-      
+
       if (!isDuplicate) {
         deduplicatedDevices.push(device);
         if (serial) {
@@ -599,7 +605,7 @@ export async function generateSystemAlerts(deviceData: any): Promise<Alert[]> {
 
       if (!existingUSBAlert) {
         const message = `USB storage device(s) detected - ${massStorageDevices.length} storage device(s) connected`;
-        
+
         alertsToCreate.push({
           id: uuidv4(),
           device_id: deviceId,
@@ -629,7 +635,7 @@ export async function generateSystemAlerts(deviceData: any): Promise<Alert[]> {
 
       if (!existingGeneralAlert) {
         const message = `Multiple USB devices detected - ${usbDevices.length} total USB devices connected`;
-        
+
         alertsToCreate.push({
           id: uuidv4(),
           device_id: deviceId,
@@ -672,7 +678,7 @@ export async function generateSystemAlerts(deviceData: any): Promise<Alert[]> {
       const correlation = await AlertCorrelationEngine.findCorrelatedAlerts(alert);
       if (correlation) {
         console.log(`Found correlation for alert ${alert.title}: ${correlation.correlatedAlerts.length} related alerts`);
-        
+
         // Add correlation info to metadata
         alert.metadata = {
           ...alert.metadata,
@@ -755,12 +761,12 @@ const MAX_ALERTS_PER_MINUTE = 10;
 function checkRateLimit(deviceId: string): boolean {
   const now = Date.now();
   const rateData = alertRateLimit.get(deviceId);
-  
+
   if (!rateData || now - rateData.lastReset > RATE_LIMIT_WINDOW) {
     alertRateLimit.set(deviceId, { count: 0, lastReset: now });
     return true;
   }
-  
+
   return rateData.count < MAX_ALERTS_PER_MINUTE;
 }
 
@@ -780,14 +786,14 @@ function incrementRateLimit(deviceId: string): void {
 export async function processBatchAlerts(devicesData: any[]): Promise<{ processed: number; created: number; errors: string[] }> {
   const results = { processed: 0, created: 0, errors: [] as string[] };
   const batchSize = 5; // Process 5 devices at a time
-  
+
   for (let i = 0; i < devicesData.length; i += batchSize) {
     const batch = devicesData.slice(i, i + batchSize);
     const batchPromises = batch.map(deviceData => processAlertsForDevice(deviceData));
-    
+
     try {
       const batchResults = await Promise.allSettled(batchPromises);
-      
+
       batchResults.forEach((result, index) => {
         results.processed++;
         if (result.status === 'fulfilled') {
@@ -803,14 +809,14 @@ export async function processBatchAlerts(devicesData: any[]): Promise<{ processe
       console.error('Critical batch processing error:', error);
     }
   }
-  
+
   console.log(`Batch processing complete: ${results.processed} processed, ${results.created} alerts created, ${results.errors.length} errors`);
   return results;
 }
 
 export async function processAlertsForDevice(deviceData: any): Promise<any[]> {
   const correlationId = `${deviceData.id}_${Date.now()}`;
-  
+
   try {
     // Rate limiting check
     if (!checkRateLimit(deviceData.id)) {
@@ -819,7 +825,7 @@ export async function processAlertsForDevice(deviceData: any): Promise<any[]> {
     }
 
     console.log(`[${correlationId}] Alert processing start for device: ${deviceData.hostname || deviceData.id}`);
-    
+
     // Validate device data
     if (!deviceData.id) {
       throw new Error('Device ID is required');
@@ -829,7 +835,7 @@ export async function processAlertsForDevice(deviceData: any): Promise<any[]> {
 
     if (alerts.length > 0) {
       incrementRateLimit(deviceData.id);
-      
+
       // Batch insert alerts using transaction
       const alertsToInsert = alerts.map(alert => ({
         id: uuidv4(),
@@ -860,7 +866,7 @@ export async function processAlertsForDevice(deviceData: any): Promise<any[]> {
 
     console.log(`[${correlationId}] Processing complete: ${alerts.length} alerts created`);
     return alerts;
-    
+
   } catch (error) {
     console.error(`[${correlationId}] Alert processing error:`, error);
     throw error; // Re-throw for batch processing error handling
