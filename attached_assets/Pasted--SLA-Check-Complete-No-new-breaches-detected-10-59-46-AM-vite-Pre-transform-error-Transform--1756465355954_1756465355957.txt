@@ -1,0 +1,72 @@
+
+✅ SLA Check Complete: No new breaches detected
+10:59:46 AM [vite] Pre-transform error: Transform failed with 1 error:
+/home/runner/workspace/client/src/lib/api.ts:158:36: ERROR: Expected ";" but found "("
+10:59:46 AM [vite] Pre-transform error: Transform failed with 1 error:
+/home/runner/workspace/client/src/lib/api.ts:158:36: ERROR: Expected ";" but found "(" (x2)
+10:59:46 AM [vite] Pre-transform error: Transform failed with 1 error:
+/home/runner/workspace/client/src/lib/api.ts:158:36: ERROR: Expected ";" but found "(" (x3)
+10:59:46 AM [vite] Pre-transform error: Transform failed with 1 error:
+/home/runner/workspace/client/src/lib/api.ts:158:36: ERROR: Expected ";" but found "(" (x4)
+10:59:46 AM [vite] Pre-transform error: Transform failed with 1 error:
+/home/runner/workspace/client/src/lib/api.ts:158:36: ERROR: Expected ";" but found "(" (x5)
+10:59:46 AM [vite] Pre-transform error: Transform failed with 1 error:
+/home/runner/workspace/client/src/lib/api.ts:158:36: ERROR: Expected ";" but found "(" (x6)
+10:59:46 AM [vite] Pre-transform error: Transform failed with 1 error:
+/home/runner/workspace/client/src/lib/api.ts:158:36: ERROR: Expected ";" but found "(" (x7)
+10:59:47 AM [vite] Pre-transform error: Transform failed with 1 error:
+/home/runner/workspace/client/src/lib/api.ts:158:36: ERROR: Expected ";" but found "(" (x8)
+10:59:47 AM [vite] Pre-transform error: Transform failed with 1 error:
+/home/runner/workspace/client/src/lib/api.ts:158:36: ERROR: Expected ";" but found "(" (x9)
+10:59:47 AM [vite] Pre-transform error: Transform failed with 1 error:
+/home/runner/workspace/client/src/lib/api.ts:158:36: ERROR: Expected ";" but found "(" (x10)
+10:59:47 AM [vite] Pre-transform error: Transform failed with 1 error:
+/home/runner/workspace/client/src/lib/api.ts:158:36: ERROR: Expected ";" but found "(" (x11)
+10:59:47 AM [vite] Pre-transform error: Transform failed with 1 error:
+/home/runner/workspace/client/src/lib/api.ts:158:36: ERROR: Expected ";" but found "(" (x12)
+10:59:47 AM [vite] Internal server error: Transform failed with 1 error:
+/home/runner/workspace/client/src/lib/api.ts:158:36: ERROR: Expected ";" but found "("
+  Plugin: vite:esbuild
+  File: /home/runner/workspace/client/src/lib/api.ts:158:36
+  
+  Expected ";" but found "("
+  156|    }
+  157|  
+  158|    getAdvancedDeviceAnalytics: async (deviceId: string) => {
+     |                                      ^
+  159|      try {
+  160|        const response = await this.request(`/analytics/device/${deviceId}/advanced`);
+  
+      at failureErrorWithLog (/home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:1472:15)
+      at /home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:755:50
+      at responseCallbacks.<computed> (/home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:622:9)
+      at handleIncomingPacket (/home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:677:12)
+      at Socket.readFromStdout (/home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:600:7)
+      at Socket.emit (node:events:524:28)
+      at addChunk (node:internal/streams/readable:561:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+      at Readable.push (node:internal/streams/readable:392:5)
+      at Pipe.onStreamRead (node:internal/stream_base_commons:191:23)
+10:59:48 AM [vite] Internal server error: Transform failed with 1 error:
+/home/runner/workspace/client/src/lib/api.ts:158:36: ERROR: Expected ";" but found "("
+  Plugin: vite:esbuild
+  File: /home/runner/workspace/client/src/lib/api.ts:158:36
+  
+  Expected ";" but found "("
+  156|    }
+  157|  
+  158|    getAdvancedDeviceAnalytics: async (deviceId: string) => {
+     |                                      ^
+  159|      try {
+  160|        const response = await this.request(`/analytics/device/${deviceId}/advanced`);
+  
+      at failureErrorWithLog (/home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:1472:15)
+      at /home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:755:50
+      at responseCallbacks.<computed> (/home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:622:9)
+      at handleIncomingPacket (/home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:677:12)
+      at Socket.readFromStdout (/home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:600:7)
+      at Socket.emit (node:events:524:28)
+      at addChunk (node:internal/streams/readable:561:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+      at Readable.push (node:internal/streams/readable:392:5)
+      at Pipe.onStreamRead (node:internal/stream_base_commons:191:23) (x2)
