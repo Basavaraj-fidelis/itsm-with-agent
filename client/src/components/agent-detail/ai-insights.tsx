@@ -102,6 +102,20 @@ export function AIInsights({ agent }: AIInsightsProps) {
     // 2. Memory Pressure Analysis
     if (memoryUsage > 80) {
       const memoryPressure = systemHealth.memory_pressure?.pressure_level || 'unknown';
+      
+      aiInsights.push({
+        type: 'performance',
+        severity: memoryUsage > 90 ? 'high' : 'medium',
+        title: 'High Memory Usage Detected',
+        description: `Memory usage at ${memoryUsage.toFixed(1)}%. ${memoryPressure !== 'unknown' ? `Pressure level: ${memoryPressure}` : ''}`,
+        recommendation: 'Consider restarting high memory processes or adding more RAM.',
+        confidence: 0.85,
+        trend: 'up',
+        metric: 'Memory',
+        details: `Memory usage: ${memoryUsage.toFixed(1)}%. Available: ${((100 - memoryUsage) * (rawData?.hardware?.memory?.total || 0) / 100 / 1024 / 1024 / 1024).toFixed(1)} GB`,
+        timestamp: new Date().toISOString()
+      });
+    }
 
       aiInsights.push({
         type: 'performance',

@@ -118,7 +118,7 @@ export function getAlertLevel(category: string, value: number): AlertLevel {
   // Normalize category names to match ALERT_THRESHOLDS keys
   const normalizedCategory = category.toLowerCase().replace('_usage', '');
   let categoryKey: string;
-  
+
   // Map categories to the correct threshold keys
   switch (normalizedCategory) {
     case 'cpu':

@@ -241,6 +241,8 @@ class AIService {
 
     if (memoryValues.length > 0) {
       const latestMemoryUsage = memoryValues[0]; // Assuming reports are ordered latest first
+      console.log(`AI Memory Analysis - Device: ${deviceId}, Usage: ${latestMemoryUsage}%, Threshold: ${ALERT_THRESHOLDS.WARNING.memory_usage}%`);
+      
       if (latestMemoryUsage > ALERT_THRESHOLDS.WARNING.memory_usage) {
         const newSeverity = latestMemoryUsage > ALERT_THRESHOLDS.CRITICAL.memory_usage ? 'critical' : latestMemoryUsage > ALERT_THRESHOLDS.HIGH.memory_usage ? 'high' : 'medium';
         const existingAlert = existingAlerts.find(a => a.metadata?.metric === 'memory' && a.metadata?.alert_type === 'usage');
@@ -257,6 +259,7 @@ class AIService {
             },
             created_at: new Date()
           });
+          console.log(`AI Memory Analysis - Updated insight for ${deviceId}: ${latestMemoryUsage}%`);
         } else if (!existingAlert) {
           newInsights.push({
             id: `memory-usage-${deviceId}`,
@@ -270,7 +273,10 @@ class AIService {
             metadata: { current_usage: latestMemoryUsage, metric: 'memory', alert_type: 'usage' },
             created_at: new Date()
           });
+          console.log(`AI Memory Analysis - Created new insight for ${deviceId}: ${latestMemoryUsage}%`);
         }
+      } else {
+        console.log(`AI Memory Analysis - Memory usage ${latestMemoryUsage}% is below warning threshold ${ALERT_THRESHOLDS.WARNING.memory_usage}%`);
       }
     }
 

@@ -1432,20 +1432,6 @@ ipconfig /flushdns
 3. Click Install and wait for completion
 4. Restart if prompted
 
-### Business Applications
-- **Microsoft Office**: Available through Office 365 portal
-- **Adobe Creative Suite**: Request through IT ticket
-- **Development Tools**: Requires manager approval
-- **Browser Extensions**: Check approved list first
-
-## Software Updates
-
-### Windows Updates
-- Enable automatic updates (recommended)
-- Manual check: Settings > Update & Security
-- Critical updates install immediately
-- Feature updates require IT approval
-
 ### Application Updates
 - Most business apps update automatically
 - Adobe/Office apps: Update through respective clients

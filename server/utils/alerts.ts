@@ -391,8 +391,10 @@ export async function generateSystemAlerts(deviceData: any): Promise<Alert[]> {
   if (memoryUsage !== undefined && typeof memoryUsage === 'number') {
     const memoryThresholds = thresholds.memory;
     const currentSeverity = AlertUtils.determineSeverity(memoryUsage, memoryThresholds);
-    const alertKey = `performance_${currentSeverity}_memory_${deviceId}`;
-    const existingAlert = existingAlertMap.get(`performance_memory_${deviceId}`);
+    const alertKey = `performance_memory_${deviceId}`;
+    const existingAlert = existingAlertMap.get(alertKey);
+
+    console.log(`Memory Alert Check - Device: ${deviceHostname}, Usage: ${memoryUsage}%, Severity: ${currentSeverity}, Thresholds: W:${memoryThresholds.warning}%, H:${memoryThresholds.high}%, C:${memoryThresholds.critical}%`);
 
     if (currentSeverity !== AlertSeverity.OK) {
       const message = AlertUtils.buildPerformanceMessage('memory', memoryUsage, currentSeverity);
@@ -412,7 +414,7 @@ export async function generateSystemAlerts(deviceData: any): Promise<Alert[]> {
           metadata: metadata
         });
         console.log(`Created Memory alert (${currentSeverity}) for ${deviceHostname}: ${memoryUsage.toFixed(1)}%`);
-      } else if (AlertUtils.shouldUpdateAlert(existingAlert, memoryUsage, 'memory')) {
+      } else if (AlertUtils.shouldUpdateAlert(existingAlert, memoryUsage, currentSeverity, 'memory')) {
         await updateExistingAlert(existingAlert.id, {
           severity: currentSeverity,
           message: message,
