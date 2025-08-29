@@ -211,7 +211,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
     systemInfo = {},
     networkInfo = {},
     hardwareInfo = {},
-    usbDevices = [],
+    usbDevices: extractedUsbDevices = [], // Rename to avoid conflict with fetched usbHistory
     processes = [],
     software = [],
     storage = [],
@@ -876,85 +876,67 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
               </Card>
 
               {/* USB Devices */}
-              {(processedData?.usb || usbDevices?.length > 0) && (
+              {usbDevices && usbDevices.length > 0 && (
                 <div className="space-y-4">
                   <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100 flex items-center">
                     <Usb className="w-5 h-5 mr-2" />
-                    USB Devices ({processedData?.usb?.total_devices || usbDevices.length})
+                    USB Devices ({usbDevices.length})
                   </h4>
                   <div className="grid grid-cols-1 gap-4">
-                    {(processedData?.usb?.devices || usbDevices).map((device: any, index: number) => {
+                    {usbDevices.map((device: any, index: number) => {
                       // Extract vendor/product IDs if not already present
                       const vendorId = device.vendor_id || AgentDataProcessor.extractVendorIdFromDeviceId(device.device_id) || 'unknown';
                       const productId = device.product_id || AgentDataProcessor.extractProductIdFromDeviceId(device.device_id) || 'unknown';
                       const vendor = device.vendor || device.manufacturer || AgentDataProcessor.getVendorNameFromId(vendorId) || 'Unknown';
-                      
+
                       return (
-                        <div key={index} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border">
+                        <div key={`usb-${device.device_id || index}`} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <h5 className="font-medium text-gray-900 dark:text-gray-100">
-                                  {device.description || 'Unknown USB Device'}
-                                </h5>
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                  device.device_type === 'USB Storage' || device.device_type === 'Removable Storage' 
-                                    ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300'
-                                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
-                                }`}>
-                                  {device.device_type === 'USB Storage' ? 'Storage' : 
-                                   device.device_type === 'Removable Storage' ? 'Removable' :
-                                   device.type || 'Other'}
-                                </span>
-                              </div>
-                              <div className="space-y-2">
-                                <div className="grid grid-cols-2 gap-4 text-sm">
+                              <h5 className="font-medium text-gray-900 dark:text-gray-100">
+                                {device.description || 'Unknown USB Device'}
+                              </h5>
+                              <div className="mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                                <div className="grid grid-cols-2 gap-4">
                                   <div>
-                                    <span className="text-gray-500 dark:text-gray-400">Manufacturer:</span>
-                                    <span className="ml-2 text-gray-900 dark:text-gray-100 font-mono">
-                                      {vendor}
-                                    </span>
+                                    <span className="font-medium">Manufacturer:</span>
+                                    <span className="ml-2">{vendor}</span>
                                   </div>
                                   <div>
-                                    <span className="text-gray-500 dark:text-gray-400">Device Type:</span>
-                                    <span className="ml-2 text-gray-900 dark:text-gray-100">
-                                      {device.device_type || device.type || 'Unknown'}
-                                    </span>
+                                    <span className="font-medium">Device Type:</span>
+                                    <span className="ml-2">{device.device_type || device.type || 'Unknown'}</span>
                                   </div>
-                                  {vendorId && vendorId !== 'unknown' && (
-                                    <div>
-                                      <span className="text-gray-500 dark:text-gray-400">Vendor ID:</span>
-                                      <span className="ml-2 text-gray-900 dark:text-gray-100 font-mono">
-                                        {vendorId.toUpperCase()}
-                                      </span>
-                                    </div>
-                                  )}
-                                  {productId && productId !== 'unknown' && (
-                                    <div>
-                                      <span className="text-gray-500 dark:text-gray-400">Product ID:</span>
-                                      <span className="ml-2 text-gray-900 dark:text-gray-100 font-mono">
-                                        {productId.toUpperCase()}
-                                      </span>
-                                    </div>
-                                  )}
-                                  {device.serial_number && device.serial_number !== 'N/A' && (
-                                    <div className="col-span-2">
-                                      <span className="text-gray-500 dark:text-gray-400">Serial Number:</span>
-                                      <span className="ml-2 text-gray-900 dark:text-gray-100 font-mono text-xs">
-                                        {device.serial_number}
-                                      </span>
-                                    </div>
-                                  )}
+                                  <div>
+                                    <span className="font-medium">Vendor ID:</span>
+                                    <span className="ml-2">{vendorId}</span>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Product ID:</span>
+                                    <span className="ml-2">{productId}</span>
+                                  </div>
                                 </div>
-                                {device.device_id && (
-                                  <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                                    <span className="text-gray-500 dark:text-gray-400 text-xs">Device ID:</span>
-                                    <div className="text-gray-700 dark:text-gray-300 font-mono text-xs mt-1 break-all">
-                                      {device.device_id}
-                                    </div>
+                                {device.serial_number && device.serial_number !== 'N/A' && (
+                                  <div className="mt-2">
+                                    <span className="font-medium">Serial Number:</span>
+                                    <span className="ml-2">{device.serial_number}</span>
+                                  </div>
+                                )}
+                                {device.size && (
+                                  <div>
+                                    <span className="font-medium">Size:</span>
+                                    <span className="ml-2">{device.size}</span>
                                   </div>
                                 )}
                               </div>
+                            </div>
+                            <div className="ml-4">
+                              <Badge variant={
+                                device.device_type === 'USB Storage' || device.device_type === 'mass_storage' ? 'destructive' :
+                                device.device_type === 'keyboard' || device.device_type === 'mouse' ? 'default' :
+                                'secondary'
+                              }>
+                                {device.type || device.device_type || 'Other'}
+                              </Badge>
                             </div>
                           </div>
                         </div>
@@ -980,58 +962,34 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                               {device.description || 'Unknown USB Device'}
                             </h5>
                             <div className="mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                              <div className="flex justify-between">
-                                <span>Manufacturer:</span>
-                                <span className="font-medium">{device.manufacturer || 'Unknown'}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span>Device Type:</span>
-                                <span className="font-medium capitalize">{device.device_type?.replace('_', ' ') || 'Unknown'}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span>Vendor ID:</span>
-                                <span className="font-medium">{device.vendor_id || 'Unknown'}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span>Product ID:</span>
-                                <span className="font-medium">{device.product_id || 'Unknown'}</span>
-                              </div>
-                              {device.serial_number && (
-                                <div className="flex justify-between">
-                                  <span>Serial Number:</span>
-                                  <span className="font-medium">{device.serial_number}</span>
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <span className="font-medium">Manufacturer:</span>
+                                  <span className="ml-2">{device.manufacturer || 'Unknown'}</span>
                                 </div>
-                              )}
-                              {device.mount_point && (
-                                <div className="flex justify-between">
-                                  <span>Mount Point:</span>
-                                  <span className="font-medium">{device.mount_point}</span>
+                                <div>
+                                  <span className="font-medium">Device Type:</span>
+                                  <span className="ml-2">{device.device_type || 'Unknown'}</span>
                                 </div>
-                              )}
-                              {device.size && (
-                                <div className="flex justify-between">
-                                  <span>Size:</span>
-                                  <span className="font-medium">{(device.size / (1024**3)).toFixed(2)} GB</span>
+                                <div>
+                                  <span className="font-medium">Vendor ID:</span>
+                                  <span className="ml-2">{device.vendor_id || 'Unknown'}</span>
                                 </div>
-                              )}
+                                <div>
+                                  <span className="font-medium">Product ID:</span>
+                                  <span className="ml-2">{device.product_id || 'Unknown'}</span>
+                                </div>
+                              </div>
                             </div>
                           </div>
-                          <div className="ml-4 flex-shrink-0">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              device.device_type === 'mass_storage' 
-                                ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300'
-                                : device.device_type === 'keyboard' || device.device_type === 'mouse'
-                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-                                : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
-                            }`}>
-                              {device.device_type === 'mass_storage' ? 'Storage' : 
-                               device.device_type === 'keyboard' ? 'Keyboard' :
-                               device.device_type === 'mouse' ? 'Mouse' :
-                               device.device_type === 'webcam' ? 'Camera' :
-                               device.device_type === 'audio' ? 'Audio' :
-                               device.device_type === 'network' ? 'Network' :
-                               'Other'}
-                            </span>
+                          <div className="ml-4">
+                            <Badge variant={
+                              device.device_type === 'USB Storage' ? 'destructive' :
+                              device.device_type === 'keyboard' || device.device_type === 'mouse' ? 'default' :
+                              'secondary'
+                            }>
+                              {device.device_type || 'Other'}
+                            </Badge>
                           </div>
                         </div>
                       </div>
@@ -1479,6 +1437,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                     console.error("Error parsing network data:", error);
                     return (
                       <div className="text-center py-6 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                        <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-red-600" />
                         <p className="text-sm text-red-800 dark:text-red-200">
                           Error parsing network data: {error.message}
                         </p>

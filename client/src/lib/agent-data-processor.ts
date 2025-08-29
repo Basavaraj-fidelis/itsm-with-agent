@@ -500,6 +500,12 @@ export class AgentDataProcessor {
           // Check for similar descriptions (same device appearing multiple times)
           const normalizedDesc = desc.toLowerCase().replace(/[^a-z0-9]/g, '');
           let isDuplicate = false;
+          
+          // Skip if device is not present or status indicates disconnected
+          if (device.is_present === false || device.status === 'Disconnected' || device.status === 'Error') {
+            continue;
+          }
+          
           for (const seenDesc of seenDescriptions) {
             const normalizedSeen = seenDesc.toLowerCase().replace(/[^a-z0-9]/g, '');
             if (normalizedDesc.includes(normalizedSeen) || normalizedSeen.includes(normalizedDesc)) {

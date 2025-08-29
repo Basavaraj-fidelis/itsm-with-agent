@@ -65,16 +65,19 @@ class USBModule(BaseModule):
         devices = []
         
         try:
-            # Get USB devices using WMI
+            # Get USB devices using WMI with status filtering
             ps_command = """
             Get-WmiObject -Class Win32_USBControllerDevice | 
             ForEach-Object { 
                 [wmi]($_.Dependent) 
             } | 
             Where-Object { 
-                $_.Description -notlike "*Hub*" -and $_.Description -notlike "*Controller*" 
+                $_.Description -notlike "*Hub*" -and 
+                $_.Description -notlike "*Controller*" -and
+                $_.Status -eq "OK" -and
+                $_.Present -eq $true
             } | 
-            Select-Object DeviceID, Description, Manufacturer, Service, Status | 
+            Select-Object DeviceID, Description, Manufacturer, Service, Status, Present | 
             ConvertTo-Json -Depth 3
             """
             
@@ -89,28 +92,37 @@ class USBModule(BaseModule):
                         usb_data = [usb_data]
                     
                     for device in usb_data:
-                        device_info = {
-                            'device_id': device.get('DeviceID', ''),
-                            'description': device.get('Description', 'Unknown USB Device'),
-                            'manufacturer': device.get('Manufacturer', 'Unknown'),
-                            'service': device.get('Service', ''),
-                            'status': device.get('Status', 'Unknown'),
-                            'vendor_id': self._extract_vendor_id(device.get('DeviceID', '')),
-                            'product_id': self._extract_product_id(device.get('DeviceID', '')),
-                            'device_type': self._categorize_device(device.get('Description', '')),
-                            'connection_time': None,
-                            'serial_number': None
-                        }
-                        devices.append(device_info)
+                        # Only include devices that are currently present and working
+                        if (device.get('Status') == 'OK' and 
+                            device.get('Present', True) and
+                            device.get('DeviceID')):
+                            device_info = {
+                                'device_id': device.get('DeviceID', ''),
+                                'description': device.get('Description', 'Unknown USB Device'),
+                                'manufacturer': device.get('Manufacturer', 'Unknown'),
+                                'service': device.get('Service', ''),
+                                'status': device.get('Status', 'Unknown'),
+                                'vendor_id': self._extract_vendor_id(device.get('DeviceID', '')),
+                                'product_id': self._extract_product_id(device.get('DeviceID', '')),
+                                'device_type': self._categorize_device(device.get('Description', '')),
+                                'connection_time': None,
+                                'serial_number': None,
+                                'is_present': device.get('Present', True)
+                            }
+                            devices.append(device_info)
                         
                 except json.JSONDecodeError as e:
                     self.logger.error(f"Error parsing USB device JSON: {e}")
             
-            # Also try to get removable drives
+            # Also try to get removable drives (only currently available ones)
             drives_command = """
             Get-WmiObject -Class Win32_LogicalDisk | 
-            Where-Object { $_.DriveType -eq 2 } | 
-            Select-Object DeviceID, VolumeName, Size, FreeSpace, FileSystem | 
+            Where-Object { 
+                $_.DriveType -eq 2 -and 
+                $_.Size -gt 0 -and
+                $_.MediaType -ne $null
+            } | 
+            Select-Object DeviceID, VolumeName, Size, FreeSpace, FileSystem, MediaType | 
             ConvertTo-Json -Depth 3
             """
             
