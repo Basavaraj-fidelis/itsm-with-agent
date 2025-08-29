@@ -260,7 +260,7 @@ window.addEventListener('unhandledrejection', (event) => {
 const makeRequest = async (url: string, options: RequestInit = {}): Promise<Response> => {
   const token = getAuthToken();
 
-  console.log(`API Request: ${url}`, options.body && typeof options.body === 'string' ? 
+  console.log(`API Request: ${url}`, options.body && typeof options.body === 'string' ?
     (() => { try { return JSON.parse(options.body as string); } catch { return options.body; } })() : '');
 
   const config: RequestInit = {
@@ -491,7 +491,7 @@ export const api = {
   },
 
   // Auth
-  login: (credentials: { email: string; password: string }) => 
+  login: (credentials: { email: string; password: string }) =>
     apiRequest('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
