@@ -47,6 +47,20 @@ try:
 except ImportError:
     MacOSCollector = None
 
+# Import other modules that might be needed by the modular system
+try:
+    from modules.system_module import SystemModule
+    from modules.cpu_module import CPUModule
+    from modules.memory_module import MemoryModule
+    from modules.disk_module import DiskModule
+    from modules.network_module import NetworkModule
+    from modules.services_module import ServicesModule
+    from modules.security_module import SecurityModule
+    from modules.usb_module import USBModule
+except ImportError as e:
+    logging.getLogger('SystemCollector').warning(f"Could not import all modular components: {e}")
+    SystemModule, CPUModule, MemoryModule, DiskModule, NetworkModule, ServicesModule, SecurityModule, USBModule = [None] * 8
+
 
 class SystemCollector:
     """Main system information collector that delegates to OS-specific collectors"""
@@ -74,6 +88,17 @@ class SystemCollector:
                 self.module_manager = ModuleManager()
                 self.use_modular = True
                 self.logger.info("Using modular architecture for system collection")
+                # Initialize modules for modular system
+                self.modules = {
+                    'system': SystemModule(),
+                    'cpu': CPUModule(),
+                    'memory': MemoryModule(),
+                    'disk': DiskModule(),
+                    'network': NetworkModule(),
+                    'services': ServicesModule(),
+                    'security': SecurityModule(),
+                    'usb': USBModule()
+                }
             except Exception as e:
                 self.logger.error(f"Failed to initialize modular system: {e}")
                 self.use_modular = False
@@ -1254,7 +1279,7 @@ class SystemCollector:
     def _discover_devices_arp_table_enhanced(self, unique_devices):
         """Enhanced ARP table discovery with better parsing"""
         discovered_count = 0
-        
+
         try:
             if self._is_windows():
                 # Windows ARP table parsing
@@ -1265,7 +1290,7 @@ class SystemCollector:
                         if len(parts) >= 3:
                             ip = parts[0].strip()
                             mac = parts[1].replace('-', ':') if '-' in parts[1] else parts[1]
-                            
+
                             if self._is_valid_ip_format(ip) and self._is_valid_mac_format(mac):
                                 device_key = ip
                                 if device_key not in unique_devices:
@@ -1281,7 +1306,7 @@ class SystemCollector:
                                     }
                                     unique_devices[device_key] = device_info
                                     discovered_count += 1
-                                    
+
             else:
                 # Linux/Unix ARP table parsing
                 result = subprocess.run(['arp', '-a'], capture_output=True, text=True, timeout=15)
@@ -1291,7 +1316,7 @@ class SystemCollector:
                         try:
                             ip_part = line.split('(')[1].split(')')[0].strip()
                             mac_part = line.split(' at ')[1].split()[0].strip()
-                            
+
                             if self._is_valid_ip_format(ip_part) and self._is_valid_mac_format(mac_part):
                                 device_key = ip_part
                                 if device_key not in unique_devices:
@@ -1310,16 +1335,16 @@ class SystemCollector:
                         except Exception as parse_error:
                             self.logger.debug(f"Error parsing ARP line '{line}': {parse_error}")
                             continue
-                            
+
         except Exception as e:
             self.logger.error(f"Enhanced ARP table scan failed: {e}")
-            
+
         return discovered_count
 
     def _discover_gateway_devices(self, unique_devices):
         """Discover gateway and router devices"""
         discovered_count = 0
-        
+
         try:
             # Get default gateway
             gateway_ip = self._get_default_gateway_ip()
@@ -1338,10 +1363,10 @@ class SystemCollector:
                     }
                     unique_devices[device_key] = device_info
                     discovered_count += 1
-                    
+
         except Exception as e:
             self.logger.error(f"Gateway discovery failed: {e}")
-            
+
         return discovered_count
 
     def _get_default_gateway_ip(self):
@@ -1606,10 +1631,10 @@ class SystemCollector:
             for ip in ip_list:
                 try:
                     if self._is_windows():
-                        result = subprocess.run(['ping', '-n', '1', '-w', '1000', str(ip)], 
+                        result = subprocess.run(['ping', '-n', '1', '-w', '1000', str(ip)],
                                               capture_output=True, text=True, timeout=3)
                     else:
-                        result = subprocess.run(['ping', '-c', '1', '-W', '1', str(ip)], 
+                        result = subprocess.run(['ping', '-c', '1', '-W', '1', str(ip)],
                                               capture_output=True, text=True, timeout=3)
 
                     if result.returncode == 0:

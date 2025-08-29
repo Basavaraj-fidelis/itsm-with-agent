@@ -876,147 +876,173 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
               </Card>
 
               {/* USB Devices */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Usb className="w-5 h-5" />
-                    <span>USB Devices</span>
-                    <span className="text-sm text-neutral-500">
-                      ({usbHistory.filter((d: any) => d.is_connected).length}{" "}
-                      connected, {usbHistory.length} total history)
-                      {usbDevices.length > 0 && (
-                        <span className="text-green-600 ml-2">
-                          | {usbDevices.length} current
-                        </span>
-                      )}
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {usbHistory.length > 0 ? (
-                    <div className="space-y-3">
-                      {usbHistory
-                        .sort((a: any, b: any) => {
-                          if (a.is_connected && !b.is_connected) return -1;
-                          if (!a.is_connected && b.is_connected) return 1;
-                          return (
-                            new Date(b.last_seen).getTime() -
-                            new Date(a.last_seen).getTime()
-                          );
-                        })
-                        .map((device: any, index) => {
-                          const timeSinceLastSeen = formatDistanceToNow(
-                            new Date(device.last_seen),
-                            { addSuffix: true },
-                          );
-                          const isRecentlyActive =
-                            new Date().getTime() -
-                              new Date(device.last_seen).getTime() <
-                            5 * 60 * 1000;
-
-                          return (
-                            <div
-                              key={device.id || index}
-                              className={`p-3 border rounded-lg ${
-                                device.is_connected && isRecentlyActive
-                                  ? "bg-green-50 border-green-200"
-                                  : device.is_connected
-                                    ? "bg-blue-50 border-blue-200"
-                                    : "bg-neutral-50 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700"
-                              }`}
-                            >
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <h4 className="font-medium text-neutral-900 dark:text-neutral-100">
-                                      {device.description ||
-                                        device.name ||
-                                        `USB Device ${index + 1}`}
-                                    </h4>
-                                    {device.is_connected &&
-                                      isRecentlyActive && (
-                                        <div className="flex items-center gap-1">
-                                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                          <span className="text-xs text-green-600 dark:text-green-400">
-                                            Currently Active
-                                          </span>
-                                        </div>
-                                      )}
-                                  </div>
-                                  {device.vendor_id && device.product_id && (
-                                    <div className="text-neutral-600 dark:text-neutral-400 text-sm mb-1">
-                                      <span className="font-medium">VID:</span>{" "}
-                                      {device.vendor_id} |
-                                      <span className="font-medium ml-2">
-                                        PID:
-                                      </span>{" "}
-                                      {device.product_id}
-                                    </div>
-                                  )}
-                                  {device.manufacturer && (
-                                    <div className="text-neutral-600 dark:text-neutral-400 text-sm">
-                                      <span className="font-medium">
-                                        Manufacturer:
-                                      </span>{" "}
-                                      {device.manufacturer}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="flex flex-col items-end gap-2">
-                                  <div
-                                    className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                      device.is_connected && isRecentlyActive
-                                        ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
-                                        : device.is_connected
-                                          ? "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
-                                          : "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200"
-                                    }`}
-                                  >
-                                    {device.is_connected && isRecentlyActive
-                                      ? "Active Now"
-                                      : device.isconnected
-                                        ? "Connected"
-                                        : "Inactive"}
-                                  </div>
-                                  <div className="text-xs text-neutral-500 dark:text-neutral-400 text-right">
-                                    <div className="font-medium">
-                                      {device.is_connected && isRecentlyActive
-                                        ? "Last Report"
-                                        : "Last Seen"}
-                                    </div>
-                                    <div>{timeSinceLastSeen}</div>
-                                  </div>
-                                </div>
+              {(processedData?.usb?.usb_devices || agent?.latest_report?.raw_data?.usb?.usb_devices || agent?.latest_report?.raw_data?.usb_devices) && (
+                <div className="space-y-4">
+                  <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100 flex items-center">
+                    <Usb className="w-5 h-5 mr-2" />
+                    USB Devices ({(processedData?.usb?.usb_devices || agent?.latest_report?.raw_data?.usb?.usb_devices || agent?.latest_report?.raw_data?.usb_devices || []).length})
+                  </h4>
+                  <div className="grid grid-cols-1 gap-4">
+                    {(processedData?.usb?.usb_devices || agent?.latest_report?.raw_data?.usb?.usb_devices || agent?.latest_report?.raw_data?.usb_devices || []).map((device: any, index: number) => (
+                      <div key={index} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h5 className="font-medium text-gray-900 dark:text-gray-100">
+                              {device.description || 'Unknown USB Device'}
+                            </h5>
+                            <div className="mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                              <div className="flex justify-between">
+                                <span>Manufacturer:</span>
+                                <span className="font-medium">{device.manufacturer || 'Unknown'}</span>
                               </div>
-                              <div className="mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-600 text-xs text-neutral-500 dark:text-neutral-400">
-                                <div>
-                                  <span className="font-medium">
-                                    First Detected:
-                                  </span>{" "}
-                                  {formatDistanceToNow(
-                                    new Date(device.first_seen),
-                                    { addSuffix: true },
-                                  )}
+                              <div className="flex justify-between">
+                                <span>Device Type:</span>
+                                <span className="font-medium capitalize">{device.device_type?.replace('_', ' ') || 'Unknown'}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Vendor ID:</span>
+                                <span className="font-medium">{device.vendor_id || 'Unknown'}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Product ID:</span>
+                                <span className="font-medium">{device.product_id || 'Unknown'}</span>
+                              </div>
+                              {device.serial_number && (
+                                <div className="flex justify-between">
+                                  <span>Serial Number:</span>
+                                  <span className="font-medium">{device.serial_number}</span>
                                 </div>
+                              )}
+                              {device.mount_point && (
+                                <div className="flex justify-between">
+                                  <span>Mount Point:</span>
+                                  <span className="font-medium">{device.mount_point}</span>
+                                </div>
+                              )}
+                              {device.size && (
+                                <div className="flex justify-between">
+                                  <span>Size:</span>
+                                  <span className="font-medium">{(device.size / (1024**3)).toFixed(2)} GB</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="ml-4 flex-shrink-0">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              device.device_type === 'mass_storage' 
+                                ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300'
+                                : device.device_type === 'keyboard' || device.device_type === 'mouse'
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                                : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
+                            }`}>
+                              {device.device_type === 'mass_storage' ? 'Storage' : 
+                               device.device_type === 'keyboard' ? 'Keyboard' :
+                               device.device_type === 'mouse' ? 'Mouse' :
+                               device.device_type === 'webcam' ? 'Camera' :
+                               device.device_type === 'audio' ? 'Audio' :
+                               device.device_type === 'network' ? 'Network' :
+                               'Other'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Storage Information */}
+              {processedData?.storage && (
+                <div className="space-y-4">
+                  <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100 flex items-center">
+                    <HardDrive className="w-5 h-5 mr-2" />
+                    Storage Information
+                  </h4>
+                  <div className="grid grid-cols-1 gap-4">
+                    {storage.length > 0 ? (
+                      storage.map((drive: any, index: number) => {
+                        const usage =
+                          Math.round(
+                            drive.percent || drive.usage?.percentage || 0,
+                          ) || 0;
+                        const bytesToGB = (bytes: number) => {
+                          if (!bytes || bytes === 0) return "0 GB";
+                          return (
+                            (bytes / (1024 * 1024 * 1024)).toFixed(2) + " GB"
+                          );
+                        };
+
+                        return (
+                          <div
+                            key={index}
+                            className="bg-muted/10 dark:bg-muted/20 p-5 rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-200 dark:border-gray-700"
+                          >
+                            <div className="flex items-center space-x-2 mb-4">
+                              <HardDrive className="w-5 h-5 text-orange-500" />
+                              <h4 className="text-base font-semibold">
+                                {drive.device ||
+                                  drive.mountpoint ||
+                                  `Drive ${index + 1}`}
+                              </h4>
+                            </div>
+
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                              <Stat
+                                label="Total Size"
+                                value={bytesToGB(drive.total)}
+                              />
+                              <Stat label="Used" value={bytesToGB(drive.used)} />
+                              <Stat label="Free" value={bytesToGB(drive.free)} />
+                              <Stat
+                                label="Filesystem"
+                                value={drive.filesystem || "N/A"}
+                              />
+                              <Stat
+                                label="Mount Point"
+                                value={drive.mountpoint || "N/A"}
+                              />
+                            </div>
+
+                            <div className="mt-4">
+                              <div className="flex justify-between text-xs font-medium mb-1">
+                                <span className="text-neutral-600">Usage</span>
+                                <span
+                                  className={`${
+                                    usage >= 85
+                                      ? "text-red-600"
+                                      : usage >= 75
+                                        ? "text-yellow-600"
+                                        : "text-green-600"
+                                  }`}
+                                >
+                                  {usage}%
+                                </span>
+                              </div>
+                              <div className="w-full bg-gray-200 dark:bg-gray-800 h-2 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full ${
+                                    usage >= 85
+                                      ? "bg-red-600"
+                                      : usage >= 75
+                                        ? "bg-yellow-500"
+                                        : "bg-green-500"
+                                  }`}
+                                  style={{ width: `${usage}%` }}
+                                ></div>
                               </div>
                             </div>
-                          );
-                        })}
-                    </div>
-                  ) : (
-                    <div className="text-center py-6">
-                      <Usb className="w-12 h-12 mx-auto text-neutral-400 mb-2" />
-                      <p className="text-neutral-500 italic">
-                        No USB devices have been detected
-                      </p>
-                      <p className="text-xs text-neutral-400 mt-1">
-                        USB devices will appear here when connected and tracked
-                        over time
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="text-center py-8 text-neutral-500">
+                        <HardDrive className="w-12 h-12 mx-auto mb-3 text-neutral-400" />
+                        <p>No storage data available</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </SafeDataRenderer>
         </TabsContent>
@@ -1786,7 +1812,6 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                             className="p-3 border rounded-lg bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border-orange-200 dark:border-orange-800"
                                           >
                                             <div className="flex justify-between items-start mb-2">
-                                              ```text
                                               <div className="text-sm font-medium text-orange-800 dark:text-orange-200">
                                                 {update.Title || update.title}
                                               </div>

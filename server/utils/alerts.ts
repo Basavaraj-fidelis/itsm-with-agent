@@ -530,26 +530,87 @@ export async function generateSystemAlerts(deviceData: any): Promise<Alert[]> {
   }
 
   // --- Security Alerts ---
-  // Example: USB Device Detection
-  if (deviceData.usb_devices && Array.isArray(deviceData.usb_devices) && deviceData.usb_devices.length > 0) {
-    const usbAlertKey = 'security_USB Device Detected';
-    const existingUSBAlert = existingAlertMap.get(usbAlertKey);
+  // USB Device Detection - Check multiple possible locations
+  let usbDevices = [];
+  
+  // Check various possible locations for USB data
+  if (deviceData.usb_devices && Array.isArray(deviceData.usb_devices)) {
+    usbDevices = deviceData.usb_devices;
+  } else if (deviceData.usb && Array.isArray(deviceData.usb.usb_devices)) {
+    usbDevices = deviceData.usb.usb_devices;
+  } else if (deviceData.raw_data?.usb_devices) {
+    usbDevices = deviceData.raw_data.usb_devices;
+  } else if (deviceData.raw_data?.usb?.usb_devices) {
+    usbDevices = deviceData.raw_data.usb.usb_devices;
+  }
 
-    if (!existingUSBAlert) {
-      const usbAlertData = AlertUtils.createUSBAlert(deviceId, deviceData.usb_devices);
-      alertsToCreate.push({
-        id: uuidv4(),
-        device_id: deviceId,
-        type: usbAlertData.category,
-        severity: usbAlertData.severity,
-        title: 'USB Device Detected',
-        message: usbAlertData.message,
-        timestamp: now,
-        acknowledged: false,
-        resolved: false,
-        metadata: usbAlertData.metadata
-      });
-      console.log(`Created USB Device alert for ${deviceHostname} with ${deviceData.usb_devices.length} devices.`);
+  if (usbDevices.length > 0) {
+    // Filter for mass storage devices (removable drives, flash drives, etc.)
+    const massStorageDevices = usbDevices.filter(device => 
+      device.device_type === 'mass_storage' || 
+      device.description?.toLowerCase().includes('storage') ||
+      device.description?.toLowerCase().includes('drive') ||
+      device.description?.toLowerCase().includes('flash') ||
+      device.description?.toLowerCase().includes('removable')
+    );
+
+    // Create alert for mass storage devices (security concern)
+    if (massStorageDevices.length > 0) {
+      const usbAlertKey = 'security_USB Storage Device Detected';
+      const existingUSBAlert = existingAlertMap.get(usbAlertKey);
+
+      if (!existingUSBAlert) {
+        const message = `USB storage device(s) detected - ${massStorageDevices.length} storage device(s) connected`;
+        
+        alertsToCreate.push({
+          id: uuidv4(),
+          device_id: deviceId,
+          type: 'security',
+          severity: 'high',
+          title: 'USB Storage Device Detected',
+          message: message,
+          timestamp: now,
+          acknowledged: false,
+          resolved: false,
+          metadata: {
+            usb_count: massStorageDevices.length,
+            total_usb_devices: usbDevices.length,
+            devices: massStorageDevices.slice(0, 5), // First 5 devices for reference
+            metric: "usb",
+            alert_type: "usb_storage_detection"
+          }
+        });
+        console.log(`Created USB Storage alert for ${deviceHostname} with ${massStorageDevices.length} storage devices.`);
+      }
+    }
+
+    // Also create a general info alert for all USB devices if more than 3
+    if (usbDevices.length > 3) {
+      const generalUsbAlertKey = 'security_Multiple USB Devices';
+      const existingGeneralAlert = existingAlertMap.get(generalUsbAlertKey);
+
+      if (!existingGeneralAlert) {
+        const message = `Multiple USB devices detected - ${usbDevices.length} total USB devices connected`;
+        
+        alertsToCreate.push({
+          id: uuidv4(),
+          device_id: deviceId,
+          type: 'security',
+          severity: 'warning',
+          title: 'Multiple USB Devices Detected',
+          message: message,
+          timestamp: now,
+          acknowledged: false,
+          resolved: false,
+          metadata: {
+            usb_count: usbDevices.length,
+            devices: usbDevices.slice(0, 10), // First 10 devices for reference
+            metric: "usb",
+            alert_type: "multiple_usb_detection"
+          }
+        });
+        console.log(`Created general USB alert for ${deviceHostname} with ${usbDevices.length} total devices.`);
+      }
     }
   }
 
