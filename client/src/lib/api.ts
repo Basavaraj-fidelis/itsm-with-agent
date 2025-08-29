@@ -155,7 +155,7 @@ class ApiClient {
     }
   }
 
-  getAdvancedDeviceAnalytics: async (deviceId: string) => {
+  async getAdvancedDeviceAnalytics(deviceId: string) {
     try {
       const response = await this.request(`/analytics/device/${deviceId}/advanced`);
       if (!response.ok) {
