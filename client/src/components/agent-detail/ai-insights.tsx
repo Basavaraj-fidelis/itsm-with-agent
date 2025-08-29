@@ -79,7 +79,7 @@ export function AIInsights({ agent }: AIInsightsProps) {
       const systemHealth = rawData.system_health || {};
       const securityData = rawData.security || {};
 
-    // 1. Performance Anomaly Detection
+      // 1. Performance Anomaly Detection
     if (cpuUsage > 85) {
       const topCPUProcess = processes
         .filter(p => p.cpu_percent > 0)
@@ -100,172 +100,158 @@ export function AIInsights({ agent }: AIInsightsProps) {
     }
 
     // 2. Memory Pressure Analysis
-    if (memoryUsage > 80) {
-      const memoryPressure = systemHealth.memory_pressure?.pressure_level || 'unknown';
-      
-      aiInsights.push({
-        type: 'performance',
-        severity: memoryUsage > 90 ? 'high' : 'medium',
-        title: 'High Memory Usage Detected',
-        description: `Memory usage at ${memoryUsage.toFixed(1)}%. ${memoryPressure !== 'unknown' ? `Pressure level: ${memoryPressure}` : ''}`,
-        recommendation: 'Consider restarting high memory processes or adding more RAM.',
-        confidence: 0.85,
-        trend: 'up',
-        metric: 'Memory',
-        details: `Memory usage: ${memoryUsage.toFixed(1)}%. Available: ${((100 - memoryUsage) * (rawData?.hardware?.memory?.total || 0) / 100 / 1024 / 1024 / 1024).toFixed(1)} GB`,
-        timestamp: new Date().toISOString()
-      });
-    }
-
-      aiInsights.push({
-        type: 'performance',
-        severity: memoryUsage > 90 ? 'high' : 'medium',
-        title: 'Memory Pressure Detected',
-        description: `Memory usage at ${memoryUsage.toFixed(1)}%. System pressure level: ${memoryPressure}`,
-        recommendation: memoryUsage > 90 
-          ? 'Immediate action required: Close unnecessary applications or restart system'
-          : 'Monitor memory usage and consider memory upgrade if pattern persists',
-        confidence: 0.85,
-        trend: 'up',
-        metric: 'Memory',
-        details: `Memory usage: ${memoryUsage.toFixed(1)}%. Pressure: ${memoryPressure}`,
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // 3. Disk Space Prediction
-    if (diskUsage > 75) {
-      const daysToFull = diskUsage > 90 ? 7 : diskUsage > 85 ? 30 : 90;
-
-      aiInsights.push({
-        type: 'prediction',
-        severity: diskUsage > 90 ? 'high' : diskUsage > 85 ? 'medium' : 'low',
-        title: 'Disk Space Forecast',
-        description: `Current disk usage: ${diskUsage.toFixed(1)}%. Projected to reach capacity in ~${daysToFull} days`,
-        recommendation: 'Schedule disk cleanup or expansion to prevent service interruption',
-        confidence: 0.75,
-        trend: 'up',
-        metric: 'Disk',
-        details: `Disk usage: ${diskUsage.toFixed(1)}%. Estimated days to full: ${daysToFull}`,
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // 4. Process Behavior Analysis
-    const highCPUProcesses = processes.filter(p => p.cpu_percent > 15);
-    if (highCPUProcesses.length > 3) {
-      aiInsights.push({
-        type: 'performance',
-        severity: 'medium',
-        title: 'Multiple High-CPU Processes',
-        description: `${highCPUProcesses.length} processes consuming >15% CPU each`,
-        recommendation: 'Review running applications and consider process optimization',
-        confidence: 0.8,
-        trend: 'stable',
-        metric: 'Processes',
-        details: `Processes consuming >15% CPU: ${highCPUProcesses.map(p => `${p.name} (${p.cpu_percent.toFixed(1)}%)`).join(', ')}`,
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // 5. Security Assessment
-    if (securityData.firewall_status === 'disabled' || securityData.antivirus_status === 'disabled') {
-      aiInsights.push({
-        type: 'security',
-        severity: 'high',
-        title: 'Security Service Alert',
-        description: `${securityData.firewall_status === 'disabled' ? 'Firewall disabled.' : ''} ${securityData.antivirus_status === 'disabled' ? 'Antivirus disabled.' : ''}`,
-        recommendation: 'Immediately enable disabled security services to protect the system',
-        confidence: 0.95,
-        metric: 'Security',
-        details: `Firewall status: ${securityData.firewall_status || 'unknown'}, Antivirus status: ${securityData.antivirus_status || 'unknown'}`,
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // 6. System Health Insights
-    if (systemHealth.disk_health?.status !== 'healthy') {
-      aiInsights.push({
-        type: 'maintenance',
-        severity: 'medium',
-        title: 'Disk Health Warning',
-        description: `Disk health status: ${systemHealth.disk_health?.status || 'unknown'}`,
-        recommendation: 'Run disk diagnostics and consider backup of critical data',
-        confidence: 0.7,
-        metric: 'Hardware',
-        details: `Disk health status: ${systemHealth.disk_health?.status || 'unknown'}`,
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // 7. Optimization Opportunities
-    if (cpuUsage < 20 && memoryUsage < 50 && diskUsage < 60) {
-      aiInsights.push({
-        type: 'performance',
-        severity: 'info',
-        title: 'Resource Optimization Opportunity',
-        description: 'System is running efficiently with low resource utilization',
-        recommendation: 'Consider consolidating workloads or reducing system specifications if pattern persists',
-        confidence: 0.6,
-        trend: 'stable',
-        metric: 'Overall',
-        details: `CPU: ${cpuUsage.toFixed(1)}%, Memory: ${memoryUsage.toFixed(1)}%, Disk: ${diskUsage.toFixed(1)}%`,
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // 8. Network Connectivity Issues
-    if (agent.status === 'offline' || agent.status === 'disconnected') {
-      aiInsights.push({
-        type: 'maintenance',
-        severity: 'high',
-        title: 'Connectivity Issue Detected',
-        description: `Agent is currently ${agent.status}. Last seen: ${agent.last_seen || 'Unknown'}`,
-        recommendation: 'Check network connectivity, firewall rules, and agent service status',
-        confidence: 0.95,
-        metric: 'Connectivity',
-        details: `Agent status: ${agent.status}, Last seen: ${agent.last_seen || 'N/A'}`,
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // 9. Uptime Monitoring
-    if (agent.uptime && parseInt(agent.uptime) < 24) {
-      aiInsights.push({
-        type: 'maintenance',
-        severity: 'medium',
-        title: 'Recent System Restart',
-        description: `System uptime is only ${agent.uptime} hours, indicating recent restart`,
-        recommendation: 'Monitor for instability patterns or verify if restart was planned maintenance',
-        confidence: 0.8,
-        metric: 'Uptime',
-        details: `Current uptime: ${agent.uptime} hours`,
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // 10. Agent Version Check
-    if (agent.agent_version) {
-      const versionParts = agent.agent_version.split('.');
-      const majorVersion = parseInt(versionParts[0]) || 0;
-      const minorVersion = parseInt(versionParts[1]) || 0;
-
-      if (majorVersion < 2 || (majorVersion === 2 && minorVersion < 5)) {
+      if (memoryUsage > 80) {
+        const memoryPressure = systemHealth.memory_pressure?.pressure_level || 'unknown';
+        
         aiInsights.push({
-          type: 'security',
-          severity: 'medium',
-          title: 'Agent Version Outdated',
-          description: `Agent version ${agent.agent_version} may have security vulnerabilities`,
-          recommendation: 'Update to the latest agent version for security patches and new features',
-          confidence: 0.9,
-          metric: 'Security',
-          details: `Current agent version: ${agent.agent_version}, Recommended: 2.5+`,
+          type: 'performance',
+          severity: memoryUsage > 90 ? 'high' : 'medium',
+          title: 'High Memory Usage Detected',
+          description: `Memory usage at ${memoryUsage.toFixed(1)}%. ${memoryPressure !== 'unknown' ? `Pressure level: ${memoryPressure}` : ''}`,
+          recommendation: memoryUsage > 90 
+            ? 'Immediate action required: Close unnecessary applications or restart system'
+            : 'Monitor memory usage and consider memory upgrade if pattern persists',
+          confidence: 0.85,
+          trend: 'up',
+          metric: 'Memory',
+          details: `Memory usage: ${memoryUsage.toFixed(1)}%. Available: ${((100 - memoryUsage) * (rawData?.hardware?.memory?.total || 0) / 100 / 1024 / 1024 / 1024).toFixed(1)} GB`,
           timestamp: new Date().toISOString()
         });
       }
-    }
 
-    return aiInsights;
+    // 3. Disk Space Prediction
+      if (diskUsage > 75) {
+        const daysToFull = diskUsage > 90 ? 7 : diskUsage > 85 ? 30 : 90;
+
+        aiInsights.push({
+          type: 'prediction',
+          severity: diskUsage > 90 ? 'high' : diskUsage > 85 ? 'medium' : 'low',
+          title: 'Disk Space Forecast',
+          description: `Current disk usage: ${diskUsage.toFixed(1)}%. Projected to reach capacity in ~${daysToFull} days`,
+          recommendation: 'Schedule disk cleanup or expansion to prevent service interruption',
+          confidence: 0.75,
+          trend: 'up',
+          metric: 'Disk',
+          details: `Disk usage: ${diskUsage.toFixed(1)}%. Estimated days to full: ${daysToFull}`,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // 4. Process Behavior Analysis
+      const highCPUProcesses = processes.filter(p => p.cpu_percent > 15);
+      if (highCPUProcesses.length > 3) {
+        aiInsights.push({
+          type: 'performance',
+          severity: 'medium',
+          title: 'Multiple High-CPU Processes',
+          description: `${highCPUProcesses.length} processes consuming >15% CPU each`,
+          recommendation: 'Review running applications and consider process optimization',
+          confidence: 0.8,
+          trend: 'stable',
+          metric: 'Processes',
+          details: `Processes consuming >15% CPU: ${highCPUProcesses.map(p => `${p.name} (${p.cpu_percent.toFixed(1)}%)`).join(', ')}`,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // 5. Security Assessment
+      if (securityData.firewall_status === 'disabled' || securityData.antivirus_status === 'disabled') {
+        aiInsights.push({
+          type: 'security',
+          severity: 'high',
+          title: 'Security Service Alert',
+          description: `${securityData.firewall_status === 'disabled' ? 'Firewall disabled.' : ''} ${securityData.antivirus_status === 'disabled' ? 'Antivirus disabled.' : ''}`,
+          recommendation: 'Immediately enable disabled security services to protect the system',
+          confidence: 0.95,
+          metric: 'Security',
+          details: `Firewall status: ${securityData.firewall_status || 'unknown'}, Antivirus status: ${securityData.antivirus_status || 'unknown'}`,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // 6. System Health Insights
+      if (systemHealth.disk_health?.status !== 'healthy') {
+        aiInsights.push({
+          type: 'maintenance',
+          severity: 'medium',
+          title: 'Disk Health Warning',
+          description: `Disk health status: ${systemHealth.disk_health?.status || 'unknown'}`,
+          recommendation: 'Run disk diagnostics and consider backup of critical data',
+          confidence: 0.7,
+          metric: 'Hardware',
+          details: `Disk health status: ${systemHealth.disk_health?.status || 'unknown'}`,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // 7. Optimization Opportunities
+      if (cpuUsage < 20 && memoryUsage < 50 && diskUsage < 60) {
+        aiInsights.push({
+          type: 'performance',
+          severity: 'info',
+          title: 'Resource Optimization Opportunity',
+          description: 'System is running efficiently with low resource utilization',
+          recommendation: 'Consider consolidating workloads or reducing system specifications if pattern persists',
+          confidence: 0.6,
+          trend: 'stable',
+          metric: 'Overall',
+          details: `CPU: ${cpuUsage.toFixed(1)}%, Memory: ${memoryUsage.toFixed(1)}%, Disk: ${diskUsage.toFixed(1)}%`,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // 8. Network Connectivity Issues
+      if (agent.status === 'offline' || agent.status === 'disconnected') {
+        aiInsights.push({
+          type: 'maintenance',
+          severity: 'high',
+          title: 'Connectivity Issue Detected',
+          description: `Agent is currently ${agent.status}. Last seen: ${agent.last_seen || 'Unknown'}`,
+          recommendation: 'Check network connectivity, firewall rules, and agent service status',
+          confidence: 0.95,
+          metric: 'Connectivity',
+          details: `Agent status: ${agent.status}, Last seen: ${agent.last_seen || 'N/A'}`,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // 9. Uptime Monitoring
+      if (agent.uptime && parseInt(agent.uptime) < 24) {
+        aiInsights.push({
+          type: 'maintenance',
+          severity: 'medium',
+          title: 'Recent System Restart',
+          description: `System uptime is only ${agent.uptime} hours, indicating recent restart`,
+          recommendation: 'Monitor for instability patterns or verify if restart was planned maintenance',
+          confidence: 0.8,
+          metric: 'Uptime',
+          details: `Current uptime: ${agent.uptime} hours`,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // 10. Agent Version Check
+      if (agent.agent_version) {
+        const versionParts = agent.agent_version.split('.');
+        const majorVersion = parseInt(versionParts[0]) || 0;
+        const minorVersion = parseInt(versionParts[1]) || 0;
+
+        if (majorVersion < 2 || (majorVersion === 2 && minorVersion < 5)) {
+          aiInsights.push({
+            type: 'security',
+            severity: 'medium',
+            title: 'Agent Version Outdated',
+            description: `Agent version ${agent.agent_version} may have security vulnerabilities`,
+            recommendation: 'Update to the latest agent version for security patches and new features',
+            confidence: 0.9,
+            metric: 'Security',
+            details: `Current agent version: ${agent.agent_version}, Recommended: 2.5+`,
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+
+      return aiInsights;
     } catch (error) {
       console.error('Error generating AI insights:', error);
       return [];
