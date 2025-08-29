@@ -3800,190 +3800,190 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
   }
 
   // Legacy methods for backward compatibility
-  async generatePerformanceSummary(timeRange: string = "7d"): Promise<any> {
-    const healthData = await this.generateSystemHealthReport();
-    return {
-      average_cpu: healthData.performance_metrics.avg_cpu_usage,
-      average_memory: healthData.performance_metrics.avg_memory_usage,
-      average_disk: healthData.performance_metrics.avg_disk_usage,
-      device_count: healthData.overall_health.active_devices,
-      uptime_percentage: healthData.overall_health.system_uptime,
-      critical_alerts: healthData.overall_health.critical_alerts,
-      trends: {
-        cpu_trend: 2.1,
-        memory_trend: -1.5,
-        disk_trend: 0.8,
-      },
-    };
-  }
+  // async generatePerformanceSummary(timeRange: string = "7d"): Promise<any> {
+  //   const healthData = await this.generateSystemHealthReport();
+  //   return {
+  //     average_cpu: healthData.performance_metrics.avg_cpu_usage,
+  //     average_memory: healthData.performance_metrics.avg_memory_usage,
+  //     average_disk: healthData.performance_metrics.avg_disk_usage,
+  //     device_count: healthData.overall_health.active_devices,
+  //     uptime_percentage: healthData.overall_health.system_uptime,
+  //     critical_alerts: healthData.overall_health.critical_alerts,
+  //     trends: {
+  //       cpu_trend: 2.1,
+  //       memory_trend: -1.5,
+  //       disk_trend: 0.8,
+  //     },
+  //   };
+  // }
 
-  async generateAvailabilityReport(timeRange: string = "7d"): Promise<any> {
-    const healthData = await this.generateSystemHealthReport();
-    return {
-      total_devices: healthData.overall_health.active_devices + 3,
-      online_devices: healthData.overall_health.active_devices,
-      offline_devices: 3,
-      availability_percentage: healthData.overall_health.system_uptime,
-      downtime_incidents: healthData.overall_health.critical_alerts,
-      avg_response_time: 245,
-      uptime_by_device: [],
-    };
-  }
+  // async generateAvailabilityReport(timeRange: string = "7d"): Promise<any> {
+  //   const healthData = await this.generateSystemHealthReport();
+  //   return {
+  //     total_devices: healthData.overall_health.active_devices + 3,
+  //     online_devices: healthData.overall_health.active_devices,
+  //     offline_devices: 3,
+  //     availability_percentage: healthData.overall_health.system_uptime,
+  //     downtime_incidents: healthData.overall_health.critical_alerts,
+  //     avg_response_time: 245,
+  //     uptime_by_device: [],
+  //   };
+  // }
 
-  async generateSystemInventory(): Promise<any> {
-    const assetData = await this.generateAssetInventoryReport();
-    return {
-      total_agents: assetData.total_devices,
-      by_os: assetData.device_breakdown.by_os,
-      by_status: assetData.device_breakdown.by_status,
-      storage_usage: {
-        total_devices: assetData.total_devices,
-        avg_disk_usage: 67.2,
-        devices_near_capacity: 3,
-      },
-      memory_usage: {
-        avg_memory_usage: 72.8,
-        devices_high_memory: 5,
-      },
-    };
-  }
+  // async generateSystemInventory(): Promise<any> {
+  //   const assetData = await this.generateAssetInventoryReport();
+  //   return {
+  //     total_agents: assetData.total_devices,
+  //     by_os: assetData.device_breakdown.by_os,
+  //     by_status: assetData.device_breakdown.by_status,
+  //     storage_usage: {
+  //       total_devices: assetData.total_devices,
+  //       avg_disk_usage: 67.2,
+  //       devices_near_capacity: 3,
+  //     },
+  //     memory_usage: {
+  //       avg_memory_usage: 72.8,
+  //       devices_high_memory: 5,
+  //     },
+  //   };
+  // }
 
-  async generateCustomReport(
-    reportType: string,
-    timeRange: string,
-    format: string,
-  ): Promise<any> {
-    switch (reportType) {
-      case "performance":
-        return await this.generatePerformanceSummary(timeRange);
-      case "availability":
-        return await this.generateAvailabilityReport(timeRange);
-      case "inventory":
-        return await this.generateSystemInventory();
-      case "asset-inventory":
-        return await this.generateAssetInventoryReport();
-      case "ticket-analytics":
-        return await this.generateTicketAnalyticsReport(timeRange);
-      case "system-health":
-        return await this.generateSystemHealthReport();
-      case "security-compliance":
-      case "security":
-        return await this.generateSecurityComplianceReport();
-      case "trends":
-        return await this.generateTrendAnalysisReport(timeRange);
-      case "capacity":
-        return await this.generateCapacityReport();
-      default:
-        throw new Error(`Unknown report type: ${reportType}`);
-    }
-  }
+  // async generateCustomReport(
+  //   reportType: string,
+  //   timeRange: string,
+  //   format: string,
+  // ): Promise<any> {
+  //   switch (reportType) {
+  //     case "performance":
+  //       return await this.generatePerformanceSummary(timeRange);
+  //     case "availability":
+  //       return await this.generateAvailabilityReport(timeRange);
+  //     case "inventory":
+  //       return await this.generateSystemInventory();
+  //     case "asset-inventory":
+  //       return await this.generateAssetInventoryReport();
+  //     case "ticket-analytics":
+  //       return await this.generateTicketAnalyticsReport(timeRange);
+  //     case "system-health":
+  //       return await this.generateSystemHealthReport();
+  //     case "security-compliance":
+  //     case "security":
+  //       return await this.generateSecurityComplianceReport();
+  //     case "trends":
+  //       return await this.generateTrendAnalysisReport(timeRange);
+  //     case "capacity":
+  //       return await this.generateCapacityReport();
+  //     default:
+  //       throw new Error(`Unknown report type: ${reportType}`);
+  //   }
+  // }
 
-  async getRealTimeMetrics(): Promise<any> {
-    try {
-      console.log("Fetching real-time performance metrics from database");
+  // async getRealTimeMetrics(): Promise<any> {
+  //   try {
+  //     console.log("Fetching real-time performance metrics from database");
 
-      // Get device count
-      const deviceCountResult = await db.select({ count: sql`count(*)` }).from(devices);
-      const totalDevices = Number(deviceCountResult[0]?.count) || 0;
+  //     // Get device count
+  //     const deviceCountResult = await db.select({ count: sql`count(*)` }).from(devices);
+  //     const totalDevices = Number(deviceCountResult[0]?.count) || 0;
 
-      // Get online devices
-      const onlineDevicesResult = await db.select({ count: sql`count(*)` })
-        .from(devices)
-        .where(eq(devices.status, 'online'));
-      const onlineCount = Number(onlineDevicesResult[0]?.count) || 0;
+  //     // Get online devices
+  //     const onlineDevicesResult = await db.select({ count: sql`count(*)` })
+  //       .from(devices)
+  //       .where(eq(devices.status, 'online'));
+  //     const onlineCount = Number(onlineDevicesResult[0]?.count) || 0;
 
-      // Get the most recent reports for each device (last 2 hours for better data coverage)
-      const recentReports = await db.select({
-        device_id: device_reports.device_id,
-        cpu_usage: device_reports.cpu_usage,
-        memory_usage: device_reports.memory_usage,
-        disk_usage: device_reports.disk_usage,
-        created_at: device_reports.created_at
-      })
-        .from(device_reports)
-        .where(sql`${device_reports.created_at} >= NOW() - INTERVAL '2 hours'`)
-        .orderBy(desc(device_reports.created_at))
-        .limit(200);
+  //     // Get the most recent reports for each device (last 2 hours for better data coverage)
+  //     const recentReports = await db.select({
+  //       device_id: device_reports.device_id,
+  //       cpu_usage: device_reports.cpu_usage,
+  //       memory_usage: device_reports.memory_usage,
+  //       disk_usage: device_reports.disk_usage,
+  //       created_at: device_reports.created_at
+  //     })
+  //       .from(device_reports)
+  //       .where(sql`${device_reports.created_at} >= NOW() - INTERVAL '2 hours'`)
+  //       .orderBy(desc(device_reports.created_at))
+  //       .limit(200);
 
-      console.log(`Found ${recentReports.length} recent reports for real-time metrics`);
+  //     console.log(`Found ${recentReports.length} recent reports for real-time metrics`);
 
-      // Get unique latest report per device
-      const latestReportsByDevice = new Map();
-      recentReports.forEach(report => {
-        if (!latestReportsByDevice.has(report.device_id) ||
-            new Date(report.created_at) > new Date(latestReportsByDevice.get(report.device_id).created_at)) {
-          latestReportsByDevice.set(report.device_id, report);
-        }
-      });
+  //     // Get unique latest report per device
+  //     const latestReportsByDevice = new Map();
+  //     recentReports.forEach(report => {
+  //       if (!latestReportsByDevice.has(report.device_id) ||
+  //           new Date(report.created_at) > new Date(latestReportsByDevice.get(report.device_id).created_at)) {
+  //         latestReportsByDevice.set(report.device_id, report);
+  //       }
+  //     });
 
-      const latestReports = Array.from(latestReportsByDevice.values());
+  //     const latestReports = Array.from(latestReportsByDevice.values());
 
-      // Calculate averages from actual latest data per device
-      const cpuValues = latestReports
-        .map(r => parseFloat(r.cpu_usage || '0'))
-        .filter(v => v > 0 && v <= 100);
-      const memoryValues = latestReports
-        .map(r => parseFloat(r.memory_usage || '0'))
-        .filter(v => v > 0 && v <= 100);
-      const diskValues = latestReports
-        .map(r => parseFloat(r.disk_usage || '0'))
-        .filter(v => v > 0 && v <= 100);
+  //     // Calculate averages from actual latest data per device
+  //     const cpuValues = latestReports
+  //       .map(r => parseFloat(r.cpu_usage || '0'))
+  //       .filter(v => v > 0 && v <= 100);
+  //     const memoryValues = latestReports
+  //       .map(r => parseFloat(r.memory_usage || '0'))
+  //       .filter(v => v > 0 && v <= 100);
+  //     const diskValues = latestReports
+  //       .map(r => parseFloat(r.disk_usage || '0'))
+  //       .filter(v => v > 0 && v <= 100);
 
-      const avgCpu = cpuValues.length > 0 ? cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length : 0;
-      const avgMemory = memoryValues.length > 0 ? memoryValues.reduce((a, b) => a + b, 0) / memoryValues.length : 0;
-      const avgDisk = diskValues.length > 0 ? diskValues.reduce((a, b) => a + b, 0) / diskValues.length : 0;
+  //     const avgCpu = cpuValues.length > 0 ? cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length : 0;
+  //     const avgMemory = memoryValues.length > 0 ? memoryValues.reduce((a, b) => a + b, 0) / memoryValues.length : 0;
+  //     const avgDisk = diskValues.length > 0 ? diskValues.reduce((a, b) => a + b, 0) / diskValues.length : 0;
 
-      // Get recent alerts count
-      const recentAlertsResult = await db.select({ count: sql`count(*)` })
-        .from(alerts)
-        .where(sql`${alerts.triggered_at} >= NOW() - INTERVAL '1 hour'`);
-      const alertsCount = Number(recentAlertsResult[0]?.count) || 0;
+  //     // Get recent alerts count
+  //     const recentAlertsResult = await db.select({ count: sql`count(*)` })
+  //       .from(alerts)
+  //       .where(sql`${alerts.triggered_at} >= NOW() - INTERVAL '1 hour'`);
+  //     const alertsCount = Number(recentAlertsResult[0]?.count) || 0;
 
-      const metrics = {
-        timestamp: new Date(),
-        cpu_usage: Math.round(avgCpu * 10) / 10,
-        memory_usage: Math.round(avgMemory * 10) / 10,
-        disk_usage: Math.round(avgDisk * 10) / 10,
-        active_devices: onlineCount,
-        total_devices: totalDevices,
-        alerts_last_hour: alertsCount,
-        devices_with_data: latestReports.length,
-        data_freshness: latestReports.length > 0 ? 'live' : 'no_recent_data'
-      };
+  //     const metrics = {
+  //       timestamp: new Date(),
+  //       cpu_usage: Math.round(avgCpu * 10) / 10,
+  //       memory_usage: Math.round(avgMemory * 10) / 10,
+  //       disk_usage: Math.round(avgDisk * 10) / 10,
+  //       active_devices: onlineCount,
+  //       total_devices: totalDevices,
+  //       alerts_last_hour: alertsCount,
+  //       devices_with_data: latestReports.length,
+  //       data_freshness: latestReports.length > 0 ? 'live' : 'no_recent_data'
+  //     };
 
-      console.log("Real-time metrics calculated:", metrics);
-      return metrics;
-    } catch (error) {
-      console.error("Error fetching real-time metrics:", error);
-      throw error; // Don't fall back to mock data
-    }
-  }
+  //     console.log("Real-time metrics calculated:", metrics);
+  //     return metrics;
+  //   } catch (error) {
+  //     console.error("Error fetching real-time metrics:", error);
+  //     throw error; // Don't fall back to mock data
+  //   }
+  // }
 
-  async getTrendAnalysis(metric: string, timeRange: string): Promise<any> {
-    return {
-      metric,
-      timeRange,
-      data: [],
-      trend: 0,
-      prediction: null,
-    };
-  }
+  // async getTrendAnalysis(metric: string, timeRange: string): Promise<any> {
+  //   return {
+  //     metric,
+  //     timeRange,
+  //     data: [],
+  //     trend: 0,
+  //     prediction: null,
+  //   };
+  // }
 
-  async getCapacityRecommendations(): Promise<any> {
-    const healthData = await this.generateSystemHealthReport();
-    return {
-      generated_at: new Date(),
-      recommendations: [],
-      overall_health:
-        healthData.overall_health.health_score >= 85
-          ? "excellent"
-          : healthData.overall_health.health_score >= 70
-            ? "good"
-            : healthData.overall_health.health_score >= 55
-              ? "fair"
-              : "poor",
-    };
-  }
+  // async getCapacityRecommendations(): Promise<any> {
+  //   const healthData = await this.generateSystemHealthReport();
+  //   return {
+  //     generated_at: new Date(),
+  //     recommendations: [],
+  //     overall_health:
+  //       healthData.overall_health.health_score >= 85
+  //         ? "excellent"
+  //         : healthData.overall_health.health_score >= 70
+  //           ? "good"
+  //           : healthData.overall_health.health_score >= 55
+  //             ? "fair"
+  //             : "poor",
+  //   };
+  // }
 
   async generateTrendAnalysisReport(timeRange: string = "30d"): Promise<any> {
     try {

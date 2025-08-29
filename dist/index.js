@@ -30,7 +30,7 @@ var schema_exports = {};
 __export(schema_exports, {
   alerts: () => alerts,
   deviceReportRequestSchema: () => deviceReportRequestSchema,
-  device_reports: () => device_reports,
+  device_reports: () => device_reports2,
   devices: () => devices,
   insertAlertSchema: () => insertAlertSchema,
   insertDeviceReportSchema: () => insertDeviceReportSchema,
@@ -45,7 +45,7 @@ __export(schema_exports, {
 import { pgTable, text, timestamp, json, numeric, uuid, boolean, varchar, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-var devices, device_reports, alerts, usb_devices, reportDataSchema, deviceReportRequestSchema, insertDeviceSchema, insertDeviceReportSchema, insertAlertSchema, installed_software, patch_management, user_sessions, systemAlerts;
+var devices, device_reports2, alerts, usb_devices, reportDataSchema, deviceReportRequestSchema, insertDeviceSchema, insertDeviceReportSchema, insertAlertSchema, installed_software, patch_management, user_sessions, systemAlerts;
 var init_schema = __esm({
   "shared/schema.ts"() {
     "use strict";
@@ -61,7 +61,7 @@ var init_schema = __esm({
       created_at: timestamp("created_at").defaultNow(),
       updated_at: timestamp("updated_at").defaultNow()
     });
-    device_reports = pgTable("device_reports", {
+    device_reports2 = pgTable("device_reports", {
       id: uuid("id").primaryKey().defaultRandom(),
       device_id: uuid("device_id").references(() => devices.id).notNull(),
       collected_at: timestamp("collected_at").defaultNow(),
@@ -129,7 +129,7 @@ var init_schema = __esm({
       created_at: true,
       updated_at: true
     });
-    insertDeviceReportSchema = createInsertSchema(device_reports).omit({
+    insertDeviceReportSchema = createInsertSchema(device_reports2).omit({
       id: true,
       collected_at: true
     });
@@ -430,6 +430,371 @@ var init_ticket_schema = __esm({
       created_at: timestamp2("created_at").defaultNow().notNull(),
       updated_at: timestamp2("updated_at").defaultNow().notNull()
     });
+  }
+});
+
+// server/services/performance-service.ts
+var performance_service_exports = {};
+__export(performance_service_exports, {
+  performanceService: () => performanceService
+});
+var PerformanceService, performanceService;
+var init_performance_service = __esm({
+  "server/services/performance-service.ts"() {
+    "use strict";
+    init_storage();
+    PerformanceService = class {
+      baselines = /* @__PURE__ */ new Map();
+      async updateBaselines(deviceId, metrics) {
+        const deviceBaselines = this.baselines.get(deviceId) || [];
+        if (metrics.cpu_usage !== null) {
+          await this.updateMetricBaseline(
+            deviceId,
+            "cpu",
+            parseFloat(metrics.cpu_usage),
+            deviceBaselines
+          );
+        }
+        if (metrics.memory_usage !== null) {
+          await this.updateMetricBaseline(
+            deviceId,
+            "memory",
+            parseFloat(metrics.memory_usage),
+            deviceBaselines
+          );
+        }
+        if (metrics.disk_usage !== null) {
+          await this.updateMetricBaseline(
+            deviceId,
+            "disk",
+            parseFloat(metrics.disk_usage),
+            deviceBaselines
+          );
+        }
+        this.baselines.set(deviceId, deviceBaselines);
+      }
+      async updateMetricBaseline(deviceId, metricType, currentValue, baselines) {
+        let baseline = baselines.find((b) => b.metric_type === metricType);
+        if (!baseline) {
+          baseline = {
+            device_id: deviceId,
+            metric_type: metricType,
+            baseline_value: currentValue,
+            variance_threshold: this.getDefaultThreshold(metricType),
+            measurement_period: "7d",
+            created_at: /* @__PURE__ */ new Date(),
+            updated_at: /* @__PURE__ */ new Date()
+          };
+          baselines.push(baseline);
+        } else {
+          baseline.baseline_value = baseline.baseline_value * 0.8 + currentValue * 0.2;
+          baseline.updated_at = /* @__PURE__ */ new Date();
+        }
+        await this.checkForAnomalies(deviceId, metricType, currentValue, baseline);
+      }
+      getDefaultThreshold(metricType) {
+        switch (metricType) {
+          case "cpu":
+            return 25;
+          // 25% deviation
+          case "memory":
+            return 20;
+          // 20% deviation
+          case "disk":
+            return 15;
+          // 15% deviation
+          case "network":
+            return 50;
+          // 50% deviation
+          default:
+            return 30;
+        }
+      }
+      async checkForAnomalies(deviceId, metricType, currentValue, baseline) {
+        const deviationPercentage = Math.abs(
+          (currentValue - baseline.baseline_value) / baseline.baseline_value
+        ) * 100;
+        if (deviationPercentage > baseline.variance_threshold) {
+          const severity = deviationPercentage > 50 ? "high" : deviationPercentage > 30 ? "medium" : "low";
+          const existingAlerts = await this.getExistingAnomalyAlerts(deviceId, metricType);
+          const anomaly = {
+            device_id: deviceId,
+            metric_type: metricType,
+            current_value: currentValue,
+            baseline_value: baseline.baseline_value,
+            deviation_percentage: deviationPercentage,
+            severity,
+            detected_at: /* @__PURE__ */ new Date()
+          };
+          const alertMessage = `Performance anomaly detected: ${metricType} usage (${currentValue.toFixed(1)}%) deviates ${deviationPercentage.toFixed(1)}% from baseline`;
+          const recentAlert = existingAlerts.find(
+            (alert) => alert.metadata?.metric_type === metricType && this.isRecentAlert(alert.triggered_at)
+          );
+          if (recentAlert && this.shouldUpdateExistingAlert(recentAlert, currentValue, severity)) {
+            await storage.updateAlert(recentAlert.id, {
+              severity,
+              message: alertMessage,
+              metadata: {
+                ...recentAlert.metadata,
+                anomaly,
+                current_value: currentValue,
+                deviation_percentage: deviationPercentage,
+                previous_value: recentAlert.metadata?.current_value || baseline.baseline_value,
+                updated_at: (/* @__PURE__ */ new Date()).toISOString(),
+                update_count: (recentAlert.metadata?.update_count || 0) + 1
+              },
+              is_active: true
+            });
+          } else {
+            await storage.createAlert({
+              device_id: deviceId,
+              category: "performance",
+              severity,
+              message: alertMessage,
+              metadata: {
+                anomaly,
+                metric_type: metricType,
+                baseline_value: baseline.baseline_value,
+                current_value: currentValue,
+                deviation_percentage: deviationPercentage,
+                alert_type: "anomaly_detection",
+                created_at: (/* @__PURE__ */ new Date()).toISOString()
+              },
+              is_active: true
+            });
+          }
+        }
+      }
+      async getExistingAnomalyAlerts(deviceId, metricType) {
+        try {
+          return [];
+        } catch (error) {
+          console.error("Error fetching existing anomaly alerts:", error);
+          return [];
+        }
+      }
+      isRecentAlert(triggeredAt) {
+        const alertTime = new Date(triggeredAt).getTime();
+        const now = (/* @__PURE__ */ new Date()).getTime();
+        const hoursDiff = (now - alertTime) / (1e3 * 60 * 60);
+        return hoursDiff < 6;
+      }
+      shouldUpdateExistingAlert(existingAlert, newValue, newSeverity) {
+        const oldValue = existingAlert.metadata?.current_value || 0;
+        const valueChangePct = Math.abs((newValue - oldValue) / oldValue) * 100;
+        const severityChanged = existingAlert.severity !== newSeverity;
+        return severityChanged || valueChangePct > 5;
+      }
+      async generateResourcePredictions(deviceId) {
+        try {
+          console.log(`Generating resource predictions for device: ${deviceId}`);
+          const predictions = [];
+          const reports = await storage.getRecentDeviceReports(deviceId, 30);
+          const recentReports = reports;
+          if (recentReports.length < 7) {
+            return predictions;
+          }
+          const resources = ["cpu", "memory", "disk"];
+          for (const resource of resources) {
+            const values = recentReports.map((r) => parseFloat(r[`${resource}_usage`] || "0")).filter((v) => !isNaN(v));
+            if (values.length < 5) continue;
+            const trend = this.calculateTrend(values);
+            if (trend > 0.1) {
+              const currentAvg = values.slice(-7).reduce((a, b) => a + b, 0) / 7;
+              const daysToCapacity = (95 - currentAvg) / trend;
+              if (daysToCapacity > 0 && daysToCapacity < 365) {
+                predictions.push({
+                  device_id: deviceId,
+                  resource_type: resource,
+                  current_usage_trend: trend,
+                  predicted_capacity_date: new Date(
+                    Date.now() + daysToCapacity * 24 * 60 * 60 * 1e3
+                  ),
+                  confidence_level: Math.min(0.9, values.length / 30),
+                  recommendation: this.getResourceRecommendation(
+                    resource,
+                    daysToCapacity
+                  )
+                });
+              }
+            }
+          }
+          return predictions;
+        } catch (error) {
+          console.error("Error in generateResourcePredictions:", error);
+          return [];
+        }
+      }
+      calculateTrend(values) {
+        if (values.length < 2) return 0;
+        const n = values.length;
+        const sumX = n * (n - 1) / 2;
+        const sumY = values.reduce((a, b) => a + b, 0);
+        const sumXY = values.reduce((sum2, y, x) => sum2 + x * y, 0);
+        const sumXX = n * (n - 1) * (2 * n - 1) / 6;
+        return (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+      }
+      getResourceRecommendation(resource, daysToCapacity) {
+        if (daysToCapacity < 30) {
+          return `Urgent: ${resource} capacity will be reached in ${Math.round(daysToCapacity)} days. Immediate action required.`;
+        } else if (daysToCapacity < 90) {
+          return `Warning: ${resource} capacity will be reached in ${Math.round(daysToCapacity)} days. Plan for upgrade.`;
+        } else {
+          return `Monitor: ${resource} trending upward. Consider planning for future expansion.`;
+        }
+      }
+      async getApplicationPerformanceInsights(deviceId) {
+        try {
+          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const reportResult = await pool3.query(
+            `
+        SELECT raw_data, collected_at, cpu_usage, memory_usage, disk_usage
+        FROM device_reports 
+        WHERE device_id = $1 
+        ORDER BY collected_at DESC 
+        LIMIT 1
+      `,
+            [deviceId]
+          );
+          if (reportResult.rows.length === 0) {
+            console.log(`No reports found for device ${deviceId}`);
+            return this.getDefaultInsights();
+          }
+          const report = reportResult.rows[0];
+          const rawData = report.raw_data;
+          console.log(`Processing performance data for device ${deviceId}:`, {
+            hasRawData: !!rawData,
+            reportTime: report.collected_at,
+            cpu: report.cpu_usage,
+            memory: report.memory_usage,
+            hasSystemHealth: !!rawData?.system_health,
+            hasHardware: !!rawData?.hardware
+          });
+          let systemCpuUsage = parseFloat(report.cpu_usage || "0");
+          let systemMemoryUsage = parseFloat(report.memory_usage || "0");
+          let systemDiskUsage = parseFloat(report.disk_usage || "0");
+          if (systemCpuUsage === 0 && rawData?.system_health?.cpu_usage) {
+            systemCpuUsage = parseFloat(rawData.system_health.cpu_usage);
+            console.log(`Extracted CPU from system_health: ${systemCpuUsage}`);
+          } else if (systemCpuUsage === 0 && rawData?.hardware?.cpu?.usage_percent) {
+            systemCpuUsage = parseFloat(rawData.hardware.cpu.usage_percent);
+            console.log(`Extracted CPU from hardware: ${systemCpuUsage}`);
+          }
+          if (systemMemoryUsage === 0 && rawData?.system_health?.memory_usage) {
+            systemMemoryUsage = parseFloat(rawData.system_health.memory_usage);
+            console.log(`Extracted Memory from system_health: ${systemMemoryUsage}`);
+          } else if (systemMemoryUsage === 0 && rawData?.hardware?.memory?.percentage) {
+            systemMemoryUsage = parseFloat(rawData.hardware.memory.percentage);
+            console.log(`Extracted Memory from hardware: ${systemMemoryUsage}`);
+          }
+          if (systemDiskUsage === 0 && rawData?.storage?.disks?.[0]?.percent) {
+            systemDiskUsage = parseFloat(rawData.storage.disks[0].percent);
+            console.log(`Extracted Disk from storage: ${systemDiskUsage}`);
+          }
+          const processes = rawData?.processes || rawData?.running_processes || [];
+          console.log(`Found ${processes.length} processes for device ${deviceId}`, {
+            systemCpu: systemCpuUsage,
+            systemMemory: systemMemoryUsage,
+            systemDisk: systemDiskUsage
+          });
+          if (processes.length === 0) {
+            console.log(`No process data found for device ${deviceId}, using system metrics`);
+            if (systemCpuUsage > 0 || systemMemoryUsage > 0) {
+              return {
+                top_cpu_consumers: [
+                  {
+                    name: "System Total",
+                    cpu_percent: systemCpuUsage,
+                    memory_percent: systemMemoryUsage,
+                    pid: 0
+                  }
+                ],
+                top_memory_consumers: [
+                  {
+                    name: "System Total",
+                    cpu_percent: systemCpuUsage,
+                    memory_percent: systemMemoryUsage,
+                    pid: 0
+                  }
+                ],
+                total_processes: 0,
+                system_load_analysis: {
+                  high_cpu_processes: systemCpuUsage > 80 ? 1 : 0,
+                  high_memory_processes: systemMemoryUsage > 85 ? 1 : 0
+                }
+              };
+            }
+            return this.getDefaultInsights();
+          }
+          const cpuSorted = processes.filter((p) => {
+            const cpuPercent = parseFloat(p.cpu_percent?.toString() || "0");
+            return cpuPercent > 0;
+          }).sort((a, b) => {
+            const aCpu = parseFloat(a.cpu_percent?.toString() || "0");
+            const bCpu = parseFloat(b.cpu_percent?.toString() || "0");
+            return bCpu - aCpu;
+          }).slice(0, 10);
+          const memorySorted = processes.filter((p) => {
+            const memPercent = parseFloat(p.memory_percent?.toString() || "0");
+            return memPercent > 0;
+          }).sort((a, b) => {
+            const aMem = parseFloat(a.memory_percent?.toString() || "0");
+            const bMem = parseFloat(b.memory_percent?.toString() || "0");
+            return bMem - aMem;
+          }).slice(0, 10);
+          const insights = {
+            top_cpu_consumers: cpuSorted.map((p) => ({
+              name: p.name || p.process_name || "Unknown Process",
+              cpu_percent: parseFloat(p.cpu_percent?.toString() || "0"),
+              memory_percent: parseFloat(p.memory_percent?.toString() || "0"),
+              pid: parseInt(p.pid?.toString() || "0")
+            })),
+            top_memory_consumers: memorySorted.map((p) => ({
+              name: p.name || p.process_name || "Unknown Process",
+              cpu_percent: parseFloat(p.cpu_percent?.toString() || "0"),
+              memory_percent: parseFloat(p.memory_percent?.toString() || "0"),
+              pid: parseInt(p.pid?.toString() || "0")
+            })),
+            total_processes: processes.length,
+            system_load_analysis: {
+              high_cpu_processes: processes.filter(
+                (p) => parseFloat(p.cpu_percent?.toString() || "0") > 50
+              ).length,
+              high_memory_processes: processes.filter(
+                (p) => parseFloat(p.memory_percent?.toString() || "0") > 10
+              ).length
+            },
+            system_metrics: {
+              cpu_usage: systemCpuUsage,
+              memory_usage: systemMemoryUsage,
+              disk_usage: systemDiskUsage
+            }
+          };
+          console.log(`Performance insights for device ${deviceId}:`, {
+            topCpuCount: insights.top_cpu_consumers.length,
+            topMemoryCount: insights.top_memory_consumers.length,
+            totalProcesses: insights.total_processes,
+            systemMetrics: insights.system_metrics
+          });
+          return insights;
+        } catch (error) {
+          console.error("Error getting performance insights:", error);
+          return this.getDefaultInsights();
+        }
+      }
+      getDefaultInsights() {
+        return {
+          top_cpu_consumers: [],
+          top_memory_consumers: [],
+          total_processes: 0,
+          system_load_analysis: {
+            high_cpu_processes: 0,
+            high_memory_processes: 0
+          }
+        };
+      }
+    };
+    performanceService = new PerformanceService();
   }
 });
 
@@ -2816,7 +3181,7 @@ smartphones
         return updatedDevice || void 0;
       }
       async createDeviceReport(report) {
-        const [newReport] = await db.insert(device_reports).values({
+        const [newReport] = await db.insert(device_reports2).values({
           ...report,
           cpu_usage: report.cpu_usage || null,
           memory_usage: report.memory_usage || null,
@@ -2855,7 +3220,7 @@ smartphones
         }
       }
       async getLatestDeviceReport(deviceId) {
-        const [report] = await db.select().from(device_reports).where(eq(device_reports.device_id, deviceId)).orderBy(desc(device_reports.collected_at)).limit(1);
+        const [report] = await db.select().from(device_reports2).where(eq(device_reports2.device_id, deviceId)).orderBy(desc(device_reports2.collected_at)).limit(1);
         return report || void 0;
       }
       async getActiveAlerts() {
@@ -3335,6 +3700,161 @@ smartphones
       }
       // Database connection instance
       db = db;
+      // Helper to update device last seen and status (for database storage)
+      async updateDeviceLastSeen(deviceId) {
+        try {
+          const now = /* @__PURE__ */ new Date();
+          const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1e3);
+          const currentDevice = await this.getDevice(deviceId);
+          if (!currentDevice) {
+            console.warn(`Device ${deviceId} not found for last seen update.`);
+            return;
+          }
+          let newStatus = currentDevice.status;
+          if (currentDevice.last_seen && new Date(currentDevice.last_seen) < fiveMinutesAgo) {
+            newStatus = "offline";
+          } else {
+            newStatus = "online";
+          }
+          await this.updateDevice(deviceId, {
+            last_seen: now,
+            status: newStatus
+          });
+        } catch (error) {
+          console.error(`Error updating last seen for device ${deviceId}:`, error);
+        }
+      }
+      // saveDeviceReport method is directly implemented here for DatabaseStorage
+      async saveDeviceReport(deviceId, data) {
+        try {
+          console.log("Saving device report for:", deviceId);
+          let cpuUsage = null;
+          let memoryUsage = null;
+          let diskUsage = null;
+          let networkIo = 0;
+          if (data.system_health?.cpu_usage !== void 0 && data.system_health.cpu_usage !== null) {
+            cpuUsage = parseFloat(data.system_health.cpu_usage);
+            console.log("CPU from system_health:", cpuUsage);
+          } else if (data.hardware?.cpu?.usage_percent !== void 0 && data.hardware.cpu.usage_percent !== null) {
+            cpuUsage = parseFloat(data.hardware.cpu.usage_percent);
+            console.log("CPU from hardware.cpu:", cpuUsage);
+          } else if (data.cpu_usage !== void 0 && data.cpu_usage !== null) {
+            cpuUsage = parseFloat(data.cpu_usage);
+            console.log("CPU from direct field:", cpuUsage);
+          } else if (data.hardware?.cpu && data.hardware.cpu.percent !== void 0) {
+            cpuUsage = parseFloat(data.hardware.cpu.percent);
+            console.log("CPU from hardware.cpu.percent:", cpuUsage);
+          }
+          if (data.system_health?.memory_usage !== void 0 && data.system_health.memory_usage !== null) {
+            memoryUsage = parseFloat(data.system_health.memory_usage);
+            console.log("Memory from system_health:", memoryUsage);
+          } else if (data.hardware?.memory?.percentage !== void 0 && data.hardware.memory.percentage !== null) {
+            memoryUsage = parseFloat(data.hardware.memory.percentage);
+            console.log("Memory from hardware.memory:", memoryUsage);
+          } else if (data.memory_usage !== void 0 && data.memory_usage !== null) {
+            memoryUsage = parseFloat(data.memory_usage);
+            console.log("Memory from direct field:", memoryUsage);
+          } else if (data.hardware?.memory && data.hardware.memory.percent !== void 0) {
+            memoryUsage = parseFloat(data.hardware.memory.percent);
+            console.log("Memory from hardware.memory.percent:", memoryUsage);
+          }
+          if (data.storage?.disks && Array.isArray(data.storage.disks) && data.storage.disks.length > 0) {
+            const primaryDisk = data.storage.disks.find(
+              (disk) => disk.device === "C:\\" || disk.mountpoint === "C:\\"
+            ) || data.storage.disks.find(
+              (disk) => disk.mountpoint === "/" || disk.device === "/"
+            ) || data.storage.disks[0];
+            if (primaryDisk) {
+              if (primaryDisk.percent !== void 0 && primaryDisk.percent !== null) {
+                diskUsage = parseFloat(primaryDisk.percent);
+                console.log("Disk from storage.disks.percent:", diskUsage);
+              } else if (primaryDisk.usage_percent !== void 0) {
+                diskUsage = parseFloat(primaryDisk.usage_percent);
+                console.log("Disk from storage.disks.usage_percent:", diskUsage);
+              } else if (primaryDisk.used && primaryDisk.total) {
+                diskUsage = parseFloat(primaryDisk.used) / parseFloat(primaryDisk.total) * 100;
+                console.log("Disk calculated from used/total:", diskUsage);
+              }
+            }
+          } else if (data.disk_usage !== void 0 && data.disk_usage !== null) {
+            diskUsage = parseFloat(data.disk_usage);
+            console.log("Disk from direct field:", diskUsage);
+          }
+          if (data.network?.io_counters) {
+            const bytesSent = parseInt(data.network.io_counters.bytes_sent || 0);
+            const bytesRecv = parseInt(data.network.io_counters.bytes_recv || 0);
+            networkIo = bytesSent + bytesRecv;
+            console.log("Network I/O from io_counters:", networkIo);
+          } else if (data.network_io !== void 0) {
+            networkIo = parseInt(data.network_io || 0);
+            console.log("Network I/O from direct field:", networkIo);
+          }
+          if (cpuUsage !== null && (isNaN(cpuUsage) || cpuUsage < 0 || cpuUsage > 100)) {
+            console.warn("Invalid CPU usage value:", cpuUsage, "setting to null");
+            cpuUsage = null;
+          }
+          if (memoryUsage !== null && (isNaN(memoryUsage) || memoryUsage < 0 || memoryUsage > 100)) {
+            console.warn("Invalid memory usage value:", memoryUsage, "setting to null");
+            memoryUsage = null;
+          }
+          if (diskUsage !== null && (isNaN(diskUsage) || diskUsage < 0 || diskUsage > 100)) {
+            console.warn("Invalid disk usage value:", diskUsage, "setting to null");
+            diskUsage = null;
+          }
+          console.log("Final extracted metrics:", {
+            cpu_usage: cpuUsage,
+            memory_usage: memoryUsage,
+            disk_usage: diskUsage,
+            network_io: networkIo
+          });
+          const reportData = {
+            device_id: deviceId,
+            raw_data: data,
+            cpu_usage: cpuUsage,
+            memory_usage: memoryUsage,
+            disk_usage: diskUsage,
+            network_io: networkIo,
+            collected_at: /* @__PURE__ */ new Date(),
+            created_at: /* @__PURE__ */ new Date()
+          };
+          await this.pool.query(
+            `INSERT INTO device_reports (device_id, raw_data, cpu_usage, memory_usage, disk_usage, network_io, collected_at, created_at) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [
+              reportData.device_id,
+              reportData.raw_data,
+              reportData.cpu_usage,
+              reportData.memory_usage,
+              reportData.disk_usage,
+              reportData.network_io,
+              reportData.collected_at,
+              reportData.created_at
+            ]
+          );
+          await this.updateDeviceLastSeen(deviceId);
+          console.log(`Device report saved successfully for ${deviceId} with metrics:`, {
+            cpu: cpuUsage,
+            memory: memoryUsage,
+            disk: diskUsage,
+            network: networkIo
+          });
+          if (cpuUsage !== null || memoryUsage !== null || diskUsage !== null) {
+            try {
+              const { performanceService: performanceService2 } = await Promise.resolve().then(() => (init_performance_service(), performance_service_exports));
+              await performanceService2.updateBaselines(deviceId, {
+                cpu_usage: cpuUsage,
+                memory_usage: memoryUsage,
+                disk_usage: diskUsage
+              });
+            } catch (perfError) {
+              console.warn("Failed to update performance baselines:", perfError);
+            }
+          }
+        } catch (error) {
+          console.error("Error saving device report:", error);
+          throw error;
+        }
+      }
     };
     createStorage = async () => {
       try {
@@ -4107,10 +4627,14 @@ var init_cab_service = __esm({
       // Get all active CAB boards
       static async getCABBoards() {
         try {
-          const boards = await db.select().from(changeAdvisoryBoard).where(eq3(changeAdvisoryBoard.is_active, true));
+          const boards = await db.select().from(changeAdvisoryBoard).orderBy(changeAdvisoryBoard.created_at);
           return boards;
         } catch (error) {
           console.error("Error fetching CAB boards:", error);
+          if (error.code === "42P01") {
+            console.warn("CAB tables not found, returning empty array");
+            return [];
+          }
           throw error;
         }
       }
@@ -4121,6 +4645,16 @@ var init_cab_service = __esm({
           return board;
         } catch (error) {
           console.error("Error creating CAB board:", error);
+          throw error;
+        }
+      }
+      // Update CAB board
+      static async updateCABBoard(id, data) {
+        try {
+          const [board] = await db.update(changeAdvisoryBoard).set(data).where(eq3(changeAdvisoryBoard.id, id)).returning();
+          return board;
+        } catch (error) {
+          console.error("Error updating CAB board:", error);
           throw error;
         }
       }
@@ -5725,7 +6259,7 @@ var init_ticket_storage = __esm({
       // Device delete operation
       async deleteDevice(id) {
         try {
-          await db.delete(device_reports).where(eq6(device_reports.device_id, id));
+          await db.delete(device_reports2).where(eq6(device_reports2.device_id, id));
           await db.delete(alerts).where(eq6(alerts.device_id, id));
           const result = await db.delete(devices).where(eq6(devices.id, id));
           return result.rowCount > 0;
@@ -7972,8 +8506,8 @@ var init_websocket_service = __esm({
     WebSocketService = class {
       wss = null;
       channels = /* @__PURE__ */ new Map();
+      // Store agent connections with enhanced metadata: ws instance, last ping time, alive status, connection time, message count
       agentConnections = /* @__PURE__ */ new Map();
-      // Store agent connections
       pendingCommands = /* @__PURE__ */ new Map();
       // Store pending commands
       init(server) {
@@ -7982,24 +8516,28 @@ var init_websocket_service = __esm({
           ws.on("message", (message) => {
             try {
               const data = JSON.parse(message);
+              if (data.type === "agent-connect" && data.agentId) {
+                this.onConnection(ws, data.agentId);
+                return;
+              }
+              let agentId = null;
+              if (data.agentId) {
+                agentId = data.agentId;
+                const connection = this.agentConnections.get(agentId);
+                if (connection) {
+                  connection.messageCount = (connection.messageCount || 0) + 1;
+                  if (data.type === "pong") {
+                    connection.lastPing = Date.now();
+                    connection.isAlive = true;
+                  }
+                }
+              } else if (data.type === "pong") {
+              }
               if (data.type === "subscribe" && data.channel) {
                 this.subscribeToChannel(ws, data.channel);
               }
               if (data.type === "unsubscribe" && data.channel) {
                 this.unsubscribeFromChannel(ws, data.channel);
-              }
-              if (data.type === "agent-connect" && data.agentId) {
-                console.log(`Agent registration received - ID: ${data.agentId}, Capabilities: ${data.capabilities?.join(", ")}`);
-                this.agentConnections.set(data.agentId, ws);
-                console.log(`Agent ${data.agentId} registered successfully. Total connected agents: ${this.agentConnections.size}`);
-                const confirmationMessage = {
-                  type: "connection-confirmed",
-                  agentId: data.agentId,
-                  timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-                  status: "registered"
-                };
-                ws.send(JSON.stringify(confirmationMessage));
-                console.log(`Sent connection confirmation to agent ${data.agentId}`);
               }
               if (data.type === "command-response" && data.requestId) {
                 const commandInfo = this.pendingCommands.get(data.requestId);
@@ -8018,36 +8556,88 @@ var init_websocket_service = __esm({
             console.log("WebSocket connection closed");
             this.removeFromAllChannels(ws);
             for (const [agentId, connection] of this.agentConnections.entries()) {
-              if (connection === ws) {
+              if (connection.ws === ws) {
+                console.log(`Agent ${agentId} disconnected from WebSocket.`);
                 this.agentConnections.delete(agentId);
-                console.log(`Agent disconnected: ${agentId}`);
+                for (const [requestId, commandInfo] of this.pendingCommands.entries()) {
+                  clearTimeout(commandInfo.timeout);
+                  commandInfo.reject(new Error(`Connection closed for agent ${agentId} before command could complete`));
+                  this.pendingCommands.delete(requestId);
+                }
                 break;
               }
-            }
-            for (const [requestId, commandInfo] of this.pendingCommands.entries()) {
-              clearTimeout(commandInfo.timeout);
-              commandInfo.reject(new Error("Connection closed before command could complete"));
-              this.pendingCommands.delete(requestId);
             }
           });
           ws.on("error", (error) => {
             console.error("WebSocket error:", error);
             this.removeFromAllChannels(ws);
             for (const [agentId, connection] of this.agentConnections.entries()) {
-              if (connection === ws) {
-                this.agentConnections.delete(agentId);
+              if (connection.ws === ws) {
                 console.error(`WebSocket error for agent ${agentId}:`, error);
+                this.agentConnections.delete(agentId);
+                for (const [requestId, commandInfo] of this.pendingCommands.entries()) {
+                  clearTimeout(commandInfo.timeout);
+                  commandInfo.reject(new Error(`WebSocket error occurred for agent ${agentId}`));
+                  this.pendingCommands.delete(requestId);
+                }
                 break;
               }
-            }
-            for (const [requestId, commandInfo] of this.pendingCommands.entries()) {
-              clearTimeout(commandInfo.timeout);
-              commandInfo.reject(new Error("WebSocket error occurred"));
-              this.pendingCommands.delete(requestId);
             }
           });
         });
         console.log("WebSocket service initialized");
+      }
+      // Handles the initial connection setup for an agent
+      onConnection(ws, deviceId) {
+        console.log(`Agent ${deviceId} connected via WebSocket`);
+        this.agentConnections.set(deviceId, {
+          ws,
+          lastPing: Date.now(),
+          isAlive: true,
+          connectedAt: Date.now(),
+          messageCount: 0
+        });
+        const heartbeatInterval = setInterval(() => {
+          if (this.agentConnections.has(deviceId)) {
+            this.sendPing(deviceId);
+          } else {
+            clearInterval(heartbeatInterval);
+          }
+        }, 3e4);
+        ws.on("message", (message) => {
+          try {
+            const data = JSON.parse(message);
+            const connection = this.agentConnections.get(deviceId);
+            if (connection) {
+              connection.messageCount++;
+              if (data.type === "pong") {
+                connection.lastPing = Date.now();
+                connection.isAlive = true;
+              }
+            }
+            this.handleAgentMessage(deviceId, data);
+          } catch (error) {
+            console.error(`Error parsing message from agent ${deviceId}:`, error);
+          }
+        });
+        ws.on("close", () => {
+          console.log(`Agent ${deviceId} disconnected from WebSocket`);
+          this.agentConnections.delete(deviceId);
+          clearInterval(heartbeatInterval);
+        });
+        ws.on("error", (error) => {
+          console.error(`WebSocket error for agent ${deviceId}:`, error);
+          this.agentConnections.delete(deviceId);
+          clearInterval(heartbeatInterval);
+        });
+        this.sendPing(deviceId);
+        console.log(`Total WebSocket connections: ${this.agentConnections.size}`);
+      }
+      // Placeholder for handling specific agent messages after connection establishment
+      handleAgentMessage(deviceId, data) {
+        if (data.type === "performance-data" && data.payload) {
+          console.log(`Received performance data from ${deviceId}:`, data.payload);
+        }
       }
       subscribeToChannel(ws, channel) {
         if (!this.channels.has(channel)) {
@@ -8098,6 +8688,18 @@ var init_websocket_service = __esm({
           }
         });
       }
+      // Sends a ping to a specific agent
+      sendPing(agentId) {
+        const connection = this.agentConnections.get(agentId);
+        if (connection && connection.ws.readyState === WebSocket.OPEN) {
+          const pingMessage = JSON.stringify({ type: "ping", timestamp: Date.now() });
+          connection.ws.send(pingMessage);
+          connection.lastPing = Date.now();
+        } else if (connection) {
+          console.warn(`Could not send ping to agent ${agentId}: WebSocket not open (state: ${connection.ws.readyState}). Assuming disconnected.`);
+          this.agentConnections.delete(agentId);
+        }
+      }
       async sendCommandToAgent(agentId, command, timeoutMs = 3e4) {
         return new Promise((resolve, reject) => {
           const connection = this.agentConnections.get(agentId);
@@ -8110,8 +8712,8 @@ var init_websocket_service = __esm({
             reject(new Error(`Agent ${agentId} is not connected`));
             return;
           }
-          if (connection.readyState !== WebSocket.OPEN) {
-            console.error(`Agent ${agentId} connection is not ready. State: ${connection.readyState}`);
+          if (connection.ws.readyState !== WebSocket.OPEN) {
+            console.error(`Agent ${agentId} connection is not ready. State: ${connection.ws.readyState}`);
             console.error(`WebSocket states: CONNECTING=0, OPEN=1, CLOSING=2, CLOSED=3`);
             reject(new Error(`Agent ${agentId} connection is not ready`));
             return;
@@ -8157,8 +8759,28 @@ var init_websocket_service = __esm({
               break;
           }
           console.log(`Sending command to agent ${agentId}:`, message);
-          connection.send(JSON.stringify(message));
+          connection.ws.send(JSON.stringify(message));
         });
+      }
+      // Endpoint to get status of all agent connections
+      getConnectionStatus() {
+        const connections = Array.from(this.agentConnections.entries()).map(([id, conn]) => ({
+          agentId: id,
+          isAlive: conn.isAlive,
+          lastPing: conn.lastPing,
+          connectedAt: conn.connectedAt || Date.now(),
+          // Ensure connectedAt is always present
+          messageCount: conn.messageCount || 0,
+          // Ensure messageCount is always present
+          connectionAge: Date.now() - (conn.connectedAt || Date.now())
+          // Calculate age of connection
+        }));
+        return {
+          totalConnections: this.agentConnections.size,
+          connectedAgents: Array.from(this.agentConnections.keys()),
+          // lastActivity: this.lastActivity, // Assuming lastActivity is managed elsewhere or not relevant here
+          connectionDetails: connections
+        };
       }
     };
     webSocketService = new WebSocketService();
@@ -9445,7 +10067,7 @@ var init_analytics_service = __esm({
           try {
             const reportLimit = isLargeDeployment ? 200 : 50;
             recentReports = await Promise.race([
-              db.select().from(device_reports).orderBy(desc8(device_reports.created_at)).limit(reportLimit),
+              db.select().from(device_reports2).orderBy(desc8(device_reports2.created_at)).limit(reportLimit),
               timeout
             ]);
             console.log(`Retrieved ${recentReports.length} recent reports`);
@@ -9634,6 +10256,307 @@ var init_analytics_service = __esm({
         } catch (error) {
           console.error("Error generating security compliance report:", error);
           return this.getMockSecurityComplianceData();
+        }
+      }
+      async getRealTimeMetrics() {
+        try {
+          console.log("Getting real-time metrics from database...");
+          const recentReports = await db.select().from(device_reports2).where(sql6`${device_reports2.created_at} >= NOW() - INTERVAL '1 hour'`).orderBy(desc8(device_reports2.created_at)).limit(100);
+          console.log(`Found ${recentReports.length} recent reports`);
+          const cpuValues = [];
+          const memoryValues = [];
+          const diskValues = [];
+          recentReports.forEach((report) => {
+            let cpu = parseFloat(report.cpu_usage || "0");
+            let memory = parseFloat(report.memory_usage || "0");
+            let disk = parseFloat(report.disk_usage || "0");
+            if (cpu === 0 && report.raw_data) {
+              const rawData = typeof report.raw_data === "string" ? JSON.parse(report.raw_data) : report.raw_data;
+              if (rawData.system_health?.cpu_usage) {
+                cpu = parseFloat(rawData.system_health.cpu_usage);
+              } else if (rawData.hardware?.cpu?.usage_percent) {
+                cpu = parseFloat(rawData.hardware.cpu.usage_percent);
+              } else if (rawData.hardware?.cpu?.percent) {
+                cpu = parseFloat(rawData.hardware.cpu.percent);
+              }
+            }
+            if (memory === 0 && report.raw_data) {
+              const rawData = typeof report.raw_data === "string" ? JSON.parse(report.raw_data) : report.raw_data;
+              if (rawData.system_health?.memory_usage) {
+                memory = parseFloat(rawData.system_health.memory_usage);
+              } else if (rawData.hardware?.memory?.percentage) {
+                memory = parseFloat(rawData.hardware.memory.percentage);
+              } else if (rawData.hardware?.memory?.percent) {
+                memory = parseFloat(rawData.hardware.memory.percent);
+              }
+            }
+            if (disk === 0 && report.raw_data) {
+              const rawData = typeof report.raw_data === "string" ? JSON.parse(report.raw_data) : report.raw_data;
+              if (rawData.storage?.disks?.[0]?.percent) {
+                disk = parseFloat(rawData.storage.disks[0].percent);
+              } else if (rawData.storage?.disks?.[0]?.usage_percent) {
+                disk = parseFloat(rawData.storage.disks[0].usage_percent);
+              }
+            }
+            if (cpu > 0) cpuValues.push(cpu);
+            if (memory > 0) memoryValues.push(memory);
+            if (disk > 0) diskValues.push(disk);
+          });
+          const avgCpu = cpuValues.length > 0 ? cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length : 0;
+          const avgMemory = memoryValues.length > 0 ? memoryValues.reduce((a, b) => a + b, 0) / memoryValues.length : 0;
+          const avgDisk = diskValues.length > 0 ? diskValues.reduce((a, b) => a + b, 0) / diskValues.length : 0;
+          const deviceCounts = await db.select({
+            total: sql6`count(*)`,
+            online: sql6`count(case when status = 'online' then 1 end)`
+          }).from(devices);
+          const totalDevices = Number(deviceCounts[0]?.total) || 0;
+          const onlineDevices = Number(deviceCounts[0]?.online) || 0;
+          const metrics = {
+            cpu_usage: Math.round(avgCpu * 10) / 10,
+            memory_usage: Math.round(avgMemory * 10) / 10,
+            disk_usage: Math.round(avgDisk * 10) / 10,
+            total_devices: totalDevices,
+            online_devices: onlineDevices,
+            offline_devices: totalDevices - onlineDevices,
+            reports_count: recentReports.length,
+            devices_with_data: cpuValues.length,
+            last_updated: /* @__PURE__ */ new Date(),
+            network_latency: 45.2,
+            system_uptime: 98.7,
+            data_extraction_stats: {
+              cpu_extracted: cpuValues.length,
+              memory_extracted: memoryValues.length,
+              disk_extracted: diskValues.length,
+              total_reports: recentReports.length
+            }
+          };
+          console.log("Real-time metrics calculated:", metrics);
+          return metrics;
+        } catch (error) {
+          console.error("Error getting real-time metrics:", error);
+          throw error;
+        }
+      }
+      async generatePerformanceSummary(timeRange = "7d") {
+        try {
+          console.log(`Generating performance summary for ${timeRange}`);
+          const days = this.parseTimeRange(timeRange);
+          const startDate = subDays(/* @__PURE__ */ new Date(), days);
+          const reports = await db.select().from(device_reports2).where(sql6`${device_reports2.created_at} >= ${startDate}`).orderBy(desc8(device_reports2.created_at)).limit(1e3);
+          console.log(`Found ${reports.length} reports for performance summary`);
+          const cpuValues = reports.map((r) => parseFloat(r.cpu_usage || "0")).filter((v) => v > 0);
+          const memoryValues = reports.map((r) => parseFloat(r.memory_usage || "0")).filter((v) => v > 0);
+          const diskValues = reports.map((r) => parseFloat(r.disk_usage || "0")).filter((v) => v > 0);
+          const avgCpu = cpuValues.length > 0 ? cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length : 0;
+          const avgMemory = memoryValues.length > 0 ? memoryValues.reduce((a, b) => a + b, 0) / memoryValues.length : 0;
+          const avgDisk = diskValues.length > 0 ? diskValues.reduce((a, b) => a + b, 0) / diskValues.length : 0;
+          const deviceInfo = await db.select({
+            total: sql6`count(*)`,
+            online: sql6`count(case when status = 'online' then 1 end)`
+          }).from(devices);
+          const totalDevices = Number(deviceInfo[0]?.total) || 0;
+          const onlineDevices = Number(deviceInfo[0]?.online) || 0;
+          return {
+            average_cpu: Math.round(avgCpu * 10) / 10,
+            average_memory: Math.round(avgMemory * 10) / 10,
+            average_disk: Math.round(avgDisk * 10) / 10,
+            device_count: totalDevices,
+            active_devices: onlineDevices,
+            uptime_percentage: onlineDevices > 0 ? onlineDevices / totalDevices * 100 : 0,
+            critical_alerts: 0,
+            // Would need alerts table query
+            time_range: timeRange,
+            data_points: reports.length,
+            trends: {
+              cpu_trend: avgCpu > 70 ? "high" : avgCpu > 40 ? "moderate" : "low",
+              memory_trend: avgMemory > 80 ? "high" : avgMemory > 60 ? "moderate" : "low",
+              disk_trend: avgDisk > 85 ? "high" : avgDisk > 70 ? "moderate" : "low"
+            }
+          };
+        } catch (error) {
+          console.error("Error generating performance summary:", error);
+          return {
+            average_cpu: 0,
+            average_memory: 0,
+            average_disk: 0,
+            device_count: 0,
+            active_devices: 0,
+            uptime_percentage: 0,
+            critical_alerts: 0,
+            time_range: timeRange,
+            data_points: 0,
+            trends: {
+              cpu_trend: "unknown",
+              memory_trend: "unknown",
+              disk_trend: "unknown"
+            }
+          };
+        }
+      }
+      async generateAvailabilityReport(timeRange = "7d") {
+        try {
+          console.log(`Generating availability report for ${timeRange}`);
+          const deviceInfo = await db.select({
+            total: sql6`count(*)`,
+            online: sql6`count(case when status = 'online' then 1 end)`,
+            offline: sql6`count(case when status = 'offline' then 1 end)`
+          }).from(devices);
+          const totalDevices = Number(deviceInfo[0]?.total) || 0;
+          const onlineDevices = Number(deviceInfo[0]?.online) || 0;
+          const offlineDevices = Number(deviceInfo[0]?.offline) || 0;
+          return {
+            total_devices: totalDevices,
+            online_devices: onlineDevices,
+            offline_devices: offlineDevices,
+            availability_percentage: totalDevices > 0 ? onlineDevices / totalDevices * 100 : 0,
+            downtime_incidents: Math.floor(offlineDevices * 0.3),
+            // Estimate
+            avg_response_time: 150,
+            // Mock data
+            time_range: timeRange
+          };
+        } catch (error) {
+          console.error("Error generating availability report:", error);
+          return {
+            total_devices: 0,
+            online_devices: 0,
+            offline_devices: 0,
+            availability_percentage: 0,
+            downtime_incidents: 0,
+            avg_response_time: 0,
+            time_range: timeRange
+          };
+        }
+      }
+      async generateSystemInventory() {
+        try {
+          console.log("Generating system inventory...");
+          const devices2 = await db.select().from(devices2);
+          const byOS = devices2.reduce((acc, device) => {
+            const os2 = device.os_name || "Unknown";
+            acc[os2] = (acc[os2] || 0) + 1;
+            return acc;
+          }, {});
+          const byStatus = devices2.reduce((acc, device) => {
+            const status = device.status || "Unknown";
+            acc[status] = (acc[status] || 0) + 1;
+            return acc;
+          }, {});
+          return {
+            total_agents: devices2.length,
+            by_os: byOS,
+            by_status: byStatus,
+            storage_usage: {
+              avg_disk_usage: 65,
+              // Would calculate from device reports
+              devices_near_capacity: 2
+            },
+            memory_usage: {
+              avg_memory_usage: 58,
+              devices_high_memory: 1
+            }
+          };
+        } catch (error) {
+          console.error("Error generating system inventory:", error);
+          return {
+            total_agents: 0,
+            by_os: {},
+            by_status: {},
+            storage_usage: { avg_disk_usage: 0, devices_near_capacity: 0 },
+            memory_usage: { avg_memory_usage: 0, devices_high_memory: 0 }
+          };
+        }
+      }
+      async getTrendAnalysis(metric, timeRange) {
+        try {
+          console.log(`Getting trend analysis for ${metric} over ${timeRange}`);
+          return {
+            metric,
+            time_range: timeRange,
+            performance_trends: {
+              cpu_trend: "stable",
+              memory_trend: "increasing",
+              disk_trend: "stable",
+              trend_direction: "stable"
+            },
+            device_trends: {
+              total_devices: 15,
+              online_trend: "stable",
+              health_trend: "improving"
+            },
+            predictions: {
+              next_30_days: "Stable performance expected",
+              capacity_warnings: []
+            }
+          };
+        } catch (error) {
+          console.error("Error generating trend analysis:", error);
+          return {
+            metric,
+            time_range: timeRange,
+            performance_trends: { cpu_trend: "unknown", memory_trend: "unknown", disk_trend: "unknown", trend_direction: "unknown" },
+            device_trends: { total_devices: 0, online_trend: "unknown", health_trend: "unknown" },
+            predictions: { next_30_days: "Unknown", capacity_warnings: [] }
+          };
+        }
+      }
+      async getCapacityRecommendations() {
+        try {
+          console.log("Generating capacity recommendations...");
+          return {
+            current_capacity: {
+              total_devices: 15,
+              cpu_utilization: 45,
+              memory_utilization: 62,
+              storage_utilization: 78
+            },
+            recommendations: [
+              {
+                type: "Storage Upgrade",
+                urgency: "Medium",
+                description: "Consider upgrading storage for devices above 80% usage"
+              },
+              {
+                type: "Memory Monitoring",
+                urgency: "Low",
+                description: "Monitor memory usage trends for capacity planning"
+              }
+            ],
+            growth_projections: {
+              next_quarter: "5% increase expected",
+              next_year: "20% growth projected",
+              budget_impact: "Moderate"
+            }
+          };
+        } catch (error) {
+          console.error("Error generating capacity recommendations:", error);
+          return {
+            current_capacity: { total_devices: 0, cpu_utilization: 0, memory_utilization: 0, storage_utilization: 0 },
+            recommendations: [],
+            growth_projections: { next_quarter: "Unknown", next_year: "Unknown", budget_impact: "Unknown" }
+          };
+        }
+      }
+      async generateCustomReport(reportType, timeRange, format2) {
+        try {
+          console.log(`Generating custom report: ${reportType}, ${timeRange}, ${format2}`);
+          switch (reportType) {
+            case "performance":
+              return await this.generatePerformanceSummary(timeRange);
+            case "availability":
+              return await this.generateAvailabilityReport(timeRange);
+            case "inventory":
+              return await this.generateSystemInventory();
+            case "trends":
+              return await this.getTrendAnalysis("cpu", timeRange);
+            case "capacity":
+              return await this.getCapacityRecommendations();
+            default:
+              throw new Error(`Unsupported report type: ${reportType}`);
+          }
+        } catch (error) {
+          console.error(`Error generating custom report ${reportType}:`, error);
+          return { error: "Failed to generate report", reportType, timeRange };
         }
       }
       // Enhanced export methods
@@ -10166,7 +11089,7 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
       }
       async getDeviceHealthBatched(limit = 100) {
         try {
-          const recentReports = await db.select().from(device_reports).orderBy(desc8(device_reports.created_at)).limit(limit);
+          const recentReports = await db.select().from(device_reports2).orderBy(desc8(device_reports2.created_at)).limit(limit);
           return this.generateDeviceHealthData(recentReports);
         } catch (error) {
           console.warn("Batched device health query failed:", error);
@@ -10740,9 +11663,6 @@ ${2068 + this.calculatePDFContentLength(data, reportType)}
           }),
           new Paragraph({
             text: `Missing Critical Patches: ${data.patch_compliance.missing_critical}`
-          }),
-          new Paragraph({
-            text: `Missing Important Patches: ${data.patch_compliance.missing_important}`
           }),
           new Paragraph({ text: "" }),
           new Paragraph({
@@ -11361,6 +12281,12 @@ ${csvData}`;
           cell.font = { name: "Arial", size: 12, bold: true, color: { argb: "FFFFFF" } };
           cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "DC3545" } };
           cell.alignment = { horizontal: "center" };
+          cell.border = {
+            top: { style: "thin" },
+            left: { style: "thin" },
+            bottom: { style: "thin" },
+            right: { style: "thin" }
+          };
         });
         const devices2 = data.detailed_devices || [];
         devices2.forEach((device, index) => {
@@ -11377,6 +12303,12 @@ ${csvData}`;
             const cell = detailsSheet.getCell(row, colIndex + 1);
             cell.value = value;
             cell.font = { name: "Arial", size: 10 };
+            cell.border = {
+              top: { style: "thin", color: { argb: "E0E0E0" } },
+              left: { style: "thin", color: { argb: "E0E0E0" } },
+              bottom: { style: "thin", color: { argb: "E0E0E0" } },
+              right: { style: "thin", color: { argb: "E0E0E0" } }
+            };
             if (index % 2 === 0) {
               cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F8F9FA" } };
             }
@@ -12013,16 +12945,14 @@ ${xrefPos}
       }
       // Helper methods for enhanced Word document formatting
       createInfoBox(items) {
+        const boxContent = items.map((item) => new TextRun({
+          text: `${item}
+`,
+          size: 20,
+          color: "333333"
+        }));
         return new Paragraph({
-          children: [
-            new TextRun({ text: "", break: 1 }),
-            ...items.map((item) => new TextRun({
-              text: `\u2022 ${item}`,
-              size: 20,
-              color: "444444",
-              break: 1
-            }))
-          ],
+          children: boxContent,
           spacing: { before: 200, after: 200 },
           shading: {
             fill: "F8F9FA"
@@ -12058,131 +12988,189 @@ ${xrefPos}
         });
       }
       generateConclusions(data, reportType) {
-        let conclusionText = "";
-        switch (reportType) {
-          case "performance":
-            conclusionText = "Based on performance analysis, the system demonstrates stable operation with opportunities for optimization in high-utilization areas. Recommend implementing capacity planning for projected growth and proactive monitoring for critical resource thresholds.";
-            break;
-          case "system-health":
-            conclusionText = "System health indicators show robust operational status with targeted areas for improvement. Implement preventive maintenance schedules and enhanced monitoring for sustained performance excellence.";
-            break;
-          case "asset-inventory":
-            conclusionText = "Asset management reveals comprehensive coverage with opportunities to enhance compliance rates. Recommend implementing automated patch management and software license optimization strategies.";
-            break;
-          default:
-            conclusionText = "This analysis provides actionable insights for system optimization and strategic infrastructure planning. Regular monitoring and proactive maintenance will ensure continued operational excellence.";
-        }
+        const recommendations = [
+          "Implement regular monitoring and maintenance schedules",
+          "Establish proactive alerting for critical system metrics",
+          "Review and optimize resource allocation based on usage patterns",
+          "Enhance documentation and knowledge sharing procedures"
+        ];
         return new Paragraph({
           children: [
             new TextRun({
-              text: conclusionText,
-              size: 22,
-              color: "333333"
+              text: "Based on the analysis presented in this report, we recommend implementing the following actions to maintain and improve system performance:\n\n" + recommendations.map((rec, i) => `${i + 1}. ${rec}`).join("\n"),
+              size: 22
             })
-          ],
-          spacing: { after: 300 },
-          indent: { left: 200, right: 200 }
+          ]
         });
       }
       // Legacy methods for backward compatibility
-      async generatePerformanceSummary(timeRange = "7d") {
-        const healthData = await this.generateSystemHealthReport();
-        return {
-          average_cpu: healthData.performance_metrics.avg_cpu_usage,
-          average_memory: healthData.performance_metrics.avg_memory_usage,
-          average_disk: healthData.performance_metrics.avg_disk_usage,
-          device_count: healthData.overall_health.active_devices,
-          uptime_percentage: healthData.overall_health.system_uptime,
-          critical_alerts: healthData.overall_health.critical_alerts,
-          trends: {
-            cpu_trend: 2.1,
-            memory_trend: -1.5,
-            disk_trend: 0.8
-          }
-        };
-      }
-      async generateAvailabilityReport(timeRange = "7d") {
-        const healthData = await this.generateSystemHealthReport();
-        return {
-          total_devices: healthData.overall_health.active_devices + 3,
-          online_devices: healthData.overall_health.active_devices,
-          offline_devices: 3,
-          availability_percentage: healthData.overall_health.system_uptime,
-          downtime_incidents: healthData.overall_health.critical_alerts,
-          avg_response_time: 245,
-          uptime_by_device: []
-        };
-      }
-      async generateSystemInventory() {
-        const assetData = await this.generateAssetInventoryReport();
-        return {
-          total_agents: assetData.total_devices,
-          by_os: assetData.device_breakdown.by_os,
-          by_status: assetData.device_breakdown.by_status,
-          storage_usage: {
-            total_devices: assetData.total_devices,
-            avg_disk_usage: 67.2,
-            devices_near_capacity: 3
-          },
-          memory_usage: {
-            avg_memory_usage: 72.8,
-            devices_high_memory: 5
-          }
-        };
-      }
-      async generateCustomReport(reportType, timeRange, format2) {
-        switch (reportType) {
-          case "performance":
-            return await this.generatePerformanceSummary(timeRange);
-          case "availability":
-            return await this.generateAvailabilityReport(timeRange);
-          case "inventory":
-            return await this.generateSystemInventory();
-          case "asset-inventory":
-            return await this.generateAssetInventoryReport();
-          case "ticket-analytics":
-            return await this.generateTicketAnalyticsReport(timeRange);
-          case "system-health":
-            return await this.generateSystemHealthReport();
-          case "security-compliance":
-          case "security":
-            return await this.generateSecurityComplianceReport();
-          case "trends":
-            return await this.generateTrendAnalysisReport(timeRange);
-          case "capacity":
-            return await this.generateCapacityReport();
-          default:
-            throw new Error(`Unknown report type: ${reportType}`);
-        }
-      }
-      async getRealTimeMetrics() {
-        const healthData = await this.generateSystemHealthReport();
-        return {
-          timestamp: /* @__PURE__ */ new Date(),
-          cpu_usage: healthData.performance_metrics.avg_cpu_usage,
-          memory_usage: healthData.performance_metrics.avg_memory_usage,
-          disk_usage: healthData.performance_metrics.avg_disk_usage,
-          active_devices: healthData.overall_health.active_devices,
-          alerts_last_hour: healthData.overall_health.critical_alerts
-        };
-      }
-      async getTrendAnalysis(metric, timeRange) {
-        return {
-          metric,
-          timeRange,
-          data: [],
-          trend: 0,
-          prediction: null
-        };
-      }
-      async getCapacityRecommendations() {
-        const healthData = await this.generateSystemHealthReport();
-        return {
-          generated_at: /* @__PURE__ */ new Date(),
-          recommendations: [],
-          overall_health: healthData.overall_health.health_score >= 85 ? "excellent" : healthData.overall_health.health_score >= 70 ? "good" : healthData.overall_health.health_score >= 55 ? "fair" : "poor"
-        };
-      }
+      // async generatePerformanceSummary(timeRange: string = "7d"): Promise<any> {
+      //   const healthData = await this.generateSystemHealthReport();
+      //   return {
+      //     average_cpu: healthData.performance_metrics.avg_cpu_usage,
+      //     average_memory: healthData.performance_metrics.avg_memory_usage,
+      //     average_disk: healthData.performance_metrics.avg_disk_usage,
+      //     device_count: healthData.overall_health.active_devices,
+      //     uptime_percentage: healthData.overall_health.system_uptime,
+      //     critical_alerts: healthData.overall_health.critical_alerts,
+      //     trends: {
+      //       cpu_trend: 2.1,
+      //       memory_trend: -1.5,
+      //       disk_trend: 0.8,
+      //     },
+      //   };
+      // }
+      // async generateAvailabilityReport(timeRange: string = "7d"): Promise<any> {
+      //   const healthData = await this.generateSystemHealthReport();
+      //   return {
+      //     total_devices: healthData.overall_health.active_devices + 3,
+      //     online_devices: healthData.overall_health.active_devices,
+      //     offline_devices: 3,
+      //     availability_percentage: healthData.overall_health.system_uptime,
+      //     downtime_incidents: healthData.overall_health.critical_alerts,
+      //     avg_response_time: 245,
+      //     uptime_by_device: [],
+      //   };
+      // }
+      // async generateSystemInventory(): Promise<any> {
+      //   const assetData = await this.generateAssetInventoryReport();
+      //   return {
+      //     total_agents: assetData.total_devices,
+      //     by_os: assetData.device_breakdown.by_os,
+      //     by_status: assetData.device_breakdown.by_status,
+      //     storage_usage: {
+      //       total_devices: assetData.total_devices,
+      //       avg_disk_usage: 67.2,
+      //       devices_near_capacity: 3,
+      //     },
+      //     memory_usage: {
+      //       avg_memory_usage: 72.8,
+      //       devices_high_memory: 5,
+      //     },
+      //   };
+      // }
+      // async generateCustomReport(
+      //   reportType: string,
+      //   timeRange: string,
+      //   format: string,
+      // ): Promise<any> {
+      //   switch (reportType) {
+      //     case "performance":
+      //       return await this.generatePerformanceSummary(timeRange);
+      //     case "availability":
+      //       return await this.generateAvailabilityReport(timeRange);
+      //     case "inventory":
+      //       return await this.generateSystemInventory();
+      //     case "asset-inventory":
+      //       return await this.generateAssetInventoryReport();
+      //     case "ticket-analytics":
+      //       return await this.generateTicketAnalyticsReport(timeRange);
+      //     case "system-health":
+      //       return await this.generateSystemHealthReport();
+      //     case "security-compliance":
+      //     case "security":
+      //       return await this.generateSecurityComplianceReport();
+      //     case "trends":
+      //       return await this.generateTrendAnalysisReport(timeRange);
+      //     case "capacity":
+      //       return await this.generateCapacityReport();
+      //     default:
+      //       throw new Error(`Unknown report type: ${reportType}`);
+      //   }
+      // }
+      // async getRealTimeMetrics(): Promise<any> {
+      //   try {
+      //     console.log("Fetching real-time performance metrics from database");
+      //     // Get device count
+      //     const deviceCountResult = await db.select({ count: sql`count(*)` }).from(devices);
+      //     const totalDevices = Number(deviceCountResult[0]?.count) || 0;
+      //     // Get online devices
+      //     const onlineDevicesResult = await db.select({ count: sql`count(*)` })
+      //       .from(devices)
+      //       .where(eq(devices.status, 'online'));
+      //     const onlineCount = Number(onlineDevicesResult[0]?.count) || 0;
+      //     // Get the most recent reports for each device (last 2 hours for better data coverage)
+      //     const recentReports = await db.select({
+      //       device_id: device_reports.device_id,
+      //       cpu_usage: device_reports.cpu_usage,
+      //       memory_usage: device_reports.memory_usage,
+      //       disk_usage: device_reports.disk_usage,
+      //       created_at: device_reports.created_at
+      //     })
+      //       .from(device_reports)
+      //       .where(sql`${device_reports.created_at} >= NOW() - INTERVAL '2 hours'`)
+      //       .orderBy(desc(device_reports.created_at))
+      //       .limit(200);
+      //     console.log(`Found ${recentReports.length} recent reports for real-time metrics`);
+      //     // Get unique latest report per device
+      //     const latestReportsByDevice = new Map();
+      //     recentReports.forEach(report => {
+      //       if (!latestReportsByDevice.has(report.device_id) ||
+      //           new Date(report.created_at) > new Date(latestReportsByDevice.get(report.device_id).created_at)) {
+      //         latestReportsByDevice.set(report.device_id, report);
+      //       }
+      //     });
+      //     const latestReports = Array.from(latestReportsByDevice.values());
+      //     // Calculate averages from actual latest data per device
+      //     const cpuValues = latestReports
+      //       .map(r => parseFloat(r.cpu_usage || '0'))
+      //       .filter(v => v > 0 && v <= 100);
+      //     const memoryValues = latestReports
+      //       .map(r => parseFloat(r.memory_usage || '0'))
+      //       .filter(v => v > 0 && v <= 100);
+      //     const diskValues = latestReports
+      //       .map(r => parseFloat(r.disk_usage || '0'))
+      //       .filter(v => v > 0 && v <= 100);
+      //     const avgCpu = cpuValues.length > 0 ? cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length : 0;
+      //     const avgMemory = memoryValues.length > 0 ? memoryValues.reduce((a, b) => a + b, 0) / memoryValues.length : 0;
+      //     const avgDisk = diskValues.length > 0 ? diskValues.reduce((a, b) => a + b, 0) / diskValues.length : 0;
+      //     // Get recent alerts count
+      //     const recentAlertsResult = await db.select({ count: sql`count(*)` })
+      //       .from(alerts)
+      //       .where(sql`${alerts.triggered_at} >= NOW() - INTERVAL '1 hour'`);
+      //     const alertsCount = Number(recentAlertsResult[0]?.count) || 0;
+      //     const metrics = {
+      //       timestamp: new Date(),
+      //       cpu_usage: Math.round(avgCpu * 10) / 10,
+      //       memory_usage: Math.round(avgMemory * 10) / 10,
+      //       disk_usage: Math.round(avgDisk * 10) / 10,
+      //       active_devices: onlineCount,
+      //       total_devices: totalDevices,
+      //       alerts_last_hour: alertsCount,
+      //       devices_with_data: latestReports.length,
+      //       data_freshness: latestReports.length > 0 ? 'live' : 'no_recent_data'
+      //     };
+      //     console.log("Real-time metrics calculated:", metrics);
+      //     return metrics;
+      //   } catch (error) {
+      //     console.error("Error fetching real-time metrics:", error);
+      //     throw error; // Don't fall back to mock data
+      //   }
+      // }
+      // async getTrendAnalysis(metric: string, timeRange: string): Promise<any> {
+      //   return {
+      //     metric,
+      //     timeRange,
+      //     data: [],
+      //     trend: 0,
+      //     prediction: null,
+      //   };
+      // }
+      // async getCapacityRecommendations(): Promise<any> {
+      //   const healthData = await this.generateSystemHealthReport();
+      //   return {
+      //     generated_at: new Date(),
+      //     recommendations: [],
+      //     overall_health:
+      //       healthData.overall_health.health_score >= 85
+      //         ? "excellent"
+      //         : healthData.overall_health.health_score >= 70
+      //           ? "good"
+      //           : healthData.overall_health.health_score >= 55
+      //             ? "fair"
+      //             : "poor",
+      //   };
+      // }
       async generateTrendAnalysisReport(timeRange = "30d") {
         try {
           console.log(`Generating trend analysis report for ${timeRange}`);
@@ -12299,332 +13287,6 @@ ${xrefPos}
       }
     };
     analyticsService = new AnalyticsService();
-  }
-});
-
-// server/services/performance-service.ts
-var performance_service_exports = {};
-__export(performance_service_exports, {
-  performanceService: () => performanceService
-});
-var PerformanceService, performanceService;
-var init_performance_service = __esm({
-  "server/services/performance-service.ts"() {
-    "use strict";
-    init_storage();
-    PerformanceService = class {
-      baselines = /* @__PURE__ */ new Map();
-      async updateBaselines(deviceId, metrics) {
-        const deviceBaselines = this.baselines.get(deviceId) || [];
-        if (metrics.cpu_usage !== null) {
-          await this.updateMetricBaseline(
-            deviceId,
-            "cpu",
-            parseFloat(metrics.cpu_usage),
-            deviceBaselines
-          );
-        }
-        if (metrics.memory_usage !== null) {
-          await this.updateMetricBaseline(
-            deviceId,
-            "memory",
-            parseFloat(metrics.memory_usage),
-            deviceBaselines
-          );
-        }
-        if (metrics.disk_usage !== null) {
-          await this.updateMetricBaseline(
-            deviceId,
-            "disk",
-            parseFloat(metrics.disk_usage),
-            deviceBaselines
-          );
-        }
-        this.baselines.set(deviceId, deviceBaselines);
-      }
-      async updateMetricBaseline(deviceId, metricType, currentValue, baselines) {
-        let baseline = baselines.find((b) => b.metric_type === metricType);
-        if (!baseline) {
-          baseline = {
-            device_id: deviceId,
-            metric_type: metricType,
-            baseline_value: currentValue,
-            variance_threshold: this.getDefaultThreshold(metricType),
-            measurement_period: "7d",
-            created_at: /* @__PURE__ */ new Date(),
-            updated_at: /* @__PURE__ */ new Date()
-          };
-          baselines.push(baseline);
-        } else {
-          baseline.baseline_value = baseline.baseline_value * 0.8 + currentValue * 0.2;
-          baseline.updated_at = /* @__PURE__ */ new Date();
-        }
-        await this.checkForAnomalies(deviceId, metricType, currentValue, baseline);
-      }
-      getDefaultThreshold(metricType) {
-        switch (metricType) {
-          case "cpu":
-            return 25;
-          // 25% deviation
-          case "memory":
-            return 20;
-          // 20% deviation
-          case "disk":
-            return 15;
-          // 15% deviation
-          case "network":
-            return 50;
-          // 50% deviation
-          default:
-            return 30;
-        }
-      }
-      async checkForAnomalies(deviceId, metricType, currentValue, baseline) {
-        const deviationPercentage = Math.abs(
-          (currentValue - baseline.baseline_value) / baseline.baseline_value
-        ) * 100;
-        if (deviationPercentage > baseline.variance_threshold) {
-          const severity = deviationPercentage > 50 ? "high" : deviationPercentage > 30 ? "medium" : "low";
-          const existingAlerts = await this.getExistingAnomalyAlerts(deviceId, metricType);
-          const anomaly = {
-            device_id: deviceId,
-            metric_type: metricType,
-            current_value: currentValue,
-            baseline_value: baseline.baseline_value,
-            deviation_percentage: deviationPercentage,
-            severity,
-            detected_at: /* @__PURE__ */ new Date()
-          };
-          const alertMessage = `Performance anomaly detected: ${metricType} usage (${currentValue.toFixed(1)}%) deviates ${deviationPercentage.toFixed(1)}% from baseline`;
-          const recentAlert = existingAlerts.find(
-            (alert) => alert.metadata?.metric_type === metricType && this.isRecentAlert(alert.triggered_at)
-          );
-          if (recentAlert && this.shouldUpdateExistingAlert(recentAlert, currentValue, severity)) {
-            await storage.updateAlert(recentAlert.id, {
-              severity,
-              message: alertMessage,
-              metadata: {
-                ...recentAlert.metadata,
-                anomaly,
-                current_value: currentValue,
-                deviation_percentage: deviationPercentage,
-                previous_value: recentAlert.metadata?.current_value || baseline.baseline_value,
-                updated_at: (/* @__PURE__ */ new Date()).toISOString(),
-                update_count: (recentAlert.metadata?.update_count || 0) + 1
-              },
-              is_active: true
-            });
-          } else {
-            await storage.createAlert({
-              device_id: deviceId,
-              category: "performance",
-              severity,
-              message: alertMessage,
-              metadata: {
-                anomaly,
-                metric_type: metricType,
-                baseline_value: baseline.baseline_value,
-                current_value: currentValue,
-                deviation_percentage: deviationPercentage,
-                alert_type: "anomaly_detection",
-                created_at: (/* @__PURE__ */ new Date()).toISOString()
-              },
-              is_active: true
-            });
-          }
-        }
-      }
-      async getExistingAnomalyAlerts(deviceId, metricType) {
-        try {
-          return [];
-        } catch (error) {
-          console.error("Error fetching existing anomaly alerts:", error);
-          return [];
-        }
-      }
-      isRecentAlert(triggeredAt) {
-        const alertTime = new Date(triggeredAt).getTime();
-        const now = (/* @__PURE__ */ new Date()).getTime();
-        const hoursDiff = (now - alertTime) / (1e3 * 60 * 60);
-        return hoursDiff < 6;
-      }
-      shouldUpdateExistingAlert(existingAlert, newValue, newSeverity) {
-        const oldValue = existingAlert.metadata?.current_value || 0;
-        const valueChangePct = Math.abs((newValue - oldValue) / oldValue) * 100;
-        const severityChanged = existingAlert.severity !== newSeverity;
-        return severityChanged || valueChangePct > 5;
-      }
-      async generateResourcePredictions(deviceId) {
-        try {
-          console.log(`Generating resource predictions for device: ${deviceId}`);
-          const predictions = [];
-          const reports = await storage.getRecentDeviceReports(deviceId, 30);
-          const recentReports = reports;
-          if (recentReports.length < 7) {
-            return predictions;
-          }
-          const resources = ["cpu", "memory", "disk"];
-          for (const resource of resources) {
-            const values = recentReports.map((r) => parseFloat(r[`${resource}_usage`] || "0")).filter((v) => !isNaN(v));
-            if (values.length < 5) continue;
-            const trend = this.calculateTrend(values);
-            if (trend > 0.1) {
-              const currentAvg = values.slice(-7).reduce((a, b) => a + b, 0) / 7;
-              const daysToCapacity = (95 - currentAvg) / trend;
-              if (daysToCapacity > 0 && daysToCapacity < 365) {
-                predictions.push({
-                  device_id: deviceId,
-                  resource_type: resource,
-                  current_usage_trend: trend,
-                  predicted_capacity_date: new Date(
-                    Date.now() + daysToCapacity * 24 * 60 * 60 * 1e3
-                  ),
-                  confidence_level: Math.min(0.9, values.length / 30),
-                  recommendation: this.getResourceRecommendation(
-                    resource,
-                    daysToCapacity
-                  )
-                });
-              }
-            }
-          }
-          return predictions;
-        } catch (error) {
-          console.error("Error in generateResourcePredictions:", error);
-          return [];
-        }
-      }
-      calculateTrend(values) {
-        if (values.length < 2) return 0;
-        const n = values.length;
-        const sumX = n * (n - 1) / 2;
-        const sumY = values.reduce((a, b) => a + b, 0);
-        const sumXY = values.reduce((sum2, y, x) => sum2 + x * y, 0);
-        const sumXX = n * (n - 1) * (2 * n - 1) / 6;
-        return (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-      }
-      getResourceRecommendation(resource, daysToCapacity) {
-        if (daysToCapacity < 30) {
-          return `Urgent: ${resource} capacity will be reached in ${Math.round(daysToCapacity)} days. Immediate action required.`;
-        } else if (daysToCapacity < 90) {
-          return `Warning: ${resource} capacity will be reached in ${Math.round(daysToCapacity)} days. Plan for upgrade.`;
-        } else {
-          return `Monitor: ${resource} trending upward. Consider planning for future expansion.`;
-        }
-      }
-      async getApplicationPerformanceInsights(deviceId) {
-        try {
-          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-          const reportResult = await pool3.query(
-            `
-        SELECT raw_data, collected_at, cpu_usage, memory_usage, disk_usage
-        FROM device_reports 
-        WHERE device_id = $1 
-        ORDER BY collected_at DESC 
-        LIMIT 1
-      `,
-            [deviceId]
-          );
-          if (reportResult.rows.length === 0) {
-            console.log(`No reports found for device ${deviceId}`);
-            return this.getDefaultInsights();
-          }
-          const report = reportResult.rows[0];
-          const rawData = report.raw_data;
-          console.log(`Processing performance data for device ${deviceId}:`, {
-            hasRawData: !!rawData,
-            reportTime: report.collected_at,
-            cpu: report.cpu_usage,
-            memory: report.memory_usage
-          });
-          const processes = rawData?.processes || rawData?.running_processes || [];
-          if (processes.length === 0) {
-            console.log(`No process data found for device ${deviceId}`);
-            if (report.cpu_usage || report.memory_usage) {
-              return {
-                top_cpu_consumers: [
-                  {
-                    name: "System Total",
-                    cpu_percent: parseFloat(report.cpu_usage || "0"),
-                    memory_percent: parseFloat(report.memory_usage || "0"),
-                    pid: 0
-                  }
-                ],
-                top_memory_consumers: [
-                  {
-                    name: "System Total",
-                    cpu_percent: parseFloat(report.cpu_usage || "0"),
-                    memory_percent: parseFloat(report.memory_usage || "0"),
-                    pid: 0
-                  }
-                ],
-                total_processes: 0,
-                system_load_analysis: {
-                  high_cpu_processes: parseFloat(report.cpu_usage || "0") > 80 ? 1 : 0,
-                  high_memory_processes: parseFloat(report.memory_usage || "0") > 85 ? 1 : 0
-                }
-              };
-            }
-            return this.getDefaultInsights();
-          }
-          console.log(`Found ${processes.length} processes for device ${deviceId}`);
-          const cpuSorted = processes.filter(
-            (p) => p.cpu_percent !== void 0 && p.cpu_percent !== null && parseFloat(p.cpu_percent.toString()) > 0
-          ).sort(
-            (a, b) => parseFloat(b.cpu_percent.toString()) - parseFloat(a.cpu_percent.toString())
-          ).slice(0, 10);
-          const memorySorted = processes.filter(
-            (p) => p.memory_percent !== void 0 && p.memory_percent !== null && parseFloat(p.memory_percent.toString()) > 0
-          ).sort(
-            (a, b) => parseFloat(b.memory_percent.toString()) - parseFloat(a.memory_percent.toString())
-          ).slice(0, 10);
-          const insights = {
-            top_cpu_consumers: cpuSorted.map((p) => ({
-              name: p.name || p.process_name || "Unknown",
-              cpu_percent: parseFloat(p.cpu_percent?.toString() || "0"),
-              memory_percent: parseFloat(p.memory_percent?.toString() || "0"),
-              pid: parseInt(p.pid?.toString() || "0")
-            })),
-            top_memory_consumers: memorySorted.map((p) => ({
-              name: p.name || p.process_name || "Unknown",
-              cpu_percent: parseFloat(p.cpu_percent?.toString() || "0"),
-              memory_percent: parseFloat(p.memory_percent?.toString() || "0"),
-              pid: parseInt(p.pid?.toString() || "0")
-            })),
-            total_processes: processes.length,
-            system_load_analysis: {
-              high_cpu_processes: processes.filter(
-                (p) => parseFloat(p.cpu_percent?.toString() || "0") > 50
-              ).length,
-              high_memory_processes: processes.filter(
-                (p) => parseFloat(p.memory_percent?.toString() || "0") > 10
-              ).length
-            }
-          };
-          console.log(`Performance insights for device ${deviceId}:`, {
-            topCpuCount: insights.top_cpu_consumers.length,
-            topMemoryCount: insights.top_memory_consumers.length,
-            totalProcesses: insights.total_processes
-          });
-          return insights;
-        } catch (error) {
-          console.error("Error getting performance insights:", error);
-          return this.getDefaultInsights();
-        }
-      }
-      getDefaultInsights() {
-        return {
-          top_cpu_consumers: [],
-          top_memory_consumers: [],
-          total_processes: 0,
-          system_load_analysis: {
-            high_cpu_processes: 0,
-            high_memory_processes: 0
-          }
-        };
-      }
-    };
-    performanceService = new PerformanceService();
   }
 });
 
@@ -13322,30 +13984,37 @@ var init_analytics_routes = __esm({
       }
     });
     router8.get("/realtime", async (req, res) => {
-      req.setTimeout(2e3);
+      req.setTimeout(1e4);
       try {
-        console.log("Fetching real-time performance metrics...");
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error("Realtime metrics timeout")), 1500);
-        });
-        const metricsPromise = analyticsService.getRealTimeMetrics();
-        const metrics = await Promise.race([metricsPromise, timeoutPromise]);
+        console.log("Fetching real-time performance metrics from database...");
+        const metrics = await analyticsService.getRealTimeMetrics();
         res.json({
           success: true,
-          metrics
+          metrics,
+          data_source: "database",
+          timestamp: /* @__PURE__ */ new Date()
         });
       } catch (error) {
         console.error("Error fetching real-time metrics:", error);
+        const fallbackMetrics = {
+          cpu_usage: 0,
+          memory_usage: 0,
+          disk_usage: 0,
+          total_devices: 0,
+          online_devices: 0,
+          offline_devices: 0,
+          reports_count: 0,
+          devices_with_data: 0,
+          last_updated: /* @__PURE__ */ new Date(),
+          network_latency: 0,
+          system_uptime: 0
+        };
         res.json({
           success: true,
-          metrics: {
-            timestamp: /* @__PURE__ */ new Date(),
-            cpu_usage: 45.2,
-            memory_usage: 62.8,
-            disk_usage: 78.3,
-            active_devices: 12,
-            alerts_last_hour: 1
-          }
+          metrics: fallbackMetrics,
+          data_source: "fallback",
+          timestamp: /* @__PURE__ */ new Date(),
+          warning: "Using fallback data due to database error"
         });
       }
     });
@@ -13830,12 +14499,19 @@ var init_analytics_routes = __esm({
           const { deviceId } = req.params;
           const { performanceService: performanceService2 } = await Promise.resolve().then(() => (init_performance_service(), performance_service_exports));
           const insights = await performanceService2.getApplicationPerformanceInsights(deviceId);
-          res.json(insights);
+          res.json({
+            success: true,
+            data: insights,
+            device_id: deviceId,
+            generated_at: /* @__PURE__ */ new Date()
+          });
         } catch (error) {
           console.error("Error getting performance insights:", error);
           res.status(500).json({
+            success: false,
             error: "Failed to get performance insights",
-            message: error.message
+            message: error.message,
+            device_id: req.params.deviceId
           });
         }
       }
@@ -13860,8 +14536,10 @@ var init_analytics_routes = __esm({
     );
     router8.get("/performance/overview", async (req, res) => {
       try {
+        console.log("Getting performance overview with real device data...");
         const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
         const devices2 = await storage3.getDevices();
+        console.log(`Found ${devices2.length} devices for performance overview`);
         const performanceOverview = {
           totalDevices: devices2.length,
           onlineDevices: devices2.filter((d) => d.status === "online").length,
@@ -13869,35 +14547,82 @@ var init_analytics_routes = __esm({
           avgMemoryUsage: 0,
           avgDiskUsage: 0,
           criticalDevices: 0,
-          performanceAlerts: 0
+          performanceAlerts: 0,
+          devicesWithData: 0,
+          lastUpdated: /* @__PURE__ */ new Date()
         };
-        const onlineDevices = devices2.filter((d) => d.status === "online");
-        if (onlineDevices.length > 0) {
-          const cpuSum = onlineDevices.reduce(
-            (sum2, d) => sum2 + parseFloat(d.latest_report?.cpu_usage || "0"),
-            0
-          );
-          const memSum = onlineDevices.reduce(
-            (sum2, d) => sum2 + parseFloat(d.latest_report?.memory_usage || "0"),
-            0
-          );
-          const diskSum = onlineDevices.reduce(
-            (sum2, d) => sum2 + parseFloat(d.latest_report?.disk_usage || "0"),
-            0
-          );
-          performanceOverview.avgCpuUsage = cpuSum / onlineDevices.length;
-          performanceOverview.avgMemoryUsage = memSum / onlineDevices.length;
-          performanceOverview.avgDiskUsage = diskSum / onlineDevices.length;
-          performanceOverview.criticalDevices = onlineDevices.filter(
-            (d) => parseFloat(d.latest_report?.cpu_usage || "0") > 90 || parseFloat(d.latest_report?.memory_usage || "0") > 90 || parseFloat(d.latest_report?.disk_usage || "0") > 95
-          ).length;
-        }
+        const cpuValues = [];
+        const memoryValues = [];
+        const diskValues = [];
+        let criticalCount = 0;
+        devices2.forEach((device) => {
+          if (device.latest_report) {
+            let cpu = parseFloat(device.latest_report.cpu_usage || "0");
+            let memory = parseFloat(device.latest_report.memory_usage || "0");
+            let disk = parseFloat(device.latest_report.disk_usage || "0");
+            if (cpu === 0 && device.latest_report.raw_data) {
+              const rawData = typeof device.latest_report.raw_data === "string" ? JSON.parse(device.latest_report.raw_data) : device.latest_report.raw_data;
+              if (rawData.system_health?.cpu_usage) {
+                cpu = parseFloat(rawData.system_health.cpu_usage);
+              } else if (rawData.hardware?.cpu?.usage_percent) {
+                cpu = parseFloat(rawData.hardware.cpu.usage_percent);
+              } else if (rawData.hardware?.cpu?.percent) {
+                cpu = parseFloat(rawData.hardware.cpu.percent);
+              }
+            }
+            if (memory === 0 && device.latest_report.raw_data) {
+              const rawData = typeof device.latest_report.raw_data === "string" ? JSON.parse(device.latest_report.raw_data) : device.latest_report.raw_data;
+              if (rawData.system_health?.memory_usage) {
+                memory = parseFloat(rawData.system_health.memory_usage);
+              } else if (rawData.hardware?.memory?.percentage) {
+                memory = parseFloat(rawData.hardware.memory.percentage);
+              } else if (rawData.hardware?.memory?.percent) {
+                memory = parseFloat(rawData.hardware.memory.percent);
+              }
+            }
+            if (disk === 0 && device.latest_report.raw_data) {
+              const rawData = typeof device.latest_report.raw_data === "string" ? JSON.parse(device.latest_report.raw_data) : device.latest_report.raw_data;
+              if (rawData.storage?.disks?.[0]?.percent) {
+                disk = parseFloat(rawData.storage.disks[0].percent);
+              } else if (rawData.storage?.disks?.[0]?.usage_percent) {
+                disk = parseFloat(rawData.storage.disks[0].usage_percent);
+              }
+            }
+            if (cpu > 0) cpuValues.push(cpu);
+            if (memory > 0) memoryValues.push(memory);
+            if (disk > 0) diskValues.push(disk);
+            if (cpu > 90 || memory > 90 || disk > 95) {
+              criticalCount++;
+            }
+          }
+        });
+        performanceOverview.devicesWithData = Math.max(cpuValues.length, memoryValues.length, diskValues.length);
+        performanceOverview.avgCpuUsage = cpuValues.length > 0 ? Math.round(cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length * 10) / 10 : 0;
+        performanceOverview.avgMemoryUsage = memoryValues.length > 0 ? Math.round(memoryValues.reduce((a, b) => a + b, 0) / memoryValues.length * 10) / 10 : 0;
+        performanceOverview.avgDiskUsage = diskValues.length > 0 ? Math.round(diskValues.reduce((a, b) => a + b, 0) / diskValues.length * 10) / 10 : 0;
+        performanceOverview.criticalDevices = criticalCount;
+        console.log("Performance overview calculated:", {
+          totalDevices: performanceOverview.totalDevices,
+          devicesWithData: performanceOverview.devicesWithData,
+          avgCpu: performanceOverview.avgCpuUsage,
+          avgMemory: performanceOverview.avgMemoryUsage,
+          criticalDevices: performanceOverview.criticalDevices,
+          extractionStats: {
+            cpuExtracted: cpuValues.length,
+            memoryExtracted: memoryValues.length,
+            diskExtracted: diskValues.length
+          }
+        });
         res.json(performanceOverview);
       } catch (error) {
         console.error("Error getting performance overview:", error);
         res.status(500).json({
+          success: false,
           error: "Failed to get performance overview",
-          message: error.message
+          message: error.message,
+          totalDevices: 0,
+          onlineDevices: 0,
+          devicesWithData: 0
         });
       }
     });
@@ -13943,138 +14668,52 @@ var init_analytics_routes = __esm({
         timestamp: (/* @__PURE__ */ new Date()).toISOString()
       });
     });
-    router8.get("/device/:deviceId/advanced", async (req, res) => {
+    router8.get("/device/:deviceId/advanced", authenticateToken2, async (req, res) => {
       try {
-        const deviceId = req.params.deviceId;
-        console.log(`Getting advanced analytics for device: ${deviceId}`);
+        const { deviceId } = req.params;
         const { storage: storage3 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
-        let device;
-        let reports = [];
-        try {
-          device = await storage3.getDevice(deviceId);
-        } catch (storageError) {
-          console.error("Storage error getting device:", storageError);
-          return res.json({
-            performance_trends: {
-              cpu_trend: [],
-              memory_trend: [],
-              disk_trend: []
-            },
-            system_health: {
-              uptime_percentage: 0,
-              avg_response_time: 0,
-              error_rate: 0,
-              availability_score: 0
-            },
-            capacity_analysis: {
-              cpu_utilization_forecast: "No data available",
-              memory_growth_rate: "No data available",
-              disk_space_projection: "No data available",
-              network_bandwidth_usage: "No data available"
-            },
-            security_metrics: {
-              last_patch_update: null,
-              security_score: 0,
-              vulnerabilities_count: 0,
-              compliance_status: "Unknown"
-            },
-            alerts_summary: {
-              critical: 0,
-              warning: 0,
-              info: 0,
-              last_alert: "Never"
-            }
-          });
-        }
+        const device = await storage3.getDevice(deviceId);
         if (!device) {
-          return res.status(404).json({
-            error: "Device not found"
-          });
+          return res.status(404).json({ error: "Device not found" });
         }
-        try {
-          reports = await storage3.getDeviceReports(deviceId, 24);
-        } catch (reportsError) {
-          console.error("Error getting device reports:", reportsError);
-          reports = [];
-        }
-        const advancedMetrics = {
-          performance_trends: {
-            cpu_trend: reports.length > 0 ? reports.slice(0, 12).map((r) => ({
-              timestamp: r.created_at || /* @__PURE__ */ new Date(),
-              value: parseFloat(r.cpu_usage || "0")
-            })) : [],
-            memory_trend: reports.length > 0 ? reports.slice(0, 12).map((r) => ({
-              timestamp: r.created_at || /* @__PURE__ */ new Date(),
-              value: parseFloat(r.memory_usage || "0")
-            })) : [],
-            disk_trend: reports.length > 0 ? reports.slice(0, 12).map((r) => ({
-              timestamp: r.created_at || /* @__PURE__ */ new Date(),
-              value: parseFloat(r.disk_usage || "0")
-            })) : []
-          },
-          system_health: {
-            uptime_percentage: device.status === "online" ? 98.5 : 0,
-            avg_response_time: device.status === "online" ? 45.2 : 0,
-            error_rate: device.status === "online" ? 0.02 : 1,
-            availability_score: device.status === "online" ? 99.1 : 0
-          },
-          capacity_analysis: {
-            cpu_utilization_forecast: device.status === "online" ? "Stable" : "Offline",
-            memory_growth_rate: device.status === "online" ? "+2.3% monthly" : "No data",
-            disk_space_projection: device.status === "online" ? "75% full by Q3 2025" : "No data",
-            network_bandwidth_usage: device.status === "online" ? "Normal" : "Offline"
-          },
-          security_metrics: {
-            last_patch_update: device.latest_report?.collected_at || device.last_seen,
-            security_score: device.status === "online" ? 85 : 0,
-            vulnerabilities_count: device.status === "online" ? 2 : 0,
-            compliance_status: device.status === "online" ? "Compliant" : "Unknown"
-          },
-          alerts_summary: {
-            critical: 0,
-            warning: device.status === "offline" ? 1 : 0,
-            info: 3,
-            last_alert: device.status === "offline" ? "Device offline" : "2 hours ago"
-          }
-        };
+        const recentReports = await db.select({ count: sql8`count(*)` }).from(device_reports).where(sql8`${device_reports.device_id} = ${deviceId}`);
+        const reportsCount = Number(recentReports[0]?.count) || 0;
+        const deviceStatus = device.status || "unknown";
+        const wsService = req.app.get("wsService");
+        const connectionStatus = wsService ? wsService.getConnectionStatus() : null;
+        const isWebSocketConnected = connectionStatus?.connectedAgents?.includes(deviceId) || false;
         console.log(`Returning advanced metrics for device ${deviceId}:`, {
           hasDevice: !!device,
-          reportsCount: reports.length,
-          deviceStatus: device.status
+          reportsCount,
+          deviceStatus,
+          isWebSocketConnected
         });
-        res.json(advancedMetrics);
+        const response = {
+          device: {
+            id: device.id,
+            hostname: device.hostname,
+            ip_address: device.ip_address,
+            status: deviceStatus,
+            last_seen: device.last_seen,
+            agent_version: device.agent_version || "Unknown",
+            websocket_connected: isWebSocketConnected
+          },
+          reports_count: reportsCount,
+          connection_status: deviceStatus,
+          websocket_status: isWebSocketConnected ? "connected" : "disconnected",
+          performance_summary: device.latest_report ? {
+            cpu_usage: device.latest_report.cpu_usage,
+            memory_usage: device.latest_report.memory_usage,
+            disk_usage: device.latest_report.disk_usage,
+            last_report: device.latest_report.collected_at
+          } : null
+        };
+        res.json(response);
       } catch (error) {
         console.error("Error getting advanced device analytics:", error);
-        res.json({
-          performance_trends: {
-            cpu_trend: [],
-            memory_trend: [],
-            disk_trend: []
-          },
-          system_health: {
-            uptime_percentage: 0,
-            avg_response_time: 0,
-            error_rate: 1,
-            availability_score: 0
-          },
-          capacity_analysis: {
-            cpu_utilization_forecast: "Error loading data",
-            memory_growth_rate: "Error loading data",
-            disk_space_projection: "Error loading data",
-            network_bandwidth_usage: "Error loading data"
-          },
-          security_metrics: {
-            last_patch_update: null,
-            security_score: 0,
-            vulnerabilities_count: 0,
-            compliance_status: "Error"
-          },
-          alerts_summary: {
-            critical: 0,
-            warning: 0,
-            info: 0,
-            last_alert: "Error loading alerts"
-          }
+        res.status(500).json({
+          error: "Failed to get device analytics",
+          message: error.message
         });
       }
     });
@@ -14505,6 +15144,68 @@ var init_analytics_routes = __esm({
             healthyDevices: 0,
             unhealthyDevices: 0
           }
+        });
+      }
+    });
+    router8.get("/data-quality", async (req, res) => {
+      try {
+        console.log("Checking data quality for analytics...");
+        const deviceCount = await db.select({ count: sql8`count(*)` }).from(devices);
+        const totalDevices = Number(deviceCount[0]?.count) || 0;
+        const recentReports = await db.select({
+          count: sql8`count(*)`,
+          device_count: sql8`count(distinct device_id)`
+        }).from(device_reports).where(sql8`${device_reports.created_at} >= NOW() - INTERVAL '1 hour'`);
+        const recentReportCount = Number(recentReports[0]?.count) || 0;
+        const devicesReporting = Number(recentReports[0]?.device_count) || 0;
+        const performanceData = await db.select({
+          cpu_reports: sql8`count(case when cpu_usage is not null and cpu_usage > 0 then 1 end)`,
+          memory_reports: sql8`count(case when memory_usage is not null and memory_usage > 0 then 1 end)`,
+          disk_reports: sql8`count(case when disk_usage is not null and disk_usage > 0 then 1 end)`
+        }).from(device_reports).where(sql8`${device_reports.created_at} >= NOW() - INTERVAL '24 hours'`);
+        const cpuReports = Number(performanceData[0]?.cpu_reports) || 0;
+        const memoryReports = Number(performanceData[0]?.memory_reports) || 0;
+        const diskReports = Number(performanceData[0]?.disk_reports) || 0;
+        const dataQuality = {
+          devices: {
+            total_registered: totalDevices,
+            recently_reporting: devicesReporting,
+            reporting_percentage: totalDevices > 0 ? devicesReporting / totalDevices * 100 : 0
+          },
+          reports: {
+            last_hour: recentReportCount,
+            with_cpu_data: cpuReports,
+            with_memory_data: memoryReports,
+            with_disk_data: diskReports
+          },
+          data_freshness: {
+            has_recent_data: recentReportCount > 0,
+            has_performance_metrics: cpuReports > 0 || memoryReports > 0 || diskReports > 0,
+            coverage_score: totalDevices > 0 ? devicesReporting / totalDevices * 100 : 0
+          },
+          recommendations: []
+        };
+        if (dataQuality.devices.reporting_percentage < 50) {
+          dataQuality.recommendations.push("Low device reporting rate - check agent connectivity");
+        }
+        if (!dataQuality.data_freshness.has_recent_data) {
+          dataQuality.recommendations.push("No recent data - agents may not be sending reports");
+        }
+        if (!dataQuality.data_freshness.has_performance_metrics) {
+          dataQuality.recommendations.push("No performance metrics - check agent data collection");
+        }
+        console.log("Data quality check completed:", dataQuality);
+        res.json({
+          success: true,
+          data_quality: dataQuality,
+          checked_at: /* @__PURE__ */ new Date()
+        });
+      } catch (error) {
+        console.error("Error checking data quality:", error);
+        res.status(500).json({
+          success: false,
+          error: "Failed to check data quality",
+          message: error.message
         });
       }
     });
@@ -21748,6 +22449,20 @@ function registerCABRoutes(app2) {
       }
       console.error("Error creating CAB board:", error);
       res.status(500).json({ error: "Failed to create CAB board" });
+    }
+  });
+  app2.put("/api/cab/boards/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = createCABSchema.partial().parse(req.body);
+      const board = await CABService.updateCABBoard(id, validatedData);
+      res.json(board);
+    } catch (error) {
+      if (error instanceof z3.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      console.error("Error updating CAB board:", error);
+      res.status(500).json({ error: "Failed to update CAB board" });
     }
   });
   app2.get("/api/cab/pending-changes", async (req, res) => {
