@@ -877,73 +877,77 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
 
               {/* USB Devices */}
               {extractedUsbDevices && extractedUsbDevices.length > 0 && (
-                <div className="space-y-4">
-                  <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100 flex items-center">
-                    <Usb className="w-5 h-5 mr-2" />
-                    USB Devices ({extractedUsbDevices.length})
-                  </h4>
-                  <div className="grid grid-cols-1 gap-4">
-                    {extractedUsbDevices.map((device: any, index: number) => {
-                      // Extract vendor/product IDs if not already present
-                      const vendorId = device.vendor_id || AgentDataProcessor.extractVendorIdFromDeviceId(device.device_id) || 'unknown';
-                      const productId = device.product_id || AgentDataProcessor.extractProductIdFromDeviceId(device.device_id) || 'unknown';
-                      const vendor = device.vendor || device.manufacturer || AgentDataProcessor.getVendorNameFromId(vendorId) || 'Unknown';
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Usb className="w-5 h-5" />
+                      <span>USB Devices ({extractedUsbDevices.length})</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {extractedUsbDevices.map((device: any, index: number) => {
+                        // Extract vendor/product IDs if not already present
+                        const vendorId = device.vendor_id || AgentDataProcessor.extractVendorIdFromDeviceId(device.device_id) || 'unknown';
+                        const productId = device.product_id || AgentDataProcessor.extractProductIdFromDeviceId(device.device_id) || 'unknown';
+                        const vendor = device.vendor || device.manufacturer || AgentDataProcessor.getVendorNameFromId(vendorId) || 'Unknown';
 
-                      return (
-                        <div key={`usb-${device.device_id || index}`} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h5 className="font-medium text-gray-900 dark:text-gray-100">
-                                {device.description || 'Unknown USB Device'}
-                              </h5>
-                              <div className="mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div>
-                                    <span className="font-medium">Manufacturer:</span>
-                                    <span className="ml-2">{vendor}</span>
+                        return (
+                          <div key={`usb-${device.device_id || index}`} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h5 className="font-medium text-gray-900 dark:text-gray-100">
+                                  {device.description || 'Unknown USB Device'}
+                                </h5>
+                                <div className="mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <span className="font-medium">Manufacturer:</span>
+                                      <span className="ml-2">{vendor}</span>
+                                    </div>
+                                    <div>
+                                      <span className="font-medium">Device Type:</span>
+                                      <span className="ml-2">{device.device_type || device.type || 'Unknown'}</span>
+                                    </div>
+                                    <div>
+                                      <span className="font-medium">Vendor ID:</span>
+                                      <span className="ml-2">{vendorId}</span>
+                                    </div>
+                                    <div>
+                                      <span className="font-medium">Product ID:</span>
+                                      <span className="ml-2">{productId}</span>
+                                    </div>
                                   </div>
-                                  <div>
-                                    <span className="font-medium">Device Type:</span>
-                                    <span className="ml-2">{device.device_type || device.type || 'Unknown'}</span>
-                                  </div>
-                                  <div>
-                                    <span className="font-medium">Vendor ID:</span>
-                                    <span className="ml-2">{vendorId}</span>
-                                  </div>
-                                  <div>
-                                    <span className="font-medium">Product ID:</span>
-                                    <span className="ml-2">{productId}</span>
-                                  </div>
+                                  {device.serial_number && device.serial_number !== 'N/A' && (
+                                    <div className="mt-2">
+                                      <span className="font-medium">Serial Number:</span>
+                                      <span className="ml-2">{device.serial_number}</span>
+                                    </div>
+                                  )}
+                                  {device.size && (
+                                    <div>
+                                      <span className="font-medium">Size:</span>
+                                      <span className="ml-2">{device.size}</span>
+                                    </div>
+                                  )}
                                 </div>
-                                {device.serial_number && device.serial_number !== 'N/A' && (
-                                  <div className="mt-2">
-                                    <span className="font-medium">Serial Number:</span>
-                                    <span className="ml-2">{device.serial_number}</span>
-                                  </div>
-                                )}
-                                {device.size && (
-                                  <div>
-                                    <span className="font-medium">Size:</span>
-                                    <span className="ml-2">{device.size}</span>
-                                  </div>
-                                )}
+                              </div>
+                              <div className="ml-4">
+                                <Badge variant={
+                                  device.device_type === 'USB Storage' || device.device_type === 'mass_storage' ? 'destructive' :
+                                  device.device_type === 'keyboard' || device.device_type === 'mouse' ? 'default' :
+                                  'secondary'
+                                }>
+                                  {device.type || device.device_type || 'Storage'}
+                                </Badge>
                               </div>
                             </div>
-                            <div className="ml-4">
-                              <Badge variant={
-                                device.device_type === 'USB Storage' || device.device_type === 'mass_storage' ? 'destructive' :
-                                device.device_type === 'keyboard' || device.device_type === 'mouse' ? 'default' :
-                                'secondary'
-                              }>
-                                {device.type || device.device_type || 'Other'}
-                              </Badge>
-                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
               )}
 
               {/* Fallback for old data format */}

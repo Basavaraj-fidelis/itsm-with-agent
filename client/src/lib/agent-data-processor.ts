@@ -524,14 +524,33 @@ export class AgentDataProcessor {
         }
 
         // Process and enhance USB devices
-        return deduplicatedDevices.map(device => ({
-          ...device,
-          type: this.categorizeUSBDevice(device),
-          vendor: device.manufacturer || device.vendor || this.getVendorNameFromId(device.vendor_id || this.extractVendorIdFromDeviceId(device.device_id)) || 'Unknown',
-          vendor_id: device.vendor_id || this.extractVendorIdFromDeviceId(device.device_id) || 'unknown',
-          product_id: device.product_id || this.extractProductIdFromDeviceId(device.device_id) || 'unknown',
-          serial_number: device.serial_number || this.extractSerialFromDeviceId(device.device_id) || 'N/A'
-        }));
+        return deduplicatedDevices.map(device => {
+          const vendorId = device.vendor_id || this.extractVendorIdFromDeviceId(device.device_id) || 'unknown';
+          const productId = device.product_id || this.extractProductIdFromDeviceId(device.device_id) || 'unknown';
+          
+          // Try to get manufacturer from multiple sources
+          let manufacturer = device.manufacturer || device.vendor;
+          
+          // If no manufacturer found, try to extract from description
+          if (!manufacturer || manufacturer === 'Unknown') {
+            manufacturer = this.extractManufacturerFromDescription(device.description);
+          }
+          
+          // If still no manufacturer, try vendor ID lookup
+          if (!manufacturer || manufacturer === 'Unknown') {
+            manufacturer = this.getVendorNameFromId(vendorId);
+          }
+          
+          return {
+            ...device,
+            type: this.categorizeUSBDevice(device),
+            vendor: manufacturer,
+            manufacturer: manufacturer,
+            vendor_id: vendorId,
+            product_id: productId,
+            serial_number: device.serial_number || this.extractSerialFromDeviceId(device.device_id) || 'N/A'
+          };
+        });
       }
     }
 
@@ -589,6 +608,27 @@ export class AgentDataProcessor {
     };
 
     return vendors[vendorId?.toLowerCase()] || 'Unknown';
+  }
+
+  private static extractManufacturerFromDescription(description: string): string {
+    if (!description) return 'Unknown';
+    
+    // Check if description starts with a manufacturer name followed by space
+    const parts = description.split(' ');
+    if (parts.length >= 2) {
+      const firstPart = parts[0];
+      // Common manufacturer patterns
+      if (firstPart.match(/^[A-Z][a-zA-Z]+$/)) {
+        return firstPart;
+      }
+    }
+    
+    // Check for specific patterns like "VendorCo ProductCode USB Device"
+    if (description.includes('VendorCo')) {
+      return 'VendorCo';
+    }
+    
+    return 'Unknown';
   }
 
   private static categorizeUSBDevice(device: any): string {
