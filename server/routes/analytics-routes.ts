@@ -471,7 +471,103 @@ router.get("/realtime", async (req, res) => {
   try {
     console.log("Fetching real-time performance metrics from database...");
 
-    const metrics = await analyticsService.getRealTimeMetrics();
+    const { storage } = await import("../storage");
+    const devices = await storage.getDevices();
+    
+    console.log(`=== REALTIME METRICS DEBUG ===`);
+    console.log(`Found ${devices.length} devices for real-time metrics`);
+
+    // Enhanced extraction with detailed logging
+    const cpuValues: number[] = [];
+    const memoryValues: number[] = [];
+    const diskValues: number[] = [];
+
+    devices.forEach((device, index) => {
+      if (device.latest_report) {
+        const rawData = device.latest_report.raw_data;
+        console.log(`Device ${index + 1} (${device.hostname}):`, {
+          hasCpuColumn: !!device.latest_report.cpu_usage,
+          hasMemoryColumn: !!device.latest_report.memory_usage,
+          hasDiskColumn: !!device.latest_report.disk_usage,
+          hasRawData: !!rawData,
+          hasSystemHealth: !!rawData?.system_health,
+          hasHardware: !!rawData?.hardware,
+          hasStorage: !!rawData?.storage
+        });
+
+        // Extract CPU
+        let cpu = parseFloat(device.latest_report.cpu_usage || "0");
+        if ((cpu === 0 || cpu === null) && rawData?.hardware?.cpu) {
+          const cpuData = rawData.hardware.cpu;
+          console.log(`CPU data structure:`, Object.keys(cpuData));
+          
+          if (cpuData.usage_percent) cpu = parseFloat(cpuData.usage_percent);
+          else if (cpuData.percent) cpu = parseFloat(cpuData.percent);
+          else if (cpuData.utilization) cpu = parseFloat(cpuData.utilization);
+        }
+
+        // Extract Memory  
+        let memory = parseFloat(device.latest_report.memory_usage || "0");
+        if ((memory === 0 || memory === null) && rawData?.hardware?.memory) {
+          const memData = rawData.hardware.memory;
+          console.log(`Memory data structure:`, Object.keys(memData));
+          
+          if (memData.percentage) memory = parseFloat(memData.percentage);
+          else if (memData.percent) memory = parseFloat(memData.percent);
+          else if (memData.used && memData.total) {
+            const used = parseFloat(memData.used);
+            const total = parseFloat(memData.total);
+            if (total > 0) memory = (used / total) * 100;
+          }
+        }
+
+        // Extract Disk
+        let disk = parseFloat(device.latest_report.disk_usage || "0");
+        if ((disk === 0 || disk === null) && rawData?.storage?.disks?.[0]) {
+          const diskData = rawData.storage.disks[0];
+          console.log(`Disk data structure:`, Object.keys(diskData));
+          
+          if (diskData.percent) disk = parseFloat(diskData.percent);
+          else if (diskData.usage_percent) disk = parseFloat(diskData.usage_percent);
+          else if (diskData.used && diskData.size) {
+            const used = parseFloat(diskData.used);
+            const size = parseFloat(diskData.size);
+            if (size > 0) disk = (used / size) * 100;
+          }
+        }
+
+        if (cpu > 0) cpuValues.push(cpu);
+        if (memory > 0) memoryValues.push(memory);
+        if (disk > 0) diskValues.push(disk);
+      }
+    });
+
+    const metrics = {
+      cpu_usage: cpuValues.length > 0 ? cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length : 0,
+      memory_usage: memoryValues.length > 0 ? memoryValues.reduce((a, b) => a + b, 0) / memoryValues.length : 0,
+      disk_usage: diskValues.length > 0 ? diskValues.reduce((a, b) => a + b, 0) / diskValues.length : 0,
+      total_devices: devices.length,
+      online_devices: devices.filter(d => d.status === 'online').length,
+      offline_devices: devices.filter(d => d.status === 'offline').length,
+      reports_count: devices.filter(d => d.latest_report).length,
+      devices_with_data: Math.max(cpuValues.length, memoryValues.length, diskValues.length),
+      last_updated: new Date(),
+      network_latency: 0,
+      system_uptime: 0,
+      extraction_debug: {
+        cpu_extracted: cpuValues.length,
+        memory_extracted: memoryValues.length,
+        disk_extracted: diskValues.length,
+        cpu_values: cpuValues,
+        memory_values: memoryValues,
+        disk_values: diskValues
+      }
+    };
+
+    console.log(`=== REALTIME METRICS SUMMARY ===`);
+    console.log(`CPU Average: ${metrics.cpu_usage.toFixed(2)}% from ${cpuValues.length} devices`);
+    console.log(`Memory Average: ${metrics.memory_usage.toFixed(2)}% from ${memoryValues.length} devices`);
+    console.log(`Disk Average: ${metrics.disk_usage.toFixed(2)}% from ${diskValues.length} devices`);
 
     res.json({
       success: true,
@@ -1159,50 +1255,72 @@ router.get("/performance/overview", async (req, res) => {
         let disk = parseFloat(device.latest_report.disk_usage || "0");
 
         // If direct columns are null/0, extract from raw_data
-        if (cpu === 0 && device.latest_report.raw_data) {
+        if (device.latest_report.raw_data) {
           const rawData = typeof device.latest_report.raw_data === 'string' 
             ? JSON.parse(device.latest_report.raw_data) 
             : device.latest_report.raw_data;
           
-          if (rawData.system_health?.cpu_usage) {
-            cpu = parseFloat(rawData.system_health.cpu_usage);
-          } else if (rawData.hardware?.cpu?.usage_percent) {
-            cpu = parseFloat(rawData.hardware.cpu.usage_percent);
-          } else if (rawData.hardware?.cpu?.percent) {
-            cpu = parseFloat(rawData.hardware.cpu.percent);
+          // Enhanced CPU extraction
+          if (cpu === 0 || cpu === null) {
+            if (rawData.system_health?.cpu_usage) {
+              cpu = parseFloat(rawData.system_health.cpu_usage);
+            } else if (rawData.hardware?.cpu?.usage_percent) {
+              cpu = parseFloat(rawData.hardware.cpu.usage_percent);
+            } else if (rawData.hardware?.cpu?.percent) {
+              cpu = parseFloat(rawData.hardware.cpu.percent);
+            } else if (rawData.hardware?.cpu?.utilization) {
+              cpu = parseFloat(rawData.hardware.cpu.utilization);
+            }
+          }
+
+          // Enhanced Memory extraction
+          if (memory === 0 || memory === null) {
+            if (rawData.system_health?.memory_usage) {
+              memory = parseFloat(rawData.system_health.memory_usage);
+            } else if (rawData.hardware?.memory?.percentage) {
+              memory = parseFloat(rawData.hardware.memory.percentage);
+            } else if (rawData.hardware?.memory?.percent) {
+              memory = parseFloat(rawData.hardware.memory.percent);
+            } else if (rawData.hardware?.memory?.used && rawData.hardware?.memory?.total) {
+              // Calculate memory percentage from used/total
+              const used = parseFloat(rawData.hardware.memory.used);
+              const total = parseFloat(rawData.hardware.memory.total);
+              if (total > 0) {
+                memory = (used / total) * 100;
+              }
+            }
+          }
+
+          // Enhanced Disk extraction
+          if (disk === 0 || disk === null) {
+            if (rawData.storage?.disks?.[0]?.percent) {
+              disk = parseFloat(rawData.storage.disks[0].percent);
+            } else if (rawData.storage?.disks?.[0]?.usage_percent) {
+              disk = parseFloat(rawData.storage.disks[0].usage_percent);
+            } else if (rawData.storage?.disks?.[0]?.used && rawData.storage?.disks?.[0]?.size) {
+              // Calculate disk percentage from used/size
+              const used = parseFloat(rawData.storage.disks[0].used);
+              const size = parseFloat(rawData.storage.disks[0].size);
+              if (size > 0) {
+                disk = (used / size) * 100;
+              }
+            }
           }
         }
 
-        if (memory === 0 && device.latest_report.raw_data) {
-          const rawData = typeof device.latest_report.raw_data === 'string' 
-            ? JSON.parse(device.latest_report.raw_data) 
-            : device.latest_report.raw_data;
-          
-          if (rawData.system_health?.memory_usage) {
-            memory = parseFloat(rawData.system_health.memory_usage);
-          } else if (rawData.hardware?.memory?.percentage) {
-            memory = parseFloat(rawData.hardware.memory.percentage);
-          } else if (rawData.hardware?.memory?.percent) {
-            memory = parseFloat(rawData.hardware.memory.percent);
-          }
+        // Add valid values to arrays (include values > 0)
+        if (cpu > 0 && cpu <= 100) {
+          cpuValues.push(cpu);
+          console.log(`Added CPU value for ${device.hostname}: ${cpu}%`);
         }
-
-        if (disk === 0 && device.latest_report.raw_data) {
-          const rawData = typeof device.latest_report.raw_data === 'string' 
-            ? JSON.parse(device.latest_report.raw_data) 
-            : device.latest_report.raw_data;
-          
-          if (rawData.storage?.disks?.[0]?.percent) {
-            disk = parseFloat(rawData.storage.disks[0].percent);
-          } else if (rawData.storage?.disks?.[0]?.usage_percent) {
-            disk = parseFloat(rawData.storage.disks[0].usage_percent);
-          }
+        if (memory > 0 && memory <= 100) {
+          memoryValues.push(memory);
+          console.log(`Added Memory value for ${device.hostname}: ${memory}%`);
         }
-
-        // Add valid values to arrays
-        if (cpu > 0) cpuValues.push(cpu);
-        if (memory > 0) memoryValues.push(memory);
-        if (disk > 0) diskValues.push(disk);
+        if (disk > 0 && disk <= 100) {
+          diskValues.push(disk);
+          console.log(`Added Disk value for ${device.hostname}: ${disk}%`);
+        }
 
         // Check for critical devices
         if (cpu > 90 || memory > 90 || disk > 95) {

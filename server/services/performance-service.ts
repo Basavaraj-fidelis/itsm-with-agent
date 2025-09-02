@@ -341,26 +341,76 @@ class PerformanceService {
       let systemMemoryUsage = parseFloat(report.memory_usage || "0");
       let systemDiskUsage = parseFloat(report.disk_usage || "0");
 
-      // If report columns are null/0, extract from raw_data
-      if (systemCpuUsage === 0 && rawData?.system_health?.cpu_usage) {
-        systemCpuUsage = parseFloat(rawData.system_health.cpu_usage);
-        console.log(`Extracted CPU from system_health: ${systemCpuUsage}`);
-      } else if (systemCpuUsage === 0 && rawData?.hardware?.cpu?.usage_percent) {
-        systemCpuUsage = parseFloat(rawData.hardware.cpu.usage_percent);
-        console.log(`Extracted CPU from hardware: ${systemCpuUsage}`);
-      }
+      // Enhanced data extraction from raw_data
+      if (rawData) {
+        // CPU extraction with multiple fallback paths
+        if (systemCpuUsage === 0 || systemCpuUsage === null) {
+          if (rawData.system_health?.cpu_usage) {
+            systemCpuUsage = parseFloat(rawData.system_health.cpu_usage);
+          } else if (rawData.hardware?.cpu?.usage_percent) {
+            systemCpuUsage = parseFloat(rawData.hardware.cpu.usage_percent);
+          } else if (rawData.hardware?.cpu?.percent) {
+            systemCpuUsage = parseFloat(rawData.hardware.cpu.percent);
+          } else if (rawData.hardware?.cpu?.utilization) {
+            systemCpuUsage = parseFloat(rawData.hardware.cpu.utilization);
+          } else if (rawData.hardware?.cpu?.load_avg?.[0]) {
+            // Convert load average to percentage approximation
+            const loadAvg = parseFloat(rawData.hardware.cpu.load_avg[0]);
+            const cores = rawData.hardware?.cpu?.cores || 1;
+            systemCpuUsage = Math.min((loadAvg / cores) * 100, 100);
+          }
+          console.log(`Extracted CPU from enhanced logic: ${systemCpuUsage}`);
+        }
 
-      if (systemMemoryUsage === 0 && rawData?.system_health?.memory_usage) {
-        systemMemoryUsage = parseFloat(rawData.system_health.memory_usage);
-        console.log(`Extracted Memory from system_health: ${systemMemoryUsage}`);
-      } else if (systemMemoryUsage === 0 && rawData?.hardware?.memory?.percentage) {
-        systemMemoryUsage = parseFloat(rawData.hardware.memory.percentage);
-        console.log(`Extracted Memory from hardware: ${systemMemoryUsage}`);
-      }
+        // Memory extraction with multiple fallback paths
+        if (systemMemoryUsage === 0 || systemMemoryUsage === null) {
+          if (rawData.system_health?.memory_usage) {
+            systemMemoryUsage = parseFloat(rawData.system_health.memory_usage);
+          } else if (rawData.hardware?.memory?.percentage) {
+            systemMemoryUsage = parseFloat(rawData.hardware.memory.percentage);
+          } else if (rawData.hardware?.memory?.percent) {
+            systemMemoryUsage = parseFloat(rawData.hardware.memory.percent);
+          } else if (rawData.hardware?.memory?.used && rawData.hardware?.memory?.total) {
+            // Calculate from used/total bytes
+            const used = parseFloat(rawData.hardware.memory.used);
+            const total = parseFloat(rawData.hardware.memory.total);
+            if (total > 0) {
+              systemMemoryUsage = (used / total) * 100;
+            }
+          } else if (rawData.hardware?.memory?.virtual?.used && rawData.hardware?.memory?.virtual?.total) {
+            // Try virtual memory stats
+            const used = parseFloat(rawData.hardware.memory.virtual.used);
+            const total = parseFloat(rawData.hardware.memory.virtual.total);
+            if (total > 0) {
+              systemMemoryUsage = (used / total) * 100;
+            }
+          }
+          console.log(`Extracted Memory from enhanced logic: ${systemMemoryUsage}`);
+        }
 
-      if (systemDiskUsage === 0 && rawData?.storage?.disks?.[0]?.percent) {
-        systemDiskUsage = parseFloat(rawData.storage.disks[0].percent);
-        console.log(`Extracted Disk from storage: ${systemDiskUsage}`);
+        // Disk extraction with multiple fallback paths
+        if (systemDiskUsage === 0 || systemDiskUsage === null) {
+          if (rawData.storage?.disks?.[0]?.percent) {
+            systemDiskUsage = parseFloat(rawData.storage.disks[0].percent);
+          } else if (rawData.storage?.disks?.[0]?.usage_percent) {
+            systemDiskUsage = parseFloat(rawData.storage.disks[0].usage_percent);
+          } else if (rawData.storage?.disks?.[0]?.used && rawData.storage?.disks?.[0]?.size) {
+            // Calculate from used/size bytes
+            const used = parseFloat(rawData.storage.disks[0].used);
+            const size = parseFloat(rawData.storage.disks[0].size);
+            if (size > 0) {
+              systemDiskUsage = (used / size) * 100;
+            }
+          } else if (rawData.storage?.disks?.[0]?.free && rawData.storage?.disks?.[0]?.total) {
+            // Calculate from free/total
+            const free = parseFloat(rawData.storage.disks[0].free);
+            const total = parseFloat(rawData.storage.disks[0].total);
+            if (total > 0) {
+              systemDiskUsage = ((total - free) / total) * 100;
+            }
+          }
+          console.log(`Extracted Disk from enhanced logic: ${systemDiskUsage}`);
+        }
       }
 
       // Extract process information from raw_data

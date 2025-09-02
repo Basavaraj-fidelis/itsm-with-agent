@@ -50,8 +50,8 @@ export class AgentDataProcessor {
     try {
       if (!rawDataInput) return {};
 
-      let parsedData = typeof rawDataInput === "string" 
-        ? JSON.parse(rawDataInput) 
+      let parsedData = typeof rawDataInput === "string"
+        ? JSON.parse(rawDataInput)
         : rawDataInput;
 
       // Handle nested raw_data structure
@@ -82,8 +82,8 @@ export class AgentDataProcessor {
         rawData.os_info?.current_user ||
         rawData.hardware?.current_user;
 
-      if (!user || user.endsWith("$") || user === "Unknown" || user === "N/A" || 
-          user.includes("SYSTEM") || user.includes("NETWORK SERVICE") || 
+      if (!user || user.endsWith("$") || user === "Unknown" || user === "N/A" ||
+          user.includes("SYSTEM") || user.includes("NETWORK SERVICE") ||
           user.includes("LOCAL SERVICE")) {
         return "N/A";
       }
@@ -106,16 +106,16 @@ export class AgentDataProcessor {
     return {
       hostname: agent.hostname || rawData.hostname || rawData.computer_name || "Unknown",
       osName: osName || "Unknown",
-      osVersion: agent.os_version || rawData.os_version || rawData.os_info?.version || 
+      osVersion: agent.os_version || rawData.os_version || rawData.os_info?.version ||
         rawData.os_info?.release || systemInfo.os_version || rawData.version || "Unknown",
-      architecture: rawData.os_info?.architecture || rawData.architecture || systemInfo.architecture || 
-        rawData.arch || systemInfo.arch || rawData.system_info?.architecture || 
+      architecture: rawData.os_info?.architecture || rawData.architecture || systemInfo.architecture ||
+        rawData.arch || systemInfo.arch || rawData.system_info?.architecture ||
         rawData.hardware?.system?.architecture || rawData.platform_info?.architecture || "64bit",
-      manufacturer: systemHardware.manufacturer || rawData.manufacturer || 
+      manufacturer: systemHardware.manufacturer || rawData.manufacturer ||
         rawData.system_info?.manufacturer || rawData.hardware?.manufacturer || "Unknown",
-      model: systemHardware.model || rawData.model || rawData.system_info?.model || 
+      model: systemHardware.model || rawData.model || rawData.system_info?.model ||
         rawData.hardware?.model || "Unknown",
-      serialNumber: rawData.hardware?.system?.serial_number || systemHardware.serial_number || 
+      serialNumber: rawData.hardware?.system?.serial_number || systemHardware.serial_number ||
         rawData.serial_number || rawData.system_info?.serial_number || "To be filled by O.E.M.",
       assignedUser,
       networkStatus: rawData.networkStatus || rawData.network_status,
@@ -161,11 +161,11 @@ export class AgentDataProcessor {
 
       for (const iface of interfaces) {
         const name = iface.name?.toLowerCase() || "";
-        if ((name.includes("eth") || name.includes("ethernet") || name.includes("enet") || 
-             name.includes("local area connection")) && !name.includes("veth") && 
+        if ((name.includes("eth") || name.includes("ethernet") || name.includes("enet") ||
+             name.includes("local area connection")) && !name.includes("veth") &&
              !name.includes("virtual") && iface.stats?.is_up !== false) {
           for (const addr of iface.addresses || []) {
-            if (addr.family === "AF_INET" && !addr.address.startsWith("127.") && 
+            if (addr.family === "AF_INET" && !addr.address.startsWith("127.") &&
                 !addr.address.startsWith("169.254.") && addr.address !== "0.0.0.0") {
               return addr.address;
             }
@@ -178,10 +178,10 @@ export class AgentDataProcessor {
     const getWiFiIP = (): string => {
       for (const iface of interfaces) {
         const name = iface.name?.toLowerCase() || "";
-        if ((name.includes("wifi") || name.includes("wlan") || name.includes("wireless") || 
+        if ((name.includes("wifi") || name.includes("wlan") || name.includes("wireless") ||
              name.includes("wi-fi") || name.includes("802.11")) && iface.stats?.is_up !== false) {
           for (const addr of iface.addresses || []) {
-            if (addr.family === "AF_INET" && !addr.address.startsWith("127.") && 
+            if (addr.family === "AF_INET" && !addr.address.startsWith("127.") &&
                 !addr.address.startsWith("169.254.") && addr.address !== "0.0.0.0") {
               return addr.address;
             }
@@ -195,13 +195,13 @@ export class AgentDataProcessor {
       const allIPs: string[] = [];
       for (const iface of interfaces) {
         const name = iface.name?.toLowerCase() || "";
-        const isVirtual = name.includes("virtual") || name.includes("veth") || 
+        const isVirtual = name.includes("virtual") || name.includes("veth") ||
           name.includes("docker") || name.includes("vmware");
 
         if (!isVirtual && iface.stats?.is_up !== false) {
           for (const addr of iface.addresses || []) {
-            if (addr.family === "AF_INET" && addr.address && 
-                !addr.address.startsWith("127.") && !addr.address.startsWith("169.254.") && 
+            if (addr.family === "AF_INET" && addr.address &&
+                !addr.address.startsWith("127.") && !addr.address.startsWith("169.254.") &&
                 addr.address !== "0.0.0.0" && !allIPs.includes(addr.address)) {
               allIPs.push(addr.address);
             }
@@ -222,15 +222,15 @@ export class AgentDataProcessor {
         const primaryInterface = interfaces.find(iface => {
           const mac = iface.mac || iface.mac_address || iface.physical_address;
           const ip = iface.ip || iface.ip_address;
-          return mac && ip && 
-            ip !== '127.0.0.1' && 
+          return mac && ip &&
+            ip !== '127.0.0.1' &&
             ip !== '::1' &&
             !ip.startsWith('169.254.') &&
             (iface.status === 'Up' || iface.status === 'up');
-        }) || interfaces.find(iface => 
-          iface.type === "Ethernet" && 
+        }) || interfaces.find(iface =>
+          iface.type === "Ethernet" &&
           (iface.mac || iface.mac_address || iface.physical_address)
-        ) || interfaces.find(iface => 
+        ) || interfaces.find(iface =>
           iface.mac || iface.mac_address || iface.physical_address
         );
 
@@ -246,17 +246,17 @@ export class AgentDataProcessor {
     const wifiIP = getWiFiIP();
     const allIPs = getAllIPs();
 
-    const primaryIP = ethernetIP !== "Not Available" ? ethernetIP : 
-      wifiIP !== "Not Available" ? wifiIP : 
-      allIPs.length > 0 ? allIPs[0] : 
+    const primaryIP = ethernetIP !== "Not Available" ? ethernetIP :
+      wifiIP !== "Not Available" ? wifiIP :
+      allIPs.length > 0 ? allIPs[0] :
       agent.ip_address || rawData.ip_address || "Not Available";
 
     // Enhanced public IP extraction with multiple sources
-    const publicIP = rawData.extracted_public_ip || 
-                    rawData.network?.public_ip || 
+    const publicIP = rawData.extracted_public_ip ||
+                    rawData.network?.public_ip ||
                     rawData.network?.external_ip ||
-                    rawData.public_ip || 
-                    agent.network?.public_ip || 
+                    rawData.public_ip ||
+                    agent.network?.public_ip ||
                     agent.latest_report?.public_ip ||
                     "Unknown";
 
@@ -330,9 +330,9 @@ export class AgentDataProcessor {
       macAddresses: getEthernetMAC(),
       publicIP,
       locationData,
-      interfaces: interfaces.filter(iface => 
-        iface.stats?.is_up && iface.addresses?.some(addr => 
-          addr.family === "AF_INET" && !addr.address.startsWith("127.") && 
+      interfaces: interfaces.filter(iface =>
+        iface.stats?.is_up && iface.addresses?.some(addr =>
+          addr.family === "AF_INET" && !addr.address.startsWith("127.") &&
           !addr.address.startsWith("169.254.")
         )
       )
@@ -352,12 +352,12 @@ export class AgentDataProcessor {
     // Enhanced CPU extraction with multiple fallbacks
     const extractCPUDetails = () => {
       const cpu = {
-        model: cpuInfo.model || rawData.processor || rawData.cpu_model || rawData.cpu || 
+        model: cpuInfo.model || rawData.processor || rawData.cpu_model || rawData.cpu ||
                rawData.os_info?.processor || rawData.system_info?.processor ||
                "Intel(R) Core(TM) i5-10400F CPU @ 2.90GHz",
-        physicalCores: String(cpuInfo.physical_cores || rawData.physical_cores || 
+        physicalCores: String(cpuInfo.physical_cores || rawData.physical_cores ||
                               hardwareInfo.physical_cores || "6"),
-        logicalCores: String(cpuInfo.logical_cores || rawData.logical_cores || 
+        logicalCores: String(cpuInfo.logical_cores || rawData.logical_cores ||
                              hardwareInfo.logical_cores || "12"),
         currentFreq: cpuInfo.current_freq || rawData.cpu_freq || hardwareInfo.current_freq,
         maxFreq: cpuInfo.max_freq || rawData.max_freq || hardwareInfo.max_freq
@@ -379,11 +379,11 @@ export class AgentDataProcessor {
       const availableBytes = memoryInfo.available || rawData.available_memory_bytes || rawData.memory_available_bytes;
 
       return {
-        totalMemory: totalBytes ? bytesToGB(totalBytes) : 
+        totalMemory: totalBytes ? bytesToGB(totalBytes) :
                     rawData.total_memory || rawData.memory_total || "16.00 GB",
-        usedMemory: usedBytes ? bytesToGB(usedBytes) : 
+        usedMemory: usedBytes ? bytesToGB(usedBytes) :
                    rawData.used_memory || rawData.memory_used || "Unknown",
-        availableMemory: availableBytes ? bytesToGB(availableBytes) : 
+        availableMemory: availableBytes ? bytesToGB(availableBytes) :
                         rawData.available_memory || rawData.memory_available || "Unknown"
       };
     };
@@ -443,7 +443,7 @@ export class AgentDataProcessor {
 
           // Extract disk usage from storage.disks (primary disk)
           if (parsedData.storage?.disks && Array.isArray(parsedData.storage.disks)) {
-            const primaryDisk = parsedData.storage.disks.find(disk => 
+            const primaryDisk = parsedData.storage.disks.find(disk =>
               disk.device === 'C:\\' || disk.mountpoint === 'C:\\'
             ) || parsedData.storage.disks[0];
 
@@ -500,12 +500,12 @@ export class AgentDataProcessor {
           // Check for similar descriptions (same device appearing multiple times)
           const normalizedDesc = desc.toLowerCase().replace(/[^a-z0-9]/g, '');
           let isDuplicate = false;
-          
+
           // Skip if device is not present or status indicates disconnected
           if (device.is_present === false || device.status === 'Disconnected' || device.status === 'Error') {
             continue;
           }
-          
+
           for (const seenDesc of seenDescriptions) {
             const normalizedSeen = seenDesc.toLowerCase().replace(/[^a-z0-9]/g, '');
             if (normalizedDesc.includes(normalizedSeen) || normalizedSeen.includes(normalizedDesc)) {
@@ -527,29 +527,52 @@ export class AgentDataProcessor {
         return deduplicatedDevices.map(device => {
           const vendorId = device.vendor_id || this.extractVendorIdFromDeviceId(device.device_id) || 'unknown';
           const productId = device.product_id || this.extractProductIdFromDeviceId(device.device_id) || 'unknown';
-          
+
           // Try to get manufacturer from multiple sources
-          let manufacturer = device.manufacturer || device.vendor;
-          
+          let manufacturer = device.vendor_name || device.manufacturer;
+
           // If no manufacturer found, try to extract from description
           if (!manufacturer || manufacturer === 'Unknown') {
             manufacturer = this.extractManufacturerFromDescription(device.description);
           }
-          
+
           // If still no manufacturer, try vendor ID lookup
           if (!manufacturer || manufacturer === 'Unknown') {
             manufacturer = this.getVendorNameFromId(vendorId);
           }
-          
-          return {
-            ...device,
-            type: this.categorizeUSBDevice(device),
-            vendor: manufacturer,
-            manufacturer: manufacturer,
-            vendor_id: vendorId,
-            product_id: productId,
-            serial_number: device.serial_number || this.extractSerialFromDeviceId(device.device_id) || 'N/A'
-          };
+
+          // Enhanced USB processing with better manufacturer detection
+          const usbDevices = deduplicatedDevices.map((device: any) => {
+            // Extract vendor/manufacturer information
+            let manufacturer = device.vendor_name || device.manufacturer || 'Generic USB';
+            let productName = device.product_name || device.name || 'USB Device';
+
+            // If description contains vendor info, extract it
+            if (device.description && device.description.includes(' ')) {
+              const descParts = device.description.split(' ');
+              if (descParts.length >= 2) {
+                manufacturer = descParts[0];
+                productName = descParts.slice(1).join(' ');
+              }
+            }
+
+            // Create enhanced description
+            const description = manufacturer !== 'Generic USB'
+              ? `${manufacturer} ${productName}`
+              : device.description || device.name || 'Generic USB Device';
+
+            return {
+              ...device,
+              description,
+              type: device.device_class || device.type || 'Unknown',
+              manufacturer,
+              product_name: productName,
+              vendor_id: vendorId,
+              product_id: productId,
+              serial_number: device.serial_number || this.extractSerialFromDeviceId(device.device_id) || 'N/A'
+            };
+          });
+          return usbDevices;
         });
       }
     }
@@ -613,12 +636,12 @@ export class AgentDataProcessor {
 
   private static extractManufacturerFromDescription(description: string): string {
     if (!description) return 'Unknown';
-    
+
     // Check for specific patterns first
     if (description.includes('VendorCo')) {
       return 'VendorCo';
     }
-    
+
     // Check if description starts with a manufacturer name followed by space
     const parts = description.split(' ');
     if (parts.length >= 2) {
@@ -632,7 +655,7 @@ export class AgentDataProcessor {
         }
       }
     }
-    
+
     // Check for known manufacturer patterns in the middle of description
     const knownManufacturers = ['SanDisk', 'Kingston', 'Toshiba', 'Samsung', 'Seagate', 'WD', 'Lexar', 'Corsair'];
     for (const manufacturer of knownManufacturers) {
@@ -640,7 +663,7 @@ export class AgentDataProcessor {
         return manufacturer;
       }
     }
-    
+
     return 'Unknown';
   }
 
@@ -861,72 +884,6 @@ export function useProcessedAgentData(agent: any): ProcessedAgentData | null {
     return locationInfo;
   }, [agent?.latest_report]);
 
-  const processMetrics = (rawData: any) => {
-    try {
-      // Parse metrics with better error handling and multiple fallback sources
-      const cpu = parseFloat(
-        rawData?.system_health?.cpu_usage || 
-        rawData?.hardware?.cpu_usage || 
-        rawData?.extracted_system_health?.cpu_usage || 
-        "0"
-      );
-
-      const memory = parseFloat(
-        rawData?.system_health?.memory_usage || 
-        rawData?.hardware?.memory_usage || 
-        rawData?.extracted_system_health?.memory_usage || 
-        "0"
-      );
-
-      const disk = parseFloat(
-        rawData?.storage?.[0]?.usage_percent || 
-        rawData?.system_health?.disk_usage ||
-        rawData?.hardware?.disk_usage ||
-        "0"
-      );
-
-      const network = parseInt(
-        rawData?.network?.bytes_sent || 
-        rawData?.network?.total_bytes || 
-        "0"
-      );
-
-      const reportTime = rawData?.timestamp || 
-                        rawData?.processed_at || 
-                        rawData?.collected_at || 
-                        new Date().toISOString();
-
-      return {
-        cpu: isNaN(cpu) ? 0 : Math.max(0, Math.min(100, cpu)),
-        memory: isNaN(memory) ? 0 : Math.max(0, Math.min(100, memory)),
-        disk: isNaN(disk) ? 0 : Math.max(0, Math.min(100, disk)),
-        network: isNaN(network) ? 0 : network,
-        reportTime,
-        dataQuality: {
-          hasCpu: !isNaN(cpu) && cpu > 0,
-          hasMemory: !isNaN(memory) && memory > 0,
-          hasDisk: !isNaN(disk) && disk > 0,
-          hasNetwork: !isNaN(network) && network > 0
-        }
-      };
-    } catch (error) {
-      console.error("Error processing metrics:", error);
-      return {
-        cpu: 0,
-        memory: 0,
-        disk: 0,
-        network: 0,
-        reportTime: new Date().toISOString(),
-        dataQuality: {
-          hasCpu: false,
-          hasMemory: false,
-          hasDisk: false,
-          hasNetwork: false
-        }
-      };
-    }
-  };
-
   const processedData = useMemo(() => {
     if (!agent) {
       console.log('No agent provided to useProcessedAgentData');
@@ -993,7 +950,7 @@ export function useProcessedAgentData(agent: any): ProcessedAgentData | null {
 
           // Extract disk usage
           if (parsedData.storage?.disks && Array.isArray(parsedData.storage.disks)) {
-            const primaryDisk = parsedData.storage.disks.find(disk => 
+            const primaryDisk = parsedData.storage.disks.find(disk =>
               disk.device === 'C:\\' || disk.mountpoint === 'C:\\'
             ) || parsedData.storage.disks[0];
 
