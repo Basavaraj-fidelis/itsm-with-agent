@@ -881,16 +881,38 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                       <Usb className="w-5 h-5" />
-                      <span>USB Devices ({extractedUsbDevices.length})</span>
+                      <span>USB Devices ({extractedUsbDevices.filter((device: any) => 
+                        !(device.description && device.description.includes('VendorCo ProductCode'))
+                      ).length})</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {extractedUsbDevices.map((device: any, index: number) => {
+                      {extractedUsbDevices
+                        .filter((device: any) => 
+                          !(device.description && device.description.includes('VendorCo ProductCode'))
+                        )
+                        .map((device: any, index: number) => {
                         // Extract vendor/product IDs if not already present
                         const vendorId = device.vendor_id || AgentDataProcessor.extractVendorIdFromDeviceId(device.device_id) || 'unknown';
                         const productId = device.product_id || AgentDataProcessor.extractProductIdFromDeviceId(device.device_id) || 'unknown';
-                        const vendor = device.vendor || device.manufacturer || AgentDataProcessor.getVendorNameFromId(vendorId) || 'Unknown';
+                        
+                        // Enhanced manufacturer extraction
+                        let manufacturer = device.vendor || device.manufacturer;
+                        
+                        // If manufacturer is 'USB' or generic, try to get better name
+                        if (!manufacturer || manufacturer === 'USB' || manufacturer === 'Unknown') {
+                          manufacturer = AgentDataProcessor.getVendorNameFromId(vendorId);
+                          
+                          // If still generic, extract from description
+                          if (!manufacturer || manufacturer === 'Unknown') {
+                            if (device.description && device.description.includes('Mass Storage')) {
+                              manufacturer = 'Generic Storage Manufacturer';
+                            } else {
+                              manufacturer = 'Generic USB Manufacturer';
+                            }
+                          }
+                        }
 
                         return (
                           <div key={`usb-${device.device_id || index}`} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border">
@@ -903,11 +925,11 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                   <div className="grid grid-cols-2 gap-4">
                                     <div>
                                       <span className="font-medium">Manufacturer:</span>
-                                      <span className="ml-2">{vendor}</span>
+                                      <span className="ml-2">{manufacturer}</span>
                                     </div>
                                     <div>
                                       <span className="font-medium">Device Type:</span>
-                                      <span className="ml-2">{device.device_type || device.type || 'Unknown'}</span>
+                                      <span className="ml-2">{device.device_type || device.type || 'USB Storage'}</span>
                                     </div>
                                     <div>
                                       <span className="font-medium">Vendor ID:</span>
@@ -938,7 +960,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                   device.device_type === 'keyboard' || device.device_type === 'mouse' ? 'default' :
                                   'secondary'
                                 }>
-                                  {device.type || device.device_type || 'Storage'}
+                                  Storage
                                 </Badge>
                               </div>
                             </div>
