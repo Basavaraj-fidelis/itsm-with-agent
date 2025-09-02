@@ -1,0 +1,42 @@
+Uncaught ReferenceError: usbDevices is not defined
+    at AgentTabs (agent-tabs.tsx:879:16)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=9a405850:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=9a405850:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=9a405850:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=9a405850:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=9a405850:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=9a405850:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=9a405850:19765:15)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=9a405850:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=9a405850:19137:13)
+chunk-RPCDYKBN.js?v=9a405850:14032 The above error occurred in the <AgentTabs> component:
+
+    at AgentTabs (https://c7977952-aa91-4f37-a669-43357533572e-00-v9679lsdke1c.pike.replit.dev/src/components/agent-detail/agent-tabs.tsx:61:37)
+    at div
+    at AgentErrorBoundary (https://c7977952-aa91-4f37-a669-43357533572e-00-v9679lsdke1c.pike.replit.dev/src/components/ui/agent-error-boundary.tsx:23:5)
+    at AgentDetail (https://c7977952-aa91-4f37-a669-43357533572e-00-v9679lsdke1c.pike.replit.dev/src/pages/agent-detail.tsx:46:18)
+    at main
+    at div
+    at div
+    at AuthenticatedLayout (https://c7977952-aa91-4f37-a669-43357533572e-00-v9679lsdke1c.pike.replit.dev/src/App.tsx:62:32)
+    at ProtectedRoute (https://c7977952-aa91-4f37-a669-43357533572e-00-v9679lsdke1c.pike.replit.dev/src/components/auth/protected-route.tsx:76:3)
+    at Route (https://c7977952-aa91-4f37-a669-43357533572e-00-v9679lsdke1c.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=327ed1d4:206:16)
+    at Switch (https://c7977952-aa91-4f37-a669-43357533572e-00-v9679lsdke1c.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=327ed1d4:262:17)
+    at Router (https://c7977952-aa91-4f37-a669-43357533572e-00-v9679lsdke1c.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=327ed1d4:161:17)
+    at AuthProvider (https://c7977952-aa91-4f37-a669-43357533572e-00-v9679lsdke1c.pike.replit.dev/src/components/auth/protected-route.tsx:36:32)
+    at QueryClientProvider (https://c7977952-aa91-4f37-a669-43357533572e-00-v9679lsdke1c.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=5863b2b7:2933:3)
+    at App (https://c7977952-aa91-4f37-a669-43357533572e-00-v9679lsdke1c.pike.replit.dev/src/App.tsx:102:49)
+
+React will try to recreate this component tree from scratch using the error boundary you provided, AgentErrorBoundary.
+logCapturedError @ chunk-RPCDYKBN.js?v=9a405850:14032
+agent-error-boundary.tsx:29 Agent data processing error: ReferenceError: usbDevices is not defined
+    at AgentTabs (agent-tabs.tsx:879:16)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=9a405850:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=9a405850:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=9a405850:15914:22)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=9a405850:19753:22)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=9a405850:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=9a405850:19137:13)
+    at renderRootSync (chunk-RPCDYKBN.js?v=9a405850:19116:15)
+    at recoverFromConcurrentError (chunk-RPCDYKBN.js?v=9a405850:18736:28)
+    at performSyncWorkOnRoot (chunk-RPCDYKBN.js?v=9a405850:18879:28) Object
