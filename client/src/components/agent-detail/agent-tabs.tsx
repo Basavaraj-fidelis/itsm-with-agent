@@ -950,58 +950,6 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                 </Card>
               )}
 
-              {/* Fallback for old data format */}
-              {!processedData?.usb && (processedData?.usb?.usb_devices || agent?.latest_report?.raw_data?.usb?.usb_devices || agent?.latest_report?.raw_data?.usb_devices) && (
-                <div className="space-y-4">
-                  <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100 flex items-center">
-                    <Usb className="w-5 h-5 mr-2" />
-                    USB Devices ({(agent?.latest_report?.raw_data?.usb?.usb_devices || agent?.latest_report?.raw_data?.usb_devices || []).length})
-                  </h4>
-                  <div className="grid grid-cols-1 gap-4">
-                    {(agent?.latest_report?.raw_data?.usb?.usb_devices || agent?.latest_report?.raw_data?.usb_devices || []).map((device: any, index: number) => (
-                      <div key={index} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h5 className="font-medium text-gray-900 dark:text-gray-100">
-                              {device.description || 'Unknown USB Device'}
-                            </h5>
-                            <div className="mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                              <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                  <span className="font-medium">Manufacturer:</span>
-                                  <span className="ml-2">{device.manufacturer || 'Unknown'}</span>
-                                </div>
-                                <div>
-                                  <span className="font-medium">Device Type:</span>
-                                  <span className="ml-2">{device.device_type || 'Unknown'}</span>
-                                </div>
-                                <div>
-                                  <span className="font-medium">Vendor ID:</span>
-                                  <span className="ml-2">{device.vendor_id || 'Unknown'}</span>
-                                </div>
-                                <div>
-                                  <span className="font-medium">Product ID:</span>
-                                  <span className="ml-2">{device.product_id || 'Unknown'}</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="ml-4">
-                            <Badge variant={
-                              device.device_type === 'USB Storage' ? 'destructive' :
-                              device.device_type === 'keyboard' || device.device_type === 'mouse' ? 'default' :
-                              'secondary'
-                            }>
-                              {device.device_type || 'Other'}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Storage Information */}
               {processedData?.storage && (
                 <div className="space-y-4">
