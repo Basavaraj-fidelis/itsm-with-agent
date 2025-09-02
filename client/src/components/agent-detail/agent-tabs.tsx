@@ -876,14 +876,14 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
               </Card>
 
               {/* USB Devices */}
-              {usbDevices && usbDevices.length > 0 && (
+              {extractedUsbDevices && extractedUsbDevices.length > 0 && (
                 <div className="space-y-4">
                   <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100 flex items-center">
                     <Usb className="w-5 h-5 mr-2" />
-                    USB Devices ({usbDevices.length})
+                    USB Devices ({extractedUsbDevices.length})
                   </h4>
                   <div className="grid grid-cols-1 gap-4">
-                    {usbDevices.map((device: any, index: number) => {
+                    {extractedUsbDevices.map((device: any, index: number) => {
                       // Extract vendor/product IDs if not already present
                       const vendorId = device.vendor_id || AgentDataProcessor.extractVendorIdFromDeviceId(device.device_id) || 'unknown';
                       const productId = device.product_id || AgentDataProcessor.extractProductIdFromDeviceId(device.device_id) || 'unknown';
