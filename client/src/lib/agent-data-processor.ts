@@ -592,7 +592,7 @@ export class AgentDataProcessor {
 
   private static getVendorNameFromId(vendorId: string): string {
     const vendors: { [key: string]: string } = {
-      '346d': 'Generic USB',
+      '346d': 'VendorCo',
       'vendorco': 'VendorCo',
       '0781': 'SanDisk',
       '058f': 'Alcor Micro',
@@ -604,7 +604,8 @@ export class AgentDataProcessor {
       '05e3': 'Genesys Logic',
       '152d': 'JMicron Technology',
       '174c': 'ASMedia Technology',
-      '0bda': 'Realtek Semiconductor'
+      '0bda': 'Realtek Semiconductor',
+      '5678': 'Generic Storage Manufacturer'
     };
 
     return vendors[vendorId?.toLowerCase()] || 'Unknown';
@@ -613,19 +614,31 @@ export class AgentDataProcessor {
   private static extractManufacturerFromDescription(description: string): string {
     if (!description) return 'Unknown';
     
+    // Check for specific patterns first
+    if (description.includes('VendorCo')) {
+      return 'VendorCo';
+    }
+    
     // Check if description starts with a manufacturer name followed by space
     const parts = description.split(' ');
     if (parts.length >= 2) {
       const firstPart = parts[0];
-      // Common manufacturer patterns
-      if (firstPart.match(/^[A-Z][a-zA-Z]+$/)) {
-        return firstPart;
+      // Common manufacturer patterns - must be at least 3 characters and start with capital
+      if (firstPart.match(/^[A-Z][a-zA-Z]{2,}$/)) {
+        // Avoid generic terms
+        const genericTerms = ['USB', 'Mass', 'Storage', 'Device', 'Generic'];
+        if (!genericTerms.includes(firstPart)) {
+          return firstPart;
+        }
       }
     }
     
-    // Check for specific patterns like "VendorCo ProductCode USB Device"
-    if (description.includes('VendorCo')) {
-      return 'VendorCo';
+    // Check for known manufacturer patterns in the middle of description
+    const knownManufacturers = ['SanDisk', 'Kingston', 'Toshiba', 'Samsung', 'Seagate', 'WD', 'Lexar', 'Corsair'];
+    for (const manufacturer of knownManufacturers) {
+      if (description.toLowerCase().includes(manufacturer.toLowerCase())) {
+        return manufacturer;
+      }
     }
     
     return 'Unknown';
