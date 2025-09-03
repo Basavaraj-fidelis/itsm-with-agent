@@ -22,7 +22,9 @@ import {
   CheckCircle,
   AlertCircle,
   Filter,
-  RefreshCw
+  RefreshCw,
+  Activity,
+  Settings
 } from 'lucide-react';
 
 interface NetworkScanResult {
@@ -49,6 +51,13 @@ interface ScanSession {
   subnets_scanned: string[];
   scanning_agents: { subnet: string; agent_id: string; hostname: string }[];
 }
+
+// Placeholder for agent data, to be fetched from a new API endpoint
+const agentData = {
+  websocket_status: {
+    total_connected: 3 // Example value, this should be dynamic
+  }
+};
 
 export default function NetworkScan() {
   const [sessions, setSessions] = useState<ScanSession[]>([]);
@@ -549,14 +558,43 @@ export default function NetworkScan() {
         </TabsList>
 
         <TabsContent value="scan" className="space-y-4">
+          {/* Autonomous Scan Status */}
+          <Card className="border-blue-200 bg-blue-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-700">
+                <Activity className="h-5 w-5" />
+                Autonomous Network Scanning
+              </CardTitle>
+              <CardDescription className="text-blue-600">
+                Agents automatically scan their local networks every 5 minutes
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm text-blue-700">
+                    {agentData?.websocket_status?.total_connected || 0} agents performing autonomous scans
+                  </span>
+                </div>
+                <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                  Agent-Initiated
+                </Badge>
+              </div>
+              <div className="mt-2 text-xs text-blue-600">
+                Agents scan their local network segments automatically and report discoveries to ITSM
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Network className="h-5 w-5" />
-                Network Scan Configuration
+                <Settings className="h-5 w-5" />
+                Manual Network Scan Configuration
               </CardTitle>
               <CardDescription>
-                Configure and initiate network scans using available agents
+                Configure and initiate network scans using available agents (On-demand scans)
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

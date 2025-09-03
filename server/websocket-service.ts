@@ -213,6 +213,11 @@ class WebSocketService {
         console.log(`💻 System info from ${deviceId}:`, data.payload);
         break;
       
+      case 'autonomous-scan-report':
+        console.log(`🔍 Autonomous scan report from ${deviceId}:`, data.scan_data);
+        this.handleAutonomousScanReport(deviceId, data);
+        break;
+      
       case 'ping':
         // Respond to ping with pong
         const connection = this.agentConnections.get(deviceId);
@@ -237,6 +242,39 @@ class WebSocketService {
       default:
         console.log(`❓ Unknown message type '${messageType}' from agent ${deviceId}`);
         break;
+    }
+  }
+
+  private async handleAutonomousScanReport(agentId: string, data: any): Promise<void> {
+    try {
+      const scanData = data.scan_data;
+      const timestamp = data.timestamp;
+      
+      console.log(`🔍 Processing autonomous scan from agent ${agentId}`);
+      console.log(`📊 Scan results: ${scanData.total_devices_found || 0} devices found`);
+      
+      // Store scan results in a way that can be accessed by the network scan service
+      // This could be stored in database or in-memory for now
+      const autonomousScanResult = {
+        agentId,
+        timestamp,
+        subnet: scanData.subnet,
+        devicesFound: scanData.total_devices_found || 0,
+        scanResults: scanData.discovered_devices || [],
+        scanType: 'autonomous'
+      };
+      
+      // Broadcast to any listening clients
+      this.broadcastToChannel('autonomous-scans', {
+        type: 'autonomous-scan-completed',
+        data: autonomousScanResult
+      });
+      
+      // You could also store this in database here if needed
+      console.log(`✅ Autonomous scan report processed for agent ${agentId}`);
+      
+    } catch (error) {
+      console.error(`❌ Error processing autonomous scan report from agent ${agentId}:`, error);
     }
   }
 

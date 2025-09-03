@@ -4,6 +4,35 @@ import { networkScanService } from "../services/network-scan-service";
 import { websocketService } from "../websocket-service";
 
 export function registerNetworkScanRoutes(app: Express) {
+  // Get autonomous scan reports
+  app.get("/api/network-scan/autonomous-reports", async (req, res) => {
+    try {
+      // This would typically fetch from database
+      // For now, return the connection status with scan capabilities
+      const status = websocketService.getConnectionStatus();
+      
+      const autonomousCapableAgents = status.connectionDetails?.filter(conn => 
+        conn.agentId && status.connectedAgents.includes(conn.agentId)
+      ).map(conn => ({
+        agentId: conn.agentId,
+        isConnected: true,
+        lastPing: conn.lastPing,
+        connectionAge: conn.connectionAge,
+        autonomousScanCapable: true
+      })) || [];
+      
+      res.json({
+        autonomous_scan_status: 'active',
+        capable_agents: autonomousCapableAgents,
+        total_capable_agents: autonomousCapableAgents.length,
+        message: 'Agents perform autonomous network scans every 5 minutes'
+      });
+    } catch (error) {
+      console.error("Error getting autonomous scan reports:", error);
+      res.status(500).json({ error: "Failed to get autonomous scan reports" });
+    }
+  });
+
   // Get WebSocket connection status
   app.get("/api/network-scan/websocket-status", async (req, res) => {
     try {

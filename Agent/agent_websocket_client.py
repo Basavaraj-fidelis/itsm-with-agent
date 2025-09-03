@@ -24,7 +24,30 @@ class ITSMAgent:
         self.websocket = None
         self.system_collector = SystemCollector()
         self.running = True
-        self.capabilities = ['systemInfo', 'adSync', 'remoteCommand']
+        self.capabilities = ['systemInfo', 'adSync', 'remoteCommand', 'autonomousNetworkScan']
+        
+        # Load autonomous scanning config
+        self.load_autonomous_config()
+        
+        self.last_scan_time = 0
+    
+    def load_autonomous_config(self):
+        """Load autonomous scanning configuration"""
+        try:
+            from configparser import ConfigParser
+            config = ConfigParser()
+            config.read('config.ini')
+            
+            self.auto_scan_enabled = config.getboolean('autonomous_scanning', 'enabled', fallback=True)
+            self.scan_interval = config.getint('autonomous_scanning', 'scan_interval', fallback=300)
+            self.scan_type = config.get('autonomous_scanning', 'scan_type', fallback='ping')
+            
+            logger.info(f"🔧 Autonomous scanning config: enabled={self.auto_scan_enabled}, interval={self.scan_interval}s")
+        except Exception as e:
+            logger.warning(f"Could not load autonomous config, using defaults: {e}")
+            self.auto_scan_enabled = True
+            self.scan_interval = 300
+            self.scan_type = 'ping'
 
     async def connect(self):
         """Connect to the ITSM server via WebSocket"""
@@ -252,9 +275,87 @@ class ITSMAgent:
             'agent_id': self.agent_id
         }
 
+    async def autonomous_network_scan(self):
+        """Perform autonomous network scan and report to server"""
+        try:
+            if not self.auto_scan_enabled:
+                return
+                
+            current_time = time.time()
+            if current_time - self.last_scan_time < self.scan_interval:
+                return
+                
+            logger.info("🔍 Starting autonomous network scan...")
+            self.last_scan_time = current_time
+            
+            # Get local network info to determine subnet
+            system_info = self.system_collector.collect_all()
+            local_subnet = None
+            local_ip = None
+            
+            if 'network' in system_info and 'interfaces' in system_info['network']:
+                for iface in system_info['network']['interfaces']:
+                    ip = iface.get('ip_address', '')
+                    if ip and not ip.startswith('127.') and not ip.startswith('169.254'):
+                        local_ip = ip
+                        # Calculate subnet (assuming /24)
+                        ip_parts = ip.split('.')
+                        if len(ip_parts) == 4:
+                            local_subnet = f"{ip_parts[0]}.{ip_parts[1]}.{ip_parts[2]}.1/24"
+                        break
+            
+            if not local_subnet:
+                logger.warning("Could not determine local subnet for autonomous scan")
+                return
+                
+            logger.info(f"📡 Scanning local subnet: {local_subnet} from IP: {local_ip}")
+            
+            # Perform network scan
+            scan_result = self.perform_network_scan({
+                'subnet': local_subnet,
+                'scan_type': 'ping',
+                'session_id': f"auto_scan_{int(current_time)}",
+                'autonomous': True
+            })
+            
+            if scan_result.get('success'):
+                # Send scan results to server
+                if self.websocket and self.websocket.open:
+                    report_message = {
+                        'type': 'autonomous-scan-report',
+                        'agentId': self.agent_id,
+                        'timestamp': datetime.utcnow().isoformat(),
+                        'scan_data': scan_result
+                    }
+                    
+                    await self.websocket.send(json.dumps(report_message))
+                    logger.info(f"📤 Sent autonomous scan report to server - found {scan_result.get('total_devices_found', 0)} devices")
+                else:
+                    logger.warning("WebSocket not connected - cannot send scan report")
+            else:
+                logger.error(f"Autonomous network scan failed: {scan_result.get('error')}")
+                
+        except Exception as e:
+            logger.error(f"Error in autonomous network scan: {e}")
+
+    async def scan_loop(self):
+        """Autonomous scan loop"""
+        while self.running:
+            try:
+                await self.autonomous_network_scan()
+                await asyncio.sleep(60)  # Check every minute
+            except Exception as e:
+                logger.error(f"Scan loop error: {e}")
+                await asyncio.sleep(60)
+
     async def start(self):
         """Start the agent"""
         logger.info(f"Starting ITSM Agent {self.agent_id}")
+        logger.info(f"🤖 Autonomous network scanning: {'Enabled' if self.auto_scan_enabled else 'Disabled'}")
+
+        # Start scan loop
+        if self.auto_scan_enabled:
+            scan_task = asyncio.create_task(self.scan_loop())
 
         while self.running:
             try:

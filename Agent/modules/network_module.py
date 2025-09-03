@@ -540,10 +540,10 @@ class NetworkModule(BaseModule):
         """Ping a single host"""
         try:
             if self.is_windows:
-                result = subprocess.run(['ping', '-n', '1', '-w', '1000', ip], 
+                result = subprocess.run(['ping', '-n', '1', '-w', '1000', ip],
                                       capture_output=True, text=True, timeout=3)
             else:
-                result = subprocess.run(['ping', '-c', '1', '-W', '1', ip], 
+                result = subprocess.run(['ping', '-c', '1', '-W', '1', ip],
                                       capture_output=True, text=True, timeout=3)
             return result.returncode == 0
         except Exception:
