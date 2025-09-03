@@ -781,12 +781,13 @@ export default function NetworkScan() {
                     <br />
                     <span className="text-sm text-muted-foreground mt-1 block">
                       Please ensure agents are running and connected before starting a scan.
-                      WebSocket URL: ws://0.0.0.0:5000/ws
+                      WebSocket URL: wss://e224f7e4-78fa-49b0-a720-abea5849092d-00-1ck5n6s8ppu8v.pike.replit.dev/ws
                     </span>
                     <div className="mt-2 text-xs">
                       <p>To connect an agent:</p>
-                      <p>1. Run the Python agent: <code>python agent_websocket_client.py</code></p>
-                      <p>2. Ensure the agent points to: <code>http://0.0.0.0:5000</code></p>
+                      <p>1. Update config.ini with the correct base_url</p>
+                      <p>2. Run the Python agent: <code>python Agent/agent_websocket_client.py</code></p>
+                      <p>3. Agent will automatically use URL from config.ini</p>
                     </div>
                   </AlertDescription>
                 </Alert>

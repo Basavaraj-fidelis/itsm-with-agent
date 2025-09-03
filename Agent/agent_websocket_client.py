@@ -374,9 +374,16 @@ class ITSMAgent:
             asyncio.create_task(self.websocket.close())
 
 async def main():
-    # Server URL - change this to match your server
-    # For Replit environment, use the public URL or 0.0.0.0:5000 for local testing
-    server_url = "http://0.0.0.0:5000"
+    # Load server URL from config.ini
+    try:
+        from configparser import ConfigParser
+        config = ConfigParser()
+        config.read('config.ini')
+        server_url = config.get('api', 'base_url', fallback="http://0.0.0.0:5000")
+        logger.info(f"Loaded server URL from config: {server_url}")
+    except Exception as e:
+        logger.warning(f"Could not load server URL from config, using default: {e}")
+        server_url = "http://0.0.0.0:5000"
 
     agent = ITSMAgent(server_url)
 
