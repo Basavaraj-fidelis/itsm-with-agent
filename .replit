@@ -3,7 +3,7 @@ run = "npm run dev"
 
 [nix]
 channel = "stable-25_05"
-packages = ["lsof", "openssh", "vim", "x11vnc", "python312Packages.xvfbwrapper", "novnc", "python313Packages.websockify"]
+packages = ["lsof", "novnc", "openssh", "python312Packages.xvfbwrapper", "python313Packages.websockify", "vim", "x11vnc"]
 
 [deployment]
 run = ["sh", "-c", "npm run dev"]
