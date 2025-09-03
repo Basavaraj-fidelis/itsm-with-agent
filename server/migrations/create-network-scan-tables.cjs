@@ -82,7 +82,7 @@ async function createNetworkScanTables() {
 
     console.log('All tables created successfully, now creating indexes...');
 
-    // Create indexes for better performance - ensure tables exist first
+    // Create indexes for better performance
     await db.execute(sql`
       CREATE INDEX IF NOT EXISTS idx_network_scan_sessions_session_id 
       ON network_scan_sessions(session_id)
@@ -103,7 +103,12 @@ async function createNetworkScanTables() {
       ON network_topology(source_device_id)
     `);
 
-    console.log('Network scan tables created successfully!');
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS idx_network_topology_target_ip 
+      ON network_topology(target_ip)
+    `);
+
+    console.log('✅ Network scan tables and indexes created successfully!');
     
   } catch (error) {
     console.error('Error creating network scan tables:', error);
