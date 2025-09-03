@@ -525,7 +525,7 @@ class NetworkScanService {
       this.cleanupOldSessions();
 
       // Import WebSocket service dynamically
-      const websocketModule = await import('../websocket-service.js');
+      const websocketModule = await import('../websocket-service');
       const websocketService = websocketModule.websocketService;
       
       if (!websocketService) {

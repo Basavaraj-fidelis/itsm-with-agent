@@ -734,7 +734,7 @@ export default function NetworkScan() {
                 </Alert>
               )}
 
-              {availableAgents && availableAgents.websocket_status && availableAgents.websocket_status.total_connected === 0 && (
+              {websocketStatus && websocketStatus.totalConnections === 0 && (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
@@ -743,7 +743,13 @@ export default function NetworkScan() {
                     <br />
                     <span className="text-sm text-muted-foreground mt-1 block">
                       Please ensure agents are running and connected before starting a scan.
+                      WebSocket URL: ws://0.0.0.0:5000/ws
                     </span>
+                    <div className="mt-2 text-xs">
+                      <p>To connect an agent:</p>
+                      <p>1. Run the Python agent: <code>python agent_websocket_client.py</code></p>
+                      <p>2. Ensure the agent points to: <code>http://0.0.0.0:5000</code></p>
+                    </div>
                   </AlertDescription>
                 </Alert>
               )}

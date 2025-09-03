@@ -274,6 +274,7 @@ class ITSMAgent:
 
 async def main():
     # Server URL - change this to match your server
+    # For Replit environment, use the public URL or 0.0.0.0:5000 for local testing
     server_url = "http://0.0.0.0:5000"
 
     agent = ITSMAgent(server_url)

@@ -9,7 +9,12 @@ class WebSocketService {
   private pendingCommands: Map<string, { resolve: (value: any) => void; reject: (reason?: any) => void; timeout: NodeJS.Timeout }> = new Map(); // Store pending commands
 
   init(server: Server): void {
-    this.wss = new WebSocketServer({ server, path: '/ws' });
+    this.wss = new WebSocketServer({ 
+      server, 
+      path: '/ws',
+      perMessageDeflate: false,
+      maxPayload: 1024 * 1024 // 1MB max payload
+    });
 
     this.wss.on('connection', (ws: WebSocket) => {
       // Expecting a message with agentId upon connection
@@ -412,8 +417,8 @@ class WebSocketService {
   }
 }
 
-export const webSocketService = new WebSocketService();
-export const websocketService = webSocketService; // Alternative export name
+export const websocketService = new WebSocketService();
+export const webSocketService = websocketService; // Alternative export name
 
 // Export function for use in other services
 export function broadcastToChannel(channel: string, data: any): void {
