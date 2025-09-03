@@ -543,21 +543,46 @@ export class AgentDataProcessor {
 
           // Enhanced USB processing with better manufacturer detection
           const usbDevices = deduplicatedDevices.map((device: any) => {
-            // Extract vendor/manufacturer information
-            let manufacturer = device.vendor_name || device.manufacturer || 'Generic USB';
+            // Extract manufacturer and product info
+            let manufacturer = device.manufacturer || 'Unknown';
             let productName = device.product_name || device.name || 'USB Device';
+            let vendorId = device.vendor_id || 'unknown';
+            let productId = device.product_id || 'unknown';
 
-            // If description contains vendor info, extract it
-            if (device.description && device.description.includes(' ')) {
-              const descParts = device.description.split(' ');
-              if (descParts.length >= 2) {
-                manufacturer = descParts[0];
-                productName = descParts.slice(1).join(' ');
+            // Try to extract vendor/product IDs from device_id if not provided
+            if (device.device_id) {
+              if (vendorId === 'unknown') {
+                vendorId = this.extractVendorIdFromDeviceId(device.device_id);
+              }
+              if (productId === 'unknown') {
+                productId = this.extractProductIdFromDeviceId(device.device_id);
               }
             }
 
+            // Extract manufacturer from description with better logic
+            if (device.description) {
+              // Handle "VendorCo ProductCode USB Device" pattern
+              if (device.description.includes('VendorCo ProductCode')) {
+                manufacturer = 'VendorCo ProductCode';
+                productName = 'USB Device';
+              }
+              // Handle general description parsing
+              else if (manufacturer === 'Unknown' && device.description.includes(' ')) {
+                const descParts = device.description.split(' ');
+                if (descParts.length >= 2 && !descParts[0].toLowerCase().includes('usb')) {
+                  manufacturer = descParts[0];
+                  productName = descParts.slice(1).join(' ');
+                }
+              }
+            }
+
+            // Fallback manufacturer using vendor ID if still unknown
+            if (manufacturer === 'Unknown') {
+              manufacturer = this.getVendorNameFromId(vendorId);
+            }
+
             // Create enhanced description
-            const description = manufacturer !== 'Generic USB'
+            const description = manufacturer !== 'Generic USB' && manufacturer !== 'Unknown'
               ? `${manufacturer} ${productName}`
               : device.description || device.name || 'Generic USB Device';
 

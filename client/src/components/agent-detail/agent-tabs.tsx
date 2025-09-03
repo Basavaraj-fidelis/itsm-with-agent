@@ -942,33 +942,33 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                     <div className="flex justify-between items-center">
                                       <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Manufacturer:</span>
                                       <span className="text-sm text-gray-900 dark:text-gray-100">
-                                        {device.manufacturer && device.manufacturer !== 'Unknown' ? device.manufacturer : 'Unknown'} ✅
+                                        {manufacturer} ✅
                                       </span>
                                     </div>
 
                                     <div className="flex justify-between items-center">
                                       <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Vendor ID (VID):</span>
                                       <span className="text-sm text-gray-900 dark:text-gray-100 font-mono">
-                                        {device.vendor_id && device.vendor_id !== 'unknown' ? device.vendor_id.toUpperCase() : 'N/A'}
+                                        {device.vendor_id && device.vendor_id !== 'unknown' && device.vendor_id !== 'N/A' ? device.vendor_id.toUpperCase() : 'N/A'}
                                       </span>
                                     </div>
                                   </div>
 
                                   <div className="space-y-2">
-                                    <div className="flex justify-between items-center">
-                                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Type:</span>
-                                      <span className="text-sm text-gray-900 dark:text-gray-100 capitalize">
-                                        {device.device_type?.replace('_', ' ') || device.description || 'Unknown'}
-                                      </span>
-                                    </div>
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Type:</span>
+                                        <span className="text-sm text-gray-900 dark:text-gray-100 capitalize">
+                                          {device.device_type?.replace('_', ' ') || device.description || 'Unknown'}
+                                        </span>
+                                      </div>
 
-                                    <div className="flex justify-between items-center">
-                                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Product ID (PID):</span>
-                                      <span className="text-sm text-gray-900 dark:text-gray-100 font-mono">
-                                        {device.product_id && device.product_id !== 'unknown' ? device.product_id.toUpperCase() : 'N/A'}
-                                      </span>
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Product ID (PID):</span>
+                                        <span className="text-sm text-gray-900 dark:text-gray-100 font-mono">
+                                          {device.product_id && device.product_id !== 'unknown' && device.product_id !== 'N/A' ? device.product_id.toUpperCase() : 'N/A'}
+                                        </span>
+                                      </div>
                                     </div>
-                                  </div>
                                 </div>
                               </div>
 
