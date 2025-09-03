@@ -33,9 +33,22 @@ class ITSMAgent:
             ws_url = self.server_url.replace('http://', 'ws://').replace('https://', 'wss://')
             uri = f"{ws_url}/ws"
 
-            logger.info(f"Attempting to connect to {uri}")
-            self.websocket = await websockets.connect(uri)
-            logger.info(f"WebSocket connection established for Agent {self.agent_id}")
+            logger.info(f"🔗 Attempting to connect to {uri}")
+            logger.info(f"📋 Agent ID: {self.agent_id}")
+            logger.info(f"🛠️ Capabilities: {self.capabilities}")
+            
+            # Add connection timeout and extra headers
+            self.websocket = await websockets.connect(
+                uri,
+                timeout=30,
+                ping_interval=30,
+                ping_timeout=10,
+                extra_headers={
+                    'User-Agent': f'ITSM-Agent/{self.agent_id}',
+                    'X-Agent-Version': '1.0.0'
+                }
+            )
+            logger.info(f"✅ WebSocket connection established for Agent {self.agent_id}")
 
             # Send agent identification immediately after connection
             connect_message = {
@@ -43,25 +56,42 @@ class ITSMAgent:
                 'agentId': self.agent_id,
                 'capabilities': self.capabilities,
                 'timestamp': datetime.utcnow().isoformat(),
-                'status': 'online'
+                'status': 'online',
+                'version': '1.0.0'
             }
             
             await self.websocket.send(json.dumps(connect_message))
-            logger.info(f"Sent agent registration: {connect_message}")
+            logger.info(f"📤 Sent agent registration: {connect_message}")
 
-            # Wait a moment for connection confirmation
-            await asyncio.sleep(1)
+            # Wait for connection confirmation
+            try:
+                response = await asyncio.wait_for(self.websocket.recv(), timeout=10.0)
+                response_data = json.loads(response)
+                if response_data.get('type') == 'connection-confirmed':
+                    logger.info(f"✅ Connection confirmed by server: {response_data.get('message', '')}")
+                else:
+                    logger.warning(f"⚠️ Unexpected response: {response_data}")
+            except asyncio.TimeoutError:
+                logger.warning("⏰ No connection confirmation received within 10 seconds")
+            except Exception as e:
+                logger.warning(f"⚠️ Error waiting for confirmation: {e}")
 
             # Start ping task
             ping_task = asyncio.create_task(self.ping_loop())
-            logger.info("Started ping loop task")
+            logger.info("💓 Started ping loop task")
 
             # Listen for messages
             await self.listen_for_messages()
 
+        except websockets.exceptions.ConnectionClosed as e:
+            logger.error(f"🔌 Connection closed: {e}")
+            await asyncio.sleep(5)
+        except websockets.exceptions.InvalidURI as e:
+            logger.error(f"🌐 Invalid WebSocket URI: {e}")
+            await asyncio.sleep(10)
         except Exception as e:
-            logger.error(f"Connection error: {e}")
-            await asyncio.sleep(5)  # Wait before retry
+            logger.error(f"❌ Connection error: {e}")
+            await asyncio.sleep(5)
 
     async def ping_loop(self):
         """Send periodic ping messages"""

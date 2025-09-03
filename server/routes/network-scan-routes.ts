@@ -8,7 +8,25 @@ export function registerNetworkScanRoutes(app: Express) {
   app.get("/api/network-scan/websocket-status", async (req, res) => {
     try {
       const status = websocketService.getConnectionStatus();
-      res.json(status);
+      
+      // Enhanced status with server info
+      const enhancedStatus = {
+        ...status,
+        server_info: {
+          websocket_path: '/ws',
+          server_port: process.env.PORT || 5000,
+          server_host: '0.0.0.0',
+          websocket_url: `ws://0.0.0.0:${process.env.PORT || 5000}/ws`,
+          timestamp: new Date().toISOString()
+        },
+        agent_details: status.connectionDetails?.map(conn => ({
+          ...conn,
+          connection_duration: Math.floor((Date.now() - (conn.connectedAt || Date.now())) / 1000),
+          last_ping_seconds_ago: Math.floor((Date.now() - (conn.lastPing || Date.now())) / 1000)
+        })) || []
+      };
+      
+      res.json(enhancedStatus);
     } catch (error) {
       console.error("Error getting WebSocket status:", error);
       res.status(500).json({ error: "Failed to get WebSocket status" });

@@ -65,10 +65,28 @@ export default function NetworkScan() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [subnetFilter, setSubnetFilter] = useState<string>('all');
   const { toast } = useToast();
+  const [websocketStatus, setWebsocketStatus] = useState(null);
 
   useEffect(() => {
     loadInitialData();
+    fetchWebSocketStatus();
   }, []);
+
+  const fetchWebSocketStatus = async () => {
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch("/api/network-scan/websocket-status", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      if (response.ok) {
+        const status = await response.json();
+        setWebsocketStatus(status);
+      }
+    } catch (error) {
+      console.error("Error fetching WebSocket status:", error);
+    }
+  };
 
   const loadInitialData = async () => {
     try {
@@ -124,7 +142,7 @@ export default function NetworkScan() {
           'Content-Type': 'application/json'
         }
       });
-      
+
       clearTimeout(timeoutId);
 
       if (response.ok) {
@@ -137,7 +155,7 @@ export default function NetworkScan() {
             new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
           )[0];
           setCurrentSession(latest);
-          
+
           try {
             await loadScanResults(latest.id);
           } catch (err) {
@@ -169,7 +187,7 @@ export default function NetworkScan() {
           'Content-Type': 'application/json'
         }
       });
-      
+
       clearTimeout(timeoutId);
 
       if (response.ok) {
@@ -200,7 +218,7 @@ export default function NetworkScan() {
           'Content-Type': 'application/json'
         }
       });
-      
+
       clearTimeout(timeoutId);
 
       if (response.ok) {
@@ -235,7 +253,7 @@ export default function NetworkScan() {
           'Content-Type': 'application/json'
         }
       });
-      
+
       clearTimeout(timeoutId);
 
       if (response.ok) {
@@ -552,6 +570,19 @@ export default function NetworkScan() {
                       `${availableAgents.total_agents} agents online across ${Object.keys(availableAgents.agents_by_subnet).length} subnets`
                     ) : (
                       'Loading agents...'
+                    )}
+                    {websocketStatus && (
+                      <div className="mt-2 text-sm">
+                        <span className="text-neutral-600">WebSocket Status:</span>
+                        <span className={`ml-2 font-medium ${websocketStatus.totalConnections > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {websocketStatus.totalConnections} connected via WebSocket
+                        </span>
+                        {websocketStatus.totalConnections === 0 && (
+                          <span className="text-red-500 block text-xs mt-1">
+                            ⚠️ No agents connected via WebSocket. Network scanning may fail.
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>

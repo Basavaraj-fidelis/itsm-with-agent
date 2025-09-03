@@ -118,7 +118,8 @@ class WebSocketService {
 
   // Handles the initial connection setup for an agent
   onConnection(ws: WebSocket, deviceId: string): void {
-    console.log(`Agent ${deviceId} connected via WebSocket`);
+    console.log(`🔗 Agent ${deviceId} connected via WebSocket`);
+    console.log(`📊 WebSocket state: ${ws.readyState} (OPEN=1)`);
 
     // Store connection with enhanced metadata
     this.agentConnections.set(deviceId, {
@@ -128,6 +129,19 @@ class WebSocketService {
       connectedAt: Date.now(),
       messageCount: 0
     });
+
+    // Send immediate confirmation
+    const confirmMessage = {
+      type: 'connection-confirmed',
+      agentId: deviceId,
+      timestamp: new Date().toISOString(),
+      message: 'Agent successfully connected to ITSM server'
+    };
+    
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(confirmMessage));
+      console.log(`✅ Sent connection confirmation to agent ${deviceId}`);
+    }
 
     // Set up heartbeat interval for this connection to periodically ping the agent
     const heartbeatInterval = setInterval(() => {
@@ -179,21 +193,45 @@ class WebSocketService {
 
   // Placeholder for handling specific agent messages after connection establishment
   private handleAgentMessage(deviceId: string, data: any): void {
-    // This is where you'd route messages based on data.type for specific agent actions
-    // For example, processing performance data, scan results, etc.
-    // The original code handled 'agent-connect', 'command-response', 'subscribe', 'unsubscribe' here.
-    // We've now separated 'agent-connect' to onConnection.
-    // Command responses are handled directly where pendingCommands are managed.
-    // Subscribe/unsubscribe are handled directly within the main message handler.
-    // The performance data parsing logic would likely go here or be called from here.
+    const messageType = data.type;
+    console.log(`📨 Received message from agent ${deviceId}: ${messageType}`);
 
-    // Example: Logging performance data if received
-    if (data.type === 'performance-data' && data.payload) {
-      console.log(`Received performance data from ${deviceId}:`, data.payload);
-      // You would typically process and store this data here.
-      // The original error mentioned issues parsing raw_data, so that logic would go here.
-      // Example:
-      // this.processPerformanceData(deviceId, data.payload);
+    switch (messageType) {
+      case 'performance-data':
+        if (data.payload) {
+          console.log(`📈 Performance data from ${deviceId}:`, data.payload);
+          // Process and store performance data
+        }
+        break;
+      
+      case 'system-info':
+        console.log(`💻 System info from ${deviceId}:`, data.payload);
+        break;
+      
+      case 'ping':
+        // Respond to ping with pong
+        const connection = this.agentConnections.get(deviceId);
+        if (connection && connection.ws.readyState === WebSocket.OPEN) {
+          connection.ws.send(JSON.stringify({
+            type: 'pong',
+            timestamp: new Date().toISOString()
+          }));
+        }
+        break;
+      
+      case 'pong':
+        // Update connection status
+        const conn = this.agentConnections.get(deviceId);
+        if (conn) {
+          conn.lastPing = Date.now();
+          conn.isAlive = true;
+          console.log(`💓 Pong received from agent ${deviceId}`);
+        }
+        break;
+      
+      default:
+        console.log(`❓ Unknown message type '${messageType}' from agent ${deviceId}`);
+        break;
     }
   }
 

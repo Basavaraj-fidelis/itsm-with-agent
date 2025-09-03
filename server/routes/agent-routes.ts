@@ -5,12 +5,13 @@ import { performanceService } from "../services/performance-service";
 import { notificationService } from "../services/notification-service";
 import { securityService } from "../services/security-service";
 import { patchComplianceService } from "../services/patch-compliance-service";
+import { websocketService } from "../services/websocket-service"; // Assuming websocketService is imported
 
 // Helper function to generate a device ID if not provided
 function generateDeviceId(report: any): string {
   // Simple heuristic: use hostname and first network MAC address if available
   const hostname = report.hostname || `unknown_${Date.now()}`;
-  const macAddress = report.network?.interfaces?.[0]?.mac_address || 
+  const macAddress = report.network?.interfaces?.[0]?.mac_address ||
                      report.network?.network_adapters?.[Object.keys(report.network?.network_adapters || {})[0]]?.mac_address ||
                      `mac_${Date.now()}`;
   return `${hostname}_${macAddress}`;
@@ -19,12 +20,12 @@ function generateDeviceId(report: any): string {
 // Helper function to extract key metrics from the agent report
 function extractMetrics(data: any) {
   // Extract memory usage from multiple possible sources
-  const memoryUsage = data.hardware?.memory?.usage_percentage || 
+  const memoryUsage = data.hardware?.memory?.usage_percentage ||
                      data.hardware?.memory?.percentage ||
                      data.system_health?.memory_pressure?.memory_usage_percent ||
                      0;
 
-  // Extract CPU usage from multiple possible sources  
+  // Extract CPU usage from multiple possible sources
   const cpuUsage = data.hardware?.cpu?.usage_percentage ||
                   data.hardware?.cpu?.percentage ||
                   data.system_health?.metrics?.cpu_percent ||
@@ -74,7 +75,7 @@ export function registerAgentRoutes(
           : null;
 
         // Check if device has recent reports (within last 5 minutes)
-        const hasRecentData = device.latest_report && 
+        const hasRecentData = device.latest_report &&
           (device.latest_report.collected_at || device.latest_report.timestamp);
         const lastReportTime = hasRecentData
           ? new Date(device.latest_report.collected_at || device.latest_report.timestamp)
@@ -111,41 +112,65 @@ export function registerAgentRoutes(
     },
   );
 
-  app.get(
-    "/api/agents/:id/connection-status",
-    authenticateToken,
-    async (req, res) => {
-      try {
-        const agentId = req.params.id;
-        const device = await storage.getDevice(agentId);
+  // Get agent connection status
+  app.get('/api/agents/:id/connection-status', authenticateToken, async (req, res) => {
+    try {
+      const agentId = req.params.id;
+      const agent = await storage.getAgentById(agentId); // Using getAgentById assuming it exists and returns similar data to getDevice
 
-        if (!device) {
-          return res.status(404).json({ message: "Agent not found" });
-        }
-
-        // Check if agent is online and responsive
-        const lastSeen = new Date(device.last_seen);
-        const now = new Date();
-        const timeDiff = now.getTime() - lastSeen.getTime();
-        const minutesOffline = Math.floor(timeDiff / (1000 * 60));
-
-        const connectionStatus = {
-          agent_online: device.status === "online" && minutesOffline < 5,
-          last_seen: device.last_seen,
-          minutes_since_contact: minutesOffline,
-          ip_address: device.ip_address,
-          hostname: device.hostname,
-          ready_for_connection:
-            device.status === "online" && minutesOffline < 5,
-        };
-
-        res.json(connectionStatus);
-      } catch (error) {
-        console.error("Error checking connection status:", error);
-        res.status(500).json({ message: "Failed to check connection status" });
+      if (!agent) {
+        return res.status(404).json({ message: 'Agent not found' });
       }
-    },
-  );
+
+      const lastSeen = agent.last_seen ? new Date(agent.last_seen) : null;
+      const now = new Date();
+      const minutesSinceContact = lastSeen
+        ? Math.floor((now.getTime() - lastSeen.getTime()) / (1000 * 60))
+        : null;
+
+      // Check WebSocket connectivity
+      const isWebSocketConnected = websocketService.isAgentConnected(agentId);
+      const wsStatus = websocketService.getConnectionStatus();
+      const agentWsDetails = wsStatus.connectionDetails?.find(conn => conn.agentId === agentId);
+
+      res.json({
+        agent_online: minutesSinceContact !== null && minutesSinceContact <= 5,
+        last_seen: lastSeen?.toISOString() || null,
+        minutes_since_contact: minutesSinceContact,
+        ip_address: agent.ip_address,
+        hostname: agent.hostname,
+        ready_for_connection: minutesSinceContact !== null && minutesSinceContact <= 5,
+        websocket_connected: isWebSocketConnected,
+        websocket_details: agentWsDetails ? {
+          last_ping: new Date(agentWsDetails.lastPing).toISOString(),
+          connection_age_seconds: Math.floor((Date.now() - (agentWsDetails.connectedAt || Date.now())) / 1000),
+          message_count: agentWsDetails.messageCount,
+          is_alive: agentWsDetails.isAlive
+        } : null
+      });
+    } catch (error) {
+      console.error('Error checking agent connection status:', error);
+      res.status(500).json({ message: 'Failed to check connection status' });
+    }
+  });
+
+  // WebSocket status for all agents
+  app.get('/api/agents/websocket-status', authenticateToken, async (req, res) => {
+    try {
+      const status = websocketService.getConnectionStatus();
+      res.json({
+        ...status,
+        server_info: {
+          websocket_path: '/ws',
+          server_port: process.env.PORT || 5000,
+          websocket_url: `ws://0.0.0.0:${process.env.PORT || 5000}/ws`
+        }
+      });
+    } catch (error) {
+      console.error('Error getting WebSocket status:', error);
+      res.status(500).json({ error: 'Failed to get WebSocket status' });
+    }
+  });
 
   // Remote connection endpoint
   app.post(
@@ -437,8 +462,8 @@ export function registerAgentRoutes(
         // Find primary interface using the correct field names from agent data
         const primaryInterface = reportData.network.interfaces.find(iface => {
           const ip = iface.ip || iface.ip_address;
-          return ip && 
-            ip !== '127.0.0.1' && 
+          return ip &&
+            ip !== '127.0.0.1' &&
             ip !== '::1' &&
             !ip.startsWith('169.254.') && // Exclude APIPA
             (iface.status === 'Up' || iface.status === 'up' || iface.is_up === true);
@@ -500,7 +525,7 @@ export function registerAgentRoutes(
 
       const diagnostics = devices.map(device => {
         const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
-        const minutesOffline = lastSeen ? 
+        const minutesOffline = lastSeen ?
           Math.floor((now.getTime() - lastSeen.getTime()) / (1000 * 60)) : null;
 
         return {
