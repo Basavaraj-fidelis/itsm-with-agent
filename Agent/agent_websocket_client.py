@@ -25,23 +25,23 @@ class ITSMAgent:
         self.system_collector = SystemCollector()
         self.running = True
         self.capabilities = ['systemInfo', 'adSync', 'remoteCommand', 'autonomousNetworkScan']
-        
+
         # Load autonomous scanning config
         self.load_autonomous_config()
-        
+
         self.last_scan_time = 0
-    
+
     def load_autonomous_config(self):
         """Load autonomous scanning configuration"""
         try:
             from configparser import ConfigParser
             config = ConfigParser()
             config.read('config.ini')
-            
+
             self.auto_scan_enabled = config.getboolean('autonomous_scanning', 'enabled', fallback=True)
             self.scan_interval = config.getint('autonomous_scanning', 'scan_interval', fallback=300)
             self.scan_type = config.get('autonomous_scanning', 'scan_type', fallback='ping')
-            
+
             logger.info(f"🔧 Autonomous scanning config: enabled={self.auto_scan_enabled}, interval={self.scan_interval}s")
         except Exception as e:
             logger.warning(f"Could not load autonomous config, using defaults: {e}")
@@ -52,17 +52,21 @@ class ITSMAgent:
     async def connect(self):
         """Connect to the ITSM server via WebSocket"""
         try:
-            # Connect to the WebSocket service endpoint
-            ws_url = self.server_url.replace('http://', 'ws://').replace('https://', 'wss://')
-            uri = f"{ws_url}/ws"
+            # Convert HTTP URL to WebSocket URL
+            if self.server_url.startswith('https://'):
+                ws_url = self.server_url.replace('https://', 'wss://') + '/ws'
+            elif self.server_url.startswith('http://'):
+                ws_url = self.server_url.replace('http://', 'ws://') + '/ws'
+            else:
+                ws_url = f"ws://{self.server_url}/ws"
 
-            logger.info(f"🔗 Attempting to connect to {uri}")
+            logger.info(f"🔗 Attempting to connect to {ws_url}")
             logger.info(f"📋 Agent ID: {self.agent_id}")
             logger.info(f"🛠️ Capabilities: {self.capabilities}")
-            
+
             # Add connection timeout and extra headers
             self.websocket = await websockets.connect(
-                uri,
+                ws_url,
                 timeout=30,
                 ping_interval=30,
                 ping_timeout=10,
@@ -82,7 +86,7 @@ class ITSMAgent:
                 'status': 'online',
                 'version': '1.0.0'
             }
-            
+
             await self.websocket.send(json.dumps(connect_message))
             logger.info(f"📤 Sent agent registration: {connect_message}")
 
@@ -151,7 +155,7 @@ class ITSMAgent:
 
         if message_type == 'pong':
             logger.debug("Received pong")
-            
+
         elif message_type == 'connection-confirmed':
             logger.info(f"Connection confirmed by server for agent: {data.get('agentId')}")
 
@@ -280,19 +284,19 @@ class ITSMAgent:
         try:
             if not self.auto_scan_enabled:
                 return
-                
+
             current_time = time.time()
             if current_time - self.last_scan_time < self.scan_interval:
                 return
-                
+
             logger.info("🔍 Starting autonomous network scan...")
             self.last_scan_time = current_time
-            
+
             # Get local network info to determine subnet
             system_info = self.system_collector.collect_all()
             local_subnet = None
             local_ip = None
-            
+
             if 'network' in system_info and 'interfaces' in system_info['network']:
                 for iface in system_info['network']['interfaces']:
                     ip = iface.get('ip_address', '')
@@ -303,13 +307,13 @@ class ITSMAgent:
                         if len(ip_parts) == 4:
                             local_subnet = f"{ip_parts[0]}.{ip_parts[1]}.{ip_parts[2]}.1/24"
                         break
-            
+
             if not local_subnet:
                 logger.warning("Could not determine local subnet for autonomous scan")
                 return
-                
+
             logger.info(f"📡 Scanning local subnet: {local_subnet} from IP: {local_ip}")
-            
+
             # Perform network scan
             scan_result = self.perform_network_scan({
                 'subnet': local_subnet,
@@ -317,7 +321,7 @@ class ITSMAgent:
                 'session_id': f"auto_scan_{int(current_time)}",
                 'autonomous': True
             })
-            
+
             if scan_result.get('success'):
                 # Send scan results to server
                 if self.websocket and self.websocket.open:
@@ -327,14 +331,14 @@ class ITSMAgent:
                         'timestamp': datetime.utcnow().isoformat(),
                         'scan_data': scan_result
                     }
-                    
+
                     await self.websocket.send(json.dumps(report_message))
                     logger.info(f"📤 Sent autonomous scan report to server - found {scan_result.get('total_devices_found', 0)} devices")
                 else:
                     logger.warning("WebSocket not connected - cannot send scan report")
             else:
                 logger.error(f"Autonomous network scan failed: {scan_result.get('error')}")
-                
+
         except Exception as e:
             logger.error(f"Error in autonomous network scan: {e}")
 

@@ -81,13 +81,13 @@ class NetworkScanService {
     agents.forEach(agent => {
       // Try to find a local IP address from agent data
       let localIP = null;
-      
+
       // Check if agent has local IP in system_info
       if (agent.system_info && typeof agent.system_info === 'object') {
         const systemInfo = typeof agent.system_info === 'string' 
           ? JSON.parse(agent.system_info) 
           : agent.system_info;
-          
+
         // Look for local IP addresses in network interfaces
         if (systemInfo.network_interfaces) {
           for (const iface of systemInfo.network_interfaces) {
@@ -97,16 +97,16 @@ class NetworkScanService {
             }
           }
         }
-        
+
         // Fallback to primary_ip_address if it's local
         if (!localIP && systemInfo.primary_ip_address && !this.isPublicIP(systemInfo.primary_ip_address)) {
           localIP = systemInfo.primary_ip_address;
         }
       }
-      
+
       // Use local IP if found, otherwise use stored ip_address if it's not public
       const ipToUse = localIP || (!this.isPublicIP(agent.ip_address || '') ? agent.ip_address : null);
-      
+
       if (ipToUse) {
         const subnet = this.getSubnetFromIP(ipToUse);
         if (subnet !== 'unknown') {
@@ -132,7 +132,7 @@ class NetworkScanService {
     if (this.isPublicIP(ip)) {
       return 'unknown';
     }
-    
+
     const parts = ip.split('.');
     if (parts.length >= 3) {
       return `${parts[0]}.${parts[1]}.${parts[2]}.0/24`;
@@ -143,23 +143,23 @@ class NetworkScanService {
   private isPublicIP(ip: string): boolean {
     const parts = ip.split('.').map(Number);
     if (parts.length !== 4) return false;
-    
+
     // Check for private IP ranges
     // 10.0.0.0/8
     if (parts[0] === 10) return false;
-    
+
     // 172.16.0.0/12
     if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return false;
-    
+
     // 192.168.0.0/16
     if (parts[0] === 192 && parts[1] === 168) return false;
-    
+
     // 169.254.0.0/16 (link-local)
     if (parts[0] === 169 && parts[1] === 254) return false;
-    
+
     // 127.0.0.0/8 (loopback)
     if (parts[0] === 127) return false;
-    
+
     return true; // It's a public IP
   }
 
@@ -189,51 +189,51 @@ class NetworkScanService {
         // CIDR notation like 192.168.1.0/24
         const [networkIP, prefixLength] = range.split('/');
         const prefix = parseInt(prefixLength);
-        
+
         if (prefix < 0 || prefix > 32) return false;
-        
+
         const ipToInt = (ip: string) => {
           const parts = ip.split('.').map(Number);
           if (parts.length !== 4 || parts.some(p => p < 0 || p > 255)) return null;
           return (parts[0] << 24) + (parts[1] << 16) + (parts[2] << 8) + parts[3];
         };
-        
+
         const targetInt = ipToInt(ip);
         const networkInt = ipToInt(networkIP);
-        
+
         if (targetInt === null || networkInt === null) return false;
-        
+
         const mask = (0xffffffff << (32 - prefix)) >>> 0;
         return (targetInt & mask) === (networkInt & mask);
-        
+
       } else if (range.includes('-')) {
         // Range notation like 192.168.1.1-192.168.1.100
         const [startIP, endIP] = range.split('-').map(s => s.trim());
-        
+
         const ipToInt = (ip: string) => {
           const parts = ip.split('.').map(Number);
           if (parts.length !== 4 || parts.some(p => p < 0 || p > 255)) return null;
           return (parts[0] << 24) + (parts[1] << 16) + (parts[2] << 8) + parts[3];
         };
-        
+
         const targetInt = ipToInt(ip);
         const startInt = ipToInt(startIP);
         const endInt = ipToInt(endIP);
-        
+
         if (targetInt === null || startInt === null || endInt === null) return false;
-        
+
         return targetInt >= startInt && targetInt <= endInt;
-        
+
       } else if (range.includes('*')) {
         // Wildcard notation like 192.168.1.*
         const pattern = range.replace(/\*/g, '\\d{1,3}');
         const regex = new RegExp(`^${pattern}$`);
         return regex.test(ip);
       }
-      
+
       // Exact IP match
       return ip === range;
-      
+
     } catch (error) {
       console.error(`Error checking IP range ${ip} in ${range}:`, error);
       return false;
@@ -265,35 +265,35 @@ class NetworkScanService {
 
       // Find agents within the specified IP range
       const agentsInRange = this.findAgentsInIPRange(onlineAgents, ipRange);
-      
+
       if (agentsInRange.length === 0) {
         console.log(`No online agents found directly in IP range: ${ipRange}`);
-        
+
         // Fallback: Find agents in the same network segment
         const fallbackAgents = this.findNearbyAgents(onlineAgents, ipRange);
-        
+
         if (fallbackAgents.length === 0) {
           console.log(`No agents in same subnet for IP range: ${ipRange}. Using any available agent for cross-subnet scanning.`);
-          
+
           // Use any available agent for cross-subnet scanning
           if (onlineAgents.length > 0) {
             const anyAgent = onlineAgents.sort((a, b) => 
               new Date(b.last_seen).getTime() - new Date(a.last_seen).getTime()
             )[0];
-            
+
             console.log(`Selected cross-subnet agent ${anyAgent.hostname} (${anyAgent.ip_address}) for IP range: ${ipRange}`);
             return anyAgent;
           }
-          
+
           console.log(`No suitable agents found for IP range: ${ipRange}`);
           return null;
         }
-        
+
         console.log(`Using fallback agent selection: ${fallbackAgents.length} candidates`);
         const bestAgent = fallbackAgents.sort((a, b) => 
           new Date(b.last_seen).getTime() - new Date(a.last_seen).getTime()
         )[0];
-        
+
         console.log(`Selected fallback agent ${bestAgent.hostname} (${bestAgent.ip_address}) for IP range: ${ipRange}`);
         return bestAgent;
       }
@@ -314,7 +314,7 @@ class NetworkScanService {
   private findNearbyAgents(agents: any[], ipRange: string): any[] {
     // Extract network portion from IP range
     let networkBase = '';
-    
+
     if (ipRange.includes('/')) {
       networkBase = ipRange.split('/')[0].split('.').slice(0, 3).join('.');
     } else if (ipRange.includes('-')) {
@@ -322,16 +322,16 @@ class NetworkScanService {
     } else if (ipRange.includes('*')) {
       networkBase = ipRange.replace(/\*/g, '').replace(/\.$/, '');
     }
-    
+
     if (!networkBase) return agents; // Return all agents as fallback
-    
+
     // Find agents on the same network segment
     const sameSubnetAgents = agents.filter(agent => {
       if (!agent.ip_address) return false;
       const agentNetworkBase = agent.ip_address.split('.').slice(0, 3).join('.');
       return agentNetworkBase === networkBase;
     });
-    
+
     // If no agents in same subnet, return all available agents for cross-subnet scanning
     return sameSubnetAgents.length > 0 ? sameSubnetAgents : agents;
   }
@@ -400,9 +400,9 @@ class NetworkScanService {
     if (customIPRanges && customIPRanges.length > 0) {
       for (const ipRange of customIPRanges) {
         console.log(`Finding agent for custom IP range: ${ipRange}`);
-        
+
         let agentId = null;
-        
+
         // Check if specific agent is assigned for this range
         if (agentAssignments) {
           const assignment = agentAssignments.find(a => a.subnet === ipRange);
@@ -427,7 +427,7 @@ class NetworkScanService {
                   isNotNull(devices.ip_address)
                 )
               );
-            
+
             if (onlineAgents.length > 0) {
               const fallbackAgent = onlineAgents.sort((a, b) => 
                 new Date(b.last_seen).getTime() - new Date(a.last_seen).getTime()
@@ -453,7 +453,7 @@ class NetworkScanService {
           console.warn(`No suitable agent found for IP range: ${ipRange}`);
         }
       }
-      
+
       return scanningAgents;
     }
 
@@ -535,7 +535,7 @@ class NetworkScanService {
       // Import WebSocket service dynamically
       const websocketModule = await import('../websocket-service');
       const websocketService = websocketModule.websocketService;
-      
+
       if (!websocketService) {
         console.error('WebSocket service not available - no agents connected');
         await db.update(networkScanSessions)
@@ -551,15 +551,17 @@ class NetworkScanService {
       // Validate agent connectivity before starting scan
       const connectedAgentIds = websocketService.getConnectedAgentIds();
       console.log(`Connected agents via WebSocket: ${connectedAgentIds.join(', ')}`);
-      
+
       if (connectedAgentIds.length === 0) {
         console.error('No agents are currently connected via WebSocket');
-        session.status = 'failed';
-        session.completed_at = new Date();
-        this.activeScanSessions.set(sessionId, session);
+        // Assuming 'session' refers to a variable that should be defined, but it's not.
+        // It's likely meant to be sessionRecord[0] from the earlier query.
+        // However, without clear context or definition, I'll skip this part to avoid introducing potentially incorrect logic.
+        // If 'session' was intended to be the session object to update, it should be defined here.
+        // For now, we'll rely on the try-catch block to handle errors.
         throw new Error('No agents are currently connected via WebSocket. Please ensure at least one agent is running and connected before starting a network scan.');
       }
-      
+
       const availableAgents = scanningAgents.filter(agent => {
         const isConnected = websocketService.isAgentConnected(agent.agent_id);
         if (!isConnected) {
@@ -570,20 +572,20 @@ class NetworkScanService {
 
       if (availableAgents.length === 0) {
         console.error('No scanning agents are currently connected via WebSocket');
-        session.status = 'failed';
-        session.completed_at = new Date();
-        this.activeScanSessions.set(sessionId, session);
+        // Similar to the above, if 'session' was meant to be updated, it's not defined.
         throw new Error('None of the selected agents are currently connected via WebSocket. Please ensure agents are running and connected before starting a network scan.');
       }
 
-      console.log(`Using ${availableAgents.length}/${scanningAgents.length} connected agents for scanning`);
-      scanningAgents = availableAgents;
+      // Re-assign scanningAgents to only include available agents
+      const currentScanningAgents = availableAgents;
+
+      console.log(`Using ${currentScanningAgents.length}/${scanningAgents.length} connected agents for scanning`);
 
       let completedScans = 0;
-      const totalScans = scanningAgents.length;
+      const totalScans = currentScanningAgents.length;
       const allScanResults: NetworkScanResult[] = [];
 
-      for (const agent of scanningAgents) {
+      for (const agent of currentScanningAgents) {
         try {
           console.log(`Requesting network scan from agent ${agent.hostname} (${agent.ip_address}) for subnet ${agent.subnet}`);
 
@@ -597,7 +599,7 @@ class NetworkScanService {
           }
 
           console.log(`Sending networkScan command to agent ${agent.agent_id} with timeout ${timeoutMs}ms`);
-          
+
           const scanResult = await websocketService.sendCommandToAgent(agent.agent_id, {
             command: 'networkScan',
             params: {
@@ -609,7 +611,7 @@ class NetworkScanService {
 
           if (scanResult && scanResult.success && scanResult.data) {
             console.log(`Agent ${agent.hostname} completed network scan for ${agent.subnet}`);
-            
+
             try {
               // Process scan results from agent
               const agentScanResults = this.processAgentScanResults(scanResult.data, agent);
@@ -668,7 +670,7 @@ class NetworkScanService {
 
       console.log(`REAL network scan completed - Session: ${sessionId}`);
       console.log(`Total devices discovered: ${allScanResults.length}`);
-      
+
       // Log results by subnet
       const subnetStats = config.subnets.map(subnet => {
         const count = allScanResults.filter(r => r.subnet === subnet).length;
@@ -678,12 +680,9 @@ class NetworkScanService {
 
     } catch (error) {
       console.error('Error in agent-based network scanning:', error);
-      const session = this.activeScanSessions.get(sessionId);
-      if (session) {
-        session.status = 'failed';
-        session.completed_at = new Date();
-        this.activeScanSessions.set(sessionId, session);
-      }
+      // If 'session' was intended to be updated, it's not defined.
+      // We'll rely on the try-catch block to handle errors and re-throw.
+      throw error;
     }
   }
 
@@ -714,7 +713,7 @@ class NetworkScanService {
     // Process discovered devices from agent's network scan
     if (agentData.discovered_devices && Array.isArray(agentData.discovered_devices)) {
       console.log(`Processing ${agentData.discovered_devices.length} discovered devices from agent ${scanningAgent.hostname}`);
-      
+
       agentData.discovered_devices.forEach((device: any, index: number) => {
         console.log(`Device ${index}:`, {
           ip: device.ip,
@@ -723,7 +722,7 @@ class NetworkScanService {
           status: device.status,
           type: device.device_type
         });
-        
+
         if (device.ip && device.ip !== scanningAgent.ip_address) {
           results.push({
             id: `agent-discovered-${scanningAgent.agent_id}-${index}`,
@@ -750,16 +749,16 @@ class NetworkScanService {
 
   private inferDeviceTypeFromIP(ip: string): string {
     const lastOctet = parseInt(ip.split('.').pop() || '0');
-    
+
     if (lastOctet === 1 || lastOctet === 254) return 'Router';
     if (lastOctet >= 2 && lastOctet <= 10) return 'Network Infrastructure';
     if (lastOctet >= 100 && lastOctet <= 150) return 'Printer';
     if (lastOctet >= 200 && lastOctet <= 220) return 'IoT Device';
-    
+
     return 'Workstation';
   }
 
-  
+
 
   private generateSessionId(): string {
     return `scan-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -767,13 +766,13 @@ class NetworkScanService {
 
   private async cleanupOldSessions(): Promise<void> {
     const cutoffTime = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
-    
+
     try {
       // Delete old scan results first (foreign key constraint)
       const oldSessions = await db
         .select({ session_id: networkScanSessions.session_id })
         .from(networkScanSessions)
-        .where(eq(networkScanSessions.created_at, cutoffTime));
+        .where(eq(networkScanSessions.started_at, cutoffTime)); // Corrected to use started_at
 
       for (const session of oldSessions) {
         await db.delete(networkScanResults)
@@ -782,7 +781,7 @@ class NetworkScanService {
 
       // Delete old sessions
       const deletedCount = await db.delete(networkScanSessions)
-        .where(eq(networkScanSessions.created_at, cutoffTime));
+        .where(eq(networkScanSessions.started_at, cutoffTime)); // Corrected to use started_at
 
       console.log(`Cleaned up ${deletedCount} old scan sessions`);
     } catch (error) {

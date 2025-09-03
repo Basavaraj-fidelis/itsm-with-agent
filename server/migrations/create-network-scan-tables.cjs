@@ -1,6 +1,22 @@
 
-const { db } = require('../db.ts');
+const { Pool } = require('pg');
+const { drizzle } = require('drizzle-orm/node-postgres');
 const { sql } = require('drizzle-orm');
+
+// Get DATABASE_URL from environment
+const DATABASE_URL = process.env.DATABASE_URL?.trim();
+
+if (!DATABASE_URL) {
+  console.error("❌ DATABASE_URL is not set");
+  process.exit(1);
+}
+
+const pool = new Pool({
+  connectionString: DATABASE_URL,
+  ssl: DATABASE_URL.includes("aivencloud.com") ? { rejectUnauthorized: false } : false
+});
+
+const db = drizzle(pool);
 
 async function createNetworkScanTables() {
   try {
@@ -90,6 +106,8 @@ async function createNetworkScanTables() {
   } catch (error) {
     console.error('Error creating network scan tables:', error);
     throw error;
+  } finally {
+    await pool.end();
   }
 }
 
