@@ -523,78 +523,142 @@ export class AgentDataProcessor {
           }
         }
 
-        // Process and enhance USB devices
-        return deduplicatedDevices.map(device => {
-          const vendorId = device.vendor_id || this.extractVendorIdFromDeviceId(device.device_id) || 'unknown';
-          const productId = device.product_id || this.extractProductIdFromDeviceId(device.device_id) || 'unknown';
+        // Process and enhance USB devices - FIXED: Removed nested map
+        const processedDevices = deduplicatedDevices.map((device: any) => {
+          // Extract vendor/product IDs if not already present
+          let vendorId = device.vendor_id || 'unknown';
+          let productId = device.product_id || 'unknown';
 
-          // Try to get manufacturer from multiple sources
-          let manufacturer = device.vendor_name || device.manufacturer;
-
-          // If no manufacturer found, try to extract from description
-          if (!manufacturer || manufacturer === 'Unknown') {
-            manufacturer = this.extractManufacturerFromDescription(device.description);
+          // Try to extract vendor/product IDs from device_id if not provided
+          if (device.device_id) {
+            if (vendorId === 'unknown') {
+              vendorId = this.extractVendorIdFromDeviceId(device.device_id);
+            }
+            if (productId === 'unknown') {
+              productId = this.extractProductIdFromDeviceId(device.device_id);
+            }
           }
 
-          // If still no manufacturer, try vendor ID lookup
-          if (!manufacturer || manufacturer === 'Unknown') {
+          // Extract manufacturer from description with better logic
+          let manufacturer = device.manufacturer || 'Unknown';
+          let productName = device.product_name || device.name || 'USB Device';
+          
+          if (device.description) {
+            // Handle "VendorCo ProductCode USB Device" pattern
+            if (device.description.includes('VendorCo ProductCode')) {
+              manufacturer = 'VendorCo ProductCode';
+              productName = 'USB Device';
+            }
+            // Handle general description parsing
+            else if (manufacturer === 'Unknown' && device.description.includes(' ')) {
+              const descParts = device.description.split(' ');
+              if (descParts.length >= 2 && !descParts[0].toLowerCase().includes('usb')) {
+                manufacturer = descParts[0];
+                productName = descParts.slice(1).join(' ');
+              }
+            }
+          }
+
+          // Fallback manufacturer using vendor ID if still unknown
+          if (manufacturer === 'Unknown') {
             manufacturer = this.getVendorNameFromId(vendorId);
           }
 
-          return deduplicatedDevices.map((device: any) => {
-            // Extract vendor/product IDs if not already present
-            let vendorId = device.vendor_id || 'unknown';
-            let productId = device.product_id || 'unknown';
+          // Enhanced connection time tracking
+          const currentTime = new Date();
+          const connectionTime = device.connection_time || device.first_seen || currentTime.toISOString();
+          const disconnectionTime = device.is_connected === false ? 
+            (device.last_seen || device.disconnection_time) : null;
 
-            // Try to extract vendor/product IDs from device_id if not provided
-            if (device.device_id) {
-              if (vendorId === 'unknown') {
-                vendorId = this.extractVendorIdFromDeviceId(device.device_id);
-              }
-              if (productId === 'unknown') {
-                productId = this.extractProductIdFromDeviceId(device.device_id);
-              }
-            }
+          // Calculate duration
+          let duration = "—";
+          if (connectionTime) {
+            const connectTime = new Date(connectionTime);
+            const disconnectTime = disconnectionTime ? new Date(disconnectionTime) : currentTime;
+            const diffMs = disconnectTime.getTime() - connectTime.getTime();
+            const hours = Math.floor(diffMs / (1000 * 60 * 60));
+            const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+            duration = `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+          }
 
-            // Extract manufacturer from description with better logic
-            let manufacturer = device.manufacturer || 'Unknown';
-            let productName = device.product_name || device.name || 'USB Device';
-            
-            if (device.description) {
-              // Handle "VendorCo ProductCode USB Device" pattern
-              if (device.description.includes('VendorCo ProductCode')) {
-                manufacturer = 'VendorCo ProductCode';
-                productName = 'USB Device';
-              }
-              // Handle general description parsing
-              else if (manufacturer === 'Unknown' && device.description.includes(' ')) {
-                const descParts = device.description.split(' ');
-                if (descParts.length >= 2 && !descParts[0].toLowerCase().includes('usb')) {
-                  manufacturer = descParts[0];
-                  productName = descParts.slice(1).join(' ');
-                }
-              }
-            }
-
-            // Fallback manufacturer using vendor ID if still unknown
-            if (manufacturer === 'Unknown') {
-              manufacturer = this.getVendorNameFromId(vendorId);
-            }
-
-            return {
-              ...device,
-              manufacturer,
-              product_name: productName,
-              vendor_id: vendorId,
-              product_id: productId,
-              serial_number: device.serial_number || this.extractSerialFromDeviceId(device.device_id) || 'N/A'
-            };
-          });
+          return {
+            ...device,
+            manufacturer,
+            product_name: productName,
+            vendor_id: vendorId,
+            product_id: productId,
+            serial_number: device.serial_number || this.extractSerialFromDeviceId(device.device_id) || 'N/A',
+            // Enhanced connection tracking fields
+            first_seen: connectionTime,
+            last_seen: disconnectionTime,
+            connection_time: connectionTime,
+            disconnection_time: disconnectionTime,
+            is_connected: device.is_connected !== false,
+            duration: duration,
+            device_state: device.is_connected !== false ? "Active" : "Removed"
+          };
         });
+
+        // Filter for STORAGE DEVICES ONLY - NEW REQUIREMENT
+        const storageOnlyDevices = processedDevices.filter(device => this.isStorageDevice(device));
+
+        return storageOnlyDevices;
       }
     }
 
     return [];
+  }
+
+  private static isStorageDevice(device: any): boolean {
+    const description = device.description?.toLowerCase() || '';
+    const deviceType = device.device_type?.toLowerCase() || '';
+    const manufacturer = device.manufacturer?.toLowerCase() || '';
+
+    // Storage device keywords
+    const storageKeywords = [
+      'storage', 'drive', 'disk', 'flash', 'thumb', 'memory', 'card',
+      'external', 'portable', 'mass storage', 'ssd', 'hdd', 'usb drive',
+      'sd card', 'micro sd', 'cf card', 'compact flash', 'removable'
+    ];
+
+    // Non-storage device keywords to exclude
+    const excludeKeywords = [
+      'keyboard', 'mouse', 'audio', 'bluetooth', 'wireless', 'wifi',
+      'network', 'camera', 'webcam', 'microphone', 'speaker', 'headset',
+      'gaming', 'controller', 'touchpad', 'fingerprint', 'biometric',
+      'hid', 'human interface', 'input', 'pointing', 'composite',
+      'receiver', 'dongle', 'adapter'
+    ];
+
+    // First check if it's explicitly excluded
+    for (const exclude of excludeKeywords) {
+      if (description.includes(exclude) || deviceType.includes(exclude) || manufacturer.includes(exclude)) {
+        return false;
+      }
+    }
+
+    // Then check if it's a storage device
+    for (const storage of storageKeywords) {
+      if (description.includes(storage) || deviceType.includes(storage)) {
+        return true;
+      }
+    }
+
+    // Check device type field
+    if (deviceType === 'mass_storage' || 
+        deviceType === 'usb storage' || 
+        deviceType === 'removable storage') {
+      return true;
+    }
+
+    // Check device ID for storage indicators (Windows)
+    const deviceId = device.device_id?.toLowerCase() || '';
+    if (deviceId.includes('usbstor') || deviceId.includes('disk&')) {
+      return true;
+    }
+
+    return false;
   }
 
   static extractVendorIdFromDeviceId(deviceId: string): string {
