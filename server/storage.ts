@@ -2502,6 +2502,19 @@ smartphones
     return newAlert;
   }
 
+  async getAlerts(): Promise<Alert[]> {
+    try {
+      const allAlerts = await db
+        .select()
+        .from(alerts)
+        .orderBy(desc(alerts.triggered_at));
+      return allAlerts;
+    } catch (error) {
+      console.error("Error fetching alerts:", error);
+      return [];
+    }
+  }
+
   async getDashboardSummary(): Promise<{
     total_devices: number;
     online_devices: number;
@@ -2588,12 +2601,24 @@ smartphones
       } else if (data.hardware?.cpu?.usage_percent !== undefined && data.hardware.cpu.usage_percent !== null) {
         cpuUsage = parseFloat(data.hardware.cpu.usage_percent);
         console.log('CPU from hardware.cpu:', cpuUsage);
+      } else if (data.hardware?.cpu?.percent !== undefined && data.hardware.cpu.percent !== null) {
+        cpuUsage = parseFloat(data.hardware.cpu.percent);
+        console.log('CPU from hardware.cpu.percent:', cpuUsage);
       } else if (data.cpu_usage !== undefined && data.cpu_usage !== null) {
         cpuUsage = parseFloat(data.cpu_usage);
         console.log('CPU from direct field:', cpuUsage);
-      } else if (data.hardware?.cpu && data.hardware.cpu.percent !== undefined) {
-        cpuUsage = parseFloat(data.hardware.cpu.percent);
-        console.log('CPU from hardware.cpu.percent:', cpuUsage);
+      }
+      
+      // Additional check for Windows-style CPU data
+      if (cpuUsage === null && data.hardware?.cpu?.cores) {
+        const cores = data.hardware.cpu.cores;
+        if (Array.isArray(cores) && cores.length > 0) {
+          const avgUsage = cores.reduce((sum, core) => sum + (core.usage_percent || 0), 0) / cores.length;
+          if (avgUsage > 0) {
+            cpuUsage = avgUsage;
+            console.log('CPU from core average:', cpuUsage);
+          }
+        }
       }
 
       // Enhanced Memory extraction with multiple fallbacks
@@ -2603,33 +2628,51 @@ smartphones
       } else if (data.hardware?.memory?.percentage !== undefined && data.hardware.memory.percentage !== null) {
         memoryUsage = parseFloat(data.hardware.memory.percentage);
         console.log('Memory from hardware.memory:', memoryUsage);
+      } else if (data.hardware?.memory?.percent !== undefined && data.hardware.memory.percent !== null) {
+        memoryUsage = parseFloat(data.hardware.memory.percent);
+        console.log('Memory from hardware.memory.percent:', memoryUsage);
       } else if (data.memory_usage !== undefined && data.memory_usage !== null) {
         memoryUsage = parseFloat(data.memory_usage);
         console.log('Memory from direct field:', memoryUsage);
-      } else if (data.hardware?.memory && data.hardware.memory.percent !== undefined) {
-        memoryUsage = parseFloat(data.hardware.memory.percent);
-        console.log('Memory from hardware.memory.percent:', memoryUsage);
+      }
+      
+      // Calculate from total/used if percentage not available
+      if (memoryUsage === null && data.hardware?.memory?.total && data.hardware?.memory?.used) {
+        const total = parseFloat(data.hardware.memory.total);
+        const used = parseFloat(data.hardware.memory.used);
+        if (total > 0) {
+          memoryUsage = (used / total) * 100;
+          console.log('Memory calculated from used/total:', memoryUsage);
+        }
       }
 
       // Enhanced Disk extraction with multiple fallbacks
       if (data.storage?.disks && Array.isArray(data.storage.disks) && data.storage.disks.length > 0) {
         // Find C:\ drive first (Windows), then / (Linux), then any drive
         const primaryDisk = data.storage.disks.find(disk =>
-          disk.device === 'C:\\' || disk.mountpoint === 'C:\\'
+          disk.device === 'C:\\' || disk.mountpoint === 'C:\\' || 
+          disk.device?.includes('C:') || disk.mountpoint?.includes('C:')
         ) || data.storage.disks.find(disk =>
           disk.mountpoint === '/' || disk.device === '/'
         ) || data.storage.disks[0];
 
         if (primaryDisk) {
-          if (primaryDisk.percent !== undefined && primaryDisk.percent !== null) {
+          if (primaryDisk.percentage !== undefined && primaryDisk.percentage !== null) {
+            diskUsage = parseFloat(primaryDisk.percentage);
+            console.log('Disk from storage.disks.percentage:', diskUsage);
+          } else if (primaryDisk.percent !== undefined && primaryDisk.percent !== null) {
             diskUsage = parseFloat(primaryDisk.percent);
             console.log('Disk from storage.disks.percent:', diskUsage);
           } else if (primaryDisk.usage_percent !== undefined) {
             diskUsage = parseFloat(primaryDisk.usage_percent);
             console.log('Disk from storage.disks.usage_percent:', diskUsage);
           } else if (primaryDisk.used && primaryDisk.total) {
-            diskUsage = (parseFloat(primaryDisk.used) / parseFloat(primaryDisk.total)) * 100;
-            console.log('Disk calculated from used/total:', diskUsage);
+            const used = parseFloat(primaryDisk.used);
+            const total = parseFloat(primaryDisk.total);
+            if (total > 0) {
+              diskUsage = (used / total) * 100;
+              console.log('Disk calculated from used/total:', diskUsage);
+            }
           }
         }
       } else if (data.disk_usage !== undefined && data.disk_usage !== null) {

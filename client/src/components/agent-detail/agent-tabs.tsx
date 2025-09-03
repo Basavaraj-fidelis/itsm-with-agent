@@ -1320,7 +1320,6 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
         {/* Network Tab */}
         <TabsContent value="network" className="space-y-4">
           <SafeDataRenderer>
-            {/* Network Information Card */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
