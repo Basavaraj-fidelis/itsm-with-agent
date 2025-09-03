@@ -45,7 +45,7 @@ export function registerNetworkScanRoutes(app: Express) {
           websocket_path: '/ws',
           server_port: process.env.PORT || 5000,
           server_host: '0.0.0.0',
-          websocket_url: `ws://0.0.0.0:${process.env.PORT || 5000}/ws`,
+          websocket_url: `wss://e224f7e4-78fa-49b0-a720-abea5849092d-00-1ck5n6s8ppu8v.pike.replit.dev/ws`,
           timestamp: new Date().toISOString()
         },
         agent_details: status.connectionDetails?.map(conn => ({

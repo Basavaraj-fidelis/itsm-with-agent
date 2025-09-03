@@ -162,3 +162,53 @@ export const systemAlerts = pgTable("system_alerts", {
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
 });
+
+// Network scan tables
+export const networkScanSessions = pgTable("network_scan_sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  session_id: varchar("session_id", { length: 100 }).notNull().unique(),
+  initiated_by: varchar("initiated_by", { length: 255 }).notNull(),
+  started_at: timestamp("started_at").defaultNow().notNull(),
+  completed_at: timestamp("completed_at"),
+  status: varchar("status", { length: 20 }).notNull().default("running"), // running, completed, failed
+  total_discovered: numeric("total_discovered").default("0"),
+  subnets_scanned: jsonb("subnets_scanned").default("[]"),
+  scanning_agents: jsonb("scanning_agents").default("[]"),
+  scan_config: jsonb("scan_config").default("{}"),
+  error_message: text("error_message"),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const networkScanResults = pgTable("network_scan_results", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  session_id: varchar("session_id", { length: 100 }).notNull(),
+  device_id: varchar("device_id", { length: 100 }),
+  ip_address: varchar("ip_address", { length: 45 }).notNull(),
+  hostname: varchar("hostname", { length: 255 }),
+  os: varchar("os", { length: 100 }),
+  mac_address: varchar("mac_address", { length: 17 }),
+  status: varchar("status", { length: 20 }).notNull(), // online, offline
+  last_seen: timestamp("last_seen").notNull(),
+  subnet: varchar("subnet", { length: 50 }).notNull(),
+  device_type: varchar("device_type", { length: 100 }),
+  ports_open: jsonb("ports_open").default("[]"),
+  response_time: numeric("response_time"),
+  discovery_method: varchar("discovery_method", { length: 50 }), // ping, arp, port_scan
+  agent_id: varchar("agent_id", { length: 100 }),
+  scan_metadata: jsonb("scan_metadata").default("{}"),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const networkTopology = pgTable("network_topology", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  source_device_id: varchar("source_device_id", { length: 100 }).notNull(),
+  target_ip: varchar("target_ip", { length: 45 }).notNull(),
+  target_hostname: varchar("target_hostname", { length: 255 }),
+  connection_type: varchar("connection_type", { length: 50 }), // direct, router, switch
+  hop_count: numeric("hop_count").default("1"),
+  latency_ms: numeric("latency_ms"),
+  discovered_at: timestamp("discovered_at").defaultNow().notNull(),
+  last_verified: timestamp("last_verified").defaultNow().notNull(),
+  is_active: boolean("is_active").default(true).notNull(),
+});

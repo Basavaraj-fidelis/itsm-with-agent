@@ -1,6 +1,6 @@
 import { db } from "../db";
-import { devices } from "../../shared/schema";
-import { eq, and, isNotNull } from "drizzle-orm";
+import { devices, networkScanSessions, networkScanResults, networkTopology } from "../../shared/schema";
+import { eq, and, isNotNull, desc } from "drizzle-orm";
 import { systemConfig } from "../../shared/system-config";
 
 export interface NetworkScanResult {
@@ -37,7 +37,6 @@ export interface ScanSession {
 }
 
 class NetworkScanService {
-  private activeScanSessions: Map<string, ScanSession> = new Map();
 
   private readonly DEFAULT_SUBNETS = [
     { range: "192.168.1.0/24", example: "192.168.1.80" },
@@ -355,17 +354,20 @@ class NetworkScanService {
         config.custom_ip_ranges
       );
 
-      const session: ScanSession = {
-        id: sessionId,
+      // Store session in database
+      await db.insert(networkScanSessions).values({
+        session_id: sessionId,
         initiated_by: config.initiated_by,
         started_at: startTime,
         status: 'running',
         total_discovered: 0,
-        subnets_scanned: config.subnets,
-        scanning_agents: scanningAgents
-      };
-
-      this.activeScanSessions.set(sessionId, session);
+        subnets_scanned: config.subnets || [],
+        scanning_agents: scanningAgents,
+        scan_config: {
+          scan_type: config.scan_type,
+          custom_ip_ranges: config.custom_ip_ranges
+        }
+      });
 
       // Queue scan commands to agents
       await this.queueScanCommands(sessionId, config, scanningAgents);
@@ -507,9 +509,15 @@ class NetworkScanService {
 
   private async sendNetworkScanCommandsToAgents(sessionId: string, config: any, scanningAgents: any[]) {
     try {
-      const session = this.activeScanSessions.get(sessionId);
-      if (!session) {
-        console.error(`Session ${sessionId} not found during agent communication`);
+      // Get session from database
+      const sessionRecord = await db
+        .select()
+        .from(networkScanSessions)
+        .where(eq(networkScanSessions.session_id, sessionId))
+        .limit(1);
+
+      if (sessionRecord.length === 0) {
+        console.error(`Session ${sessionId} not found in database`);
         return;
       }
 
@@ -530,9 +538,13 @@ class NetworkScanService {
       
       if (!websocketService) {
         console.error('WebSocket service not available - no agents connected');
-        session.status = 'failed';
-        session.completed_at = new Date();
-        this.activeScanSessions.set(sessionId, session);
+        await db.update(networkScanSessions)
+          .set({ 
+            status: 'failed', 
+            completed_at: new Date(),
+            error_message: 'WebSocket service not available - no agents connected'
+          })
+          .where(eq(networkScanSessions.session_id, sessionId));
         throw new Error('WebSocket service not available - cannot perform network scan');
       }
 
@@ -620,12 +632,39 @@ class NetworkScanService {
         console.log(`Scan progress: ${completedScans}/${totalScans} agents completed`);
       }
 
-      // Update session with real scan results
-      session.scanResults = allScanResults;
-      session.status = 'completed';
-      session.completed_at = new Date();
-      session.total_discovered = allScanResults.length;
-      this.activeScanSessions.set(sessionId, session);
+      // Store scan results in database
+      if (allScanResults.length > 0) {
+        const dbResults = allScanResults.map(result => ({
+          session_id: sessionId,
+          device_id: result.id.startsWith('agent-discovered-') ? null : result.id,
+          ip_address: result.ip,
+          hostname: result.hostname,
+          os: result.os,
+          mac_address: result.mac_address,
+          status: result.status,
+          last_seen: result.last_seen,
+          subnet: result.subnet,
+          device_type: result.device_type,
+          ports_open: result.ports_open || [],
+          response_time: result.response_time,
+          discovery_method: 'network_scan',
+          agent_id: result.id.startsWith('agent-discovered-') ? result.id.split('-')[2] : null,
+          scan_metadata: {
+            discovery_timestamp: new Date().toISOString()
+          }
+        }));
+
+        await db.insert(networkScanResults).values(dbResults);
+      }
+
+      // Update session status
+      await db.update(networkScanSessions)
+        .set({ 
+          status: 'completed', 
+          completed_at: new Date(),
+          total_discovered: allScanResults.length
+        })
+        .where(eq(networkScanSessions.session_id, sessionId));
 
       console.log(`REAL network scan completed - Session: ${sessionId}`);
       console.log(`Total devices discovered: ${allScanResults.length}`);
@@ -726,38 +765,109 @@ class NetworkScanService {
     return `scan-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  private cleanupOldSessions(): void {
+  private async cleanupOldSessions(): Promise<void> {
     const cutoffTime = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
     
-    for (const [sessionId, session] of this.activeScanSessions.entries()) {
-      if (session.started_at < cutoffTime || 
-          (session.status === 'completed' && session.completed_at && session.completed_at < cutoffTime)) {
-        this.activeScanSessions.delete(sessionId);
-        console.log(`Cleaned up old scan session: ${sessionId}`);
+    try {
+      // Delete old scan results first (foreign key constraint)
+      const oldSessions = await db
+        .select({ session_id: networkScanSessions.session_id })
+        .from(networkScanSessions)
+        .where(eq(networkScanSessions.created_at, cutoffTime));
+
+      for (const session of oldSessions) {
+        await db.delete(networkScanResults)
+          .where(eq(networkScanResults.session_id, session.session_id));
       }
+
+      // Delete old sessions
+      const deletedCount = await db.delete(networkScanSessions)
+        .where(eq(networkScanSessions.created_at, cutoffTime));
+
+      console.log(`Cleaned up ${deletedCount} old scan sessions`);
+    } catch (error) {
+      console.error('Error cleaning up old sessions:', error);
     }
   }
 
   async getScanSessions() {
-    return Array.from(this.activeScanSessions.values());
+    try {
+      const sessions = await db
+        .select()
+        .from(networkScanSessions)
+        .orderBy(desc(networkScanSessions.started_at))
+        .limit(50);
+
+      return sessions.map(session => ({
+        id: session.session_id,
+        initiated_by: session.initiated_by,
+        started_at: session.started_at,
+        completed_at: session.completed_at,
+        status: session.status,
+        total_discovered: Number(session.total_discovered),
+        subnets_scanned: session.subnets_scanned as string[],
+        scanning_agents: session.scanning_agents as any[]
+      }));
+    } catch (error) {
+      console.error('Error fetching scan sessions:', error);
+      return [];
+    }
   }
 
   async getScanSession(sessionId: string) {
-    return this.activeScanSessions.get(sessionId);
+    try {
+      const session = await db
+        .select()
+        .from(networkScanSessions)
+        .where(eq(networkScanSessions.session_id, sessionId))
+        .limit(1);
+
+      if (session.length === 0) {
+        return null;
+      }
+
+      const sessionData = session[0];
+      return {
+        id: sessionData.session_id,
+        initiated_by: sessionData.initiated_by,
+        started_at: sessionData.started_at,
+        completed_at: sessionData.completed_at,
+        status: sessionData.status,
+        total_discovered: Number(sessionData.total_discovered),
+        subnets_scanned: sessionData.subnets_scanned as string[],
+        scanning_agents: sessionData.scanning_agents as any[]
+      };
+    } catch (error) {
+      console.error('Error fetching scan session:', error);
+      return null;
+    }
   }
 
   async getScanResults(sessionId: string) {
-    const session = this.activeScanSessions.get(sessionId);
-    if (!session) {
-      throw new Error('Scan session not found');
-    }
+    try {
+      const results = await db
+        .select()
+        .from(networkScanResults)
+        .where(eq(networkScanResults.session_id, sessionId))
+        .orderBy(networkScanResults.ip_address);
 
-    // Return stored real-time scan results
-    if (session.status === 'completed' && session.scanResults) {
-      return session.scanResults;
+      return results.map(result => ({
+        id: result.device_id || `scan-result-${result.id}`,
+        ip: result.ip_address,
+        hostname: result.hostname,
+        os: result.os,
+        mac_address: result.mac_address,
+        status: result.status as 'online' | 'offline',
+        last_seen: result.last_seen,
+        subnet: result.subnet,
+        device_type: result.device_type,
+        ports_open: result.ports_open as number[],
+        response_time: result.response_time ? Number(result.response_time) : undefined
+      }));
+    } catch (error) {
+      console.error('Error fetching scan results:', error);
+      return [];
     }
-
-    return [];
   }
 
   async getDefaultSubnets() {
