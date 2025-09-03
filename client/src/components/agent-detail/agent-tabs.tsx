@@ -881,7 +881,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                       <Usb className="w-5 h-5" />
-                      <span>USB Devices ({extractedUsbDevices.filter((device: any) => 
+                      <span>USB Devices ({extractedUsbDevices.filter((device: any) =>
                         !(device.description && device.description.includes('VendorCo ProductCode'))
                       ).length})</span>
                     </CardTitle>
@@ -889,117 +889,125 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                   <CardContent>
                     <div className="space-y-6">
                       {extractedUsbDevices
-                        .filter((device: any) => 
+                        .filter((device: any) =>
                           !(device.description && device.description.includes('VendorCo ProductCode'))
                         )
                         .map((device: any, index: number) => {
-                        // Extract vendor/product IDs if not already present
-                        const vendorId = device.vendor_id || AgentDataProcessor.extractVendorIdFromDeviceId(device.device_id);
-                        const productId = device.product_id || AgentDataProcessor.extractProductIdFromDeviceId(device.device_id);
+                          // Extract vendor/product IDs if not already present
+                          const vendorId = device.vendor_id || AgentDataProcessor.extractVendorIdFromDeviceId(device.device_id);
+                          const productId = device.product_id || AgentDataProcessor.extractProductIdFromDeviceId(device.device_id);
 
-                        // Improve manufacturer display
-                        let manufacturer = device.manufacturer || 'Unknown';
-                        if (manufacturer === 'Unknown' || manufacturer === '(Standard system devices)') {
-                          if (device.description) {
-                            if (device.description.includes('Mass Storage')) {
-                              manufacturer = 'Generic Storage Manufacturer';
-                            } else {
-                              manufacturer = 'Generic USB Manufacturer';
+                          // Improve manufacturer display
+                          let manufacturer = device.manufacturer || 'Unknown';
+                          if (manufacturer === 'Unknown' || manufacturer === '(Standard system devices)') {
+                            if (device.description) {
+                              if (device.description.includes('Mass Storage')) {
+                                manufacturer = 'Generic Storage Manufacturer';
+                              } else {
+                                manufacturer = 'Generic USB Manufacturer';
+                              }
                             }
                           }
-                        }
 
-                        // Mock connection history data (in real implementation, this would come from USB history API)
-                        const connectedAt = device.first_seen || device.connection_time || new Date().toISOString();
-                        const disconnectedAt = device.is_connected === false ? device.last_seen : null;
-                        const isActive = device.is_connected !== false && device.status !== 'Disconnected';
+                          // Mock connection history data (in real implementation, this would come from USB history API)
+                          const connectedAt = device.first_seen || device.connection_time || new Date().toISOString();
+                          const disconnectedAt = device.is_connected === false ? device.last_seen : null;
+                          const isActive = device.is_connected !== false && device.status !== 'Disconnected';
 
-                        // Calculate duration
-                        let duration = '—';
-                        if (connectedAt) {
-                          const connectTime = new Date(connectedAt);
-                          const disconnectTime = disconnectedAt ? new Date(disconnectedAt) : new Date();
-                          const diffMs = disconnectTime.getTime() - connectTime.getTime();
-                          const hours = Math.floor(diffMs / (1000 * 60 * 60));
-                          const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                          const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
-                          duration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                        }
+                          // Calculate duration
+                          let duration = '—';
+                          if (connectedAt) {
+                            const connectTime = new Date(connectedAt);
+                            const disconnectTime = disconnectedAt ? new Date(disconnectedAt) : new Date();
+                            const diffMs = disconnectTime.getTime() - connectTime.getTime();
+                            const hours = Math.floor(diffMs / (1000 * 60 * 60));
+                            const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                            const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+                            duration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                          }
 
-                        return (
-                          <div key={`usb-${device.device_id || index}`} className="border rounded-lg overflow-hidden">
-                            {/* Device Header */}
-                            <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3 border-b">
-                              <h5 className="font-medium text-gray-900 dark:text-gray-100">
-                                {device.description || 'Unknown USB Device'}
-                              </h5>
-                            </div>
+                          const connectedOn = connectedAt ? new Date(connectedAt).toLocaleDateString() : '—';
+                          const connectedAtTime = connectedAt ? new Date(connectedAt).toLocaleTimeString() : '—';
+                          const disconnectedAtTime = disconnectedAt ? new Date(disconnectedAt).toLocaleTimeString() : '—';
+                          const deviceState = isActive ? 'Active' : 'Removed';
 
-                            {/* Device Details Grid */}
-                            <div className="p-4">
-                              <div className="grid grid-cols-4 gap-4 text-sm mb-4">
-                                <div>
-                                  <span className="font-medium text-gray-600 dark:text-gray-400">Manufacturer:</span>
-                                  <div className="text-gray-900 dark:text-gray-100">{manufacturer}</div>
+
+                          return (
+                            <div key={`usb-${device.device_id || index}`} className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                              {/* USB Device Details Header */}
+                              <div className="mb-4">
+                                <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">USB Device Details</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Manufacturer:</span>
+                                      <span className="text-sm text-gray-900 dark:text-gray-100">
+                                        {device.manufacturer && device.manufacturer !== 'Unknown' ? device.manufacturer : 'Unknown'} ✅
+                                      </span>
+                                    </div>
+
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Vendor ID (VID):</span>
+                                      <span className="text-sm text-gray-900 dark:text-gray-100 font-mono">
+                                        {device.vendor_id && device.vendor_id !== 'unknown' ? device.vendor_id.toUpperCase() : 'N/A'}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Type:</span>
+                                      <span className="text-sm text-gray-900 dark:text-gray-100 capitalize">
+                                        {device.device_type?.replace('_', ' ') || device.description || 'Unknown'}
+                                      </span>
+                                    </div>
+
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Product ID (PID):</span>
+                                      <span className="text-sm text-gray-900 dark:text-gray-100 font-mono">
+                                        {device.product_id && device.product_id !== 'unknown' ? device.product_id.toUpperCase() : 'N/A'}
+                                      </span>
+                                    </div>
+                                  </div>
                                 </div>
-                                <div>
-                                  <span className="font-medium text-gray-600 dark:text-gray-400">Type:</span>
-                                  <div className="text-gray-900 dark:text-gray-100">{device.device_type || device.service || 'Unknown'}</div>
-                                </div>
-                                <div>
-                                  <span className="font-medium text-gray-600 dark:text-gray-400">Vendor ID (VID):</span>
-                                  <div className="text-gray-900 dark:text-gray-100">{vendorId}</div>
-                                </div>
-                                <div>
-                                  <span className="font-medium text-gray-600 dark:text-gray-400">Product ID (PID):</span>
-                                  <div className="text-gray-900 dark:text-gray-100">{productId}</div>
-                                </div>
-                              </div>
-
-                              {/* Connection History Header */}
-                              <div className="mb-3">
-                                <h6 className="font-medium text-gray-900 dark:text-gray-100">Connection History:</h6>
                               </div>
 
                               {/* Connection History Table */}
-                              <div className="overflow-hidden border rounded-md">
-                                <table className="w-full text-sm">
-                                  <thead className="bg-gray-50 dark:bg-gray-800">
-                                    <tr>
-                                      <th className="px-3 py-2 text-left font-medium text-gray-600 dark:text-gray-400">Connected On</th>
-                                      <th className="px-3 py-2 text-left font-medium text-gray-600 dark:text-gray-400">Connected At</th>
-                                      <th className="px-3 py-2 text-left font-medium text-gray-600 dark:text-gray-400">Disconnected At</th>
-                                      <th className="px-3 py-2 text-left font-medium text-gray-600 dark:text-gray-400">Duration (hh:mm:ss)</th>
-                                      <th className="px-3 py-2 text-left font-medium text-gray-600 dark:text-gray-400">Device State</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="bg-white dark:bg-gray-900">
-                                    <tr className="border-t border-gray-200 dark:border-gray-700">
-                                      <td className="px-3 py-2 text-gray-900 dark:text-gray-100">
-                                        {connectedAt ? new Date(connectedAt).toLocaleDateString() : '—'}
-                                      </td>
-                                      <td className="px-3 py-2 text-gray-900 dark:text-gray-100">
-                                        {connectedAt ? new Date(connectedAt).toLocaleTimeString() : '—'}
-                                      </td>
-                                      <td className="px-3 py-2 text-gray-900 dark:text-gray-100">
-                                        {disconnectedAt ? new Date(disconnectedAt).toLocaleTimeString() : '—'}
-                                      </td>
-                                      <td className="px-3 py-2 text-gray-900 dark:text-gray-100">
-                                        {duration}
-                                      </td>
-                                      <td className="px-3 py-2">
-                                        <Badge variant={isActive ? 'default' : 'secondary'} className={isActive ? 'bg-green-500 hover:bg-green-600' : ''}>
-                                          {isActive ? 'Active' : 'Removed'}
-                                        </Badge>
-                                      </td>
-                                    </tr>
-                                  </tbody>
-                                </table>
+                              <div>
+                                <h5 className="font-medium text-gray-900 dark:text-gray-100 mb-3">Connection History:</h5>
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-sm">
+                                    <thead>
+                                      <tr className="border-b border-gray-200 dark:border-gray-600">
+                                        <th className="text-left py-2 px-1 font-medium text-gray-500 dark:text-gray-400">Connected On</th>
+                                        <th className="text-left py-2 px-1 font-medium text-gray-500 dark:text-gray-400">Connected At</th>
+                                        <th className="text-left py-2 px-1 font-medium text-gray-500 dark:text-gray-400">Disconnected At</th>
+                                        <th className="text-left py-2 px-1 font-medium text-gray-500 dark:text-gray-400">Duration (hh:mm:ss)</th>
+                                        <th className="text-left py-2 px-1 font-medium text-gray-500 dark:text-gray-400">Device State</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      <tr className="border-b border-gray-100 dark:border-gray-700">
+                                        <td className="py-2 px-1 text-gray-900 dark:text-gray-100">{connectedOn}</td>
+                                        <td className="py-2 px-1 text-gray-900 dark:text-gray-100">{connectedAtTime}</td>
+                                        <td className="py-2 px-1 text-gray-900 dark:text-gray-100">{disconnectedAtTime}</td>
+                                        <td className="py-2 px-1 text-gray-900 dark:text-gray-100">{duration}</td>
+                                        <td className="py-2 px-1">
+                                          <Badge
+                                            variant={deviceState === 'Active' ? 'default' : 'secondary'}
+                                            className="text-xs"
+                                          >
+                                            {deviceState}
+                                          </Badge>
+                                        </td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
                     </div>
                   </CardContent>
                 </Card>
