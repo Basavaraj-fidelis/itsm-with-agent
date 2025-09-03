@@ -74,9 +74,18 @@ export default function NetworkScan() {
     try {
       // Use Promise.allSettled to handle all rejections properly
       const results = await Promise.allSettled([
-        loadScanSessions(),
-        loadAvailableAgents(),
-        loadDefaultSubnets()
+        loadScanSessions().catch(error => {
+          console.warn('Failed to load scan sessions:', error);
+          return null;
+        }),
+        loadAvailableAgents().catch(error => {
+          console.warn('Failed to load available agents:', error);
+          return null;
+        }),
+        loadDefaultSubnets().catch(error => {
+          console.warn('Failed to load default subnets:', error);
+          return null;
+        })
       ]);
 
       // Count successful vs failed operations
@@ -361,9 +370,16 @@ export default function NetworkScan() {
           }
 
           // Continue polling if still running
-          setTimeout(() => checkProgress().catch(err => {
-            console.error('Error in polling cycle:', err);
-          }), 2000);
+          setTimeout(() => {
+            checkProgress().catch(err => {
+              console.error('Error in polling cycle:', err);
+              toast({
+                title: "Polling Error",
+                description: "Lost connection to scan progress",
+                variant: "destructive",
+              });
+            });
+          }, 2000);
         } else {
           console.error('Failed to poll scan progress:', response.status);
         }
@@ -663,13 +679,28 @@ export default function NetworkScan() {
                 </Alert>
               )}
 
-              {scanResults.length === 0 && isScanning && (
+              {scanResults.length === 0 && !isScanning && currentSession && (
                 <Alert>
                   <AlertDescription>
-                    No devices discovered yet. This could indicate:
-                    • Network scan is still in progress
-                    • No devices are responding to the scan
-                    • Agent may not have network access to the target subnet
+                    Scan completed but no devices were discovered. This could indicate:
+                    • Target IP range may not have responding devices
+                    • Agent may not have network access to the target subnet  
+                    • Agent may not be connected via WebSocket
+                    • Firewall blocking network discovery
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {availableAgents && availableAgents.websocket_status && availableAgents.websocket_status.total_connected === 0 && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Warning:</strong> No agents are currently connected via WebSocket. 
+                    Network scans require active WebSocket connections to function properly.
+                    <br />
+                    <span className="text-sm text-muted-foreground mt-1 block">
+                      Please ensure agents are running and connected before starting a scan.
+                    </span>
                   </AlertDescription>
                 </Alert>
               )}

@@ -135,9 +135,10 @@ export function HardwareTab({
           <CardContent>
             <div className="space-y-6">
               {extractedUsbDevices.map((device: any, index: number) => {
-                if (!device || !device.device_id) {
-                  return null; // Skip invalid devices
-                }
+                try {
+                  if (!device || !device.device_id) {
+                    return null; // Skip invalid devices
+                  }
                 
                 const vendorId =
                   device.vendor_id ||
@@ -376,6 +377,14 @@ export function HardwareTab({
                     </div>
                   </div>
                 );
+                } catch (deviceError) {
+                  console.error('Error rendering USB device:', deviceError);
+                  return (
+                    <div key={`usb-error-${index}`} className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-200">
+                      <p className="text-red-600 text-sm">Error displaying USB device #{index + 1}</p>
+                    </div>
+                  );
+                }
               })}
             </div>
           </CardContent>

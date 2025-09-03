@@ -517,6 +517,29 @@ class NetworkScanService {
         throw new Error('WebSocket service not available - cannot perform network scan');
       }
 
+      // Validate agent connectivity before starting scan
+      const connectedAgentIds = websocketService.getConnectedAgentIds();
+      console.log(`Connected agents via WebSocket: ${connectedAgentIds.join(', ')}`);
+      
+      const availableAgents = scanningAgents.filter(agent => {
+        const isConnected = websocketService.isAgentConnected(agent.agent_id);
+        if (!isConnected) {
+          console.warn(`Agent ${agent.hostname} (${agent.agent_id}) is not connected via WebSocket - skipping`);
+        }
+        return isConnected;
+      });
+
+      if (availableAgents.length === 0) {
+        console.error('No scanning agents are currently connected via WebSocket');
+        session.status = 'failed';
+        session.completed_at = new Date();
+        this.activeScanSessions.set(sessionId, session);
+        throw new Error('No scanning agents are currently connected via WebSocket');
+      }
+
+      console.log(`Using ${availableAgents.length}/${scanningAgents.length} connected agents for scanning`);
+      scanningAgents = availableAgents;
+
       let completedScans = 0;
       const totalScans = scanningAgents.length;
       const allScanResults: NetworkScanResult[] = [];

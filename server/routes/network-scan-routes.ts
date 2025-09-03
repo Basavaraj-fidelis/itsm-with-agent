@@ -1,12 +1,45 @@
 
 import type { Express } from "express";
 import { networkScanService } from "../services/network-scan-service";
+import { websocketService } from "../websocket-service";
 
 export function registerNetworkScanRoutes(app: Express) {
+  // Get WebSocket connection status
+  app.get("/api/network-scan/websocket-status", async (req, res) => {
+    try {
+      const status = websocketService.getConnectionStatus();
+      res.json(status);
+    } catch (error) {
+      console.error("Error getting WebSocket status:", error);
+      res.status(500).json({ error: "Failed to get WebSocket status" });
+    }
+  });
+
   // Get available agents for scanning
   app.get("/api/network-scan/agents", async (req, res) => {
     try {
       const agents = await networkScanService.getAvailableAgents();
+      
+      // Add WebSocket connectivity status
+      const connectedAgentIds = websocketService.getConnectedAgentIds();
+      
+      // Enhance agent data with WebSocket status
+      if (agents.recommended_scanning_agents) {
+        agents.recommended_scanning_agents = agents.recommended_scanning_agents.map((rec: any) => ({
+          ...rec,
+          agent: {
+            ...rec.agent,
+            websocket_connected: connectedAgentIds.includes(rec.agent.id)
+          }
+        }));
+      }
+
+      // Add WebSocket summary
+      agents.websocket_status = {
+        total_connected: connectedAgentIds.length,
+        connected_agent_ids: connectedAgentIds
+      };
+
       res.json(agents);
     } catch (error) {
       console.error("Error getting scan agents:", error);
@@ -35,6 +68,18 @@ export function registerNetworkScanRoutes(app: Express) {
       if ((!subnets || !Array.isArray(subnets) || subnets.length === 0) && 
           (!custom_ip_ranges || !Array.isArray(custom_ip_ranges) || custom_ip_ranges.length === 0)) {
         return res.status(400).json({ error: "Either subnets or custom IP ranges are required" });
+      }
+
+      // Check WebSocket connectivity before initiating scan
+      const connectedAgentIds = websocketService.getConnectedAgentIds();
+      if (connectedAgentIds.length === 0) {
+        return res.status(400).json({ 
+          error: "No agents are currently connected via WebSocket. Cannot perform network scan.",
+          websocket_status: {
+            total_connected: 0,
+            message: "Ensure agents are running and properly connected"
+          }
+        });
       }
 
       const result = await networkScanService.initiateScan({

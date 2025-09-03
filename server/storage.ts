@@ -22,6 +22,7 @@ import { eq, desc, gte, and, sql, or, like, count } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
+import crypto from "crypto";
 
 export interface IStorage {
   // Device operations
@@ -642,7 +643,7 @@ export class DatabaseStorage implements IStorage {
           await pool.query(
             `
             INSERT INTO users (
-              email, username, first_name, last_name, password_hash, 
+              email, username, first_name, last_name, password_hash,
               role, department, phone, job_title, location, is_active
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
           `,
@@ -1820,7 +1821,7 @@ smartphones
       const { pool } = await import("./db");
 
       const result = await pool.query(
-        `UPDATE devices 
+        `UPDATE devices
          SET hostname = COALESCE($2, hostname),
              assigned_user = COALESCE($3, assigned_user),
              os_name = COALESCE($4, os_name),
@@ -2686,7 +2687,7 @@ smartphones
       if (data.storage?.disks && Array.isArray(data.storage.disks) && data.storage.disks.length > 0) {
         // Find C:\ drive first (Windows), then / (Linux), then any drive
         const primaryDisk = data.storage.disks.find(disk =>
-          disk.device === 'C:\\' || disk.mountpoint === 'C:\\' || 
+          disk.device === 'C:\\' || disk.mountpoint === 'C:\\' ||
           disk.device?.includes('C:') || disk.mountpoint?.includes('C:')
         ) || data.storage.disks.find(disk =>
           disk.mountpoint === '/' || disk.device === '/'
@@ -2753,7 +2754,7 @@ smartphones
         memory_usage: memoryUsage,
         disk_usage: diskUsage,
         network_io: networkIo,
-        created_at: new Date(),
+        collected_at: new Date(),
       };
 
       // Handle USB devices if present

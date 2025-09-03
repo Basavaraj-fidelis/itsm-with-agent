@@ -355,9 +355,22 @@ class WebSocketService {
     return {
       totalConnections: this.agentConnections.size,
       connectedAgents: Array.from(this.agentConnections.keys()),
-      // lastActivity: this.lastActivity, // Assuming lastActivity is managed elsewhere or not relevant here
       connectionDetails: connections
     };
+  }
+
+  // Check if specific agent is connected
+  isAgentConnected(agentId: string): boolean {
+    const connection = this.agentConnections.get(agentId);
+    return connection !== undefined && connection.ws.readyState === WebSocket.OPEN;
+  }
+
+  // Get all connected agent IDs
+  getConnectedAgentIds(): string[] {
+    return Array.from(this.agentConnections.keys()).filter(agentId => {
+      const connection = this.agentConnections.get(agentId);
+      return connection && connection.ws.readyState === WebSocket.OPEN;
+    });
   }
 }
 

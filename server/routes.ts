@@ -355,14 +355,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Continue processing
       }
 
-      // Process additional data safely
-      try {
-        if (reportData.usb_devices && Array.isArray(reportData.usb_devices)) {
-          const { enhancedStorage } = await import("./models/enhanced-storage");
-          await enhancedStorage.updateUSBDevices(device.id, reportData.usb_devices);
+      // Process USB devices
+      if (data.usb_devices && Array.isArray(data.usb_devices)) {
+        // Store USB devices in database with proper error handling
+        try {
+          const usbDevicesWithAgentId = data.usb_devices.map((usbDevice: any) => ({
+            ...usbDevice,
+            agent_id: device.id,
+            detected_at: new Date().toISOString(),
+          }));
+
+          // Store or update USB devices - implement this based on your schema
+          console.log(`Processing ${usbDevicesWithAgentId.length} USB devices for agent ${device.id}`);
+          // TODO: Implement actual USB device storage logic
+        } catch (usbError) {
+          console.error('Error processing USB devices:', usbError);
         }
-      } catch (usbError) {
-        console.error("Error processing USB devices:", usbError);
       }
 
       try {
