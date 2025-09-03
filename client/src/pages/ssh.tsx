@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -82,7 +81,7 @@ ssh2des=0`;
             Connect to <strong>{connectionInfo.deviceName}</strong> via command line
           </p>
         </CardHeader>
-        
+
         <CardContent>
           <Tabs defaultValue="connect" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
@@ -125,7 +124,7 @@ ssh2des=0`;
               {/* Connection Methods */}
               <div className="space-y-4">
                 <h3 className="font-medium text-lg">Connection Methods</h3>
-                
+
                 {/* Command Line SSH */}
                 <Card className="p-4 border-green-200 bg-green-50">
                   <div className="flex items-start space-x-3">
@@ -184,7 +183,7 @@ ssh2des=0`;
 
             <TabsContent value="commands" className="space-y-4">
               <h3 className="font-medium text-lg">Common SSH Commands</h3>
-              
+
               <div className="space-y-4">
                 <Card className="p-4">
                   <h4 className="font-medium mb-2">File Transfer (SCP)</h4>
@@ -215,7 +214,7 @@ ssh2des=0`;
 
             <TabsContent value="tools" className="space-y-4">
               <h3 className="font-medium text-lg">SSH Client Tools</h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Card className="p-4">
                   <h4 className="font-medium mb-2 flex items-center gap-2">

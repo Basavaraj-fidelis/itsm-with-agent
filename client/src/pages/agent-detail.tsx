@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { MetricCard } from "@/components/agent-detail/metric-card";
 import AgentTabs from "@/components/agent-detail/agent-tabs";
-import { AgentErrorBoundary } from "@/components/ui/agent-error-boundary";
+import { AgentErrorBoundary } from "@/components/ui/unified-error-boundary";
 import { useProcessedAgentData } from "@/lib/agent-data-processor";
 import { useAgent } from "@/hooks/use-agents";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +23,7 @@ import {
   MemoryStick,
   HardDrive,
   Network,
+  CheckCircle,
 } from "lucide-react";
 import { ALERT_THRESHOLDS, getAlertLevelSafe, getAlertColor } from "@shared/alert-thresholds";
 

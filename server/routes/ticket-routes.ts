@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { ticketStorage } from "../services/ticket-storage";
+import { ticketStatusEnum, priorityEnum, ticketTypeEnum } from "@shared/consolidated-schema";
 import { z } from "zod";
 
 const createTicketSchema = z.object({

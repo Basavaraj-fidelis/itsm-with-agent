@@ -1260,14 +1260,8 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                 label="Total Size"
                                 value={bytesToGB(drive.total)}
                               />
-                              <Stat
-                                label="Used"
-                                value={bytesToGB(drive.used)}
-                              />
-                              <Stat
-                                label="Free"
-                                value={bytesToGB(drive.free)}
-                              />
+                              <Stat label="Used" value={bytesToGB(drive.used)} />
+                              <Stat label="Free" value={bytesToGB(drive.free)} />
                               <Stat
                                 label="Filesystem"
                                 value={drive.filesystem || "N/A"}
