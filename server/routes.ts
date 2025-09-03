@@ -253,51 +253,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Hostname is required" });
       }
 
-      let device = await storage.getDeviceByHostname(hostname);
+      let device;
+      try {
+        device = await storage.getDeviceByHostname(hostname);
+      } catch (error) {
+        console.error("Error getting device by hostname:", error);
+        device = null;
+      }
 
       if (!device) {
-        device = await storage.createDevice({
-          hostname: hostname,
-          assigned_user: data.current_user || null,
-          os_name: data.os_info?.name || data.system_info?.platform || null,
-          os_version:
-            data.os_info?.version || data.system_info?.release || null,
-          ip_address: req.ip || null,
-          status: "online",
-          last_seen: new Date(),
-        });
+        try {
+          device = await storage.createDevice({
+            hostname: hostname,
+            assigned_user: data.current_user || null,
+            os_name: data.os_info?.name || data.system_info?.platform || null,
+            os_version:
+              data.os_info?.version || data.system_info?.release || null,
+            ip_address: req.ip || null,
+            status: "online",
+            last_seen: new Date(),
+          });
+        } catch (createError) {
+          console.error("Error creating device:", createError);
+          return res.status(500).json({ message: "Failed to create device" });
+        }
       } else {
-        await storage.updateDevice(device.id, {
-          status: "online",
-          last_seen: new Date(),
-        });
+        try {
+          await storage.updateDevice(device.id, {
+            status: "online",
+            last_seen: new Date(),
+          });
+        } catch (updateError) {
+          console.error("Error updating device:", updateError);
+          // Continue processing even if update fails
+        }
       }
+
+      // Extract metrics safely
+      const extractMetrics = (reportData) => {
+        try {
+          const metrics = {
+            cpu_usage: null,
+            memory_usage: null,
+            disk_usage: null,
+            network_io: null,
+          };
+
+          // CPU extraction
+          if (reportData.system_health?.cpu_usage !== undefined) {
+            metrics.cpu_usage = parseFloat(reportData.system_health.cpu_usage);
+          } else if (reportData.hardware?.cpu?.usage_percent !== undefined) {
+            metrics.cpu_usage = parseFloat(reportData.hardware.cpu.usage_percent);
+          }
+
+          // Memory extraction
+          if (reportData.system_health?.memory_usage !== undefined) {
+            metrics.memory_usage = parseFloat(reportData.system_health.memory_usage);
+          } else if (reportData.hardware?.memory?.percentage !== undefined) {
+            metrics.memory_usage = parseFloat(reportData.hardware.memory.percentage);
+          }
+
+          // Disk extraction
+          if (reportData.system_health?.disk_usage !== undefined) {
+            metrics.disk_usage = parseFloat(reportData.system_health.disk_usage);
+          } else if (reportData.storage?.[0]?.usage_percent !== undefined) {
+            metrics.disk_usage = parseFloat(reportData.storage[0].usage_percent);
+          }
+
+          // Network extraction
+          if (reportData.network?.io_counters?.bytes_sent !== undefined) {
+            metrics.network_io = parseInt(reportData.network.io_counters.bytes_sent);
+          }
+
+          return metrics;
+        } catch (error) {
+          console.error("Error extracting metrics:", error);
+          return {
+            cpu_usage: null,
+            memory_usage: null,
+            disk_usage: null,
+            network_io: null,
+          };
+        }
+      };
 
       const reportData = req.body;
+      const metrics = extractMetrics(reportData);
 
-      // Create device report with raw data
-      const deviceReport = await storage.createDeviceReport({
-        device_id: device.id,
-        cpu_usage: reportData.cpu_usage?.toString() || null,
-        memory_usage: reportData.memory_usage?.toString() || null,
-        disk_usage: reportData.disk_usage?.toString() || null,
-        network_io: reportData.network_io?.toString() || null,
-        raw_data: typeof reportData === 'object' ? JSON.stringify(reportData) : reportData,
-      });
-
-      // Security and performance checks
-      // Security compliance checks
-      if (reportData.usb_devices && Array.isArray(reportData.usb_devices)) {
-        await securityService.checkUSBCompliance(device.id, reportData.usb_devices);
+      // Create device report with extracted metrics
+      try {
+        await storage.createDeviceReport({
+          device_id: device.id,
+          cpu_usage: metrics.cpu_usage?.toString() || null,
+          memory_usage: metrics.memory_usage?.toString() || null,
+          disk_usage: metrics.disk_usage?.toString() || null,
+          network_io: metrics.network_io?.toString() || null,
+          raw_data: typeof reportData === 'object' ? JSON.stringify(reportData) : reportData,
+        });
+      } catch (reportError) {
+        console.error("Error creating device report:", reportError);
+        // Continue processing
       }
 
-      if (reportData.software?.installed && Array.isArray(reportData.software.installed)) {
-        await securityService.checkVulnerabilities(device.id, reportData.software.installed);
-        await securityService.checkSoftwareLicenseCompliance(device.id, reportData.software.installed);
+      // Process additional data safely
+      try {
+        if (reportData.usb_devices && Array.isArray(reportData.usb_devices)) {
+          const { enhancedStorage } = await import("./models/enhanced-storage");
+          await enhancedStorage.updateUSBDevices(device.id, reportData.usb_devices);
+        }
+      } catch (usbError) {
+        console.error("Error processing USB devices:", usbError);
       }
 
-      // Process device for performance alerts
-      await securityService.processAllDevicesForAlerts();
+      try {
+        if (reportData.software?.installed && Array.isArray(reportData.software.installed)) {
+          const { securityService } = await import("./services/security-service");
+          await securityService.checkVulnerabilities(device.id, reportData.software.installed);
+        }
+      } catch (securityError) {
+        console.error("Error processing security checks:", securityError);
+      }
 
       res.json({ message: "Report saved successfully" });
     } catch (error) {

@@ -28,8 +28,8 @@ const wsInstance = expressWs(app);
 
 // Middleware
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://your-domain.com'] 
+  origin: process.env.NODE_ENV === 'production'
+    ? ['https://your-domain.com']
     : ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://0.0.0.0:5173'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -47,20 +47,20 @@ app.use((err: any, req: any, res: any, next: any) => {
   console.error('Global error handler:', err);
 
   if (err.name === 'ValidationError') {
-    return res.status(400).json({ 
-      error: 'Validation Error', 
-      details: err.message 
+    return res.status(400).json({
+      error: 'Validation Error',
+      details: err.message
     });
   }
 
   if (err.name === 'UnauthorizedError') {
-    return res.status(401).json({ 
-      error: 'Unauthorized', 
-      message: 'Invalid token' 
+    return res.status(401).json({
+      error: 'Unauthorized',
+      message: 'Invalid token'
     });
   }
 
-  res.status(500).json({ 
+  res.status(500).json({
     error: 'Internal Server Error',
     message: process.env.NODE_ENV === 'production' ? 'Something went wrong' : err.message
   });
@@ -358,15 +358,15 @@ app.use((req, res, next) => {
         // Test database connection
         await db.execute(sql`SELECT 1`);
 
-        res.json({ 
-          status: "ok", 
+        res.json({
+          status: "ok",
           timestamp: new Date(),
           database: "connected",
           server: "running"
         });
       } catch (error) {
-        res.status(500).json({ 
-          status: "error", 
+        res.status(500).json({
+          status: "error",
           timestamp: new Date(),
           database: "disconnected",
           error: error.message
@@ -582,7 +582,7 @@ app.get('/api/auth/test', (req, res) => {
   }
 });
 
-// Alert routes 
+// Alert routes
     const alertRoutes = express.Router();
 
     alertRoutes.get('/', async (req, res) => {

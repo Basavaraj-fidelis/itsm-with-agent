@@ -1815,16 +1815,58 @@ smartphones
     id: string,
     device: Partial<InsertDevice>,
   ): Promise<Device | undefined> {
-    const existing = this.devices.get(id);
-    if (!existing) return undefined;
+    try {
+      // Try database first
+      const { pool } = await import("./db");
 
-    const updated: Device = {
-      ...existing,
-      ...device,
-      updated_at: new Date(),
-    };
-    this.devices.set(id, updated);
-    return updated;
+      const result = await pool.query(
+        `UPDATE devices 
+         SET hostname = COALESCE($2, hostname),
+             assigned_user = COALESCE($3, assigned_user),
+             os_name = COALESCE($4, os_name),
+             os_version = COALESCE($5, os_version),
+             ip_address = COALESCE($6, ip_address),
+             status = COALESCE($7, status),
+             last_seen = COALESCE($8, last_seen),
+             updated_at = NOW()
+         WHERE id = $1
+         RETURNING *`,
+        [
+          id,
+          device.hostname,
+          device.assigned_user,
+          device.os_name,
+          device.os_version,
+          device.ip_address,
+          device.status,
+          device.last_seen,
+        ]
+      );
+
+      if (result.rows.length > 0) {
+        return result.rows[0];
+      }
+
+      return undefined;
+    } catch (error) {
+      console.error("Database update failed, using fallback:", error);
+
+      // Fallback to in-memory storage
+      if (!this.devices) {
+        this.devices = new Map();
+      }
+
+      const existing = this.devices.get(id);
+      if (!existing) return undefined;
+
+      const updated: Device = {
+        ...existing,
+        ...device,
+        updated_at: new Date(),
+      };
+      this.devices.set(id, updated);
+      return updated;
+    }
   }
 
   async createDeviceReport(report: InsertDeviceReport): Promise<DeviceReport> {

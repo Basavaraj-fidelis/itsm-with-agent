@@ -68,16 +68,26 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
     };
 
     if (agent.id) {
-      fetchUSBHistory().catch(error => {
-        console.error("Unhandled error in fetchUSBHistory:", error);
-        setUsbHistory([]);
-      });
+      // Use proper promise handling
+      const handleFetch = async () => {
+        try {
+          await fetchUSBHistory();
+        } catch (error) {
+          console.error("Unhandled error in fetchUSBHistory:", error);
+          setUsbHistory([]);
+        }
+      };
+
+      handleFetch();
       
-      // Refresh USB history every 30 seconds
-      const interval = setInterval(() => {
-        fetchUSBHistory().catch(error => {
+      // Refresh USB history every 30 seconds with proper error handling
+      const interval = setInterval(async () => {
+        try {
+          await fetchUSBHistory();
+        } catch (error) {
           console.error("Unhandled error in fetchUSBHistory interval:", error);
-        });
+          setUsbHistory([]);
+        }
       }, 30000);
       
       return () => clearInterval(interval);

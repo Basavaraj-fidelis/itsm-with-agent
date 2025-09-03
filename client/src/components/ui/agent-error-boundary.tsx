@@ -19,7 +19,32 @@ export class AgentErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = { hasError: false, error: null };
+    
+    // Handle unhandled promise rejections
+    if (typeof window !== 'undefined') {
+      window.addEventListener('unhandledrejection', this.handleUnhandledRejection);
+    }
   }
+
+  componentWillUnmount() {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('unhandledrejection', this.handleUnhandledRejection);
+    }
+  }
+
+  handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+    console.error('Unhandled promise rejection:', event.reason);
+    // Prevent the default behavior (console error)
+    event.preventDefault();
+    
+    // Set error state if it's a critical error
+    if (event.reason && event.reason.message) {
+      this.setState({ 
+        hasError: true, 
+        error: new Error(`Promise rejection: ${event.reason.message}`) 
+      });
+    }
+  };
 
   static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
