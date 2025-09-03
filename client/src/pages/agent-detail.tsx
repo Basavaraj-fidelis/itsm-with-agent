@@ -512,13 +512,20 @@ export default function AgentDetail() {
                   <div className="flex items-center space-x-2">
                     {(() => {
                       const lastSeen = agent.last_seen ? new Date(agent.last_seen) : null;
+                      const latestReport = agent.latest_report?.collected_at ? new Date(agent.latest_report.collected_at) : null;
                       const now = new Date();
-                      const minutesOld = lastSeen ? Math.floor((now.getTime() - lastSeen.getTime()) / (1000 * 60)) : null;
+                      
+                      // Use the most recent timestamp between last_seen and latest_report
+                      const mostRecentTime = lastSeen && latestReport ? 
+                        (lastSeen > latestReport ? lastSeen : latestReport) : 
+                        (lastSeen || latestReport);
+                      
+                      const minutesOld = mostRecentTime ? Math.floor((now.getTime() - mostRecentTime.getTime()) / (1000 * 60)) : null;
 
                       let statusColor = "bg-gray-500";
                       let statusText = "Unknown";
 
-                      // Use consistent 5-minute threshold
+                      // Consistent 5-minute threshold across all views
                       if (minutesOld !== null) {
                         if (minutesOld < 5) {
                           statusColor = "bg-green-500";

@@ -100,6 +100,10 @@ export function HardwareTab({
           <CardContent>
             <div className="space-y-6">
               {extractedUsbDevices.map((device: any, index: number) => {
+                if (!device || !device.device_id) {
+                  return null; // Skip invalid devices
+                }
+                
                 const vendorId =
                   device.vendor_id ||
                   AgentDataProcessor.extractVendorIdFromDeviceId(
@@ -210,7 +214,7 @@ export function HardwareTab({
 
                 return (
                   <div
-                    key={`usb-${device.device_id || index}`}
+                    key={`usb-${device.device_id}-${index}`}
                     className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700"
                   >
                     <div className="mb-4">

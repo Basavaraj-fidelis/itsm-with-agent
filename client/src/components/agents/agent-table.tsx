@@ -51,7 +51,21 @@ export const AgentTable: React.FC<AgentTableProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [deleteAgent, setDeleteAgent] = useState<any>(null);
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (agent: any) => {
+    let status = 'offline'; // Default to offline
+    if (agent && agent.last_seen) {
+      const lastSeenDate = new Date(agent.last_seen);
+      const now = new Date();
+      const timeDifference = now.getTime() - lastSeenDate.getTime();
+      const minutesDifference = timeDifference / (1000 * 60);
+
+      if (minutesDifference < 5) {
+        status = 'online';
+      } else if (minutesDifference < 15) {
+        status = 'warning';
+      }
+    }
+
     const statusConfig = {
       online: { variant: 'default' as const, icon: CheckCircle, className: 'bg-green-100 text-green-800 border-green-200' },
       offline: { variant: 'secondary' as const, icon: WifiOff, className: 'bg-red-100 text-red-800 border-red-200' },
@@ -86,14 +100,14 @@ export const AgentTable: React.FC<AgentTableProps> = ({
         // Extract proper hostname and active IP
         let hostname = agent.hostname || value || 'Unknown';
         let activeIP = 'No IP';
-        
+
         // Get hostname from raw data if available
         if (agent.latest_report?.raw_data) {
           try {
             const rawData = typeof agent.latest_report.raw_data === 'string' 
               ? JSON.parse(agent.latest_report.raw_data) 
               : agent.latest_report.raw_data;
-            
+
             // Get hostname from raw data
             if (rawData.hostname || rawData.computer_name) {
               hostname = rawData.hostname || rawData.computer_name;
@@ -102,10 +116,10 @@ export const AgentTable: React.FC<AgentTableProps> = ({
             // Use fallback values
           }
         }
-        
+
         // Use the active IP from the device record (already processed by backend)
         activeIP = agent.ip_address || 'No IP';
-        
+
         return (
           <div className="flex items-center space-x-3">
             <Monitor className="h-5 w-5 text-gray-400" />
@@ -126,7 +140,7 @@ export const AgentTable: React.FC<AgentTableProps> = ({
       header: 'Status',
       sortable: true,
       filterable: true,
-      render: (value) => getStatusBadge(value)
+      cell: ({ row }) => getStatusBadge(row.original),
     },
     {
       key: 'last_seen',
@@ -141,7 +155,7 @@ export const AgentTable: React.FC<AgentTableProps> = ({
       render: (value, agent) => {
         // Extract CPU from multiple possible sources with proper field names
         let cpuValue = 0;
-        
+
         // First check direct fields
         if (agent.latest_report?.cpu_usage && parseFloat(agent.latest_report.cpu_usage) > 0) {
           cpuValue = parseFloat(agent.latest_report.cpu_usage);
@@ -150,7 +164,7 @@ export const AgentTable: React.FC<AgentTableProps> = ({
             const rawData = typeof agent.latest_report.raw_data === 'string' 
               ? JSON.parse(agent.latest_report.raw_data) 
               : agent.latest_report.raw_data;
-            
+
             // Try multiple extraction paths
             cpuValue = rawData?.hardware?.cpu?.usage_percent || 
                       rawData?.system_health?.cpu_usage ||
@@ -160,7 +174,7 @@ export const AgentTable: React.FC<AgentTableProps> = ({
             cpuValue = parseFloat(agent.latest_report?.cpu_usage || '0');
           }
         }
-        
+
         return `${Math.max(0, Math.min(100, parseFloat(cpuValue))).toFixed(1)}%`;
       }
     },
@@ -171,7 +185,7 @@ export const AgentTable: React.FC<AgentTableProps> = ({
       render: (value, agent) => {
         // Extract Memory from multiple possible sources with proper field names
         let memoryValue = 0;
-        
+
         // First check direct fields
         if (agent.latest_report?.memory_usage && parseFloat(agent.latest_report.memory_usage) > 0) {
           memoryValue = parseFloat(agent.latest_report.memory_usage);
@@ -180,7 +194,7 @@ export const AgentTable: React.FC<AgentTableProps> = ({
             const rawData = typeof agent.latest_report.raw_data === 'string' 
               ? JSON.parse(agent.latest_report.raw_data) 
               : agent.latest_report.raw_data;
-            
+
             // Try multiple extraction paths
             memoryValue = rawData?.hardware?.memory?.percentage || 
                          rawData?.system_health?.memory_usage ||
@@ -190,7 +204,7 @@ export const AgentTable: React.FC<AgentTableProps> = ({
             memoryValue = parseFloat(agent.latest_report?.memory_usage || '0');
           }
         }
-        
+
         return `${Math.max(0, Math.min(100, parseFloat(memoryValue))).toFixed(1)}%`;
       }
     },
@@ -201,22 +215,22 @@ export const AgentTable: React.FC<AgentTableProps> = ({
       render: (value, agent) => {
         // Extract Disk from multiple possible sources with proper field names
         let diskValue = 0;
-        
+
         // First check direct fields
         if (agent.latest_report?.disk_usage && parseFloat(agent.latest_report.disk_usage) > 0) {
           diskValue = parseFloat(agent.latest_report.disk_usage);
         } else if (agent.latest_report?.raw_data) {
           try {
             const rawData = typeof agent.latest_report.raw_data === 'string' 
-              ? JSON.parse(agent.latest_report.raw_data) 
+              ? JSON.JSON.parse(agent.latest_report.raw_data) 
               : agent.latest_report.raw_data;
-            
+
             // Try to get from storage disks (primary disk usage)
             if (rawData?.storage?.disks && Array.isArray(rawData.storage.disks)) {
               const primaryDisk = rawData.storage.disks.find(disk => 
                 disk.device === 'C:\\' || disk.mountpoint === 'C:\\'
               ) || rawData.storage.disks[0];
-              
+
               if (primaryDisk?.percent) {
                 diskValue = parseFloat(primaryDisk.percent);
               }
@@ -230,7 +244,7 @@ export const AgentTable: React.FC<AgentTableProps> = ({
             diskValue = parseFloat(agent.latest_report?.disk_usage || '0');
           }
         }
-        
+
         return `${Math.max(0, Math.min(100, parseFloat(diskValue))).toFixed(1)}%`;
       }
     }

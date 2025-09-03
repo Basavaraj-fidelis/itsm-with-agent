@@ -32,33 +32,50 @@ interface AgentTabsProps {
 
 // Helper function to merge current USB data with historical data
 const mergeUSBData = (currentDevices: any[], historicalDevices: any[]) => {
-  const merged = [...(historicalDevices || [])];
+  // Create a map to track unique devices by a composite key
+  const deviceMap = new Map();
 
-  // Add any current devices that aren't in history
-  (currentDevices || []).forEach((current) => {
-    const existingIndex = merged.findIndex(
-      (hist) => hist.device_id === current.device_id,
-    );
-    if (existingIndex === -1) {
-      // New device not in history
-      merged.push({
-        ...current,
-        connection_time: current.connection_time || new Date().toISOString(),
-        first_seen: current.first_seen || new Date().toISOString(),
-        is_connected: true,
+  // Process historical devices first
+  (historicalDevices || []).forEach((device) => {
+    if (device && device.device_id) {
+      const key = device.device_id;
+      deviceMap.set(key, {
+        ...device,
+        is_connected: false // Mark historical as disconnected by default
       });
-    } else {
-      // Update existing device with current data
-      merged[existingIndex] = {
-        ...merged[existingIndex],
-        ...current,
-        is_connected: true,
-        last_seen: new Date().toISOString(),
-      };
     }
   });
 
-  return merged.filter(Boolean);
+  // Process current devices and update/add them
+  (currentDevices || []).forEach((current) => {
+    if (current && current.device_id) {
+      const key = current.device_id;
+      const existing = deviceMap.get(key);
+      
+      if (existing) {
+        // Update existing device with current data
+        deviceMap.set(key, {
+          ...existing,
+          ...current,
+          is_connected: true,
+          last_seen: new Date().toISOString(),
+          connection_time: existing.connection_time || current.connection_time || new Date().toISOString(),
+          first_seen: existing.first_seen || current.first_seen || new Date().toISOString(),
+        });
+      } else {
+        // Add new device
+        deviceMap.set(key, {
+          ...current,
+          connection_time: current.connection_time || new Date().toISOString(),
+          first_seen: current.first_seen || new Date().toISOString(),
+          is_connected: true,
+        });
+      }
+    }
+  });
+
+  // Convert map back to array and filter out any invalid entries
+  return Array.from(deviceMap.values()).filter(device => device && device.device_id);
 };
 
 export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
