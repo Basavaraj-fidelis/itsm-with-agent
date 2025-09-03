@@ -1800,18 +1800,14 @@ smartphones
   }
 
   async createDevice(device: InsertDevice): Promise<Device> {
-    const [newDevice] = await db
-      .insert(devices)
-      .values({
-        ...device,
-        assigned_user: device.assigned_user || null,
-        os_name: device.os_name || null,
-        os_version: device.os_version || null,
-        ip_address: device.ip_address || null,
-        status: device.status || "offline",
-        last_seen: device.last_seen || null,
-      })
-      .returning();
+    const id = this.generateId();
+    const newDevice: Device = {
+      ...device,
+      id,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+    this.devices.set(id, newDevice);
     return newDevice;
   }
 
@@ -1819,28 +1815,26 @@ smartphones
     id: string,
     device: Partial<InsertDevice>,
   ): Promise<Device | undefined> {
-    const [updatedDevice] = await db
-      .update(devices)
-      .set({
-        ...device,
-        updated_at: new Date(),
-      })
-      .where(eq(devices.id, id))
-      .returning();
-    return updatedDevice || undefined;
+    const existing = this.devices.get(id);
+    if (!existing) return undefined;
+
+    const updated: Device = {
+      ...existing,
+      ...device,
+      updated_at: new Date(),
+    };
+    this.devices.set(id, updated);
+    return updated;
   }
 
   async createDeviceReport(report: InsertDeviceReport): Promise<DeviceReport> {
-    const [newReport] = await db
-      .insert(device_reports)
-      .values({
-        ...report,
-        cpu_usage: report.cpu_usage || null,
-        memory_usage: report.memory_usage || null,
-        disk_usage: report.disk_usage || null,
-        network_io: report.network_io || null,
-      })
-      .returning();
+    const id = this.generateId();
+    const newReport: DeviceReport = {
+      ...report,
+      id,
+      collected_at: new Date(),
+    };
+    this.deviceReports.set(id, newReport);
     return newReport;
   }
 
@@ -2608,7 +2602,7 @@ smartphones
         cpuUsage = parseFloat(data.cpu_usage);
         console.log('CPU from direct field:', cpuUsage);
       }
-      
+
       // Additional check for Windows-style CPU data
       if (cpuUsage === null && data.hardware?.cpu?.cores) {
         const cores = data.hardware.cpu.cores;
@@ -2635,7 +2629,7 @@ smartphones
         memoryUsage = parseFloat(data.memory_usage);
         console.log('Memory from direct field:', memoryUsage);
       }
-      
+
       // Calculate from total/used if percentage not available
       if (memoryUsage === null && data.hardware?.memory?.total && data.hardware?.memory?.used) {
         const total = parseFloat(data.hardware.memory.total);

@@ -96,6 +96,9 @@ class USBModule(BaseModule):
                         if (device.get('Status') == 'OK' and 
                             device.get('Present', True) and
                             device.get('DeviceID')):
+                            # Get connection time from system if possible
+                            connection_time = self._get_device_connection_time(device.get('DeviceID', ''))
+                            
                             device_info = {
                                 'device_id': device.get('DeviceID', ''),
                                 'description': device.get('Description', 'Unknown USB Device'),
@@ -105,9 +108,12 @@ class USBModule(BaseModule):
                                 'vendor_id': self._extract_vendor_id(device.get('DeviceID', '')),
                                 'product_id': self._extract_product_id(device.get('DeviceID', '')),
                                 'device_type': self._categorize_device(device.get('Description', '')),
-                                'connection_time': None,
-                                'serial_number': None,
-                                'is_present': device.get('Present', True)
+                                'connection_time': connection_time,
+                                'first_seen': connection_time,
+                                'last_seen': None,
+                                'is_connected': True,
+                                'is_present': device.get('Present', True),
+                                'serial_number': self._extract_serial_from_device_id(device.get('DeviceID', ''))
                             }
                             devices.append(device_info)
 
@@ -162,6 +168,57 @@ class USBModule(BaseModule):
             self.logger.error(f"Error getting Windows USB devices: {e}")
 
         return devices
+
+    def _get_device_connection_time(self, device_id: str) -> str:
+        """Get device connection time on Windows using WMI"""
+        if not self.is_windows or not device_id:
+            return None
+            
+        try:
+            # Use PowerShell to get device installation date
+            ps_command = f"""
+            Get-WmiObject -Class Win32_PnPEntity | 
+            Where-Object {{ $_.DeviceID -eq '{device_id}' }} | 
+            Select-Object InstallDate | 
+            ConvertTo-Json
+            """
+            
+            result = subprocess.run([
+                "powershell", "-Command", ps_command
+            ], capture_output=True, text=True, timeout=10)
+            
+            if result.returncode == 0 and result.stdout.strip():
+                try:
+                    data = json.loads(result.stdout.strip())
+                    if data and data.get('InstallDate'):
+                        # Convert WMI datetime format to ISO format
+                        install_date = data['InstallDate']
+                        if install_date:
+                            # WMI format: 20250903062529.000000+000
+                            # Convert to ISO format
+                            import datetime
+                            dt = datetime.datetime.strptime(install_date[:14], '%Y%m%d%H%M%S')
+                            return dt.isoformat()
+                except (json.JSONDecodeError, ValueError) as e:
+                    self.logger.debug(f"Error parsing connection time: {e}")
+        except Exception as e:
+            self.logger.debug(f"Error getting connection time for {device_id}: {e}")
+            
+        return None
+
+    def _extract_serial_from_device_id(self, device_id: str) -> str:
+        """Extract serial number from Windows device ID"""
+        if not device_id:
+            return None
+            
+        # Extract from device ID patterns like USB\VID_xxxx&PID_xxxx\SerialNumber
+        match = re.search(r'\\([A-Z0-9&]+)$', device_id)
+        if match:
+            serial_part = match.group(1)
+            # Remove any trailing & and numbers
+            serial = re.sub(r'&\d+$', '', serial_part)
+            return serial if len(serial) > 3 else None
+        return None
 
     def _get_linux_usb_devices(self) -> List[Dict[str, Any]]:
         """Get USB devices on Linux"""
