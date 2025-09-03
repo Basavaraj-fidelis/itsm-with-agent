@@ -53,16 +53,26 @@ export const AgentTable: React.FC<AgentTableProps> = ({
 
   const getStatusBadge = (agent: any) => {
     let status = 'offline'; // Default to offline
-    if (agent && agent.last_seen) {
-      const lastSeenDate = new Date(agent.last_seen);
+    
+    // Get the most recent timestamp from either last_seen or latest_report
+    const lastSeen = agent?.last_seen ? new Date(agent.last_seen) : null;
+    const latestReport = agent?.latest_report?.collected_at ? new Date(agent.latest_report.collected_at) : null;
+    const mostRecentTime = lastSeen && latestReport ? 
+      (lastSeen > latestReport ? lastSeen : latestReport) : 
+      (lastSeen || latestReport);
+    
+    if (mostRecentTime) {
       const now = new Date();
-      const timeDifference = now.getTime() - lastSeenDate.getTime();
+      const timeDifference = now.getTime() - mostRecentTime.getTime();
       const minutesDifference = timeDifference / (1000 * 60);
 
+      // Use consistent 5-minute threshold like in agent detail
       if (minutesDifference < 5) {
         status = 'online';
-      } else if (minutesDifference < 15) {
+      } else if (minutesDifference <= 60) {
         status = 'warning';
+      } else {
+        status = 'offline';
       }
     }
 
@@ -140,7 +150,7 @@ export const AgentTable: React.FC<AgentTableProps> = ({
       header: 'Status',
       sortable: true,
       filterable: true,
-      cell: ({ row }) => getStatusBadge(row.original),
+      render: (value, agent) => getStatusBadge(agent),
     },
     {
       key: 'last_seen',

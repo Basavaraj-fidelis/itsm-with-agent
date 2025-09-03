@@ -80,25 +80,76 @@ export function UpdatesTab({ agent, windowsUpdates }: UpdatesTabProps) {
                               Available Windows Updates ({windowsUpdates.available_updates.length})
                             </h4>
                             <div className="space-y-2 max-h-64 overflow-y-auto">
-                              {windowsUpdates.available_updates.slice(0, 10).map((update, index) => (
-                                <div key={index} className="p-3 border rounded-lg bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border-orange-200 dark:border-orange-800">
-                                  <div className="flex justify-between items-start mb-2">
-                                    <div className="text-sm font-medium text-orange-800 dark:text-orange-200">
-                                      {update.Title || update.title}
+                              {windowsUpdates.available_updates.slice(0, 10).map((update, index) => {
+                                const getSeverityColor = (severity: string) => {
+                                  switch (severity?.toLowerCase()) {
+                                    case 'critical': return 'bg-red-100 border-red-300 text-red-800 dark:bg-red-900/30 dark:border-red-700 dark:text-red-200';
+                                    case 'important': return 'bg-orange-100 border-orange-300 text-orange-800 dark:bg-orange-900/30 dark:border-orange-700 dark:text-orange-200';
+                                    case 'moderate': return 'bg-yellow-100 border-yellow-300 text-yellow-800 dark:bg-yellow-900/30 dark:border-yellow-700 dark:text-yellow-200';
+                                    case 'low': return 'bg-green-100 border-green-300 text-green-800 dark:bg-green-900/30 dark:border-green-700 dark:text-green-200';
+                                    default: return 'bg-gray-100 border-gray-300 text-gray-800 dark:bg-gray-900/30 dark:border-gray-700 dark:text-gray-200';
+                                  }
+                                };
+                                
+                                const severity = update.Severity || 'Unknown';
+                                const isSecurityUpdate = update.Title?.toLowerCase().includes('security') || 
+                                                       update.Description?.toLowerCase().includes('security') ||
+                                                       update.Categories?.some((cat: string) => cat.toLowerCase().includes('security'));
+                                
+                                return (
+                                  <div key={index} className={`p-3 border rounded-lg ${getSeverityColor(severity)}`}>
+                                    <div className="flex justify-between items-start mb-2">
+                                      <div className="text-sm font-medium flex-1 pr-2">
+                                        {update.Title || update.title}
+                                        {isSecurityUpdate && (
+                                          <Shield className="inline w-4 h-4 ml-1 text-red-600" />
+                                        )}
+                                      </div>
+                                      <div className="flex gap-1 flex-shrink-0">
+                                        <Badge variant={severity === "Critical" ? "destructive" : severity === "Important" ? "default" : "secondary"}>
+                                          {severity}
+                                        </Badge>
+                                        {update.RebootRequired && (
+                                          <Badge variant="outline" className="text-xs">
+                                            Reboot Required
+                                          </Badge>
+                                        )}
+                                      </div>
                                     </div>
-                                    {update.Severity && (
-                                      <Badge variant={update.Severity === "Critical" ? "destructive" : "secondary"}>
-                                        {update.Severity}
-                                      </Badge>
+                                    <div className="grid grid-cols-2 gap-4 text-xs">
+                                      <div>
+                                        {update.KBArticleIDs && (
+                                          <div className="mb-1">
+                                            <span className="font-medium">KB:</span> {update.KBArticleIDs}
+                                          </div>
+                                        )}
+                                        {update.Size && (
+                                          <div className="mb-1">
+                                            <span className="font-medium">Size:</span> {(update.Size / 1024 / 1024).toFixed(1)} MB
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div>
+                                        {update.IsDownloaded !== undefined && (
+                                          <div className="mb-1">
+                                            <span className="font-medium">Downloaded:</span> {update.IsDownloaded ? 'Yes' : 'No'}
+                                          </div>
+                                        )}
+                                        {isSecurityUpdate && (
+                                          <div className="mb-1 text-red-600 font-medium">
+                                            🛡️ Security Update
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                    {update.Description && (
+                                      <div className="mt-2 text-xs opacity-75 line-clamp-2">
+                                        {update.Description}
+                                      </div>
                                     )}
                                   </div>
-                                  {update.KBArticleIDs && (
-                                    <div className="text-xs text-orange-600 dark:text-orange-400">
-                                      KB: {update.KBArticleIDs}
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           </div>
                         ) : null}
@@ -111,16 +162,51 @@ export function UpdatesTab({ agent, windowsUpdates }: UpdatesTabProps) {
                               Recently Installed Windows Updates ({windowsUpdates.installed_updates.length})
                             </h4>
                             <div className="space-y-2 max-h-64 overflow-y-auto">
-                              {windowsUpdates.installed_updates.slice(0, 15).map((update, index) => (
-                                <div key={index} className="flex justify-between items-center py-3 px-4 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-800">
-                                  <span className="text-sm font-medium text-green-800 dark:text-green-200">
-                                    {update.Title || update.title}
-                                  </span>
-                                  <span className="text-xs text-green-600 dark:text-green-400">
-                                    {update.Date || update.install_date || "Unknown date"}
-                                  </span>
-                                </div>
-                              ))}
+                              {windowsUpdates.installed_updates.slice(0, 15).map((update, index) => {
+                                const isSecurityUpdate = update.Title?.toLowerCase().includes('security') || 
+                                                       update.Title?.toLowerCase().includes('defender') ||
+                                                       update.Title?.toLowerCase().includes('malicious');
+                                const isSystemUpdate = update.Title?.toLowerCase().includes('cumulative') ||
+                                                     update.Title?.toLowerCase().includes('platform');
+                                
+                                return (
+                                  <div key={index} className="py-3 px-4 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-800">
+                                    <div className="flex justify-between items-start mb-1">
+                                      <div className="text-sm font-medium text-green-800 dark:text-green-200 flex-1 pr-2">
+                                        {update.Title || update.title}
+                                        {isSecurityUpdate && (
+                                          <Shield className="inline w-3 h-3 ml-1 text-green-600" />
+                                        )}
+                                      </div>
+                                      <div className="text-xs text-green-600 dark:text-green-400 flex-shrink-0">
+                                        {update.Date || update.install_date || "Unknown date"}
+                                      </div>
+                                    </div>
+                                    <div className="flex gap-2 text-xs">
+                                      {isSecurityUpdate && (
+                                        <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+                                          Security
+                                        </Badge>
+                                      )}
+                                      {isSystemUpdate && (
+                                        <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">
+                                          System
+                                        </Badge>
+                                      )}
+                                      {update.ResultCode === 2 && (
+                                        <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+                                          ✓ Success
+                                        </Badge>
+                                      )}
+                                      {update.ClientApplicationID && (
+                                        <span className="text-gray-500">
+                                          via {update.ClientApplicationID}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         ) : null}

@@ -32,16 +32,21 @@ interface AgentTabsProps {
 
 // Helper function to merge current USB data with historical data
 const mergeUSBData = (currentDevices: any[], historicalDevices: any[]) => {
-  // Create a map to track unique devices by a composite key
+  // Create a map to track unique devices by a more specific composite key
   const deviceMap = new Map();
 
   // Process historical devices first
   (historicalDevices || []).forEach((device) => {
     if (device && device.device_id) {
-      const key = device.device_id;
+      // Use a composite key including vendor/product IDs to better identify unique devices
+      const vendorId = device.vendor_id || 'unknown';
+      const productId = device.product_id || 'unknown';
+      const key = `${device.device_id}-${vendorId}-${productId}`;
+      
       deviceMap.set(key, {
         ...device,
-        is_connected: false // Mark historical as disconnected by default
+        is_connected: false, // Mark historical as disconnected by default
+        _composite_key: key
       });
     }
   });
@@ -49,11 +54,13 @@ const mergeUSBData = (currentDevices: any[], historicalDevices: any[]) => {
   // Process current devices and update/add them
   (currentDevices || []).forEach((current) => {
     if (current && current.device_id) {
-      const key = current.device_id;
+      const vendorId = current.vendor_id || 'unknown';
+      const productId = current.product_id || 'unknown';
+      const key = `${current.device_id}-${vendorId}-${productId}`;
       const existing = deviceMap.get(key);
       
       if (existing) {
-        // Update existing device with current data
+        // Update existing device with current data, preserving historical connection times
         deviceMap.set(key, {
           ...existing,
           ...current,
@@ -61,6 +68,7 @@ const mergeUSBData = (currentDevices: any[], historicalDevices: any[]) => {
           last_seen: new Date().toISOString(),
           connection_time: existing.connection_time || current.connection_time || new Date().toISOString(),
           first_seen: existing.first_seen || current.first_seen || new Date().toISOString(),
+          _composite_key: key
         });
       } else {
         // Add new device
@@ -69,13 +77,28 @@ const mergeUSBData = (currentDevices: any[], historicalDevices: any[]) => {
           connection_time: current.connection_time || new Date().toISOString(),
           first_seen: current.first_seen || new Date().toISOString(),
           is_connected: true,
+          _composite_key: key
         });
       }
     }
   });
 
   // Convert map back to array and filter out any invalid entries
-  return Array.from(deviceMap.values()).filter(device => device && device.device_id);
+  const uniqueDevices = Array.from(deviceMap.values()).filter(device => device && device.device_id);
+  
+  // Remove duplicates based on device_id and connection time if they still exist
+  const finalDevices = [];
+  const seenDevices = new Set();
+  
+  for (const device of uniqueDevices) {
+    const deviceKey = `${device.device_id}-${device.connection_time}`;
+    if (!seenDevices.has(deviceKey)) {
+      seenDevices.add(deviceKey);
+      finalDevices.push(device);
+    }
+  }
+  
+  return finalDevices;
 };
 
 export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
