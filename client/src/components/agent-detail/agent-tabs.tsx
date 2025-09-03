@@ -1,8 +1,19 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AgentErrorBoundary, SafeDataRenderer } from "@/components/ui/agent-error-boundary";
+import {
+  AgentErrorBoundary,
+  SafeDataRenderer,
+} from "@/components/ui/agent-error-boundary";
 import { useProcessedAgentData } from "@/lib/agent-data-processor";
 import type { Agent } from "@/types/agent-types";
-import { Activity, Brain, Cpu, Network, HardDrive, Package, Download } from "lucide-react";
+import {
+  Activity,
+  Brain,
+  Cpu,
+  Network,
+  HardDrive,
+  Package,
+  Download,
+} from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import { AIInsights } from "./ai-insights";
 import { AgentDataProcessor } from "@/lib/agent-data-processor";
@@ -17,38 +28,38 @@ import { UpdatesTab } from "./updates-tab";
 interface AgentTabsProps {
   agent: Agent;
   processedData?: any;
-
-
-  // Helper function to merge current USB data with historical data
-  const mergeUSBData = (currentDevices: any[], historicalDevices: any[]) => {
-    const merged = [...(historicalDevices || [])];
-    
-    // Add any current devices that aren't in history
-    (currentDevices || []).forEach(current => {
-      const existingIndex = merged.findIndex(hist => hist.device_id === current.device_id);
-      if (existingIndex === -1) {
-        // New device not in history
-        merged.push({
-          ...current,
-          connection_time: current.connection_time || new Date().toISOString(),
-          first_seen: current.first_seen || new Date().toISOString(),
-          is_connected: true
-        });
-      } else {
-        // Update existing device with current data
-        merged[existingIndex] = {
-          ...merged[existingIndex],
-          ...current,
-          is_connected: true,
-          last_seen: new Date().toISOString()
-        };
-      }
-    });
-    
-    return merged.filter(Boolean);
-  };
-
 }
+
+// Helper function to merge current USB data with historical data
+const mergeUSBData = (currentDevices: any[], historicalDevices: any[]) => {
+  const merged = [...(historicalDevices || [])];
+
+  // Add any current devices that aren't in history
+  (currentDevices || []).forEach((current) => {
+    const existingIndex = merged.findIndex(
+      (hist) => hist.device_id === current.device_id,
+    );
+    if (existingIndex === -1) {
+      // New device not in history
+      merged.push({
+        ...current,
+        connection_time: current.connection_time || new Date().toISOString(),
+        first_seen: current.first_seen || new Date().toISOString(),
+        is_connected: true,
+      });
+    } else {
+      // Update existing device with current data
+      merged[existingIndex] = {
+        ...merged[existingIndex],
+        ...current,
+        is_connected: true,
+        last_seen: new Date().toISOString(),
+      };
+    }
+  });
+
+  return merged.filter(Boolean);
+};
 
 export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
   const [usbHistory, setUsbHistory] = useState([]);
@@ -59,7 +70,10 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
         const token = localStorage.getItem("auth_token");
         const response = await fetch(`/api/devices/${agent.id}/usb-devices`, {
           headers: token
-            ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
+            ? {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              }
             : { "Content-Type": "application/json" },
         });
 
@@ -69,7 +83,11 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
         } else if (response.status === 403) {
           console.warn("Access forbidden for USB devices endpoint");
         } else {
-          console.error("Failed to fetch USB devices:", response.status, response.statusText);
+          console.error(
+            "Failed to fetch USB devices:",
+            response.status,
+            response.statusText,
+          );
         }
       } catch (error) {
         console.error("Error fetching USB history:", error);
@@ -116,18 +134,28 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
         };
       }
 
-      const rawData = typeof agent.latest_report.raw_data === "string"
-        ? JSON.parse(agent.latest_report.raw_data)
-        : agent.latest_report.raw_data;
+      const rawData =
+        typeof agent.latest_report.raw_data === "string"
+          ? JSON.parse(agent.latest_report.raw_data)
+          : agent.latest_report.raw_data;
 
       return {
         systemInfo: AgentDataProcessor.extractSystemInfo(agent, rawData),
         networkInfo: AgentDataProcessor.extractNetworkInfo(agent, rawData),
         hardwareInfo: AgentDataProcessor.extractHardwareInfo(rawData),
-        usbDevices: mergeUSBData(AgentDataProcessor.extractUSBDevices(rawData) || [], usbHistory),
-        processes: (AgentDataProcessor.extractProcesses(rawData) || []).filter(Boolean),
-        software: (AgentDataProcessor.extractSoftware(rawData) || []).filter(Boolean),
-        storage: (AgentDataProcessor.extractStorage(rawData) || []).filter(Boolean),
+        usbDevices: mergeUSBData(
+          AgentDataProcessor.extractUSBDevices(rawData) || [],
+          usbHistory,
+        ),
+        processes: (AgentDataProcessor.extractProcesses(rawData) || []).filter(
+          Boolean,
+        ),
+        software: (AgentDataProcessor.extractSoftware(rawData) || []).filter(
+          Boolean,
+        ),
+        storage: (AgentDataProcessor.extractStorage(rawData) || []).filter(
+          Boolean,
+        ),
       };
     } catch (error) {
       console.error("Error extracting agent data:", error);
@@ -166,35 +194,59 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
     <AgentErrorBoundary>
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="grid w-full grid-cols-8 text-xs gap-1">
-          <TabsTrigger value="overview" className="flex items-center space-x-1 text-xs px-2 py-1">
+          <TabsTrigger
+            value="overview"
+            className="flex items-center space-x-1 text-xs px-2 py-1"
+          >
             <Activity className="w-3 h-3" />
             <span className="hidden sm:inline">Overview</span>
           </TabsTrigger>
-          <TabsTrigger value="ai-insights" className="flex items-center space-x-1 text-xs px-2 py-1">
+          <TabsTrigger
+            value="ai-insights"
+            className="flex items-center space-x-1 text-xs px-2 py-1"
+          >
             <Brain className="w-3 h-3" />
             <span className="hidden sm:inline">AI</span>
           </TabsTrigger>
-          <TabsTrigger value="hardware" className="flex items-center space-x-1 text-xs px-2 py-1">
+          <TabsTrigger
+            value="hardware"
+            className="flex items-center space-x-1 text-xs px-2 py-1"
+          >
             <Cpu className="w-3 h-3" />
             <span className="hidden sm:inline">Hardware</span>
           </TabsTrigger>
-          <TabsTrigger value="network" className="flex items-center space-x-1 text-xs px-2 py-1">
+          <TabsTrigger
+            value="network"
+            className="flex items-center space-x-1 text-xs px-2 py-1"
+          >
             <Network className="w-3 h-3" />
             <span className="hidden sm:inline">Network</span>
           </TabsTrigger>
-          <TabsTrigger value="storage" className="flex items-center space-x-1 text-xs px-2 py-1">
+          <TabsTrigger
+            value="storage"
+            className="flex items-center space-x-1 text-xs px-2 py-1"
+          >
             <HardDrive className="w-3 h-3" />
             <span className="hidden sm:inline">Storage</span>
           </TabsTrigger>
-          <TabsTrigger value="processes" className="flex items-center space-x-1 text-xs px-2 py-1">
+          <TabsTrigger
+            value="processes"
+            className="flex items-center space-x-1 text-xs px-2 py-1"
+          >
             <Activity className="w-3 h-3" />
             <span className="hidden sm:inline">Processes</span>
           </TabsTrigger>
-          <TabsTrigger value="software" className="flex items-center space-x-1 text-xs px-2 py-1">
+          <TabsTrigger
+            value="software"
+            className="flex items-center space-x-1 text-xs px-2 py-1"
+          >
             <Package className="w-3 h-3" />
             <span className="hidden sm:inline">Software</span>
           </TabsTrigger>
-          <TabsTrigger value="updates" className="flex items-center space-x-1 text-xs px-2 py-1">
+          <TabsTrigger
+            value="updates"
+            className="flex items-center space-x-1 text-xs px-2 py-1"
+          >
             <Download className="w-3 h-3" />
             <span className="hidden sm:inline">Updates</span>
           </TabsTrigger>
@@ -208,27 +260,27 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
 
         <TabsContent value="overview" className="space-y-6">
           <SafeDataRenderer>
-            <OverviewTab 
-              agent={agent} 
-              systemInfo={systemInfo} 
-              networkInfo={networkInfo} 
-              metrics={metrics} 
-              storage={storage} 
-              processes={processes} 
+            <OverviewTab
+              agent={agent}
+              systemInfo={systemInfo}
+              networkInfo={networkInfo}
+              metrics={metrics}
+              storage={storage}
+              processes={processes}
             />
           </SafeDataRenderer>
         </TabsContent>
 
         <TabsContent value="hardware" className="space-y-6">
           <SafeDataRenderer>
-            <HardwareTab 
-              agent={agent} 
-              hardwareInfo={hardwareInfo} 
-              systemInfo={systemInfo} 
-              networkInfo={networkInfo} 
-              extractedUsbDevices={usbDevices} 
-              storage={storage} 
-              metrics={metrics} 
+            <HardwareTab
+              agent={agent}
+              hardwareInfo={hardwareInfo}
+              systemInfo={systemInfo}
+              networkInfo={networkInfo}
+              extractedUsbDevices={usbDevices}
+              storage={storage}
+              metrics={metrics}
             />
           </SafeDataRenderer>
         </TabsContent>

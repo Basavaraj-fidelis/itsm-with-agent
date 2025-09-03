@@ -1259,26 +1259,25 @@ var init_storage = __esm({
         return alert || null;
       }
       async getDashboardSummary() {
-        const allDevices = Array.from(this.devices.values());
-        const activeAlerts = Array.from(this.alerts.values()).filter(
-          (alert) => alert.is_active
-        );
+        const devices2 = await this.getDevices();
+        const alerts2 = await this.getAlerts();
         const now = /* @__PURE__ */ new Date();
-        const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1e3);
-        allDevices.forEach((device) => {
+        let onlineCount = 0;
+        let offlineCount = 0;
+        devices2.forEach((device) => {
           const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
-          if (lastSeen && lastSeen < fiveMinutesAgo && device.status === "online") {
-            device.status = "offline";
-            this.devices.set(device.id, device);
+          const minutesSinceLastSeen = lastSeen ? Math.floor((now.getTime() - lastSeen.getTime()) / (1e3 * 60)) : null;
+          if (minutesSinceLastSeen !== null && minutesSinceLastSeen < 5) {
+            onlineCount++;
+          } else {
+            offlineCount++;
           }
         });
         return {
-          total_devices: allDevices.length,
-          online_devices: allDevices.filter((device) => device.status === "online").length,
-          offline_devices: allDevices.filter(
-            (device) => device.status === "offline"
-          ).length,
-          active_alerts: activeAlerts.length
+          total_devices: devices2.length,
+          online_devices: onlineCount,
+          offline_devices: offlineCount,
+          active_alerts: alerts2.filter((a) => a.is_active).length
         };
       }
     };
@@ -1618,7 +1617,7 @@ If you continue to have issues, contact IT support.`,
 ### 2. Restart Network Components
 **Order is important - follow this sequence:**
 1. **Unplug Router**: Wait 30 seconds
-2. **Unplug Modem**: Wait 30 seconds  
+2. **Unplug Modem**: Wait 30 seconds
 3. **Restart Computer**: Complete shutdown and restart
 4. **Plug Modem Back In**: Wait 2 minutes for full startup
 5. **Plug Router Back In**: Wait 2 minutes for full startup
@@ -1701,7 +1700,7 @@ netsh int ip reset
 1. **Open Office App**: Start Word/Excel/PowerPoint
 2. **File > Open**: Look for "Recover Unsaved Documents"
 3. **Document Recovery Pane**: May appear automatically on startup
-4. **Temp Files Location**: 
+4. **Temp Files Location**:
    - Windows: \`C:\\Users\\[username]\\AppData\\Roaming\\Microsoft\\[App]\\UnsavedFiles\`
 
 ### Corrupted File Recovery
@@ -1948,10 +1947,10 @@ netsh int ip reset
 - Test print after installation finishes
 
 **Manual Driver Installation:**
-1. **Identify Printer Model**: Check sticker on printer
+1. **Identify Printer Model**: Sticker on printer
 2. **Download Drivers**: From manufacturer website
    - HP: hp.com/support
-   - Canon: canon.com/support  
+   - Canon: canon.com/support
    - Epson: epson.com/support
 3. **Run Installer**: Follow manufacturer instructions
 4. **Restart Computer**: If prompted by installer
@@ -2194,7 +2193,7 @@ ipconfig /flushdns
 
 ### Prohibited Software
 - Peer-to-peer applications
-- Cracked/pirated software  
+- Cracked/pirated software
 - Personal gaming software
 - Unapproved browser extensions
 
@@ -2458,11 +2457,11 @@ smartphones
           const result = await pool3.query(`
         SELECT d.*, dr.cpu_usage, dr.memory_usage, dr.disk_usage, dr.network_io, dr.collected_at, dr.raw_data
         FROM devices d
-        LEFT JOIN device_reports dr ON d.id = dr.device_id 
+        LEFT JOIN device_reports dr ON d.id = dr.device_id
         AND dr.id = (
-          SELECT id FROM device_reports 
-          WHERE device_id = d.id 
-          ORDER BY collected_at DESC 
+          SELECT id FROM device_reports
+          WHERE device_id = d.id
+          ORDER BY collected_at DESC
           LIMIT 1
         )
         ORDER BY d.created_at DESC
@@ -2521,32 +2520,35 @@ smartphones
         return device || void 0;
       }
       async createDevice(device) {
-        const [newDevice] = await db.insert(devices).values({
+        const id = this.generateId();
+        const newDevice = {
           ...device,
-          assigned_user: device.assigned_user || null,
-          os_name: device.os_name || null,
-          os_version: device.os_version || null,
-          ip_address: device.ip_address || null,
-          status: device.status || "offline",
-          last_seen: device.last_seen || null
-        }).returning();
+          id,
+          created_at: /* @__PURE__ */ new Date(),
+          updated_at: /* @__PURE__ */ new Date()
+        };
+        this.devices.set(id, newDevice);
         return newDevice;
       }
       async updateDevice(id, device) {
-        const [updatedDevice] = await db.update(devices).set({
+        const existing = this.devices.get(id);
+        if (!existing) return void 0;
+        const updated = {
+          ...existing,
           ...device,
           updated_at: /* @__PURE__ */ new Date()
-        }).where(eq(devices.id, id)).returning();
-        return updatedDevice || void 0;
+        };
+        this.devices.set(id, updated);
+        return updated;
       }
       async createDeviceReport(report) {
-        const [newReport] = await db.insert(device_reports).values({
+        const id = this.generateId();
+        const newReport = {
           ...report,
-          cpu_usage: report.cpu_usage || null,
-          memory_usage: report.memory_usage || null,
-          disk_usage: report.disk_usage || null,
-          network_io: report.network_io || null
-        }).returning();
+          id,
+          collected_at: /* @__PURE__ */ new Date()
+        };
+        this.deviceReports.set(id, newReport);
         return newReport;
       }
       async getDeviceReports(deviceId, limit = 10) {
@@ -2566,8 +2568,8 @@ smartphones
         try {
           const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const result = await pool3.query(
-            `SELECT * FROM device_reports 
-         WHERE device_id = $1 
+            `SELECT * FROM device_reports
+         WHERE device_id = $1
          AND collected_at >= NOW() - INTERVAL '${days} days'
          ORDER BY collected_at DESC`,
             [deviceId]
@@ -2709,10 +2711,10 @@ smartphones
           const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const result = await pool3.query(
             `
-        SELECT 
-          id, title, content, author_email, category, tags, 
+        SELECT
+          id, title, content, author_email, category, tags,
           created_at, updated_at, views, helpful_votes, status
-        FROM knowledge_base 
+        FROM knowledge_base
         WHERE id = $1
       `,
             [id]
@@ -2738,8 +2740,8 @@ smartphones
           const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
           await pool3.query(
             `
-        UPDATE knowledge_base 
-        SET views = COALESCE(views, 0) + 1 
+        UPDATE knowledge_base
+        SET views = COALESCE(views, 0) + 1
         WHERE id = $1
       `,
             [id]
@@ -2755,24 +2757,24 @@ smartphones
           try {
             const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
             const tableCheck = await pool3.query(`
-          SELECT column_name, data_type 
-          FROM information_schema.columns 
-          WHERE table_name = 'users' 
+          SELECT column_name, data_type
+          FROM information_schema.columns
+          WHERE table_name = 'users'
           ORDER BY ordinal_position
         `);
             console.log("Users table columns:", tableCheck.rows);
             let query = `
-          SELECT 
-            id, email, 
+          SELECT
+            id, email,
             CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) as name,
-            COALESCE(role, 'user') as role, 
-            COALESCE(department, location, '') as department, 
-            COALESCE(phone, '') as phone, 
-            COALESCE(is_active, true) as is_active, 
+            COALESCE(role, 'user') as role,
+            COALESCE(department, location, '') as department,
+            COALESCE(phone, '') as phone,
+            COALESCE(is_active, true) as is_active,
             created_at, updated_at,
             first_name, last_name, username, job_title, location, employee_id, manager_id,
             last_login, is_locked, failed_login_attempts
-          FROM users 
+          FROM users
           WHERE COALESCE(is_active, true) = true
         `;
             const params = [];
@@ -2780,7 +2782,7 @@ smartphones
             if (filters.search) {
               paramCount++;
               query += ` AND (
-            COALESCE(first_name, '') ILIKE $${paramCount} OR 
+            COALESCE(first_name, '') ILIKE $${paramCount} OR
             COALESCE(last_name, '') ILIKE $${paramCount} OR
             email ILIKE $${paramCount} OR
             COALESCE(username, '') ILIKE $${paramCount}
@@ -2847,10 +2849,10 @@ smartphones
           const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const result = await pool3.query(
             `
-        SELECT 
-          id, email, name, role, department, phone, is_active, 
+        SELECT
+          id, email, name, role, department, phone, is_active,
           created_at, updated_at, first_name, last_name, username
-        FROM users 
+        FROM users
         WHERE id = $1
       `,
             [id]
@@ -2876,12 +2878,12 @@ smartphones
           const result = await pool3.query(
             `
         INSERT INTO users (
-          first_name, last_name, username, email, password_hash, role, 
+          first_name, last_name, username, email, password_hash, role,
           department, phone, employee_id, job_title, is_active
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-        RETURNING 
-          id, email, username, first_name, last_name, role, department, 
+        RETURNING
+          id, email, username, first_name, last_name, role, department,
           phone, employee_id, job_title, is_active, created_at, updated_at
       `,
             [
@@ -2933,13 +2935,13 @@ smartphones
           paramCount++;
           params.push(id);
           const query = `
-        UPDATE users 
+        UPDATE users
         SET ${setClause.join(", ")}
         WHERE id = $${paramCount}
-        RETURNING 
-          id, email, username, first_name, last_name, role, 
+        RETURNING
+          id, email, username, first_name, last_name, role,
           department, phone, is_active, created_at, updated_at,
-          job_title, location, employee_id, manager_id, last_login, 
+          job_title, location, employee_id, manager_id, last_login,
           is_locked, failed_login_attempts
       `;
           const result = await pool3.query(query, params);
@@ -2975,8 +2977,8 @@ smartphones
           const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
           const offset = (page - 1) * limit;
           let query = `
-        SELECT 
-          id, title, content, author_email, category, tags, 
+        SELECT
+          id, title, content, author_email, category, tags,
           created_at, updated_at, views, helpful_votes, status
         FROM knowledge_base
         WHERE 1=1
@@ -3034,27 +3036,35 @@ smartphones
         }).returning();
         return newAlert;
       }
-      async getDashboardSummary() {
-        const allDevices = await this.getDevices();
-        const activeAlerts = await this.getActiveAlerts();
-        const now = /* @__PURE__ */ new Date();
-        const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1e3);
-        for (const device of allDevices) {
-          const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
-          if (lastSeen && lastSeen < fiveMinutesAgo && device.status === "online") {
-            await this.updateDevice(device.id, { status: "offline" });
-          }
+      async getAlerts() {
+        try {
+          const allAlerts = await db.select().from(alerts).orderBy(desc(alerts.triggered_at));
+          return allAlerts;
+        } catch (error) {
+          console.error("Error fetching alerts:", error);
+          return [];
         }
-        const updatedDevices = await this.getDevices();
+      }
+      async getDashboardSummary() {
+        const devices2 = await this.getDevices();
+        const alerts2 = await this.getAlerts();
+        const now = /* @__PURE__ */ new Date();
+        let onlineCount = 0;
+        let offlineCount = 0;
+        devices2.forEach((device) => {
+          const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
+          const minutesSinceLastSeen = lastSeen ? Math.floor((now.getTime() - lastSeen.getTime()) / (1e3 * 60)) : null;
+          if (minutesSinceLastSeen !== null && minutesSinceLastSeen < 5) {
+            onlineCount++;
+          } else {
+            offlineCount++;
+          }
+        });
         return {
-          total_devices: updatedDevices.length,
-          online_devices: updatedDevices.filter(
-            (device) => device.status === "online"
-          ).length,
-          offline_devices: updatedDevices.filter(
-            (device) => device.status === "offline"
-          ).length,
-          active_alerts: activeAlerts.length
+          total_devices: devices2.length,
+          online_devices: onlineCount,
+          offline_devices: offlineCount,
+          active_alerts: alerts2.filter((a) => a.is_active).length
         };
       }
       // Database connection instance
@@ -3097,12 +3107,22 @@ smartphones
           } else if (data.hardware?.cpu?.usage_percent !== void 0 && data.hardware.cpu.usage_percent !== null) {
             cpuUsage = parseFloat(data.hardware.cpu.usage_percent);
             console.log("CPU from hardware.cpu:", cpuUsage);
+          } else if (data.hardware?.cpu?.percent !== void 0 && data.hardware.cpu.percent !== null) {
+            cpuUsage = parseFloat(data.hardware.cpu.percent);
+            console.log("CPU from hardware.cpu.percent:", cpuUsage);
           } else if (data.cpu_usage !== void 0 && data.cpu_usage !== null) {
             cpuUsage = parseFloat(data.cpu_usage);
             console.log("CPU from direct field:", cpuUsage);
-          } else if (data.hardware?.cpu && data.hardware.cpu.percent !== void 0) {
-            cpuUsage = parseFloat(data.hardware.cpu.percent);
-            console.log("CPU from hardware.cpu.percent:", cpuUsage);
+          }
+          if (cpuUsage === null && data.hardware?.cpu?.cores) {
+            const cores = data.hardware.cpu.cores;
+            if (Array.isArray(cores) && cores.length > 0) {
+              const avgUsage = cores.reduce((sum2, core) => sum2 + (core.usage_percent || 0), 0) / cores.length;
+              if (avgUsage > 0) {
+                cpuUsage = avgUsage;
+                console.log("CPU from core average:", cpuUsage);
+              }
+            }
           }
           if (data.system_health?.memory_usage !== void 0 && data.system_health.memory_usage !== null) {
             memoryUsage = parseFloat(data.system_health.memory_usage);
@@ -3110,29 +3130,44 @@ smartphones
           } else if (data.hardware?.memory?.percentage !== void 0 && data.hardware.memory.percentage !== null) {
             memoryUsage = parseFloat(data.hardware.memory.percentage);
             console.log("Memory from hardware.memory:", memoryUsage);
+          } else if (data.hardware?.memory?.percent !== void 0 && data.hardware.memory.percent !== null) {
+            memoryUsage = parseFloat(data.hardware.memory.percent);
+            console.log("Memory from hardware.memory.percent:", memoryUsage);
           } else if (data.memory_usage !== void 0 && data.memory_usage !== null) {
             memoryUsage = parseFloat(data.memory_usage);
             console.log("Memory from direct field:", memoryUsage);
-          } else if (data.hardware?.memory && data.hardware.memory.percent !== void 0) {
-            memoryUsage = parseFloat(data.hardware.memory.percent);
-            console.log("Memory from hardware.memory.percent:", memoryUsage);
+          }
+          if (memoryUsage === null && data.hardware?.memory?.total && data.hardware?.memory?.used) {
+            const total = parseFloat(data.hardware.memory.total);
+            const used = parseFloat(data.hardware.memory.used);
+            if (total > 0) {
+              memoryUsage = used / total * 100;
+              console.log("Memory calculated from used/total:", memoryUsage);
+            }
           }
           if (data.storage?.disks && Array.isArray(data.storage.disks) && data.storage.disks.length > 0) {
             const primaryDisk = data.storage.disks.find(
-              (disk) => disk.device === "C:\\" || disk.mountpoint === "C:\\"
+              (disk) => disk.device === "C:\\" || disk.mountpoint === "C:\\" || disk.device?.includes("C:") || disk.mountpoint?.includes("C:")
             ) || data.storage.disks.find(
               (disk) => disk.mountpoint === "/" || disk.device === "/"
             ) || data.storage.disks[0];
             if (primaryDisk) {
-              if (primaryDisk.percent !== void 0 && primaryDisk.percent !== null) {
+              if (primaryDisk.percentage !== void 0 && primaryDisk.percentage !== null) {
+                diskUsage = parseFloat(primaryDisk.percentage);
+                console.log("Disk from storage.disks.percentage:", diskUsage);
+              } else if (primaryDisk.percent !== void 0 && primaryDisk.percent !== null) {
                 diskUsage = parseFloat(primaryDisk.percent);
                 console.log("Disk from storage.disks.percent:", diskUsage);
               } else if (primaryDisk.usage_percent !== void 0) {
                 diskUsage = parseFloat(primaryDisk.usage_percent);
                 console.log("Disk from storage.disks.usage_percent:", diskUsage);
               } else if (primaryDisk.used && primaryDisk.total) {
-                diskUsage = parseFloat(primaryDisk.used) / parseFloat(primaryDisk.total) * 100;
-                console.log("Disk calculated from used/total:", diskUsage);
+                const used = parseFloat(primaryDisk.used);
+                const total = parseFloat(primaryDisk.total);
+                if (total > 0) {
+                  diskUsage = used / total * 100;
+                  console.log("Disk calculated from used/total:", diskUsage);
+                }
               }
             }
           } else if (data.disk_usage !== void 0 && data.disk_usage !== null) {
@@ -3182,7 +3217,7 @@ smartphones
             reportData.raw_data.usb_devices = usbDevices;
           }
           await this.pool.query(
-            `INSERT INTO device_reports (device_id, raw_data, cpu_usage, memory_usage, disk_usage, network_io, collected_at, created_at) 
+            `INSERT INTO device_reports (device_id, raw_data, cpu_usage, memory_usage, disk_usage, network_io, collected_at, created_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
             [
               deviceId,
@@ -12752,12 +12787,20 @@ var init_device_storage = __esm({
                 parsedLatestReport = device.latest_report;
               }
             }
+            const now = /* @__PURE__ */ new Date();
+            const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
+            const minutesSinceLastSeen = lastSeen ? Math.floor((now.getTime() - lastSeen.getTime()) / (1e3 * 60)) : null;
+            const isOnline = minutesSinceLastSeen !== null && minutesSinceLastSeen < 5;
+            const actualStatus = isOnline ? "online" : "offline";
             return {
               ...device,
+              status: actualStatus,
+              // Override with calculated status
               latest_report: parsedLatestReport,
-              // Ensure consistent display values
               display_ip: device.ip_address,
-              display_hostname: device.hostname
+              display_hostname: device.hostname,
+              minutes_since_last_seen: minutesSinceLastSeen,
+              is_online: isOnline
             };
           });
         } catch (error) {
@@ -19237,6 +19280,35 @@ function registerDeviceRoutes(app2, authenticateToken4) {
       }
       const onlineCount = devices2.filter((d) => d.status === "online").length;
       const offlineCount = devices2.filter((d) => d.status === "offline").length;
+      router17.get("/devices/:id/usb-devices", authenticateToken4, async (req2, res2) => {
+        try {
+          const { id } = req2.params;
+          const usbHistory = await storage.getUSBDeviceHistory(id);
+          const formattedHistory = usbHistory.map((device) => ({
+            id: device.id,
+            device_id: device.usb_device_id,
+            description: device.description,
+            manufacturer: device.manufacturer,
+            vendor_id: device.vendor_id,
+            product_id: device.product_id,
+            device_type: device.device_type,
+            connection_time: device.connection_time,
+            first_seen: device.first_seen,
+            last_seen: device.last_seen,
+            disconnection_time: device.disconnection_time,
+            is_connected: device.is_connected,
+            duration_seconds: Math.floor(device.duration_seconds || 0),
+            total_connections: device.total_connections,
+            volume_name: device.volume_name,
+            size_bytes: device.size_bytes,
+            file_system: device.file_system
+          }));
+          res2.json(formattedHistory);
+        } catch (error) {
+          console.error("Error fetching USB device history:", error);
+          res2.status(500).json({ error: "Failed to fetch USB device history" });
+        }
+      });
       console.log(
         `Device Status Summary: ${onlineCount} online, ${offlineCount} offline, ${devices2.length} total`
       );

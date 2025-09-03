@@ -21,14 +21,14 @@ const Stat = ({ label, value }: { label: string; value: string }) => (
   </div>
 );
 
-export function HardwareTab({ 
-  agent, 
-  hardwareInfo, 
-  systemInfo, 
-  networkInfo, 
-  extractedUsbDevices, 
-  storage, 
-  metrics 
+export function HardwareTab({
+  agent,
+  hardwareInfo,
+  systemInfo,
+  networkInfo,
+  extractedUsbDevices,
+  storage,
+  metrics,
 }: HardwareTabProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -94,19 +94,30 @@ export function HardwareTab({
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Usb className="w-5 h-5" />
-              <span>USB Devices ({extractedUsbDevices.length})</span>
+              <span>USB Devices</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
               {extractedUsbDevices.map((device: any, index: number) => {
-                const vendorId = device.vendor_id || 
-                  AgentDataProcessor.extractVendorIdFromDeviceId(device.device_id);
-                const productId = device.product_id || 
-                  AgentDataProcessor.extractProductIdFromDeviceId(device.device_id);
+                const vendorId =
+                  device.vendor_id ||
+                  AgentDataProcessor.extractVendorIdFromDeviceId(
+                    device.device_id,
+                  );
+                const productId =
+                  device.product_id ||
+                  AgentDataProcessor.extractProductIdFromDeviceId(
+                    device.device_id,
+                  );
 
                 let manufacturer = device.manufacturer || "Unknown";
-                if (manufacturer === "Unknown" || manufacturer === "(Standard system devices)" || !manufacturer || manufacturer.trim() === "") {
+                if (
+                  manufacturer === "Unknown" ||
+                  manufacturer === "(Standard system devices)" ||
+                  !manufacturer ||
+                  manufacturer.trim() === ""
+                ) {
                   if (device.description) {
                     // Try to extract manufacturer from description
                     const desc = device.description;
@@ -124,23 +135,41 @@ export function HardwareTab({
                       manufacturer = "PNY";
                     } else if (desc.includes("Corsair")) {
                       manufacturer = "Corsair";
-                    } else if (desc.toLowerCase().includes("flash") || desc.toLowerCase().includes("drive")) {
+                    } else if (
+                      desc.toLowerCase().includes("flash") ||
+                      desc.toLowerCase().includes("drive")
+                    ) {
                       manufacturer = "Generic Storage Device";
                     } else {
                       // Extract first word that's not USB/Mass/Storage
                       const parts = desc.split(" ");
-                      const firstMeaningfulWord = parts.find(part => 
-                        part.length > 3 && 
-                        !["USB", "Mass", "Storage", "Device", "Drive"].includes(part)
+                      const firstMeaningfulWord = parts.find(
+                        (part) =>
+                          part.length > 3 &&
+                          ![
+                            "USB",
+                            "Mass",
+                            "Storage",
+                            "Device",
+                            "Drive",
+                          ].includes(part),
                       );
-                      manufacturer = firstMeaningfulWord || "Unknown Manufacturer";
+                      manufacturer =
+                        firstMeaningfulWord || "Unknown Manufacturer";
                     }
                   }
                 }
 
-                const connectedAt = device.connection_time || device.first_seen || new Date().toISOString();
-                const disconnectedAt = device.disconnection_time || (device.is_connected === false ? device.last_seen : null);
-                const isActive = device.is_connected !== false && device.status !== "Disconnected";
+                const connectedAt =
+                  device.connection_time ||
+                  device.first_seen ||
+                  new Date().toISOString();
+                const disconnectedAt =
+                  device.disconnection_time ||
+                  (device.is_connected === false ? device.last_seen : null);
+                const isActive =
+                  device.is_connected !== false &&
+                  device.status !== "Disconnected";
 
                 let duration = "—";
                 if (connectedAt) {
@@ -151,23 +180,39 @@ export function HardwareTab({
                   } else {
                     // Fallback to client calculation
                     const connectTime = new Date(connectedAt);
-                    const disconnectTime = disconnectedAt ? new Date(disconnectedAt) : new Date();
-                    durationMs = Math.max(0, disconnectTime.getTime() - connectTime.getTime());
+                    const disconnectTime = disconnectedAt
+                      ? new Date(disconnectedAt)
+                      : new Date();
+                    durationMs = Math.max(
+                      0,
+                      disconnectTime.getTime() - connectTime.getTime(),
+                    );
                   }
-                  
+
                   const hours = Math.floor(durationMs / (1000 * 60 * 60));
-                  const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+                  const minutes = Math.floor(
+                    (durationMs % (1000 * 60 * 60)) / (1000 * 60),
+                  );
                   const seconds = Math.floor((durationMs % (1000 * 60)) / 1000);
                   duration = `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
                 }
 
-                const connectedOn = connectedAt ? new Date(connectedAt).toLocaleDateString() : "—";
-                const connectedAtTime = connectedAt ? new Date(connectedAt).toLocaleTimeString() : "—";
-                const disconnectedAtTime = disconnectedAt ? new Date(disconnectedAt).toLocaleTimeString() : "—";
+                const connectedOn = connectedAt
+                  ? new Date(connectedAt).toLocaleDateString()
+                  : "—";
+                const connectedAtTime = connectedAt
+                  ? new Date(connectedAt).toLocaleTimeString()
+                  : "—";
+                const disconnectedAtTime = disconnectedAt
+                  ? new Date(disconnectedAt).toLocaleTimeString()
+                  : "—";
                 const deviceState = isActive ? "Active" : "Disconnected";
 
                 return (
-                  <div key={`usb-${device.device_id || index}`} className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                  <div
+                    key={`usb-${device.device_id || index}`}
+                    className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700"
+                  >
                     <div className="mb-4">
                       <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">
                         USB Device Details
@@ -187,7 +232,11 @@ export function HardwareTab({
                               Vendor ID (VID):
                             </span>
                             <span className="text-sm text-gray-900 dark:text-gray-100 font-mono">
-                              {vendorId && vendorId !== "unknown" && vendorId !== "N/A" ? vendorId.toUpperCase() : "N/A"}
+                              {vendorId &&
+                              vendorId !== "unknown" &&
+                              vendorId !== "N/A"
+                                ? vendorId.toUpperCase()
+                                : "N/A"}
                             </span>
                           </div>
                         </div>
@@ -197,26 +246,33 @@ export function HardwareTab({
                               Type:
                             </span>
                             <span className="text-sm text-gray-900 dark:text-gray-100 capitalize">
-                              {device.device_type === 'mass_storage' ? 'Storage Device' : 
-                               device.device_type?.replace("_", " ") || 'Unknown Device'}
+                              {device.device_type === "mass_storage"
+                                ? "Storage Device"
+                                : device.device_type?.replace("_", " ") ||
+                                  "Unknown Device"}
                             </span>
                           </div>
-                          {device.total_connections && device.total_connections > 1 && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                Total Connections:
-                              </span>
-                              <span className="text-sm text-gray-900 dark:text-gray-100">
-                                {device.total_connections}
-                              </span>
-                            </div>
-                          )}
+                          {device.total_connections &&
+                            device.total_connections > 1 && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                  Total Connections:
+                                </span>
+                                <span className="text-sm text-gray-900 dark:text-gray-100">
+                                  {device.total_connections}
+                                </span>
+                              </div>
+                            )}
                           <div className="flex justify-between items-center">
                             <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
                               Product ID (PID):
                             </span>
                             <span className="text-sm text-gray-900 dark:text-gray-100 font-mono">
-                              {productId && productId !== "unknown" && productId !== "N/A" ? productId.toUpperCase() : "N/A"}
+                              {productId &&
+                              productId !== "unknown" &&
+                              productId !== "N/A"
+                                ? productId.toUpperCase()
+                                : "N/A"}
                             </span>
                           </div>
                         </div>
@@ -263,7 +319,14 @@ export function HardwareTab({
                                 {duration}
                               </td>
                               <td className="py-2 px-1">
-                                <Badge variant={deviceState === "Active" ? "default" : "secondary"} className="text-xs">
+                                <Badge
+                                  variant={
+                                    deviceState === "Active"
+                                      ? "default"
+                                      : "secondary"
+                                  }
+                                  className="text-xs"
+                                >
                                   {deviceState}
                                 </Badge>
                               </td>
