@@ -97,6 +97,42 @@ export function registerDeviceRoutes(app: Express, authenticateToken: any) {
       // Log device status summary
       const onlineCount = devices.filter((d) => d.status === "online").length;
       const offlineCount = devices.filter((d) => d.status === "offline").length;
+
+
+// USB Device History endpoint
+router.get('/devices/:id/usb-devices', authenticateToken, async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+    const usbHistory = await storage.getUSBDeviceHistory(id);
+    
+    // Format the response with proper duration calculation
+    const formattedHistory = usbHistory.map((device: any) => ({
+      id: device.id,
+      device_id: device.usb_device_id,
+      description: device.description,
+      manufacturer: device.manufacturer,
+      vendor_id: device.vendor_id,
+      product_id: device.product_id,
+      device_type: device.device_type,
+      connection_time: device.connection_time,
+      first_seen: device.first_seen,
+      last_seen: device.last_seen,
+      disconnection_time: device.disconnection_time,
+      is_connected: device.is_connected,
+      duration_seconds: Math.floor(device.duration_seconds || 0),
+      total_connections: device.total_connections,
+      volume_name: device.volume_name,
+      size_bytes: device.size_bytes,
+      file_system: device.file_system
+    }));
+
+    res.json(formattedHistory);
+  } catch (error) {
+    console.error('Error fetching USB device history:', error);
+    res.status(500).json({ error: 'Failed to fetch USB device history' });
+  }
+});
+
       console.log(
         `Device Status Summary: ${onlineCount} online, ${offlineCount} offline, ${devices.length} total`,
       );

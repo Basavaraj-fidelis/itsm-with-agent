@@ -17,6 +17,37 @@ import { UpdatesTab } from "./updates-tab";
 interface AgentTabsProps {
   agent: Agent;
   processedData?: any;
+
+
+  // Helper function to merge current USB data with historical data
+  const mergeUSBData = (currentDevices: any[], historicalDevices: any[]) => {
+    const merged = [...(historicalDevices || [])];
+    
+    // Add any current devices that aren't in history
+    (currentDevices || []).forEach(current => {
+      const existingIndex = merged.findIndex(hist => hist.device_id === current.device_id);
+      if (existingIndex === -1) {
+        // New device not in history
+        merged.push({
+          ...current,
+          connection_time: current.connection_time || new Date().toISOString(),
+          first_seen: current.first_seen || new Date().toISOString(),
+          is_connected: true
+        });
+      } else {
+        // Update existing device with current data
+        merged[existingIndex] = {
+          ...merged[existingIndex],
+          ...current,
+          is_connected: true,
+          last_seen: new Date().toISOString()
+        };
+      }
+    });
+    
+    return merged.filter(Boolean);
+  };
+
 }
 
 export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
@@ -47,6 +78,9 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
 
     if (agent.id) {
       fetchUSBHistory();
+      // Refresh USB history every 30 seconds
+      const interval = setInterval(fetchUSBHistory, 30000);
+      return () => clearInterval(interval);
     }
   }, [agent.id]);
 
@@ -90,7 +124,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
         systemInfo: AgentDataProcessor.extractSystemInfo(agent, rawData),
         networkInfo: AgentDataProcessor.extractNetworkInfo(agent, rawData),
         hardwareInfo: AgentDataProcessor.extractHardwareInfo(rawData),
-        usbDevices: (AgentDataProcessor.extractUSBDevices(rawData) || []).filter(Boolean),
+        usbDevices: mergeUSBData(AgentDataProcessor.extractUSBDevices(rawData) || [], usbHistory),
         processes: (AgentDataProcessor.extractProcesses(rawData) || []).filter(Boolean),
         software: (AgentDataProcessor.extractSoftware(rawData) || []).filter(Boolean),
         storage: (AgentDataProcessor.extractStorage(rawData) || []).filter(Boolean),

@@ -106,40 +106,65 @@ export function HardwareTab({
                   AgentDataProcessor.extractProductIdFromDeviceId(device.device_id);
 
                 let manufacturer = device.manufacturer || "Unknown";
-                if (manufacturer === "Unknown" || manufacturer === "(Standard system devices)") {
-                  if (device.description?.includes("VendorCo ProductCode")) {
-                    manufacturer = "VendorCo ProductCode";
-                  } else if (device.description) {
-                    const parts = device.description.split(" ");
-                    if (parts.length >= 2 && parts[0] !== "USB" && parts[0] !== "Mass" && parts[0] !== "Storage") {
-                      manufacturer = parts[0];
-                    } else if (device.description.includes("Mass Storage")) {
-                      manufacturer = "Generic Storage Manufacturer";
+                if (manufacturer === "Unknown" || manufacturer === "(Standard system devices)" || !manufacturer || manufacturer.trim() === "") {
+                  if (device.description) {
+                    // Try to extract manufacturer from description
+                    const desc = device.description;
+                    if (desc.includes("Kingston")) {
+                      manufacturer = "Kingston";
+                    } else if (desc.includes("SanDisk")) {
+                      manufacturer = "SanDisk";
+                    } else if (desc.includes("Samsung")) {
+                      manufacturer = "Samsung";
+                    } else if (desc.includes("Transcend")) {
+                      manufacturer = "Transcend";
+                    } else if (desc.includes("Lexar")) {
+                      manufacturer = "Lexar";
+                    } else if (desc.includes("PNY")) {
+                      manufacturer = "PNY";
+                    } else if (desc.includes("Corsair")) {
+                      manufacturer = "Corsair";
+                    } else if (desc.toLowerCase().includes("flash") || desc.toLowerCase().includes("drive")) {
+                      manufacturer = "Generic Storage Device";
                     } else {
-                      manufacturer = "Generic USB Manufacturer";
+                      // Extract first word that's not USB/Mass/Storage
+                      const parts = desc.split(" ");
+                      const firstMeaningfulWord = parts.find(part => 
+                        part.length > 3 && 
+                        !["USB", "Mass", "Storage", "Device", "Drive"].includes(part)
+                      );
+                      manufacturer = firstMeaningfulWord || "Unknown Manufacturer";
                     }
                   }
                 }
 
-                const connectedAt = device.first_seen || device.connection_time || new Date().toISOString();
-                const disconnectedAt = device.is_connected === false ? device.last_seen : null;
+                const connectedAt = device.connection_time || device.first_seen || new Date().toISOString();
+                const disconnectedAt = device.disconnection_time || (device.is_connected === false ? device.last_seen : null);
                 const isActive = device.is_connected !== false && device.status !== "Disconnected";
 
                 let duration = "—";
                 if (connectedAt) {
-                  const connectTime = new Date(connectedAt);
-                  const disconnectTime = disconnectedAt ? new Date(disconnectedAt) : new Date();
-                  const diffMs = disconnectTime.getTime() - connectTime.getTime();
-                  const hours = Math.floor(diffMs / (1000 * 60 * 60));
-                  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                  const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+                  let durationMs = 0;
+                  if (device.duration_seconds) {
+                    // Use server-calculated duration if available
+                    durationMs = device.duration_seconds * 1000;
+                  } else {
+                    // Fallback to client calculation
+                    const connectTime = new Date(connectedAt);
+                    const disconnectTime = disconnectedAt ? new Date(disconnectedAt) : new Date();
+                    durationMs = Math.max(0, disconnectTime.getTime() - connectTime.getTime());
+                  }
+                  
+                  const hours = Math.floor(durationMs / (1000 * 60 * 60));
+                  const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+                  const seconds = Math.floor((durationMs % (1000 * 60)) / 1000);
                   duration = `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
                 }
 
                 const connectedOn = connectedAt ? new Date(connectedAt).toLocaleDateString() : "—";
                 const connectedAtTime = connectedAt ? new Date(connectedAt).toLocaleTimeString() : "—";
                 const disconnectedAtTime = disconnectedAt ? new Date(disconnectedAt).toLocaleTimeString() : "—";
-                const deviceState = isActive ? "Active" : "Removed";
+                const deviceState = isActive ? "Active" : "Disconnected";
 
                 return (
                   <div key={`usb-${device.device_id || index}`} className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
@@ -172,9 +197,20 @@ export function HardwareTab({
                               Type:
                             </span>
                             <span className="text-sm text-gray-900 dark:text-gray-100 capitalize">
-                              {device.device_type?.replace("_", " ") || device.description || "Unknown"}
+                              {device.device_type === 'mass_storage' ? 'Storage Device' : 
+                               device.device_type?.replace("_", " ") || 'Unknown Device'}
                             </span>
                           </div>
+                          {device.total_connections && device.total_connections > 1 && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                Total Connections:
+                              </span>
+                              <span className="text-sm text-gray-900 dark:text-gray-100">
+                                {device.total_connections}
+                              </span>
+                            </div>
+                          )}
                           <div className="flex justify-between items-center">
                             <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
                               Product ID (PID):

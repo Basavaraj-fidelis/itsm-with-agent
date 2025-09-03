@@ -61,29 +61,111 @@ class USBModule(BaseModule):
         return []
 
     def _get_windows_usb_devices(self) -> List[Dict[str, Any]]:
-        """Get USB devices on Windows"""
+        """Get USB devices on Windows with enhanced connection time tracking"""
         devices = []
 
         try:
-            # Get USB devices using WMI with status filtering
+            # Enhanced PowerShell command to get USB devices with connection tracking
             ps_command = """
-            Get-WmiObject -Class Win32_USBControllerDevice | 
-            ForEach-Object { 
-                [wmi]($_.Dependent) 
-            } | 
-            Where-Object { 
-                $_.Description -notlike "*Hub*" -and 
-                $_.Description -notlike "*Controller*" -and
-                $_.Status -eq "OK" -and
-                $_.Present -eq $true
-            } | 
-            Select-Object DeviceID, Description, Manufacturer, Service, Status, Present | 
-            ConvertTo-Json -Depth 3
+            $USBDevices = @()
+
+            # Get USB devices with timing information
+            Get-WmiObject -Class Win32_USBControllerDevice | ForEach-Object { 
+                $Device = [wmi]($_.Dependent)
+                if ($Device.Description -notlike "*Hub*" -and 
+                    $Device.Description -notlike "*Controller*" -and
+                    $Device.Status -eq "OK" -and
+                    $Device.Present -eq $true) {
+
+                    # Try to get installation date from registry or system events
+                    $InstallDate = $null
+                    $ConnectionTime = $null
+
+                    try {
+                        # Get device installation date from registry
+                        $DeviceKey = "HKLM:\\SYSTEM\\CurrentControlSet\\Enum\\$($Device.DeviceID.Replace('\\', '\\'))"
+                        if (Test-Path $DeviceKey) {
+                            $InstallDate = (Get-ItemProperty -Path $DeviceKey -Name "InstallDate" -ErrorAction SilentlyContinue).InstallDate
+                        }
+
+                        # If no install date, try to get from system events
+                        if (-not $InstallDate) {
+                            $Events = Get-WinEvent -FilterHashtable @{LogName='System'; ID=20001,20003; StartTime=(Get-Date).AddDays(-30)} -MaxEvents 50 -ErrorAction SilentlyContinue | 
+                                Where-Object { $_.Message -like "*$($Device.DeviceID)*" } | 
+                                Sort-Object TimeCreated -Descending | 
+                                Select-Object -First 1
+                            if ($Events) {
+                                $ConnectionTime = $Events.TimeCreated.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+                            }
+                        } else {
+                            # Convert FileTime to DateTime
+                            $ConnectionTime = [DateTime]::FromFileTime($InstallDate).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+                        }
+                    } catch {
+                        # Fallback to current time if we can't determine connection time
+                        $ConnectionTime = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+                    }
+
+                    # Check if device is storage-related
+                    $IsStorageDevice = $false
+                    $DeviceType = "other"
+
+                    if ($Device.Description -match "(disk|drive|storage|flash|card|reader)" -or 
+                        $Device.Service -eq "USBSTOR" -or 
+                        $Device.DeviceID -like "*USBSTOR*") {
+                        $IsStorageDevice = $true
+                        $DeviceType = "mass_storage"
+                    }
+
+                    $USBDevices += [PSCustomObject]@{
+                        DeviceID = $Device.DeviceID
+                        Description = $Device.Description
+                        Manufacturer = $Device.Manufacturer
+                        Service = $Device.Service
+                        Status = $Device.Status
+                        Present = $Device.Present
+                        ConnectionTime = $ConnectionTime
+                        FirstSeen = $ConnectionTime
+                        LastSeen = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+                        IsConnected = $true
+                        IsStorageDevice = $IsStorageDevice
+                        DeviceType = $DeviceType
+                        SerialNumber = $Device.PNPDeviceID
+                    }
+                }
+            }
+
+            # Also get removable drives with connection tracking
+            Get-WmiObject -Class Win32_LogicalDisk | Where-Object { 
+                $_.DriveType -eq 2 -and $_.Size -gt 0 
+            } | ForEach-Object {
+                $USBDevices += [PSCustomObject]@{
+                    DeviceID = "REMOVABLE_$($_.DeviceID)"
+                    Description = "Removable Drive ($($_.DeviceID)) - $($_.VolumeName)"
+                    Manufacturer = "Unknown"
+                    Service = "Mass Storage"
+                    Status = "OK"
+                    Present = $true
+                    ConnectionTime = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+                    FirstSeen = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+                    LastSeen = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+                    IsConnected = $true
+                    IsStorageDevice = $true
+                    DeviceType = "mass_storage"
+                    SerialNumber = $null
+                    VolumeName = $_.VolumeName
+                    Size = $_.Size
+                    FreeSpace = $_.FreeSpace
+                    FileSystem = $_.FileSystem
+                }
+            }
+
+            $USBDevices | ConvertTo-Json -Depth 3
             """
 
             result = subprocess.run([
                 "powershell", "-Command", ps_command
-            ], capture_output=True, text=True, timeout=30)
+            ], capture_output=True, text=True, timeout=45)
 
             if result.returncode == 0 and result.stdout.strip():
                 try:
@@ -92,77 +174,33 @@ class USBModule(BaseModule):
                         usb_data = [usb_data]
 
                     for device in usb_data:
-                        # Only include devices that are currently present and working
-                        if (device.get('Status') == 'OK' and 
-                            device.get('Present', True) and
-                            device.get('DeviceID')):
-                            # Get connection time from system if possible
-                            connection_time = self._get_device_connection_time(device.get('DeviceID', ''))
-                            
+                        # Only include storage devices and filter out non-storage
+                        if device.get('IsStorageDevice', False) or device.get('DeviceType') == 'mass_storage':
                             device_info = {
                                 'device_id': device.get('DeviceID', ''),
                                 'description': device.get('Description', 'Unknown USB Device'),
                                 'manufacturer': device.get('Manufacturer', 'Unknown'),
                                 'service': device.get('Service', ''),
-                                'status': device.get('Status', 'Unknown'),
+                                'status': device.get('Status', 'Connected'),
                                 'vendor_id': self._extract_vendor_id(device.get('DeviceID', '')),
                                 'product_id': self._extract_product_id(device.get('DeviceID', '')),
-                                'device_type': self._categorize_device(device.get('Description', '')),
-                                'connection_time': connection_time,
-                                'first_seen': connection_time,
-                                'last_seen': None,
-                                'is_connected': True,
+                                'device_type': device.get('DeviceType', 'mass_storage'),
+                                'connection_time': device.get('ConnectionTime'),
+                                'first_seen': device.get('FirstSeen'),
+                                'last_seen': device.get('LastSeen'),
+                                'is_connected': device.get('IsConnected', True),
                                 'is_present': device.get('Present', True),
-                                'serial_number': self._extract_serial_from_device_id(device.get('DeviceID', ''))
+                                'serial_number': device.get('SerialNumber'),
+                                # Additional storage info if available
+                                'volume_name': device.get('VolumeName', ''),
+                                'size': device.get('Size', 0),
+                                'free_space': device.get('FreeSpace', 0),
+                                'file_system': device.get('FileSystem', '')
                             }
                             devices.append(device_info)
 
                 except json.JSONDecodeError as e:
                     self.logger.error(f"Error parsing USB device JSON: {e}")
-
-            # Also try to get removable drives (only currently available ones)
-            drives_command = """
-            Get-WmiObject -Class Win32_LogicalDisk | 
-            Where-Object { 
-                $_.DriveType -eq 2 -and 
-                $_.Size -gt 0 -and
-                $_.MediaType -ne $null
-            } | 
-            Select-Object DeviceID, VolumeName, Size, FreeSpace, FileSystem, MediaType | 
-            ConvertTo-Json -Depth 3
-            """
-
-            drives_result = subprocess.run([
-                "powershell", "-Command", drives_command
-            ], capture_output=True, text=True, timeout=15)
-
-            if drives_result.returncode == 0 and drives_result.stdout.strip():
-                try:
-                    drives_data = json.loads(drives_result.stdout.strip())
-                    if isinstance(drives_data, dict):
-                        drives_data = [drives_data]
-
-                    for drive in drives_data:
-                        device_info = {
-                            'device_id': f"REMOVABLE_{drive.get('DeviceID', '')}",
-                            'description': f"Removable Drive ({drive.get('DeviceID', '')})",
-                            'manufacturer': 'Unknown',
-                            'service': 'Mass Storage',
-                            'status': 'OK',
-                            'vendor_id': 'unknown',
-                            'product_id': 'unknown',
-                            'device_type': 'mass_storage',
-                            'connection_time': None,
-                            'serial_number': None,
-                            'volume_name': drive.get('VolumeName', ''),
-                            'size': drive.get('Size', 0),
-                            'free_space': drive.get('FreeSpace', 0),
-                            'file_system': drive.get('FileSystem', '')
-                        }
-                        devices.append(device_info)
-
-                except json.JSONDecodeError as e:
-                    self.logger.error(f"Error parsing removable drives JSON: {e}")
 
         except Exception as e:
             self.logger.error(f"Error getting Windows USB devices: {e}")
@@ -173,7 +211,7 @@ class USBModule(BaseModule):
         """Get device connection time on Windows using WMI"""
         if not self.is_windows or not device_id:
             return None
-            
+
         try:
             # Use PowerShell to get device installation date
             ps_command = f"""
@@ -182,11 +220,11 @@ class USBModule(BaseModule):
             Select-Object InstallDate | 
             ConvertTo-Json
             """
-            
+
             result = subprocess.run([
                 "powershell", "-Command", ps_command
             ], capture_output=True, text=True, timeout=10)
-            
+
             if result.returncode == 0 and result.stdout.strip():
                 try:
                     data = json.loads(result.stdout.strip())
@@ -203,16 +241,16 @@ class USBModule(BaseModule):
                     self.logger.debug(f"Error parsing connection time: {e}")
         except Exception as e:
             self.logger.debug(f"Error getting connection time for {device_id}: {e}")
-            
+
         return None
 
     def _extract_serial_from_device_id(self, device_id: str) -> str:
         """Extract serial number from Windows device ID"""
         if not device_id:
             return None
-            
+
         # Extract from device ID patterns like USB\VID_xxxx&PID_xxxx\SerialNumber
-        match = re.search(r'\\([A-Z0-9&]+)$', device_id)
+        match = re.search(r'\\([A-Z0-9&]+)$', device_id, re.IGNORECASE)
         if match:
             serial_part = match.group(1)
             # Remove any trailing & and numbers
