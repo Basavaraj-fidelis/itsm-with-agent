@@ -870,7 +870,10 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       value={systemInfo.serialNumber}
                     />
                     {/* Display MAC Address */}
-                    <Stat label="MAC Address" value={networkInfo.macAddresses} />
+                    <Stat
+                      label="MAC Address"
+                      value={networkInfo.macAddresses}
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -888,112 +891,200 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                     <div className="space-y-6">
                       {extractedUsbDevices.map((device: any, index: number) => {
                         // Extract vendor/product IDs if not already present
-                        const vendorId = device.vendor_id || AgentDataProcessor.extractVendorIdFromDeviceId(device.device_id);
-                        const productId = device.product_id || AgentDataProcessor.extractProductIdFromDeviceId(device.device_id);
+                        const vendorId =
+                          device.vendor_id ||
+                          AgentDataProcessor.extractVendorIdFromDeviceId(
+                            device.device_id,
+                          );
+                        const productId =
+                          device.product_id ||
+                          AgentDataProcessor.extractProductIdFromDeviceId(
+                            device.device_id,
+                          );
 
                         // Improve manufacturer display using AgentDataProcessor logic
-                        let manufacturer = device.manufacturer || 'Unknown';
-                        if (manufacturer === 'Unknown' || manufacturer === '(Standard system devices)') {
+                        let manufacturer = device.manufacturer || "Unknown";
+                        if (
+                          manufacturer === "Unknown" ||
+                          manufacturer === "(Standard system devices)"
+                        ) {
                           // Extract manufacturer from description using the proper logic
-                          if (device.description?.includes('VendorCo ProductCode')) {
-                            manufacturer = 'VendorCo ProductCode';
+                          if (
+                            device.description?.includes("VendorCo ProductCode")
+                          ) {
+                            manufacturer = "VendorCo ProductCode";
                           } else if (device.description) {
-                            const parts = device.description.split(' ');
-                            if (parts.length >= 2 && parts[0] !== 'USB' && parts[0] !== 'Mass' && parts[0] !== 'Storage') {
+                            const parts = device.description.split(" ");
+                            if (
+                              parts.length >= 2 &&
+                              parts[0] !== "USB" &&
+                              parts[0] !== "Mass" &&
+                              parts[0] !== "Storage"
+                            ) {
                               manufacturer = parts[0];
-                            } else if (device.description.includes('Mass Storage')) {
-                              manufacturer = 'Generic Storage Manufacturer';
+                            } else if (
+                              device.description.includes("Mass Storage")
+                            ) {
+                              manufacturer = "Generic Storage Manufacturer";
                             } else {
-                              manufacturer = 'Generic USB Manufacturer';
+                              manufacturer = "Generic USB Manufacturer";
                             }
                           }
                         }
 
                         // Mock connection history data
-                        const connectedAt = device.first_seen || device.connection_time || new Date().toISOString();
-                        const disconnectedAt = device.is_connected === false ? device.last_seen : null;
-                        const isActive = device.is_connected !== false && device.status !== 'Disconnected';
+                        const connectedAt =
+                          device.first_seen ||
+                          device.connection_time ||
+                          new Date().toISOString();
+                        const disconnectedAt =
+                          device.is_connected === false
+                            ? device.last_seen
+                            : null;
+                        const isActive =
+                          device.is_connected !== false &&
+                          device.status !== "Disconnected";
 
                         // Calculate duration
-                        let duration = '—';
+                        let duration = "—";
                         if (connectedAt) {
                           const connectTime = new Date(connectedAt);
-                          const disconnectTime = disconnectedAt ? new Date(disconnectedAt) : new Date();
-                          const diffMs = disconnectTime.getTime() - connectTime.getTime();
+                          const disconnectTime = disconnectedAt
+                            ? new Date(disconnectedAt)
+                            : new Date();
+                          const diffMs =
+                            disconnectTime.getTime() - connectTime.getTime();
                           const hours = Math.floor(diffMs / (1000 * 60 * 60));
-                          const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                          const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
-                          duration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                          const minutes = Math.floor(
+                            (diffMs % (1000 * 60 * 60)) / (1000 * 60),
+                          );
+                          const seconds = Math.floor(
+                            (diffMs % (1000 * 60)) / 1000,
+                          );
+                          duration = `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
                         }
 
-                        const connectedOn = connectedAt ? new Date(connectedAt).toLocaleDateString() : '—';
-                        const connectedAtTime = connectedAt ? new Date(connectedAt).toLocaleTimeString() : '—';
-                        const disconnectedAtTime = disconnectedAt ? new Date(disconnectedAt).toLocaleTimeString() : '—';
-                        const deviceState = isActive ? 'Active' : 'Removed';
+                        const connectedOn = connectedAt
+                          ? new Date(connectedAt).toLocaleDateString()
+                          : "—";
+                        const connectedAtTime = connectedAt
+                          ? new Date(connectedAt).toLocaleTimeString()
+                          : "—";
+                        const disconnectedAtTime = disconnectedAt
+                          ? new Date(disconnectedAt).toLocaleTimeString()
+                          : "—";
+                        const deviceState = isActive ? "Active" : "Removed";
 
                         return (
-                          <div key={`usb-${device.device_id || index}`} className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                          <div
+                            key={`usb-${device.device_id || index}`}
+                            className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700"
+                          >
                             {/* USB Device Details Header */}
                             <div className="mb-4">
-                              <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">USB Device Details</h4>
+                              <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                                USB Device Details
+                              </h4>
                               <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                   <div className="flex justify-between items-center">
-                                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Manufacturer:</span>
+                                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                      Manufacturer:
+                                    </span>
                                     <span className="text-sm text-gray-900 dark:text-gray-100">
                                       {manufacturer} ✅
                                     </span>
                                   </div>
 
                                   <div className="flex justify-between items-center">
-                                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Vendor ID (VID):</span>
+                                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                      Vendor ID (VID):
+                                    </span>
                                     <span className="text-sm text-gray-900 dark:text-gray-100 font-mono">
-                                      {vendorId && vendorId !== 'unknown' && vendorId !== 'N/A' ? vendorId.toUpperCase() : 'N/A'}
+                                      {vendorId &&
+                                      vendorId !== "unknown" &&
+                                      vendorId !== "N/A"
+                                        ? vendorId.toUpperCase()
+                                        : "N/A"}
                                     </span>
                                   </div>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <div className="flex justify-between items-center">
-                                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Type:</span>
-                                      <span className="text-sm text-gray-900 dark:text-gray-100 capitalize">
-                                        {device.device_type?.replace('_', ' ') || device.description || 'Unknown'}
-                                      </span>
-                                    </div>
-
-                                    <div className="flex justify-between items-center">
-                                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Product ID (PID):</span>
-                                      <span className="text-sm text-gray-900 dark:text-gray-100 font-mono">
-                                        {productId && productId !== 'unknown' && productId !== 'N/A' ? productId.toUpperCase() : 'N/A'}
-                                      </span>
-                                    </div>
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                      Type:
+                                    </span>
+                                    <span className="text-sm text-gray-900 dark:text-gray-100 capitalize">
+                                      {device.device_type?.replace("_", " ") ||
+                                        device.description ||
+                                        "Unknown"}
+                                    </span>
                                   </div>
+
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                      Product ID (PID):
+                                    </span>
+                                    <span className="text-sm text-gray-900 dark:text-gray-100 font-mono">
+                                      {productId &&
+                                      productId !== "unknown" &&
+                                      productId !== "N/A"
+                                        ? productId.toUpperCase()
+                                        : "N/A"}
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
                             </div>
 
                             {/* Connection History Table */}
                             <div>
-                              <h5 className="font-medium text-gray-900 dark:text-gray-100 mb-3">Connection History:</h5>
+                              <h5 className="font-medium text-gray-900 dark:text-gray-100 mb-3">
+                                Connection History:
+                              </h5>
                               <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
                                   <thead>
                                     <tr className="border-b border-gray-200 dark:border-gray-600">
-                                      <th className="text-left py-2 px-1 font-medium text-gray-500 dark:text-gray-400">Connected On</th>
-                                      <th className="text-left py-2 px-1 font-medium text-gray-500 dark:text-gray-400">Connected At</th>
-                                      <th className="text-left py-2 px-1 font-medium text-gray-500 dark:text-gray-400">Disconnected At</th>
-                                      <th className="text-left py-2 px-1 font-medium text-gray-500 dark:text-gray-400">Duration (hh:mm:ss)</th>
-                                      <th className="text-left py-2 px-1 font-medium text-gray-500 dark:text-gray-400">Device State</th>
+                                      <th className="text-left py-2 px-1 font-medium text-gray-500 dark:text-gray-400">
+                                        Connected On
+                                      </th>
+                                      <th className="text-left py-2 px-1 font-medium text-gray-500 dark:text-gray-400">
+                                        Connected At
+                                      </th>
+                                      <th className="text-left py-2 px-1 font-medium text-gray-500 dark:text-gray-400">
+                                        Disconnected At
+                                      </th>
+                                      <th className="text-left py-2 px-1 font-medium text-gray-500 dark:text-gray-400">
+                                        Duration (hh:mm:ss)
+                                      </th>
+                                      <th className="text-left py-2 px-1 font-medium text-gray-500 dark:text-gray-400">
+                                        Device State
+                                      </th>
                                     </tr>
                                   </thead>
                                   <tbody>
                                     <tr className="border-b border-gray-100 dark:border-gray-700">
-                                      <td className="py-2 px-1 text-gray-900 dark:text-gray-100">{connectedOn}</td>
-                                      <td className="py-2 px-1 text-gray-900 dark:text-gray-100">{connectedAtTime}</td>
-                                      <td className="py-2 px-1 text-gray-900 dark:text-gray-100">{disconnectedAtTime}</td>
-                                      <td className="py-2 px-1 text-gray-900 dark:text-gray-100">{duration}</td>
+                                      <td className="py-2 px-1 text-gray-900 dark:text-gray-100">
+                                        {connectedOn}
+                                      </td>
+                                      <td className="py-2 px-1 text-gray-900 dark:text-gray-100">
+                                        {connectedAtTime}
+                                      </td>
+                                      <td className="py-2 px-1 text-gray-900 dark:text-gray-100">
+                                        {disconnectedAtTime}
+                                      </td>
+                                      <td className="py-2 px-1 text-gray-900 dark:text-gray-100">
+                                        {duration}
+                                      </td>
                                       <td className="py-2 px-1">
                                         <Badge
-                                          variant={deviceState === 'Active' ? 'default' : 'secondary'}
+                                          variant={
+                                            deviceState === "Active"
+                                              ? "default"
+                                              : "secondary"
+                                          }
                                           className="text-xs"
                                         >
                                           {deviceState}
@@ -1011,8 +1102,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                   </CardContent>
                 </Card>
               )}
-</old_str>
-<new_str>
+
               {/* USB Devices */}
               {extractedUsbDevices && extractedUsbDevices.length > 0 && (
                 <Card>
@@ -1026,59 +1116,96 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                     <div className="space-y-4">
                       {extractedUsbDevices.map((device: any, index: number) => {
                         // Extract vendor/product IDs if not already present
-                        const vendorId = device.vendor_id || AgentDataProcessor.extractVendorIdFromDeviceId(device.device_id);
-                        const productId = device.product_id || AgentDataProcessor.extractProductIdFromDeviceId(device.device_id);
+                        const vendorId =
+                          device.vendor_id ||
+                          AgentDataProcessor.extractVendorIdFromDeviceId(
+                            device.device_id,
+                          );
+                        const productId =
+                          device.product_id ||
+                          AgentDataProcessor.extractProductIdFromDeviceId(
+                            device.device_id,
+                          );
 
                         // Improve manufacturer display using proper extraction logic
-                        let manufacturer = device.manufacturer || 'Unknown';
-                        if (manufacturer === 'Unknown' || manufacturer === '(Standard system devices)') {
+                        let manufacturer = device.manufacturer || "Unknown";
+                        if (
+                          manufacturer === "Unknown" ||
+                          manufacturer === "(Standard system devices)"
+                        ) {
                           // Extract manufacturer from description
-                          if (device.description?.includes('VendorCo ProductCode')) {
-                            manufacturer = 'VendorCo ProductCode';
+                          if (
+                            device.description?.includes("VendorCo ProductCode")
+                          ) {
+                            manufacturer = "VendorCo ProductCode";
                           } else if (device.description) {
-                            const parts = device.description.split(' ');
-                            if (parts.length >= 2 && parts[0] !== 'USB' && parts[0] !== 'Mass' && parts[0] !== 'Storage') {
+                            const parts = device.description.split(" ");
+                            if (
+                              parts.length >= 2 &&
+                              parts[0] !== "USB" &&
+                              parts[0] !== "Mass" &&
+                              parts[0] !== "Storage"
+                            ) {
                               manufacturer = parts[0];
-                            } else if (device.description.includes('Mass Storage')) {
-                              manufacturer = 'Generic Storage Manufacturer';
+                            } else if (
+                              device.description.includes("Mass Storage")
+                            ) {
+                              manufacturer = "Generic Storage Manufacturer";
                             } else {
-                              manufacturer = 'Generic USB Manufacturer';
+                              manufacturer = "Generic USB Manufacturer";
                             }
                           }
                         }
 
                         return (
-                          <div key={`usb-${device.device_id || index}`} className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                          <div
+                            key={`usb-${device.device_id || index}`}
+                            className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700"
+                          >
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                               <div>
-                                <span className="text-gray-500 dark:text-gray-400 font-medium">Device:</span>
+                                <span className="text-gray-500 dark:text-gray-400 font-medium">
+                                  Device:
+                                </span>
                                 <p className="text-gray-900 dark:text-gray-100 font-medium">
-                                  {device.description || 'USB Device'}
+                                  {device.description || "USB Device"}
                                 </p>
                               </div>
                               <div>
-                                <span className="text-gray-500 dark:text-gray-400 font-medium">Manufacturer:</span>
+                                <span className="text-gray-500 dark:text-gray-400 font-medium">
+                                  Manufacturer:
+                                </span>
                                 <p className="text-gray-900 dark:text-gray-100">
                                   {manufacturer}
                                 </p>
                               </div>
                               <div>
-                                <span className="text-gray-500 dark:text-gray-400 font-medium">Vendor ID:</span>
+                                <span className="text-gray-500 dark:text-gray-400 font-medium">
+                                  Vendor ID:
+                                </span>
                                 <p className="text-gray-900 dark:text-gray-100 font-mono">
-                                  {vendorId && vendorId !== 'unknown' ? vendorId.toUpperCase() : 'N/A'}
+                                  {vendorId && vendorId !== "unknown"
+                                    ? vendorId.toUpperCase()
+                                    : "N/A"}
                                 </p>
                               </div>
                               <div>
-                                <span className="text-gray-500 dark:text-gray-400 font-medium">Product ID:</span>
+                                <span className="text-gray-500 dark:text-gray-400 font-medium">
+                                  Product ID:
+                                </span>
                                 <p className="text-gray-900 dark:text-gray-100 font-mono">
-                                  {productId && productId !== 'unknown' ? productId.toUpperCase() : 'N/A'}
+                                  {productId && productId !== "unknown"
+                                    ? productId.toUpperCase()
+                                    : "N/A"}
                                 </p>
                               </div>
                             </div>
                             <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
                               <div className="flex justify-between items-center">
                                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                                  Type: {device.device_type?.replace('_', ' ') || 'Unknown'}
+                                  Type:{" "}
+                                  {device.device_type?.replace("_", " ") ||
+                                    "Unknown"}
                                 </span>
                                 <Badge variant="default" className="text-xs">
                                   Active
@@ -1133,8 +1260,14 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                 label="Total Size"
                                 value={bytesToGB(drive.total)}
                               />
-                              <Stat label="Used" value={bytesToGB(drive.used)} />
-                              <Stat label="Free" value={bytesToGB(drive.free)} />
+                              <Stat
+                                label="Used"
+                                value={bytesToGB(drive.used)}
+                              />
+                              <Stat
+                                label="Free"
+                                value={bytesToGB(drive.free)}
+                              />
                               <Stat
                                 label="Filesystem"
                                 value={drive.filesystem || "N/A"}
@@ -1364,7 +1497,9 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                               Primary MAC Address
                             </h4>
                             <p className="text-indigo-900 dark:text-indigo-100 font-mono">
-                              {agent?.primary_mac_address || processedData?.networkInfo?.ethernetMAC || "Unknown"}
+                              {agent?.primary_mac_address ||
+                                processedData?.networkInfo?.ethernetMAC ||
+                                "Unknown"}
                             </p>
                           </div>
 
@@ -1962,7 +2097,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                                                 <Badge
                                                   variant={
                                                     update.Severity ===
-                                                                                   "Critical"
+                                                    "Critical"
                                                       ? "destructive"
                                                       : "secondary"
                                                   }
@@ -2316,7 +2451,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
                       if (Object.keys(security).length === 0) {
                         return (
                           <div className="text-center py-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                          <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
+                            <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
                             <p className="text-sm text-yellow-800 dark:text-yellow-200">
                               No security information available
                             </p>
