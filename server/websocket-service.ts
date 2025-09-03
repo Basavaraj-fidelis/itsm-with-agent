@@ -77,7 +77,7 @@ class WebSocketService {
 
   init(server: Server): void {
     this.wss = new WebSocketServer({
-      server,
+      server, // Attach to the provided HTTP server
       path: '/ws',
       perMessageDeflate: false,
       maxPayload: 1024 * 1024 // 1MB max payload
